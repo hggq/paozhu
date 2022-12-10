@@ -7,8 +7,24 @@ Paozhu c++ http web 框架
 Paozhu(炮竹) c++ web framework 框架是一个全面、快速web开发框架，集成ORM，开发速度跟脚本语言一样，框架集成了webserver,自己原生解析http1.1、http2协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char int string float等，框架自动解析URL、POST参数到微型对象里面，使用urlpath映射到函数挂载点，使用协程、线程池、数据库链接池。
 
 
-特性
+特性 Features
 --------------
+
+1. Support multiple domain name websites
+2. Support multiple domain name ssl server
+3. Support http1.1 and http2 protocols
+4. Support websocket server
+5. The framework comes with websocket push, which supports regular push to websocket client
+6. Support synchronization of httpclient get post
+7. The framework comes with an ORM. It uses the link pool method and currently supports MySQL
+8. Framework's own thread pool
+9. The framework uses asio Coroutines
+10. The framework features that I/O uses the coroutine pool to run and thread pool to run
+11. The framework supports regular files gzip
+12. The framework parses the URL and POST. The parsing result is similar to the PHP GET POST method to obtain the content
+13. Integrated sendmail
+14. Generating QR code requires gd and qrencode libraries
+
 
 1. 支持多域名网站
 2. 支持多域名ssl 服务端
@@ -24,5 +40,70 @@ Paozhu(炮竹) c++ web framework 框架是一个全面、快速web开发框架�
 12. 框架解析URL和POST,解析结果类似PHP GET POST方式获取内容
 13. 集成sendmail
 14. 生成二维码(qrcode),需要gd、qrencode库
+
 ---------------------
 
+
+Runtime environment
+--------------------------------------
+
+C++ standard request c++20
+
+boost asio mysql gd MySQL Connector/C++ qrencode 
+zlib brotli(br)
+
+
+mac os request >=big sur  
+---------
+
+brew install this soft Package
+
+1. brew install boost
+2. brew install asio
+3. brew install mysql-connector-c++
+4. brew install gd
+5. brew install qrencode
+6. brew install zlib
+7. brew install brotli
+
+
+ubuntu 20.04
+-------------------
+
+need gcc11 intall see  ubuntu install gcc.txt
+
+
+ubuntu 20.04
+-------------------
+
+intall see ubuntu install gcc.txt
+
+
+
+install 
+--------------------
+
+mkdir build
+cd build
+cmake ..
+make
+
+
+Roadmap
+-----------------
+
+1. Improved http features
+2. websocket client
+3. postgres,sqlite orm
+
+
+Contribute
+-----------------
+
+Welcome to join！ You are Raise an issue Or submit a Pull Request。
+
+
+LICENSE
+-----------------
+
+MIT License
