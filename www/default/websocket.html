@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebSocket Chat Client</title>
+<meta charset="utf-8" />
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" >
+//判读浏览器是否支持websocket
+    $().ready(function() {
+if ( !window.WebSocket ) {
+             alert("童鞋, 你的浏览器不支持该功能啊");
+        }
+
+    });
+//在消息框中打印内容
+function log(text) {
+        $("#log").append(text+"\n");
+    }//全局的websocket变量
+var ws;//创建连接
+function closews(){
+    ws.close();
+}
+    $(function() {
+    $("#uriForm").submit(function() {
+        log("准备连接到" + $("#uri").val());
+
+        ws 
+= new WebSocket($("#uri").val());
+//连接成功建立后响应
+        ws.onopen = function() {
+            log("成功连接到" + $("#uri").val());
+        }
+//收到服务器消息后响应
+        ws.onmessage = function(e) {
+            log("收到服务器消息:" + e.data + "\n");
+        }
+//连接关闭后响应
+        ws.onclose = function() {
+            log("关闭连接");
+            $("#disconnect").attr({"disabled":"disabled"});
+            $("#uri").removeAttr("disabled");
+            $("#connect").removeAttr("disabled");
+            ws = null;
+        }
+        $("#uri").attr({"disabled":"disabled"});
+        $("#connect").attr({"disabled":"disabled"});
+        $("#disconnect").removeAttr("disabled");
+return false;
+    });
+    });//发送字符串消息
+    $(function() {
+    $("#sendForm").submit(function() {
+if (ws) {
+var textField = $("#textField");
+             ws.send(textField.val());
+             log("我说:" + textField.val());
+             textField.val("");
+             textField.focus();
+         }
+return false;
+    });
+    });//发送arraybuffer(二进制文件)
+    $(function() {
+    $("#sendFileForm").submit(function() {
+var inputElement = document.getElementById("file");
+var fileList = inputElement.files;
+
+for ( var i = 0; i < fileList.length; i++) {
+            console.log(fileList[i]);
+            log(fileList[i].name);
+//发送文件名
+            ws.send(fileList[i].name);
+//            reader.readAsBinaryString(fileList[i]);
+//读取文件　　
+
+　　　　　　　var reader = new FileReader();
+
+            reader.readAsArrayBuffer(fileList[i]);
+//            reader.readAsText(fileList[i]);
+//文件读取完毕后该函数响应
+            reader.onload = function loaded(evt) {
+var binaryString = evt.target.result;
+// Handle UTF-16 file dump
+                log("\n开始发送文件");
+                ws.send(binaryString);
+            }
+        }
+return false;
+    });
+    });
+
+    $(
+function() {
+    $("#disconnect").click(function() {
+if (ws) {
+             $("#log").empty();
+             ws.close();
+             ws = null;
+         }
+return false;
+    });
+    });
+
+    $(
+function() {
+    $("#reset").click(function() {
+        $("#log").empty();
+return false;
+    });
+    });</script>
+</head>
+<body>
+<form id="uriForm">
+<input type="text" id="uri" value="ws://www.869869.com/wstest"
+            style="width: 200px;"> <input type="submit" id="connect"
+            value="Connect"><input type="button" id="disconnect"
+            value="Disconnect" disabled="disabled">
+</form>
+<br>
+
+<form id="sendFileForm">
+<input id="file" type="file" multiple />
+<input type="submit" value="Send" />
+<input type="button" id="reset" value="clear textarea"/>
+</form>
+<br>
+<form id="sendForm">
+<input type="text" id="textField" value="" style="width: 200px;">
+<input type="submit" value="Send">
+</form>
+<br>
+<form>
+   <p> <button type="button" onclick="closews();">close</button>   </p>  
+<textarea id="log" rows="30" cols="100"
+            style="font-family: monospace; color: red;"></textarea>
+</form>
+
+</body>
+</html>
+

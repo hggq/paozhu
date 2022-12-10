@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <meta name="generator" content="Hugo 0.101.0">
+    <title>Content Management System</title>
+
+    <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="text-center">
+    <%c include_sub("home/header",obj); %>
+    <div class="container text-center">
+      <div class="row">
+        <div class="col-3"></div>  
+        <div class="col-6">
+          <h2 id="horizontal-form">CMS Admin </h2>
+          <form action="/cms/loginpost" method="post">
+            <div class="row mb-3">
+              <label for="username" class="col-sm-2 col-form-label">Username</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="username" name="username" value="admin">
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="password" class="col-sm-2 col-form-label">Password</label>
+              <div class="col-sm-10">
+                <input type="password" class="form-control" id="password" name="password" value="123456">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Sign in</button>
+          </form>
+      
+        </div>
+ 
+      </div>
+    </div>
+
+  </body>
+  </html>

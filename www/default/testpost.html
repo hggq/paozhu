@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+    <title>有限公司</title>
+    
+    <!-- HTML5 shim 和 Respond.js 是为了让 IE8 支持 HTML5 元素和媒体查询（media queries）功能 -->
+    <!-- 警告：通过 file:// 协议（就是直接将 html 页面拖拽到浏览器中）访问页面时 Respond.js 不起作用 -->
+    <!--[if lt IE 9]>
+      <script src="dist/js/html5shiv.min.js"></script>
+      <script src="dist/respond.min.js"></script>
+    <![endif]-->
+    <!-- jQuery (Bootstrap 的所有 JavaScript 插件都依赖 jQuery，所以必须放在前边) -->
+    <script src="js/jquery.min.js"></script>
+    <!-- 加载 Bootstrap 的所有 JavaScript 插件。你也可以根据需要只加载单个插件。 -->
+	 
+    <!-- <script src="dist/js/bootstrap.min.js"></script>     -->
+	  <script src="js/axios.min.js"></script>
+	  
+  </head>
+  <body> 
+  <p>提交表单测试 http from test</p>
+  <form method="post" enctype="multipart/form-data" name="form1" id="form1" action="/weibo/post?aabb=1122">
+    <p>
+      <label for="textfield">Text Field:</label>
+      <input type="text" name="textfield" id="textfield">
+    </p>
+	   <p>
+      <label for="textfield">Text Field:</label>
+      <input type="text" name="aa[]" id="textfield1">
+    </p>
+	   <p>
+      <label for="textfield">Text Field:</label>
+      <input type="text" name="aa[]" id="textfield2">
+    </p>
+	  	   <p>
+      <label for="textfield">Text Field:</label>
+      <input type="text" name="aa[8]" id="textfield3">
+    </p>
+    <p>
+      <label for="textarea">Text Area:</label>
+      <textarea name="textarea" id="textarea"></textarea>
+    </p>
+    <p>
+      <label for="fileField">File:</label>
+      <input type="file" name="fileField" id="fileField">
+    </p>
+    <p>&nbsp;</p>
+    <p>
+      <input type="submit" name="submit" id="submit" value="Submit">
+    </p>
+  </form>
+  <form id="form2" name="form2" method="post" action="/weibo/post?aabb=1122">
+    <p>
+      <label for="textfield2">Text Field:</label>
+      <input type="text" name="textfield2" id="textfield2">
+    </p>
+	   <p>
+      <label for="textfield2">Text Field:</label>
+      <input type="text" name="cc[22][]" id="textfield22">
+    </p>
+	    <p>
+      <label for="textfield2">Text Field:</label>
+      <input type="text" name="cc[aabbcc][]" id="textfield222">
+    </p>
+    <p>
+      <label for="textarea2">Text Area:</label>
+      <textarea name="textarea2" id="textarea2"></textarea>
+    </p>
+    <p>
+      <input type="submit" name="submit2" id="submit2" value="Submit">
+    </p>
+  </form>
+  <p>&nbsp;</p>
+	  <input type="button" onClick="uploadajax();" name="submit3" id="submit3" value="jqueryajax">
+	  
+	  <input type="button" onClick="axiopost();" name="submit3" id="submit3" value="jqueryajax">
+	  
+	  <input type="button" onClick="typepost();" name="submit3" id="submit3" value="typepost">
+	  <div class="form-group">
+            <div class="col-sm-2">
+              <button type="button" style="width:124px;" class="btn btn-info pull-left">个人简历</button>
+            </div>
+            <div class="col-sm-8">
+              
+          <div class="form-group">
+            <div class="col-sm-8">
+              <p>请上传您自己制作的简历：</p>
+              <p>1） 简历为pdf格式；</p>
+              <p>2） 其它按上面要求上传图片；</p>
+              <input  id="harg_file" type="file" accept="application/zip,application/pdf,application/x-pdf,image/svg+xml"/>
+              <input name="fileurl" type="hidden" id="fileurl" value="">
+              <div id="upshow" style="border:#666 1px solid;padding:0px;height:27px;width:202px;margin-top: 4px;">
+                <p id="upload_tip" style="margin:0xp;height:25px;width:0px; background-color:#390; text-align:center;color:#FFF;"></p>
+              </div>
+              <p style="margin:5px" id="showattfile">请上传一份您自己制作的简历</p>   
+            </div>
+          </div>
+            </div>
+          </div>
+	  <script language="javascript">
+	  
+	  function uploadajax(){
+		     $.post("/weibo/urlpost?aabb=1122",{aa:$("#textfield2").val(),bb:$("#textarea2").val()},function(result){
+			 
+		  });
+	  }
+	  
+	function axiopost(){
+		axios.post('/weibo/formpost', {
+			firstName: 'Fred',
+			lastName: 'Flintstone'
+		  })
+		  .then(function (response) {
+			console.log(response);
+		  })
+		  .catch(function (error) {
+			console.log(error);
+		  });
+	}	  
+		  
+	function typepost(){
+		   $.ajax({
+        url:"/weibo/xmlupload",
+        type:"POST",
+        processData: false,
+        contentType:"application/xml",
+        data: "++asdfafaafaasfdassafasfafasaasdfasfaassafaffafa==",
+        dataType: "json",
+        xhr: function() {  // custom xhr
+            myXhr = $.ajaxSettings.xhr();
+            if(myXhr.upload){ // check if upload property exists
+
+            }
+            return myXhr;
+        },
+        success:function(data){
+ 
+        }
+      });
+	}	  
+		  
+		  $(document).ready(function(e) {
+    $("#harg_file").change(function(){
+      var fd=new FormData();
+      if($(this).get(0).files[0].size>15728640){
+        alert("附件不能大于15M，附件为zip、rar、jpg格式！");
+        return false;
+      }
+      fd.append("file",$(this).get(0).files[0]);
+      fd.append("hash",$("#hashid").val());
+      $.ajax({
+        url:"/weibo/fileupload",
+        type:"POST",
+        processData: false,
+        contentType:false,
+        data: fd,
+        dataType: "json",
+        xhr: function() {  // custom xhr
+            myXhr = $.ajaxSettings.xhr();
+            if(myXhr.upload){ // check if upload property exists
+                myXhr.upload.addEventListener('progress',function(evt){
+                    //$( "#upload_tip").dialog("open");
+                    var percentComplete = Math.round(evt.loaded*100 / evt.total);
+                    
+                    $( "#upload_tip").css("width",percentComplete*2);
+                    $( "#upload_tip").html(percentComplete+'%');
+                }, false); // for handling the progress of the upload
+            }
+            return myXhr;
+        },
+        success:function(data){
+            var json=data;
+            if(json.status==1){
+              $("#fileurl").val(json.fileurl);
+              $("#showattfile").html("<a href='"+json.fileurl+"'>"+json.fileurl+"</a>");
+              alert("上传成功！");
+            }else{
+              if(json.fileurl.length<10){
+                alert("上传文件请控制在8M以内！");
+              }
+            }
+            //console.log(data.status);
+        }
+      });
+    });
+  });    
+	  </script>
+  </body>
+</html>

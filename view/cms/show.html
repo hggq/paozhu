@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <meta name="generator" content="Hugo 0.101.0">
+    <title>Content Management System</title>
+
+    <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="text-center">
+    <%c include_sub("home/header",obj); %>
+     <h3><a href="/cms/list">列表</a> 内容介绍</h3>
+     
+     <div class="container">
+      <h1 class="mt-5"><%c echo<<obj["title"].as_string(); %></h1>
+      <div><%c echo<<obj["content"].as_string(); %></div>
+
+    </div>
+
+  </body>
+  </html>

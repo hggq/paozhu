@@ -1,0 +1,170 @@
+#ifndef __HTTP_CLIENT_SESSION_H
+#define __HTTP_CLIENT_SESSION_H
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio.hpp>
+#include <asio/ssl.hpp>
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
+#include <asio/io_context.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/signal_set.hpp>
+#include <asio/write.hpp>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <list>
+#include <map>
+#include <mutex>
+#include <queue>
+#include <string>
+#include <thread>
+#include <memory>
+#include <set>
+
+#include <cstdlib>
+#include <fstream>
+#include <algorithm>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
+
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
+#ifdef WIN32
+#define stat _stat
+#endif
+
+#include <array>
+#include <iostream>
+#include <ctime>
+#include <map>
+#include <sys/time.h>
+#include <map>
+#include <thread>
+#include <mutex>
+#include <filesystem>
+#include <future>
+#include <functional>
+#include <stdexcept>
+
+#include <zlib.h>
+#include "sendqueue.h"
+#include "http_header.h"
+#include "http_socket.h"
+#include "http2_frame.h"
+#include "cookie.h"
+
+namespace http
+{
+  struct filesend_promise
+  {
+    std::string filename;
+    long long begin_num = 0;
+    long long end_num = 0;
+    unsigned int stream_id = 0;
+    bool isfinish = false;
+  };
+  struct send_file_promise
+  {
+    std::future<int> send_results;
+    std::promise<int> send_promise;
+  };
+  class client_session
+      : public std::enable_shared_from_this<client_session>
+  {
+  public:
+    client_session(std::list<asio::ip::tcp::socket> sock);
+
+    client_session(std::list<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket);
+    ~client_session()
+    {
+    }
+
+    void flush_data();
+    void add_data(const std::string &msg);
+    void add_data(const unsigned char *buffer, unsigned int buffersize);
+    void write_data(const unsigned char *, unsigned int);
+    void write_data(const std::string &msg);
+    bool send_data(const std::string &msg);
+    bool send_data(const unsigned char *, unsigned int);
+    bool isopensocket();
+    std::shared_ptr<client_session> get_ptr();
+    awaitable<void> loopsendfile(filesend_promise finfo);
+    awaitable<void> loopwriter();
+
+    std::string getremoteip();
+    unsigned int getremoteport();
+
+    std::string getlocalip();
+    unsigned int getlocalport();
+
+    bool send_setting();
+    bool send_switch101();
+    bool send_recv_setting();
+    void send_window_update(unsigned int, unsigned int streamid = 0);
+    void recv_window_update(unsigned int, unsigned int streamid = 0);
+
+  private:
+    awaitable<void> sslwriter();
+    awaitable<void> writer();
+
+    void stop();
+
+  public:
+    unsigned char _cache_data[4106];
+    unsigned char _write_data[4106];
+    unsigned int _cache_size = 0;
+    unsigned int _write_size = 0;
+    std::atomic_bool sendtype = false;
+
+    bool isssl = false;
+    bool isgoway = false;
+    bool isclose = false;
+
+    unsigned char error_state = 0;
+
+    unsigned char httpv = 0;
+    unsigned int recvtype = 0;
+    std::list<asio::ip::tcp::socket> _socket;
+
+    std::list<asio::ssl::stream<asio::ip::tcp::socket>> _sslsocket;
+    asio::steady_timer timer_;
+    std::deque<std::string> write_msgs_;
+
+    std::list<sendqueue_t *> send_queue_list;
+
+    std::string server_ip;
+    std::string client_ip;
+    unsigned int client_port;
+    unsigned int server_port;
+    std::string error_value;
+
+    std::list<std::future<int>> _cache_send_results;
+    std::promise<int> _cache_send_promise;
+
+    std::queue<filesend_promise> sendfile_promise_list;      // wait sendfile
+    std::map<unsigned, send_file_promise> peer_promise_list; // peer wait promise
+
+    std::atomic<unsigned long long> window_update_num;
+
+    std::list<int> promise_list;
+    // 等待划动窗口 atomic_uchar
+    std::atomic_bool atomic_bool = false;
+    std::list<std::future<int>> window_update_results;
+    std::promise<int> window_update_promise;
+
+    std::mutex writemutex;
+  };
+}
+
+#endif

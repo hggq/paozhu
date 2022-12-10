@@ -1,0 +1,186 @@
+#ifndef HTTP_PEER_H
+#define HTTP_PEER_H
+
+#include <iostream>
+#include <cstdio>
+#include <stdexcept>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <sstream>
+#include <map>
+#include <list>
+#include <filesystem>
+#include <functional>
+#include <string_view>
+#include <type_traits>
+#include <concepts>
+#include <vector>
+#include <cmath>
+#include <thread>
+#include <chrono>
+
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
+#ifdef WIN32
+#define stat _stat
+#endif
+
+#include "request.h"
+#include "client_session.h"
+#include "websockets_parse.h"
+#include "websockets.h"
+
+namespace http
+{
+  #define COOKIE_SESSION_NAME "PHPSESSID"
+  template <typename T>
+  concept VALNUM_T =std::is_floating_point_v<T>||std::is_integral_v<T>;
+
+  class httppeer : public std::enable_shared_from_this<httppeer>
+  {
+  public:
+    unsigned char getfileinfo();
+    bool isshow_directory();
+    void send_files(std::string);
+    void status(unsigned int);
+    unsigned int getStatus();
+    void type(const std::string &);
+    void length(unsigned long long);
+    void scheme(unsigned char);
+    std::shared_ptr<httppeer> get_ptr();
+    std::string make_http2_header(unsigned char flag_code = 0);
+    std::string make_http1_header();
+    void setHeader(const std::string &, const std::string &);
+    void getHeader(const std::string &);
+    void getCookie(const std::string &);
+
+    void setCookie(std::string key, std::string val, long long exptime = 0, std::string path = "", std::string domain = "", bool secure = false, bool httponly = true, std::string issamesite = "");
+
+    std::list<std::string> cookietoheader();
+    std::string gethosturl();
+    void goto_url(std::string url, unsigned char second=0, std::string msg="");
+    bool issettype();
+
+    void parse_session();
+    void save_session();
+    void clear_session();
+
+    void view(const std::string &a);
+    void view(const std::string &a,OBJ_VALUE &b);
+    std::string fetchview(const std::string &a);
+    std::string fetchview(const std::string &a,OBJ_VALUE &b);
+    void send(const std::string &a);
+    httppeer &put(std::string);
+    httppeer &put(const std::string &a);
+
+    httppeer &operator<<(OBJ_VALUE &a);
+    httppeer &operator<<(std::string &&a);
+    httppeer &operator<<(std::string &a);
+    httppeer &operator<<(std::string_view a);
+    httppeer &operator<<(const char *a);
+    httppeer &operator<<(const std::string &a);
+    httppeer &operator<<(unsigned int a);
+    httppeer &operator<<(int a);
+    httppeer &operator<<(unsigned long long a);
+    httppeer &operator<<(long long a);
+    httppeer &operator<<(float a);
+    httppeer &operator<<(double a);
+
+    template <typename T>
+    httppeer &operator<<(VALNUM_T auto a);
+
+    template <typename T>
+    httppeer &operator<<(T a);
+    template <typename T>
+    httppeer &operator<<(T *a);
+
+    httppeer &getpeer();
+    void out_json(OBJ_VALUE &a);
+    void out_json();
+    void out_jsontype();
+    std::string host;
+    std::string url;
+    std::string urlpath;
+    std::string querystring;
+
+    std::string content_type;
+    std::string etag;
+
+    std::string chartset;
+    std::string accept_language;
+    std::string rawheader;
+    std::string rawcontent;
+    std::map<std::string, std::string> header;
+    http::OBJ_VALUE get;
+    http::OBJ_VALUE post;
+    http::OBJ_VALUE files;
+    http::OBJ_VALUE json;
+    http::OBJ_VALUE val;
+    Cookie cookie;
+    std::vector<std::string> pathinfos;
+
+    bool issendheader = false;
+    bool ischunked = false;
+    bool isfinish = false;
+    bool issend = false;
+    bool isclose = false;
+    bool isssl = false;
+    bool keeplive = true;
+    bool isso = false;
+
+    unsigned char posttype;
+    unsigned char compress;
+    unsigned int stream_id = 0;
+    unsigned int status_code = 0;
+    long long content_length = 0;
+
+    struct headstate_t state;
+    struct websocket_t websocket;
+
+    std::unique_ptr<websocketparse> ws;
+    std::shared_ptr<websockets_api> websockets;
+
+    http::OBJ_VALUE session;
+    unsigned long long sessionfile_time = 0;
+    Cookie send_cookie;
+    std::map<std::string, std::string> send_header;
+    std::map<unsigned char, std::string> http2_send_header;
+
+    struct stat fileinfo;
+    std::string output;
+    std::string sitepath;
+    std::string sendfilename;
+    unsigned char sendfiletype;
+    unsigned char linktype;
+    unsigned char method;
+    unsigned char httpv;
+
+    std::string server_ip;
+    std::string client_ip;
+    unsigned int client_port;
+    unsigned int server_port;
+
+    std::shared_ptr<client_session> socket_session;
+
+    std::list<std::future<int>> loopresults;
+    std::promise<int> looprunpromise;
+
+    // 等待滑动窗口 
+    std::atomic_bool window_update_bool = false;
+    std::list<std::future<int>> window_update_results;
+    std::promise<int> window_update_promise;
+
+  };
+  struct regmethold_t
+  {
+     std::function<std::string(std::shared_ptr<httppeer>)> pre=nullptr;
+     std::function<std::string(std::shared_ptr<httppeer>)> regfun;
+  };
+  //extern std::map<std::string, std::function<std::string(std::shared_ptr<httppeer>)>> _http_regmethod_table;
+  extern std::map<std::string, regmethold_t> _http_regmethod_table;
+   void make_404_content(std::shared_ptr<httppeer> peer);   
+}
+#endif

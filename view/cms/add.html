@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <meta name="generator" content="Hugo 0.101.0">
+    <title>Content Management System</title>
+
+    <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="text-center">
+    <%c include_sub("home/header",obj); %>
+     <h3><a href="/cms/list">返回列表</a> </h3>
+     
+ 
+
+    <div class="container text-center">
+      <div class="row">
+        <div class="col-3"></div>  
+        <div class="col-6">
+          <h2 id="horizontal-form">添加新内容</h2>
+          <form action="/cms/addpost" method="post">
+
+    <div class="mb-3">
+      <label for="title" class="form-label">内容标题</label>
+      <input type="text" class="form-control" id="title" name="title" placeholder="标题" value="">
+    </div>
+    <div class="mb-3">
+      <label for="content" class="form-label">内容</label>
+      <textarea class="form-control" id="content" name="content"  rows="20"></textarea>
+    </div>
+    <input type="hidden" id="aid" name="aid"  value="0">
+    <button type="submit" class="btn btn-primary">提交</button>
+  </form>
+
+</div>
+
+</div>
+</div>
+
+  </body>
+  </html>
