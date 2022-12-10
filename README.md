@@ -81,13 +81,17 @@ intall see ubuntu install gcc.txt
 
 
 
-install 
+Install 
 --------------------
 
 mkdir build
+
 cd build
+
 cmake ..
+
 make
+
 
 
 Roadmap
