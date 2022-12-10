@@ -1,6 +1,6 @@
-Paozhu c++ http web framework
+paozhu c++ http web framework
 
-Paozhu c++ http web 框架
+paozhu c++ http web 框架
 
 介绍
 ---------------
@@ -94,7 +94,13 @@ cmake ..
 
 make
 
+sudo vim /etc/hosts
 
+add one line
+
+127.0.0.1 www.869869.com 
+
+test https
 
 Roadmap
 -----------------
