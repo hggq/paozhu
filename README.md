@@ -23,7 +23,7 @@ Paozhu(炮竹) c++ web framework 框架是一个全面、快速web开发框架�
 8. Framework has two thread pool,framework thread pool,user program runing thread pool
 9. The framework uses asio Coroutines
 10. The framework features that I/O uses the coroutine pool to run and thread pool to run
-11. The framework supports regular files gzip
+11. The framework supports compress gzip br out files 
 12. The framework parses the URL and POST. The parsing result is similar to the PHP GET POST method to obtain the content
 13. Integrated sendmail
 14. Generating QR code requires gd and qrencode libraries
@@ -39,7 +39,7 @@ Paozhu(炮竹) c++ web framework 框架是一个全面、快速web开发框架�
 8. 框架自带线程池，和用户代码运行的线程池
 9. 框架使用asio自带的协程
 10. 框架特色是I/O 使用协程池 运行使用线程池
-11. 框架支持普通文件gzip
+11. 框架支持普通文件gzip br
 12. 框架解析URL和POST,解析结果类似PHP GET POST方式获取内容
 13. 集成sendmail
 14. 生成二维码(qrcode),需要gd、qrencode库
