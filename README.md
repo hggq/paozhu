@@ -103,7 +103,6 @@ make
 edit conf/server.conf file
 replace your current path to
 
-
 sudo vim /etc/hosts
 
 add one line
@@ -111,6 +110,9 @@ add one line
 127.0.0.1 www.869869.com 
 
 test https
+
+sudo ./bin/paozhu
+
 
 Roadmap
 -----------------
