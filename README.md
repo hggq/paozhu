@@ -86,6 +86,10 @@ install see ubuntu install gcc.txt
 Install 
 --------------------
 
+mkdir temp
+
+mkdir log
+
 mkdir build
 
 cd build
@@ -93,6 +97,7 @@ cd build
 cmake ..
 
 make
+
 
 
 edit conf/server.conf file
