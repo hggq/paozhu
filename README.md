@@ -94,6 +94,11 @@ cmake ..
 
 make
 
+
+edit conf/server.conf file
+replace your current path to
+
+
 sudo vim /etc/hosts
 
 add one line
