@@ -120,8 +120,8 @@ open browser http://localhost
 ![正确运行效果](https://github.com/hggq/paozhu/blob/main/www/default/firstrun.jpg)
 
 
-More see Directory include CURD example
-controller
+More see controller Directory include CURD example
+
 
 
 Roadmap
