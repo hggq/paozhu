@@ -71,13 +71,13 @@ brew install this soft Package
 ubuntu 20.04
 -------------------
 
-need gcc11 intall see  ubuntu install gcc.txt
+need gcc11 install see  ubuntu install gcc.txt
 
 
 ubuntu 20.04
 -------------------
 
-intall see ubuntu install gcc.txt
+install see ubuntu install gcc.txt
 
 
 
