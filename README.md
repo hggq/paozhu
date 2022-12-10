@@ -111,7 +111,12 @@ add one line
 
 test https
 
-sudo ./bin/paozhu
+runing 
+
+sudo ./bin/paozhu 
+
+open browser http://localhost
+
 
 
 Roadmap
