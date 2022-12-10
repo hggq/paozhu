@@ -1,4 +1,5 @@
 Paozhu c++ http web framework
+
 Paozhu c++ http web 框架
 
 介绍
@@ -17,7 +18,7 @@ Paozhu(炮竹) c++ web framework 框架是一个全面、快速web开发框架�
 5. The framework comes with websocket push, which supports regular push to websocket client
 6. Support synchronization of httpclient get post
 7. The framework comes with an ORM. It uses the link pool method and currently supports MySQL
-8. Framework's own thread pool
+8. Framework has two thread pool,framework thread pool,user program runing thread pool
 9. The framework uses asio Coroutines
 10. The framework features that I/O uses the coroutine pool to run and thread pool to run
 11. The framework supports regular files gzip
@@ -33,7 +34,7 @@ Paozhu(炮竹) c++ web framework 框架是一个全面、快速web开发框架�
 5. 框架自带websocket推送，支持定时推送到webscoket客户端
 6. 支持同步httpclient get post
 7. 框架自带ORM,使用链接池方式，目前支持mysql 
-8. 框架自带线程池
+8. 框架自带线程池，和用户代码运行的线程池
 9. 框架使用asio自带的协程
 10. 框架特色是I/O 使用协程池 运行使用线程池
 11. 框架支持普通文件gzip
