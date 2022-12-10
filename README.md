@@ -117,6 +117,7 @@ sudo ./bin/paozhu
 
 open browser http://localhost
 
+![正确运行效果](https://github.com/hggq/paozhu/blob/main/www/default/firstrun.jpg)
 
 
 Roadmap
