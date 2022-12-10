@@ -76,7 +76,7 @@ ubuntu 20.04
 need gcc11 install see  ubuntu install gcc.txt
 
 
-ubuntu 20.04
+ubuntu 22.04
 -------------------
 
 install see ubuntu install gcc.txt
