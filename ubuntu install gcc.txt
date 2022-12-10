@@ -1,0 +1,259 @@
+
+ 本文以ubuntu20.04 安装为蓝本，ubuntu22.04 应该默认是 gcc-11 
+ 
+ 所以直接 sudo apt install build-essential 可以安装好gcc-11
+
+ $ sudo apt update
+ $ sudo apt install build-essential
+ $ sudo apt-get install manpages-dev	   
+ $ sudo apt-get install libboost-dev   //动态库用到 libboost-all-dev
+
+ sudo apt install libboost-filesystem-dev
+
+//如果编译不过,默认用boost 的asio ,把boost的asio删除
+//maybe neet delete boost.asio
+
+//sudo rm /usr/include/boost/asio.hpp
+//sudo rm -Rf /usr/include/boost/asio
+
+//sudo apt-get install libboost-all-dev  //可能要用到boost-filesystem boost-dll 
+
+ $ sudo apt install git
+
+可以不安装gcc-10 ubuntu22可以跳过gcc11安装
+sudo apt install gcc-10  //可能没有gcc-11 
+sudo apt install g++-10
+
+
+安装gcc-11参考
+https://lindevs.com/install-gcc-on-ubuntu/
+https://www.linuxcapable.com/how-to-install-gcc-compiler-on-ubuntu-22-04-lts/
+https://www.linuxcapable.com/zh-CN/%E5%A6%82%E4%BD%95%E5%9C%A8-ubuntu-22-04-lts-%E4%B8%8A%E5%AE%89%E8%A3%85-gcc-%E7%BC%96%E8%AF%91%E5%99%A8/
+
+
+sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
+sudo apt install -y gcc-11
+sudo apt install -y g++-11
+
+gcc-11 --version
+g++-11 -v
+
+
+安装依赖库
+sudo apt install libgd-dev
+sudo apt install qrencode libqrencode-dev
+
+sudo apt-get install openssl libssl-dev
+sudo apt install libasio-dev  //可能是旧版，下面安装是新版
+
+如果是ubuntu22.04 可能asio比较新，但是还是安装1.22.1以上，主要是我们开启协程
+
+
+独立安装asio 1.22.1
+
+打开按道理应该像gcc11一样可以 直接安装，我们可以手工安装包，打开下面网址, 1:1.22.1-1 点击前面小三角箭头
+https://launchpad.net/ubuntu/+source/asio
+
+会有很多包，我们直接下载 libasio-dev_1.22.1-1_all.deb  就可以了
+Package files
+
+    asio_1.22.1-1.debian.tar.xz (5.9 KiB)
+    asio_1.22.1-1.dsc (2.6 KiB)
+    asio_1.22.1.orig.tar.bz2 (2.9 MiB)
+    libasio-dev_1.22.1-1_all.deb (404.6 KiB)
+    libasio-doc_1.22.1-1_all.deb (182.1 MiB)
+
+
+https://launchpad.net/ubuntu/+archive/primary/+files/libasio-dev_1.22.1-1_all.deb
+
+ sudo dpkg -i libasio-dev_1.22.1-1_all.deb 
+
+
+查看 $ cat /usr/include/asio/version.hpp
+是不是 1.22.1
+
+也可以写一个测试文件testasio.cpp
+
+$ g++ testasio.cpp
+
+
+testasio.cpp
+
+#include "asio.hpp"
+#include <iostream>
+
+int main(){
+	std::cout<<ASIO_VERSION<<std::endl;
+	return 0;
+}
+
+
+安装mysql8
+
+参考
+https://zhuanlan.zhihu.com/p/262721133
+https://naturetrible.blog.csdn.net/article/details/122030359
+
+
+sudo apt-get install mysql-server
+sudo apt-get install mysql-common
+sudo apt-get install mysql-client
+
+sudo service mysql status # 查看服务状态
+sudo service mysql start # 启动服务
+sudo service mysql stop # 停止服务
+sudo service mysql restart # 重启服务
+
+
+$ sudo service mysql status
+● mysql.service - MySQL Community Server
+     Loaded: loaded (/lib/systemd/system/mysql.service; enabled; vendor preset: enabled)
+     Active: active (running) since Wed 2022-06-29 19:57:13 CST; 2min 23s ago
+   Main PID: 22401 (mysqld)
+     Status: "Server is operational"
+      Tasks: 37 (limit: 8745)
+     Memory: 359.0M
+     CGroup: /system.slice/mysql.service
+             └─22401 /usr/sbin/mysqld
+
+6月 29 19:57:11 hzq-Default-string systemd[1]: Starting MySQL Community Server...
+6月 29 19:57:13 hzq-Default-string systemd[1]: Started MySQL Community Server.
+
+查看密码
+List first password
+
+$ sudo cat /etc/mysql/debian.cnf
+# Automatically generated for Debian scripts. DO NOT TOUCH!
+[client]
+host     = localhost
+user     = debian-sys-maint
+password = 5hiIbvxR2DgC7ekz
+socket   = /var/run/mysqld/mysqld.sock
+[mysql_upgrade]
+host     = localhost
+user     = debian-sys-maint
+password = 5hiIbvxR2DgC7ekz
+socket   = /var/run/mysqld/mysqld.sock
+
+登陆加root密码
+mysql -u debian-sys-maint -p
+
+ 
+创建root用户
+ create user 'root'@'%' identified by '123456';
+ 授权
+ GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+刷新权限
+ FLUSH PRIVILEGES
+
+修改密码，注意如果是生产环境不要用123456
+
+ ALTER user 'root'@'localhost' IDENTIFIED BY '123456';
+ ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';
+
+我们去验证是不是设置上密码了
+
+选择mysql库看一有用户
+use mysql;
+select host,user,authentication_string from user;
++-----------+------------------+------------------------------------------------------------------------+
+| host      | user             | authentication_string                                                  |
++-----------+------------------+------------------------------------------------------------------------+
+| %         | root             | *6BB4837EB74329105EE4568DDA7DC67ED2CA2AD9                              |
+| localhost | debian-sys-maint | $A$005$*HO7jVD!i#
+                                                  g4FuU2y95DdV87pa2WisukPk4JCFhEZ5R2zEnFWMzrc3e. |
+| localhost | mysql.infoschema | $A$005$THISISACOMBINATIONOFINVALIDSALTANDPASSWORDTHATMUSTNEVERBRBEUSED |
+| localhost | mysql.session    | $A$005$THISISACOMBINATIONOFINVALIDSALTANDPASSWORDTHATMUSTNEVERBRBEUSED |
+| localhost | mysql.sys        | $A$005$THISISACOMBINATIONOFINVALIDSALTANDPASSWORDTHATMUSTNEVERBRBEUSED |
+| localhost | root             | *6BB4837EB74329105EE4568DDA7DC67ED2CA2AD9                              |
++-----------+------------------+------------------------------------------------------------------------+
+
+如果可以我们退出
+
+mysql -u root -p 
+输入123456
+可以登陆了
+
+
+安装mysql c++链接
+默认安装上旧版，没有mysqlx 
+所以先要安装
+
+Down load install last mysql apt config file
+
+https://repo.mysql.com/mysql-apt-config_0.8.24-1_all.deb
+参考
+https://zhuanlan.zhihu.com/p/356038056
+
+打开网址 open url
+https://repo.mysql.com/
+
+
+我们下载，也可以下载最新日期的
+https://repo.mysql.com/mysql-apt-config_0.8.24-1_all.deb
+
+sudo dpkg -i mysql-apt-config_0.8.22-1_all.deb
+
+第二个MySQL Tools 链接 Enabled，选择ok
+
+MySQL Server & Cluster (Currently selected: mysql-8.0) 
+MySQL Tools & Connectors (Currently selected: Enabled) 
+MySQL Preview Packages (Currently selected: Disabled) 
+
+sudo apt-get update
+
+安装c++ mysql 链接库
+sudo apt-get install libmysqlcppconn-dev
+
+安装目录应该在 /usr/include/mysql-cppconn-8
+
+find /usr -name *cppconn*
+我们写一个测试文件验证下
+
+g++ testmysql.cpp -I/usr/include/mysql-cppconn-8 -std=c++14 -lmysqlcppconn8 
+
+testmysql.cpp
+
+#include <iostream>
+#include <mysqlx/xdevapi.h>
+using std::cout;
+using std::endl;
+using std::vector;
+using namespace mysqlx;
+
+int main() {
+        // 默认的安装方式端口一定是33060，不是3306，mysql默认是3306
+        SessionSettings option("127.0.0.1", 33060,"root", "123456");
+        Session sess(option);
+        cout <<"Done!" <<endl;   
+}
+
+
+现在已经安装完成所有需要基础软件
+
+asio1.22.1已经兼容openssl3了，所以ubuntu22.04 安装基础软件包应该没有那么困难，直接apt-get 安装就可以了
+
+编译paozhu c++ web framework 框架
+进入框架目录
+mkdir build
+
+cd build
+
+cmake .. 
+如果没有相应的包，去安装相应的包
+
+make 
+
+配置服务器
+conf 目录
+server.conf 文件
+把里面的路径配置成你的路径
+
+然后回到
+框架目录
+运行 
+sudo ./bin/paozhu
+
+需要80 等端口 必须管理员权限运行
+
