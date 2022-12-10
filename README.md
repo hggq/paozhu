@@ -13,7 +13,7 @@ paozhu(炮竹🧨) c++ web framework 框架是一个全面、快速web开发框�
 特性 Features
 --------------
 
-1. support json decode encode，not use thirdparty,support json standard
+1. support json decode encode, not use thirdparty, support json standard
 2. Support multiple domain name websites
 3. Support multiple domain name ssl server
 4. Support http1.1 and http2 protocols
