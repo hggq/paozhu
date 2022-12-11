@@ -64,7 +64,7 @@
 #include "httppeer.h"
 // #include "http2_define.h"
 // #include "http_domain.h"
-namespace this_coro = asio::this_coro;
+//namespace this_coro = asio::this_coro;
 namespace fs = std::filesystem;
 
 namespace http
@@ -74,7 +74,7 @@ namespace http
   {
   public:
     httpserver() {}
-    awaitable<void> clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion);
+    asio::awaitable<void> clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion);
     void http1loop(unsigned int sig,std::shared_ptr<httppeer>,std::shared_ptr<client_session>);
     void websocket_loop(int myid);
     void listeners();

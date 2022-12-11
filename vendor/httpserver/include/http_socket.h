@@ -54,14 +54,6 @@
 #include <stdexcept>
 
 #include <zlib.h>
-
-using asio::awaitable;
-using asio::co_spawn;
-using asio::detached;
-using asio::use_awaitable;
-using asio::ip::tcp;
-namespace this_coro = asio::this_coro;
-
 namespace fs = std::filesystem;
 
 #if defined(ASIO_ENABLE_HANDLER_TRACKING)
@@ -69,12 +61,6 @@ namespace fs = std::filesystem;
   asio::use_awaitable_t(__FILE__, __LINE__, __PRETTY_FUNCTION__)
 #endif
 
-using asio::awaitable;
-using asio::co_spawn;
-using asio::detached;
-using asio::redirect_error;
-using asio::use_awaitable;
-using asio::ip::tcp;
 
 struct httpsocket_t
 {

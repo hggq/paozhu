@@ -324,7 +324,7 @@ namespace http
       return false;
     }
   }
-  awaitable<void> client_session::loopsendfile(filesend_promise finfo)
+  asio::awaitable<void> client_session::loopsendfile(filesend_promise finfo)
   {
     try
     {
@@ -379,12 +379,12 @@ namespace http
           {
             std::unique_lock<std::mutex> lock(writemutex);
             // asio::write(_sslsocket.front(),asio::buffer(_write_data, nread+9));
-            co_await asio::async_write(_sslsocket.front(), asio::buffer(_write_data, nread + 9), use_awaitable);
+            co_await asio::async_write(_sslsocket.front(), asio::buffer(_write_data, nread + 9), asio::use_awaitable);
           }
           else
           {
             std::unique_lock<std::mutex> lock(writemutex);
-            co_await asio::async_write(_socket.front(), asio::buffer(_write_data, nread + 9), use_awaitable);
+            co_await asio::async_write(_socket.front(), asio::buffer(_write_data, nread + 9), asio::use_awaitable);
             // asio::write(_socket.front(),asio::buffer(_write_data, nread+9));
           }
           window_update_num -= nread;
@@ -439,7 +439,7 @@ namespace http
     }
     co_return;
   }
-  awaitable<void> client_session::loopwriter()
+  asio::awaitable<void> client_session::loopwriter()
   {
     try
     {
@@ -449,7 +449,7 @@ namespace http
         if (write_msgs_.empty() && send_queue_list.empty())
         {
           asio::error_code ec;
-          co_await timer_.async_wait(redirect_error(use_awaitable, ec));
+          co_await timer_.async_wait(redirect_error(asio::use_awaitable, ec));
         }
         else
         {
@@ -466,7 +466,7 @@ namespace http
                 {
                   std::unique_lock<std::mutex> lock(writemutex);
                   co_await asio::async_write(_sslsocket.front(),
-                                             asio::buffer(send_ptr->data, send_ptr->data_size), use_awaitable);
+                                             asio::buffer(send_ptr->data, send_ptr->data_size), asio::use_awaitable);
                 }
                 else
                 {
@@ -479,7 +479,7 @@ namespace http
                 {
                   std::unique_lock<std::mutex> lock(writemutex);
                   co_await asio::async_write(_socket.front(),
-                                             asio::buffer(send_ptr->data, send_ptr->data_size), use_awaitable);
+                                             asio::buffer(send_ptr->data, send_ptr->data_size), asio::use_awaitable);
                 }
                 else
                 {
@@ -508,7 +508,7 @@ namespace http
               {
                 std::unique_lock<std::mutex> lock(writemutex);
                 co_await asio::async_write(_sslsocket.front(),
-                                           asio::buffer(write_msgs_.front()), use_awaitable);
+                                           asio::buffer(write_msgs_.front()), asio::use_awaitable);
               }
               else
               {
@@ -521,7 +521,7 @@ namespace http
               {
                 std::unique_lock<std::mutex> lock(writemutex);
                 co_await asio::async_write(_socket.front(),
-                                           asio::buffer(write_msgs_.front()), use_awaitable);
+                                           asio::buffer(write_msgs_.front()), asio::use_awaitable);
               }
               else
               {
@@ -539,7 +539,7 @@ namespace http
     }
   }
 
-  awaitable<void> client_session::sslwriter()
+  asio::awaitable<void> client_session::sslwriter()
   {
     try
     {
@@ -549,12 +549,12 @@ namespace http
         if (write_msgs_.empty())
         {
           asio::error_code ec;
-          co_await timer_.async_wait(redirect_error(use_awaitable, ec));
+          co_await timer_.async_wait(redirect_error(asio::use_awaitable, ec));
         }
         else
         {
           co_await asio::async_write(_sslsocket.front(),
-                                     asio::buffer(write_msgs_.front()), use_awaitable);
+                                     asio::buffer(write_msgs_.front()), asio::use_awaitable);
           write_msgs_.pop_front();
         }
       }
@@ -564,7 +564,7 @@ namespace http
       stop();
     }
   }
-  awaitable<void> client_session::writer()
+  asio::awaitable<void> client_session::writer()
   {
     try
     {
@@ -573,12 +573,12 @@ namespace http
         if (write_msgs_.empty())
         {
           asio::error_code ec;
-          co_await timer_.async_wait(redirect_error(use_awaitable, ec));
+          co_await timer_.async_wait(redirect_error(asio::use_awaitable, ec));
         }
         else
         {
           co_await asio::async_write(_socket.front(),
-                                     asio::buffer(write_msgs_.front()), use_awaitable);
+                                     asio::buffer(write_msgs_.front()), asio::use_awaitable);
           write_msgs_.pop_front();
         }
       }

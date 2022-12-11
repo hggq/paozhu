@@ -99,8 +99,8 @@ namespace http
     bool send_data(const unsigned char *, unsigned int);
     bool isopensocket();
     std::shared_ptr<client_session> get_ptr();
-    awaitable<void> loopsendfile(filesend_promise finfo);
-    awaitable<void> loopwriter();
+    asio::awaitable<void> loopsendfile(filesend_promise finfo);
+    asio::awaitable<void> loopwriter();
 
     std::string getremoteip();
     unsigned int getremoteport();
@@ -115,8 +115,8 @@ namespace http
     void recv_window_update(unsigned int, unsigned int streamid = 0);
 
   private:
-    awaitable<void> sslwriter();
-    awaitable<void> writer();
+    asio::awaitable<void> sslwriter();
+    asio::awaitable<void> writer();
 
     void stop();
 

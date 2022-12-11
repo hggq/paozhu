@@ -414,7 +414,7 @@ namespace http
     str.append(stfilecom);
     peer_session->write_data(str);
   }
-  awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion)
+  asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion)
   {
     try
     {
@@ -433,7 +433,7 @@ namespace http
           peer_session.reset(new client_session(std::move(sock_temp._socket)));
         }
 
-        co_spawn(this->io_context, peer_session->loopwriter(), detached);
+        co_spawn(this->io_context, peer_session->loopwriter(), asio::detached);
         peer->client_ip = peer_session->getremoteip();
         if (check_blockip(peer->client_ip))
         {
@@ -452,11 +452,11 @@ namespace http
         memset(peer_session->_cache_data, 0x00, 4096);
         if (isssl)
         {
-          readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+          readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
         }
         else
         {
-          readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+          readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
         }
 
         if (peer_session->_cache_data[0] == 0x50 && peer_session->_cache_data[1] == 0x52 && peer_session->_cache_data[2] == 0x49 && peer_session->_cache_data[3] == 0x20 && peer_session->_cache_data[4] == 0x2A && peer_session->_cache_data[5] == 0x20)
@@ -486,11 +486,11 @@ namespace http
                 {
                   if (isssl)
                   {
-                    readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+                    readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
                   }
                   else
                   {
-                    readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+                    readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
                   }
                 }
                 catch (const std::exception &e)
@@ -572,11 +572,11 @@ namespace http
               {
                 if (isssl)
                 {
-                  readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+                  readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
                 }
                 else
                 {
-                  readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+                  readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
                 }
               }
               catch (const std::exception &e)
@@ -625,11 +625,11 @@ namespace http
                   {
                     if (isssl)
                     {
-                      readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+                      readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
                     }
                     else
                     {
-                      readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+                      readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
                     }
                   }
                   catch (const std::exception &e)
@@ -735,11 +735,11 @@ namespace http
                 {
                   if (isssl)
                   {
-                    readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+                    readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
                   }
                   else
                   {
-                    readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), use_awaitable);
+                    readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
                   }
                 }
                 catch (const std::exception &e)
@@ -892,7 +892,7 @@ namespace http
     unsigned short portnum = sysconfigpath.get_ssl_port();
 
     asio::error_code ec_error;
-    tcp::acceptor acceptor(this->io_context);
+    asio::ip::tcp::acceptor acceptor(this->io_context);
     asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), portnum);
     acceptor.open(endpoint.protocol());
 
@@ -1010,7 +1010,7 @@ namespace http
           SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
         }
         asio::ssl::stream<asio::ip::tcp::socket> sslsocket(std::move(socket), context_);
-        sslsocket.lowest_layer().set_option(tcp::no_delay(true));
+        sslsocket.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
         sslsocket.handshake(asio::ssl::stream_base::server, ec_error);
         if (ec_error)
         {
@@ -1036,7 +1036,7 @@ namespace http
         total_count++;
 
         struct httpsocket_t sock_temp(std::move(sslsocket));
-        co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), true, httpversion), detached);
+        co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), true, httpversion), asio::detached);
       }
       catch (std::exception &e)
       {
@@ -1050,7 +1050,7 @@ namespace http
 
     unsigned short portnum = sysconfigpath.get_port();
 
-    tcp::acceptor acceptor(this->io_context);
+    asio::ip::tcp::acceptor acceptor(this->io_context);
 
     asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), portnum);
     acceptor.open(endpoint.protocol());
@@ -1083,7 +1083,7 @@ namespace http
         acceptor.accept(socket, ec);
         total_count++;
         struct httpsocket_t sock_temp(std::move(socket));
-        co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), false, false), detached);
+        co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), false, false), asio::detached);
       }
       catch (std::exception &e)
       {
