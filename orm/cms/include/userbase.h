@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 10 Dec 2022 05:33:36 GMT
+*本文件为自动生成 Sun, 11 Dec 2022 08:12:37 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -343,9 +343,9 @@ if(data.userid==0){
  }else{ 
 	tempsql<<"\"userid\":"<<std::to_string(data.userid);
 }
-tempsql<<",\"name\":\""<<utf8_to_jsonstring(data.name);
+tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
 tempsql<<"\"";
-tempsql<<",\"password\":\""<<utf8_to_jsonstring(data.password);
+tempsql<<",\"password\":\""<<http::utf8_to_jsonstring(data.password);
 tempsql<<"\"";
 if(data.isopen==0){
 	tempsql<<",\"isopen\":0";
@@ -404,11 +404,11 @@ if(data.userid==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<utf8_to_jsonstring(data.name)<<"\"";
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<utf8_to_jsonstring(data.password)<<"\"";
+tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(data.password)<<"\"";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
@@ -483,11 +483,11 @@ if(record[n].userid==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<utf8_to_jsonstring(record[n].name)<<"\"";
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<utf8_to_jsonstring(record[n].password)<<"\"";
+tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(record[n].password)<<"\"";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
@@ -571,11 +571,11 @@ if(record[n].userid==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<utf8_to_jsonstring(record[n].name)<<"\"";
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<utf8_to_jsonstring(record[n].password)<<"\"";
+tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(record[n].password)<<"\"";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 

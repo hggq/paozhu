@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 10 Dec 2022 05:33:36 GMT
+*本文件为自动生成 Sun, 11 Dec 2022 08:12:37 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -767,17 +767,17 @@ if(data.userid==0){
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
-tempsql<<",\"title\":\""<<utf8_to_jsonstring(data.title);
+tempsql<<",\"title\":\""<<http::utf8_to_jsonstring(data.title);
 tempsql<<"\"";
-tempsql<<",\"keywords\":\""<<utf8_to_jsonstring(data.keywords);
+tempsql<<",\"keywords\":\""<<http::utf8_to_jsonstring(data.keywords);
 tempsql<<"\"";
-tempsql<<",\"fromsource\":\""<<utf8_to_jsonstring(data.fromsource);
+tempsql<<",\"fromsource\":\""<<http::utf8_to_jsonstring(data.fromsource);
 tempsql<<"\"";
-tempsql<<",\"author\":\""<<utf8_to_jsonstring(data.author);
+tempsql<<",\"author\":\""<<http::utf8_to_jsonstring(data.author);
 tempsql<<"\"";
-tempsql<<",\"addip\":\""<<utf8_to_jsonstring(data.addip);
+tempsql<<",\"addip\":\""<<http::utf8_to_jsonstring(data.addip);
 tempsql<<"\"";
-tempsql<<",\"createtime\":\""<<utf8_to_jsonstring(data.createtime);
+tempsql<<",\"createtime\":\""<<http::utf8_to_jsonstring(data.createtime);
 tempsql<<"\"";
 if(data.addtime==0){
 	tempsql<<",\"addtime\":0";
@@ -794,9 +794,9 @@ if(data.review==0){
  }else{ 
 	tempsql<<",\"review\":"<<std::to_string(data.review);
 }
-tempsql<<",\"icoimg\":\""<<utf8_to_jsonstring(data.icoimg);
+tempsql<<",\"icoimg\":\""<<http::utf8_to_jsonstring(data.icoimg);
 tempsql<<"\"";
-tempsql<<",\"content\":\""<<utf8_to_jsonstring(data.content);
+tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
 tempsql<<"\"";
 if(data.isopen==0){
 	tempsql<<",\"isopen\":0";
@@ -808,13 +808,13 @@ if(data.iscomment==0){
  }else{ 
 	tempsql<<",\"iscomment\":"<<std::to_string(data.iscomment);
 }
-tempsql<<",\"fromlocal\":\""<<utf8_to_jsonstring(data.fromlocal);
+tempsql<<",\"fromlocal\":\""<<http::utf8_to_jsonstring(data.fromlocal);
 tempsql<<"\"";
-tempsql<<",\"texturl\":\""<<utf8_to_jsonstring(data.texturl);
+tempsql<<",\"texturl\":\""<<http::utf8_to_jsonstring(data.texturl);
 tempsql<<"\"";
-tempsql<<",\"summary\":\""<<utf8_to_jsonstring(data.summary);
+tempsql<<",\"summary\":\""<<http::utf8_to_jsonstring(data.summary);
 tempsql<<"\"";
-tempsql<<",\"editauthor\":\""<<utf8_to_jsonstring(data.editauthor);
+tempsql<<",\"editauthor\":\""<<http::utf8_to_jsonstring(data.editauthor);
 tempsql<<"\"";
 tempsql<<"}";
 
@@ -879,27 +879,27 @@ if(data.userid==0){
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<utf8_to_jsonstring(data.title)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"keywords\":\""<<utf8_to_jsonstring(data.keywords)<<"\"";
+tempsql<<"\"keywords\":\""<<http::utf8_to_jsonstring(data.keywords)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromsource\":\""<<utf8_to_jsonstring(data.fromsource)<<"\"";
+tempsql<<"\"fromsource\":\""<<http::utf8_to_jsonstring(data.fromsource)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"author\":\""<<utf8_to_jsonstring(data.author)<<"\"";
+tempsql<<"\"author\":\""<<http::utf8_to_jsonstring(data.author)<<"\"";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addip\":\""<<utf8_to_jsonstring(data.addip)<<"\"";
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(data.addip)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"createtime\":\""<<utf8_to_jsonstring(data.createtime)<<"\"";
+tempsql<<"\"createtime\":\""<<http::utf8_to_jsonstring(data.createtime)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
@@ -927,11 +927,11 @@ if(data.review==0){
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"icoimg\":\""<<utf8_to_jsonstring(data.icoimg)<<"\"";
+tempsql<<"\"icoimg\":\""<<http::utf8_to_jsonstring(data.icoimg)<<"\"";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<utf8_to_jsonstring(data.content)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
@@ -951,19 +951,19 @@ if(data.iscomment==0){
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromlocal\":\""<<utf8_to_jsonstring(data.fromlocal)<<"\"";
+tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(data.fromlocal)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"texturl\":\""<<utf8_to_jsonstring(data.texturl)<<"\"";
+tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(data.texturl)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"summary\":\""<<utf8_to_jsonstring(data.summary)<<"\"";
+tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(data.summary)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"editauthor\":\""<<utf8_to_jsonstring(data.editauthor)<<"\"";
+tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(data.editauthor)<<"\"";
  break;
 
                              default:
@@ -1038,27 +1038,27 @@ if(record[n].userid==0){
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<utf8_to_jsonstring(record[n].title)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"keywords\":\""<<utf8_to_jsonstring(record[n].keywords)<<"\"";
+tempsql<<"\"keywords\":\""<<http::utf8_to_jsonstring(record[n].keywords)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromsource\":\""<<utf8_to_jsonstring(record[n].fromsource)<<"\"";
+tempsql<<"\"fromsource\":\""<<http::utf8_to_jsonstring(record[n].fromsource)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"author\":\""<<utf8_to_jsonstring(record[n].author)<<"\"";
+tempsql<<"\"author\":\""<<http::utf8_to_jsonstring(record[n].author)<<"\"";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addip\":\""<<utf8_to_jsonstring(record[n].addip)<<"\"";
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(record[n].addip)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"createtime\":\""<<utf8_to_jsonstring(record[n].createtime)<<"\"";
+tempsql<<"\"createtime\":\""<<http::utf8_to_jsonstring(record[n].createtime)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
@@ -1086,11 +1086,11 @@ if(record[n].review==0){
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"icoimg\":\""<<utf8_to_jsonstring(record[n].icoimg)<<"\"";
+tempsql<<"\"icoimg\":\""<<http::utf8_to_jsonstring(record[n].icoimg)<<"\"";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<utf8_to_jsonstring(record[n].content)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
@@ -1110,19 +1110,19 @@ if(record[n].iscomment==0){
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromlocal\":\""<<utf8_to_jsonstring(record[n].fromlocal)<<"\"";
+tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(record[n].fromlocal)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"texturl\":\""<<utf8_to_jsonstring(record[n].texturl)<<"\"";
+tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(record[n].texturl)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"summary\":\""<<utf8_to_jsonstring(record[n].summary)<<"\"";
+tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(record[n].summary)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"editauthor\":\""<<utf8_to_jsonstring(record[n].editauthor)<<"\"";
+tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\"";
  break;
 
                              default:
@@ -1206,27 +1206,27 @@ if(record[n].userid==0){
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<utf8_to_jsonstring(record[n].title)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"keywords\":\""<<utf8_to_jsonstring(record[n].keywords)<<"\"";
+tempsql<<"\"keywords\":\""<<http::utf8_to_jsonstring(record[n].keywords)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromsource\":\""<<utf8_to_jsonstring(record[n].fromsource)<<"\"";
+tempsql<<"\"fromsource\":\""<<http::utf8_to_jsonstring(record[n].fromsource)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"author\":\""<<utf8_to_jsonstring(record[n].author)<<"\"";
+tempsql<<"\"author\":\""<<http::utf8_to_jsonstring(record[n].author)<<"\"";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addip\":\""<<utf8_to_jsonstring(record[n].addip)<<"\"";
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(record[n].addip)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"createtime\":\""<<utf8_to_jsonstring(record[n].createtime)<<"\"";
+tempsql<<"\"createtime\":\""<<http::utf8_to_jsonstring(record[n].createtime)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
@@ -1254,11 +1254,11 @@ if(record[n].review==0){
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"icoimg\":\""<<utf8_to_jsonstring(record[n].icoimg)<<"\"";
+tempsql<<"\"icoimg\":\""<<http::utf8_to_jsonstring(record[n].icoimg)<<"\"";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<utf8_to_jsonstring(record[n].content)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
@@ -1278,19 +1278,19 @@ if(record[n].iscomment==0){
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromlocal\":\""<<utf8_to_jsonstring(record[n].fromlocal)<<"\"";
+tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(record[n].fromlocal)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"texturl\":\""<<utf8_to_jsonstring(record[n].texturl)<<"\"";
+tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(record[n].texturl)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"summary\":\""<<utf8_to_jsonstring(record[n].summary)<<"\"";
+tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(record[n].summary)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"editauthor\":\""<<utf8_to_jsonstring(record[n].editauthor)<<"\"";
+tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\"";
  break;
 
                              default:
