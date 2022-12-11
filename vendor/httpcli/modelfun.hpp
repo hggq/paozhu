@@ -1647,11 +1647,11 @@ struct )";
         {
             if (j > 0)
             {
-                jsonstrem << "tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"\"<<utf8_to_jsonstring(data." << tablecollist[j] << ");\n";
+                jsonstrem << "tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data." << tablecollist[j] << ");\n";
             }
             else
             {
-                jsonstrem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<utf8_to_jsonstring(data." << tablecollist[j] << ");\n";
+                jsonstrem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data." << tablecollist[j] << ");\n";
             }
 
             jsonstrem << "tempsql<<\"\\\"\";\n";
@@ -1755,11 +1755,11 @@ struct )";
         {
             if (j > 0)
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<utf8_to_jsonstring(data." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data." << tablecollist[j] << ")<<\"\\\"\";\n";
             }
             else
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<utf8_to_jsonstring(data." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data." << tablecollist[j] << ")<<\"\\\"\";\n";
             }
         }
         update2strem << " break;\n";
@@ -1873,11 +1873,11 @@ struct )";
         {
             if (j > 0)
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
             }
             else
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
             }
         }
         update2strem << " break;\n";
@@ -2002,11 +2002,11 @@ struct )";
         {
             if (j > 0)
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
             }
             else
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
             }
         }
         update2strem << " break;\n";

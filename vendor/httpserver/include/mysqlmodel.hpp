@@ -24,7 +24,7 @@
 namespace orm
 {
     //通用操作 类 mysql 方法 在这里接上getSession(); 这里可以操作 data sql count page
-    using namespace http;
+    // using namespace http;
     template <typename model, typename base>
     class mysqlclientDB : public base
     {
@@ -65,7 +65,7 @@ namespace orm
                 countsql.append(limitsql);
             }
 
-            mysqlx::RowResult ress = domysqlexecute(countsql, dbhash);
+            mysqlx::RowResult ress = http::domysqlexecute(countsql, dbhash);
             if (ress.count() > 0)
             {
                 mysqlx::Row one = ress.fetchOne();
@@ -111,7 +111,7 @@ namespace orm
             {
                 countsql.append(limitsql);
             }
-            mysqlx::SqlResult ress = domysqleditexecute(countsql, dbhash);
+            mysqlx::SqlResult ress = http::domysqleditexecute(countsql, dbhash);
             return ress.getAffectedItemsCount();
         }
 
@@ -1210,7 +1210,7 @@ namespace orm
                 sqlstring.append(limitsql);
             }
             base::record.clear();
-            res = domysqlexecute(sqlstring, dbhash);
+            res = http::domysqlexecute(sqlstring, dbhash);
             return res.fetchAll();
         }
         mysqlx::RowResult fetchResult()
@@ -1250,7 +1250,7 @@ namespace orm
                 sqlstring.append(limitsql);
             }
             base::record.clear();
-            return domysqlexecute(sqlstring, dbhash);
+            return http::domysqlexecute(sqlstring, dbhash);
         }
         model &fetch()
         {
@@ -1300,7 +1300,7 @@ namespace orm
                     return *mod;
                 }
             }
-            res = domysqlexecute(sqlstring, dbhash);
+            res = http::domysqlexecute(sqlstring, dbhash);
             const mysqlx::Columns &columns = res.getColumns();
             base::_keypos.clear();
             if (selectsql.empty())
@@ -1390,7 +1390,7 @@ namespace orm
                 sqlstring.append(limitsql);
             }
             base::record.clear();
-            res = domysqlexecute(sqlstring, dbhash);
+            res = http::domysqlexecute(sqlstring, dbhash);
             const mysqlx::Columns &columns = res.getColumns();
             base::_keypos.clear();
             http::OBJ_VALUE valuetemp;
@@ -1542,7 +1542,7 @@ namespace orm
             sqlstring.append("=");
             sqlstring.append(std::to_string(id));
             base::record.clear();
-            res = domysqlexecute(sqlstring, dbhash);
+            res = http::domysqlexecute(sqlstring, dbhash);
 
             const mysqlx::Columns &columns = res.getColumns();
             base::_keypos.clear();
@@ -1597,7 +1597,7 @@ namespace orm
                 sqlstring.append(limitsql);
             }
 
-            ses = domysqleditexecute(sqlstring, dbhash);
+            ses = http::domysqleditexecute(sqlstring, dbhash);
             return ses.getAffectedItemsCount();
         }
         int update(std::string fieldname)
@@ -1629,7 +1629,7 @@ namespace orm
                 sqlstring.append(limitsql);
             }
 
-            ses = domysqleditexecute(sqlstring, dbhash);
+            ses = http::domysqleditexecute(sqlstring, dbhash);
             return ses.getAffectedItemsCount();
         }
         int remove()
@@ -1658,7 +1658,7 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-            ses = domysqleditexecute(sqlstring, dbhash);
+            ses = http::domysqleditexecute(sqlstring, dbhash);
             return ses.getAffectedItemsCount();
         }
         int remove(long long id)
@@ -1671,7 +1671,7 @@ namespace orm
             sqlstring.append("=");
             sqlstring.append(std::to_string(id));
 
-            ses = domysqleditexecute(sqlstring, dbhash);
+            ses = http::domysqleditexecute(sqlstring, dbhash);
             return ses.getAffectedItemsCount();
         }
 
@@ -1705,13 +1705,13 @@ namespace orm
                 {
                     sqlstring.append(limitsql);
                 }
-                ses = domysqleditexecute(sqlstring, dbhash);
+                ses = http::domysqleditexecute(sqlstring, dbhash);
                 return ses.getAffectedItemsCount();
             }
             else
             {
                 sqlstring = base::_makeinsertsql();
-                ses = domysqleditexecute(sqlstring, dbhash);
+                ses = http::domysqleditexecute(sqlstring, dbhash);
                     base::setPK(ses.getAutoIncrementValue());
                     return ses.getAutoIncrementValue();    
                 // if (iscommit)
@@ -1751,11 +1751,11 @@ namespace orm
 
         mysqlx::RowResult dofetch(std::string sql)
         {
-            return domysqlexecute(sql, dbhash);
+            return http::domysqlexecute(sql, dbhash);
         }
         mysqlx::SqlResult doexecute(std::string sql)
         {
-            return domysqleditexecute(sql, dbhash);
+            return http::domysqleditexecute(sql, dbhash);
         }
 
     public:
