@@ -129,6 +129,9 @@ More see controller Directory include CURD example
 
 2.[paozhu 框架hello world输出](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6hello-world)
 
+3.[paozhu 框架ORM入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6ORM%E5%85%A5%E9%97%A8)
+
+
 Roadmap
 -----------------
 
