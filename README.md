@@ -125,7 +125,7 @@ More see controller Directory include CURD example
 
 教程
 ------------------
-[paozhu 框架原理](https://github.com/hggq/paozhu/wiki/paozhu-c---web-framework-%25E6%25A1%2586%25E6%259E%25B6%25E5%258E%259F%25E7%2590%2586)
+[paozhu 框架原理](https://github.com/hggq/paozhu/wiki/paozhu-c---web-framework-%E6%A1%86%E6%9E%B6%E5%8E%9F%E7%90%86)
 
 
 Roadmap
