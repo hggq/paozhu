@@ -75,12 +75,14 @@ ubuntu 20.04
 -------------------
 
 need gcc11 install see  ubuntu install gcc.txt
+
 [paozhu 框架linux 环境配置](https://github.com/hggq/paozhu/wiki/linux-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE)
 
 ubuntu 22.04
 -------------------
 
 install see ubuntu install gcc.txt
+
 [paozhu 框架linux 环境配置](https://github.com/hggq/paozhu/wiki/linux-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE)
 
 
