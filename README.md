@@ -133,7 +133,7 @@ More see controller Directory include CURD example
 
 4. [paozhu 框架view视图入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6view-%E8%A7%86%E5%9B%BE%E5%85%A5%E9%97%A8)
 
-5. [paozhu 框架curd教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
+5. [paozhu 框架CURD教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
 
 Roadmap
 -----------------
