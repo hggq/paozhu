@@ -14,7 +14,7 @@
 #include <iostream>
 #include <string>
 #include <asio.hpp>
-#include <asio/ssl.hpp>
+//#include <asio/ssl.hpp>
 #include <thread>
 #include <cstdlib>
 #include <fstream>
@@ -106,7 +106,7 @@ namespace http
     std::map<std::thread::id, struct threadinfo_t> threadlist;
     std::atomic<unsigned int> pooltotalnum, mixthreads;
     std::atomic<unsigned int> livethreadcount;
-    asio::io_context ioc;
+
   };
 
 }

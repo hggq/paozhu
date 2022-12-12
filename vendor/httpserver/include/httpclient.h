@@ -10,6 +10,7 @@
 #include <map>
 #include <sstream>
 #include <asio.hpp>
+#include <asio/ssl.hpp>
 #include <cookie.h>
 #include "request.h"
 
