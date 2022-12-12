@@ -123,17 +123,17 @@ open browser http://localhost
 
 More see controller Directory include CURD example
 
-教程
+教程 Tutorial
 ------------------
-1.[paozhu 框架原理](https://github.com/hggq/paozhu/wiki/paozhu-c---web-framework-%E6%A1%86%E6%9E%B6%E5%8E%9F%E7%90%86)
+1. [paozhu 框架原理](https://github.com/hggq/paozhu/wiki/paozhu-c---web-framework-%E6%A1%86%E6%9E%B6%E5%8E%9F%E7%90%86)
 
-2.[paozhu 框架hello world输出](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6hello-world)
+2. [paozhu 框架hello world输出](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6hello-world)
 
-3.[paozhu 框架ORM入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6ORM%E5%85%A5%E9%97%A8)
+3. [paozhu 框架ORM入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6ORM%E5%85%A5%E9%97%A8)
 
-4.[paozhu 框架view视图入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6view-%E8%A7%86%E5%9B%BE%E5%85%A5%E9%97%A8)
+4. [paozhu 框架view视图入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6view-%E8%A7%86%E5%9B%BE%E5%85%A5%E9%97%A8)
 
-4.[paozhu 框架curd教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
+5. [paozhu 框架curd教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
 
 Roadmap
 -----------------
