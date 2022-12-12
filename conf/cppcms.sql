@@ -76,7 +76,7 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`userid`, `name`, `password`, `isopen`, `level`) VALUES
-(1, 'admin', '25d55ad283aa400af464c76d713c07ad', 1, 9);
+(1, 'admin', 'e10adc3949ba59abbe56e057f20f883e', 1, 9);
 
 --
 -- 转储表的索引
