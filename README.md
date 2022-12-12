@@ -139,8 +139,9 @@ Roadmap
 -----------------
 
 1. Improved http features
-2. websocket client
-3. postgres,sqlite orm
+2. Websocket client
+3. Support windows
+4. Postgres,sqlite orm
 
 
 Contribute
