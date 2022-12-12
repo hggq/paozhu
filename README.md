@@ -29,6 +29,7 @@ paozhu(炮竹🧨) c++ web framework 框架是一个全面、快速web开发框�
 14. Integrated sendmail
 15. Generating QR code requires gd and qrencode libraries
 
+--------------
 1. 自带json decode encode 不用第三方库，标准json支持 通过 Benchmark
 2. 支持多域名网站
 3. 支持多域名ssl 服务端
@@ -88,7 +89,7 @@ install see ubuntu install gcc.txt
 
 Install 
 --------------------
-
+```shell
 mkdir temp
 
 mkdir log
@@ -100,23 +101,26 @@ cd build
 cmake ..
 
 make
-
+```
 
 
 edit conf/server.conf file
 replace your current path to
 
+```shell
 sudo vim /etc/hosts
+```
 
 add one line
-
+```text
 127.0.0.1 www.869869.com 
-
+```
 test https
 
 runing 
-
+```shell
 sudo ./bin/paozhu 
+```
 
 open browser http://localhost
 
