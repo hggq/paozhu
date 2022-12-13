@@ -476,7 +476,7 @@ namespace http
 
           for (;;)
           {
-            // http1parse.clear();
+            http1parse.clear();
             for (;;)
             {
               if (isbegin)
@@ -495,7 +495,8 @@ namespace http
                 }
                 catch (const std::exception &e)
                 {
-                  http1parse.error = 500;
+                  http1parse.error = 4444;
+                  break;
                 }
               }
               else
@@ -524,12 +525,11 @@ namespace http
 
                 {
                   std::ostringstream oss;
-                  oss << peer->server_ip <<" "<< date("%Y-%m-%d %X")  <<" "<< peer->server_port  <<" "<< peer->host  <<" "<< peer->url<<"\n";
+                  oss << peer->server_ip << " " << date("%Y-%m-%d %X") << " " << peer->server_port << " " << peer->host << " " << peer->url << "\n";
                   std::unique_lock<std::mutex> lock(log_mutex);
                   access_loglist.emplace_back(oss.str());
                   lock.unlock();
                 }
-
 
                 if (peer->state.h2c)
                 {
@@ -558,7 +558,11 @@ namespace http
                 break;
               }
             }
-
+            if (http1parse.error == 4444)
+            {
+              DEBUG_LOG("--- co_await exception 4444--------");
+              break;
+            }
             if (peer->state.h2c)
             {
               peer_session->httpv = 2;
@@ -614,7 +618,7 @@ namespace http
               {
                 websockettasks.emplace_back(peer);
               }
-              
+
               for (;;)
               {
                 DEBUG_LOG("websockets in for loop");
@@ -686,7 +690,6 @@ namespace http
               DEBUG_LOG("--- keeplive false --------");
               break;
             }
-            http1parse.clear();
           }
         }
 
@@ -784,13 +787,14 @@ namespace http
                   http2parse.http_data[block_steamid]->client_ip = peer_session->getremoteip();
                   http2parse.http_data[block_steamid]->client_port = peer_session->getremoteport();
                   http2parse.http_data[block_steamid]->server_port = peer_session->getlocalport();
-                 
+
                   std::ostringstream oss;
-                  oss << http2parse.http_data[block_steamid]->client_ip  <<" " <<" "<< date("%Y-%m-%d %X")  <<" "<< http2parse.http_data[block_steamid]->server_port  <<" "<< http2parse.http_data[block_steamid]->host  <<" "<< http2parse.http_data[block_steamid]->url<<"\n";
+                  oss << http2parse.http_data[block_steamid]->client_ip << " "
+                      << " " << date("%Y-%m-%d %X") << " " << http2parse.http_data[block_steamid]->server_port << " " << http2parse.http_data[block_steamid]->host << " " << http2parse.http_data[block_steamid]->url << "\n";
                   std::unique_lock<std::mutex> lock(log_mutex);
                   access_loglist.emplace_back(oss.str());
                   lock.unlock();
-              
+
                   clientrunpool.addclient(http2parse.http_data[block_steamid]);
                   http2parse.stream_list.pop();
                 }
@@ -960,7 +964,7 @@ namespace http
     SSL_CTX_set_next_protos_advertised_cb(context_.native_handle(), next_proto_cb, &next_proto);
     unsigned long long temp_domain = 0;
     sysconfigpath.domain_http2[temp_domain] = false;
-    server_loaclvar &localvar=get_server_global_var();
+    server_loaclvar &localvar = get_server_global_var();
     if (sysconfigpath.isallnothttp2)
     {
       temp_domain = std::hash<const char *>{}((const char *)&sysconfigpath.map_value["default"]["mainhost"]);
@@ -1001,10 +1005,10 @@ namespace http
         if (ec_error)
         {
           LOG_ERROR << " accept ec_error " << LOG_END;
-          std::this_thread::sleep_for(std::chrono::seconds(2));
+          std::this_thread::sleep_for(std::chrono::seconds(3));
           continue;
         }
-        //if all http2
+        // if all http2
         if (sysconfigpath.isallnothttp2)
         {
           SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
@@ -1015,7 +1019,7 @@ namespace http
         if (ec_error)
         {
           LOG_ERROR << " handshake ec_error " << LOG_END;
-          std::this_thread::sleep_for(std::chrono::seconds(2));
+          std::this_thread::sleep_for(std::chrono::seconds(3));
           continue;
         }
         // client select proto 看看客户端是否指定 协议，如果没有指定为null
@@ -1209,7 +1213,7 @@ namespace http
           close(fd);
         }
 
-         DEBUG_LOG("client live:%d", total_count.load());
+        DEBUG_LOG("client live:%d", total_count.load());
       }
       catch (std::exception &e)
       {
