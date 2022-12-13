@@ -18,7 +18,7 @@ namespace orm
 		{
 			auto art = orm::cms::Article();
 
-			art.where("userid",userid).order(" aid desc ").limit(5).fetch();
+			art.where("userid",userid).whereOr("userid",0).order(" aid desc ").limit(5).fetch();
 			std::cout<<art.sqlstring;
 			return art.record;	
 

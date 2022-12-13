@@ -12,6 +12,7 @@
 #include "testcurd.h"
 #include "testhello.h"
 #include "testjson.h"
+#include "testmodel.h"
 namespace http
 {
   void _inithttpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
@@ -23,6 +24,9 @@ namespace http
 
     temp.regfun = testjson;
     methodcallback.emplace("testjson", temp);
+
+    temp.regfun = testmodel;
+    methodcallback.emplace("testmodel", temp);
 
     temp.regfun = testlogin;
     methodcallback.emplace("testlogin", temp);

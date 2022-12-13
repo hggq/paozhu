@@ -1001,7 +1001,7 @@ namespace http
         if (ec_error)
         {
           LOG_ERROR << " accept ec_error " << LOG_END;
-          std::this_thread::sleep_for(std::chrono::seconds(3));
+          std::this_thread::sleep_for(std::chrono::seconds(2));
           continue;
         }
         //if all http2
@@ -1015,7 +1015,7 @@ namespace http
         if (ec_error)
         {
           LOG_ERROR << " handshake ec_error " << LOG_END;
-          std::this_thread::sleep_for(std::chrono::seconds(3));
+          std::this_thread::sleep_for(std::chrono::seconds(2));
           continue;
         }
         // client select proto 看看客户端是否指定 协议，如果没有指定为null
@@ -1189,6 +1189,7 @@ namespace http
 
           if (fcntl(fd, F_SETLK, &lockstr) == -1)
           {
+            close(fd);
             continue;
           }
           std::unique_lock<std::mutex> loglock(log_mutex);
@@ -1202,6 +1203,7 @@ namespace http
           lockstr.l_type = F_UNLCK;
           if (fcntl(fd, F_SETLK, &lockstr) == -1)
           {
+            close(fd);
             continue;
           }
           close(fd);
