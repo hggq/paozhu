@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <memory>
 #include "http_header.h"
 
 namespace http
@@ -96,7 +97,7 @@ namespace http
 
    struct http2_data_t
    {
-
+      http2_data_t():uprawfile(nullptr,&std::fclose){};
       unsigned int stream_id = 0;
       unsigned int match_offset = 0;
       bool isbegin = false;
@@ -114,7 +115,9 @@ namespace http
       unsigned long long curnum = 0;         // now block length
       unsigned long long content_length = 0; // post length
 
-      std::FILE *uprawfile = NULL;
+      //std::FILE *uprawfile = NULL;
+      std::unique_ptr<std::FILE, decltype(&std::fclose)> uprawfile;
+
       std::string boundary;
       std::string fieldname;
       std::string buffer_key;

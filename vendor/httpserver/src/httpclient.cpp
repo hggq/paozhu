@@ -358,7 +358,7 @@ namespace http
                   }
 
                   // unsigned long long totalsize;
-                  rawfile = NULL;
+                  //rawfile = NULL;
                   while (true)
                   {
                         if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
@@ -559,7 +559,7 @@ namespace http
                   // asio::co_spawn(io_context, httpsslclientecho(std::ref(socket),std::ref(ssl_context)), asio::detached);
 
                   // unsigned long long totalsize;
-                  rawfile = NULL;
+                  //rawfile = NULL;
                   while (true)
                   {
                         if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
@@ -1237,22 +1237,22 @@ namespace http
                         }
                   }
 
-                  rawfile = fopen(state.page.tempfile.c_str(), "wb");
-                  // tempfile(std::fopen(state.page.tempfile.c_str(), "wb"), &client::close_file);
+                  //rawfile = fopen(state.page.tempfile.c_str(), "wb");
+                  rawfile.reset(fopen(state.page.tempfile.c_str(), "wb"));
             }
             if (i < buffersize && rawfile)
             {
 
-                  auto n = fwrite(&buffer[i], offset, 1, rawfile);
+                  auto n = fwrite(&buffer[i], offset, 1, rawfile.get());
             }
       }
       void client::finishprocess()
       {
             if (rawfile)
             {
-
-                  fclose(rawfile);
-                  rawfile = NULL;
+                  rawfile.reset(nullptr);
+                  // fclose(rawfile);
+                  // rawfile = NULL;
             }
             if (state.encode == 'g')
             {

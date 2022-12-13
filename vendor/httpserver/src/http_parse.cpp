@@ -53,7 +53,7 @@
 namespace http
 {
 
-      httpparse::httpparse()
+      httpparse::httpparse():uprawfile(nullptr,&std::fclose)
       {
             error = 0;
       }
@@ -1906,11 +1906,13 @@ namespace http
                         upfile.tempfile =localvar.temp_path;
                         upfile.tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
 
-                        uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                        //uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                        uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
                         if (!uprawfile)
                         {
                               upfile.tempfile.append("_t");
-                              uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                              //uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                              uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
                               if (!uprawfile)
                               {
                                     error = 3;
@@ -2329,8 +2331,9 @@ namespace http
                         i = j;
                         if (uprawfile)
                         {
-                              fclose(uprawfile);
-                              uprawfile = NULL;
+                              // fclose(uprawfile);
+                              // uprawfile = NULL;
+                              uprawfile.reset(nullptr);
                         }
                         procssformfile();
                         header_key.clear();
@@ -2365,7 +2368,7 @@ namespace http
                   }
 
                   upfile.size += header_input.size();
-                  fwrite(&header_input[0], header_input.size(), 1, uprawfile);
+                  fwrite(&header_input[0], header_input.size(), 1, uprawfile.get());
                   header_input.clear();
             }
             changetype = 0;
@@ -2415,12 +2418,13 @@ namespace http
                                                 postfieldtype = 2;
                                                 header_input.clear();
 
-                                                fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile);
+                                                fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile.get());
                                                 i = j;
                                                 if (uprawfile)
                                                 {
-                                                      fclose(uprawfile);
-                                                      uprawfile = NULL;
+                                                      // fclose(uprawfile);
+                                                      // uprawfile = NULL;
+                                                      uprawfile.reset(nullptr);
                                                 }
                                                 procssformfile();
                                                 header_key.clear();
@@ -2466,7 +2470,7 @@ namespace http
                         changetype = 0;
                   }
             }
-            fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile);
+            fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile.get());
             upfile.size += (i - readoffset);
             readoffset = buffersize;
       }
@@ -2600,11 +2604,13 @@ namespace http
                   upfile.tempfile =localvar.temp_path;
                   upfile.tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
 
-                  uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                  //uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                  uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
                   if (!uprawfile)
                   {
                         upfile.tempfile.append("_t");
-                        uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                        //uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                        uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
                         if (!uprawfile)
                         {
                               error = 3;
@@ -2615,7 +2621,7 @@ namespace http
             if (i < buffersize && uprawfile)
             {
                   unsigned int tempnum = buffersize - i;
-                  auto n = fwrite(&buffer[i], tempnum, 1, uprawfile);
+                  auto n = fwrite(&buffer[i], tempnum, 1, uprawfile.get());
                   upfile.size = tempnum;
             }
 
@@ -2623,9 +2629,10 @@ namespace http
             {
                   if (uprawfile)
                   {
-                        fclose(uprawfile);
+                        //fclose(uprawfile);
+                        uprawfile.reset(nullptr);
                   }
-                  uprawfile = NULL;
+                  //uprawfile = NULL;
                   peer->files["tempraw"].set_array();
                   peer->files["tempraw"]["name"] = "tempraw";
                   peer->files["tempraw"]["filename"] = "";
@@ -2751,7 +2758,7 @@ namespace http
             peer->files.clear();
             peer->json.clear();
              
-            
+            uprawfile.reset(nullptr);
             error = 0;
             peer->cookie.clear();
             method = HEAD_METHOD::UNKNOW;

@@ -30,8 +30,8 @@ namespace http
     {
 
     public:
-        client(){};
-        client(std::string_view url) : _url(url){};
+        client():rawfile(nullptr,&std::fclose){};
+        client(std::string_view url): _url(url),rawfile(nullptr,&std::fclose){};
         client &get(std::string_view url, http::OBJ_VALUE parmter);
         client &get(std::string_view url);
         client &post(std::string_view url, http::OBJ_VALUE parmter);
@@ -142,11 +142,9 @@ namespace http
         unsigned char islineend = 0;
         unsigned int readoffset = 0;
         unsigned char error = 0;
-        FILE *rawfile = NULL;
-        using temp_file = std::unique_ptr<std::FILE, decltype(&client::close_file)>;
-        // temp_file ptr_(fopen("demo.txt", "r"),&close_file);
-        // temp_file fp(std::fopen("demo.txt", "r"), &close_file);
-        // temp_file tempfile(FILE *,decltype(&client::close_file));
+        //FILE *rawfile = NULL;
+        std::unique_ptr<std::FILE, decltype(&std::fclose)> rawfile;
+
     };
 }
 #endif // PROJECT_HTTPCLIENT_H

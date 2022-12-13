@@ -174,8 +174,8 @@ namespace http
         unsigned int readoffset = 0;
 
         unsigned int changetype = 0;
-        std::FILE *uprawfile = NULL;
-
+        //std::FILE *uprawfile = NULL;
+        std::unique_ptr<std::FILE, decltype(&std::fclose)> uprawfile;//(nullptr,&std::fclose);    
         // http::OBJ_VALUE get;
         // http::OBJ_VALUE post;
         // http::OBJ_VALUE files;

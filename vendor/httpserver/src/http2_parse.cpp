@@ -2380,7 +2380,8 @@ namespace http
 
                     if (data_info[block_steamid].uprawfile)
                     {
-                         fclose(data_info[block_steamid].uprawfile);
+                         //fclose(data_info[block_steamid].uprawfile);
+                         data_info[block_steamid].uprawfile.reset(nullptr);
                     }
                     procssformfile();
                     data_info[block_steamid].buffer_key.clear();
@@ -2419,7 +2420,7 @@ namespace http
                if (data_info[block_steamid].uprawfile)
                {
                     data_info[block_steamid].upfile.size += data_info[block_steamid].buffer_key.size();
-                    fwrite(&data_info[block_steamid].buffer_key[0], 1, data_info[block_steamid].buffer_key.size(), data_info[block_steamid].uprawfile);
+                    fwrite(&data_info[block_steamid].buffer_key[0], 1, data_info[block_steamid].buffer_key.size(), data_info[block_steamid].uprawfile.get());
                }
                data_info[block_steamid].buffer_key.clear();
           }
@@ -2478,8 +2479,9 @@ namespace http
                                         if (data_info[block_steamid].uprawfile)
                                         {
                                              data_info[block_steamid].upfile.size += (begin - baseoffset);
-                                             fwrite(&buffer[baseoffset], 1, (begin - baseoffset), data_info[block_steamid].uprawfile);
-                                             fclose(data_info[block_steamid].uprawfile);
+                                             fwrite(&buffer[baseoffset], 1, (begin - baseoffset), data_info[block_steamid].uprawfile.get());
+                                             //fclose(data_info[block_steamid].uprawfile);
+                                             data_info[block_steamid].uprawfile.reset(nullptr);
                                              procssformfile();
                                         }
                                         data_info[block_steamid].buffer_key.clear();
@@ -2519,7 +2521,7 @@ namespace http
           if (data_info[block_steamid].uprawfile)
           {
                data_info[block_steamid].upfile.size += (begin - baseoffset);
-               fwrite(&buffer[baseoffset], 1, (begin - baseoffset), data_info[block_steamid].uprawfile);
+               fwrite(&buffer[baseoffset], 1, (begin - baseoffset), data_info[block_steamid].uprawfile.get());
           }
           begin = buffersize;
      }
@@ -2559,7 +2561,7 @@ namespace http
                          
                          if (data_info[block_steamid].uprawfile)
                          {
-                              fclose(data_info[block_steamid].uprawfile);
+                              fclose(data_info[block_steamid].uprawfile.get());
                          }
                          data_info[block_steamid].buffer_key = data_info[block_steamid].fieldname;
                          procssxformurlencoded();
@@ -2976,11 +2978,13 @@ namespace http
                     data_info[block_steamid].upfile.tempfile =localvar.temp_path + "temp/";
                     data_info[block_steamid].upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
 
-                    data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
+                    //data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
+                    data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
                     if (!data_info[block_steamid].uprawfile)
                     {
                          data_info[block_steamid].upfile.tempfile.append("_t");
-                         data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
+                         //data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
+                         data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
                          if (!data_info[block_steamid].uprawfile)
                          {
                               error = 303;
@@ -3074,12 +3078,13 @@ namespace http
 
                data_info[block_steamid].upfile.tempfile =localvar.temp_path + "temp/";
                data_info[block_steamid].upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
-
-               data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
+               //data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
+               data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
                if (!data_info[block_steamid].uprawfile)
                {
                     data_info[block_steamid].upfile.tempfile.append("_t");
-                    data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
+                    //data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
+                    data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
                     if (!data_info[block_steamid].uprawfile)
                     {
                          error = 303;
@@ -3091,14 +3096,14 @@ namespace http
           if (data_info[block_steamid].uprawfile)
           {
                data_info[block_steamid].upfile.size += buffersize;
-               fwrite(buffer, 1, buffersize, data_info[block_steamid].uprawfile);
+               fwrite(buffer, 1, buffersize, data_info[block_steamid].uprawfile.get());
           }
 
           if (http_data[block_steamid]->content_length < (data_info[block_steamid].upfile.size + 2))
           {
                if (data_info[block_steamid].uprawfile)
                {
-                    fclose(data_info[block_steamid].uprawfile);
+                    fclose(data_info[block_steamid].uprawfile.get());
                }
                procssformfile();
           }
@@ -3158,7 +3163,7 @@ namespace http
           
                if (data_info[block_steamid].uprawfile)
                {
-                    fclose(data_info[block_steamid].uprawfile);
+                    fclose(data_info[block_steamid].uprawfile.get());
                }
                
                if(!http_data[block_steamid]->isfinish)
