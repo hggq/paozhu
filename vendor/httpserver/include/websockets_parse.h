@@ -73,7 +73,8 @@ public:
     unsigned long long contentlength;
     unsigned long long readlength;
     unsigned long long contentoffset;
-    FILE *rawfile; // 临时文件
+    //FILE *rawfile; // 临时文件
+    std::unique_ptr<std::FILE, decltype(&std::fclose)> rawfile;
     std::string filename;
     unsigned char mask;
     unsigned char mask_key[4];

@@ -8,17 +8,18 @@
 #include <ctime>
 #include "websockets_parse.h"
 #include "base64.h"
-
-websocketparse::websocketparse()
+#include "server_localvar.h"
+websocketparse::websocketparse():rawfile(nullptr,&std::fclose)
 {
-    rawfile = NULL;
+    //rawfile = NULL;
 }
 websocketparse::~websocketparse()
 {
     if (rawfile)
     {
-        fclose(rawfile);
-        rawfile = NULL;
+        // fclose(rawfile);
+        // rawfile = NULL;
+        rawfile.reset(nullptr);
     }
 }
 unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsigned int buffersize)
@@ -72,10 +73,12 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
 
     if (contentlength > 2097152)
     {
+         http::server_loaclvar &localvar=http::get_server_global_var();
         isfile = true;
-        filename = "temp/ws_" + std::to_string(time(NULL)) + "_" + std::to_string(contentlength);
-        rawfile = fopen(filename.c_str(), "wb");
-        if (rawfile != NULL)
+        filename =localvar.temp_path+ "ws_" + std::to_string(time(NULL)) + "_" + std::to_string(contentlength);
+        //rawfile = fopen(filename.c_str(), "wb");
+        rawfile.reset(fopen(filename.c_str(), "wb"));
+        if (rawfile)
         {
 
             if (mask == 1)
@@ -86,13 +89,13 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
                     unsigned char nn = j % 4;
                     inputdata[j + pos] = inputdata[j + pos] ^ mask_key[nn];
                 }
-                fwrite(&inputdata[pos], contentoffset, 1, rawfile);
+                fwrite(&inputdata[pos], contentoffset, 1, rawfile.get());
             }
             else
             {
                 for (int j = 0; j < contentoffset; j++)
                 {
-                    fwrite(&inputdata[j + pos], 1, 1, rawfile);
+                    fwrite(&inputdata[j + pos], 1, 1, rawfile.get());
                 }
             }
         }
@@ -135,7 +138,7 @@ void websocketparse::parsedata(unsigned char *inputdata, unsigned int buffersize
 
     contentoffset += buffersize;
 
-    if (isfile && rawfile != NULL)
+    if (isfile && rawfile)
     {
 
         if (mask == 1)
@@ -145,11 +148,11 @@ void websocketparse::parsedata(unsigned char *inputdata, unsigned int buffersize
                 unsigned char nn = j % 4;
                 inputdata[j] = inputdata[j] ^ mask_key[nn];
             }
-            fwrite(inputdata, buffersize, 1, rawfile);
+            fwrite(inputdata, buffersize, 1, rawfile.get());
         }
         else
         {
-            fwrite(inputdata, buffersize, 1, rawfile);
+            fwrite(inputdata, buffersize, 1, rawfile.get());
         }
     }
     else
@@ -189,8 +192,9 @@ void websocketparse::closefile()
 {
     if (isfile)
     {
-        fclose(rawfile);
-        rawfile = NULL;
+        // fclose(rawfile);
+        // rawfile = NULL;
+        rawfile.reset(nullptr);
     }
 }
 std::string websocketparse::getWebsocketkey()
