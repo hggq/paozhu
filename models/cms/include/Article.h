@@ -12,8 +12,7 @@
 		 public:
 		 Article(std::string dbtag);
 		 Article();
-		std::string get_username(int userid);
-		std::vector<articlebase::meta> get_usertop10article(int userid);
+		 Article &get();
 		};
 	 }
  };

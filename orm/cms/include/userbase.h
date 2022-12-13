@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sun, 11 Dec 2022 08:12:37 GMT
+*本文件为自动生成 Tue, 13 Dec 2022 02:04:21 GMT
 ***/
 #include <iostream>
 #include <cstdio>

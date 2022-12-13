@@ -28,6 +28,9 @@ namespace http
     temp.regfun = testmodel;
     methodcallback.emplace("testmodel", temp);
 
+    temp.regfun = testmodelsmartptr;
+    methodcallback.emplace("testmodelsmartptr", temp);
+
     temp.regfun = testlogin;
     methodcallback.emplace("testlogin", temp);
     temp.regfun = testshowlogin;

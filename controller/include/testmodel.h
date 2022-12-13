@@ -7,4 +7,5 @@ namespace http
 {
 
       std::string testmodel(std::shared_ptr<httppeer> peer);
+      std::string testmodelsmartptr(std::shared_ptr<httppeer> peer);
 }

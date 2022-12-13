@@ -10,7 +10,10 @@ namespace http
             httppeer &client = peer->getpeer();
             client << "testmodel ";
             auto users = orm::cms::User();
-           auto artlists=users.gettoparticle(1);
+            users.where("name","admin").limit(1).fetch();
+
+            client << "userid: "<<users.getUserid();
+            auto artlists=users.gettoparticle(1);
 
             for(int i=0;i<artlists.size();i++)
             {     
@@ -18,5 +21,22 @@ namespace http
             }
             return "";
       }
+      std::string testmodelsmartptr(std::shared_ptr<httppeer> peer)
+      {
+            httppeer &client = peer->getpeer();
+            client << "testmodel ";
+            auto users = std::make_shared<orm::cms::User>();
 
+
+            users->where("name","admin").limit(1).fetch();
+
+            client << "userid: "<<users->getUserid();
+            auto artlists=users->gettoparticle(1);
+
+            for(int i=0;i<artlists.size();i++)
+            {     
+                  client << "<p> title "<<artlists[i].title<<"</p>";      
+            }
+            return "";
+      }
 }

@@ -783,6 +783,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     filemodelstremcpp << " ";
     filemodelstremcpp << "\r\n\r\n\t\t\t " << createfilename << "::" << createfilename << "(std::string dbtag):mysqlclientDB(dbtag){}\n";
     filemodelstremcpp << "\t\t\t " << createfilename << "::" << createfilename << "():mysqlclientDB(){}\n";
+    filemodelstremcpp << "\t\t\t " << createfilename << " &" << createfilename << "::get(){ return *this; }\n";
     if (rmstag != "default")
     {
         filemodelstremcpp << "\r\n\r\n\t\t} ";
@@ -848,6 +849,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     filemodelstremcpp << "\t\t public:\n";
     filemodelstremcpp << "\t\t " << createfilename << "(std::string dbtag);\n";
     filemodelstremcpp << "\t\t " << createfilename << "();\n";
+    filemodelstremcpp << "\t\t " << createfilename << " &get();\n";
     filemodelstremcpp << "\t\t};\n";
     if (rmstag != "default")
     {
