@@ -26,6 +26,7 @@
 #include "md5.h"
 #include "zlib.h"
 #include "http_mime.h"
+#include "datetime.h"
 #include "gzip.h"
 
 namespace http
@@ -293,7 +294,8 @@ namespace http
                               {
                                     int readnum = 0;
                                     socket.write_some(asio::buffer(p.tempfile));
-                                    FILE *fp = fopen(p.filename.c_str(), "rb");
+                                    //FILE *fp = fopen(p.filename.c_str(), "rb");
+                                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),&std::fclose);
                                     if (!fp)
                                     {
                                           data[0] = 0x0D;
@@ -302,15 +304,15 @@ namespace http
                                           break;
                                     }
 
-                                    fseek(fp, 0, SEEK_END);
-                                    n = ftell(fp);
-                                    fseek(fp, 0, SEEK_SET);
+                                    fseek(fp.get(), 0, SEEK_END);
+                                    n = ftell(fp.get());
+                                    fseek(fp.get(), 0, SEEK_SET);
 
                                     data[2048] = 0x00;
                                     while (readnum < n)
                                     {
 
-                                          auto nread = fread(data, 1, 2048, fp);
+                                          auto nread = fread(data, 1, 2048, fp.get());
                                           readnum += nread;
                                           if (readnum >= n)
                                           {
@@ -322,13 +324,14 @@ namespace http
                                           asio::write(socket, asio::buffer(data, nread));
                                     }
 
-                                    fclose(fp);
+                                   // fclose(fp);
                               }
                               break;
                               case 2:
                               {
                                     int readnum = 0;
-                                    FILE *fp = fopen(p.filename.c_str(), "rb");
+                                    //FILE *fp = fopen(p.filename.c_str(), "rb");
+                                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),&std::fclose);
                                     if (!fp)
                                     {
                                           data[0] = 0x0D;
@@ -337,20 +340,20 @@ namespace http
                                           break;
                                     }
 
-                                    fseek(fp, 0, SEEK_END);
-                                    n = ftell(fp);
-                                    fseek(fp, 0, SEEK_SET);
+                                    fseek(fp.get(), 0, SEEK_END);
+                                    n = ftell(fp.get());
+                                    fseek(fp.get(), 0, SEEK_SET);
 
                                     data[2048] = 0x00;
                                     while (readnum < n)
                                     {
 
-                                          auto nread = fread(data, 1, 2048, fp);
+                                          auto nread = fread(data, 1, 2048, fp.get());
                                           readnum += nread;
                                           asio::write(socket, asio::buffer(data, nread));
                                     }
 
-                                    fclose(fp);
+                                    //fclose(fp);
                               }
                               break;
                               }
@@ -493,7 +496,8 @@ namespace http
                               {
                                     int readnum = 0;
                                     socket.write_some(asio::buffer(p.tempfile));
-                                    FILE *fp = fopen(p.filename.c_str(), "rb");
+                                    //FILE *fp = fopen(p.filename.c_str(), "rb");
+                                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),&std::fclose);
                                     if (!fp)
                                     {
                                           data[0] = 0x0D;
@@ -502,15 +506,15 @@ namespace http
                                           break;
                                     }
 
-                                    fseek(fp, 0, SEEK_END);
-                                    n = ftell(fp);
-                                    fseek(fp, 0, SEEK_SET);
+                                    fseek(fp.get(), 0, SEEK_END);
+                                    n = ftell(fp.get());
+                                    fseek(fp.get(), 0, SEEK_SET);
 
                                     data[2048] = 0x00;
                                     while (readnum < n)
                                     {
 
-                                          auto nread = fread(data, 1, 2048, fp);
+                                          auto nread = fread(data, 1, 2048, fp.get());
                                           readnum += nread;
                                           if (readnum >= n)
                                           {
@@ -522,13 +526,14 @@ namespace http
                                           asio::write(socket, asio::buffer(data, nread));
                                     }
 
-                                    fclose(fp);
+                                    //fclose(fp);
                               }
                               break;
                               case 2:
                               {
                                     int readnum = 0;
-                                    FILE *fp = fopen(p.filename.c_str(), "rb");
+                                    //FILE *fp = fopen(p.filename.c_str(), "rb");
+                                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),&std::fclose);
                                     if (!fp)
                                     {
                                           data[0] = 0x0D;
@@ -537,20 +542,20 @@ namespace http
                                           break;
                                     }
 
-                                    fseek(fp, 0, SEEK_END);
-                                    n = ftell(fp);
-                                    fseek(fp, 0, SEEK_SET);
+                                    fseek(fp.get(), 0, SEEK_END);
+                                    n = ftell(fp.get());
+                                    fseek(fp.get(), 0, SEEK_SET);
 
                                     data[2048] = 0x00;
                                     while (readnum < n)
                                     {
 
-                                          auto nread = fread(data, 1, 2048, fp);
+                                          auto nread = fread(data, 1, 2048, fp.get());
                                           readnum += nread;
                                           asio::write(socket, asio::buffer(data, nread));
                                     }
 
-                                    fclose(fp);
+                                   // fclose(fp);
                               }
                               break;
                               }
@@ -1076,20 +1081,21 @@ namespace http
             }
             else
             {
-                  FILE *ffp = fopen(state.page.tempfile.c_str(), "rb");
+                  //FILE *ffp = fopen(state.page.tempfile.c_str(), "rb");
+                  std::unique_ptr<std::FILE, decltype(&std::fclose)> ffp(fopen(state.page.tempfile.c_str(), "rb"),&std::fclose);
                   if (!ffp)
                   {
                         return "";
                   }
-                  fseek(ffp, 0, SEEK_END);
-                  unsigned int nsize = ftell(ffp);
-                  fseek(ffp, 0, SEEK_SET);
+                  fseek(ffp.get(), 0, SEEK_END);
+                  unsigned int nsize = ftell(ffp.get());
+                  fseek(ffp.get(), 0, SEEK_SET);
 
                   state.content.resize(nsize);
 
-                  unsigned int nread = fread(&state.content[0], 1, nsize, ffp);
+                  unsigned int nread = fread(&state.content[0], 1, nsize, ffp.get());
                   state.content.resize(nread);
-                  fclose(ffp);
+                  //fclose(ffp);
             }
             return state.content;
       }
@@ -1711,14 +1717,15 @@ namespace http
                   temp.type = "application/octet-stream";
             }
 
-            FILE *f = fopen(filename.c_str(), "rb");
+            //FILE *f = fopen(filename.c_str(), "rb");
+            std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(filename.c_str(), "rb"),&std::fclose);
             if (f)
             {
-                  fseek(f, 0, SEEK_END);
-                  temp.size = ftell(f);
-                  fseek(f, 0, SEEK_SET);
+                  fseek(f.get(), 0, SEEK_END);
+                  temp.size = ftell(f.get());
+                  fseek(f.get(), 0, SEEK_SET);
 
-                  fclose(f);
+                 // fclose(f);
             }
             else
             {
@@ -1767,7 +1774,7 @@ namespace http
             unsigned int contentlength = 0;
             std::string tempstr;
             upload_file ptemp;
-            FILE *fp;
+            //FILE *fp;
             switch (contenttype.length())
             {
             case 33:
@@ -1862,12 +1869,13 @@ namespace http
                               ptemp.size = files.front().size;
                               if (ptemp.size < 32768)
                               {
-                                    fp = fopen(files.front().filename.c_str(), "rb");
+                                   //fp = fopen(files.front().filename.c_str(), "rb");
+                                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(files.front().filename.c_str(), "rb"),&std::fclose);
                                     if (fp)
                                     {
                                           ptemp.tempfile.resize(ptemp.size);
-                                          unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp);
-                                          fclose(fp);
+                                          unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
+                                          //fclose(fp);
                                     }
 
                                     contentlength = ptemp.tempfile.size();
@@ -2035,15 +2043,15 @@ namespace http
                                           ptemp.tempfile.append("\"\r\nContent-Type: ");
                                           ptemp.tempfile.append(finfo.type);
                                           ptemp.tempfile.append("\r\n\r\n");
-                                          fp = fopen(finfo.filename.c_str(), "rb");
-
+                                          //fp = fopen(finfo.filename.c_str(), "rb");
+                                          std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(finfo.filename.c_str(), "rb"),&std::fclose);
                                           if (fp)
                                           {
                                                 unsigned int n = ptemp.tempfile.size();
                                                 ptemp.tempfile.resize(n + ptemp.size);
-                                                n = fread(&ptemp.tempfile[n], 1, ptemp.size, fp);
+                                                n = fread(&ptemp.tempfile[n], 1, ptemp.size, fp.get());
 
-                                                fclose(fp);
+                                                //fclose(fp);
                                           }
                                           ptemp.tempfile.append("\r\n");
                                           contentlength += ptemp.tempfile.size();
@@ -2119,12 +2127,13 @@ namespace http
                               ptemp.size = files.front().size;
                               if (ptemp.size < 32768)
                               {
-                                    fp = fopen(files.front().filename.c_str(), "rb");
+                                    //fp = fopen(files.front().filename.c_str(), "rb");
+                                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(files.front().filename.c_str(), "rb"),&std::fclose);
                                     if (fp)
                                     {
                                           ptemp.tempfile.resize(ptemp.size);
-                                          unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp);
-                                          fclose(fp);
+                                          unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
+                                          //fclose(fp);
                                     }
                                     contentlength = ptemp.tempfile.size();
                               }
@@ -2154,12 +2163,13 @@ namespace http
                         ptemp.size = files.front().size;
                         if (ptemp.size < 32768)
                         {
-                              fp = fopen(files.front().filename.c_str(), "rb");
+                              //fp = fopen(files.front().filename.c_str(), "rb");
+                              std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(files.front().filename.c_str(), "rb"),&std::fclose);
                               if (fp)
                               {
                                     ptemp.tempfile.resize(ptemp.size);
-                                    unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp);
-                                    fclose(fp);
+                                    unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
+                                   // fclose(fp);
                               }
                               contentlength = ptemp.tempfile.size();
                         }

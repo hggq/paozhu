@@ -11,7 +11,7 @@
 #include <sstream>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
-#include <cookie.h>
+#include "cookie.h"
 #include "request.h"
 
 namespace http
@@ -130,11 +130,6 @@ namespace http
         unsigned char requesttype = 0;
         unsigned char parsetojson = 0;
         std::list<upload_file> files;
-        // struct postlist{
-        //     unsigned char type;
-        //     std::string content;
-        //     std::string content;
-        // };
         std::list<upload_file> senddata;
         std::string boundary;
         unsigned char headerfinish = 0;

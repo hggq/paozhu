@@ -2975,9 +2975,10 @@ namespace http
 
                     fieldheader_temp = data_info[block_steamid].upfile.filename + std::to_string(http::timeid()) + fieldname;
 
-                    data_info[block_steamid].upfile.tempfile =localvar.temp_path + "temp/";
+                    data_info[block_steamid].upfile.tempfile =localvar.temp_path;// + "temp/";
                     data_info[block_steamid].upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
 
+                    DEBUG_LOG("filename:%s",data_info[block_steamid].upfile.tempfile.c_str());
                     //data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
                     data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
                     if (!data_info[block_steamid].uprawfile)
@@ -3076,7 +3077,7 @@ namespace http
 
                std::string fieldheader_temp = data_info[block_steamid].upfile.filename + std::to_string(http::timeid()) + "rawcontent";
 
-               data_info[block_steamid].upfile.tempfile =localvar.temp_path + "temp/";
+               data_info[block_steamid].upfile.tempfile =localvar.temp_path;// + "temp/";
                data_info[block_steamid].upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
                //data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
                data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
@@ -3207,7 +3208,6 @@ namespace http
                peer_session->recv_window_update(RECV_WINDOW_UPDATE_NUM - window_update_recv_num, block_steamid);
                window_update_recv_num = RECV_WINDOW_UPDATE_NUM;
           }
-
           readoffset = readoffset + short_loop_max;
           // 数据块处理完成
           if (data_info[block_steamid].curnum == data_info[block_steamid].length)
