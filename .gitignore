@@ -19,3 +19,5 @@ bin/*
 log
 temp/*
 temp
+cmake-build-debug
+cmake-build-release
