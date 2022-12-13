@@ -1,5 +1,6 @@
 #include <string>
 #include <map>
+#include <memory>
 #include "serverconfig.h"
 #include "server_localvar.h"
 #include <cstring>
@@ -14,21 +15,22 @@ namespace http
     {
         std::map<std::string, std::map<std::string, std::string>> sys_config;
         std::map<std::string, std::string> itemconfig;
-        FILE *f = fopen(filename.c_str(), "rb");
-        if (f == NULL)
+        //FILE *f = fopen(filename.c_str(), "rb");
+        std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(filename.c_str(), "rb"),&std::fclose);
+        if (f == nullptr)
         {
             return sys_config;
         }
-        fseek(f, 0, SEEK_END);
-        auto const size = ftell(f);
-        fseek(f, 0, SEEK_SET);
+        fseek(f.get(), 0, SEEK_END);
+        auto const size = ftell(f.get());
+        fseek(f.get(), 0, SEEK_SET);
 
         std::string s, linestr, keyname, strval;
         s.resize(size);
 
-        auto nread = fread(&s[0], 1, size, f);
+        auto nread = fread(&s[0], 1, size, f.get());
         s.resize(nread);
-        fclose(f);
+        //fclose(f);
 
         bool readkey = false;
         bool isvalue = false;
