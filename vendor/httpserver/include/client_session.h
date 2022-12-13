@@ -86,9 +86,7 @@ namespace http
     client_session(std::list<asio::ip::tcp::socket> sock);
 
     client_session(std::list<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket);
-    ~client_session()
-    {
-    }
+    ~client_session();
 
     void flush_data();
     void add_data(const std::string &msg);

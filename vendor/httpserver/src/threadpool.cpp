@@ -384,16 +384,16 @@ namespace http
       peer->socket_session->send_data(_send_header);
 
       unsigned int data_send_id = peer->stream_id;
-      _send_data.resize(9);
-      _send_data[3] = 0x00;
-      _send_data[4] = 0x00;
-      _send_data[8] = data_send_id & 0xFF;
-      data_send_id = data_send_id >> 8;
-      _send_data[7] = data_send_id & 0xFF;
-      data_send_id = data_send_id >> 8;
-      _send_data[6] = data_send_id & 0xFF;
-      data_send_id = data_send_id >> 8;
-      _send_data[5] = data_send_id & 0x7F;
+      // _send_data.resize(9);
+      // _send_data[3] = 0x00;
+      // _send_data[4] = 0x00;
+      // _send_data[8] = data_send_id & 0xFF;
+      // data_send_id = data_send_id >> 8;
+      // _send_data[7] = data_send_id & 0xFF;
+      // data_send_id = data_send_id >> 8;
+      // _send_data[6] = data_send_id & 0xFF;
+      // data_send_id = data_send_id >> 8;
+      // _send_data[5] = data_send_id & 0x7F;
       data_send_id = 0;
 
       fseek(fp.get(), readnum, SEEK_SET);
@@ -462,31 +462,40 @@ namespace http
 
         if (file_size > 10485760)
         {
-          send_cache->data_size = per_size + 9;
-          send_cache->timeid = peer->stream_id;
-          peer->socket_session->send_queue_list.emplace_back(send_cache);
-
-          send_file_promise temppromise;
-          temppromise.send_results = temppromise.send_promise.get_future();
-
-          peer->socket_session->peer_promise_list[peer->stream_id] = std::move(temppromise);
-
-          try
+          if (peer->socket_session->send_data(send_cache->data, per_size + 9))
           {
-            //DEBUG_LOG("---  go to send --------");
-            peer->socket_session->sendtype = true;
-            peer->socket_session->flush_data();
-
-            int result = peer->socket_session->peer_promise_list[peer->stream_id].send_results.get();
-            // 优化时候删除
-            //DEBUG_LOG("---  from send back --------");
           }
-          catch (const std::exception &e)
+          else
           {
-            // peer->window_update_results.clear();
-
+            LOG_ERROR<<" send_data error "<<LOG_END;
             return false;
           }
+
+          // send_cache->data_size = per_size + 9;
+          // send_cache->timeid = peer->stream_id;
+          // peer->socket_session->send_queue_list.emplace_back(send_cache);
+
+          // send_file_promise temppromise;
+          // temppromise.send_results = temppromise.send_promise.get_future();
+
+          // peer->socket_session->peer_promise_list[peer->stream_id] = std::move(temppromise);
+
+          // try
+          // {
+          //   //DEBUG_LOG("---  go to send --------");
+          //   peer->socket_session->sendtype = true;
+          //   peer->socket_session->flush_data();
+
+          //   int result = peer->socket_session->peer_promise_list[peer->stream_id].send_results.get();
+          //   // 优化时候删除
+          //   //DEBUG_LOG("---  from send back --------");
+          // }
+          // catch (const std::exception &e)
+          // {
+          //   // peer->window_update_results.clear();
+
+          //   return false;
+          // }
         }
         else
         {
@@ -714,16 +723,16 @@ namespace http
       peer->socket_session->send_data(_send_header);
 
       unsigned int data_send_id = peer->stream_id;
-      _send_data.resize(9);
-      _send_data[3] = 0x00;
-      _send_data[4] = 0x00;
-      _send_data[8] = data_send_id & 0xFF;
-      data_send_id = data_send_id >> 8;
-      _send_data[7] = data_send_id & 0xFF;
-      data_send_id = data_send_id >> 8;
-      _send_data[6] = data_send_id & 0xFF;
-      data_send_id = data_send_id >> 8;
-      _send_data[5] = data_send_id & 0x7F;
+      // _send_data.resize(9);
+      // _send_data[3] = 0x00;
+      // _send_data[4] = 0x00;
+      // _send_data[8] = data_send_id & 0xFF;
+      // data_send_id = data_send_id >> 8;
+      // _send_data[7] = data_send_id & 0xFF;
+      // data_send_id = data_send_id >> 8;
+      // _send_data[6] = data_send_id & 0xFF;
+      // data_send_id = data_send_id >> 8;
+      // _send_data[5] = data_send_id & 0x7F;
       data_send_id = 0;
       int jj = 0;
 
@@ -809,27 +818,35 @@ namespace http
         }
         if (file_size > 10485760)
         {
-          send_cache->data_size = per_size + 9;
-          send_cache->timeid = peer->stream_id;
-          peer->socket_session->send_queue_list.emplace_back(send_cache);
-
-          send_file_promise temppromise;
-          temppromise.send_results = temppromise.send_promise.get_future();
-          peer->socket_session->peer_promise_list[peer->stream_id] = std::move(temppromise);
-          try
+          if (peer->socket_session->send_data(send_cache->data, per_size + 9))
           {
-            //DEBUG_LOG("---  to send--------");
-            peer->socket_session->sendtype = true;
-            peer->socket_session->flush_data();
-
-            int result = peer->socket_session->peer_promise_list[peer->stream_id].send_results.get();
-            // 优化时候删除
-            //DEBUG_LOG("---  back send--------");
           }
-          catch (const std::exception &e)
+          else
           {
-            break;
+            LOG_ERROR << " range error ";
+            return false;
           }
+          // send_cache->data_size = per_size + 9;
+          // send_cache->timeid = peer->stream_id;
+          // peer->socket_session->send_queue_list.emplace_back(send_cache);
+
+          // send_file_promise temppromise;
+          // temppromise.send_results = temppromise.send_promise.get_future();
+          // peer->socket_session->peer_promise_list[peer->stream_id] = std::move(temppromise);
+          // try
+          // {
+          //   //DEBUG_LOG("---  to send--------");
+          //   peer->socket_session->sendtype = true;
+          //   peer->socket_session->flush_data();
+
+          //   int result = peer->socket_session->peer_promise_list[peer->stream_id].send_results.get();
+          //   // 优化时候删除
+          //   //DEBUG_LOG("---  back send--------");
+          // }
+          // catch (const std::exception &e)
+          // {
+          //   break;
+          // }
         }
         else
         {

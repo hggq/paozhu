@@ -4,7 +4,7 @@
 
 #ifndef PROJECT_WEBSOCKET_PARSE_H
 #define PROJECT_WEBSOCKET_PARSE_H
-
+#include <memory>
 #include <cstddef>
 #include <string>
 #include <string_view>

@@ -28,6 +28,10 @@ namespace http
     isssl = true;
     timer_.expires_at(std::chrono::steady_clock::time_point::max());
   }
+    client_session::~client_session()
+    {
+             
+    }
   std::shared_ptr<client_session> client_session::get_ptr()
   {
     return shared_from_this();
