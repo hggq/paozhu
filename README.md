@@ -28,6 +28,7 @@ paozhu(炮竹🧨) c++ web framework 框架是一个全面、快速web开发框�
 13. The framework parses the URL and POST. The parsing result is similar to the PHP GET POST method to obtain the content
 14. Integrated sendmail
 15. Generating QR code requires gd and qrencode libraries
+16. Plugin module,Hot Module Replacement
 
 --------------
 1. 自带json decode encode 不用第三方库，标准json支持 通过 Benchmark
@@ -45,6 +46,7 @@ paozhu(炮竹🧨) c++ web framework 框架是一个全面、快速web开发框�
 13. 框架解析URL和POST,解析结果类似PHP GET POST方式获取内容
 14. 集成sendmail
 15. 生成二维码(qrcode),需要gd、qrencode库
+16. 插件化编程，热动态更新，使用动态库方式
 
 ---------------------
 
