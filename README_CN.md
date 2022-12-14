@@ -4,8 +4,7 @@
 <img alt="paozhu logo" src="docs/images/logo.png">
 </div>
 
-**Paozhu**(炮竹🧨)是一个全面、快速的c++
-web开发框架，集成ORM，开发速度跟脚本语言一样，框架集成了webserver，自己原生解析http1.1、http2协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char
+**Paozhu**(炮竹🧨)是一个全面、快速的C++ web framework 开发框架，集成ORM，开发速度跟脚本语言一样，框架集成了webserver，自己原生解析http1.1、http2协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char
 int string float等，框架自动解析URL、POST参数到微型对象里面，使用urlpath映射到函数挂载点，使用协程、线程池、数据库链接池。
 
 QQ群：668296235  
