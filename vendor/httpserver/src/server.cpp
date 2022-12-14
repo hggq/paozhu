@@ -943,7 +943,7 @@ namespace http
         if (ec_error)
         {
           LOG_ERROR << " accept ec_error " << LOG_END;
-          std::this_thread::sleep_for(std::chrono::seconds(2));
+          std::this_thread::sleep_for(std::chrono::seconds(1));
           continue;
         }
         DEBUG_LOG(" accept ok!");
