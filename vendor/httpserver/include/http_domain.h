@@ -3,7 +3,7 @@
 #define HTTP_DOMAIN_H
 
 #include <asio.hpp>
-// #include <asio/ssl.hpp>
+#include <asio/ssl.hpp>
 // #include <asio/co_spawn.hpp>
 // #include <asio/detached.hpp>
 // #include <asio/io_context.hpp>
@@ -26,6 +26,6 @@ namespace http
                 void *arg);
 
     std::string get_password();
-    long serverNameCallback(SSL *ssl, int *ad, void *arg);
+    int  serverNameCallback(SSL *ssl, int *ad, void *arg);
 }
 #endif

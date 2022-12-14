@@ -2749,6 +2749,7 @@ namespace http
             headendhitnum = 0;
             postfieldtype = 0;
             headerstep = 0;
+            
             peer->host.clear();
             peer->etag.clear();
             peer->output.clear();

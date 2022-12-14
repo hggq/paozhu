@@ -152,13 +152,17 @@ namespace http
   {
     return "sslpem123456";
   }
-  long serverNameCallback(SSL *ssl, int *ad, void *arg)
+  int serverNameCallback(SSL *ssl, int *ad, void *arg)
   {
     //如果是默认证书，可以直接返回，不用更改上下文
     if (ssl == NULL)
       return SSL_TLSEXT_ERR_NOACK;
 
     const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+    if(servername==NULL)
+    {
+      return SSL_TLSEXT_ERR_OK;
+    }
     SSL_CTX *ctx = NULL;
     serverconfig &sysconfigpath = getserversysconfig();
  

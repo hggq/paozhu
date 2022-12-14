@@ -316,7 +316,7 @@ namespace http
     serverconfig &sysconfigpath = getserversysconfig();
     peer->sitepath = sysconfigpath.getsitepath(peer->host);
     unsigned char sendtype = peer->getfileinfo();
-
+    DEBUG_LOG("http1loop:%s %d",peer->sendfilename.c_str(),sendtype);
     if (sendtype == 1)
     {
       if (peer->state.rangebytes)
@@ -600,7 +600,7 @@ namespace http
                 continue;
               }
               http1loop(1, peer, peer_session);
-              http1pre->clear();
+             
               LOG_OUT << "http1loop end" << LOG_END;
               DEBUG_LOG("http1loop end");
               if (peer->state.keeplive == false)
@@ -608,6 +608,7 @@ namespace http
                 DEBUG_LOG("--- keeplive false --------");
                 break;
               }
+              http1pre->clear();
             }
             if (http1pre->error > 0)
             {
@@ -862,7 +863,7 @@ namespace http
     SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_AUTO_RETRY);
     context_.use_private_key_file(sysconfigpath.ssl_key_file(), asio::ssl::context::pem);
     context_.use_tmp_dh_file(sysconfigpath.ssl_dh_file());
-    //SSL_CTX_set_tlsext_servername_callback(context_.native_handle(), serverNameCallback);
+    SSL_CTX_set_tlsext_servername_callback(context_.native_handle(), serverNameCallback);
 
     auto ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
                     SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION |
@@ -936,14 +937,16 @@ namespace http
       {
         httpversion = false;
         asio::ip::tcp::socket socket(this->io_context);
-
+        DEBUG_LOG("https accept");
+        
         acceptor.accept(socket, ec_error);
         if (ec_error)
         {
           LOG_ERROR << " accept ec_error " << LOG_END;
-          std::this_thread::sleep_for(std::chrono::seconds(3));
+          std::this_thread::sleep_for(std::chrono::seconds(2));
           continue;
         }
+        DEBUG_LOG(" accept ok!");
         // if all http2
         if (sysconfigpath.isallnothttp2)
         {
@@ -955,7 +958,8 @@ namespace http
         if (ec_error)
         {
           LOG_ERROR << " handshake ec_error " << LOG_END;
-          std::this_thread::sleep_for(std::chrono::seconds(3));
+          DEBUG_LOG(" handshake ec_error !");
+          std::this_thread::sleep_for(std::chrono::nanoseconds(10));
           continue;
         }
         // client select proto 看看客户端是否指定 协议，如果没有指定为null
@@ -972,7 +976,7 @@ namespace http
             httpversion = true;
           }
         }
-
+        DEBUG_LOG(" https ok!");
         total_count++;
 
         struct httpsocket_t sock_temp(std::move(sslsocket));
