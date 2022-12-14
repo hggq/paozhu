@@ -80,6 +80,7 @@ namespace http
     void listeners();
     void listener();
     void add_runsocketthread();
+    int  checkhttp2(std::shared_ptr<client_session> peer_session);
     void http1_send_bad_request(unsigned int,std::shared_ptr<client_session>);
     void http1_send_bad_server(unsigned int,std::shared_ptr<httppeer>,std::shared_ptr<client_session>);
     bool http1_send_body(unsigned int streamid,std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session,const unsigned char *buffer, unsigned int begin_end);

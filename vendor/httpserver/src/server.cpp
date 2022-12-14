@@ -414,7 +414,7 @@ namespace http
     str.append(stfilecom);
     peer_session->write_data(str);
   }
-  int checkhttp2(std::shared_ptr<client_session> peer_session)
+  int httpserver::checkhttp2(std::shared_ptr<client_session> peer_session)
   {
 
     if (peer_session->_cache_data[0] == 0x50 && peer_session->_cache_data[1] == 0x52 && peer_session->_cache_data[2] == 0x49 && peer_session->_cache_data[3] == 0x20 && peer_session->_cache_data[4] == 0x2A && peer_session->_cache_data[5] == 0x20)
