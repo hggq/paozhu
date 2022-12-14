@@ -3212,6 +3212,7 @@ namespace http
           // 数据块处理完成
           if (data_info[block_steamid].curnum == data_info[block_steamid].length)
           {
+               DEBUG_LOG("data_process block:%llu", data_info[block_steamid].length);
                data_process(block_steamid);
                processheader = 0;
           }

@@ -71,9 +71,9 @@ namespace http
         unsigned char fin = 0x0B;
         unsigned char opcode;
         unsigned int pos = 0;
-        unsigned long long contentlength;
-        unsigned long long readlength;
-        unsigned long long contentoffset;
+        unsigned long long contentlength=0;
+        unsigned long long readlength=0;
+        unsigned long long contentoffset=0;
         // FILE *rawfile; // 临时文件
         std::unique_ptr<std::FILE, decltype(&std::fclose)> rawfile;
         std::string filename;

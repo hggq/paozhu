@@ -414,6 +414,20 @@ namespace http
     str.append(stfilecom);
     peer_session->write_data(str);
   }
+  int checkhttp2(std::shared_ptr<client_session> peer_session)
+  {
+
+    if (peer_session->_cache_data[0] == 0x50 && peer_session->_cache_data[1] == 0x52 && peer_session->_cache_data[2] == 0x49 && peer_session->_cache_data[3] == 0x20 && peer_session->_cache_data[4] == 0x2A && peer_session->_cache_data[5] == 0x20)
+    {
+      peer_session->httpv = 2;
+      return 4;
+    }
+    else
+    {
+      peer_session->httpv = 1;
+      return 1;
+    }
+  }
   asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion)
   {
     try
@@ -440,274 +454,203 @@ namespace http
           total_count--;
           co_return;
         }
-        DEBUG_LOG("new client in");
+
+#ifdef DEBUG
         {
+          DEBUG_LOG("new client in");
           std::ostringstream oss;
           oss << std::this_thread::get_id();
           std::string tempthread = oss.str();
           DEBUG_LOG("client thread:%s", tempthread.c_str());
         }
+#endif
         int readnum, error_state = 0;
-
-        memset(peer_session->_cache_data, 0x00, 4096);
-        if (isssl)
-        {
-          readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
-        }
-        else
-        {
-          readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
-        }
-
-        if (peer_session->_cache_data[0] == 0x50 && peer_session->_cache_data[1] == 0x52 && peer_session->_cache_data[2] == 0x49 && peer_session->_cache_data[3] == 0x20 && peer_session->_cache_data[4] == 0x2A && peer_session->_cache_data[5] == 0x20)
-        {
-          peer_session->httpv = 2;
-        }
-        else
-        {
-          peer_session->httpv = 1;
-        }
+        unsigned linktype = 0;
         bool isbegin = false;
 
-        if (peer_session->httpv == 1)
+        std::unique_ptr<http2parse> http2pre;
+        std::unique_ptr<httpparse> http1pre;
+
+        peer->isssl = isssl ? true : false;
+        peer->socket_session = peer_session;
+        unsigned int offsetnum = 0;
+        for (;;)
         {
-          http::httpparse http1parse;
-          http1parse.setpeer(peer);
-
-          for (;;)
+          memset(peer_session->_cache_data, 0x00, 4096);
+          try
           {
-            http1parse.clear();
-            for (;;)
+            if (isssl)
             {
-              if (isbegin)
+              readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
+            }
+            else
+            {
+              readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
+            }
+          }
+          catch (const std::exception &e)
+          {
+            LOG_ERROR << " co_await exception: " << e.what() << " ip:" << peer->client_ip << " host:" << peer->host << " url:" << peer->url << LOG_END;
+            break;
+          }
+
+          if (linktype == 0)
+          {
+            linktype = checkhttp2(peer_session);
+            if (linktype == 1)
+            {
+              http1pre = std::make_unique<httpparse>();
+              http1pre->setpeer(peer);
+            }
+            else if (linktype == 4)
+            {
+              http2pre = std::make_unique<http2parse>();
+            }
+          }
+
+          // http1
+          if (linktype == 1)
+          {
+            if (!http1pre)
+            {
+              break;
+            }
+            http1pre->process(peer_session->_cache_data, readnum);
+            if (readnum == 0 || http1pre->getfinish())
+            {
+
+              LOG_OUT << "http1parse fininsh" << peer->url << LOG_END;
+#ifdef DEBUG
+              DEBUG_LOG("http1parse begin");
+              DEBUG_LOG("urlpath:%s", peer->urlpath.c_str());
+              DEBUG_LOG("host:%s", peer->host.c_str());
+              DEBUG_LOG("user-agent:%s", peer->header["user-agent"].c_str());
+              DEBUG_LOG("http1parse end");
+#endif
+              peer->isssl = isssl ? true : false;
+              peer->socket_session = peer_session;
+              peer->server_ip = peer_session->getlocalip();
+              peer->client_ip = peer_session->getremoteip();
+              peer->client_port = peer_session->getremoteport();
+              peer->server_port = peer_session->getlocalport();
+
               {
-                memset(peer_session->_cache_data, 0x00, 4096);
-                try
-                {
-                  if (isssl)
-                  {
-                    readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
-                  }
-                  else
-                  {
-                    readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
-                  }
-                }
-                catch (const std::exception &e)
-                {
-                  http1parse.error = 4444;
-                  break;
-                }
+                std::ostringstream oss;
+                oss << peer->server_ip << " " << date("%Y-%m-%d %X") << " " << peer->server_port << " " << peer->host << " " << peer->url << "\n";
+                std::unique_lock<std::mutex> lock(log_mutex);
+                access_loglist.emplace_back(oss.str());
+                lock.unlock();
               }
-              else
+
+              if (peer->state.h2c)
               {
-                isbegin = true;
-              }
+                linktype = 4;
 
-              http1parse.process(peer_session->_cache_data, readnum);
-              if (readnum == 0 || http1parse.getfinish())
-              {
+                peer_session->httpv = 2;
+                peer->httpv = 2;
+                peer->isfinish = true;
+                peer->issend = false;
 
-                LOG_OUT << "http1parse fininsh" << peer->url << LOG_END;
+                peer_session->send_switch101();
 
-                DEBUG_LOG("http1parse begin");
-                DEBUG_LOG("urlpath:%s", peer->urlpath.c_str());
-                DEBUG_LOG("host:%s", peer->host.c_str());
-                DEBUG_LOG("user-agent:%s", peer->header["user-agent"].c_str());
-                DEBUG_LOG("http1parse end");
+                peer->httpv = 2;
 
                 peer->isssl = isssl ? true : false;
-                peer->socket_session = peer_session;
-                peer->server_ip = peer_session->getlocalip();
-                peer->client_ip = peer_session->getremoteip();
-                peer->client_port = peer_session->getremoteport();
-                peer->server_port = peer_session->getlocalport();
+                http2pre = std::make_unique<http2parse>();
+                http2pre->setsession(peer_session);
+                http2pre->http_data[1] = peer;
+                http2pre->stream_list.emplace(1);
 
-                {
-                  std::ostringstream oss;
-                  oss << peer->server_ip << " " << date("%Y-%m-%d %X") << " " << peer->server_port << " " << peer->host << " " << peer->url << "\n";
-                  std::unique_lock<std::mutex> lock(log_mutex);
-                  access_loglist.emplace_back(oss.str());
-                  lock.unlock();
-                }
+                continue;
+              }
 
-                if (peer->state.h2c)
-                {
-                  break;
-                }
-
-                if (hook_host_http1(peer))
-                {
-                  break;
-                }
-
-                if (peer->state.websocket)
-                {
-                  break;
-                }
-                http1loop(1, peer, peer_session);
-
-                LOG_OUT << "http1loop end" << LOG_END;
-                DEBUG_LOG("http1loop end");
+              if (hook_host_http1(peer))
+              {
                 break;
               }
 
-              if (http1parse.error > 0)
+              if (peer->state.websocket)
               {
-                http1_send_bad_request(http1parse.error, peer_session);
-                break;
-              }
-            }
-            if (http1parse.error == 4444)
-            {
-              DEBUG_LOG("--- co_await exception 4444--------");
-              break;
-            }
-            if (peer->state.h2c)
-            {
-              peer_session->httpv = 2;
-              peer->httpv = 2;
-              peer->isfinish = true;
-              peer->issend = false;
+                linktype = 5;
+                peer->linktype = 3;
+                peer->ws = std::make_unique<websocketparse>();
+                peer->ws->setWebsocketkey(peer->websocket.key);
+                std::string resp = peer->ws->respondHandshake();
+                peer_session->send_data(resp);
+                WEBSOCKET_REG &wsreg = get_websocket_config();
 
-              peer_session->send_switch101();
-              memset(peer_session->_cache_data, 0x00, 4096);
-              try
-              {
-                if (isssl)
+                if (peer->pathinfos.size() == 0)
                 {
-                  readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
+                  break;
                 }
-                else
+                auto wsiter = wsreg.find(peer->pathinfos[0]);
+                if (wsiter == wsreg.end())
                 {
-                  readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
+                  break;
                 }
+                auto myclientwsplugin = wsreg[peer->pathinfos[0]];
+                peer->websockets = myclientwsplugin(peer);
+                peer->ws->isopen = true;
+                peer->websockets->onopen();
+                if (peer->websockets->timeloop_num > 0)
+                {
+                  websockettasks.emplace_back(peer);
+                }
+                peer->ws->contentlength = 0;
+                continue;
               }
-              catch (const std::exception &e)
-              {
-                LOG_ERROR << "http1 h2c switch101 after" << LOG_END;
-              }
-
-              error_state = 0;
-              isbegin = false;
-              break;
+              http1loop(1, peer, peer_session);
+              http1pre->clear();
+              LOG_OUT << "http1loop end" << LOG_END;
+              DEBUG_LOG("http1loop end");
             }
-            else if (peer->state.websocket)
+            if (http1pre->error > 0)
             {
-              peer->linktype = 3;
-              peer->ws = std::make_unique<websocketparse>();
-              peer->ws->setWebsocketkey(peer->websocket.key);
-              std::string resp = peer->ws->respondHandshake();
-              peer_session->send_data(resp);
-              WEBSOCKET_REG &wsreg = get_websocket_config();
-
-              if (peer->pathinfos.size() == 0)
-              {
-                co_return;
-              }
-              auto wsiter = wsreg.find(peer->pathinfos[0]);
-              if (wsiter == wsreg.end())
-              {
-                co_return;
-              }
-              auto myclientwsplugin = wsreg[peer->pathinfos[0]];
-              peer->websockets = myclientwsplugin(peer);
-              peer->ws->isopen = true;
-              peer->websockets->onopen();
-              if (peer->websockets->timeloop_num > 0)
-              {
-                websockettasks.emplace_back(peer);
-              }
-
-              for (;;)
-              {
-                DEBUG_LOG("websockets in for loop");
-                memset(peer_session->_cache_data, 0x00, 4096);
-                try
-                {
-                  try
-                  {
-                    if (isssl)
-                    {
-                      readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
-                    }
-                    else
-                    {
-                      readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
-                    }
-                  }
-                  catch (const std::exception &e)
-                  {
-                    LOG_ERROR << "websocket co_await loop" << LOG_END;
-                    break;
-                  }
-
-                  if (peer->ws->contentlength == 0)
-                  {
-                    DEBUG_LOG("websockets big data");
-                    peer->ws->getprocssdata(peer_session->_cache_data, readnum);
-                  }
-                  else
-                  {
-                    DEBUG_LOG("websockets small data");
-                    peer->ws->parsedata(peer_session->_cache_data, readnum);
-                  }
-
-                  if (peer->ws->isfinish)
-                  {
-                    DEBUG_LOG("onmessage isfinish");
-                    if (peer->ws->opcode < 0x08 && peer->ws->opcode > 0x00)
-                    {
-                      peer->ws->closefile();
-                      clientrunpool.addclient(peer);
-                    }
-                    else if (peer->ws->opcode == 0x08)
-                    {
-                      peer->ws->isopen = false;
-                      peer->websockets->onclose();
-                      DEBUG_LOG("websockets");
-                      co_return;
-                    }
-                    else if (peer->ws->opcode == 0x09)
-                    {
-                      std::string outhello;
-                      outhello = peer->ws->makePong();
-                      peer->send(outhello);
-                    }
-                  }
-                }
-                catch (const std::exception &e)
-                {
-                  http1parse.error = 500;
-                  LOG_ERROR << "  websockets thread exception  " << e.what() << LOG_END;
-                }
-              }
-              co_return;
-            }
-
-            if (peer->state.keeplive == false)
-            {
-              DEBUG_LOG("--- keeplive false --------");
+              http1_send_bad_request(http1pre->error, peer_session);
               break;
             }
           }
-        }
 
-        if (peer_session->httpv == 2)
-        {
-          http2parse http2parse;
-          http2parse.setsession(peer_session);
-          if (peer->state.h2c)
+          // websocket
+          if (linktype == 5)
           {
-            peer->httpv = 2;
+            if (peer->ws->contentlength == 0)
+            {
+              DEBUG_LOG("websockets big data");
+              peer->ws->getprocssdata(peer_session->_cache_data, readnum);
+            }
+            else
+            {
+              DEBUG_LOG("websockets small data");
+              peer->ws->parsedata(peer_session->_cache_data, readnum);
+            }
 
-            peer->isssl = isssl ? true : false;
-            http2parse.http_data[1] = peer;
-            http2parse.stream_list.emplace(1);
+            if (peer->ws->isfinish)
+            {
+              DEBUG_LOG("onmessage isfinish");
+              if (peer->ws->opcode < 0x08 && peer->ws->opcode > 0x00)
+              {
+                peer->ws->closefile();
+                clientrunpool.addclient(peer);
+              }
+              else if (peer->ws->opcode == 0x08)
+              {
+                peer->ws->isopen = false;
+                peer->websockets->onclose();
+                DEBUG_LOG("websockets");
+                break;
+              }
+              else if (peer->ws->opcode == 0x09)
+              {
+                std::string outhello;
+                outhello = peer->ws->makePong();
+                peer->send(outhello);
+              }
+            }
           }
-          unsigned int offsetnum = 0;
 
-          if (error_state == 0 && isbegin == false)
+          // h2c
+          if (linktype == 4)
           {
             int j = 0;
             for (int i = 0; i < 24; i++, j++)
@@ -722,88 +665,76 @@ namespace http
               error_state = 1;
             }
             offsetnum = 24;
+            if (error_state > 0)
+            {
+              break;
+            }
+            linktype = 3;
+            peer_session->send_setting();
+            if (!http2pre)
+            {
+              http2pre = std::make_unique<http2parse>();
+            }
+
+            http2pre->setsession(peer_session);
           }
 
-          if (error_state == 0)
+          if (linktype == 3)
           {
-            peer_session->send_setting();
-            int jj = 1, kk = 1;
-            for (;;)
+            if (!http2pre)
             {
-              if (isbegin)
+              break;
+            }
+            http2pre->process(&peer_session->_cache_data[offsetnum], readnum - offsetnum);
+            offsetnum = 0;
+            if (http2pre->stream_list.size() > 0)
+            {
+              for (; http2pre->stream_list.size() > 0;)
               {
-                memset(peer_session->_cache_data, 0x00, 4096);
-                readnum = 0;
-                try
+                unsigned int block_steamid = http2pre->stream_list.front();
+                http2pre->http_data[block_steamid]->socket_session = peer_session;
+                if (hook_host_http2(http2pre->http_data[block_steamid]))
                 {
-                  if (isssl)
-                  {
-                    readnum = co_await peer_session->_sslsocket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
-                  }
-                  else
-                  {
-                    readnum = co_await peer_session->_socket.front().async_read_some(asio::buffer(peer_session->_cache_data, 4096), asio::use_awaitable);
-                  }
+                  http2pre->stream_list.pop();
+                  error_state = 1;
+                  break;
                 }
-                catch (const std::exception &e)
-                {
-                  LOG_ERROR << " http2 co_await error " << e.what() << LOG_END;
-                  if (!peer_session->isopensocket())
-                  {
-                    break;
-                  }
-                  jj++;
-                  kk++;
-                  std::this_thread::sleep_for(std::chrono::milliseconds(2));
-                  if (jj > 4 || kk > 20)
-                  {
-                    break;
-                  }
-                }
-                if (readnum > 0)
-                {
-                  jj = 1;
-                }
-                http2parse.process(peer_session->_cache_data, readnum);
-              }
-              else
-              {
-                http2parse.process(&peer_session->_cache_data[offsetnum], readnum - offsetnum);
-                isbegin = true;
-              }
+                http2pre->http_data[block_steamid]->linktype = 1;
+                http2pre->http_data[block_steamid]->server_ip = peer_session->getlocalip();
+                http2pre->http_data[block_steamid]->client_ip = peer_session->getremoteip();
+                http2pre->http_data[block_steamid]->client_port = peer_session->getremoteport();
+                http2pre->http_data[block_steamid]->server_port = peer_session->getlocalport();
 
-              if (http2parse.stream_list.size() > 0)
-              {
-                for (; http2parse.stream_list.size() > 0;)
                 {
-                  unsigned int block_steamid = http2parse.stream_list.front();
-                  http2parse.http_data[block_steamid]->socket_session = peer_session;
-                  if (hook_host_http2(http2parse.http_data[block_steamid]))
-                  {
-                    break;
-                  }
-                  http2parse.http_data[block_steamid]->linktype = 1;
-                  http2parse.http_data[block_steamid]->server_ip = peer_session->getlocalip();
-                  http2parse.http_data[block_steamid]->client_ip = peer_session->getremoteip();
-                  http2parse.http_data[block_steamid]->client_port = peer_session->getremoteport();
-                  http2parse.http_data[block_steamid]->server_port = peer_session->getlocalport();
-
                   std::ostringstream oss;
-                  oss << http2parse.http_data[block_steamid]->client_ip << " "
-                      << " " << date("%Y-%m-%d %X") << " " << http2parse.http_data[block_steamid]->server_port << " " << http2parse.http_data[block_steamid]->host << " " << http2parse.http_data[block_steamid]->url << "\n";
+                  oss << http2pre->http_data[block_steamid]->client_ip << " "
+                      << " " << date("%Y-%m-%d %X") << " " << http2pre->http_data[block_steamid]->server_port << " " << http2pre->http_data[block_steamid]->host << " " << http2pre->http_data[block_steamid]->url << "\n";
                   std::unique_lock<std::mutex> lock(log_mutex);
                   access_loglist.emplace_back(oss.str());
                   lock.unlock();
-
-                  clientrunpool.addclient(http2parse.http_data[block_steamid]);
-                  http2parse.stream_list.pop();
                 }
+#ifdef DEBUG
+                DEBUG_LOG("http2parse begin");
+                DEBUG_LOG("urlpath:%s", http2pre->http_data[block_steamid]->urlpath.c_str());
+                DEBUG_LOG("host:%s", http2pre->http_data[block_steamid]->host.c_str());
+                DEBUG_LOG("user-agent:%s", http2pre->http_data[block_steamid]->header["user-agent"].c_str());
+                DEBUG_LOG("http2parse end");
+#endif
+
+                clientrunpool.addclient(http2pre->http_data[block_steamid]);
+                http2pre->stream_list.pop();
               }
-              if (peer_session->isgoway)
-              {
-                peer_session->isclose = true;
-                break;
-              }
+            }
+            if (error_state > 0)
+            {
+              peer_session->send_goway();
+              peer_session->isclose = true;
+              break;
+            }
+            if (peer_session->isgoway)
+            {
+              peer_session->isclose = true;
+              break;
             }
           }
         }

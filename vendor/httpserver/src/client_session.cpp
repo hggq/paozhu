@@ -192,6 +192,29 @@ namespace http
       return false;
     }
   }
+    bool client_session::send_goway()
+  {
+    std::unique_lock<std::mutex> lock(writemutex);
+    try
+    {
+      unsigned char _recvack[] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00};
+      if (isssl)
+      {
+
+        asio::write(_sslsocket.front(), asio::buffer(_recvack, 17));
+      }
+      else
+      {
+
+        asio::write(_socket.front(), asio::buffer(_recvack, 17));
+      }
+      return true;
+    }
+    catch (std::exception &)
+    {
+      return false;
+    }
+  }
   bool client_session::send_recv_setting()
   {
     std::unique_lock<std::mutex> lock(writemutex);
@@ -327,121 +350,6 @@ namespace http
     {
       return false;
     }
-  }
-  asio::awaitable<void> client_session::loopsendfile(filesend_promise finfo)
-  {
-    try
-    {
-      FILE_AUTO fp(std::fopen(finfo.filename.c_str(), "rb"), &std::fclose);
-      if (fp.get())
-      {
-        fseek(fp.get(), 0, SEEK_END);
-        long long file_size = ftell(fp.get());
-        fseek(fp.get(), 0, SEEK_SET);
-
-        fseek(fp.get(), finfo.begin_num, SEEK_SET);
-
-        long long readnum = 0, send_size = 0, totalsend_num = 0;
-        unsigned int data_send_id = 0;
-        unsigned int nread = 0;
-        send_size = finfo.end_num - finfo.begin_num;
-        bool mustwait_window_update = true;
-        while (readnum < send_size)
-        {
-          memset(_write_data, 0x00, 4105);
-          nread = 4096;
-          if (readnum + 4096 > send_size)
-          {
-            nread = send_size - readnum;
-          }
-
-          nread = fread(&_write_data[9], 1, nread, fp.get());
-
-          data_send_id = nread;
-          _write_data[2] = data_send_id & 0xFF;
-          data_send_id = data_send_id >> 8;
-          _write_data[1] = data_send_id & 0xFF;
-          data_send_id = data_send_id >> 8;
-          _write_data[0] = data_send_id & 0xFF;
-
-          readnum += nread;
-          totalsend_num += nread;
-          if (readnum >= send_size)
-          {
-            _write_data[4] = 0x01;
-          }
-          data_send_id = finfo.stream_id;
-          _write_data[8] = data_send_id & 0xFF;
-          data_send_id = data_send_id >> 8;
-          _write_data[7] = data_send_id & 0xFF;
-          data_send_id = data_send_id >> 8;
-          _write_data[6] = data_send_id & 0xFF;
-          data_send_id = data_send_id >> 8;
-          _write_data[5] = data_send_id & 0x7F;
-
-          if (isssl)
-          {
-            std::unique_lock<std::mutex> lock(writemutex);
-            // asio::write(_sslsocket.front(),asio::buffer(_write_data, nread+9));
-            co_await asio::async_write(_sslsocket.front(), asio::buffer(_write_data, nread + 9), asio::use_awaitable);
-          }
-          else
-          {
-            std::unique_lock<std::mutex> lock(writemutex);
-            co_await asio::async_write(_socket.front(), asio::buffer(_write_data, nread + 9), asio::use_awaitable);
-            // asio::write(_socket.front(),asio::buffer(_write_data, nread+9));
-          }
-          window_update_num -= nread;
-
-          if (window_update_num < nread * 2)
-          {
-            std::promise<int> p;
-            std::future<int> f{p.get_future()};
-
-            window_update_results.emplace_back(std::move(f));
-            window_update_promise = std::move(p);
-            atomic_bool = true;
-
-            try
-            {
-              int result = window_update_results.front().get();
-              window_update_results.pop_front();
-              mustwait_window_update = false;
-            }
-            catch (const std::exception &e)
-            {
-              break;
-            }
-          }
-
-          if (file_size > 10485760)
-          {
-
-            if (mustwait_window_update && totalsend_num < 20971520)
-            {
-              std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-          }
-        }
-
-        finfo.isfinish = true;
-        if (!_cache_send_results.empty())
-        {
-          try
-          {
-            _cache_send_promise.set_value(1);
-          }
-          catch (const std::exception &e)
-          {
-            std::cerr << e.what() << '\n';
-          }
-        }
-      }
-    }
-    catch (std::exception &)
-    {
-    }
-    co_return;
   }
   asio::awaitable<void> client_session::loopwriter()
   {

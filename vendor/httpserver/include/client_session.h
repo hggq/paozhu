@@ -97,7 +97,6 @@ namespace http
     bool send_data(const unsigned char *, unsigned int);
     bool isopensocket();
     std::shared_ptr<client_session> get_ptr();
-    asio::awaitable<void> loopsendfile(filesend_promise finfo);
     asio::awaitable<void> loopwriter();
 
     std::string getremoteip();
@@ -108,6 +107,7 @@ namespace http
 
     bool send_setting();
     bool send_switch101();
+    bool send_goway();
     bool send_recv_setting();
     void send_window_update(unsigned int, unsigned int streamid = 0);
     void recv_window_update(unsigned int, unsigned int streamid = 0);
@@ -120,7 +120,7 @@ namespace http
 
   public:
     unsigned char _cache_data[4106];
-    unsigned char _write_data[4106];
+    //unsigned char _write_data[4106];
     unsigned int _cache_size = 0;
     unsigned int _write_size = 0;
     std::atomic_bool sendtype = false;
