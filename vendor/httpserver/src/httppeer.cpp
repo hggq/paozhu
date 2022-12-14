@@ -326,7 +326,14 @@ namespace http
                               return true;
                         }
                   }
-                  else if (sysconfigpath.map_value[host]["directorylist"][0] == '1')
+                  else if (sysconfigpath.map_value["default"]["directorylist"].size() > 0 && sysconfigpath.map_value[host]["directorylist"][0] == '1')
+                  {
+                        return true;
+                  }
+            }
+            else
+            {
+                  if (sysconfigpath.map_value["default"]["directorylist"].size() > 0 && sysconfigpath.map_value["default"]["directorylist"][0] == '1')
                   {
                         return true;
                   }

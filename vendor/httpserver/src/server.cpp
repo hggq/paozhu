@@ -603,6 +603,11 @@ namespace http
               http1pre->clear();
               LOG_OUT << "http1loop end" << LOG_END;
               DEBUG_LOG("http1loop end");
+              if (peer->state.keeplive == false)
+              {
+                DEBUG_LOG("--- keeplive false --------");
+                break;
+              }
             }
             if (http1pre->error > 0)
             {
@@ -857,7 +862,7 @@ namespace http
     SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_AUTO_RETRY);
     context_.use_private_key_file(sysconfigpath.ssl_key_file(), asio::ssl::context::pem);
     context_.use_tmp_dh_file(sysconfigpath.ssl_dh_file());
-    SSL_CTX_set_tlsext_servername_callback(context_.native_handle(), serverNameCallback);
+    //SSL_CTX_set_tlsext_servername_callback(context_.native_handle(), serverNameCallback);
 
     auto ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
                     SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION |
