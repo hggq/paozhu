@@ -3,7 +3,7 @@ English | [简体中文](README_CN.md)
 <img alt="paozhu logo" src="docs/images/logo.png">
 </div>
 
-paozhu(炮竹🧨) is a comprehensive and fast C++ web development framework that integrates ORM. The development speed is as
+paozhu(炮竹🧨) is a comprehensive and fast C++ web framework that integrates ORM. The development speed is as
 fast as script languages. The framework integrates a webserver, which can natively parse HTTP 1.1 and HTTP 2 protocols
 and GET and POST requests. The framework also distinguishes between different methods of POST requests. The framework
 comes with a built-in OBJ micro-object that can store data such as char, int, string, float, etc. The framework
