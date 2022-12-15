@@ -91,10 +91,10 @@ namespace http
         }
         debug_log &operator<<(const char *a)
         {
-            std::string temp = a;
-            if (temp[0] == '/')
+            
+            if (a[0] == '/')
             {
-
+                std::string temp(a);
                 unsigned int str_size = temp.size() - 1;
                 unsigned int posn = 0;
                 for (; str_size > 0; str_size--)

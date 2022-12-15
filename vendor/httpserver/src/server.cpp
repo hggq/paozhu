@@ -316,7 +316,7 @@ namespace http
     serverconfig &sysconfigpath = getserversysconfig();
     peer->sitepath = sysconfigpath.getsitepath(peer->host);
     unsigned char sendtype = peer->getfileinfo();
-    DEBUG_LOG("http1loop:%s %d",peer->sendfilename.c_str(),sendtype);
+    DEBUG_LOG("http1loop:%s %d", peer->sendfilename.c_str(), sendtype);
     if (sendtype == 1)
     {
       if (peer->state.rangebytes)
@@ -432,7 +432,8 @@ namespace http
   {
     try
     {
-      std::shared_ptr<client_session> peer_session=isssl?std::make_shared<client_session>(std::move(sock_temp._sslsocket)):std::make_shared<client_session>(std::move(sock_temp._socket));
+      std::shared_ptr<client_session> peer_session = isssl ? std::make_shared<client_session>(std::move(sock_temp._sslsocket)) : std::make_shared<client_session>(std::move(sock_temp._socket));
+      std::string log_item;
       try
       {
         serverconfig &sysconfigpath = getserversysconfig();
@@ -457,7 +458,6 @@ namespace http
         int readnum, error_state = 0;
         unsigned linktype = 0;
         bool isbegin = false;
-        std::string log_item;
 
         std::unique_ptr<http2parse> http2pre;
         std::unique_ptr<httpparse> http1pre;
@@ -481,7 +481,18 @@ namespace http
           }
           catch (const std::exception &e)
           {
-            LOG_ERROR << " co_await exception: " << e.what() << " ip:" << peer->client_ip << " host:" << peer->host << " url:" << peer->url << LOG_END;
+            log_item.clear();
+            log_item.append("co_await exception: ");
+            log_item.append(e.what());
+            log_item.push_back(0x20);
+            log_item.append(peer->client_ip);
+            log_item.push_back(0x20);
+            log_item.append(peer->host);
+            log_item.push_back(0x20);
+            log_item.append(peer->url);
+            std::unique_lock<std::mutex> lock(log_mutex);
+            error_loglist.emplace_back(log_item);
+            lock.unlock();
             break;
           }
 
@@ -510,7 +521,7 @@ namespace http
             if (readnum == 0 || http1pre->getfinish())
             {
 
-            //  LOG_OUT << "http1parse fininsh" << peer->url << LOG_END;
+              //  LOG_OUT << "http1parse fininsh" << peer->url << LOG_END;
 #ifdef DEBUG
               DEBUG_LOG("http1parse begin");
               DEBUG_LOG("urlpath:%s", peer->urlpath.c_str());
@@ -552,7 +563,7 @@ namespace http
 
                 peer_session->send_switch101();
 
-                peer->stream_id=1;
+                peer->stream_id = 1;
 
                 peer->isssl = isssl ? true : false;
                 http2pre = std::make_unique<http2parse>();
@@ -599,13 +610,12 @@ namespace http
                 continue;
               }
               http1loop(1, peer, peer_session);
-             
-              //LOG_OUT << "http1loop end" << LOG_END;
+
+              // LOG_OUT << "http1loop end" << LOG_END;
               DEBUG_LOG("http1loop end");
               if (peer->state.keeplive == false)
               {
                 DEBUG_LOG("--- keeplive false --------");
-                http1pre->clear();
                 break;
               }
               http1pre->clear();
@@ -736,7 +746,6 @@ namespace http
                 clientrunpool.addclient(http2pre->http_data[block_steamid]);
                 http2pre->stream_list.pop();
               }
-
             }
             if (error_state > 0)
             {
@@ -754,7 +763,12 @@ namespace http
       }
       catch (std::exception &e)
       {
-        LOG_ERROR << "  client thread exception  " << e.what() << LOG_END;
+        log_item.clear();
+        log_item.append(" client thread exception  ");
+        log_item.append(e.what());
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back(log_item);
+        lock.unlock();
       }
       peer_session->isclose = true;
       total_count--;
@@ -762,7 +776,7 @@ namespace http
     }
     catch (const std::exception &e)
     {
-        DEBUG_LOG("client exit exception");
+      DEBUG_LOG("client exit exception");
     }
 
     co_return;
@@ -858,7 +872,10 @@ namespace http
     acceptor.listen(asio::socket_base::max_connections, ec_error);
     if (ec_error)
     {
-      LOG_ERROR << " acceptor listen https error " << LOG_END;
+
+      std::unique_lock<std::mutex> lock(log_mutex);
+      error_loglist.emplace_back(" acceptor listen https error ");
+      lock.unlock();
       exit(1);
     }
 
@@ -946,11 +963,14 @@ namespace http
         httpversion = false;
         asio::ip::tcp::socket socket(this->io_context);
         DEBUG_LOG("https accept");
-        
+
         acceptor.accept(socket, ec_error);
         if (ec_error)
         {
-          LOG_ERROR << " accept ec_error " << LOG_END;
+
+          std::unique_lock<std::mutex> lock(log_mutex);
+          error_loglist.emplace_back(" accept ec_error ");
+          lock.unlock();
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
           continue;
         }
@@ -965,7 +985,9 @@ namespace http
         sslsocket.handshake(asio::ssl::stream_base::server, ec_error);
         if (ec_error)
         {
-          LOG_ERROR << " handshake ec_error " << LOG_END;
+          std::unique_lock<std::mutex> lock(log_mutex);
+          error_loglist.emplace_back(" handshake ec_error ");
+          lock.unlock();
           DEBUG_LOG(" handshake ec_error !");
           continue;
         }
@@ -1022,7 +1044,9 @@ namespace http
     acceptor.listen(asio::socket_base::max_connections, ec);
     if (ec)
     {
-      LOG_ERROR << " acceptor listen http error " << LOG_END;
+      std::unique_lock<std::mutex> lock(log_mutex);
+      error_loglist.emplace_back("  acceptor listen http error  ");
+      lock.unlock();
       exit(1);
     }
 
@@ -1038,17 +1062,23 @@ namespace http
       }
       catch (std::exception &e)
       {
-        LOG_ERROR << " accept error " << LOG_END;
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back(" http accept error  ");
+        lock.unlock();
       }
     }
   }
 
   void httpserver::add_runsocketthread()
   {
-    runthreads.emplace_back([this]()
+    runthreads.emplace_back([self = this]()
                             {
-            LOG_ERROR<< " add socket thread "<<LOG_END;
-            this->io_context.run(); });
+
+            std::unique_lock<std::mutex> lock(self->log_mutex);
+          self->error_loglist.emplace_back(" add socket thread ");
+          lock.unlock();
+
+            self->io_context.run(); });
   }
   void httpserver::httpwatch()
   {
@@ -1085,6 +1115,7 @@ namespace http
     int catch_num = 0;
     unsigned int updatetimetemp = 0;
     std::string currentpath;
+    std::string error_path;
     server_loaclvar &static_server_var = get_server_global_var();
     currentpath = static_server_var.log_path;
 
@@ -1092,7 +1123,9 @@ namespace http
     {
       currentpath.push_back('/');
     }
+    error_path=currentpath;
     currentpath.append("access.log");
+    error_path.append("error.log");
     struct flock lockstr = {};
     for (;;)
     {
@@ -1118,7 +1151,7 @@ namespace http
             updatetimetemp = 0;
           }
         }
-DEBUG_LOG("pool thread:%d", clientrunpool.getpoolthreadnum());        
+        DEBUG_LOG("pool thread:%d", clientrunpool.getpoolthreadnum());
 #ifdef DEBUG
         clientrunpool.printthreads();
 #endif
@@ -1161,6 +1194,43 @@ DEBUG_LOG("pool thread:%d", clientrunpool.getpoolthreadnum());
           close(fd);
         }
 
+         // save error.log
+        if (!error_loglist.empty())
+        {
+          int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+          if (fd == -1)
+          {
+            continue;
+          }
+
+          lockstr.l_type = F_WRLCK;
+          lockstr.l_whence = SEEK_END;
+          lockstr.l_start = 0;
+          lockstr.l_len = 0;
+
+          lockstr.l_pid = 0;
+
+          if (fcntl(fd, F_SETLK, &lockstr) == -1)
+          {
+            close(fd);
+            continue;
+          }
+          std::unique_lock<std::mutex> loglock(log_mutex);
+          while (!error_loglist.empty())
+          {
+            int n = write(fd, error_loglist.front().data(), error_loglist.front().size());
+            error_loglist.pop_front();
+          }
+          loglock.unlock();
+
+          lockstr.l_type = F_UNLCK;
+          if (fcntl(fd, F_SETLK, &lockstr) == -1)
+          {
+            close(fd);
+            continue;
+          }
+          close(fd);
+        }
         DEBUG_LOG("client live:%d", total_count.load());
       }
       catch (std::exception &e)
