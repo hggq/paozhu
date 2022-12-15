@@ -467,7 +467,7 @@ namespace http
           }
           else
           {
-            LOG_ERROR<<" send_data error "<<LOG_END;
+            LOG_ERROR << " send_data error " << LOG_END;
             return false;
           }
 
@@ -504,7 +504,7 @@ namespace http
           }
           else
           {
-            LOG_ERROR<<" send_data error "<<LOG_END;
+            LOG_ERROR << " send_data error " << LOG_END;
             return false;
           }
         }
@@ -1064,11 +1064,11 @@ namespace http
       {
         if (m < 35000)
         {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         if (peer->socket_session->window_update_num < 125535)
         {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
       }
     }
@@ -1162,6 +1162,31 @@ namespace http
 
         peer->type("text/html; charset=utf-8");
         http_clientrun(peer);
+
+        if (peer->state.gzip || peer->state.br)
+        {
+          if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 || strcasecmp(peer->content_type.c_str(), "application/json") == 0 || strcasecmp(peer->content_type.c_str(), "text/html") == 0 || strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
+          {
+            if (peer->output.size() > 100)
+            {
+              std::string tempcompress;
+              if (peer->state.br)
+              {
+                brotli_encode(peer->output, tempcompress);
+                peer->compress = 2;
+                peer->output = tempcompress;
+              }
+              else if (peer->state.gzip)
+              {
+                if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+                {
+                  peer->output = tempcompress;
+                  peer->compress = 1;
+                }
+              }
+            }
+          }
+        }
 
         peer->length(peer->output.size());
 
@@ -1452,7 +1477,7 @@ namespace http
     try
     {
       DEBUG_LOG("websockets pool");
-       std::thread::id thread_id = std::this_thread::get_id();
+      std::thread::id thread_id = std::this_thread::get_id();
       unsigned int offsetnum = 0;
       for (; offsetnum < peer->host.size(); offsetnum++)
       {
@@ -1481,7 +1506,7 @@ namespace http
           threadlist[thread_id].ip[offsetnum] = 0x00;
         }
       }
-      
+
       if (peer->ws->isfile)
       {
         peer->websockets->onfiles(peer->ws->filename);

@@ -553,7 +553,7 @@ namespace http
 
                 peer_session->send_switch101();
 
-                peer->httpv = 2;
+                peer->stream_id=1;
 
                 peer->isssl = isssl ? true : false;
                 http2pre = std::make_unique<http2parse>();
@@ -681,7 +681,9 @@ namespace http
             {
               http2pre = std::make_unique<http2parse>();
             }
-
+            FILE* fp=fopen("aaa.data","wb");
+            fwrite(&peer_session->_cache_data[0],1,readnum,fp);
+            fclose(fp);
             http2pre->setsession(peer_session);
           }
 
@@ -730,6 +732,19 @@ namespace http
                 clientrunpool.addclient(http2pre->http_data[block_steamid]);
                 http2pre->stream_list.pop();
               }
+
+              for (auto iter = http2pre->http_data.begin(); iter != http2pre->http_data.end();)
+              {
+                  if(iter->second->issend)
+                  {
+                    #ifdef DEBUG
+                    DEBUG_LOG("urlpath:%s", iter->second->urlpath.c_str());
+                    DEBUG_LOG("sendsize:%lu", iter->second->output.size());
+                    #endif
+                    http2pre->http_data.erase(iter++);
+                  }
+              }
+
             }
             if (error_state > 0)
             {
@@ -943,7 +958,7 @@ namespace http
         if (ec_error)
         {
           LOG_ERROR << " accept ec_error " << LOG_END;
-          std::this_thread::sleep_for(std::chrono::seconds(1));
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
           continue;
         }
         DEBUG_LOG(" accept ok!");
@@ -959,7 +974,6 @@ namespace http
         {
           LOG_ERROR << " handshake ec_error " << LOG_END;
           DEBUG_LOG(" handshake ec_error !");
-          std::this_thread::sleep_for(std::chrono::nanoseconds(10));
           continue;
         }
         // client select proto 看看客户端是否指定 协议，如果没有指定为null
