@@ -13,20 +13,16 @@
 namespace http
 {
   client_session::client_session(std::list<asio::ip::tcp::socket> sock)
-      : _socket(std::move(sock)),
-        timer_(_socket.front().get_executor())
+      : _socket(std::move(sock))
   {
 
     isssl = false;
-    timer_.expires_at(std::chrono::steady_clock::time_point::max());
   }
 
   client_session::client_session(std::list<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket)
-      : _sslsocket(std::move(sslsocket)),
-        timer_(_sslsocket.front().get_executor())
+      : _sslsocket(std::move(sslsocket))
   {
     isssl = true;
-    timer_.expires_at(std::chrono::steady_clock::time_point::max());
   }
     client_session::~client_session()
     {
@@ -35,41 +31,6 @@ namespace http
   std::shared_ptr<client_session> client_session::get_ptr()
   {
     return shared_from_this();
-  }
-
-  void client_session::flush_data()
-  {
-    timer_.cancel_one();
-  }
-  void client_session::add_data(const std::string &msg)
-  {
-    write_msgs_.push_back(msg);
-  }
-  void client_session::add_data(const unsigned char *buffer, unsigned int buffersize)
-  {
-    std::string msg;
-    msg.resize(buffersize);
-    for (int i = 0; i < buffersize; i++)
-    {
-      msg[i] = buffer[i];
-    }
-    write_msgs_.push_back(std::move(msg));
-  }
-  void client_session::write_data(const unsigned char *buffer, unsigned int buffersize)
-  {
-    std::string msg;
-    msg.resize(buffersize);
-    for (int i = 0; i < buffersize; i++)
-    {
-      msg[i] = buffer[i];
-    }
-    write_msgs_.push_back(std::move(msg));
-    timer_.cancel_one();
-  }
-  void client_session::write_data(const std::string &msg)
-  {
-    write_msgs_.push_back(msg);
-    timer_.cancel_one();
   }
 
   bool client_session::send_data(const std::string &msg)
@@ -256,7 +217,7 @@ namespace http
     {
       msg[i] = _recvack[i];
     }
-    write_msgs_.push_back(std::move(msg));
+    send_data(msg);
 
     _recvack[8] = stmid & 0xFF;
     stmid = stmid >> 8;
@@ -271,9 +232,7 @@ namespace http
     {
       msg[i] = _recvack[i];
     }
-    write_msgs_.push_back(std::move(msg));
-
-    timer_.cancel_one();
+    send_data(msg);
   }
   void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
   {
@@ -351,155 +310,8 @@ namespace http
       return false;
     }
   }
-  asio::awaitable<void> client_session::loopwriter()
-  {
-    try
-    {
 
-      while (true)
-      {
-        if (write_msgs_.empty() && send_queue_list.empty())
-        {
-          asio::error_code ec;
-          co_await timer_.async_wait(redirect_error(asio::use_awaitable, ec));
-        }
-        else
-        {
-          if (!send_queue_list.empty())
-          {
-            while (!send_queue_list.empty())
-            {
 
-              auto send_ptr = send_queue_list.front();
-              send_queue_list.pop_front();
-              if (isssl)
-              {
-                if (_sslsocket.front().lowest_layer().is_open())
-                {
-                  std::unique_lock<std::mutex> lock(writemutex);
-                  co_await asio::async_write(_sslsocket.front(),
-                                             asio::buffer(send_ptr->data, send_ptr->data_size), asio::use_awaitable);
-                }
-                else
-                {
-                  break;
-                }
-              }
-              else
-              {
-                if (_socket.front().is_open())
-                {
-                  std::unique_lock<std::mutex> lock(writemutex);
-                  co_await asio::async_write(_socket.front(),
-                                             asio::buffer(send_ptr->data, send_ptr->data_size), asio::use_awaitable);
-                }
-                else
-                {
-                  break;
-                }
-              }
-
-              if (send_ptr->timeid > 0)
-              {
-                try
-                {
-                  peer_promise_list[send_ptr->timeid].send_promise.set_value(1);
-                }
-                catch (const std::exception &e)
-                {
-                  std::cerr << e.what() << '\n';
-                }
-              }
-            }
-          }
-          else
-          {
-            if (isssl)
-            {
-              if (_sslsocket.front().lowest_layer().is_open())
-              {
-                std::unique_lock<std::mutex> lock(writemutex);
-                co_await asio::async_write(_sslsocket.front(),
-                                           asio::buffer(write_msgs_.front()), asio::use_awaitable);
-              }
-              else
-              {
-                break;
-              }
-            }
-            else
-            {
-              if (_socket.front().is_open())
-              {
-                std::unique_lock<std::mutex> lock(writemutex);
-                co_await asio::async_write(_socket.front(),
-                                           asio::buffer(write_msgs_.front()), asio::use_awaitable);
-              }
-              else
-              {
-                break;
-              }
-            }
-            write_msgs_.pop_front();
-          }
-        }
-      }
-    }
-    catch (std::exception &)
-    {
-      stop();
-    }
-  }
-
-  asio::awaitable<void> client_session::sslwriter()
-  {
-    try
-    {
-
-      while (_sslsocket.front().lowest_layer().is_open())
-      {
-        if (write_msgs_.empty())
-        {
-          asio::error_code ec;
-          co_await timer_.async_wait(redirect_error(asio::use_awaitable, ec));
-        }
-        else
-        {
-          co_await asio::async_write(_sslsocket.front(),
-                                     asio::buffer(write_msgs_.front()), asio::use_awaitable);
-          write_msgs_.pop_front();
-        }
-      }
-    }
-    catch (std::exception &)
-    {
-      stop();
-    }
-  }
-  asio::awaitable<void> client_session::writer()
-  {
-    try
-    {
-      while (_socket.front().is_open())
-      {
-        if (write_msgs_.empty())
-        {
-          asio::error_code ec;
-          co_await timer_.async_wait(redirect_error(asio::use_awaitable, ec));
-        }
-        else
-        {
-          co_await asio::async_write(_socket.front(),
-                                     asio::buffer(write_msgs_.front()), asio::use_awaitable);
-          write_msgs_.pop_front();
-        }
-      }
-    }
-    catch (std::exception &)
-    {
-      stop();
-    }
-  }
 
   void client_session::stop()
   {
@@ -513,7 +325,7 @@ namespace http
       _socket.front().close();
     }
 
-    timer_.cancel();
+    //timer_.cancel();
   }
 
   std::string client_session::getremoteip()

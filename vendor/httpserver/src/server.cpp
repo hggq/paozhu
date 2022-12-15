@@ -86,7 +86,7 @@ namespace http
         peer->type(mime_value);
         etag = peer->make_http1_header();
         etag.append("\r\n");
-        peer_session->write_data(etag);
+        peer_session->send_data(etag);
         return true;
       }
 
@@ -157,13 +157,13 @@ namespace http
 
       if (peer->compress > 0 && htmlcontent.size() == 0)
       {
-        peer_session->write_data(etag);
+        peer_session->send_data(etag);
         return true;
       }
       if (peer->compress > 0 && htmlcontent.size() > 0)
       {
         etag.append(&htmlcontent[0], htmlcontent.size());
-        peer_session->write_data(etag);
+        peer_session->send_data(etag);
       }
       else
       {
@@ -335,7 +335,7 @@ namespace http
       str.append(std::to_string(htmlcontent.size()));
       str.append("\r\n\r\n");
       str.append(htmlcontent);
-      peer_session->write_data(str);
+      peer_session->send_data(str);
     }
     else
     {
@@ -391,7 +391,7 @@ namespace http
       std::string htmlcontent = peer->make_http1_header();
       htmlcontent.append("\r\n");
       htmlcontent.append(&peer->output[0], peer->output.size());
-      peer_session->write_data(htmlcontent);
+      peer_session->send_data(htmlcontent);
     }
   }
   void httpserver::http1_send_bad_server(unsigned int error_code, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session)
@@ -402,7 +402,7 @@ namespace http
     str.append(std::to_string(stfilecom.size()));
     str.append("\r\n\r\n");
     str.append(stfilecom);
-    peer_session->write_data(str);
+    peer_session->send_data(str);
   }
   void httpserver::http1_send_bad_request(unsigned int error_code, std::shared_ptr<client_session> peer_session)
   {
@@ -412,7 +412,7 @@ namespace http
     str.append(std::to_string(stfilecom.size()));
     str.append("\r\n\r\n");
     str.append(stfilecom);
-    peer_session->write_data(str);
+    peer_session->send_data(str);
   }
   int httpserver::checkhttp2(std::shared_ptr<client_session> peer_session)
   {
@@ -432,22 +432,12 @@ namespace http
   {
     try
     {
-      std::shared_ptr<client_session> peer_session;
+      std::shared_ptr<client_session> peer_session=isssl?std::make_shared<client_session>(std::move(sock_temp._sslsocket)):std::make_shared<client_session>(std::move(sock_temp._socket));
       try
       {
         serverconfig &sysconfigpath = getserversysconfig();
         std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
 
-        if (isssl)
-        {
-          peer_session.reset(new client_session(std::move(sock_temp._sslsocket)));
-        }
-        else
-        {
-          peer_session.reset(new client_session(std::move(sock_temp._socket)));
-        }
-
-        co_spawn(this->io_context, peer_session->loopwriter(), asio::detached);
         peer->client_ip = peer_session->getremoteip();
         if (check_blockip(peer->client_ip))
         {
@@ -599,13 +589,22 @@ namespace http
                 peer->ws->contentlength = 0;
                 continue;
               }
-              http1loop(1, peer, peer_session);
+              //http1loop(1, peer, peer_session);
+
+                std::string stfilecom = "<h3>400 Bad Request</h3>";
+                stfilecom.append("<hr /><p>Error Code: </p>");
+                std::string str = "HTTP/1.1 200 ok\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: ";
+                str.append(std::to_string(stfilecom.size()));
+                str.append("\r\n\r\n");
+                str.append(stfilecom);
+                peer_session->send_data(str);
              
               LOG_OUT << "http1loop end" << LOG_END;
               DEBUG_LOG("http1loop end");
               if (peer->state.keeplive == false)
               {
                 DEBUG_LOG("--- keeplive false --------");
+                http1pre->clear();
                 break;
               }
               http1pre->clear();
@@ -755,6 +754,7 @@ namespace http
     }
     catch (const std::exception &e)
     {
+        DEBUG_LOG("client exit exception");
     }
 
     co_return;

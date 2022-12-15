@@ -87,18 +87,10 @@ namespace http
 
     client_session(std::list<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket);
     ~client_session();
-
-    void flush_data();
-    void add_data(const std::string &msg);
-    void add_data(const unsigned char *buffer, unsigned int buffersize);
-    void write_data(const unsigned char *, unsigned int);
-    void write_data(const std::string &msg);
     bool send_data(const std::string &msg);
     bool send_data(const unsigned char *, unsigned int);
     bool isopensocket();
     std::shared_ptr<client_session> get_ptr();
-    asio::awaitable<void> loopwriter();
-
     std::string getremoteip();
     unsigned int getremoteport();
 
@@ -111,11 +103,6 @@ namespace http
     bool send_recv_setting();
     void send_window_update(unsigned int, unsigned int streamid = 0);
     void recv_window_update(unsigned int, unsigned int streamid = 0);
-
-  private:
-    asio::awaitable<void> sslwriter();
-    asio::awaitable<void> writer();
-
     void stop();
 
   public:
@@ -136,9 +123,6 @@ namespace http
     std::list<asio::ip::tcp::socket> _socket;
 
     std::list<asio::ssl::stream<asio::ip::tcp::socket>> _sslsocket;
-    asio::steady_timer timer_;
-    std::deque<std::string> write_msgs_;
-
     std::list<sendqueue_t *> send_queue_list;
 
     std::string server_ip;

@@ -24,6 +24,7 @@ namespace http
         std::string file_log_pathname;
         std::string file_runtime_pathname;
         std::string file_error_pathname;
+        std::mutex writemutex;
         void setDebug(bool a)
         {
             debug=a;
@@ -227,6 +228,7 @@ namespace http
             {
                 try
                 {
+                    std::unique_lock<std::mutex> lock(writemutex);
                     FILE *fp = fopen(file_log_pathname.c_str(), "a+");
                     if (fp)
                     {
@@ -248,6 +250,7 @@ namespace http
             {
                 try
                 {
+                    std::unique_lock<std::mutex> lock(writemutex);
                     FILE *fp = fopen(file_runtime_pathname.c_str(), "a+");
                     if (fp)
                     {
@@ -269,6 +272,7 @@ namespace http
             {
                 try
                 {
+                    std::unique_lock<std::mutex> lock(writemutex);
                     FILE *fp = fopen(file_error_pathname.c_str(), "a+");
                     if (fp)
                     {
