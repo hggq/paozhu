@@ -10,7 +10,7 @@
 #include <memory>
 #include <string_view>
 #include "request.h"
-
+#include "datetime.h"
 namespace http
 {
 
@@ -27,6 +27,9 @@ namespace http
         std::string cache_list1;
         std::string cache_list2;
         std::string cache_list3;
+        unsigned long long cache_list1_timeid=0;
+        unsigned long long cache_list2_timeid=0;
+        unsigned long long cache_list3_timeid=0;
         void setDebug(bool a)
         {
             debug=a;
@@ -264,7 +267,7 @@ namespace http
 
             if (issave == 1)
             {
-                if(cache_list1.size()>300)
+                if(cache_list1.size()>300||((timeid()-cache_list1_timeid)>90))
                 {
                     try
                     {
@@ -279,6 +282,7 @@ namespace http
                         }
 
                         cache_list1.clear();
+                        cache_list1_timeid=timeid();
                     }
                     catch(const std::exception& e)
                     {
@@ -290,7 +294,7 @@ namespace http
             }
             else if (issave == 2)
             {
-                if(cache_list2.size()>300)
+                if(cache_list2.size()>300||((timeid()-cache_list2_timeid)>90))
                 {
                     try
                     {
@@ -304,6 +308,7 @@ namespace http
                             fclose(fp);
                         }
                         cache_list2.clear();
+                        cache_list2_timeid=timeid();
                     }
                     catch(const std::exception& e)
                     {
@@ -315,7 +320,8 @@ namespace http
             }
             else if (issave == 3)
             {
-                if(cache_list3.size()>300)
+
+                if(cache_list3.size()>300||((timeid()-cache_list3_timeid)>90))
                 {
                     try
                     {
@@ -329,6 +335,7 @@ namespace http
                             fclose(fp);
                         }
                         cache_list3.clear();
+                        cache_list3_timeid=timeid();
                     }
                     catch(const std::exception& e)
                     {
