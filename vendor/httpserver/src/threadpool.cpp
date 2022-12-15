@@ -370,7 +370,7 @@ namespace http
       {
         peer->setHeader("accept-ranges", "bytes");
       }
-
+      DEBUG_LOG("start send file range");
       peer->setHeader("date", getGmtTime());
       peer->setHeader("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
 
@@ -384,16 +384,6 @@ namespace http
       peer->socket_session->send_data(_send_header);
 
       unsigned int data_send_id = peer->stream_id;
-      // _send_data.resize(9);
-      // _send_data[3] = 0x00;
-      // _send_data[4] = 0x00;
-      // _send_data[8] = data_send_id & 0xFF;
-      // data_send_id = data_send_id >> 8;
-      // _send_data[7] = data_send_id & 0xFF;
-      // data_send_id = data_send_id >> 8;
-      // _send_data[6] = data_send_id & 0xFF;
-      // data_send_id = data_send_id >> 8;
-      // _send_data[5] = data_send_id & 0x7F;
       data_send_id = 0;
 
       fseek(fp.get(), readnum, SEEK_SET);
@@ -408,7 +398,7 @@ namespace http
       unsigned long long totalsend_num = 0;
       unsigned long long old_window_update_num = peer->socket_session->window_update_num;
       unsigned long long per_window_update_num = peer->socket_session->window_update_num;
-      unsigned int vsize_send = 4096;
+      unsigned int vsize_send = 6144;
       for (unsigned long long m = readnum; m < mustnum;)
       {
         int per_size = 0;
@@ -426,7 +416,7 @@ namespace http
 
         if (m < mustnum)
         {
-          memset(&send_cache->data[9], 0x00, 4096);
+          memset(&send_cache->data[9], 0x00, vsize_send);
           data_send_id = vsize_send;
           if ((mustnum - m) < vsize_send)
           {
@@ -459,56 +449,16 @@ namespace http
           DEBUG_LOG("---  peer->socket_session->isclose exit --------");
           return true;
         }
-
-        if (file_size > 10485760)
+ 
+        if (peer->socket_session->send_data(send_cache->data, per_size + 9))
         {
-          if (peer->socket_session->send_data(send_cache->data, per_size + 9))
-          {
-          }
-          else
-          {
-            LOG_ERROR << " send_data error " << LOG_END;
-            return false;
-          }
-
-          // send_cache->data_size = per_size + 9;
-          // send_cache->timeid = peer->stream_id;
-          // peer->socket_session->send_queue_list.emplace_back(send_cache);
-
-          // send_file_promise temppromise;
-          // temppromise.send_results = temppromise.send_promise.get_future();
-
-          // peer->socket_session->peer_promise_list[peer->stream_id] = std::move(temppromise);
-
-          // try
-          // {
-          //   //DEBUG_LOG("---  go to send --------");
-          //   peer->socket_session->sendtype = true;
-          //   peer->socket_session->flush_data();
-
-          //   int result = peer->socket_session->peer_promise_list[peer->stream_id].send_results.get();
-          //   // 优化时候删除
-          //   //DEBUG_LOG("---  from send back --------");
-          // }
-          // catch (const std::exception &e)
-          // {
-          //   // peer->window_update_results.clear();
-
-          //   return false;
-          // }
         }
         else
         {
-          if (peer->socket_session->send_data(send_cache->data, per_size + 9))
-          {
-          }
-          else
-          {
-            LOG_ERROR << " send_data error " << LOG_END;
-            return false;
-          }
+          LOG_ERROR << " send_data error " << LOG_END;
+          return false;
         }
-
+ 
         peer->socket_session->window_update_num -= per_size;
         totalsend_num += per_size;
         if (peer->socket_session->window_update_num < 8192)
@@ -544,35 +494,7 @@ namespace http
           }
           else
           {
-            if (per_window_update_num < peer->socket_session->window_update_num)
-            {
-              old_window_update_num = peer->socket_session->window_update_num;
-            }
-            if (old_window_update_num > (peer->socket_session->window_update_num + 2048576))
-            {
-              vsize_send = 4096;
-              std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-            else if (old_window_update_num > (peer->socket_session->window_update_num + 1048576))
-            {
-              vsize_send = 4096;
-              std::this_thread::sleep_for(std::chrono::milliseconds(3));
-            }
-            else if (old_window_update_num > (peer->socket_session->window_update_num + 524288))
-            {
-              vsize_send = 4096;
-              std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-            else if (old_window_update_num > (peer->socket_session->window_update_num + 262144))
-            {
-              vsize_send = 6144;
-              std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-            else
-            {
-              vsize_send = 8181;
-              std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
           }
         }
         else if (file_size > 1048576)
@@ -603,7 +525,7 @@ namespace http
         }
         per_window_update_num = peer->socket_session->window_update_num;
       }
-
+      DEBUG_LOG("send file ok!");
       return false;
     }
     else
@@ -713,7 +635,7 @@ namespace http
       {
         peer->setHeader("accept-ranges", "bytes");
       }
-
+      DEBUG_LOG("start send file");
       peer->setHeader("date", getGmtTime());
       peer->setHeader("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
 
@@ -723,16 +645,6 @@ namespace http
       peer->socket_session->send_data(_send_header);
 
       unsigned int data_send_id = peer->stream_id;
-      // _send_data.resize(9);
-      // _send_data[3] = 0x00;
-      // _send_data[4] = 0x00;
-      // _send_data[8] = data_send_id & 0xFF;
-      // data_send_id = data_send_id >> 8;
-      // _send_data[7] = data_send_id & 0xFF;
-      // data_send_id = data_send_id >> 8;
-      // _send_data[6] = data_send_id & 0xFF;
-      // data_send_id = data_send_id >> 8;
-      // _send_data[5] = data_send_id & 0x7F;
       data_send_id = 0;
       int jj = 0;
 
@@ -747,7 +659,7 @@ namespace http
       unsigned long long old_window_update_num = peer->socket_session->window_update_num;
       unsigned long long per_window_update_num = peer->socket_session->window_update_num;
 
-      unsigned int vsize_send = 4096;
+      unsigned int vsize_send = 6144;
       for (unsigned long long m = 0; m < file_size;)
       {
         int per_size = 0;
@@ -816,50 +728,16 @@ namespace http
           LOG_ERROR << "peer->socket_session->isclose exit " << LOG_END;
           return true;
         }
-        if (file_size > 10485760)
+        
+        if (peer->socket_session->send_data(send_cache->data, per_size + 9))
         {
-          if (peer->socket_session->send_data(send_cache->data, per_size + 9))
-          {
-          }
-          else
-          {
-            LOG_ERROR << " range error ";
-            return false;
-          }
-          // send_cache->data_size = per_size + 9;
-          // send_cache->timeid = peer->stream_id;
-          // peer->socket_session->send_queue_list.emplace_back(send_cache);
-
-          // send_file_promise temppromise;
-          // temppromise.send_results = temppromise.send_promise.get_future();
-          // peer->socket_session->peer_promise_list[peer->stream_id] = std::move(temppromise);
-          // try
-          // {
-          //   //DEBUG_LOG("---  to send--------");
-          //   peer->socket_session->sendtype = true;
-          //   peer->socket_session->flush_data();
-
-          //   int result = peer->socket_session->peer_promise_list[peer->stream_id].send_results.get();
-          //   // 优化时候删除
-          //   //DEBUG_LOG("---  back send--------");
-          // }
-          // catch (const std::exception &e)
-          // {
-          //   break;
-          // }
         }
         else
         {
-          if (peer->socket_session->send_data(send_cache->data, per_size + 9))
-          {
-          }
-          else
-          {
-            LOG_ERROR << " range error ";
-            return false;
-          }
+          LOG_ERROR << " range error ";
+          return false;
         }
-
+       
         peer->socket_session->window_update_num -= per_size;
         totalsend_num += per_size;
         if (peer->socket_session->window_update_num < 8192)
@@ -891,35 +769,7 @@ namespace http
           }
           else
           {
-            if (per_window_update_num < peer->socket_session->window_update_num)
-            {
-              old_window_update_num = peer->socket_session->window_update_num;
-            }
-            if (old_window_update_num > (peer->socket_session->window_update_num + 2048576))
-            {
-              vsize_send = 4096;
-              std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-            else if (old_window_update_num > (peer->socket_session->window_update_num + 1048576))
-            {
-              vsize_send = 4096;
-              std::this_thread::sleep_for(std::chrono::milliseconds(3));
-            }
-            else if (old_window_update_num > (peer->socket_session->window_update_num + 524288))
-            {
-              vsize_send = 4096;
-              std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-            else if (old_window_update_num > (peer->socket_session->window_update_num + 262144))
-            {
-              vsize_send = 6144;
-              std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-            else
-            {
-              vsize_send = 8181;
-              std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
           }
         }
         else if (file_size > 1048576)
@@ -949,7 +799,7 @@ namespace http
         }
         per_window_update_num = peer->socket_session->window_update_num;
       }
-
+      DEBUG_LOG("send files ok");
       return false;
     }
     else
@@ -1082,12 +932,6 @@ namespace http
 
       serverconfig &sysconfigpath = getserversysconfig();
 
-      // peer->linktype = 0;
-      // peer->server_ip = peer->socket_session->getlocalip();
-      // peer->client_ip = peer->socket_session->getremoteip();
-      // peer->client_port = peer->socket_session->getremoteport();
-      // peer->server_port = peer->socket_session->getlocalport();
-
       std::thread::id thread_id = std::this_thread::get_id();
       unsigned int offsetnum = 0;
       for (; offsetnum < peer->host.size(); offsetnum++)
@@ -1162,25 +1006,24 @@ namespace http
 
         peer->type("text/html; charset=utf-8");
         http_clientrun(peer);
-
+        std::string tempcompress;
+        peer->compress = 0;
         if (peer->state.gzip || peer->state.br)
         {
           if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 || strcasecmp(peer->content_type.c_str(), "application/json") == 0 || strcasecmp(peer->content_type.c_str(), "text/html") == 0 || strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
           {
             if (peer->output.size() > 100)
             {
-              std::string tempcompress;
+              
               if (peer->state.br)
               {
                 brotli_encode(peer->output, tempcompress);
                 peer->compress = 2;
-                peer->output = tempcompress;
               }
               else if (peer->state.gzip)
               {
                 if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
                 {
-                  peer->output = tempcompress;
                   peer->compress = 1;
                 }
               }
@@ -1188,7 +1031,15 @@ namespace http
           }
         }
 
-        peer->length(peer->output.size());
+        if(peer->compress >0)
+        {
+            peer->length(tempcompress.size());
+        }
+        else
+        {
+            peer->length(peer->output.size());
+        }
+        
 
         if (peer->getStatus() < 100)
         {
@@ -1202,8 +1053,21 @@ namespace http
         _send_header = peer->make_http2_header();
 
         peer->socket_session->send_data(_send_header);
-        http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+
+        if(peer->compress >0)
+        {
+            http2_send_body(peer, (const unsigned char *)&tempcompress[0],tempcompress.size());
+        }
+        else
+        {
+          http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+        }
+        
       }
+      peer->output.shrink_to_fit();
+      peer->val.clear();
+      peer->post.clear();
+      peer->session.clear();
       peer->issend = true;
     }
     catch (std::exception &e)

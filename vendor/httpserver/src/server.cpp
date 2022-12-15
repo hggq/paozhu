@@ -681,9 +681,6 @@ namespace http
             {
               http2pre = std::make_unique<http2parse>();
             }
-            FILE* fp=fopen("aaa.data","wb");
-            fwrite(&peer_session->_cache_data[0],1,readnum,fp);
-            fclose(fp);
             http2pre->setsession(peer_session);
           }
 
@@ -731,18 +728,6 @@ namespace http
 
                 clientrunpool.addclient(http2pre->http_data[block_steamid]);
                 http2pre->stream_list.pop();
-              }
-
-              for (auto iter = http2pre->http_data.begin(); iter != http2pre->http_data.end();)
-              {
-                  if(iter->second->issend)
-                  {
-                    #ifdef DEBUG
-                    DEBUG_LOG("urlpath:%s", iter->second->urlpath.c_str());
-                    DEBUG_LOG("sendsize:%lu", iter->second->output.size());
-                    #endif
-                    http2pre->http_data.erase(iter++);
-                  }
               }
 
             }
