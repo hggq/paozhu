@@ -2,10 +2,9 @@
 #define PROJECT_DEBUG_LOG_H
 
 #include <iostream>
-#include <list>
+#include <vector>
 #include <map>
 #include <mutex>
-#include <queue>
 #include <string>
 #include <thread>
 #include <memory>
@@ -25,6 +24,9 @@ namespace http
         std::string file_runtime_pathname;
         std::string file_error_pathname;
         std::mutex writemutex;
+        std::string cache_list1;
+        std::string cache_list2;
+        std::string cache_list3;
         void setDebug(bool a)
         {
             debug=a;
@@ -130,6 +132,23 @@ namespace http
         {
             if (a == 0xFFFFFFF0)
             {
+                if (issave == 1)
+                {
+                    cache_list1.append(this->output);
+                    cache_list1.append("\r\n");
+                    
+                }
+                else if (issave == 2)
+                {
+                    cache_list2.append(this->output);
+                    cache_list2.append("\r\n");    
+                }
+                else if (issave == 3)
+                {
+                    cache_list3.append(this->output);
+                    cache_list3.append("\r\n");    
+                }
+                this->output.clear();
                 out_str();
                 issave = 0;
                 return *this;
@@ -165,6 +184,23 @@ namespace http
         {
             if (a == 0xFFFFFFF0)
             {
+                if (issave == 1)
+                {
+                    cache_list1.append(this->output);
+                    cache_list1.append("\r\n");
+                    
+                }
+                else if (issave == 2)
+                {
+                    cache_list2.append(this->output);
+                    cache_list2.append("\r\n");    
+                }
+                else if (issave == 3)
+                {
+                    cache_list3.append(this->output);
+                    cache_list3.append("\r\n");    
+                }
+                this->output.clear();
                 out_str();
                 issave = 0;
                 return *this;
@@ -224,70 +260,82 @@ namespace http
 
         debug_log &out_str()
         {
+            issave = 0;
+
             if (issave == 1)
             {
-                try
+                if(cache_list1.size()>300)
                 {
-                    std::unique_lock<std::mutex> lock(writemutex);
-                    FILE *fp = fopen(file_log_pathname.c_str(), "a+");
-                    if (fp)
+                    try
                     {
-                        fwrite(&output[0], 1, output.size(), fp);
-                        char enter[] = {'\r', '\n'};
-                        fwrite(enter, 1, sizeof(enter), fp);
-                        fclose(fp);
+                        std::unique_lock<std::mutex> lock(writemutex);
+                        FILE *fp = fopen(file_log_pathname.c_str(), "a+");
+                        if (fp)
+                        {
+                            fwrite(&cache_list1[0], 1, cache_list1.size(), fp);
+                            char enter[] = {'\r', '\n'};
+                            fwrite(enter, 1, sizeof(enter), fp);
+                            fclose(fp);
+                        }
+
+                        cache_list1.clear();
                     }
-                }
-                catch(const std::exception& e)
-                {
-                    issave = 0;
-                    output.clear();
-                }
+                    catch(const std::exception& e)
+                    {
+                        issave = 0;
+                        output.clear();
+                    }
                 
-                
+                }   
             }
             else if (issave == 2)
             {
-                try
+                if(cache_list2.size()>300)
                 {
-                    std::unique_lock<std::mutex> lock(writemutex);
-                    FILE *fp = fopen(file_runtime_pathname.c_str(), "a+");
-                    if (fp)
+                    try
                     {
-                        fwrite(&output[0], 1, output.size(), fp);
-                        char enter[] = {'\r', '\n'};
-                        fwrite(enter, 1, sizeof(enter), fp);
-                        fclose(fp);
+                        std::unique_lock<std::mutex> lock(writemutex);
+                        FILE *fp = fopen(file_runtime_pathname.c_str(), "a+");
+                        if (fp)
+                        {
+                            fwrite(&cache_list2[0], 1, cache_list2.size(), fp);
+                            char enter[] = {'\r', '\n'};
+                            fwrite(enter, 1, sizeof(enter), fp);
+                            fclose(fp);
+                        }
+                        cache_list2.clear();
+                    }
+                    catch(const std::exception& e)
+                    {
+                        issave = 0;
+                        output.clear();
                     }
                 }
-                catch(const std::exception& e)
-                {
-                    issave = 0;
-                    output.clear();
-                }
-                
                 
             }
             else if (issave == 3)
             {
-                try
+                if(cache_list3.size()>300)
                 {
-                    std::unique_lock<std::mutex> lock(writemutex);
-                    FILE *fp = fopen(file_error_pathname.c_str(), "a+");
-                    if (fp)
+                    try
                     {
-                        fwrite(&output[0], 1, output.size(), fp);
-                        char enter[] = {'\r', '\n'};
-                        fwrite(enter, 1, sizeof(enter), fp);
-                        fclose(fp);
+                        std::unique_lock<std::mutex> lock(writemutex);
+                        FILE *fp = fopen(file_error_pathname.c_str(), "a+");
+                        if (fp)
+                        {
+                            fwrite(&cache_list3[0], 1, cache_list3.size(), fp);
+                            char enter[] = {'\r', '\n'};
+                            fwrite(enter, 1, sizeof(enter), fp);
+                            fclose(fp);
+                        }
+                        cache_list3.clear();
+                    }
+                    catch(const std::exception& e)
+                    {
+                        issave = 0;
+                        output.clear();
                     }
                 }
-                catch(const std::exception& e)
-                {
-                    issave = 0;
-                    output.clear();
-                }
-                
 
             }
             else
@@ -299,6 +347,7 @@ namespace http
             }
             issave = 0;
             output.clear();
+            
             return *this;
         }
         static debug_log *instance()

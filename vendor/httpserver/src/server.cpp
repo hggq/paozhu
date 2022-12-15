@@ -457,6 +457,7 @@ namespace http
         int readnum, error_state = 0;
         unsigned linktype = 0;
         bool isbegin = false;
+        std::string log_item;
 
         std::unique_ptr<http2parse> http2pre;
         std::unique_ptr<httpparse> http1pre;
@@ -509,7 +510,7 @@ namespace http
             if (readnum == 0 || http1pre->getfinish())
             {
 
-              LOG_OUT << "http1parse fininsh" << peer->url << LOG_END;
+            //  LOG_OUT << "http1parse fininsh" << peer->url << LOG_END;
 #ifdef DEBUG
               DEBUG_LOG("http1parse begin");
               DEBUG_LOG("urlpath:%s", peer->urlpath.c_str());
@@ -525,10 +526,18 @@ namespace http
               peer->server_port = peer_session->getlocalport();
 
               {
-                std::ostringstream oss;
-                oss << peer->server_ip << " " << date("%Y-%m-%d %X") << " " << peer->server_port << " " << peer->host << " " << peer->url << "\n";
+                log_item.clear();
+                log_item.append(peer->server_ip);
+                log_item.push_back(0x20);
+                log_item.append(date("%Y-%m-%d %X"));
+                log_item.push_back(0x20);
+                log_item.append(std::to_string(peer->server_port));
+                log_item.push_back(0x20);
+                log_item.append(peer->host);
+                log_item.push_back(0x20);
+                log_item.append(peer->url);
                 std::unique_lock<std::mutex> lock(log_mutex);
-                access_loglist.emplace_back(oss.str());
+                access_loglist.emplace_back(log_item);
                 lock.unlock();
               }
 
@@ -589,17 +598,9 @@ namespace http
                 peer->ws->contentlength = 0;
                 continue;
               }
-              //http1loop(1, peer, peer_session);
-
-                std::string stfilecom = "<h3>400 Bad Request</h3>";
-                stfilecom.append("<hr /><p>Error Code: </p>");
-                std::string str = "HTTP/1.1 200 ok\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: ";
-                str.append(std::to_string(stfilecom.size()));
-                str.append("\r\n\r\n");
-                str.append(stfilecom);
-                peer_session->send_data(str);
+              http1loop(1, peer, peer_session);
              
-              LOG_OUT << "http1loop end" << LOG_END;
+              //LOG_OUT << "http1loop end" << LOG_END;
               DEBUG_LOG("http1loop end");
               if (peer->state.keeplive == false)
               {
@@ -710,11 +711,18 @@ namespace http
                 http2pre->http_data[block_steamid]->server_port = peer_session->getlocalport();
 
                 {
-                  std::ostringstream oss;
-                  oss << http2pre->http_data[block_steamid]->client_ip << " "
-                      << " " << date("%Y-%m-%d %X") << " " << http2pre->http_data[block_steamid]->server_port << " " << http2pre->http_data[block_steamid]->host << " " << http2pre->http_data[block_steamid]->url << "\n";
+                  log_item.clear();
+                  log_item.append(http2pre->http_data[block_steamid]->client_ip);
+                  log_item.push_back(0x20);
+                  log_item.append(date("%Y-%m-%d %X"));
+                  log_item.push_back(0x20);
+                  log_item.append(std::to_string(http2pre->http_data[block_steamid]->server_port));
+                  log_item.push_back(0x20);
+                  log_item.append(http2pre->http_data[block_steamid]->host);
+                  log_item.push_back(0x20);
+                  log_item.append(http2pre->http_data[block_steamid]->url);
                   std::unique_lock<std::mutex> lock(log_mutex);
-                  access_loglist.emplace_back(oss.str());
+                  access_loglist.emplace_back(log_item);
                   lock.unlock();
                 }
 #ifdef DEBUG
@@ -1110,6 +1118,7 @@ namespace http
             updatetimetemp = 0;
           }
         }
+DEBUG_LOG("pool thread:%d", clientrunpool.getpoolthreadnum());        
 #ifdef DEBUG
         clientrunpool.printthreads();
 #endif
