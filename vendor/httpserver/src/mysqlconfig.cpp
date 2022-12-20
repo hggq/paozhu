@@ -1,6 +1,6 @@
 
 #include <string>
-#include <mysqlx/xdevapi.h>
+#include "mysql.h"
 #include "mysqlconfig.h"
 #include "mysqlpool.h"
 #include "serverconfig.h"
@@ -137,6 +137,10 @@ namespace http
           {
             mysqlconf.maxpool = strval;
           }
+          if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
+          {
+            mysqlconf.unix_socket = strval;
+          }
         }
 
         linestr.clear();
@@ -221,6 +225,10 @@ namespace http
       {
         mysqlconf.maxpool = strval;
       }
+      if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
+      {
+        mysqlconf.unix_socket = strval;
+      }
       mysqlconf.spname = keyname;
       myconfig.push_back(mysqlconf);
     }
@@ -231,23 +239,24 @@ namespace http
   {
     try
     {
-      std::string mysqlconnect;// = "mysqlx://root:123456@127.0.0.1/mysql";
-      std::string mysqlconnectselect;// = "mysqlx://root:123456@127.0.0.1/mysql";
+      std::string mysqlconnect;       // = "mysqlx://root:123456@127.0.0.1/mysql";
+      std::string mysqlconnectselect; // = "mysqlx://root:123456@127.0.0.1/mysql";
       std::string rmstag;
       std::hash<std::string> hash_fn;
       size_t dcon;
       serverconfig &sysconfigpath = getserversysconfig();
 
-      rmstag =sysconfigpath.configpath;
-      
+      rmstag = sysconfigpath.configpath;
+
       if (rmstag.size() > 0 && rmstag.back() != '/')
       {
         rmstag.push_back('/');
       }
       rmstag.append("mysqlorm.conf");
       std::vector<mysqlconnect_t> myconfig = getmysqlconfig(rmstag);
-      std::map<std::string, std::vector<std::string>> mysqldblinkgroupjion;
-      std::map<size_t,mysqllinkpool> &mysql_pool_map=get_mysqlpool();
+      std::map<std::string, std::vector<struct mysql_connect_link_info>> mysqldblinkgroupjion;
+      std::map<size_t, mysqllinkpool> &mysql_pool_map = get_mysqlpool();
+      std::map<std::string,std::string> poolmax;
       rmstag.clear();
       // 转为rmstag分组
       if (myconfig.size() > 0)
@@ -255,13 +264,30 @@ namespace http
         for (int li = 0; li < myconfig.size(); li++)
         {
           rmstag = myconfig[li].port;
-          if (rmstag.size() < 3)
+          if (rmstag.size() < 3 || rmstag.size() > 6)
           {
-            rmstag = "33060";
+            rmstag = "3306";
           }
-          mysqlconnect = "mysqlx://" + myconfig[li].user + ":" + myconfig[li].password + "@" + myconfig[li].host + ":" + rmstag + "/" + myconfig[li].dbname;
+
+          struct mysql_connect_link_info temp;
+          temp.host = myconfig[li].host;
+          temp.username = myconfig[li].user;
+          temp.password = myconfig[li].password;
+          temp.db = myconfig[li].dbname;
+          try
+          {
+            temp.port = std::atoi(rmstag.c_str());
+          }
+          catch (const std::exception &e)
+          {
+            temp.port = 0;
+          }
+          temp.unix_socket = myconfig[li].unix_socket;
           rmstag = myconfig[li].spname;
-          mysqldblinkgroupjion[rmstag].emplace_back(mysqlconnect);
+
+          poolmax[rmstag] = myconfig[li].maxpool;
+
+          mysqldblinkgroupjion[rmstag].emplace_back(temp);
         }
       }
       for (auto iterl = mysqldblinkgroupjion.begin(); iterl != mysqldblinkgroupjion.end(); iterl++)
@@ -270,18 +296,53 @@ namespace http
         if (iterl->second.size() == 1)
         {
           mysqllinkpool db(iterl->second[0], iterl->second[0]);
+
+          try
+          {
+            db.select_max_pool_num = std::atoi(poolmax[rmstag].c_str());
+            db.edit_max_pool_num = std::atoi(poolmax[rmstag].c_str());
+
+            if (db.select_max_pool_num < 10)
+            {
+              db.select_max_pool_num = 10;
+            }
+            if (db.edit_max_pool_num < 10)
+            {
+              db.edit_max_pool_num = 10;
+            }
+          }
+          catch (const std::exception &e)
+          {
+          }
           mysql_pool_map.insert({dcon, std::move(db)});
         }
         else if (iterl->second.size() > 1)
         {
           mysqllinkpool db(iterl->second[0], iterl->second[1]);
+          try
+          {
+            db.select_max_pool_num = std::atoi(poolmax[rmstag].c_str());
+            db.edit_max_pool_num = std::atoi(poolmax[rmstag].c_str());
+
+            if (db.select_max_pool_num < 10)
+            {
+              db.select_max_pool_num = 10;
+            }
+            if (db.edit_max_pool_num < 10)
+            {
+              db.edit_max_pool_num = 10;
+            }
+          }
+          catch (const std::exception &e)
+          {
+          }
           mysql_pool_map.insert({dcon, std::move(db)});
         }
       }
     }
-    catch (const mysqlx::Error &err)
+    catch (...)
     {
-      std::cout << "ERROR: " << err << ::std::endl;
+      //std::cout << "ERROR: " << err << ::std::endl;
     }
   }
 }

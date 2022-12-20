@@ -27,6 +27,7 @@ namespace http
 
     temp.regfun = testmodel;
     methodcallback.emplace("testmodel", temp);
+    
 
     temp.regfun = testmodelsmartptr;
     methodcallback.emplace("testmodelsmartptr", temp);

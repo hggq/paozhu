@@ -1,65 +1,49 @@
-#ifndef HTTP_MYSQLPOOL_H
-#define HTTP_MYSQLPOOL_H
-
 #include <iostream>
-#include <mutex>
+#include <map>
 #include <string>
-#include <map>
-#include <set>
-#include <string_view>
-#include <thread>
-// #include "http.hpp"
-#include "request.h"
-#include <iostream>
-#include <functional>
-#include <mysqlx/xdevapi.h>
-#include <map>
-#include <typeinfo>
-
+#include <vector>
 #include <memory>
+#include <mutex>
 
 #include <list>
-#include <queue>
+#include "mysql.h"
 
-#include <condition_variable>
+using MYSQL_CONN_PTR = std::unique_ptr<MYSQL, decltype(&mysql_close)>;
 
-namespace http
+struct mysql_connect_link_info
 {
-  
-  class mysqllinkpool
-  {
-  public:
-    mysqllinkpool(std::string ms, std::string sl);
+    std::string host;
+    std::string username;
+    std::string password;
+    std::string db;
+    std::string unix_socket;
+    unsigned int port;
+};
+class mysqllinkpool
+{
+public:
+    mysqllinkpool() = delete;
+    mysqllinkpool(struct mysql_connect_link_info, struct mysql_connect_link_info);
+    mysqllinkpool(struct mysql_connect_link_info, struct mysql_connect_link_info, unsigned int num, unsigned int editnum);
+    MYSQL_CONN_PTR get_select_connect();
+    MYSQL_CONN_PTR get_edit_connect();
 
-    void addselectsession(unsigned int num);
+    MYSQL_CONN_PTR add_select_connect();
+    MYSQL_CONN_PTR add_edit_connect();
 
-    void addeditsession(unsigned int num);
-
-    mysqlx::RowResult sqlselectfetch(std::string &sql);
-
-    mysqlx::SqlResult sqleditfetch(std::string &sql);
-    bool sqleditcommit(std::list<std::string> &sql);
-
-    mysqlx::SqlResult sqleditfetch(std::string &sql, long long &effectrow, std::function<std::unique_ptr<mysqlx::Session>(std::string &, mysqlx::SqlResult &, std::unique_ptr<mysqlx::Session>)> func);
-    mysqlx::SqlResult sqleditfetch(std::string &sql, long long &effectrow, std::function<std::unique_ptr<mysqlx::Session>(std::string &, std::unique_ptr<mysqlx::Session>)> funcbeg, std::function<std::unique_ptr<mysqlx::Session>(std::string &, std::unique_ptr<mysqlx::Session>)> funcend);
-
-    unsigned int getselectpoolnum();
-    unsigned int geteditpoolnum();
-
+    void back_select_connect(MYSQL_CONN_PTR);
+    void back_edit_connect(MYSQL_CONN_PTR);
     unsigned int clearpool();
 
-    void initpool();
+public:
+    std::list<MYSQL_CONN_PTR> mysql_select_pool_list;
+    std::list<MYSQL_CONN_PTR> mysql_edit_pool_list;
+    unsigned int select_current_num = 0;
+    unsigned int select_max_pool_num = 350;
+    unsigned int edit_current_num = 0;
+    unsigned int edit_max_pool_num = 350;
 
-  public:
-    size_t dbhash;
-    unsigned editmax = 2, editmin = 1, selectmax = 2, selectmin = 1;
-    unsigned int selectbusynum = 0, editbusynum = 0;
-    std::queue<std::unique_ptr<mysqlx::Session>> sesseditpool;
-    std::queue<std::unique_ptr<mysqlx::Session>> sessselecttpool;
-    std::string connectedit;
-    std::string connectselect;
-  };
-  std::map<size_t,mysqllinkpool> &get_mysqlpool();
-}
-
-#endif
+    struct mysql_connect_link_info select_link;
+    struct mysql_connect_link_info edit_link;
+};
+std::map<std::size_t, mysqllinkpool> &get_mysqlpool();

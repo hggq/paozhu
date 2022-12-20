@@ -2,7 +2,6 @@
 #include <string>
 #include <string_view>
 #include <memory>
-#include <mysqlx/xdevapi.h>
 #include "debug_log.h" 
  namespace http { 
  

@@ -217,7 +217,6 @@ namespace http
                   // perror("open");
                   return;
             }
-
             // 锁住整个文件
             struct flock lock = {};
             lock.l_type = F_WRLCK;

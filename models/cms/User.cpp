@@ -12,8 +12,6 @@
 
 			 User::User(std::string dbtag):mysqlclientDB(dbtag){}
 			 User::User():mysqlclientDB(){}
-			 User &User::get(){ return *this; }
-
 			std::vector<orm::cms::articlebase::meta> User::gettoparticle(int userid)
 			{
 				auto art = orm::cms::Article();
@@ -24,6 +22,7 @@
 				return art.record;	
 
 			}
+
 		} 
 
 	  }

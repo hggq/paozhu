@@ -19,7 +19,7 @@
 #include "httphook.h"
 #include "func.h"
 #include "mysqlconfig.h"
-
+#include "mysqlpool.h"
 #include "reghttpmethod.hpp"
 #include "reghttpmethod_pre.hpp"
 #include "regviewmethod.hpp"
@@ -1106,12 +1106,12 @@ namespace http
     pn->api_loadview = loadviewso;
     pn->api_loadcontrol = loadcontrol;
 
-    pn->api_mysqlselect = domysqlexecute;
-    pn->api_mysqledit = domysqleditexecute;
-    pn->api_mysqlcommit = domysqlcommit;
+    pn->api_mysqlselect = get_mysqlselectexecute;
+    pn->api_mysqledit = get_mysqlselectexecute;
+    pn->api_mysqlcommit = get_mysqlselectexecute;
     pn->map_value = sysconfigpath.map_value;
     pn->server_global_var = get_server_global_var;
-
+    pn->api_mysql_back_conn=back_mysql_connect;
     int catch_num = 0;
     unsigned int updatetimetemp = 0;
     std::string currentpath;
@@ -1127,6 +1127,7 @@ namespace http
     currentpath.append("access.log");
     error_path.append("error.log");
     struct flock lockstr = {};
+    unsigned int mysqlpool_time=1;
     for (;;)
     {
       if (catch_num > 10)
@@ -1231,7 +1232,39 @@ namespace http
           }
           close(fd);
         }
-        DEBUG_LOG("client live:%d", total_count.load());
+
+        if(mysqlpool_time%10==0)
+        {
+            if(total_count.load()<5)
+            {
+                std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
+                for(auto iter=mysqldbpoolglobal.begin();iter != mysqldbpoolglobal.end();iter++)
+                {
+                    iter->second.clearpool();
+
+                    DEBUG_LOG("mysql pool clearpoool ");
+                }
+                mysqlpool_time=1;
+
+                 
+            }
+        }
+
+        std::time_t t = std::time(nullptr);
+        std::tm* now = std::localtime(&t);
+
+       if(now->tm_hour<3&&mysqlpool_time>82800)
+       {
+            std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
+            for(auto iter=mysqldbpoolglobal.begin();iter != mysqldbpoolglobal.end();iter++)
+            {
+                iter->second.clearpool();
+            }
+            mysqlpool_time=1;
+       } 
+        
+        mysqlpool_time+=1;
+        DEBUG_LOG("clear mysql poll time:%d,client live:%d",mysqlpool_time,total_count.load());
       }
       catch (std::exception &e)
       {

@@ -20,6 +20,7 @@ namespace http
           std::string pretable;
           std::string maxpool;
           std::string spname;
+          std::string unix_socket;
     };
 
     //class mysqlconfig;

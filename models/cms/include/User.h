@@ -12,7 +12,6 @@
 		 public:
 		 User(std::string dbtag);
 		 User();
-		 User &get();
 		 std::vector<orm::cms::articlebase::meta> gettoparticle(int userid);
 		};
 	 }

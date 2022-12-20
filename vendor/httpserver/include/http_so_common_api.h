@@ -10,7 +10,7 @@
 #include "request.h"
 #include "server_localvar.h"
 #include "viewso_param.h"
-#include <mysqlx/xdevapi.h>
+#include "mysql.h"
 #include "httppeer.h"
 
 using namespace http;
@@ -29,9 +29,8 @@ namespace http
         typedef boost::function<boost::function<std::string(struct view_param,http::OBJ_VALUE &)>(std::string)> viewmethod_callback_t;
         typedef boost::function<boost::function<std::string(std::shared_ptr<http::httppeer> peer)>(const std::string&,const std::string&)> modulemethod_callback_t;
 
-        typedef boost::function<mysqlx::SqlResult(std::string &, size_t)> mysql_callbacksql_t;
-        typedef boost::function<mysqlx::RowResult(std::string &, size_t)> mysql_callbackand_t;
-        typedef boost::function<bool(std::list<std::string> &, size_t)> mysql_callbacksql_rollback;
+        typedef boost::function<std::unique_ptr<MYSQL, decltype(&mysql_close)>(size_t)> mysql_callbackand_t;
+        typedef boost::function<bool(size_t,std::unique_ptr<MYSQL, decltype(&mysql_close)>)> mysql_back_conn_call;
 
         typedef  std::map<std::string, std::map<std::string, std::string>> map_value_call;
                                                                     
@@ -40,9 +39,10 @@ namespace http
         modulemethod_callback_t api_loadcontrol;
 
         mysql_callbackand_t api_mysqlselect;
-        mysql_callbacksql_t api_mysqledit;
+        mysql_callbackand_t api_mysqledit;
 
-        mysql_callbacksql_rollback api_mysqlcommit;
+        mysql_callbackand_t api_mysqlcommit;
+        mysql_back_conn_call api_mysql_back_conn;
 
         map_value_call map_value;
         std::function<http::server_loaclvar &()> server_global_var;

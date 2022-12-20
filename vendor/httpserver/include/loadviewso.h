@@ -5,7 +5,6 @@
 #include <string>
 #include <list>
 #include <functional>
-#include <mysqlx/xdevapi.h>
 #include <boost/dll/alias.hpp>
 #include <boost/function.hpp>
 #include <boost/dll/import.hpp>

@@ -5,7 +5,6 @@
 #include <string>
 #include <list>
 #include <functional>
-#include <mysqlx/xdevapi.h>
 #include <boost/dll/alias.hpp>
 #include <boost/function.hpp>
 #include <boost/dll/import.hpp>
@@ -16,8 +15,6 @@ namespace http
     typedef boost::function<void()> callback_t;
     typedef boost::function<void(std::string)> echo_callback_t;
     typedef boost::function<void(std::string &)> echo_callbackand_t;
-    typedef boost::function<mysqlx::RowResult(std::string &, size_t)> mysql_callbackand_t;
-    typedef boost::function<mysqlx::SqlResult(std::string &, size_t)> mysql_callbacksql_t;
     typedef boost::function<bool(std::list<std::string> &, size_t)> mysql_callbacksql_rollback;
     typedef boost::function<std::string(OBJ_VALUE &)> method_callback_t;
     typedef boost::function<std::string(std::shared_ptr<httppeer>)> www_method_call;

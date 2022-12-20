@@ -3,8 +3,27 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 PROJECT(Paozhu_web_framework)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
- 
-set(CMAKE_CXX_FLAGS "  -pthread   -DASIO_STANDALONE -DDEBUG -I/usr/local/include  -I/usr/include -I/usr/include/mysql-cppconn-8 " )
+
+set(mode "CMAKE_BUILD_TYPE")
+
+
+if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))  
+    message("Debug mode:${CMAKE_C_FLAGS_DEBUG}")
+    set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
+
+
+elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release")) 
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O3")
+    message("Release mode:${CMAKE_CXX_FLAGS_RELEASE}")
+    set(CMAKE_CXX_FLAGS "  -pthread  -DASIO_STANDALONE -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql  " )
+  
+else()
+    message("Debug mode")
+    set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
+  
+endif()
+
+
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(USE_STANDALONE_ASIO ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -116,45 +135,45 @@ endif()
 
 find_path(MYSQL_ROOT_DIR mysql)
 MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
+find_package_handle_standard_args(mysql REQUIRED_VARS MYSQL_ROOT_DIR)
 
-find_path(MYSQL_CONCPP_DIR mysql-connector-c++)
-MESSAGE( STATUS "MYSQL_CONCPP_DIR = ${MYSQL_CONCPP_DIR} ")
-
-set(find_name mysqlcppconn8)
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
-set(find_dir "/usr/local/opt/mysql-connector-c++/lib")
-else()
-set(find_dir "/usr/lib/x86_64-linux-gnu")
-endif()
-
-MESSAGE( STATUS "mysqlcppconn8 = ${find_dir} ")
-find_library(CONCPP_LIB
-  NAMES mysqlcppconn8
-  PATHS "${find_dir}"
-  NO_DEFAULT_PATH
+FIND_PATH(MYSQL_INCLUDE_DIR mysql.h
+  /usr/local/include/mysql
+  /usr/include/mysql
+  /usr/local/mysql/include
 )
-MESSAGE( STATUS "mysqlcppconn8 = ${CONCPP_LIB} ")
-find_library(CONCPPSSL_LIB
-  NAMES ssl
-  PATHS "${find_dir}"
-  NO_DEFAULT_PATH
+SET(MYSQL_NAMES mysqlclient)
+FIND_LIBRARY(MYSQL_LIBRARY
+  NAMES ${MYSQL_NAMES}
+  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib
+  PATH_SUFFIXES mysql
 )
-MESSAGE( STATUS "mysqlcppconn8 = ${CONCPPSSL_LIB} ")
-find_library(CONCPPCRYPTO_LIB
-  NAMES crypto
-  PATHS "${find_dir}"
-  NO_DEFAULT_PATH
-)
-MESSAGE( STATUS "mysqlcppconn8 = ${CONCPPCRYPTO_LIB} ")
 
-if(NOT CONCPP_LIB)
-  message(FATAL_ERROR
-    "Could not find mysql Connector/C++ libraries at: ${find_dir} , Please intall mysql Connector/C++, Visit  https://dev.mysql.com/downloads/connector/cpp/ "
-  )
-endif()
-target_link_libraries(paozhu ${CONCPP_LIB})
-target_link_libraries(paozhu_cli ${CONCPP_LIB})
-message(STATUS "Using connector lib at: ${CONCPP_LIB}")
+IF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+  SET(MYSQL_FOUND TRUE)
+  SET( MYSQL_LIBRARIES ${MYSQL_LIBRARY} )
+ELSE (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+  SET(MYSQL_FOUND FALSE)
+  SET( MYSQL_LIBRARIES )
+ENDIF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+
+IF (MYSQL_FOUND)
+  IF (NOT MYSQL_FIND_QUIETLY)
+    MESSAGE(STATUS "Found MySQL: ${MYSQL_LIBRARY}")
+  ENDIF (NOT MYSQL_FIND_QUIETLY)
+ELSE (MYSQL_FOUND)
+  IF (MYSQL_FIND_REQUIRED)
+    MESSAGE(STATUS "Looked for MySQL libraries named ${MYSQL_NAMES}.")
+    MESSAGE(FATAL_ERROR "Could NOT find MySQL library")
+  ENDIF (MYSQL_FIND_REQUIRED)
+ENDIF (MYSQL_FOUND)
+
+target_include_directories(paozhu PUBLIC ${MYSQL_INCLUDE_DIR})
+target_link_libraries(paozhu ${MYSQL_LIBRARY})
+
+target_include_directories(paozhu_cli PUBLIC ${MYSQL_INCLUDE_DIR})
+target_link_libraries(paozhu_cli ${MYSQL_LIBRARY})
+
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
 set(GD_ROOT_DIR "/usr/local/opt/gd/lib")

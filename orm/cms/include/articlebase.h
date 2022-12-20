@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 13 Dec 2022 02:04:21 GMT
+*本文件为自动生成 Tue, 20 Dec 2022 11:40:56 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -17,7 +17,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <mysqlx/xdevapi.h> 
+#include "mysql.h"
 namespace orm { 
      namespace cms { 
 
@@ -27,34 +27,34 @@ struct articlebase
     unsigned  int aid= 0; //
  int classtype= 0; //
  int userid= 0; //
- std::string title; //
- std::string keywords; //关键字
- std::string fromsource; //文章来源
- std::string author; //文章作者
- std::string addip; //
- std::string createtime; //显示的创建时间
+ std::string title=""; //
+ std::string keywords=""; //关键字
+ std::string fromsource=""; //文章来源
+ std::string author=""; //文章作者
+ std::string addip=""; //
+ std::string createtime=""; //显示的创建时间
 unsigned  long long addtime=0; //添加或修改时间
  int readnum= 0; //
  int review= 0; //
- std::string icoimg; //列表图片
- std::string content; //
+ std::string icoimg=""; //列表图片
+ std::string content=""; //
  char isopen=0; //是否开放
  char iscomment=0; //是否可以评论
- std::string fromlocal; //发表地址
- std::string texturl; //url用英文代替
- std::string summary; //文章摘要
- std::string editauthor; //文章编辑
+ std::string fromlocal=""; //发表地址
+ std::string texturl=""; //url用英文代替
+ std::string summary=""; //文章摘要
+ std::string editauthor=""; //文章编辑
  } data;
  std::vector<articlebase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 std::vector<unsigned char> _keypos{0x00};
-mysqlx::Row _row;
+MYSQL_ROW _row;
 std::vector<articlebase::meta>::iterator begin(){     return record.begin(); }
 std::vector<articlebase::meta>::iterator end(){     return record.end(); }
 std::vector<articlebase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<articlebase::meta>::const_iterator end() const{     return record.end(); }
 const std::array<std::string,20> colnames={"aid","classtype","userid","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","isopen","iscomment","fromlocal","texturl","summary","editauthor"};
-const std::array<unsigned char,20> colnamestype= {1,1,1,30,30,30,30,30,30,1,1,1,30,30,1,1,30,30,30,30};
+const std::array<unsigned char,20> colnamestype= {3,3,3,253,253,253,253,253,253,8,3,3,253,252,1,1,253,253,253,253};
 std::string tablename="article";
 std::string modelname="Article";
 
@@ -166,126 +166,149 @@ break;
           articlebase::meta metatemp;   
          for(unsigned char i=0;i<_keypos.size();i++){
                  switch(_keypos[i]){
-        		case 0: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.aid=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 1: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.classtype=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 2: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.userid=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 3: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.title=(std::string)_row[i];
-		 } 
-			 break;
-		case 4: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.keywords=(std::string)_row[i];
-		 } 
-			 break;
-		case 5: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.fromsource=(std::string)_row[i];
-		 } 
-			 break;
-		case 6: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.author=(std::string)_row[i];
-		 } 
-			 break;
-		case 7: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.addip=(std::string)_row[i];
-		 } 
-			 break;
-		case 8: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.createtime=(std::string)_row[i];
-		 } 
-			 break;
-		case 9: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.addtime=_row[i].get<uint64_t>();
-		 } 
-			 break;
-		case 10: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.readnum=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 11: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.review=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 12: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.icoimg=(std::string)_row[i];
-		 } 
-			 break;
-		case 13: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.content=(std::string)_row[i];
-		 } 
-			 break;
-		case 14: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.isopen=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 15: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.iscomment=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 16: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.fromlocal=(std::string)_row[i];
-		 } 
-			 break;
-		case 17: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.texturl=(std::string)_row[i];
-		 } 
-			 break;
-		case 18: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.summary=(std::string)_row[i];
-		 } 
-			 break;
-		case 19: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.editauthor=(std::string)_row[i];
-		 } 
-			 break;
+        	case 0:
+		 try{
+			metatemp.aid=std::stoul(_row[0]);
+		}catch (...) { 
+			metatemp.aid=0;
+			 }
+			break;
+	case 1:
+		 try{
+			metatemp.classtype=std::stoi(_row[1]);
+		}catch (...) { 
+			metatemp.classtype=0;
+			 }
+			break;
+	case 2:
+		 try{
+			metatemp.userid=std::stoi(_row[2]);
+		}catch (...) { 
+			metatemp.userid=0;
+			 }
+			break;
+	case 3:
+		 try{
+			metatemp.title.append(_row[3]);
+		}catch (...) { 
+			metatemp.title.clear();
+			 }
+			break;
+	case 4:
+		 try{
+			metatemp.keywords.append(_row[4]);
+		}catch (...) { 
+			metatemp.keywords.clear();
+			 }
+			break;
+	case 5:
+		 try{
+			metatemp.fromsource.append(_row[5]);
+		}catch (...) { 
+			metatemp.fromsource.clear();
+			 }
+			break;
+	case 6:
+		 try{
+			metatemp.author.append(_row[6]);
+		}catch (...) { 
+			metatemp.author.clear();
+			 }
+			break;
+	case 7:
+		 try{
+			metatemp.addip.append(_row[7]);
+		}catch (...) { 
+			metatemp.addip.clear();
+			 }
+			break;
+	case 8:
+		 try{
+			metatemp.createtime.append(_row[8]);
+		}catch (...) { 
+			metatemp.createtime.clear();
+			 }
+			break;
+	case 9:
+		 try{
+			metatemp.addtime=std::stoull(_row[9]);
+		}catch (...) { 
+			metatemp.addtime=0;
+			 }
+			break;
+	case 10:
+		 try{
+			metatemp.readnum=std::stoi(_row[10]);
+		}catch (...) { 
+			metatemp.readnum=0;
+			 }
+			break;
+	case 11:
+		 try{
+			metatemp.review=std::stoi(_row[11]);
+		}catch (...) { 
+			metatemp.review=0;
+			 }
+			break;
+	case 12:
+		 try{
+			metatemp.icoimg.append(_row[12]);
+		}catch (...) { 
+			metatemp.icoimg.clear();
+			 }
+			break;
+	case 13:
+		 try{
+			metatemp.content.append(_row[13]);
+		}catch (...) { 
+			metatemp.content.clear();
+			 }
+			break;
+	case 14:
+		 try{
+			metatemp.isopen=std::stoi(_row[14]);
+		}catch (...) { 
+			metatemp.isopen=0;
+			 }
+			break;
+	case 15:
+		 try{
+			metatemp.iscomment=std::stoi(_row[15]);
+		}catch (...) { 
+			metatemp.iscomment=0;
+			 }
+			break;
+	case 16:
+		 try{
+			metatemp.fromlocal.append(_row[16]);
+		}catch (...) { 
+			metatemp.fromlocal.clear();
+			 }
+			break;
+	case 17:
+		 try{
+			metatemp.texturl.append(_row[17]);
+		}catch (...) { 
+			metatemp.texturl.clear();
+			 }
+			break;
+	case 18:
+		 try{
+			metatemp.summary.append(_row[18]);
+		}catch (...) { 
+			metatemp.summary.clear();
+			 }
+			break;
+	case 19:
+		 try{
+			metatemp.editauthor.append(_row[19]);
+		}catch (...) { 
+			metatemp.editauthor.clear();
+			 }
+			break;
+	default:
+		 { }
+			
 
                  }
 
@@ -303,126 +326,149 @@ break;
  
                  switch(_keypos[i]){
 
-        		case 0: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.aid=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 1: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.classtype=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 2: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.userid=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 3: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.title=(std::string)_row[i];
-		 } 
-			 break;
-		case 4: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.keywords=(std::string)_row[i];
-		 } 
-			 break;
-		case 5: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.fromsource=(std::string)_row[i];
-		 } 
-			 break;
-		case 6: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.author=(std::string)_row[i];
-		 } 
-			 break;
-		case 7: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.addip=(std::string)_row[i];
-		 } 
-			 break;
-		case 8: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.createtime=(std::string)_row[i];
-		 } 
-			 break;
-		case 9: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.addtime=_row[i].get<uint64_t>();
-		 } 
-			 break;
-		case 10: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.readnum=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 11: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.review=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 12: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.icoimg=(std::string)_row[i];
-		 } 
-			 break;
-		case 13: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.content=(std::string)_row[i];
-		 } 
-			 break;
-		case 14: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.isopen=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 15: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.iscomment=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 16: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.fromlocal=(std::string)_row[i];
-		 } 
-			 break;
-		case 17: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.texturl=(std::string)_row[i];
-		 } 
-			 break;
-		case 18: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.summary=(std::string)_row[i];
-		 } 
-			 break;
-		case 19: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.editauthor=(std::string)_row[i];
-		 } 
-			 break;
+        	case 0:
+		 try{
+			metatemp.aid=std::stoul(_row[0]);
+		}catch (...) { 
+			metatemp.aid=0;
+			 }
+			break;
+	case 1:
+		 try{
+			metatemp.classtype=std::stoi(_row[1]);
+		}catch (...) { 
+			metatemp.classtype=0;
+			 }
+			break;
+	case 2:
+		 try{
+			metatemp.userid=std::stoi(_row[2]);
+		}catch (...) { 
+			metatemp.userid=0;
+			 }
+			break;
+	case 3:
+		 try{
+			metatemp.title.append(_row[3]);
+		}catch (...) { 
+			metatemp.title.clear();
+			 }
+			break;
+	case 4:
+		 try{
+			metatemp.keywords.append(_row[4]);
+		}catch (...) { 
+			metatemp.keywords.clear();
+			 }
+			break;
+	case 5:
+		 try{
+			metatemp.fromsource.append(_row[5]);
+		}catch (...) { 
+			metatemp.fromsource.clear();
+			 }
+			break;
+	case 6:
+		 try{
+			metatemp.author.append(_row[6]);
+		}catch (...) { 
+			metatemp.author.clear();
+			 }
+			break;
+	case 7:
+		 try{
+			metatemp.addip.append(_row[7]);
+		}catch (...) { 
+			metatemp.addip.clear();
+			 }
+			break;
+	case 8:
+		 try{
+			metatemp.createtime.append(_row[8]);
+		}catch (...) { 
+			metatemp.createtime.clear();
+			 }
+			break;
+	case 9:
+		 try{
+			metatemp.addtime=std::stoull(_row[9]);
+		}catch (...) { 
+			metatemp.addtime=0;
+			 }
+			break;
+	case 10:
+		 try{
+			metatemp.readnum=std::stoi(_row[10]);
+		}catch (...) { 
+			metatemp.readnum=0;
+			 }
+			break;
+	case 11:
+		 try{
+			metatemp.review=std::stoi(_row[11]);
+		}catch (...) { 
+			metatemp.review=0;
+			 }
+			break;
+	case 12:
+		 try{
+			metatemp.icoimg.append(_row[12]);
+		}catch (...) { 
+			metatemp.icoimg.clear();
+			 }
+			break;
+	case 13:
+		 try{
+			metatemp.content.append(_row[13]);
+		}catch (...) { 
+			metatemp.content.clear();
+			 }
+			break;
+	case 14:
+		 try{
+			metatemp.isopen=std::stoi(_row[14]);
+		}catch (...) { 
+			metatemp.isopen=0;
+			 }
+			break;
+	case 15:
+		 try{
+			metatemp.iscomment=std::stoi(_row[15]);
+		}catch (...) { 
+			metatemp.iscomment=0;
+			 }
+			break;
+	case 16:
+		 try{
+			metatemp.fromlocal.append(_row[16]);
+		}catch (...) { 
+			metatemp.fromlocal.clear();
+			 }
+			break;
+	case 17:
+		 try{
+			metatemp.texturl.append(_row[17]);
+		}catch (...) { 
+			metatemp.texturl.clear();
+			 }
+			break;
+	case 18:
+		 try{
+			metatemp.summary.append(_row[18]);
+		}catch (...) { 
+			metatemp.summary.clear();
+			 }
+			break;
+	case 19:
+		 try{
+			metatemp.editauthor.append(_row[19]);
+		}catch (...) { 
+			metatemp.editauthor.clear();
+			 }
+			break;
+	default:
+		 { }
+			
 
                   }
                  if(i>210){
@@ -483,14 +529,14 @@ tempsql<<"null";
 	tempsql<<std::to_string(data.aid);
 }
 if(data.classtype==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.classtype);
+	tempsql<<std::to_string(data.classtype);
 }
 if(data.userid==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.userid);
+	tempsql<<std::to_string(data.userid);
 }
 tempsql<<",'"<<stringaddslash(data.title)<<"'";
 tempsql<<",'"<<stringaddslash(data.keywords)<<"'";
@@ -499,31 +545,31 @@ tempsql<<",'"<<stringaddslash(data.author)<<"'";
 tempsql<<",'"<<stringaddslash(data.addip)<<"'";
 tempsql<<",'"<<stringaddslash(data.createtime)<<"'";
 if(data.addtime==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.addtime);
+	tempsql<<std::to_string(data.addtime);
 }
 if(data.readnum==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.readnum);
+	tempsql<<std::to_string(data.readnum);
 }
 if(data.review==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.review);
+	tempsql<<std::to_string(data.review);
 }
 tempsql<<",'"<<stringaddslash(data.icoimg)<<"'";
 tempsql<<",'"<<stringaddslash(data.content)<<"'";
 if(data.isopen==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.isopen);
+	tempsql<<std::to_string(data.isopen);
 }
 if(data.iscomment==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.iscomment);
+	tempsql<<std::to_string(data.iscomment);
 }
 tempsql<<",'"<<stringaddslash(data.fromlocal)<<"'";
 tempsql<<",'"<<stringaddslash(data.texturl)<<"'";

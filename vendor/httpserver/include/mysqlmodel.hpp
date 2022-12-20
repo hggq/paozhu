@@ -13,7 +13,7 @@
 
 #include <iostream>
 #include <functional>
-#include <mysqlx/xdevapi.h>
+#include "mysql.h"
 #include <typeinfo>
 #include <memory>
 #include <list>
@@ -23,8 +23,8 @@
 
 namespace orm
 {
-    //通用操作 类 mysql 方法 在这里接上getSession(); 这里可以操作 data sql count page
-    // using namespace http;
+    // 通用操作 类 mysql 方法 在这里接上getSession(); 这里可以操作 data sql count page
+    //  using namespace http;
     template <typename model, typename base>
     class mysqlclientDB : public base
     {
@@ -65,12 +65,62 @@ namespace orm
                 countsql.append(limitsql);
             }
 
-            mysqlx::RowResult ress = http::domysqlexecute(countsql, dbhash);
-            if (ress.count() > 0)
+            try
             {
-                mysqlx::Row one = ress.fetchOne();
-                return one[0];
+
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                MYSQL_RES *resultone = nullptr;
+
+                int readnum = mysql_query(conn.get(), &countsql[0]);
+
+                if (readnum != 0)
+                {
+                    error_msg = std::string(mysql_error(conn.get()));
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return 0;
+                }
+
+                resultone = mysql_store_result(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+
+                if (!resultone)
+                {
+                    return 0;
+                }
+                MYSQL_ROW row;
+                readnum = 0;
+                if ((row = mysql_fetch_row(resultone)))
+                {
+                    try
+                    {
+                        readnum = std::atoll(row[0]);
+                    }
+                    catch (...)
+                    {
+                        readnum = 0;
+                    }
+                }
+                mysql_free_result(resultone);
+
+                return readnum;
             }
+            catch (...)
+            {
+                return 0;
+            }
+
             return 0;
         }
         int updateCol(std::string colname, int num)
@@ -111,8 +161,26 @@ namespace orm
             {
                 countsql.append(limitsql);
             }
-            mysqlx::SqlResult ress = http::domysqleditexecute(countsql, dbhash);
-            return ress.getAffectedItemsCount();
+
+            try
+            {
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                long long readnum = mysql_query(conn.get(), &countsql[0]);
+                readnum = mysql_affected_rows(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                   
+                }
+                return readnum;
+            }
+            catch (...)
+            {
+                return 0;
+            }
         }
 
         model &select(std::string fieldname)
@@ -122,7 +190,7 @@ namespace orm
         }
         model &cache(unsigned int livetime)
         {
-            cachetime = livetime;
+            //cachetime = livetime;
             return *mod;
         }
         model &where(std::string wq)
@@ -1155,7 +1223,7 @@ namespace orm
         model &commit()
         {
             iscommit = false;
-             
+
             return *mod;
         }
         model &limit(unsigned int num)
@@ -1173,7 +1241,7 @@ namespace orm
             return *mod;
         }
 
-        std::list<mysqlx::Row> fetchAll()
+        std::vector<std::map<std::string, std::string>> fetchObj()
         {
             if (selectsql.empty())
             {
@@ -1209,11 +1277,76 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-            base::record.clear();
-            res = http::domysqlexecute(sqlstring, dbhash);
-            return res.fetchAll();
+            
+            std::vector<std::map<std::string, std::string>> temprecord;
+            try
+            {
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                MYSQL_RES *resultall = nullptr;
+
+                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+
+                if (readnum != 0)
+                {
+                    error_msg = std::string(mysql_error(conn.get()));
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return temprecord;
+                }
+
+                resultall = mysql_store_result(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+                readnum = 0;
+
+                int num_fields = mysql_num_fields(resultall);
+
+                MYSQL_FIELD *fields;
+                fields = mysql_fetch_fields(resultall);
+                std::string type_temp;
+                std::vector<std::string> table_fieldname;
+                for (unsigned char index = 0; index < num_fields; index++)
+                {
+                    type_temp = std::string(fields[index].name);
+                    std::transform(type_temp.begin(), type_temp.end(), type_temp.begin(), ::tolower);
+                    table_fieldname.push_back(type_temp);
+                }
+
+                int j=0;
+                MYSQL_ROW json_row;
+                while ((json_row = mysql_fetch_row(resultall)))
+                {
+                    std::map<std::string, std::string> rowtemp;
+                    for (unsigned char index = 0; index < num_fields; index++)
+                    {
+                        rowtemp.insert(table_fieldname[index],std::string(json_row[index]));
+                    }
+                    temprecord.push_back(std::move(rowtemp));
+                    j++;
+                }
+                mysql_free_result(resultall);
+                    
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                
+            }
+
+            return temprecord;
+
         }
-        mysqlx::RowResult fetchResult()
+        std::vector<std::vector<std::string>> fetchRow()
         {
             if (selectsql.empty())
             {
@@ -1249,8 +1382,74 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-            base::record.clear();
-            return http::domysqlexecute(sqlstring, dbhash);
+            
+            std::vector<std::vector<std::string>> temprecord;
+            try
+            {
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                MYSQL_RES *resultall = nullptr;
+
+                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+
+                if (readnum != 0)
+                {
+                    error_msg = std::string(mysql_error(conn.get()));
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return temprecord;
+                }
+
+                resultall = mysql_store_result(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+                readnum = 0;
+
+                int num_fields = mysql_num_fields(resultall);
+
+                MYSQL_FIELD *fields;
+                fields = mysql_fetch_fields(resultall);
+                std::string type_temp;
+                std::vector<std::string> table_fieldname;
+                for (unsigned char index = 0; index < num_fields; index++)
+                {
+                    type_temp = std::string(fields[index].name);
+                    std::transform(type_temp.begin(), type_temp.end(), type_temp.begin(), ::tolower);
+                    table_fieldname.push_back(type_temp);
+                }
+
+                int j=0;
+                MYSQL_ROW json_row;
+                while ((json_row = mysql_fetch_row(resultall)))
+                {
+                    std::vector<std::string> rowtemp;
+                    for (unsigned char index = 0; index < num_fields; index++)
+                    {
+                        rowtemp.push_back(std::string(json_row[index]));
+                    }
+                    temprecord.push_back(std::move(rowtemp));
+                    j++;
+                }
+                mysql_free_result(resultall);
+                temprecord.push_back(std::move(table_fieldname));             
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                
+            }
+
+            return temprecord;
+
         }
         model &fetch()
         {
@@ -1291,56 +1490,101 @@ namespace orm
             }
             base::record.clear();
 
-            if (cachetime > 0)
+            // if (cachetime > 0)
+            // {
+            //     sqlhashid = std::hash<std::string>{}(sqlstring);
+            //     if (getcacherecord(sqlhashid))
+            //     {
+            //         cachetime = 0;
+            //         return *mod;
+            //     }
+            // }
+
+            try
             {
-                sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (getcacherecord(sqlhashid))
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                MYSQL_RES *resultall = nullptr;
+
+                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+
+                if (readnum != 0)
                 {
-                    cachetime = 0;
+                    error_msg = std::string(mysql_error(conn.get()));
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
                     return *mod;
                 }
-            }
-            res = http::domysqlexecute(sqlstring, dbhash);
-            const mysqlx::Columns &columns = res.getColumns();
-            base::_keypos.clear();
-            if (selectsql.empty())
-            {
-                for (unsigned char index = 0; index < res.getColumnCount(); index++)
-                {
-                    base::_keypos.emplace_back(index);
-                }
-            }
-            else
-            {
-                for (unsigned char index = 0; index < res.getColumnCount(); index++)
-                {
-                    base::_keypos.emplace_back(base::findcolpos(columns[index].getColumnName()));
-                }
-            }
 
-            int j = 0;
-            while ((base::_row = res.fetchOne()))
-            {
-                if (j == 0)
+                resultall = mysql_store_result(conn.get());
+                try
                 {
-                    base::_setColnamevalue();
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+                readnum = 0;
+
+                int num_fields = mysql_num_fields(resultall);
+
+                base::_keypos.clear();
+                if (selectsql.empty())
+                {
+                    for (unsigned char index = 0; index < num_fields; index++)
+                    {
+                        base::_keypos.emplace_back(index);
+                    }
                 }
                 else
                 {
+                    MYSQL_FIELD *fields;
+                    fields = mysql_fetch_fields(resultall);
+                    std::string type_temp;
+                    for (unsigned char index = 0; index < num_fields; index++)
+                    {
+                        type_temp = std::string(fields[index].name);
+                        base::_keypos.emplace_back(base::findcolpos(type_temp));
+                    }
+                }
 
-                    base::_addnewrowvalue();
-                }
-                j++;
-            }
-            if (cachetime > 0)
-            {
-                if (sqlhashid == 0)
+                int j = 0;
+                while ((base::_row = mysql_fetch_row(resultall)))
                 {
-                    sqlhashid = std::hash<std::string>{}(sqlstring);
+                    if (j == 0)
+                    {
+                        base::_setColnamevalue();
+                    }
+                    else
+                    {
+
+                        base::_addnewrowvalue();
+                    }
+                    j++;
                 }
-                savecacherecord(sqlhashid);
-                cachetime = 0;
+                mysql_free_result(resultall);
+
+                return *mod;
             }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return *mod;
+            }
+
+            // if (cachetime > 0)
+            // {
+            //     if (sqlhashid == 0)
+            //     {
+            //         sqlhashid = std::hash<std::string>{}(sqlstring);
+            //     }
+            //     savecacherecord(sqlhashid);
+            //     cachetime = 0;
+            // }
             return *mod;
         }
         bool getcacherecord(unsigned long long cacheid)
@@ -1353,7 +1597,7 @@ namespace orm
 
             return true;
         }
-        http::OBJ_VALUE fetchOBJ()
+        http::OBJ_VALUE fetchJson()
         {
             if (selectsql.empty())
             {
@@ -1389,145 +1633,73 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-            base::record.clear();
-            res = http::domysqlexecute(sqlstring, dbhash);
-            const mysqlx::Columns &columns = res.getColumns();
-            base::_keypos.clear();
+
             http::OBJ_VALUE valuetemp;
-            std::vector<std::string> colnametemp;
-            for (unsigned char index = 0; index < res.getColumnCount(); index++)
-            {
-                colnametemp.emplace_back(columns[index].getColumnName());
-            }
-
-            int j = 0;
             valuetemp.set_array();
-            std::string tempraw;
-            while ((base::_row = res.fetchOne()))
+            try
             {
-                http::OBJ_VALUE rowtemp;
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                MYSQL_RES *resultall = nullptr;
 
-                for (unsigned char i = 0; i < res.getColumnCount(); i++)
+                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+
+                if (readnum != 0)
                 {
-                    switch (base::_row[i].getType())
+                    error_msg = std::string(mysql_error(conn.get()));
+                    try
                     {
-                    case mysqlx::Value::Type::UINT64:
-                        rowtemp[colnametemp[i]] = (uint64_t)base::_row[i];
-                        break;
-                    case mysqlx::Value::Type::INT64:
-                        rowtemp[colnametemp[i]] = (int64_t)base::_row[i];
-                        break;
-                    case mysqlx::Value::Type::FLOAT:
-                        rowtemp[colnametemp[i]] = (double)base::_row[i];
-                        break;
-                    case mysqlx::Value::Type::DOUBLE:
-                        rowtemp[colnametemp[i]] = (double)base::_row[i];
-                        break;
-                    case mysqlx::Value::Type::STRING:
-                        rowtemp[colnametemp[i]] = (std::string)base::_row[i];
-                        break;
-                    case mysqlx::Value::Type::BOOL:
-                        rowtemp[colnametemp[i]] = (bool)base::_row[i];
-                        break;
-                    case mysqlx::Value::Type::RAW:
-                        tempraw.clear();
-                        for (const mysqlx::byte *ptr = base::_row[i].getRawBytes().begin(); ptr < base::_row[i].getRawBytes().end(); ++ptr)
-                        {
-                            tempraw.push_back(*ptr);
-                        }
-
-                        {
-                            unsigned int tdtime = base::findcolpos(colnametemp[i]);
-                            if (tdtime < 200)
-                            {
-                                if (base::colnamestype[tdtime] == 60 && tempraw.size() > 5)
-                                {
-                                    std::ostringstream datetime;
-                                    tdtime = (unsigned char)tempraw[0] - 128 + (unsigned char)tempraw[1] * 128;
-                                    datetime << std::to_string(tdtime);
-                                    if ((unsigned char)tempraw[2] < 10)
-                                    {
-                                        datetime << "-0" << std::to_string(tempraw[2]);
-                                    }
-                                    else
-                                    {
-                                        datetime << "-" << std::to_string(tempraw[2]);
-                                    }
-                                    if ((unsigned char)tempraw[3] < 10)
-                                    {
-                                        datetime << "-0" << std::to_string(tempraw[3]);
-                                    }
-                                    else
-                                    {
-                                        datetime << "-" << std::to_string(tempraw[3]);
-                                    }
-
-                                    if ((unsigned char)tempraw[4] < 10)
-                                    {
-                                        datetime << " 0" << std::to_string(tempraw[4]);
-                                    }
-                                    else
-                                    {
-                                        datetime << " " << std::to_string(tempraw[4]);
-                                    }
-                                    if ((unsigned char)tempraw[5] < 10)
-                                    {
-                                        datetime << ":0" << std::to_string(tempraw[5]);
-                                    }
-                                    else
-                                    {
-                                        datetime << ":" << std::to_string(tempraw[5]);
-                                    }
-                                    if ((unsigned char)tempraw[6] < 10)
-                                    {
-                                        datetime << ":0" << std::to_string(tempraw[6]);
-                                    }
-                                    else
-                                    {
-                                        datetime << ":" << std::to_string(tempraw[6]);
-                                    }
-                                    rowtemp[colnametemp[i]] = datetime.str();
-                                }
-                                else if (base::colnamestype[tdtime] == 61 && tempraw.size() > 3)
-                                {
-                                    std::ostringstream datetime;
-                                    tdtime = (unsigned char)tempraw[0] - 128 + (unsigned char)tempraw[1] * 128;
-                                    datetime << std::to_string(tdtime);
-                                    if ((unsigned char)tempraw[2] < 10)
-                                    {
-                                        datetime << "-0" << std::to_string(tempraw[2]);
-                                    }
-                                    else
-                                    {
-                                        datetime << "-" << std::to_string(tempraw[2]);
-                                    }
-                                    if ((unsigned char)tempraw[3] < 10)
-                                    {
-                                        datetime << "-0" << std::to_string(tempraw[3]);
-                                    }
-                                    else
-                                    {
-                                        datetime << "-" << std::to_string(tempraw[3]);
-                                    }
-
-                                    rowtemp[colnametemp[i]] = datetime.str();
-                                }
-                                else
-                                {
-                                    rowtemp[colnametemp[i]] = tempraw;
-                                }
-                            }
-                        }
-
-                        break;
-                    default:
-                        rowtemp[colnametemp[i]] = "";
+                        http::back_mysql_connect(dbhash, std::move(conn));
                     }
+                    catch (...)
+                    {
+                    }
+                    return valuetemp;
                 }
-                valuetemp.push(j, std::move(rowtemp));
-                j++;
-            }
 
+                resultall = mysql_store_result(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+                readnum = 0;
+
+                int num_fields = mysql_num_fields(resultall);
+
+                MYSQL_FIELD *fields;
+                fields = mysql_fetch_fields(resultall);
+                std::string type_temp;
+                std::vector<std::string> table_fieldname;
+                for (unsigned char index = 0; index < num_fields; index++)
+                {
+                    type_temp = std::string(fields[index].name);
+                    std::transform(type_temp.begin(), type_temp.end(), type_temp.begin(), ::tolower);
+                    table_fieldname.push_back(type_temp);
+                }
+
+                
+                int j=0;
+                MYSQL_ROW json_row;
+                while ((json_row = mysql_fetch_row(resultall)))
+                {
+                    http::OBJ_VALUE rowtemp;
+                    rowtemp.set_array();
+                    for (unsigned char index = 0; index < num_fields; index++)
+                    {
+                        rowtemp[table_fieldname[index]]=std::string(json_row[index]);
+                    }
+                    valuetemp.push(j, std::move(rowtemp));
+                    j++;
+                }
+                mysql_free_result(resultall);
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                
+            }
             return std::move(valuetemp);
         }
         model &getone(long long id)
@@ -1542,28 +1714,63 @@ namespace orm
             sqlstring.append("=");
             sqlstring.append(std::to_string(id));
             base::record.clear();
-            res = http::domysqlexecute(sqlstring, dbhash);
 
-            const mysqlx::Columns &columns = res.getColumns();
-            base::_keypos.clear();
-            for (unsigned char index = 0; index < res.getColumnCount(); index++)
+            try
             {
-                base::_keypos.emplace_back(index);
-            }
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                MYSQL_RES *resultone = nullptr;
 
-            int j = 0;
-            while ((base::_row = res.fetchOne()))
-            {
-                if (j == 0)
+                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+
+                if (readnum != 0)
+                {
+                    error_msg = std::string(mysql_error(conn.get()));
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return *mod;
+                }
+
+                resultone = mysql_store_result(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+
+                if (!resultone)
+                {
+                    mysql_free_result(resultone);
+                    return *mod;
+                }
+                readnum = 0;
+
+                readnum = mysql_num_fields(resultone);
+                base::_keypos.clear();
+                for (unsigned char index = 0; index < readnum; index++)
+                {
+                    base::_keypos.emplace_back(index);
+                }
+
+                if ((base::_row = mysql_fetch_row(resultone)))
                 {
                     base::_setColnamevalue();
                 }
-                else
-                {
 
-                    base::_addnewrowvalue();
-                }
-                j++;
+                mysql_free_result(resultone);
+
+                return *mod;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return *mod;
             }
 
             return *mod;
@@ -1596,9 +1803,26 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-
-            ses = http::domysqleditexecute(sqlstring, dbhash);
-            return ses.getAffectedItemsCount();
+            try
+            {
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+                readnum = mysql_affected_rows(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                   
+                }
+                return readnum;
+            }
+            catch (...)
+            {
+                return 0;
+            }
+           
         }
         int update(std::string fieldname)
         {
@@ -1628,9 +1852,26 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
+            try
+            {
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+                readnum = mysql_affected_rows(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                   
+                }
+                return readnum;
+            }
+            catch (...)
+            {
+                return 0;
+            }
 
-            ses = http::domysqleditexecute(sqlstring, dbhash);
-            return ses.getAffectedItemsCount();
         }
         int remove()
         {
@@ -1658,8 +1899,27 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-            ses = http::domysqleditexecute(sqlstring, dbhash);
-            return ses.getAffectedItemsCount();
+            try
+            {
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+                readnum = mysql_affected_rows(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                   
+                }
+                return readnum;
+            }
+            catch (...)
+            {
+                return 0;
+            }
+
+           
         }
         int remove(long long id)
         {
@@ -1671,8 +1931,26 @@ namespace orm
             sqlstring.append("=");
             sqlstring.append(std::to_string(id));
 
-            ses = http::domysqleditexecute(sqlstring, dbhash);
-            return ses.getAffectedItemsCount();
+            try
+            {
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+                readnum = mysql_affected_rows(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                   
+                }
+                return readnum;
+            }
+            catch (...)
+            {
+                return 0;
+            }
+ 
         }
 
         int save()
@@ -1705,23 +1983,78 @@ namespace orm
                 {
                     sqlstring.append(limitsql);
                 }
-                ses = http::domysqleditexecute(sqlstring, dbhash);
-                return ses.getAffectedItemsCount();
+
+                try
+                {
+                    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                    long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+
+                    if (readnum != 0)
+                    {
+                        error_msg = std::string(mysql_error(conn.get()));
+                        try
+                        {
+                            http::back_mysql_connect(dbhash, std::move(conn));
+                        }
+                        catch (...)
+                        {
+                        }
+                        return 0;
+                    }
+                    readnum = mysql_affected_rows(conn.get());
+
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                      
+                    }
+                    return readnum;
+                }
+                catch (...)
+                {
+                    return 0;
+                }
             }
             else
             {
-                sqlstring = base::_makeinsertsql();
-                ses = http::domysqleditexecute(sqlstring, dbhash);
-                    base::setPK(ses.getAutoIncrementValue());
-                    return ses.getAutoIncrementValue();    
-                // if (iscommit)
-                // {
 
-                // }
-                // else
-                // {
-                    
-                // }
+                try
+                {
+                    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                    long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+
+                    if (readnum != 0)
+                    {
+                        error_msg = std::string(mysql_error(conn.get()));
+                        base::setPK(0);
+                        try
+                        {
+                            http::back_mysql_connect(dbhash, std::move(conn));
+                        }
+                        catch (...)
+                        {
+                        }
+                        return 0;
+                    }
+                    readnum = mysql_affected_rows(conn.get());
+                    long long tempid = mysql_insert_id(conn.get());
+                    base::setPK(tempid);
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return readnum;
+                }
+                catch (const std::exception &e)
+                {
+                    return 0;
+                }
             }
             return 0;
         }
@@ -1748,16 +2081,11 @@ namespace orm
             base::data = indata;
             return *mod;
         }
-
-        mysqlx::RowResult dofetch(std::string sql)
+        model &get()
         {
-            return http::domysqlexecute(sql, dbhash);
-        }
-        mysqlx::SqlResult doexecute(std::string sql)
-        {
-            return http::domysqleditexecute(sql, dbhash);
-        }
-
+             
+            return *mod;
+        }    
     public:
         std::string selectsql;
         std::string wheresql;
@@ -1766,6 +2094,7 @@ namespace orm
         std::string limitsql;
         std::string sqlstring;
         std::string dbtag;
+        std::string error_msg;
         bool iskuohao = false;
         bool iscommit = false;
         bool ishascontent = false;
@@ -1774,9 +2103,6 @@ namespace orm
         unsigned int offsetbegin = 0, offsetend = 0;
 
         std::hash<std::string> hash_fn;
-        mysqlx::RowResult res;
-        mysqlx::SqlResult ses;
-
         unsigned int cachetime = 0;
     };
 

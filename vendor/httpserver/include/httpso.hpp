@@ -19,7 +19,7 @@
 #include <condition_variable>
 #include <sys/time.h>
 #include <sys/stat.h>
-#include <mysqlx/xdevapi.h>
+#include "mysql.h"
 #include <unistd.h>
 #include <cstdlib>
 #include "request.h"
@@ -33,18 +33,19 @@ namespace http {
        return 0x01000000;
    } 
 
-mysqlx::RowResult domysqlexecute(std::string &sql,size_t dbhash){
-        return    clientapi::get().api_mysqlselect(sql,dbhash);             
+std::unique_ptr<MYSQL, decltype(&mysql_close)>get_mysqlselectexecute(size_t dbhash){
+        return    clientapi::get().api_mysqlselect(dbhash);             
 }
-mysqlx::SqlResult domysqleditexecute(std::string &sql,size_t dbhash){
- return clientapi::get().api_mysqledit(sql,dbhash);       
+std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqleditexecute(size_t dbhash){
+ return clientapi::get().api_mysqledit(dbhash);       
 }
-bool domysqlcommit(std::list<std::string> &sql,size_t dbhash){
-   return  clientapi::get().api_mysqlcommit(sql,dbhash);   
+bool back_mysql_connect(size_t dbhash,std::unique_ptr<MYSQL, decltype(&mysql_close)> conn){
+   return  clientapi::get().api_mysql_back_conn(dbhash,std::move(conn));   
  }
-//  std::string api_loadview(std::string path,http::OBJ_VALUE &b){
-//    return  clientapi::get().api_loadview(path,b);   
-//  }
+server_loaclvar &get_server_global_var()
+{
+  return  clientapi::get().server_global_var();   
+}
 #ifndef _CONTROL_DESTROY 
 void _destroy(){
      

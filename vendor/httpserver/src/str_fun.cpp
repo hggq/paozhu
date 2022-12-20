@@ -5,9 +5,9 @@
 
 namespace http
 {
-    int str2int(const char *source, unsigned int str_length)
+    long long str2int(const char *source, unsigned int str_length)
     {
-        int temp = 0;
+        long long  temp = 0;
         int qi = 0;
         bool issub=false;
         for (; qi < str_length; qi++)

@@ -12,7 +12,6 @@
 
 			 Article::Article(std::string dbtag):mysqlclientDB(dbtag){}
 			 Article::Article():mysqlclientDB(){}
-			 Article &Article::get(){ return *this; }
 
 
 		} 

@@ -12,7 +12,6 @@
 		 public:
 		 Article(std::string dbtag);
 		 Article();
-		 Article &get();
 		};
 	 }
  };

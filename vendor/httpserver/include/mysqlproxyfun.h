@@ -8,11 +8,9 @@
 #include <set>
 #include <string_view>
 #include <thread>
-// #include "http.hpp"
-#include "request.h"
 #include <iostream>
 #include <functional>
-#include <mysqlx/xdevapi.h>
+#include "mysql.h"
 #include <map>
 #include <typeinfo>
 
@@ -26,9 +24,10 @@
 namespace http
 {
 
-      mysqlx::SqlResult domysqleditexecute(std::string &sql, size_t dbhash);
-      mysqlx::RowResult domysqlexecute(std::string &sql, size_t dbhash);
-      bool domysqlcommit(std::list<std::string> &sql, size_t dbhash);
+      std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqleditexecute(size_t dbhash);
+      std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqlselectexecute(size_t dbhash);
+      bool do_mysqlcommit(size_t dbhash);
+      bool back_mysql_connect(size_t dbhash,std::unique_ptr<MYSQL, decltype(&mysql_close)> conn);
 
 }
 

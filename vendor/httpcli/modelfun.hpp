@@ -8,7 +8,7 @@
 #include <map>
 #include <list>
 #include <filesystem>
-#include <mysqlx/xdevapi.h>
+#include "mysql.h"
 #include <vector>
 #include <cmath>
 namespace fs = std::filesystem;
@@ -53,7 +53,7 @@ std::string getgmtdatetime(time_t inputtime = 0)
     std::string temp(timestr);
     return temp;
 }
-int createtabletoorm(std::string basefilepath,std::string modelspath, std::string realtablename, std::string tablename, std::string rmstag, std::shared_ptr<mysqlx::Session> sess)
+int createtabletoorm(std::string basefilepath,std::string modelspath, std::string realtablename, std::string tablename, std::string rmstag,MYSQL *conn)
 {
 
     // std::string modelspath="models/";
@@ -70,21 +70,41 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     {
         rmstag = "default";
     }
-    mysqlx::RowResult res = sess->sql(sqlqueryring).execute();
-    const mysqlx::Columns &columns = res.getColumns();
+
+    MYSQL_RES *result=nullptr;
+    int readnum = mysql_query(conn,&sqlqueryring[0]);
+    if(readnum!=0)
+    {
+        std::cout<<mysql_error(conn)<<std::endl;
+        return 0;
+    }
+
+    result = mysql_store_result(conn);
+
+    if(!result)
+    {
+        std::cout<<"not show tables COLUMNS! "<<std::endl;
+        return 0;
+    }
+    int num_fields = mysql_num_fields(result);
+    MYSQL_FIELD *fields;
+    fields = mysql_fetch_fields(result);
+
     std::vector<std::string> table, tablecollist;
     std::vector<int> tablecelwidth;
-    table.resize(res.getColumnCount());
-    tablecelwidth.resize(res.getColumnCount());
+
+    table.resize(num_fields);
+    tablecelwidth.resize(num_fields);
+
     int defaultcolnamepos = 255;
 
     std::map<std::string, std::map<std::string, std::string>> tableinfo;
-
-    for (unsigned char index = 0; index < res.getColumnCount(); index++)
+     std::map<unsigned char, unsigned char> table_type;
+     std::map<unsigned char, unsigned char> table_type_unsigned;   
+    for (unsigned char index = 0; index < num_fields; index++)
     {
         tablecelwidth[index] = 0;
-
-        table[index].append(columns[index].getColumnName());
+        table[index].append(std::string(fields[index].name));
         std::transform(table[index].begin(), table[index].end(), table[index].begin(), ::tolower);
         if (tablecelwidth[index] < table[index].size())
         {
@@ -94,76 +114,163 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         {
             defaultcolnamepos = index;
         }
+        //table_type[index]=fields[index].type;
     }
 
-    std::cout << std::endl;
-
-    mysqlx::Row row;
     int j = 0;
     std::ostringstream tp;
     std::string temp;
     std::string fieldname;
-    std::string tablepkname;
+    std::string tablepkname,tablepriname;
 
-    tablecollist.reserve(res.count());
-    while ((row = res.fetchOne()))
+    MYSQL_ROW row;
+    int row_num_count=0;
+    row_num_count=mysql_num_rows(result);
+    tablecollist.reserve(row_num_count);
+
+    while ((row = mysql_fetch_row(result)))
     {
-        fieldname = (std::string)row[0];
-
+        fieldname = std::string(row[0]);
         std::transform(fieldname.begin(), fieldname.end(), fieldname.begin(), ::tolower);
         tablecollist.push_back(fieldname);
 
-        for (int i = 1; i < res.getColumnCount(); i++)
+        for(int j = 1; j < num_fields; j++)
         {
-            tp << row[i];
-            temp = tp.str();
-            bool isc = false;
-            bool isnum = false;
-            std::string limitchar;
-            for (int n = 0; n < temp.size(); n++)
-            {
-                if (temp[n] == '(')
-                {
-                    isc = true;
-                    temp[n] = 0x00;
-                    isnum = true;
-                    limitchar.clear();
-                    continue;
-                }
-                if (isc)
-                {
 
-                    if (temp[n] == ')')
-                    {
-                        tableinfo[fieldname]["limitchar"] = limitchar;
-                        isnum = false;
-                    }
-                    if (isnum)
-                    {
-                        limitchar.push_back(temp[n]);
-                    }
-                    temp[n] = 0x00;
-                }
+            temp.clear();
+            if(row[j])
+            {
+                temp.append(std::string(row[j]));
             }
-            if (defaultcolnamepos != i)
+            
+            if (table[j]!="default")
             {
                 std::transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
+                
             }
+            tableinfo[fieldname][table[j]] = temp;
 
-            tableinfo[fieldname][table[i]] = temp;
-            if (table[i] == "extra")
+            if(table[j]=="type")
             {
+                bool isc = false;
+                bool isnum = false;
+                std::string limitchar;
+                for (int n = 0; n < temp.size(); n++)
+                {
+                    if (temp[n] == '(')
+                    {
+                        isc = true;
+                        temp[n] = 0x00;
+                        isnum = true;
+                        limitchar.clear();
+                        continue;
+                    }
+                    if (isc)
+                    {
+
+                        if (temp[n] == ')')
+                        {
+                            tableinfo[fieldname]["limitchar"] = limitchar;
+                            isnum = false;
+                        }
+                        if (isnum)
+                        {
+                            limitchar.push_back(temp[n]);
+                        }
+                        temp[n] = 0x00;
+                    }
+                }
+            }
+            if (table[j] == "extra")
+            {
+                //PRI
                 if (temp == "auto_increment")
                 {
                     tablepkname = fieldname;
                 }
+                
             }
-
-            tp.str("");
+            if (table[j] == "key")
+            {
+                //PRI
+               
+                if (temp == "pri")
+                {
+                    tablepriname = fieldname;
+                }
+                
+            }
         }
 
-        j++;
     }
+    mysql_free_result(result);
+
+    sqlqueryring="SHOW CREATE TABLE ";//SHOW CREATE TABLE article; 
+    sqlqueryring.append(realtablename);
+
+    readnum = mysql_query(conn,&sqlqueryring[0]);
+    if(readnum!=0)
+    {
+        std::cout<<mysql_error(conn)<<std::endl;
+        return 0;
+    }
+    result = mysql_store_result(conn);
+    num_fields = mysql_num_fields(result); 
+ 
+    while ((row = mysql_fetch_row(result)))
+    {
+        if(num_fields>0)
+        {
+            fieldname = basefilepath;
+            std::string filename=(std::string(row[0]));
+            fieldname.append(tablename);
+            std::string content=   (std::string(row[1])); 
+            fieldname.append(".sql");
+      
+            FILE* fp=fopen(fieldname.c_str(),"wb");
+            if(fp)
+            {
+                fwrite(&content[0],1,content.size(),fp);
+                fclose(fp);
+            }
+ 
+            break;
+        }
+    }
+
+    mysql_free_result(result);
+
+    sqlqueryring="select * from ";//SHOW CREATE TABLE article; 
+    sqlqueryring.append(realtablename);
+    sqlqueryring.append(" WHERE 0 LIMIT 1");
+
+    readnum = mysql_query(conn,&sqlqueryring[0]);
+    if(readnum!=0)
+    {
+        std::cout<<mysql_error(conn)<<std::endl;
+        return 0;
+    }
+    result = mysql_store_result(conn);
+    num_fields = mysql_num_fields(result); 
+    
+    if(result)
+    {
+        int num_fields = mysql_num_fields(result);
+
+        MYSQL_FIELD *fields;
+
+        std::string type_temp;
+        fields = mysql_fetch_fields(result);
+        for(int i = 0; i < num_fields; i++)
+        {
+            table_type[i]=fields[i].type;
+            
+        }
+    }
+
+    mysql_free_result(result);
+
+
     std::string temptype;
     std::vector<std::string> metalist;
     std::string outlist;
@@ -174,7 +281,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     std::map<unsigned char, std::string> collisttype;
 
     std::map<unsigned char, unsigned char> colltypeshuzi;
-
+   
     std::string collnametemp;
     for (auto &bb : tablecollist)
     {
@@ -182,6 +289,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         outlist.clear();
         collnametemp.clear();
         temptype = tableinfo[bb]["type"];
+        table_type_unsigned[colpos]=0;
         if (temptype[0] == 'i' && temptype[1] == 'n' && temptype[2] == 't')
         {
             // int
@@ -197,6 +305,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                         if (temptype[n + 1] == 'u')
                         {
                             pretype = "unsigned ";
+                            table_type_unsigned[colpos]=1;
                         }
                         break;
                     }
@@ -209,13 +318,21 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             outlist.append(bb);
 
             std::string defaultvalue;
-            if (tableinfo[bb]["default"][0] == 'n' || tableinfo[bb]["default"][1] == 'n')
+            if (tableinfo[bb]["default"][0] == 'n' || tableinfo[bb]["default"][1] == 'N')
             {
                 defaultvalue.append("0");
             }
             else
             {
-                defaultvalue.append(tableinfo[bb]["default"]);
+               if(tableinfo[bb]["default"].size()>0)
+               {
+                  defaultvalue.append(tableinfo[bb]["default"]);
+               }
+               else
+               {
+                  defaultvalue.append("0");
+               } 
+                
             }
 
             outlist.append("= ");
@@ -427,6 +544,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                         if (temptype[n + 1] == 'u')
                         {
                             pretype = "unsigned ";
+                            table_type_unsigned[colpos]=1;
                         }
                         break;
                     }
@@ -442,7 +560,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                if (tableinfo[bb]["default"][0] >= '0' && tableinfo[bb]["default"][0] <= '9')
+                 if(tableinfo[bb]["default"].empty())
+               {
+                   outlist.append("=0; //");
+               }
+               else if (tableinfo[bb]["default"][0] >= '0' && tableinfo[bb]["default"][0] <= '9')
                 {
                     outlist.append("=");
                     outlist.append(tableinfo[bb]["default"]);
@@ -477,6 +599,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                         if (temptype[n + 1] == 'u')
                         {
                             pretype = "unsigned ";
+                            table_type_unsigned[colpos]=1;
                         }
                         break;
                     }
@@ -494,9 +617,17 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                outlist.append("=");
-                outlist.append(tableinfo[bb]["default"]);
-                outlist.append("; //");
+                if(tableinfo[bb]["default"].empty())
+                {
+                    outlist.append("=0; //");
+                }
+                else
+                {
+                    outlist.append("=");
+                    outlist.append(tableinfo[bb]["default"]);
+                    outlist.append("; //");
+                } 
+                
             }
 
             outlist.append(tableinfo[bb]["comment"]);
@@ -588,6 +719,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                         if (temptype[n + 1] == 'u')
                         {
                             pretype = "unsigned ";
+                            table_type_unsigned[colpos]=1;
                         }
                         break;
                     }
@@ -604,9 +736,17 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                outlist.append("=");
-                outlist.append(tableinfo[bb]["default"]);
-                outlist.append("; //");
+                if(tableinfo[bb]["default"].empty())
+                {
+                    outlist.append("=0; //");
+                }
+                else
+                {
+                    outlist.append("=");
+                    outlist.append(tableinfo[bb]["default"]);
+                    outlist.append("; //");
+                } 
+
             }
             outlist.append(tableinfo[bb]["comment"]);
 
@@ -629,9 +769,17 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                outlist.append("=");
-                outlist.append(tableinfo[bb]["default"]);
-                outlist.append("; //");
+                 if(tableinfo[bb]["default"].empty())
+                {
+                    outlist.append("=0.0; //");
+                }
+                else
+                {
+                    outlist.append("=");
+                    outlist.append(tableinfo[bb]["default"]);
+                    outlist.append("; //");
+                } 
+
             }
             outlist.append(tableinfo[bb]["comment"]);
             metalist.push_back(outlist);
@@ -700,9 +848,17 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                outlist.append("=");
-                outlist.append(tableinfo[bb]["default"]);
-                outlist.append("; //");
+                 if(tableinfo[bb]["default"].empty())
+                {
+                    outlist.append("=0.0; //");
+                }
+                else
+                {
+                    outlist.append("=");
+                    outlist.append(tableinfo[bb]["default"]);
+                    outlist.append("; //");
+                } 
+                
             }
             outlist.append(tableinfo[bb]["comment"]);
 
@@ -783,7 +939,6 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     filemodelstremcpp << " ";
     filemodelstremcpp << "\r\n\r\n\t\t\t " << createfilename << "::" << createfilename << "(std::string dbtag):mysqlclientDB(dbtag){}\n";
     filemodelstremcpp << "\t\t\t " << createfilename << "::" << createfilename << "():mysqlclientDB(){}\n";
-    filemodelstremcpp << "\t\t\t " << createfilename << " &" << createfilename << "::get(){ return *this; }\n";
     if (rmstag != "default")
     {
         filemodelstremcpp << "\r\n\r\n\t\t} ";
@@ -849,7 +1004,6 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     filemodelstremcpp << "\t\t public:\n";
     filemodelstremcpp << "\t\t " << createfilename << "(std::string dbtag);\n";
     filemodelstremcpp << "\t\t " << createfilename << "();\n";
-    filemodelstremcpp << "\t\t " << createfilename << " &get();\n";
     filemodelstremcpp << "\t\t};\n";
     if (rmstag != "default")
     {
@@ -924,7 +1078,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <mysqlx/xdevapi.h> 
+#include "mysql.h"
 namespace orm { 
     )";
     if (rmstag != "default")
@@ -951,7 +1105,7 @@ struct )";
     filemodelstrem << "std::vector<" << tablenamebase << "base::meta> record;\n";
     filemodelstrem << "std::string _rmstag=\"" << rmstag << "\";//this value must be default or tag value, tag in mysqlconnect config file .\n";
     filemodelstrem << "std::vector<unsigned char> _keypos{0x00};\n";
-    filemodelstrem << "mysqlx::Row _row;\n";
+    filemodelstrem << "MYSQL_ROW _row;\n";
 
     filemodelstrem << "std::vector<" << tablenamebase << "base::meta>::iterator begin(){     return record.begin(); }\n";
     filemodelstrem << "std::vector<" << tablenamebase << "base::meta>::iterator end(){     return record.end(); }\n";
@@ -979,7 +1133,7 @@ struct )";
         {
             filemodelstrem << ",";
         }
-        filemodelstrem << std::to_string(colltypeshuzi[j]);
+        filemodelstrem << std::to_string(table_type[j]);
     }
     filemodelstrem << "};\r\n";
 
@@ -1114,155 +1268,90 @@ struct )";
     headtxt.clear();
 
     filemodelstrem.str("");
+ 
     for (int j = 0; j < tablecollist.size(); j++)
     {
-
-        filemodelstrem << "\t\tcase " << std::to_string(j) << ": \n ";
-
-        if (colltypeshuzi[j] == 60)
+         if(table_type[j]<10)
         {
-            headtxt.clear();
-            headtxt = R"(if(mysqlx::Value::Type::RAW==_row[i].getType()){
-                        // const mysqlx::bytes& raw_bytes = _row[i].getRawBytes();                       
-                        int aa=0;
-                         unsigned char datetimekey[8]={0x00}; 
-                          for (const mysqlx::byte *ptr = _row[i].getRawBytes().begin(); ptr < _row[i].getRawBytes().end(); ++ptr){
-                              datetimekey[aa]=*ptr;
-                              aa++;
-                              if(aa>7){
-                                  break;
-                              }
-                          }
-                         
-                          std::ostringstream datetime;
-                          aa=datetimekey[0]-128+datetimekey[1]*128;
-                          datetime<<std::to_string(aa);
-                          if(datetimekey[2]<10){
-                              datetime<<"-0"<<std::to_string(datetimekey[2]);
-                          }else{
-                              datetime<<"-"<<std::to_string(datetimekey[2]);
-                          }
-                          if(datetimekey[3]<10){
-                              datetime<<"-0"<<std::to_string(datetimekey[3]);
-                          }else{
-                              datetime<<"-"<<std::to_string(datetimekey[3]);
-                          }  
+                    switch(table_type[j])
+                    {
+                        case 0:
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stof(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+                            break;
+                        case 1:
+                           if(table_type_unsigned[j]==1)
+                           {
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                           }
+                           else
+                           {
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                           }
 
-                          if(datetimekey[4]<10){
-                              datetime<<" 0"<<std::to_string(datetimekey[4]);
-                          }else{
-                              datetime<<" "<<std::to_string(datetimekey[4]);
-                          }
-                          if(datetimekey[5]<10){
-                              datetime<<":0"<<std::to_string(datetimekey[5]);
-                          }else{
-                              datetime<<":"<<std::to_string(datetimekey[5]);
-                          }
-                          if(datetimekey[6]<10){
-                              datetime<<":0"<<std::to_string(datetimekey[6]);
-                          }else{
-                              datetime<<":"<<std::to_string(datetimekey[6]);
-                          }
-                         
-                )";
-            headtxt.append(" metatemp."); //= datetime.str(); "
-            headtxt.append(tablecollist[j]);
-            headtxt.append("=datetime.str();\n");
-            headtxt.append("}\n");
-            filemodelstrem << headtxt;
-            headtxt.clear();
-        }
-        else if (colltypeshuzi[j] == 61)
-        {
-            headtxt.clear();
-            headtxt = R"(if(mysqlx::Value::Type::RAW==_row[i].getType()){
-                        // const mysqlx::bytes& raw_bytes = _row[i].getRawBytes();                       
-                        int aa=0;
-                         unsigned char datetimekey[8]={0x00}; 
-                          for (const mysqlx::byte *ptr = _row[i].getRawBytes().begin(); ptr < _row[i].getRawBytes().end(); ++ptr){
-                              datetimekey[aa]=*ptr;
-                              aa++;
-                              if(aa>4){
-                                  break;
-                              }
-                          }
-                         
-                          std::ostringstream datetime;
-                          aa=datetimekey[0]-128+datetimekey[1]*128;
-                          datetime<<std::to_string(aa);
-                          if(datetimekey[2]<10){
-                              datetime<<"-0"<<std::to_string(datetimekey[2]);
-                          }else{
-                              datetime<<"-"<<std::to_string(datetimekey[2]);
-                          }
-                          if(datetimekey[3]<10){
-                              datetime<<"-0"<<std::to_string(datetimekey[3]);
-                          }else{
-                              datetime<<"-"<<std::to_string(datetimekey[3]);
-                          }  
 
-                         
-                         
-                )";
-            headtxt.append(" metatemp."); //= datetime.str(); "
-            headtxt.append(tablecollist[j]);
-            headtxt.append("=datetime.str();\n");
-            headtxt.append("}\n");
-            filemodelstrem << headtxt;
-            headtxt.clear();
-        }
-        else
-        {
+                            break;  
+                        case 2:
+     
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
 
-            if (colltypeshuzi[j] < 10)
+                            break;
+                        case 3:
+                           if(table_type_unsigned[j]==1)
+                           {
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoul(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                           }
+                           else
+                           {
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                           }
+                            break;  
+
+                        case 4:
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stof(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                            break;  
+                       case 5:
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stod(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                            break;
+                        case 7:
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+
+                            break;    
+                        case 8:
+                            if(table_type_unsigned[j]==1)
+                            {
+                                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoull(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                            }
+                            else
+                            {
+                                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoll(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                            }
+                            break;    
+                        case 9:
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                    
+                    }
+            }else if(table_type[j]==12)
             {
-                filemodelstrem << "\n\t if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ \n";
-                // filemodelstrem<<"\t\t\t\t metatemp."<<tablecollist[j]<<"=("<<collisttype[j]<<")_row[i];\n";
-                if (collisttype[j].size() == sizeof("unsigned  long long"))
-                {
-                    filemodelstrem << "\t\t\t\t metatemp." << tablecollist[j] << "=_row[i].get<uint64_t>();\n";
-                }
-                else if (collisttype[j].size() == sizeof(" long long"))
-                {
-                    filemodelstrem << "\t\t\t\t metatemp." << tablecollist[j] << "=_row[i].get<int64_t>();\n";
-                }
-                else if (collisttype[j].size() == sizeof(" int "))
-                {
-                    filemodelstrem << "\t\t\t\t metatemp." << tablecollist[j] << "=_row[i].get<int>();\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\t\t\t metatemp." << tablecollist[j] << "=_row[i].get<unsigned>();\n";
-                }
-
-                filemodelstrem << "\t\t } \n";
+                //filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoul(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+            } else if(table_type[j]==246)
+            {
+                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stof(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
             }
-            else if (colltypeshuzi[j] < 30)
+            else
             {
-                filemodelstrem << "\n\t if(_row[i].getType()==mysqlx::Value::Type::FLOAT||_row[i].getType()==mysqlx::Value::Type::DOUBLE){ \n";
-                filemodelstrem << "\t\t\t\t metatemp." << tablecollist[j] << "=(" << collisttype[j] << ")_row[i];\n";
-                filemodelstrem << "\t\t } \n";
-            }
-            else if (colltypeshuzi[j] < 40)
-            {
-                filemodelstrem << "\n\t if(_row[i].getType()==mysqlx::Value::Type::STRING){ \n";
-                filemodelstrem << "\t\t\t\t metatemp." << tablecollist[j] << "=(" << collisttype[j] << ")_row[i];\n";
-                filemodelstrem << "\t\t } \n";
+                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+
             }
 
-            //   filemodelstrem<<"\n\t if(_row[i].getType()>0){ \n";
-            //  filemodelstrem<<"\t\t\t\t metatemp."<<tablecollist[j]<<"=("<<collisttype[j]<<")_row[i];\n";
-            //  filemodelstrem<<"\n\t }else{ \n";
-            //  if(colltypeshuzi[j]<30){
-            //         filemodelstrem<<"\t\t\t\t metatemp."<<tablecollist[j]<<"=0;\n";
-            //  }else if(colltypeshuzi[j]<40){
-            //         filemodelstrem<<"\t\t\t\t metatemp."<<tablecollist[j]<<".clear();\n";
-            //  }
-            //   filemodelstrem<<"\n\t } \n";
-        }
-
-        filemodelstrem << "\t\t\t break;\n";
+        
     }
+ 
+    filemodelstrem<<"\tdefault:\n\t\t { }\n\t\t\t\n";
+    
+
     headtxt.clear();
     headtxt.append(filemodelstrem.str());
     // filemodelstrem.str("");
@@ -1364,14 +1453,19 @@ struct )";
     {
 
         // 数字
-        if (j == 0)
+        // if (j == 0)
+        if (table_type[j]<10||table_type[j]==246)
         {
+           if(table_type[j]!=7)
+           {
             insertstrem << "if(data." << tablecollist[j] << "==0){\n";
             insertstrem << "tempsql<<\"null\";\n";
             insertstrem << " }else{ \n";
             insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
             insertstrem << "}\n";
             continue;
+           } 
+            
         }
         if (colltypeshuzi[j] < 30)
         {
@@ -2035,9 +2129,18 @@ struct )";
     headtxt.clear();
 
     //////////////////////////////////////////////////////////
+    if(tablepkname.empty())
+    {
+        headtxt = "long long getPK(){  return data." + tablepriname + "; } \n";
+        headtxt.append(" void setPK(long long val){   } \n");
+    }
+    else
+    {
+        headtxt = "long long getPK(){  return data." + tablepkname + "; } \n";
+        headtxt.append(" void setPK(long long val){  data." + tablepkname + "=val;} \n");
+    }
 
-    headtxt = "long long getPK(){  return data." + tablepkname + "; } \n";
-    headtxt.append(" void setPK(long long val){  data." + tablepkname + "=val;} \n");
+
     fwrite(&headtxt[0], 1, headtxt.size(), f);
     headtxt.clear();
 
@@ -2059,7 +2162,7 @@ struct )";
             getsetstrem << collisttype[j];
             getsetstrem << "& getRef" << uptempstring << "(){  return std::ref(data." + tablecollist[j] + "); } \n";
             getsetstrem << " void set" << uptempstring << "(" << collisttype[j] << " &val){  data." + tablecollist[j] + "=val;} \n";
-            if (collisttype[j] == "std::string")
+            if (collisttype[j].find("std::string")!= std::string::npos)
             {
                 getsetstrem << " void set" << uptempstring << "(std::string_view val){  data." + tablecollist[j] + "=val;} \n";
             }
@@ -4986,6 +5089,7 @@ struct mysqlconnect_t
     std::string port;
     std::string dbname;
     std::string user;
+    std::string unix_socket;
     std::string password;
     std::string pretable;
     std::string maxpool;
@@ -5118,6 +5222,10 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                 {
                     mysqlconf.maxpool = strval;
                 }
+                if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
+                {
+                    mysqlconf.unix_socket = strval;
+                }
             }
 
             linestr.clear();
@@ -5202,6 +5310,10 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
         if (strcasecmp(linestr.c_str(), "maxpool") == 0)
         {
             mysqlconf.maxpool = strval;
+        }
+        if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
+        {
+            mysqlconf.unix_socket = strval;
         }
         mysqlconf.spname = keyname;
         myconfig.push_back(mysqlconf);
@@ -5343,7 +5455,7 @@ int modelcli()
     std::string pretable;
     std::vector<mysqlconnect_t> myconfig = getmysqlconfig("conf/mysqlorm.conf");
 
-    std::string mysqlconnect = ""; //"mysqlx://root:123456@127.0.0.1:33060/aaa";
+    //std::string mysqlconnect = ""; //"mysqlx://root:123456@127.0.0.1:33060/aaa";
     if (myconfig.size() == 0)
     {
         std::cout << " Sorry, not found [config/mysqlorm.conf] config file \033[1m\033[31m This file format example: \033[0m " << std::endl;
@@ -5351,7 +5463,7 @@ int modelcli()
 [default]
 type=main
 host=127.0.0.1
-port=33060
+port=3306
 dbname=aaa
 user=root
 password=123456
@@ -5360,7 +5472,7 @@ maxpool=5
 
 type=second
 host=127.0.0.1
-port=33060
+port=3306
 dbname=aaa
 user=root
 password=123456
@@ -5372,19 +5484,29 @@ maxpool=20
         return 0;
     }
 
+    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(new MYSQL, &mysql_close);
+    //MYSQL conn;
+    mysql_init(conn.get()); 
+
+    
+
     if (myconfig.size() > 0)
     {
         if (myconfig.size() < 3)
         {
             std::string port = myconfig[0].port;
-            if (port.size() < 3)
-            {
-                port = "33060";
-            }
-            mysqlconnect = "mysqlx://" + myconfig[0].user + ":" + myconfig[0].password + "@" + myconfig[0].host + ":" + port + "/" + myconfig[0].dbname;
+            unsigned int myport = atol(port.c_str());
+ 
             rmstag = myconfig[0].spname;
             command = myconfig[0].dbname;
             pretable = myconfig[0].pretable;
+
+            if(!mysql_real_connect(conn.get(), myconfig[0].host.c_str(),myconfig[0].user.c_str(),myconfig[0].password.c_str(),myconfig[0].dbname.c_str(),myport,(myconfig[0].unix_socket.size()>0?myconfig[0].unix_socket.c_str():NULL),0))
+            {
+                std::cout<<"mysql db link error!"<<std::endl;
+                std::cout<<mysql_error(conn.get())<<std::endl;
+            } 
+
         }
         else
         {
@@ -5441,14 +5563,18 @@ maxpool=20
             //     indexsdb=0;
             // }
             std::string port = myconfig[indexsdb].port;
-            if (port.size() < 3)
-            {
-                port = "33060";
-            }
-            mysqlconnect = "mysqlx://" + myconfig[indexsdb].user + ":" + myconfig[indexsdb].password + "@" + myconfig[indexsdb].host + ":" + port + "/" + myconfig[indexsdb].dbname;
+            unsigned int myport = atol(port.c_str());
+
             rmstag = myconfig[indexsdb].spname;
             command = myconfig[indexsdb].dbname;
             pretable = myconfig[indexsdb].pretable;
+
+            if(!mysql_real_connect(conn.get(), myconfig[indexsdb].host.c_str(),myconfig[indexsdb].user.c_str(),myconfig[indexsdb].password.c_str(),myconfig[indexsdb].dbname.c_str(),myport,(myconfig[indexsdb].unix_socket.size()>0?myconfig[indexsdb].unix_socket.c_str():NULL),0))
+            {
+                std::cout<<"mysql db link error 2!"<<std::endl;
+                std::cout<<mysql_error(conn.get())<<std::endl;
+            } 
+
         }
     }
     else
@@ -5477,15 +5603,24 @@ maxpool=20
         std::cout << "input db user password:";
         std::cin >> password;
 
+       
         if (port.size() < 3)
         {
-            port = "33060";
+            port = "3306";
         }
-        mysqlconnect = "mysqlx://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname;
+         unsigned int myport = atol(port.c_str());
+        //mysqlconnect = "mysqlx://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname;
 
         command = dbname;
         rmstag = "default";
         pretable = "";
+
+        if(!mysql_real_connect(conn.get(), host.c_str(),user.c_str(),password.c_str(),dbname.c_str(),myport,NULL,0))
+            {
+                std::cout<<"mysql db link error!"<<std::endl;
+                std::cout<<mysql_error(conn.get())<<std::endl;
+            } 
+
     }
 
     if (rmstag != "default")
@@ -5544,15 +5679,11 @@ maxpool=20
 
     }
 
-    std::shared_ptr<mysqlx::Session> sess = std::make_shared<mysqlx::Session>(mysqlconnect);
-
     std::string tablename;
     std::string sqlqueryring;
     // sqlqueryring.append(realtablename);
     std::cout << "create \033[1m\033[31m" << command << "\033[0m table to models 🚀 " << std::endl;
 
-    mysqlx::Row _row;
-    mysqlx::RowResult res;
     std::vector<std::string> tablelist;
     std::vector<std::string> tableshow;
     int maxchar = 0;
@@ -5565,31 +5696,42 @@ maxpool=20
             break;
         }
 
-        // sqlqueryring="use "+command;
-
-        // sess->sql(sqlqueryring).execute();
-        if (!sess)
-        {
-            break;
-        }
         sqlqueryring = "show tables; ";
         std::cout << "show tables:" << std::endl;
-        res = sess->sql(sqlqueryring).execute();
         command.clear();
         maxchar = 1;
+
+        int readnum = mysql_query(conn.get(),&sqlqueryring[0]);
+        
+        if(readnum!=0)
+        {
+            std::cout<<mysql_error(conn.get())<<std::endl;
+        }
+        MYSQL_RES *result=nullptr;
+        result = mysql_store_result(conn.get());
+
+
         tablelist.clear();
         tableshow.clear();
-        while ((_row = res.fetchOne()))
-        {
-            command = (std::string)_row[0];
 
-            if (maxchar < command.size())
+        if(result)
+        {
+          int num_fields = mysql_num_fields(result);
+           MYSQL_ROW row;
+
+            while ((row = mysql_fetch_row(result)))
             {
-                maxchar = command.size();
-            }
-            std::transform(command.begin(), command.end(), command.begin(), ::tolower);
-            tablelist.push_back(command);
-        }
+                if(num_fields>0)
+                {
+                    command = std::string(row[0]);
+                    std::transform(command.begin(), command.end(), command.begin(), ::tolower);
+                    tablelist.push_back(command);
+                }
+                
+            }  
+          mysql_free_result(result);     
+        } 
+
         int percolnum = 30;
         if (tablelist.size() > 60)
         {
@@ -5726,7 +5868,7 @@ maxpool=20
                 if (indexnum < tablelist.size())
                 {
                     std::string realtablename, tablename;
-                    // std::string fixtablepre="kou_";
+                    // std::string fixtablepre="web_";
                     int offsetmodel, iszimu = 0;
                     realtablename = tablelist[indexnum];
                     offsetmodel = 0;
@@ -5821,8 +5963,8 @@ maxpool=20
                         }
                         if (iszimu > 1)
                         {
-                            createtabletoorm(ormnowpath,controlpath, realtablename, tablename, rmstag, sess);
-                            addhfiletoormfile(rootcontrolpath, tablename, rmstag);
+                            createtabletoorm(ormnowpath,controlpath, realtablename, tablename, rmstag, conn.get());
+                            addhfiletoormfile(ormfilepath, tablename, rmstag);
                         }
                         loopnumcount = 0;
                     }
@@ -5833,10 +5975,6 @@ maxpool=20
                 }
 
                 if (isloop == false)
-                {
-                    break;
-                }
-                if (!sess)
                 {
                     break;
                 }
@@ -5893,19 +6031,25 @@ maxpool=20
         }
         command.clear();
         std::string port = myconfig[indexsdb].port;
-        if (port.size() < 3)
-        {
-            port = "33060";
-        }
-        mysqlconnect = "mysqlx://" + myconfig[indexsdb].user + ":" + myconfig[indexsdb].password + "@" + myconfig[indexsdb].host + ":" + port + "/" + myconfig[indexsdb].dbname;
+        unsigned int myport = atol(port.c_str());
+        
         rmstag = myconfig[indexsdb].spname;
         // command=myconfig[indexsdb].dbname;
         pretable = myconfig[indexsdb].pretable;
-        sess->close();
-        sess = std::make_shared<mysqlx::Session>(mysqlconnect);
+
+        conn.reset(new MYSQL);
+        mysql_init(conn.get()); 
+
+        if(!mysql_real_connect(conn.get(), myconfig[indexsdb].host.c_str(),myconfig[indexsdb].user.c_str(),myconfig[indexsdb].password.c_str(),myconfig[indexsdb].dbname.c_str(),myport,(myconfig[indexsdb].unix_socket.size()>0?myconfig[indexsdb].unix_socket.c_str():NULL),0))
+        {
+            std::cout<<"mysql db link error 4!"<<std::endl;
+            std::cout<<mysql_error(conn.get())<<std::endl;
+            break;
+        } 
 
         if (rmstag != "default")
         {
+            controlpath=rootcontrolpath;
             if (controlpath.back() != '/')
             {
                 controlpath.push_back('/');
@@ -5955,5 +6099,6 @@ maxpool=20
 
         }
     }
+    
     return 0;
 }

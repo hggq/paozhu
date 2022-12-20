@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 13 Dec 2022 02:04:21 GMT
+*本文件为自动生成 Tue, 20 Dec 2022 11:40:56 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -17,7 +17,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <mysqlx/xdevapi.h> 
+#include "mysql.h"
 namespace orm { 
      namespace cms { 
 
@@ -25,21 +25,21 @@ struct userbase
 {
     struct meta{
     unsigned  int userid= 0; //
- std::string name; //
- std::string password; //
+ std::string name=""; //
+ std::string password=""; //
  char isopen=0; //
- int level= 0; //
+unsigned  int level= 0; //
  } data;
  std::vector<userbase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 std::vector<unsigned char> _keypos{0x00};
-mysqlx::Row _row;
+MYSQL_ROW _row;
 std::vector<userbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<userbase::meta>::iterator end(){     return record.end(); }
 std::vector<userbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<userbase::meta>::const_iterator end() const{     return record.end(); }
 const std::array<std::string,5> colnames={"userid","name","password","isopen","level"};
-const std::array<unsigned char,5> colnamestype= {1,30,30,1,1};
+const std::array<unsigned char,5> colnamestype= {3,253,253,1,3};
 std::string tablename="user";
 std::string modelname="User";
 
@@ -82,36 +82,44 @@ break;
           userbase::meta metatemp;   
          for(unsigned char i=0;i<_keypos.size();i++){
                  switch(_keypos[i]){
-        		case 0: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.userid=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 1: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.name=(std::string)_row[i];
-		 } 
-			 break;
-		case 2: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.password=(std::string)_row[i];
-		 } 
-			 break;
-		case 3: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.isopen=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 4: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.level=_row[i].get<unsigned>();
-		 } 
-			 break;
+        	case 0:
+		 try{
+			metatemp.userid=std::stoul(_row[0]);
+		}catch (...) { 
+			metatemp.userid=0;
+			 }
+			break;
+	case 1:
+		 try{
+			metatemp.name.append(_row[1]);
+		}catch (...) { 
+			metatemp.name.clear();
+			 }
+			break;
+	case 2:
+		 try{
+			metatemp.password.append(_row[2]);
+		}catch (...) { 
+			metatemp.password.clear();
+			 }
+			break;
+	case 3:
+		 try{
+			metatemp.isopen=std::stoi(_row[3]);
+		}catch (...) { 
+			metatemp.isopen=0;
+			 }
+			break;
+	case 4:
+		 try{
+			metatemp.level=std::stoul(_row[4]);
+		}catch (...) { 
+			metatemp.level=0;
+			 }
+			break;
+	default:
+		 { }
+			
 
                  }
 
@@ -129,36 +137,44 @@ break;
  
                  switch(_keypos[i]){
 
-        		case 0: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.userid=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 1: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.name=(std::string)_row[i];
-		 } 
-			 break;
-		case 2: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::STRING){ 
-				 metatemp.password=(std::string)_row[i];
-		 } 
-			 break;
-		case 3: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.isopen=_row[i].get<unsigned>();
-		 } 
-			 break;
-		case 4: 
- 
-	 if(_row[i].getType()==mysqlx::Value::Type::INT64||_row[i].getType()==mysqlx::Value::Type::UINT64){ 
-				 metatemp.level=_row[i].get<unsigned>();
-		 } 
-			 break;
+        	case 0:
+		 try{
+			metatemp.userid=std::stoul(_row[0]);
+		}catch (...) { 
+			metatemp.userid=0;
+			 }
+			break;
+	case 1:
+		 try{
+			metatemp.name.append(_row[1]);
+		}catch (...) { 
+			metatemp.name.clear();
+			 }
+			break;
+	case 2:
+		 try{
+			metatemp.password.append(_row[2]);
+		}catch (...) { 
+			metatemp.password.clear();
+			 }
+			break;
+	case 3:
+		 try{
+			metatemp.isopen=std::stoi(_row[3]);
+		}catch (...) { 
+			metatemp.isopen=0;
+			 }
+			break;
+	case 4:
+		 try{
+			metatemp.level=std::stoul(_row[4]);
+		}catch (...) { 
+			metatemp.level=0;
+			 }
+			break;
+	default:
+		 { }
+			
 
                   }
                  if(i>210){
@@ -221,14 +237,14 @@ tempsql<<"null";
 tempsql<<",'"<<stringaddslash(data.name)<<"'";
 tempsql<<",'"<<stringaddslash(data.password)<<"'";
 if(data.isopen==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.isopen);
+	tempsql<<std::to_string(data.isopen);
 }
 if(data.level==0){
-	tempsql<<",0";
+tempsql<<"null";
  }else{ 
-	tempsql<<","<<std::to_string(data.level);
+	tempsql<<std::to_string(data.level);
 }
 tempsql<<")";
 
@@ -621,8 +637,8 @@ std::string& getRefPassword(){  return std::ref(data.password); }
  int  getIsopen(){  return data.isopen; } 
  void setIsopen( int  val){  data.isopen=val;} 
 
- int  getLevel(){  return data.level; } 
- void setLevel( int  val){  data.level=val;} 
+unsigned  int  getLevel(){  return data.level; } 
+ void setLevel(unsigned  int  val){  data.level=val;} 
 
 userbase::meta getnewData(){
  	 struct meta newdata;
