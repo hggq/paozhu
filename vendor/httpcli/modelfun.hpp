@@ -117,7 +117,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         //table_type[index]=fields[index].type;
     }
 
-    int j = 0;
+    //int j = 0;
     std::ostringstream tp;
     std::string temp;
     std::string fieldname;
@@ -1408,7 +1408,7 @@ struct )";
             }
             temp.push_back(content[i]);
         }
-        return std::move(temp);
+        return temp;
    }  
   inline  std::string jsonaddslash(std::string &content){
         std::string temp;
@@ -1419,7 +1419,7 @@ struct )";
             }
             temp.push_back(content[i]);
         }
-        return std::move(temp);
+        return temp;
    }  
 
    std::string _makeinsertsql(){
@@ -1687,7 +1687,7 @@ struct )";
 
             }        
 
-        return std::move(tempsql.str());
+        return tempsql.str();
    } 
    std::string datatojson(){
        std::ostringstream tempsql;
@@ -1761,7 +1761,7 @@ struct )";
 
     headtxt = R"(
      
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    )";
 
@@ -1872,7 +1872,7 @@ struct )";
                      }
                  }   
       tempsql<<"}";  
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    )";
 
@@ -1992,7 +1992,7 @@ struct )";
       tempsql<<"}";  
             }
       tempsql<<"]";
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    )";
 
@@ -2121,7 +2121,7 @@ struct )";
       tempsql<<"}";  
             }
       tempsql<<"]";
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    )";
 
@@ -2184,7 +2184,7 @@ struct )";
     fwrite(&headtxt[0], 1, headtxt.size(), f);
     headtxt.clear();
 
-    headtxt = tablenamebase + "base::meta getnewData(){\n \t struct meta newdata;\n\t return std::move(newdata); \n} \n";
+    headtxt = tablenamebase + "base::meta getnewData(){\n \t struct meta newdata;\n\t return newdata; \n} \n";
 
     headtxt.append(tablenamebase);
     headtxt.append("base::meta getData(){\n \t return data; \n} \n");
@@ -5742,7 +5742,7 @@ maxpool=20
         int groupp = ceil((float)tablelist.size() / percolnum);
         int pc = 0;
         maxchar += 4;
-        int n = 0, offset = 0, toffset = 0;
+        int n = 0,  toffset = 0;
 
         tableshow.resize(percolnum);
         for (int i = 0; i < groupp; i++)

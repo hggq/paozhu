@@ -1634,7 +1634,7 @@ namespace http
             unsigned int isbound = 0;
             for (; i < buffersize; i++)
             {
-                  if (buffer[i] != 0x0D || buffer[i] != 0x0A)
+                  if ((buffer[i] != 0x0D) && (buffer[i] != 0x0A))
                   {
 
                         break;
@@ -1709,7 +1709,7 @@ namespace http
             {
                   for (; i < buffersize; i++)
                   {
-                        if (buffer[i] != 0x0D || buffer[i] != 0x0A)
+                        if ((buffer[i] != 0x0D) && (buffer[i] != 0x0A))
                         {
 
                               break;
@@ -2621,7 +2621,7 @@ namespace http
             if (i < buffersize && uprawfile)
             {
                   unsigned int tempnum = buffersize - i;
-                  auto n = fwrite(&buffer[i], tempnum, 1, uprawfile.get());
+                  fwrite(&buffer[i], tempnum, 1, uprawfile.get());
                   upfile.size = tempnum;
             }
 

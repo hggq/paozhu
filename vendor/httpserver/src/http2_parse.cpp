@@ -1144,7 +1144,7 @@ namespace http
      void http2parse::headertype2(unsigned char c, std::string_view header_data, unsigned int &begin, unsigned int end)
      {
           unsigned char a;
-          unsigned int end_total, item_length;
+          unsigned int item_length;
           unsigned char field_state = 0;
           bool ishuffman_value = false;
           std::string name_key;
@@ -1355,7 +1355,7 @@ namespace http
      void http2parse::headertype3(unsigned char c, std::string_view header_data, unsigned int &begin, unsigned int end)
      {
           unsigned char a;
-          unsigned int end_total, item_length;
+          unsigned int item_length;
           unsigned char field_state = 0;
           bool ishuffman_value = false;
           std::string name_key;
@@ -1554,7 +1554,7 @@ namespace http
      void http2parse::headertype4(unsigned char c, std::string_view header_data, unsigned int &begin, unsigned int end)
      {
           unsigned char a;
-          unsigned int end_total, item_length;
+          unsigned int item_length;
           unsigned char field_state = 0;
           bool ishuffman_value = false;
           std::string name_key;
@@ -1756,8 +1756,7 @@ namespace http
 
      void http2parse::readsetting(const unsigned char *buffer, unsigned int buffersize)
      {
-          unsigned int j = readoffset;
-
+          //unsigned int j = readoffset;
           if (flag_type == 0x01)
           {
                readoffset += blocklength;
@@ -1830,11 +1829,9 @@ namespace http
      }
      void http2parse::readpriority(const unsigned char *buffer, unsigned int buffersize)
      {
-          unsigned int j = readoffset;
           unsigned int pin;
           pin = readoffset + blocklength;
 
-          unsigned short ident_weight;
           unsigned int ident_stream;
 
           for (int n = readoffset; n < pin; n += 5)
@@ -1856,8 +1853,6 @@ namespace http
      }
      void http2parse::readdata(const unsigned char *buffer, unsigned int buffersize)
      {
-
-          unsigned int j = readoffset;
           readoffset += blocklength;
      }
      void http2parse::readgoaway(const unsigned char *buffer, unsigned int buffersize)
@@ -2425,7 +2420,6 @@ namespace http
                data_info[block_steamid].buffer_key.clear();
           }
           unsigned baseoffset = begin;
-          bool islastmatch = false;
           pmi = 0, ib = 0;
           data_info[block_steamid].match_offset = 0;
 

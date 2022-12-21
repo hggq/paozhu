@@ -54,7 +54,7 @@ namespace http
                 }
                 if (lib.has(name))
                 {
-                    return std::move(boost::dll::import_alias<std::string(OBJ_VALUE &)>(shared_library_path, name));
+                    return boost::dll::import_alias<std::string(OBJ_VALUE &)>(shared_library_path, name);
                 }
             }
         }
@@ -171,10 +171,10 @@ namespace http
 
                              if(lib.has(name))  
                             {
-                               controlpathchache[tt]=std::move(boost::dll::import_alias<std::string(std::shared_ptr<http::httppeer> peer)>(shared_library_path, name ));
+                               controlpathchache[tt]=boost::dll::import_alias<std::string(std::shared_ptr<http::httppeer> peer)>(shared_library_path, name );
                                return controlpathchache[tt]; 
                             }else if(lib.has("_init404")){
-                                controlpathchache[tt]=std::move(boost::dll::import_alias<std::string(std::shared_ptr<http::httppeer> peer)>(shared_library_path, "_init404" ));
+                                controlpathchache[tt]=boost::dll::import_alias<std::string(std::shared_ptr<http::httppeer> peer)>(shared_library_path, "_init404" );
                                return controlpathchache[tt]; 
                             }
                                    

@@ -30,7 +30,7 @@ namespace http
                   auto iter = myconn.find(dbhash);
                   if (iter != myconn.end())
                   {
-                        return std::move(iter->second.get_edit_connect());
+                        return iter->second.get_edit_connect();
                   }
                   throw " not find db link in pool!";
             }
@@ -49,7 +49,7 @@ namespace http
                   auto iter = myconn.find(dbhash);
                   if (iter != myconn.end())
                   {
-                        return std::move(iter->second.get_select_connect());
+                        return iter->second.get_select_connect();
                   }
                   throw " not find db link in pool!";
             }

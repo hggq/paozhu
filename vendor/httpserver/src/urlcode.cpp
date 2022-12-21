@@ -121,8 +121,6 @@ namespace http
         std::string url;
         const char *p = str;
         unsigned char word;
-        char zifu;
-        int j = 0;
         if (len > 0)
             url.reserve(len);
         for (int i = 0; i < len; i++)

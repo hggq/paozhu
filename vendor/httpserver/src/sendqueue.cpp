@@ -16,7 +16,7 @@ namespace http
     sendqueue::~sendqueue()
     {
         unsigned int create_size = cache_data.size();
-        for (int i = 0; i < cache_size; i++)
+        for (int i = 0; i < create_size; i++)
         {
             std::free(cache_data[i].data);
         }

@@ -43,7 +43,6 @@ namespace json
     Value::Value(Array &&o) : array_v(std::move(o)), type_t(ARRAY) {}
     Value::Value(std::initializer_list<std::string> nsl)
     {
-        unsigned long long temp = 0;
         type_t = ARRAY;
         for (auto v : nsl)
         {

@@ -58,8 +58,6 @@ namespace http
 
                     if (citer != cachefileslist.end())
                     {
-                        time_t t = citer->second;
-
                         if (citer->second < iter->second)
                         {
                             temp[iter->first] = iter->second;
@@ -338,6 +336,7 @@ namespace http
 
                 viewcontent.resize(n);
                 auto nread = fread(&viewcontent[0], 1, n, fp);
+                viewcontent.resize(nread);
                 fclose(fp);
             }
             else

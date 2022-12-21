@@ -74,7 +74,7 @@ namespace http
       }      
       void httppeer::parse_session()
       {
-            serverconfig &sysconfigpath = getserversysconfig();
+            //serverconfig &sysconfigpath = getserversysconfig();
             if (cookie.check(COOKIE_SESSION_NAME))
             {
                   std::string root_path;
@@ -203,7 +203,7 @@ namespace http
                   send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
             }
             std::string root_path;
-            serverconfig &sysconfigpath = getserversysconfig();
+            //serverconfig &sysconfigpath = getserversysconfig();
             server_loaclvar &localvar=get_server_global_var();
             root_path=localvar.temp_path;      
             
@@ -246,7 +246,7 @@ namespace http
       }
       void httppeer::clear_session()
       {
-            serverconfig &sysconfigpath = getserversysconfig();
+            //serverconfig &sysconfigpath = getserversysconfig();
             if (cookie.check(COOKIE_SESSION_NAME))
             {
                   std::string root_path;
@@ -262,7 +262,7 @@ namespace http
                   root_path.append(sessionfile);
 
                   struct stat sessfileinfo;
-                  unsigned long long tempsesstime = 0;
+                  //unsigned long long tempsesstime = 0;
                   memset(&sessfileinfo, 0, sizeof(sessfileinfo));
                   if (stat(root_path.c_str(), &sessfileinfo) == 0)
                   {

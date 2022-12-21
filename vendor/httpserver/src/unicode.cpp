@@ -193,8 +193,8 @@ namespace http
                 code = code << 6 | c[2];
                 code = code << 6 | c[3];
 
-                big_char = (code - 0x10000) >> 10 | 0xD800;
-                low_char = (code - 0x10000) & 0x3FF | 0xDC00;
+                big_char = ((code - 0x10000) >> 10) | 0xD800;
+                low_char = ((code - 0x10000) & 0x3FF) | 0xDC00;
                 //其中0xD800——0xDBFF是前导代理(lead surrogates).0xDC00——0xDFFF是后尾代理(trail surrogates)
                 // code=(((((code - 0x10000) >>10) | 0xD800) << 16)  | (((code-0x10000) & 0x3FF) | 0xDC00));
 
@@ -331,8 +331,8 @@ namespace http
                 code = code << 6 | c[2];
                 code = code << 6 | c[3];
 
-                big_char = (code - 0x10000) >> 10 | 0xD800;
-                low_char = (code - 0x10000) & 0x3FF | 0xDC00;
+                big_char = ((code - 0x10000) >> 10) | 0xD800;
+                low_char =((code - 0x10000) & 0x3FF )| 0xDC00;
                 //其中0xD800——0xDBFF是前导代理(lead surrogates).0xDC00——0xDFFF是后尾代理(trail surrogates)
                 // code=(((((code - 0x10000) >>10) | 0xD800) << 16)  | (((code-0x10000) & 0x3FF) | 0xDC00));
 
@@ -506,8 +506,8 @@ namespace http
                 code = code << 6 | c[2];
                 code = code << 6 | c[3];
 
-                big_char = (code - 0x10000) >> 10 | 0xD800;
-                low_char = (code - 0x10000) & 0x3FF | 0xDC00;
+                big_char = ((code - 0x10000) >> 10) | 0xD800;
+                low_char = ((code - 0x10000) & 0x3FF) | 0xDC00;
                 //其中0xD800——0xDBFF是前导代理(lead surrogates).0xDC00——0xDFFF是后尾代理(trail surrogates)
                 // code=(((((code - 0x10000) >>10) | 0xD800) << 16)  | (((code-0x10000) & 0x3FF) | 0xDC00));
 

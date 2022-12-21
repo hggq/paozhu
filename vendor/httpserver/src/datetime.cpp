@@ -248,7 +248,7 @@ namespace http
     unsigned long strtotime(std::string str)
     {
         unsigned long temp = 0;
-        unsigned char i;
+        unsigned char i=0x00;
         tm datetime;
         char tc[4] = {0x00};
 

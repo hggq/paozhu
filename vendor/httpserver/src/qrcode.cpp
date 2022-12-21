@@ -38,9 +38,6 @@ namespace http
         {
             if (pathfile.substr(pathfile.size() - 4, pathfile.size()) == ".png")
             {
-
-                bool isbegin = true;
-
                 for (int i = 0; i < pathfile.size(); i++)
                 {
 
@@ -126,7 +123,7 @@ namespace http
         int owidth = qrCode->width;
 
         gdImagePtr im;
-        FILE *pngout, *jpegout;
+        FILE *pngout;
 
         im = gdImageCreate(totalwidth, totalheight);
 

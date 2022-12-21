@@ -92,7 +92,7 @@ MYSQL_CONN_PTR mysqllinkpool::get_select_connect()
     select_current_num--;
     lock.unlock();
 
-    return std::move(temp);
+    return temp;
 }
 
 MYSQL_CONN_PTR mysqllinkpool::get_edit_connect()
@@ -109,7 +109,7 @@ MYSQL_CONN_PTR mysqllinkpool::get_edit_connect()
     edit_current_num--;
     lock.unlock();
     
-    return std::move(temp);
+    return temp;
 }
 
 MYSQL_CONN_PTR mysqllinkpool::add_select_connect()
@@ -123,7 +123,7 @@ MYSQL_CONN_PTR mysqllinkpool::add_select_connect()
     {
         throw mysql_error(conn.get());
     }
-    return std::move(conn);
+    return conn;
 }
 MYSQL_CONN_PTR mysqllinkpool::add_edit_connect()
 {
@@ -136,7 +136,7 @@ MYSQL_CONN_PTR mysqllinkpool::add_edit_connect()
     {
         throw mysql_error(conn.get());
     }
-    return std::move(conn);
+    return conn;
 }
 
 void mysqllinkpool::back_select_connect(MYSQL_CONN_PTR temp)

@@ -356,7 +356,8 @@ namespace http
       try
       {
         clientrunpool.addclient(peer);
-        int isreturntype = peer->loopresults.front().get();
+        
+        peer->loopresults.front().get();
         peer->loopresults.pop_front();
       }
       catch (const std::exception &e)
@@ -436,7 +437,7 @@ namespace http
       std::string log_item;
       try
       {
-        serverconfig &sysconfigpath = getserversysconfig();
+        //serverconfig &sysconfigpath = getserversysconfig();
         std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
 
         peer->client_ip = peer_session->getremoteip();
@@ -457,7 +458,7 @@ namespace http
 #endif
         int readnum, error_state = 0;
         unsigned linktype = 0;
-        bool isbegin = false;
+        //bool isbegin = false;
 
         std::unique_ptr<http2parse> http2pre;
         std::unique_ptr<httpparse> http1pre;
@@ -1181,7 +1182,7 @@ namespace http
           std::unique_lock<std::mutex> loglock(log_mutex);
           while (!access_loglist.empty())
           {
-            int n = write(fd, access_loglist.front().data(), access_loglist.front().size());
+            write(fd, access_loglist.front().data(), access_loglist.front().size());
             access_loglist.pop_front();
           }
           loglock.unlock();
@@ -1219,7 +1220,7 @@ namespace http
           std::unique_lock<std::mutex> loglock(log_mutex);
           while (!error_loglist.empty())
           {
-            int n = write(fd, error_loglist.front().data(), error_loglist.front().size());
+            write(fd, error_loglist.front().data(), error_loglist.front().size());
             error_loglist.pop_front();
           }
           loglock.unlock();

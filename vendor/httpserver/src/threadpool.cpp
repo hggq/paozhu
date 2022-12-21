@@ -387,7 +387,7 @@ namespace http
       data_send_id = 0;
 
       fseek(fp.get(), readnum, SEEK_SET);
-      unsigned int jj = 0;
+      //unsigned int jj = 0;
 
       sendqueue &send_cache_list = get_sendqueue();
       struct sendqueue_t *send_cache = send_cache_list.get_cache_ptr();
@@ -473,7 +473,7 @@ namespace http
           peer->socket_session->promise_list.emplace_back(peer->stream_id);
           try
           {
-            int result = peer->window_update_results.front().get();
+            peer->window_update_results.front().get();
             peer->window_update_results.pop_front();
             DEBUG_LOG("--- from window_update_num --------");
             mustwait_window_update = false;
@@ -646,7 +646,7 @@ namespace http
 
       unsigned int data_send_id = peer->stream_id;
       data_send_id = 0;
-      int jj = 0;
+      //int jj = 0;
 
       sendqueue &send_cache_list = get_sendqueue();
       struct sendqueue_t *send_cache = send_cache_list.get_cache_ptr();
@@ -751,7 +751,7 @@ namespace http
           peer->socket_session->promise_list.emplace_back(peer->stream_id);
           try
           {
-            int result = peer->window_update_results.front().get();
+            peer->window_update_results.front().get();
             peer->window_update_results.pop_front();
             mustwait_window_update = false;
           }
@@ -901,7 +901,7 @@ namespace http
         peer->socket_session->promise_list.emplace_back(peer->stream_id);
         try
         {
-          int result = peer->window_update_results.front().get();
+          peer->window_update_results.front().get();
           peer->window_update_results.clear();
         }
         catch (const std::exception &e)

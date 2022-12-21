@@ -142,7 +142,7 @@ namespace http
                                         filecontent.clear();
                                         filecontent.resize(size);
                                         unsigned int nread = fread(filecontent.data(), 1, size, ff);
-
+                                        filecontent.resize(nread);
                                         filecontent = base64_encode(filecontent.data(), filecontent.size(), false);
                                         sendcontent.clear();
                                         for (; sendsize < filecontent.size(); sendsize++)
@@ -347,7 +347,7 @@ namespace http
                                         filecontent.clear();
                                         filecontent.resize(size);
                                         unsigned int nread = fread(filecontent.data(), 1, size, ff);
-
+                                        filecontent.resize(nread);
                                         filecontent = base64_encode(filecontent.data(), filecontent.size(), false);
                                         sendcontent.clear();
                                         for (; sendsize < filecontent.size(); sendsize++)

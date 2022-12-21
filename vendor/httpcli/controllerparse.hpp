@@ -51,8 +51,6 @@ namespace http
 
                     if (citer != sofileslist.end())
                     {
-                        time_t t = citer->second;
-
                         if (citer->second < iter->second)
                         {
                             temp[iter->first] = iter->second;
@@ -129,10 +127,12 @@ namespace http
                 {
 
                     auto nread = fread(&readcontent[0], 1, n, fp);
+                    readcontent.resize(nread);
                 }
                 else
                 {
                     auto nread = fread(&readcontent[0], 1, 2048, fp);
+                    readcontent.resize(nread);
                 }
                 fclose(fp);
             }
@@ -204,10 +204,11 @@ namespace http
                 readcontent.resize(n);
                 auto nread = fread(&readcontent[0], 1, n, fp);
                 fclose(fp);
+                readcontent.resize(nread);
             }
             if (readcontent.size() > 10)
             {
-                bool iszhushi = true;
+                //bool iszhushi = true;
                 bool isblank = false;
 
                 for (int ij = 0; ij < readcontent.size(); ij++)
@@ -316,7 +317,7 @@ namespace http
                 readcontent.resize(n);
                 auto nread = fread(&readcontent[0], 1, n, fp);
                 fclose(fp);
-
+                readcontent.resize(nread);
                 compiler.clear();
 
                 for (int i = 0; i < readcontent.size(); i++)
@@ -356,6 +357,7 @@ namespace http
                 readcontent.resize(n);
                 auto nread = fread(&readcontent[0], 1, n, fp);
                 fclose(fp);
+                readcontent.resize(nread);
                 sofilename.clear();
                 int i = 0;
                 for (; i < readcontent.size(); i++)

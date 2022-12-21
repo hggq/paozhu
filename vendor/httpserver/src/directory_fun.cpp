@@ -130,7 +130,7 @@ namespace http
             fseek(ff, 0, SEEK_SET);
             senddatastring.resize(size);
             auto nread = fread(&senddatastring[0], 1, size, ff);
-
+            senddatastring.resize(nread);
             size_t beginpos = senddatastring.find("<!---directorycontentlist---->");
             if (beginpos != std::string::npos)
             {

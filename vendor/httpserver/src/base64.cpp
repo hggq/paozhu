@@ -6,10 +6,10 @@
 namespace http
 {
 
-    static inline bool is_base64(const char c)
-    {
-        return (isalnum(c) || (c == '+') || (c == '/'));
-    }
+    // static inline bool is_base64(const char c)
+    // {
+    //     return (isalnum(c) || (c == '+') || (c == '/'));
+    // }
 
     std::string base64_encode(const char *bytes_to_encode, unsigned int in_len, bool isurl)
     {
@@ -60,14 +60,14 @@ namespace http
         return ret;
     }
 
-    std::string base64_decode(const char *encoded_string, int in_len)
+    std::string base64_decode(const char *encoded_string,unsigned int in_len)
     {
         int i = 0;
         int j = 0;
         int in_ = 0;
-        unsigned char char_array_4[4], char_array_3[3];
+        unsigned char char_array_4[4], char_array_3[3],tempbase64=encoded_string[in_];
         std::string ret;
-        while (in_len-- && (encoded_string[in_] != '=') && base64Index[encoded_string[in_]] > -1)
+        while (in_len-- && (encoded_string[in_] != '=') &&tempbase64<128&& (base64Index[tempbase64]) > -1)
         {
             char_array_4[i++] = encoded_string[in_];
             in_++;
@@ -86,6 +86,7 @@ namespace http
                     ret += char_array_3[i];
                 i = 0;
             }
+            tempbase64=encoded_string[in_];
         }
         if (i)
         {

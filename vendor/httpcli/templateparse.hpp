@@ -57,8 +57,6 @@ namespace http
 
                     if (citer != cachefileslist.end())
                     {
-                        time_t t = citer->second;
-
                         if (citer->second < iter->second)
                         {
                             temp[iter->first] = iter->second;
@@ -169,6 +167,7 @@ namespace http
                 viewcontent.resize(n);
                 auto nread = fread(&viewcontent[0], 1, n, fp);
                 fclose(fp);
+                viewcontent.resize(nread);
             }
             else
             {
@@ -468,7 +467,7 @@ namespace http
                 readcontent.resize(n);
                 auto nread = fread(&readcontent[0], 1, n, fp);
                 fclose(fp);
-
+                readcontent.resize(nread);
                 compiler.clear();
 
                 for (int i = 0; i < readcontent.size(); i++)
@@ -502,6 +501,7 @@ namespace http
                 readcontent.resize(n);
                 auto nread = fread(&readcontent[0], 1, n, fp);
                 fclose(fp);
+                readcontent.resize(nread);
                 tempcontent.clear();
                 int i = 0;
                 for (; i < readcontent.size(); i++)

@@ -1453,7 +1453,7 @@ namespace orm
         }
         model &fetch()
         {
-            unsigned long long sqlhashid = 0;
+            //unsigned long long sqlhashid = 0;
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -1700,7 +1700,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 
             }
-            return std::move(valuetemp);
+            return valuetemp;
         }
         model &getone(long long id)
         {

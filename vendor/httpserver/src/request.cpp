@@ -1279,10 +1279,10 @@ namespace http
     {
         unsigned char type;
         unsigned int objsize = 0;
-        unsigned value_pos = ftell(f);
+        //unsigned value_pos = ftell(f);
 
         type = v.type();
-        size_t n = fwrite(&type, sizeof(type), 1, f);
+        fwrite(&type, sizeof(type), 1, f);
         // n=fwrite(objsize,sizeof(objsize),1,f);
         long long int tint;
         long double ffloat;
@@ -1323,7 +1323,6 @@ namespace http
     bool array_write(FILE *f, const OBJ_ARRAY &a, unsigned int &length)
     {
         unsigned int objsize = a.size();
-        unsigned value_pos = ftell(f);
 
         fwrite(&objsize, sizeof(objsize), 1, f);
 

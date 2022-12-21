@@ -106,7 +106,7 @@ namespace http
     {
         std::string temp;
         int strlength = 0;
-        int spacenum = 0;
+       // int spacenum = 0;
         unsigned char c;
         if (begin < 0)
         {

@@ -480,7 +480,6 @@ namespace http
 
                   if (requesttype == 1)
                   {
-                        int m = 0;
                         for (auto &p : senddata)
                         {
 
@@ -1110,7 +1109,7 @@ namespace http
       void client::respreadtocontent(const char *buffer, unsigned int buffersize)
       {
             unsigned int i = readoffset;
-            unsigned int offset = buffersize - i;
+            //unsigned int offset = buffersize - i;
 
             if (state.chunked)
             {
@@ -1249,7 +1248,7 @@ namespace http
             if (i < buffersize && rawfile)
             {
 
-                  auto n = fwrite(&buffer[i], offset, 1, rawfile.get());
+                  fwrite(&buffer[i], offset, 1, rawfile.get());
             }
       }
       void client::finishprocess()
@@ -1875,6 +1874,7 @@ namespace http
                                     {
                                           ptemp.tempfile.resize(ptemp.size);
                                           unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
+                                          ptemp.tempfile.resize(n);
                                           //fclose(fp);
                                     }
 
@@ -2133,6 +2133,7 @@ namespace http
                                     {
                                           ptemp.tempfile.resize(ptemp.size);
                                           unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
+                                          ptemp.tempfile.resize(n);
                                           //fclose(fp);
                                     }
                                     contentlength = ptemp.tempfile.size();
@@ -2169,6 +2170,7 @@ namespace http
                               {
                                     ptemp.tempfile.resize(ptemp.size);
                                     unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
+                                    ptemp.tempfile.resize(n);
                                    // fclose(fp);
                               }
                               contentlength = ptemp.tempfile.size();

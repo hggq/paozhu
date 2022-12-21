@@ -50,7 +50,7 @@ namespace http
                                       { (void)deflateEnd(strm); });
     const char *end = in_str + in_len;
 
-    size_t pos_index = 0;
+    //size_t pos_index = 0;
     size_t distance = 0;
     /* compress until end of file */
     do
