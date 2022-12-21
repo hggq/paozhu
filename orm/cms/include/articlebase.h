@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 20 Dec 2022 11:40:56 GMT
+*本文件为自动生成 Wed, 21 Dec 2022 15:39:16 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -60,7 +60,8 @@ std::string modelname="Article";
 
 	  unsigned char findcolpos(std::string coln){
 		    unsigned char  bi=coln[0];
-            char colpospppc;
+         char colpospppc;
+
 	         if(bi<91&&bi>64){
 				bi+=32;
 			}
@@ -490,7 +491,7 @@ break;
             }
             temp.push_back(content[i]);
         }
-        return std::move(temp);
+        return temp;
    }  
   inline  std::string jsonaddslash(std::string &content){
         std::string temp;
@@ -501,7 +502,7 @@ break;
             }
             temp.push_back(content[i]);
         }
-        return std::move(temp);
+        return temp;
    }  
 
    std::string _makeinsertsql(){
@@ -581,7 +582,7 @@ tempsql<<")";
        return tempsql.str();
    }     
     std::string _makeupdatesql(std::string fileld){
-       int j=0;
+       //int j=0;
             std::ostringstream tempsql;
                  tempsql<<"UPDATE ";
                  tempsql<<tablename;
@@ -792,7 +793,7 @@ tempsql<<"`editauthor`='"<<stringaddslash(data.editauthor)<<"'";
 
             }        
 
-        return std::move(tempsql.str());
+        return tempsql.str();
    } 
    std::string datatojson(){
        std::ostringstream tempsql;
@@ -865,7 +866,7 @@ tempsql<<"\"";
 tempsql<<"}";
 
      
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    
    std::string datatojson(std::string fileld){
@@ -1017,7 +1018,7 @@ tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(data.editauthor)<<"\"";
                      }
                  }   
       tempsql<<"}";  
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    
    std::string tojson(std::string fileld=""){
@@ -1178,7 +1179,7 @@ tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\
       tempsql<<"}";  
             }
       tempsql<<"]";
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    
    std::string tojson(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
@@ -1346,7 +1347,7 @@ tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\
       tempsql<<"}";  
             }
       tempsql<<"]";
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    long long getPK(){  return data.aid; } 
  void setPK(long long val){  data.aid=val;} 
@@ -1436,7 +1437,7 @@ std::string& getRefEditauthor(){  return std::ref(data.editauthor); }
 
 articlebase::meta getnewData(){
  	 struct meta newdata;
-	 return std::move(newdata); 
+	 return newdata; 
 } 
 articlebase::meta getData(){
  	 return data; 
@@ -1445,591 +1446,621 @@ std::vector<articlebase::meta> getRecord(){
  	 return record; 
 } 
 
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-    std::vector<T> getCol(std::string keyname){
-         std::vector<T> a;
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-        for(auto &iter:record){
-                switch(kpos){
-
-   case 0: 
- 	 a.emplace_back(iter.aid);
-	 break;
-case 1: 
- 	 a.emplace_back(iter.classtype);
-	 break;
-case 2: 
- 	 a.emplace_back(iter.userid);
-	 break;
-case 9: 
- 	 a.emplace_back(iter.addtime);
-	 break;
-case 10: 
- 	 a.emplace_back(iter.readnum);
-	 break;
-case 11: 
- 	 a.emplace_back(iter.review);
-	 break;
-case 14: 
- 	 a.emplace_back(iter.isopen);
-	 break;
-case 15: 
- 	 a.emplace_back(iter.iscomment);
-	 break;
-
-          }
-        }
-        return a;
-    }
-    
-    template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-    std::vector<T> getCol(std::string keyname){
-        std::vector<T> a;
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-        for(auto &iter:record){
-                switch(kpos){
-
+            template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
+            std::vector<T> getCol(std::string keyname)
+            {
+                std::vector<T> a;
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
    
-    }
-            }
-            return a;
-        }  
-    
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-    T getVal(std::string keyname){
-         
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-      
-                switch(kpos){
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+   			case 0: 
+ 				 a.emplace_back(iter.aid);
+				 break;
+			case 1: 
+ 				 a.emplace_back(iter.classtype);
+				 break;
+			case 2: 
+ 				 a.emplace_back(iter.userid);
+				 break;
+			case 9: 
+ 				 a.emplace_back(iter.addtime);
+				 break;
+			case 10: 
+ 				 a.emplace_back(iter.readnum);
+				 break;
+			case 11: 
+ 				 a.emplace_back(iter.review);
+				 break;
+			case 14: 
+ 				 a.emplace_back(iter.isopen);
+				 break;
+			case 15: 
+ 				 a.emplace_back(iter.iscomment);
+				 break;
 
-   case 0: 
- 	 return data.aid;
-	 break;
-case 1: 
- 	 return data.classtype;
-	 break;
-case 2: 
- 	 return data.userid;
-	 break;
-case 9: 
- 	 return data.addtime;
-	 break;
-case 10: 
- 	 return data.readnum;
-	 break;
-case 11: 
- 	 return data.review;
-	 break;
-case 14: 
- 	 return data.isopen;
-	 break;
-case 15: 
- 	 return data.iscomment;
-	 break;
-
-    }
-            return 0;
-        }  
-    
-     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-    T getVal(articlebase::meta & iter,std::string keyname){
-         
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-       
-                switch(kpos){
-
-   case 0: 
- 	 return iter.aid;
-	 break;
-case 1: 
- 	 return iter.classtype;
-	 break;
-case 2: 
- 	 return iter.userid;
-	 break;
-case 9: 
- 	 return iter.addtime;
-	 break;
-case 10: 
- 	 return iter.readnum;
-	 break;
-case 11: 
- 	 return iter.review;
-	 break;
-case 14: 
- 	 return iter.isopen;
-	 break;
-case 15: 
- 	 return iter.iscomment;
-	 break;
-
-    }
-            return 0;
-        }  
-    
-        template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-        T getVal(std::string keyname){
-            
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
-        
-            switch(kpos){
-
-    
-    }
-            return 0.0;
-        }  
-    
-     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-    T getVal(articlebase::meta & iter,std::string keyname){
-         
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-         
-                switch(kpos){
-
-   
-    }
-            return 0.0;
-        }  
-    
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-    std::string getVal(std::string keyname){
-         
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-        
-                switch(kpos){
-
-   case 3: 
- 	 return data.title;
-	 break;
-case 4: 
- 	 return data.keywords;
-	 break;
-case 5: 
- 	 return data.fromsource;
-	 break;
-case 6: 
- 	 return data.author;
-	 break;
-case 7: 
- 	 return data.addip;
-	 break;
-case 8: 
- 	 return data.createtime;
-	 break;
-case 12: 
- 	 return data.icoimg;
-	 break;
-case 13: 
- 	 return data.content;
-	 break;
-case 16: 
- 	 return data.fromlocal;
-	 break;
-case 17: 
- 	 return data.texturl;
-	 break;
-case 18: 
- 	 return data.summary;
-	 break;
-case 19: 
- 	 return data.editauthor;
-	 break;
-
-  }
-        return "";
-    }  
-   
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-    std::string getVal(articlebase::meta & iter,std::string keyname){
-         
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-       
-                switch(kpos){
-
-   case 3: 
- 	 return iter.title;
-	 break;
-case 4: 
- 	 return iter.keywords;
-	 break;
-case 5: 
- 	 return iter.fromsource;
-	 break;
-case 6: 
- 	 return iter.author;
-	 break;
-case 7: 
- 	 return iter.addip;
-	 break;
-case 8: 
- 	 return iter.createtime;
-	 break;
-case 12: 
- 	 return iter.icoimg;
-	 break;
-case 13: 
- 	 return iter.content;
-	 break;
-case 16: 
- 	 return iter.fromlocal;
-	 break;
-case 17: 
- 	 return iter.texturl;
-	 break;
-case 18: 
- 	 return iter.summary;
-	 break;
-case 19: 
- 	 return iter.editauthor;
-	 break;
-
-    }
-            return "";
-        }  
-     
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-    std::vector<std::string> getCol(std::string keyname){
-        std::vector<std::string> a;
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
- 
-         for(auto &iter:record){
-                switch(kpos){
-
-   case 3: 
- 	 a.emplace_back(iter.title);
-	 break;
-case 4: 
- 	 a.emplace_back(iter.keywords);
-	 break;
-case 5: 
- 	 a.emplace_back(iter.fromsource);
-	 break;
-case 6: 
- 	 a.emplace_back(iter.author);
-	 break;
-case 7: 
- 	 a.emplace_back(iter.addip);
-	 break;
-case 8: 
- 	 a.emplace_back(iter.createtime);
-	 break;
-case 12: 
- 	 a.emplace_back(iter.icoimg);
-	 break;
-case 13: 
- 	 a.emplace_back(iter.content);
-	 break;
-case 16: 
- 	 a.emplace_back(iter.fromlocal);
-	 break;
-case 17: 
- 	 a.emplace_back(iter.texturl);
-	 break;
-case 18: 
- 	 a.emplace_back(iter.summary);
-	 break;
-case 19: 
- 	 a.emplace_back(iter.editauthor);
-	 break;
-
-   }
-        }       
-
-        return a;
-    }  
-    std::string getstrCol(std::string keyname,bool isyinhao=false){
-        std::ostringstream a;
-             unsigned char kpos;
-        kpos=findcolpos(keyname);
-  
-         int j=0;
-         if(isyinhao&&record.size()>0){
-             a<<'"';
-         }
-         for(auto &iter:record){
-                if(j>0){
-                    if(isyinhao){
-                        a<<"\",\"";
-                    }else{
-                        a<<',';    
                     }
                 }
-                 switch(kpos){
+    
+                return a;
+            }
+    
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
+			std::vector<T> getCol(std::string keyname)
+			{
+				std::vector<T> a;
+				unsigned char kpos;
+				kpos = findcolpos(keyname);
 
-   case 0: 
- 	 a<<std::to_string(iter.aid);
-	 break;
-case 1: 
- 	 a<<std::to_string(iter.classtype);
-	 break;
-case 2: 
- 	 a<<std::to_string(iter.userid);
-	 break;
-case 3: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.title); 
-	 }else{
-	 a<<iter.title;
-	 }
-	 break;
-case 4: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.keywords); 
-	 }else{
-	 a<<iter.keywords;
-	 }
-	 break;
-case 5: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.fromsource); 
-	 }else{
-	 a<<iter.fromsource;
-	 }
-	 break;
-case 6: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.author); 
-	 }else{
-	 a<<iter.author;
-	 }
-	 break;
-case 7: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.addip); 
-	 }else{
-	 a<<iter.addip;
-	 }
-	 break;
-case 8: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.createtime); 
-	 }else{
-	 a<<iter.createtime;
-	 }
-	 break;
-case 9: 
- 	 a<<std::to_string(iter.addtime);
-	 break;
-case 10: 
- 	 a<<std::to_string(iter.readnum);
-	 break;
-case 11: 
- 	 a<<std::to_string(iter.review);
-	 break;
-case 12: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.icoimg); 
-	 }else{
-	 a<<iter.icoimg;
-	 }
-	 break;
-case 13: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.content); 
-	 }else{
-	 a<<iter.content;
-	 }
-	 break;
-case 14: 
- 	 a<<std::to_string(iter.isopen);
-	 break;
-case 15: 
- 	 a<<std::to_string(iter.iscomment);
-	 break;
-case 16: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.fromlocal); 
-	 }else{
-	 a<<iter.fromlocal;
-	 }
-	 break;
-case 17: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.texturl); 
-	 }else{
-	 a<<iter.texturl;
-	 }
-	 break;
-case 18: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.summary); 
-	 }else{
-	 a<<iter.summary;
-	 }
-	 break;
-case 19: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.editauthor); 
-	 }else{
-	 a<<iter.editauthor;
-	 }
-	 break;
+                return a;
+            }
+    
+            template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
+            T getVal(std::string keyname)
+            {
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+                      
+                    switch(kpos)
+                    {
 
+   			case 0: 
+ 				 return data.aid;
+				 break;
+			case 1: 
+ 				 return data.classtype;
+				 break;
+			case 2: 
+ 				 return data.userid;
+				 break;
+			case 9: 
+ 				 return data.addtime;
+				 break;
+			case 10: 
+ 				 return data.readnum;
+				 break;
+			case 11: 
+ 				 return data.review;
+				 break;
+			case 14: 
+ 				 return data.isopen;
+				 break;
+			case 15: 
+ 				 return data.iscomment;
+				 break;
+			}
+                return 0;
+            }  
+    
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
+        T getVal(articlebase::meta & iter,std::string keyname)
+        {
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+             
+            switch(kpos)
+            {
+   			case 0: 
+ 				 return iter.aid;
+				 break;
+			case 1: 
+ 				 return iter.classtype;
+				 break;
+			case 2: 
+ 				 return iter.userid;
+				 break;
+			case 9: 
+ 				 return iter.addtime;
+				 break;
+			case 10: 
+ 				 return iter.readnum;
+				 break;
+			case 11: 
+ 				 return iter.review;
+				 break;
+			case 14: 
+ 				 return iter.isopen;
+				 break;
+			case 15: 
+ 				 return iter.iscomment;
+				 break;
+
+			}
+
+            return 0;
+        }  
+    
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
+            T getVal(std::string keyname)
+            {
+                
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+            
+                switch(kpos)
+                {
+
+    
+                    }
+                    return 0.0;
+            }  
+    
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
+            T getVal(articlebase::meta & iter,std::string keyname)
+            {
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+                switch(kpos)
+                {
+   
+                }
+                return 0.0;
+            }  
+    
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
+            std::string getVal(std::string keyname)
+            {
+         
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+        
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 return data.title;
+				 break;
+			case 4: 
+ 				 return data.keywords;
+				 break;
+			case 5: 
+ 				 return data.fromsource;
+				 break;
+			case 6: 
+ 				 return data.author;
+				 break;
+			case 7: 
+ 				 return data.addip;
+				 break;
+			case 8: 
+ 				 return data.createtime;
+				 break;
+			case 12: 
+ 				 return data.icoimg;
+				 break;
+			case 13: 
+ 				 return data.content;
+				 break;
+			case 16: 
+ 				 return data.fromlocal;
+				 break;
+			case 17: 
+ 				 return data.texturl;
+				 break;
+			case 18: 
+ 				 return data.summary;
+				 break;
+			case 19: 
+ 				 return data.editauthor;
+				 break;
+
+                }
+                return "";
+            }  
+   
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
+            std::string getVal(articlebase::meta & iter,std::string keyname)
+            {
+         
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+       
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 return iter.title;
+				 break;
+			case 4: 
+ 				 return iter.keywords;
+				 break;
+			case 5: 
+ 				 return iter.fromsource;
+				 break;
+			case 6: 
+ 				 return iter.author;
+				 break;
+			case 7: 
+ 				 return iter.addip;
+				 break;
+			case 8: 
+ 				 return iter.createtime;
+				 break;
+			case 12: 
+ 				 return iter.icoimg;
+				 break;
+			case 13: 
+ 				 return iter.content;
+				 break;
+			case 16: 
+ 				 return iter.fromlocal;
+				 break;
+			case 17: 
+ 				 return iter.texturl;
+				 break;
+			case 18: 
+ 				 return iter.summary;
+				 break;
+			case 19: 
+ 				 return iter.editauthor;
+				 break;
+
+                }
+                return "";
+            }  
+     
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
+            std::vector<std::string> getCol(std::string keyname)
+            {
+                std::vector<std::string> a;
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+                   
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+    			case 3: 
+ 				 a.emplace_back(iter.title);
+					 break;
+			case 4: 
+ 				 a.emplace_back(iter.keywords);
+					 break;
+			case 5: 
+ 				 a.emplace_back(iter.fromsource);
+					 break;
+			case 6: 
+ 				 a.emplace_back(iter.author);
+					 break;
+			case 7: 
+ 				 a.emplace_back(iter.addip);
+					 break;
+			case 8: 
+ 				 a.emplace_back(iter.createtime);
+					 break;
+			case 12: 
+ 				 a.emplace_back(iter.icoimg);
+					 break;
+			case 13: 
+ 				 a.emplace_back(iter.content);
+					 break;
+			case 16: 
+ 				 a.emplace_back(iter.fromlocal);
+					 break;
+			case 17: 
+ 				 a.emplace_back(iter.texturl);
+					 break;
+			case 18: 
+ 				 a.emplace_back(iter.summary);
+					 break;
+			case 19: 
+ 				 a.emplace_back(iter.editauthor);
+					 break;
+					}
+				}
+
+        return a;
     }
-                j++;
-        } 
-        if(isyinhao&&j>0){
-             a<<'"';
-        }      
-        return a.str();
-    }
+     
+        std::string getstrCol(std::string keyname,bool isyinhao=false)
+        {
+            std::ostringstream a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+       
+            int j=0;
+            if(isyinhao&&record.size()>0)
+            {
+                a<<'"';
+            }
+            for(auto &iter:record)
+            {
+                    if(j>0)
+                    {
+                        if(isyinhao)
+                        {
+                            a<<"\",\"";
+                        }else{
+                            a<<',';    
+                        }
+                    }
+                    switch(kpos)
+                    {
+
+   			case 0: 
+ 				 a<<std::to_string(iter.aid);
+				 break;
+			case 1: 
+ 				 a<<std::to_string(iter.classtype);
+				 break;
+			case 2: 
+ 				 a<<std::to_string(iter.userid);
+				 break;
+			case 3: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.title); 
+				 }else{
+				 a<<iter.title;
+				 }
+				 break;
+			case 4: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.keywords); 
+				 }else{
+				 a<<iter.keywords;
+				 }
+				 break;
+			case 5: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.fromsource); 
+				 }else{
+				 a<<iter.fromsource;
+				 }
+				 break;
+			case 6: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.author); 
+				 }else{
+				 a<<iter.author;
+				 }
+				 break;
+			case 7: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.addip); 
+				 }else{
+				 a<<iter.addip;
+				 }
+				 break;
+			case 8: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.createtime); 
+				 }else{
+				 a<<iter.createtime;
+				 }
+				 break;
+			case 9: 
+ 				 a<<std::to_string(iter.addtime);
+				 break;
+			case 10: 
+ 				 a<<std::to_string(iter.readnum);
+				 break;
+			case 11: 
+ 				 a<<std::to_string(iter.review);
+				 break;
+			case 12: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.icoimg); 
+				 }else{
+				 a<<iter.icoimg;
+				 }
+				 break;
+			case 13: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.content); 
+				 }else{
+				 a<<iter.content;
+				 }
+				 break;
+			case 14: 
+ 				 a<<std::to_string(iter.isopen);
+				 break;
+			case 15: 
+ 				 a<<std::to_string(iter.iscomment);
+				 break;
+			case 16: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.fromlocal); 
+				 }else{
+				 a<<iter.fromlocal;
+				 }
+				 break;
+			case 17: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.texturl); 
+				 }else{
+				 a<<iter.texturl;
+				 }
+				 break;
+			case 18: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.summary); 
+				 }else{
+				 a<<iter.summary;
+				 }
+				 break;
+			case 19: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.editauthor); 
+				 }else{
+				 a<<iter.editauthor;
+				 }
+				 break;
+
+                    }
+                    j++;
+            } 
+            if(isyinhao&&j>0){
+                a<<'"';
+            }      
+    
+                return a.str();
+        }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols(std::string keyname,std::string valname){
+    std::map<std::string,std::string> getCols(std::string keyname,std::string valname)
+    {
         std::map<std::string,std::string> a;
         unsigned char kpos,vpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
+            
          std::string ktemp,vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
+         for(auto &iter:record)
+         {
+                switch(kpos)
+                {
 
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	 } 
-		 switch(vpos){ 
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+				 } 
+			 switch(vpos){ 
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
 
-        }
-                    a.emplace(ktemp,vtemp);
+                }
+                a.emplace(ktemp,vtemp);
             }       
+
+        
             return a;
         } 
+    
 
-  template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<std::string,U> getCols(std::string keyname,std::string valname){
-        std::map<std::string,U> a;
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-         std::string ktemp;
-         U vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        {
+                std::map<std::string,U> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                  
+                std::string ktemp;
+                U vtemp;
+                for(auto &iter:record)
+                {    
+                    switch(kpos)
+                    {
  
-       case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	 } 
-        switch(vpos){ 
+       			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			 } 
+ 		    switch(vpos){ 
 
-            }
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    } 
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-  std::map<T,U> getCols(std::string keyname,std::string valname){
-        std::map<T,U> a;
-        unsigned char kpos,vpos;
-         kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-         T ktemp;
-         U vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
+                    }
+                    a.emplace(ktemp,vtemp);
+                }       
+        
+            return a;
+        } 
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
+        std::map<T,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<T,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+               
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
  
        case 0: 
  	 ktemp=iter.aid;
@@ -2058,796 +2089,831 @@ case 15:
 	 } 
  		   switch(vpos){ 
 
-             }
+                }
                 a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    }  
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-    std::map<T,std::string> getCols(std::string keyname,std::string valname){
-        std::map<T,std::string> a;
-                unsigned char kpos,vpos;
-         kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             std::string vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
-
-  }
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    }     
-     template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-    std::map<std::string,U> getCols(std::string keyname,std::string valname){
-        std::map<std::string,U> a;
-             unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             std::string  ktemp;
-             U  vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-
-                 }
-
-             
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    }  
-    template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-    std::map<T,U> getCols(std::string keyname,std::string valname){
-        std::map<T,U> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-
-                   }
-
-                    a.emplace(ktemp,vtemp);
             }       
+     
+        return a;
+    }  
+            template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
+            std::map<T,std::string> getCols(std::string keyname,std::string valname)
+            {
+                std::map<T,std::string> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+            
+                T ktemp;
+                std::string vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
 
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
+ 			 switch(vpos){
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
+
+                    }
+                    a.emplace(ktemp,vtemp);
+                } 
+         
+                return a;
+            }     
+        
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
+        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<std::string,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+               
+            std::string  ktemp;
+            U  vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			  }
+ 			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+
+                }
+                a.emplace(ktemp,vtemp);
+            }       
+      
+        return a;
+    }  
+    
+        template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
+        std::map<T,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<T,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+                
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
+ 			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+
+                }
+                a.emplace(ktemp,vtemp);
+            }       
+    
             return a;
         }   
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-    std::map<T,meta> getmapRows(std::string keyname){
-        std::map<T,meta> a;
-
-            unsigned char kpos;
-         kpos=findcolpos(keyname);
- 
-          //   long long ktemp;
-        
-         for(auto &iter:record){
-                switch(kpos){
-
-   case 0: 
- 	 a.emplace(iter.aid,iter);
-	 break;
-case 1: 
- 	 a.emplace(iter.classtype,iter);
-	 break;
-case 2: 
- 	 a.emplace(iter.userid,iter);
-	 break;
-case 9: 
- 	 a.emplace(iter.addtime,iter);
-	 break;
-case 10: 
- 	 a.emplace(iter.readnum,iter);
-	 break;
-case 11: 
- 	 a.emplace(iter.review,iter);
-	 break;
-case 14: 
- 	 a.emplace(iter.isopen,iter);
-	 break;
-case 15: 
- 	 a.emplace(iter.iscomment,iter);
-	 break;
-
-                }
-        }       
-        return a;
-    }     
-   template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-   std::map<std::string,meta> getmapRows(std::string keyname){
-        std::map<std::string,meta> a;
-
-         unsigned char kpos;
- 
-        kpos=findcolpos(keyname);
     
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
+        std::map<T,meta> getmapRows(std::string keyname)
+        {
+            std::map<T,meta> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+                
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
-        //std::string ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 a.emplace(iter.title,iter);
-	 break;
-case 4: 
- 	 a.emplace(iter.keywords,iter);
-	 break;
-case 5: 
- 	 a.emplace(iter.fromsource,iter);
-	 break;
-case 6: 
- 	 a.emplace(iter.author,iter);
-	 break;
-case 7: 
- 	 a.emplace(iter.addip,iter);
-	 break;
-case 8: 
- 	 a.emplace(iter.createtime,iter);
-	 break;
-case 12: 
- 	 a.emplace(iter.icoimg,iter);
-	 break;
-case 13: 
- 	 a.emplace(iter.content,iter);
-	 break;
-case 16: 
- 	 a.emplace(iter.fromlocal,iter);
-	 break;
-case 17: 
- 	 a.emplace(iter.texturl,iter);
-	 break;
-case 18: 
- 	 a.emplace(iter.summary,iter);
-	 break;
-case 19: 
- 	 a.emplace(iter.editauthor,iter);
-	 break;
+   			case 0: 
+ 				 a.emplace(iter.aid,iter);
+				 break;
+			case 1: 
+ 				 a.emplace(iter.classtype,iter);
+				 break;
+			case 2: 
+ 				 a.emplace(iter.userid,iter);
+				 break;
+			case 9: 
+ 				 a.emplace(iter.addtime,iter);
+				 break;
+			case 10: 
+ 				 a.emplace(iter.readnum,iter);
+				 break;
+			case 11: 
+ 				 a.emplace(iter.review,iter);
+				 break;
+			case 14: 
+ 				 a.emplace(iter.isopen,iter);
+				 break;
+			case 15: 
+ 				 a.emplace(iter.iscomment,iter);
+				 break;
 
                 }
+            }       
+     
+            return a;
+        }     
+    
+        template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
+        std::map<std::string,meta> getmapRows(std::string keyname)
+        {
+            std::map<std::string,meta> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+    
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
+   			case 3: 
+ 				 a.emplace(iter.title,iter);
+			 break;
+			case 4: 
+ 				 a.emplace(iter.keywords,iter);
+			 break;
+			case 5: 
+ 				 a.emplace(iter.fromsource,iter);
+			 break;
+			case 6: 
+ 				 a.emplace(iter.author,iter);
+			 break;
+			case 7: 
+ 				 a.emplace(iter.addip,iter);
+			 break;
+			case 8: 
+ 				 a.emplace(iter.createtime,iter);
+			 break;
+			case 12: 
+ 				 a.emplace(iter.icoimg,iter);
+			 break;
+			case 13: 
+ 				 a.emplace(iter.content,iter);
+			 break;
+			case 16: 
+ 				 a.emplace(iter.fromlocal,iter);
+			 break;
+			case 17: 
+ 				 a.emplace(iter.texturl,iter);
+			 break;
+			case 18: 
+ 				 a.emplace(iter.summary,iter);
+			 break;
+			case 19: 
+ 				 a.emplace(iter.editauthor,iter);
+			 break;
+
+                }
                 //a.emplace(ktemp,iter);
-        }       
+            }       
+    
 
         return a;
     }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
-    std::vector<std::pair<std::string,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<std::string,U>> a;
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
+        std::vector<std::pair<std::string,U>> getvecCols(std::string keyname,std::string valname)
+        {
+            std::vector<std::pair<std::string,U>> a;
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             std::string ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+          
+            std::string ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
- switch(vpos){
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-            }       
-
-            return a;
-        }   
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
- switch(vpos){
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+	 		 }
+ 			switch(vpos){
 
                    }
 
-                    a.emplace_back(ktemp,vtemp);
+                 a.emplace_back(ktemp,vtemp);
             }       
+
+     
 
             return a;
         }   
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
+   
+                T ktemp;
+                U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
 
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
+   			case 0: 
+ 				 ktemp=iter.aid;
+			 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+			 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+			 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+			 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+			 break;
+			case 11: 
+ 				 ktemp=iter.review;
+			 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+			 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+			 break;
+			  }
+			 switch(vpos){
 
                    }
 
-                    a.emplace_back(ktemp,vtemp);
-            }       
+                   a.emplace_back(ktemp,vtemp);
+                }       
 
-            return a;
-        }   
-  template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-            }       
-
-            return a;
-        }   
-  template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-            }       
-
-            return a;
-        }   
-  template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-            }       
-
-            return a;
-        }   
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-    std::vector<std::pair<T,meta>> getvecRows(std::string keyname){
-        std::vector<std::pair<T,meta>> a;
-
-         unsigned char kpos;
- 
-        kpos=findcolpos(keyname);
     
 
-       // T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            return a;
+        }   
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+
+   
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
+ 			switch(vpos){
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
+
+                   }
+
+                    a.emplace_back(ktemp,vtemp);
+                }       
+    
+            return a;
+        }  
+    
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                   
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    
+                    switch(kpos)
+                    {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			  }
+ 			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+
+                   }
+                    a.emplace_back(ktemp,vtemp);
+                }       
+    
+            return a;
+        }  
+    
+        template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+   
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+
+                   }
+                    a.emplace_back(ktemp,vtemp);
+                }       
+      
+            return a;
+        }   
+    
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+   
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   case 3: 
+ 	 ktemp=iter.title;
+	 break;
+case 4: 
+ 	 ktemp=iter.keywords;
+	 break;
+case 5: 
+ 	 ktemp=iter.fromsource;
+	 break;
+case 6: 
+ 	 ktemp=iter.author;
+	 break;
+case 7: 
+ 	 ktemp=iter.addip;
+	 break;
+case 8: 
+ 	 ktemp=iter.createtime;
+	 break;
+case 12: 
+ 	 ktemp=iter.icoimg;
+	 break;
+case 13: 
+ 	 ktemp=iter.content;
+	 break;
+case 16: 
+ 	 ktemp=iter.fromlocal;
+	 break;
+case 17: 
+ 	 ktemp=iter.texturl;
+	 break;
+case 18: 
+ 	 ktemp=iter.summary;
+	 break;
+case 19: 
+ 	 ktemp=iter.editauthor;
+	 break;
+	  }
+ switch(vpos){
+case 3: 
+ 	 vtemp=iter.title;
+	 break;
+case 4: 
+ 	 vtemp=iter.keywords;
+	 break;
+case 5: 
+ 	 vtemp=iter.fromsource;
+	 break;
+case 6: 
+ 	 vtemp=iter.author;
+	 break;
+case 7: 
+ 	 vtemp=iter.addip;
+	 break;
+case 8: 
+ 	 vtemp=iter.createtime;
+	 break;
+case 12: 
+ 	 vtemp=iter.icoimg;
+	 break;
+case 13: 
+ 	 vtemp=iter.content;
+	 break;
+case 16: 
+ 	 vtemp=iter.fromlocal;
+	 break;
+case 17: 
+ 	 vtemp=iter.texturl;
+	 break;
+case 18: 
+ 	 vtemp=iter.summary;
+	 break;
+case 19: 
+ 	 vtemp=iter.editauthor;
+	 break;
+
+                   }
+
+                    a.emplace_back(ktemp,vtemp);
+                }       
+    
+            return a;
+        }  
+    
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
+        std::vector<std::pair<T,meta>> getvecRows(std::string keyname)
+        {
+            std::vector<std::pair<T,meta>> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+           
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
 
    case 0: 
  	 a.emplace_back(iter.aid,iter);
@@ -2875,23 +2941,22 @@ case 15:
 	 break;
 
                 }
-
-                
-        }       
-
+            }       
+    
         return a;
     }
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-    std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname){
-        std::vector<std::pair<std::string,meta>> a;
+        template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
+        std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname)
+        {
+            std::vector<std::pair<std::string,meta>> a;
 
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-        //std::string ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+               
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
    case 3: 
  	 a.emplace_back(iter.title,iter);
@@ -2931,2206 +2996,2290 @@ case 19:
 	 break;
 
                 }
-
-                
-        }       
+            }       
+    
 
         return a;
     }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+          
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
 
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
 
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-	  }
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+			  }
 
- switch(dpos){
+			 switch(dpos){
+
+                }
+            }       
+
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+
+              
+            T ktemp;
+            U vtemp;
+            //D vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+			  }
+
+			 switch(dpos){
+			case 0: 
+ 				 a[ktemp][vtemp].emplace_back(iter.aid);
+				 break;
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.classtype);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
+				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.readnum);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.review);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 15: 
+ 				 a[ktemp][vtemp].emplace_back(iter.iscomment);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+          
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+				  }
+
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+			 }
+
+			 switch(dpos){
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.keywords);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fromsource);
+				 break;
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.author);
+				 break;
+			case 7: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addip);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.createtime);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.icoimg);
+				 break;
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
+				 break;
+			case 16: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fromlocal);
+				 break;
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.texturl);
+				 break;
+			case 18: 
+ 				 a[ktemp][vtemp].emplace_back(iter.summary);
+				 break;
+			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.editauthor);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+                std::map<T,std::map<U,std::vector<D>>> a;
+
+                unsigned char kpos,vpos,dpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                dpos=findcolpos(dataname);
+   
+                T ktemp;
+                U vtemp;
+            // D dtemp;
+
+                for(auto &iter:record)
+                {
+                    
+                    switch(kpos)
+                    {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
+			  }
+
+			 switch(dpos){
 
                    }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
-
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-	  }
-
- switch(dpos){
-case 0: 
- 	 a[ktemp][vtemp].emplace_back(iter.aid);
-	 break;
-case 1: 
- 	 a[ktemp][vtemp].emplace_back(iter.classtype);
-	 break;
-case 2: 
- 	 a[ktemp][vtemp].emplace_back(iter.userid);
-	 break;
-case 9: 
- 	 a[ktemp][vtemp].emplace_back(iter.addtime);
-	 break;
-case 10: 
- 	 a[ktemp][vtemp].emplace_back(iter.readnum);
-	 break;
-case 11: 
- 	 a[ktemp][vtemp].emplace_back(iter.review);
-	 break;
-case 14: 
- 	 a[ktemp][vtemp].emplace_back(iter.isopen);
-	 break;
-case 15: 
- 	 a[ktemp][vtemp].emplace_back(iter.iscomment);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
-
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-	  }
-
- switch(dpos){
-case 3: 
- 	 a[ktemp][vtemp].emplace_back(iter.title);
-	 break;
-case 4: 
- 	 a[ktemp][vtemp].emplace_back(iter.keywords);
-	 break;
-case 5: 
- 	 a[ktemp][vtemp].emplace_back(iter.fromsource);
-	 break;
-case 6: 
- 	 a[ktemp][vtemp].emplace_back(iter.author);
-	 break;
-case 7: 
- 	 a[ktemp][vtemp].emplace_back(iter.addip);
-	 break;
-case 8: 
- 	 a[ktemp][vtemp].emplace_back(iter.createtime);
-	 break;
-case 12: 
- 	 a[ktemp][vtemp].emplace_back(iter.icoimg);
-	 break;
-case 13: 
- 	 a[ktemp][vtemp].emplace_back(iter.content);
-	 break;
-case 16: 
- 	 a[ktemp][vtemp].emplace_back(iter.fromlocal);
-	 break;
-case 17: 
- 	 a[ktemp][vtemp].emplace_back(iter.texturl);
-	 break;
-case 18: 
- 	 a[ktemp][vtemp].emplace_back(iter.summary);
-	 break;
-case 19: 
- 	 a[ktemp][vtemp].emplace_back(iter.editauthor);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
-
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
-	  }
-
- switch(dpos){
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
+                }       
+    
+            return a;
+        }
+    
     template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    {
         std::map<T,std::map<U,std::vector<D>>> a;
 
         unsigned char kpos,vpos,dpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
         dpos=findcolpos(dataname);
+
+           
         T ktemp;
         U vtemp;
        // D dtemp;
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+         for(auto &iter:record)
+         {
+            switch(kpos)
+            {
 
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			 }
 
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
-	  }
+			 switch(vpos){
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
+			 }
 
- switch(dpos){
-case 0: 
- 	 a[ktemp][vtemp].emplace_back(iter.aid);
-	 break;
-case 1: 
- 	 a[ktemp][vtemp].emplace_back(iter.classtype);
-	 break;
-case 2: 
- 	 a[ktemp][vtemp].emplace_back(iter.userid);
-	 break;
-case 9: 
- 	 a[ktemp][vtemp].emplace_back(iter.addtime);
-	 break;
-case 10: 
- 	 a[ktemp][vtemp].emplace_back(iter.readnum);
-	 break;
-case 11: 
- 	 a[ktemp][vtemp].emplace_back(iter.review);
-	 break;
-case 14: 
- 	 a[ktemp][vtemp].emplace_back(iter.isopen);
-	 break;
-case 15: 
- 	 a[ktemp][vtemp].emplace_back(iter.iscomment);
-	 break;
+			 switch(dpos){
+			case 0: 
+ 				 a[ktemp][vtemp].emplace_back(iter.aid);
+				 break;
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.classtype);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
+				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.readnum);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.review);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 15: 
+ 				 a[ktemp][vtemp].emplace_back(iter.iscomment);
+				 break;
 
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
+            }
+         }       
+    
         return a;
     }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   
+            T ktemp;
+            U vtemp;
+            // D dtemp;
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
 
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
 
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
-	  }
+			 switch(vpos){
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
+			  }
 
- switch(dpos){
-case 3: 
- 	 a[ktemp][vtemp].emplace_back(iter.title);
-	 break;
-case 4: 
- 	 a[ktemp][vtemp].emplace_back(iter.keywords);
-	 break;
-case 5: 
- 	 a[ktemp][vtemp].emplace_back(iter.fromsource);
-	 break;
-case 6: 
- 	 a[ktemp][vtemp].emplace_back(iter.author);
-	 break;
-case 7: 
- 	 a[ktemp][vtemp].emplace_back(iter.addip);
-	 break;
-case 8: 
- 	 a[ktemp][vtemp].emplace_back(iter.createtime);
-	 break;
-case 12: 
- 	 a[ktemp][vtemp].emplace_back(iter.icoimg);
-	 break;
-case 13: 
- 	 a[ktemp][vtemp].emplace_back(iter.content);
-	 break;
-case 16: 
- 	 a[ktemp][vtemp].emplace_back(iter.fromlocal);
-	 break;
-case 17: 
- 	 a[ktemp][vtemp].emplace_back(iter.texturl);
-	 break;
-case 18: 
- 	 a[ktemp][vtemp].emplace_back(iter.summary);
-	 break;
-case 19: 
- 	 a[ktemp][vtemp].emplace_back(iter.editauthor);
-	 break;
+			 switch(dpos){
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.keywords);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fromsource);
+				 break;
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.author);
+				 break;
+			case 7: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addip);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.createtime);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.icoimg);
+				 break;
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
+				 break;
+			case 16: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fromlocal);
+				 break;
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.texturl);
+				 break;
+			case 18: 
+ 				 a[ktemp][vtemp].emplace_back(iter.summary);
+				 break;
+			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.editauthor);
+				 break;
 
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+                std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+                unsigned char kpos,vpos,dpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                dpos=findcolpos(dataname);
+                  
+                T ktemp;
+                U vtemp;
+                //D vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-         for(auto &iter:record){
-             
-                   switch(kpos){
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			 }
 
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+			  }
 
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-	  }
+			 switch(dpos){
 
- switch(dpos){
+                    }
+                }       
+    
 
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+               
+            T ktemp;
+            U vtemp;
+            //D vtemp;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-        //D vtemp;
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			  }
 
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+			 }
 
- switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-	  }
+			 switch(dpos){
+			case 0: 
+ 				 a[ktemp][vtemp].emplace_back(iter.aid);
+				 break;
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.classtype);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
+				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.readnum);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.review);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 15: 
+ 				 a[ktemp][vtemp].emplace_back(iter.iscomment);
+				 break;
 
- switch(dpos){
-case 0: 
- 	 a[ktemp][vtemp].emplace_back(iter.aid);
-	 break;
-case 1: 
- 	 a[ktemp][vtemp].emplace_back(iter.classtype);
-	 break;
-case 2: 
- 	 a[ktemp][vtemp].emplace_back(iter.userid);
-	 break;
-case 9: 
- 	 a[ktemp][vtemp].emplace_back(iter.addtime);
-	 break;
-case 10: 
- 	 a[ktemp][vtemp].emplace_back(iter.readnum);
-	 break;
-case 11: 
- 	 a[ktemp][vtemp].emplace_back(iter.review);
-	 break;
-case 14: 
- 	 a[ktemp][vtemp].emplace_back(iter.isopen);
-	 break;
-case 15: 
- 	 a[ktemp][vtemp].emplace_back(iter.iscomment);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
+                }
+            }       
+    
+            return a;
+        }
+    
     template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    {
         std::map<T,std::map<U,std::vector<D>>> a;
 
         unsigned char kpos,vpos,dpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
         dpos=findcolpos(dataname);
+   
         T ktemp;
         U vtemp;
-       // D dtemp;
+        // D dtemp;
 
-         for(auto &iter:record){
+         for(auto &iter:record)
+         {
              
-                   switch(kpos){
+            switch(kpos)
+            {
 
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			 }
+
+			switch(vpos){
+			case 0: 
+ 				 vtemp=iter.aid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 9: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 vtemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 vtemp=iter.review;
+				 break;
+			case 14: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 vtemp=iter.iscomment;
+				 break;
+			 }
+
+			switch(dpos){
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.keywords);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fromsource);
+				 break;
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.author);
+				 break;
+			case 7: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addip);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.createtime);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.icoimg);
+				 break;
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
+				 break;
+			case 16: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fromlocal);
+				 break;
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.texturl);
+				 break;
+			case 18: 
+ 				 a[ktemp][vtemp].emplace_back(iter.summary);
+				 break;
+			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.editauthor);
+				 break;
+
+            }
+         }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+           
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
+			  }
+
+			 switch(dpos){
+
+                }
+            }       
+
+    
+            return a;
+        }
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
+			 }
+
+			 switch(dpos){
+			case 0: 
+ 				 a[ktemp][vtemp].emplace_back(iter.aid);
+				 break;
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.classtype);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
+				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.readnum);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.review);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 15: 
+ 				 a[ktemp][vtemp].emplace_back(iter.iscomment);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+
+           
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 3: 
+ 				 vtemp=iter.title;
+				 break;
+			case 4: 
+ 				 vtemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 vtemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 vtemp=iter.author;
+				 break;
+			case 7: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 8: 
+ 				 vtemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 vtemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 vtemp=iter.content;
+				 break;
+			case 16: 
+ 				 vtemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 vtemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 vtemp=iter.summary;
+				 break;
+			case 19: 
+ 				 vtemp=iter.editauthor;
+				 break;
+			  }
+
+			 switch(dpos){
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.keywords);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fromsource);
+				 break;
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.author);
+				 break;
+			case 7: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addip);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.createtime);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.icoimg);
+				 break;
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
+				 break;
+			case 16: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fromlocal);
+				 break;
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.texturl);
+				 break;
+			case 18: 
+ 				 a[ktemp][vtemp].emplace_back(iter.summary);
+				 break;
+			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.editauthor);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.title);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.keywords);
+				 break;
+			case 5: 
+ 				 a[ktemp].emplace_back(iter.fromsource);
+				 break;
+			case 6: 
+ 				 a[ktemp].emplace_back(iter.author);
+				 break;
+			case 7: 
+ 				 a[ktemp].emplace_back(iter.addip);
+				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.createtime);
+				 break;
+			case 12: 
+ 				 a[ktemp].emplace_back(iter.icoimg);
+				 break;
+			case 13: 
+ 				 a[ktemp].emplace_back(iter.content);
+				 break;
+			case 16: 
+ 				 a[ktemp].emplace_back(iter.fromlocal);
+				 break;
+			case 17: 
+ 				 a[ktemp].emplace_back(iter.texturl);
+				 break;
+			case 18: 
+ 				 a[ktemp].emplace_back(iter.summary);
+				 break;
+			case 19: 
+ 				 a[ktemp].emplace_back(iter.editauthor);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			 }
+
+			 switch(vpos){
+
+                }
+            }       
+
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 0: 
+ 				 a[ktemp].emplace_back(iter.aid);
+				 break;
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.classtype);
+				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.userid);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.addtime);
+				 break;
+			case 10: 
+ 				 a[ktemp].emplace_back(iter.readnum);
+				 break;
+			case 11: 
+ 				 a[ktemp].emplace_back(iter.review);
+				 break;
+			case 14: 
+ 				 a[ktemp].emplace_back(iter.isopen);
+				 break;
+			case 15: 
+ 				 a[ktemp].emplace_back(iter.iscomment);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.title);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.keywords);
+				 break;
+			case 5: 
+ 				 a[ktemp].emplace_back(iter.fromsource);
+				 break;
+			case 6: 
+ 				 a[ktemp].emplace_back(iter.author);
+				 break;
+			case 7: 
+ 				 a[ktemp].emplace_back(iter.addip);
+				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.createtime);
+				 break;
+			case 12: 
+ 				 a[ktemp].emplace_back(iter.icoimg);
+				 break;
+			case 13: 
+ 				 a[ktemp].emplace_back(iter.content);
+				 break;
+			case 16: 
+ 				 a[ktemp].emplace_back(iter.fromlocal);
+				 break;
+			case 17: 
+ 				 a[ktemp].emplace_back(iter.texturl);
+				 break;
+			case 18: 
+ 				 a[ktemp].emplace_back(iter.summary);
+				 break;
+			case 19: 
+ 				 a[ktemp].emplace_back(iter.editauthor);
+				 break;
+
+                }
+            }       
+
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+               
+
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
+
+			 switch(vpos){
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 0: 
+ 				 a[ktemp].emplace_back(iter.aid);
+				 break;
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.classtype);
+				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.userid);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.addtime);
+				 break;
+			case 10: 
+ 				 a[ktemp].emplace_back(iter.readnum);
+				 break;
+			case 11: 
+ 				 a[ktemp].emplace_back(iter.review);
+				 break;
+			case 14: 
+ 				 a[ktemp].emplace_back(iter.isopen);
+				 break;
+			case 15: 
+ 				 a[ktemp].emplace_back(iter.iscomment);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
+        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        {
+            std::map<T,std::vector<meta>> a;
+
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+   
+            //T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 a[iter.aid].emplace_back(iter);
+				 break;
+			case 1: 
+ 				 a[iter.classtype].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[iter.userid].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[iter.addtime].emplace_back(iter);
+				 break;
+			case 10: 
+ 				 a[iter.readnum].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[iter.review].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[iter.isopen].emplace_back(iter);
+				 break;
+			case 15: 
+ 				 a[iter.iscomment].emplace_back(iter);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        {
+            std::map<T,std::vector<meta>> a;
+
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+   
+            //T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 a[iter.title].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[iter.keywords].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[iter.fromsource].emplace_back(iter);
+				 break;
+			case 6: 
+ 				 a[iter.author].emplace_back(iter);
+				 break;
+			case 7: 
+ 				 a[iter.addip].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[iter.createtime].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[iter.icoimg].emplace_back(iter);
+				 break;
+			case 13: 
+ 				 a[iter.content].emplace_back(iter);
+				 break;
+			case 16: 
+ 				 a[iter.fromlocal].emplace_back(iter);
+				 break;
+			case 17: 
+ 				 a[iter.texturl].emplace_back(iter);
+				 break;
+			case 18: 
+ 				 a[iter.summary].emplace_back(iter);
+				 break;
+			case 19: 
+ 				 a[iter.editauthor].emplace_back(iter);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 3: 
+ 				 a[ktemp][iter.title].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.keywords].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[ktemp][iter.fromsource].emplace_back(iter);
+				 break;
+			case 6: 
+ 				 a[ktemp][iter.author].emplace_back(iter);
+				 break;
+			case 7: 
+ 				 a[ktemp][iter.addip].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[ktemp][iter.createtime].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[ktemp][iter.icoimg].emplace_back(iter);
+				 break;
+			case 13: 
+ 				 a[ktemp][iter.content].emplace_back(iter);
+				 break;
+			case 16: 
+ 				 a[ktemp][iter.fromlocal].emplace_back(iter);
+				 break;
+			case 17: 
+ 				 a[ktemp][iter.texturl].emplace_back(iter);
+				 break;
+			case 18: 
+ 				 a[ktemp][iter.summary].emplace_back(iter);
+				 break;
+			case 19: 
+ 				 a[ktemp][iter.editauthor].emplace_back(iter);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+
+               
+            T ktemp;
+            
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 3: 
+ 				 ktemp=iter.title;
+				 break;
+			case 4: 
+ 				 ktemp=iter.keywords;
+				 break;
+			case 5: 
+ 				 ktemp=iter.fromsource;
+				 break;
+			case 6: 
+ 				 ktemp=iter.author;
+				 break;
+			case 7: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 8: 
+ 				 ktemp=iter.createtime;
+				 break;
+			case 12: 
+ 				 ktemp=iter.icoimg;
+				 break;
+			case 13: 
+ 				 ktemp=iter.content;
+				 break;
+			case 16: 
+ 				 ktemp=iter.fromlocal;
+				 break;
+			case 17: 
+ 				 ktemp=iter.texturl;
+				 break;
+			case 18: 
+ 				 ktemp=iter.summary;
+				 break;
+			case 19: 
+ 				 ktemp=iter.editauthor;
+				 break;
 	  }
 
  switch(vpos){
-case 0: 
- 	 vtemp=iter.aid;
-	 break;
-case 1: 
- 	 vtemp=iter.classtype;
-	 break;
-case 2: 
- 	 vtemp=iter.userid;
-	 break;
-case 9: 
- 	 vtemp=iter.addtime;
-	 break;
-case 10: 
- 	 vtemp=iter.readnum;
-	 break;
-case 11: 
- 	 vtemp=iter.review;
-	 break;
-case 14: 
- 	 vtemp=iter.isopen;
-	 break;
-case 15: 
- 	 vtemp=iter.iscomment;
-	 break;
-	  }
-
- switch(dpos){
-case 3: 
- 	 a[ktemp][vtemp].emplace_back(iter.title);
-	 break;
-case 4: 
- 	 a[ktemp][vtemp].emplace_back(iter.keywords);
-	 break;
-case 5: 
- 	 a[ktemp][vtemp].emplace_back(iter.fromsource);
-	 break;
-case 6: 
- 	 a[ktemp][vtemp].emplace_back(iter.author);
-	 break;
-case 7: 
- 	 a[ktemp][vtemp].emplace_back(iter.addip);
-	 break;
-case 8: 
- 	 a[ktemp][vtemp].emplace_back(iter.createtime);
-	 break;
-case 12: 
- 	 a[ktemp][vtemp].emplace_back(iter.icoimg);
-	 break;
-case 13: 
- 	 a[ktemp][vtemp].emplace_back(iter.content);
-	 break;
-case 16: 
- 	 a[ktemp][vtemp].emplace_back(iter.fromlocal);
-	 break;
-case 17: 
- 	 a[ktemp][vtemp].emplace_back(iter.texturl);
-	 break;
-case 18: 
- 	 a[ktemp][vtemp].emplace_back(iter.summary);
-	 break;
-case 19: 
- 	 a[ktemp][vtemp].emplace_back(iter.editauthor);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
-
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
-	  }
-
- switch(dpos){
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
-
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
-	  }
-
- switch(dpos){
-case 0: 
- 	 a[ktemp][vtemp].emplace_back(iter.aid);
-	 break;
-case 1: 
- 	 a[ktemp][vtemp].emplace_back(iter.classtype);
-	 break;
-case 2: 
- 	 a[ktemp][vtemp].emplace_back(iter.userid);
-	 break;
-case 9: 
- 	 a[ktemp][vtemp].emplace_back(iter.addtime);
-	 break;
-case 10: 
- 	 a[ktemp][vtemp].emplace_back(iter.readnum);
-	 break;
-case 11: 
- 	 a[ktemp][vtemp].emplace_back(iter.review);
-	 break;
-case 14: 
- 	 a[ktemp][vtemp].emplace_back(iter.isopen);
-	 break;
-case 15: 
- 	 a[ktemp][vtemp].emplace_back(iter.iscomment);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
-
- switch(vpos){
-case 3: 
- 	 vtemp=iter.title;
-	 break;
-case 4: 
- 	 vtemp=iter.keywords;
-	 break;
-case 5: 
- 	 vtemp=iter.fromsource;
-	 break;
-case 6: 
- 	 vtemp=iter.author;
-	 break;
-case 7: 
- 	 vtemp=iter.addip;
-	 break;
-case 8: 
- 	 vtemp=iter.createtime;
-	 break;
-case 12: 
- 	 vtemp=iter.icoimg;
-	 break;
-case 13: 
- 	 vtemp=iter.content;
-	 break;
-case 16: 
- 	 vtemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 vtemp=iter.texturl;
-	 break;
-case 18: 
- 	 vtemp=iter.summary;
-	 break;
-case 19: 
- 	 vtemp=iter.editauthor;
-	 break;
-	  }
-
- switch(dpos){
-case 3: 
- 	 a[ktemp][vtemp].emplace_back(iter.title);
-	 break;
-case 4: 
- 	 a[ktemp][vtemp].emplace_back(iter.keywords);
-	 break;
-case 5: 
- 	 a[ktemp][vtemp].emplace_back(iter.fromsource);
-	 break;
-case 6: 
- 	 a[ktemp][vtemp].emplace_back(iter.author);
-	 break;
-case 7: 
- 	 a[ktemp][vtemp].emplace_back(iter.addip);
-	 break;
-case 8: 
- 	 a[ktemp][vtemp].emplace_back(iter.createtime);
-	 break;
-case 12: 
- 	 a[ktemp][vtemp].emplace_back(iter.icoimg);
-	 break;
-case 13: 
- 	 a[ktemp][vtemp].emplace_back(iter.content);
-	 break;
-case 16: 
- 	 a[ktemp][vtemp].emplace_back(iter.fromlocal);
-	 break;
-case 17: 
- 	 a[ktemp][vtemp].emplace_back(iter.texturl);
-	 break;
-case 18: 
- 	 a[ktemp][vtemp].emplace_back(iter.summary);
-	 break;
-case 19: 
- 	 a[ktemp][vtemp].emplace_back(iter.editauthor);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
-
- switch(vpos){
-case 3: 
- 	 a[ktemp].emplace_back(iter.title);
-	 break;
-case 4: 
- 	 a[ktemp].emplace_back(iter.keywords);
-	 break;
-case 5: 
- 	 a[ktemp].emplace_back(iter.fromsource);
-	 break;
-case 6: 
- 	 a[ktemp].emplace_back(iter.author);
-	 break;
-case 7: 
- 	 a[ktemp].emplace_back(iter.addip);
-	 break;
-case 8: 
- 	 a[ktemp].emplace_back(iter.createtime);
-	 break;
-case 12: 
- 	 a[ktemp].emplace_back(iter.icoimg);
-	 break;
-case 13: 
- 	 a[ktemp].emplace_back(iter.content);
-	 break;
-case 16: 
- 	 a[ktemp].emplace_back(iter.fromlocal);
-	 break;
-case 17: 
- 	 a[ktemp].emplace_back(iter.texturl);
-	 break;
-case 18: 
- 	 a[ktemp].emplace_back(iter.summary);
-	 break;
-case 19: 
- 	 a[ktemp].emplace_back(iter.editauthor);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
-
- switch(vpos){
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
-
- switch(vpos){
-case 0: 
- 	 a[ktemp].emplace_back(iter.aid);
-	 break;
-case 1: 
- 	 a[ktemp].emplace_back(iter.classtype);
-	 break;
-case 2: 
- 	 a[ktemp].emplace_back(iter.userid);
-	 break;
-case 9: 
- 	 a[ktemp].emplace_back(iter.addtime);
-	 break;
-case 10: 
- 	 a[ktemp].emplace_back(iter.readnum);
-	 break;
-case 11: 
- 	 a[ktemp].emplace_back(iter.review);
-	 break;
-case 14: 
- 	 a[ktemp].emplace_back(iter.isopen);
-	 break;
-case 15: 
- 	 a[ktemp].emplace_back(iter.iscomment);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
-
- switch(vpos){
-case 3: 
- 	 a[ktemp].emplace_back(iter.title);
-	 break;
-case 4: 
- 	 a[ktemp].emplace_back(iter.keywords);
-	 break;
-case 5: 
- 	 a[ktemp].emplace_back(iter.fromsource);
-	 break;
-case 6: 
- 	 a[ktemp].emplace_back(iter.author);
-	 break;
-case 7: 
- 	 a[ktemp].emplace_back(iter.addip);
-	 break;
-case 8: 
- 	 a[ktemp].emplace_back(iter.createtime);
-	 break;
-case 12: 
- 	 a[ktemp].emplace_back(iter.icoimg);
-	 break;
-case 13: 
- 	 a[ktemp].emplace_back(iter.content);
-	 break;
-case 16: 
- 	 a[ktemp].emplace_back(iter.fromlocal);
-	 break;
-case 17: 
- 	 a[ktemp].emplace_back(iter.texturl);
-	 break;
-case 18: 
- 	 a[ktemp].emplace_back(iter.summary);
-	 break;
-case 19: 
- 	 a[ktemp].emplace_back(iter.editauthor);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
-
- switch(vpos){
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
-
- switch(vpos){
-case 0: 
- 	 a[ktemp].emplace_back(iter.aid);
-	 break;
-case 1: 
- 	 a[ktemp].emplace_back(iter.classtype);
-	 break;
-case 2: 
- 	 a[ktemp].emplace_back(iter.userid);
-	 break;
-case 9: 
- 	 a[ktemp].emplace_back(iter.addtime);
-	 break;
-case 10: 
- 	 a[ktemp].emplace_back(iter.readnum);
-	 break;
-case 11: 
- 	 a[ktemp].emplace_back(iter.review);
-	 break;
-case 14: 
- 	 a[ktemp].emplace_back(iter.isopen);
-	 break;
-case 15: 
- 	 a[ktemp].emplace_back(iter.iscomment);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-  std::map<T,std::vector<meta>> getgroupRows(std::string keyname){
-        std::map<T,std::vector<meta>> a;
-
-        unsigned char kpos;
-        kpos=findcolpos(keyname);
-
-        //T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 a[iter.aid].emplace_back(iter);
-	 break;
-case 1: 
- 	 a[iter.classtype].emplace_back(iter);
-	 break;
-case 2: 
- 	 a[iter.userid].emplace_back(iter);
-	 break;
-case 9: 
- 	 a[iter.addtime].emplace_back(iter);
-	 break;
-case 10: 
- 	 a[iter.readnum].emplace_back(iter);
-	 break;
-case 11: 
- 	 a[iter.review].emplace_back(iter);
-	 break;
-case 14: 
- 	 a[iter.isopen].emplace_back(iter);
-	 break;
-case 15: 
- 	 a[iter.iscomment].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<meta>> getgroupRows(std::string keyname){
-        std::map<T,std::vector<meta>> a;
-
-        unsigned char kpos;
-        kpos=findcolpos(keyname);
-
-        //T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 a[iter.title].emplace_back(iter);
-	 break;
-case 4: 
- 	 a[iter.keywords].emplace_back(iter);
-	 break;
-case 5: 
- 	 a[iter.fromsource].emplace_back(iter);
-	 break;
-case 6: 
- 	 a[iter.author].emplace_back(iter);
-	 break;
-case 7: 
- 	 a[iter.addip].emplace_back(iter);
-	 break;
-case 8: 
- 	 a[iter.createtime].emplace_back(iter);
-	 break;
-case 12: 
- 	 a[iter.icoimg].emplace_back(iter);
-	 break;
-case 13: 
- 	 a[iter.content].emplace_back(iter);
-	 break;
-case 16: 
- 	 a[iter.fromlocal].emplace_back(iter);
-	 break;
-case 17: 
- 	 a[iter.texturl].emplace_back(iter);
-	 break;
-case 18: 
- 	 a[iter.summary].emplace_back(iter);
-	 break;
-case 19: 
- 	 a[iter.editauthor].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
-
- switch(vpos){
-case 3: 
- 	 a[ktemp][iter.title].emplace_back(iter);
-	 break;
-case 4: 
- 	 a[ktemp][iter.keywords].emplace_back(iter);
-	 break;
-case 5: 
- 	 a[ktemp][iter.fromsource].emplace_back(iter);
-	 break;
-case 6: 
- 	 a[ktemp][iter.author].emplace_back(iter);
-	 break;
-case 7: 
- 	 a[ktemp][iter.addip].emplace_back(iter);
-	 break;
-case 8: 
- 	 a[ktemp][iter.createtime].emplace_back(iter);
-	 break;
-case 12: 
- 	 a[ktemp][iter.icoimg].emplace_back(iter);
-	 break;
-case 13: 
- 	 a[ktemp][iter.content].emplace_back(iter);
-	 break;
-case 16: 
- 	 a[ktemp][iter.fromlocal].emplace_back(iter);
-	 break;
-case 17: 
- 	 a[ktemp][iter.texturl].emplace_back(iter);
-	 break;
-case 18: 
- 	 a[ktemp][iter.summary].emplace_back(iter);
-	 break;
-case 19: 
- 	 a[ktemp][iter.editauthor].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
+			case 0: 
+ 				 a[ktemp][iter.aid].emplace_back(iter);
+				 break;
+			case 1: 
+ 				 a[ktemp][iter.classtype].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[ktemp][iter.userid].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.addtime].emplace_back(iter);
+				 break;
+			case 10: 
+ 				 a[ktemp][iter.readnum].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[ktemp][iter.review].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[ktemp][iter.isopen].emplace_back(iter);
+				 break;
+			case 15: 
+ 				 a[ktemp][iter.iscomment].emplace_back(iter);
+				 break;
+
+                }
+            }       
+
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+
+           
         T ktemp;
         
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
-   case 3: 
- 	 ktemp=iter.title;
-	 break;
-case 4: 
- 	 ktemp=iter.keywords;
-	 break;
-case 5: 
- 	 ktemp=iter.fromsource;
-	 break;
-case 6: 
- 	 ktemp=iter.author;
-	 break;
-case 7: 
- 	 ktemp=iter.addip;
-	 break;
-case 8: 
- 	 ktemp=iter.createtime;
-	 break;
-case 12: 
- 	 ktemp=iter.icoimg;
-	 break;
-case 13: 
- 	 ktemp=iter.content;
-	 break;
-case 16: 
- 	 ktemp=iter.fromlocal;
-	 break;
-case 17: 
- 	 ktemp=iter.texturl;
-	 break;
-case 18: 
- 	 ktemp=iter.summary;
-	 break;
-case 19: 
- 	 ktemp=iter.editauthor;
-	 break;
-	  }
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			 }
 
- switch(vpos){
-case 0: 
- 	 a[ktemp][iter.aid].emplace_back(iter);
-	 break;
-case 1: 
- 	 a[ktemp][iter.classtype].emplace_back(iter);
-	 break;
-case 2: 
- 	 a[ktemp][iter.userid].emplace_back(iter);
-	 break;
-case 9: 
- 	 a[ktemp][iter.addtime].emplace_back(iter);
-	 break;
-case 10: 
- 	 a[ktemp][iter.readnum].emplace_back(iter);
-	 break;
-case 11: 
- 	 a[ktemp][iter.review].emplace_back(iter);
-	 break;
-case 14: 
- 	 a[ktemp][iter.isopen].emplace_back(iter);
-	 break;
-case 15: 
- 	 a[ktemp][iter.iscomment].emplace_back(iter);
-	 break;
+			 switch(vpos){
+			case 0: 
+ 				 a[ktemp][iter.aid].emplace_back(iter);
+				 break;
+			case 1: 
+ 				 a[ktemp][iter.classtype].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[ktemp][iter.userid].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.addtime].emplace_back(iter);
+				 break;
+			case 10: 
+ 				 a[ktemp][iter.readnum].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[ktemp][iter.review].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[ktemp][iter.isopen].emplace_back(iter);
+				 break;
+			case 15: 
+ 				 a[ktemp][iter.iscomment].emplace_back(iter);
+				 break;
 
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
 
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+               
+            T ktemp;
+            
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
+   			case 0: 
+ 				 ktemp=iter.aid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.classtype;
+				 break;
+			case 2: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 9: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 10: 
+ 				 ktemp=iter.readnum;
+				 break;
+			case 11: 
+ 				 ktemp=iter.review;
+				 break;
+			case 14: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 15: 
+ 				 ktemp=iter.iscomment;
+				 break;
+			  }
 
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
+			 switch(vpos){
+			case 3: 
+ 				 a[ktemp][iter.title].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.keywords].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[ktemp][iter.fromsource].emplace_back(iter);
+				 break;
+			case 6: 
+ 				 a[ktemp][iter.author].emplace_back(iter);
+				 break;
+			case 7: 
+ 				 a[ktemp][iter.addip].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[ktemp][iter.createtime].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[ktemp][iter.icoimg].emplace_back(iter);
+				 break;
+			case 13: 
+ 				 a[ktemp][iter.content].emplace_back(iter);
+				 break;
+			case 16: 
+ 				 a[ktemp][iter.fromlocal].emplace_back(iter);
+				 break;
+			case 17: 
+ 				 a[ktemp][iter.texturl].emplace_back(iter);
+				 break;
+			case 18: 
+ 				 a[ktemp][iter.summary].emplace_back(iter);
+				 break;
+			case 19: 
+ 				 a[ktemp][iter.editauthor].emplace_back(iter);
+				 break;
 
- switch(vpos){
-case 0: 
- 	 a[ktemp][iter.aid].emplace_back(iter);
-	 break;
-case 1: 
- 	 a[ktemp][iter.classtype].emplace_back(iter);
-	 break;
-case 2: 
- 	 a[ktemp][iter.userid].emplace_back(iter);
-	 break;
-case 9: 
- 	 a[ktemp][iter.addtime].emplace_back(iter);
-	 break;
-case 10: 
- 	 a[ktemp][iter.readnum].emplace_back(iter);
-	 break;
-case 11: 
- 	 a[ktemp][iter.review].emplace_back(iter);
-	 break;
-case 14: 
- 	 a[ktemp][iter.isopen].emplace_back(iter);
-	 break;
-case 15: 
- 	 a[ktemp][iter.iscomment].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.classtype;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 9: 
- 	 ktemp=iter.addtime;
-	 break;
-case 10: 
- 	 ktemp=iter.readnum;
-	 break;
-case 11: 
- 	 ktemp=iter.review;
-	 break;
-case 14: 
- 	 ktemp=iter.isopen;
-	 break;
-case 15: 
- 	 ktemp=iter.iscomment;
-	 break;
-	  }
-
- switch(vpos){
-case 3: 
- 	 a[ktemp][iter.title].emplace_back(iter);
-	 break;
-case 4: 
- 	 a[ktemp][iter.keywords].emplace_back(iter);
-	 break;
-case 5: 
- 	 a[ktemp][iter.fromsource].emplace_back(iter);
-	 break;
-case 6: 
- 	 a[ktemp][iter.author].emplace_back(iter);
-	 break;
-case 7: 
- 	 a[ktemp][iter.addip].emplace_back(iter);
-	 break;
-case 8: 
- 	 a[ktemp][iter.createtime].emplace_back(iter);
-	 break;
-case 12: 
- 	 a[ktemp][iter.icoimg].emplace_back(iter);
-	 break;
-case 13: 
- 	 a[ktemp][iter.content].emplace_back(iter);
-	 break;
-case 16: 
- 	 a[ktemp][iter.fromlocal].emplace_back(iter);
-	 break;
-case 17: 
- 	 a[ktemp][iter.texturl].emplace_back(iter);
-	 break;
-case 18: 
- 	 a[ktemp][iter.summary].emplace_back(iter);
-	 break;
-case 19: 
- 	 a[ktemp][iter.editauthor].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-};
- } 
+                }
+            }       
+    
+            return a;
+        }
+    
+  };
+} 
 }
 #endif
    

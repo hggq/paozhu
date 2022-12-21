@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 20 Dec 2022 11:40:56 GMT
+*本文件为自动生成 Wed, 21 Dec 2022 15:39:16 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -45,7 +45,8 @@ std::string modelname="User";
 
 	  unsigned char findcolpos(std::string coln){
 		    unsigned char  bi=coln[0];
-            char colpospppc;
+         
+
 	         if(bi<91&&bi>64){
 				bi+=32;
 			}
@@ -196,7 +197,7 @@ break;
             }
             temp.push_back(content[i]);
         }
-        return std::move(temp);
+        return temp;
    }  
   inline  std::string jsonaddslash(std::string &content){
         std::string temp;
@@ -207,7 +208,7 @@ break;
             }
             temp.push_back(content[i]);
         }
-        return std::move(temp);
+        return temp;
    }  
 
    std::string _makeinsertsql(){
@@ -252,7 +253,7 @@ tempsql<<")";
        return tempsql.str();
    }     
     std::string _makeupdatesql(std::string fileld){
-       int j=0;
+       //int j=0;
             std::ostringstream tempsql;
                  tempsql<<"UPDATE ";
                  tempsql<<tablename;
@@ -348,7 +349,7 @@ if(data.level==0){
 
             }        
 
-        return std::move(tempsql.str());
+        return tempsql.str();
    } 
    std::string datatojson(){
        std::ostringstream tempsql;
@@ -376,7 +377,7 @@ if(data.level==0){
 tempsql<<"}";
 
      
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    
    std::string datatojson(std::string fileld){
@@ -448,7 +449,7 @@ if(data.level==0){
                      }
                  }   
       tempsql<<"}";  
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    
    std::string tojson(std::string fileld=""){
@@ -529,7 +530,7 @@ if(record[n].level==0){
       tempsql<<"}";  
             }
       tempsql<<"]";
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    
    std::string tojson(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
@@ -617,7 +618,7 @@ if(record[n].level==0){
       tempsql<<"}";  
             }
       tempsql<<"]";
-     return std::move(tempsql.str());             
+     return tempsql.str();             
    }   
    long long getPK(){  return data.userid; } 
  void setPK(long long val){  data.userid=val;} 
@@ -642,7 +643,7 @@ unsigned  int  getLevel(){  return data.level; }
 
 userbase::meta getnewData(){
  	 struct meta newdata;
-	 return std::move(newdata); 
+	 return newdata; 
 } 
 userbase::meta getData(){
  	 return data; 
@@ -651,291 +652,321 @@ std::vector<userbase::meta> getRecord(){
  	 return record; 
 } 
 
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-    std::vector<T> getCol(std::string keyname){
-         std::vector<T> a;
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-        for(auto &iter:record){
-                switch(kpos){
-
-   case 0: 
- 	 a.emplace_back(iter.userid);
-	 break;
-case 3: 
- 	 a.emplace_back(iter.isopen);
-	 break;
-case 4: 
- 	 a.emplace_back(iter.level);
-	 break;
-
-          }
-        }
-        return a;
-    }
-    
-    template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-    std::vector<T> getCol(std::string keyname){
-        std::vector<T> a;
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-        for(auto &iter:record){
-                switch(kpos){
-
+            template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
+            std::vector<T> getCol(std::string keyname)
+            {
+                std::vector<T> a;
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
    
-    }
-            }
-            return a;
-        }  
-    
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-    T getVal(std::string keyname){
-         
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-      
-                switch(kpos){
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+   			case 0: 
+ 				 a.emplace_back(iter.userid);
+				 break;
+			case 3: 
+ 				 a.emplace_back(iter.isopen);
+				 break;
+			case 4: 
+ 				 a.emplace_back(iter.level);
+				 break;
 
-   case 0: 
- 	 return data.userid;
-	 break;
-case 3: 
- 	 return data.isopen;
-	 break;
-case 4: 
- 	 return data.level;
-	 break;
-
-    }
-            return 0;
-        }  
-    
-     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-    T getVal(userbase::meta & iter,std::string keyname){
-         
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-       
-                switch(kpos){
-
-   case 0: 
- 	 return iter.userid;
-	 break;
-case 3: 
- 	 return iter.isopen;
-	 break;
-case 4: 
- 	 return iter.level;
-	 break;
-
-    }
-            return 0;
-        }  
-    
-        template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-        T getVal(std::string keyname){
-            
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
-        
-            switch(kpos){
-
-    
-    }
-            return 0.0;
-        }  
-    
-     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-    T getVal(userbase::meta & iter,std::string keyname){
-         
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-         
-                switch(kpos){
-
-   
-    }
-            return 0.0;
-        }  
-    
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-    std::string getVal(std::string keyname){
-         
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-        
-                switch(kpos){
-
-   case 1: 
- 	 return data.name;
-	 break;
-case 2: 
- 	 return data.password;
-	 break;
-
-  }
-        return "";
-    }  
-   
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-    std::string getVal(userbase::meta & iter,std::string keyname){
-         
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-       
-                switch(kpos){
-
-   case 1: 
- 	 return iter.name;
-	 break;
-case 2: 
- 	 return iter.password;
-	 break;
-
-    }
-            return "";
-        }  
-     
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-    std::vector<std::string> getCol(std::string keyname){
-        std::vector<std::string> a;
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
- 
-         for(auto &iter:record){
-                switch(kpos){
-
-   case 1: 
- 	 a.emplace_back(iter.name);
-	 break;
-case 2: 
- 	 a.emplace_back(iter.password);
-	 break;
-
-   }
-        }       
-
-        return a;
-    }  
-    std::string getstrCol(std::string keyname,bool isyinhao=false){
-        std::ostringstream a;
-             unsigned char kpos;
-        kpos=findcolpos(keyname);
-  
-         int j=0;
-         if(isyinhao&&record.size()>0){
-             a<<'"';
-         }
-         for(auto &iter:record){
-                if(j>0){
-                    if(isyinhao){
-                        a<<"\",\"";
-                    }else{
-                        a<<',';    
                     }
                 }
-                 switch(kpos){
+    
+                return a;
+            }
+    
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
+			std::vector<T> getCol(std::string keyname)
+			{
+				std::vector<T> a;
+				unsigned char kpos;
+				kpos = findcolpos(keyname);
 
-   case 0: 
- 	 a<<std::to_string(iter.userid);
-	 break;
-case 1: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.name); 
-	 }else{
-	 a<<iter.name;
-	 }
-	 break;
-case 2: 
- 	 if(isyinhao){ a<<jsonaddslash(iter.password); 
-	 }else{
-	 a<<iter.password;
-	 }
-	 break;
-case 3: 
- 	 a<<std::to_string(iter.isopen);
-	 break;
-case 4: 
- 	 a<<std::to_string(iter.level);
-	 break;
+                return a;
+            }
+    
+            template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
+            T getVal(std::string keyname)
+            {
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+                      
+                    switch(kpos)
+                    {
 
+   			case 0: 
+ 				 return data.userid;
+				 break;
+			case 3: 
+ 				 return data.isopen;
+				 break;
+			case 4: 
+ 				 return data.level;
+				 break;
+			}
+                return 0;
+            }  
+    
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
+        T getVal(userbase::meta & iter,std::string keyname)
+        {
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+             
+            switch(kpos)
+            {
+   			case 0: 
+ 				 return iter.userid;
+				 break;
+			case 3: 
+ 				 return iter.isopen;
+				 break;
+			case 4: 
+ 				 return iter.level;
+				 break;
+
+			}
+
+            return 0;
+        }  
+    
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
+            T getVal(std::string keyname)
+            {
+                
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+            
+                switch(kpos)
+                {
+
+    
+                    }
+                    return 0.0;
+            }  
+    
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
+            T getVal(userbase::meta & iter,std::string keyname)
+            {
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+                switch(kpos)
+                {
+   
+                }
+                return 0.0;
+            }  
+    
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
+            std::string getVal(std::string keyname)
+            {
+         
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+        
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 return data.name;
+				 break;
+			case 2: 
+ 				 return data.password;
+				 break;
+
+                }
+                return "";
+            }  
+   
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
+            std::string getVal(userbase::meta & iter,std::string keyname)
+            {
+         
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+       
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 return iter.name;
+				 break;
+			case 2: 
+ 				 return iter.password;
+				 break;
+
+                }
+                return "";
+            }  
+     
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
+            std::vector<std::string> getCol(std::string keyname)
+            {
+                std::vector<std::string> a;
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+                   
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+    			case 1: 
+ 				 a.emplace_back(iter.name);
+					 break;
+			case 2: 
+ 				 a.emplace_back(iter.password);
+					 break;
+					}
+				}
+
+        return a;
     }
-                j++;
-        } 
-        if(isyinhao&&j>0){
-             a<<'"';
-        }      
-        return a.str();
-    }
+     
+        std::string getstrCol(std::string keyname,bool isyinhao=false)
+        {
+            std::ostringstream a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+       
+            int j=0;
+            if(isyinhao&&record.size()>0)
+            {
+                a<<'"';
+            }
+            for(auto &iter:record)
+            {
+                    if(j>0)
+                    {
+                        if(isyinhao)
+                        {
+                            a<<"\",\"";
+                        }else{
+                            a<<',';    
+                        }
+                    }
+                    switch(kpos)
+                    {
+
+   			case 0: 
+ 				 a<<std::to_string(iter.userid);
+				 break;
+			case 1: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.name); 
+				 }else{
+				 a<<iter.name;
+				 }
+				 break;
+			case 2: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.password); 
+				 }else{
+				 a<<iter.password;
+				 }
+				 break;
+			case 3: 
+ 				 a<<std::to_string(iter.isopen);
+				 break;
+			case 4: 
+ 				 a<<std::to_string(iter.level);
+				 break;
+
+                    }
+                    j++;
+            } 
+            if(isyinhao&&j>0){
+                a<<'"';
+            }      
+    
+                return a.str();
+        }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols(std::string keyname,std::string valname){
+    std::map<std::string,std::string> getCols(std::string keyname,std::string valname)
+    {
         std::map<std::string,std::string> a;
         unsigned char kpos,vpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
+            
          std::string ktemp,vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
+         for(auto &iter:record)
+         {
+                switch(kpos)
+                {
 
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	 } 
-		 switch(vpos){ 
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+				 } 
+			 switch(vpos){ 
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
 
-        }
-                    a.emplace(ktemp,vtemp);
+                }
+                a.emplace(ktemp,vtemp);
             }       
+
+        
             return a;
         } 
+    
 
-  template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<std::string,U> getCols(std::string keyname,std::string valname){
-        std::map<std::string,U> a;
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-         std::string ktemp;
-         U vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        {
+                std::map<std::string,U> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                  
+                std::string ktemp;
+                U vtemp;
+                for(auto &iter:record)
+                {    
+                    switch(kpos)
+                    {
  
-       case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	 } 
-        switch(vpos){ 
+       			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			 } 
+ 		    switch(vpos){ 
 
-            }
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    } 
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-  std::map<T,U> getCols(std::string keyname,std::string valname){
-        std::map<T,U> a;
-        unsigned char kpos,vpos;
-         kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-         T ktemp;
-         U vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
+                    }
+                    a.emplace(ktemp,vtemp);
+                }       
+        
+            return a;
+        } 
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
+        std::map<T,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<T,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+               
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
  
        case 0: 
  	 ktemp=iter.userid;
@@ -949,406 +980,441 @@ case 4:
 	 } 
  		   switch(vpos){ 
 
-             }
+                }
                 a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    }  
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-    std::map<T,std::string> getCols(std::string keyname,std::string valname){
-        std::map<T,std::string> a;
-                unsigned char kpos,vpos;
-         kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             std::string vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
-
-  }
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    }     
-     template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-    std::map<std::string,U> getCols(std::string keyname,std::string valname){
-        std::map<std::string,U> a;
-             unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             std::string  ktemp;
-             U  vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-
-                 }
-
-             
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    }  
-    template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-    std::map<T,U> getCols(std::string keyname,std::string valname){
-        std::map<T,U> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-
-                   }
-
-                    a.emplace(ktemp,vtemp);
             }       
+     
+        return a;
+    }  
+            template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
+            std::map<T,std::string> getCols(std::string keyname,std::string valname)
+            {
+                std::map<T,std::string> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+            
+                T ktemp;
+                std::string vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
 
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
+ 			 switch(vpos){
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
+
+                    }
+                    a.emplace(ktemp,vtemp);
+                } 
+         
+                return a;
+            }     
+        
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
+        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<std::string,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+               
+            std::string  ktemp;
+            U  vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			  }
+ 			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+
+                }
+                a.emplace(ktemp,vtemp);
+            }       
+      
+        return a;
+    }  
+    
+        template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
+        std::map<T,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<T,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+                
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
+ 			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+
+                }
+                a.emplace(ktemp,vtemp);
+            }       
+    
             return a;
         }   
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-    std::map<T,meta> getmapRows(std::string keyname){
-        std::map<T,meta> a;
-
-            unsigned char kpos;
-         kpos=findcolpos(keyname);
- 
-          //   long long ktemp;
-        
-         for(auto &iter:record){
-                switch(kpos){
-
-   case 0: 
- 	 a.emplace(iter.userid,iter);
-	 break;
-case 3: 
- 	 a.emplace(iter.isopen,iter);
-	 break;
-case 4: 
- 	 a.emplace(iter.level,iter);
-	 break;
-
-                }
-        }       
-        return a;
-    }     
-   template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-   std::map<std::string,meta> getmapRows(std::string keyname){
-        std::map<std::string,meta> a;
-
-         unsigned char kpos;
- 
-        kpos=findcolpos(keyname);
     
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
+        std::map<T,meta> getmapRows(std::string keyname)
+        {
+            std::map<T,meta> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+                
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
-        //std::string ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 a.emplace(iter.name,iter);
-	 break;
-case 2: 
- 	 a.emplace(iter.password,iter);
-	 break;
+   			case 0: 
+ 				 a.emplace(iter.userid,iter);
+				 break;
+			case 3: 
+ 				 a.emplace(iter.isopen,iter);
+				 break;
+			case 4: 
+ 				 a.emplace(iter.level,iter);
+				 break;
 
                 }
+            }       
+     
+            return a;
+        }     
+    
+        template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
+        std::map<std::string,meta> getmapRows(std::string keyname)
+        {
+            std::map<std::string,meta> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+    
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
+   			case 1: 
+ 				 a.emplace(iter.name,iter);
+			 break;
+			case 2: 
+ 				 a.emplace(iter.password,iter);
+			 break;
+
+                }
                 //a.emplace(ktemp,iter);
-        }       
+            }       
+    
 
         return a;
     }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
-    std::vector<std::pair<std::string,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<std::string,U>> a;
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
+        std::vector<std::pair<std::string,U>> getvecCols(std::string keyname,std::string valname)
+        {
+            std::vector<std::pair<std::string,U>> a;
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             std::string ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+          
+            std::string ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
- switch(vpos){
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-            }       
-
-            return a;
-        }   
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
- switch(vpos){
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+	 		 }
+ 			switch(vpos){
 
                    }
 
-                    a.emplace_back(ktemp,vtemp);
+                 a.emplace_back(ktemp,vtemp);
             }       
+
+     
 
             return a;
         }   
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
+   
+                T ktemp;
+                U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
 
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
+   			case 0: 
+ 				 ktemp=iter.userid;
+			 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+			 break;
+			case 4: 
+ 				 ktemp=iter.level;
+			 break;
+			  }
+			 switch(vpos){
 
                    }
 
-                    a.emplace_back(ktemp,vtemp);
-            }       
+                   a.emplace_back(ktemp,vtemp);
+                }       
 
-            return a;
-        }   
-  template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-            }       
-
-            return a;
-        }   
-  template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-            }       
-
-            return a;
-        }   
-  template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-            }       
-
-            return a;
-        }   
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-    std::vector<std::pair<T,meta>> getvecRows(std::string keyname){
-        std::vector<std::pair<T,meta>> a;
-
-         unsigned char kpos;
- 
-        kpos=findcolpos(keyname);
     
 
-       // T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            return a;
+        }   
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+
+   
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
+ 			switch(vpos){
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
+
+                   }
+
+                    a.emplace_back(ktemp,vtemp);
+                }       
+    
+            return a;
+        }  
+    
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                   
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    
+                    switch(kpos)
+                    {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			  }
+ 			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+
+                   }
+                    a.emplace_back(ktemp,vtemp);
+                }       
+    
+            return a;
+        }  
+    
+        template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+   
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+
+                   }
+                    a.emplace_back(ktemp,vtemp);
+                }       
+      
+            return a;
+        }   
+    
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+   
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   case 1: 
+ 	 ktemp=iter.name;
+	 break;
+case 2: 
+ 	 ktemp=iter.password;
+	 break;
+	  }
+ switch(vpos){
+case 1: 
+ 	 vtemp=iter.name;
+	 break;
+case 2: 
+ 	 vtemp=iter.password;
+	 break;
+
+                   }
+
+                    a.emplace_back(ktemp,vtemp);
+                }       
+    
+            return a;
+        }  
+    
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
+        std::vector<std::pair<T,meta>> getvecRows(std::string keyname)
+        {
+            std::vector<std::pair<T,meta>> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+           
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
 
    case 0: 
  	 a.emplace_back(iter.userid,iter);
@@ -1361,23 +1427,22 @@ case 4:
 	 break;
 
                 }
-
-                
-        }       
-
+            }       
+    
         return a;
     }
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-    std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname){
-        std::vector<std::pair<std::string,meta>> a;
+        template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
+        std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname)
+        {
+            std::vector<std::pair<std::string,meta>> a;
 
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-        //std::string ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+               
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
    case 1: 
  	 a.emplace_back(iter.name,iter);
@@ -1387,1036 +1452,1120 @@ case 2:
 	 break;
 
                 }
-
-                
-        }       
+            }       
+    
 
         return a;
     }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+          
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
 
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
 
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-	  }
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+			  }
 
- switch(dpos){
+			 switch(dpos){
+
+                }
+            }       
+
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+
+              
+            T ktemp;
+            U vtemp;
+            //D vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+			  }
+
+			 switch(dpos){
+			case 0: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.level);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+          
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+				  }
+
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+			 }
+
+			 switch(dpos){
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.name);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.password);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+                std::map<T,std::map<U,std::vector<D>>> a;
+
+                unsigned char kpos,vpos,dpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                dpos=findcolpos(dataname);
+   
+                T ktemp;
+                U vtemp;
+            // D dtemp;
+
+                for(auto &iter:record)
+                {
+                    
+                    switch(kpos)
+                    {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
+			  }
+
+			 switch(dpos){
 
                    }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
-
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-	  }
-
- switch(dpos){
-case 0: 
- 	 a[ktemp][vtemp].emplace_back(iter.userid);
-	 break;
-case 3: 
- 	 a[ktemp][vtemp].emplace_back(iter.isopen);
-	 break;
-case 4: 
- 	 a[ktemp][vtemp].emplace_back(iter.level);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
-
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-	  }
-
- switch(dpos){
-case 1: 
- 	 a[ktemp][vtemp].emplace_back(iter.name);
-	 break;
-case 2: 
- 	 a[ktemp][vtemp].emplace_back(iter.password);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
-
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
-	  }
-
- switch(dpos){
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
+                }       
+    
+            return a;
+        }
+    
     template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    {
         std::map<T,std::map<U,std::vector<D>>> a;
 
         unsigned char kpos,vpos,dpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
         dpos=findcolpos(dataname);
+
+           
         T ktemp;
         U vtemp;
        // D dtemp;
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+         for(auto &iter:record)
+         {
+            switch(kpos)
+            {
 
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			 }
 
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
-	  }
+			 switch(vpos){
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
+			 }
 
- switch(dpos){
-case 0: 
- 	 a[ktemp][vtemp].emplace_back(iter.userid);
-	 break;
-case 3: 
- 	 a[ktemp][vtemp].emplace_back(iter.isopen);
-	 break;
-case 4: 
- 	 a[ktemp][vtemp].emplace_back(iter.level);
-	 break;
+			 switch(dpos){
+			case 0: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.level);
+				 break;
 
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
+            }
+         }       
+    
         return a;
     }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   
+            T ktemp;
+            U vtemp;
+            // D dtemp;
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
 
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
 
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
-	  }
+			 switch(vpos){
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
+			  }
 
- switch(dpos){
-case 1: 
- 	 a[ktemp][vtemp].emplace_back(iter.name);
-	 break;
-case 2: 
- 	 a[ktemp][vtemp].emplace_back(iter.password);
-	 break;
+			 switch(dpos){
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.name);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.password);
+				 break;
 
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+                std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+                unsigned char kpos,vpos,dpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                dpos=findcolpos(dataname);
+                  
+                T ktemp;
+                U vtemp;
+                //D vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-         for(auto &iter:record){
-             
-                   switch(kpos){
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			 }
 
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+			  }
 
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-	  }
+			 switch(dpos){
 
- switch(dpos){
+                    }
+                }       
+    
 
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+               
+            T ktemp;
+            U vtemp;
+            //D vtemp;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-        //D vtemp;
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			  }
 
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
+			 switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+			 }
 
- switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-	  }
+			 switch(dpos){
+			case 0: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.level);
+				 break;
 
- switch(dpos){
-case 0: 
- 	 a[ktemp][vtemp].emplace_back(iter.userid);
-	 break;
-case 3: 
- 	 a[ktemp][vtemp].emplace_back(iter.isopen);
-	 break;
-case 4: 
- 	 a[ktemp][vtemp].emplace_back(iter.level);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
+                }
+            }       
+    
+            return a;
+        }
+    
     template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    {
         std::map<T,std::map<U,std::vector<D>>> a;
 
         unsigned char kpos,vpos,dpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
         dpos=findcolpos(dataname);
+   
         T ktemp;
         U vtemp;
-       // D dtemp;
+        // D dtemp;
 
-         for(auto &iter:record){
+         for(auto &iter:record)
+         {
              
-                   switch(kpos){
+            switch(kpos)
+            {
 
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			 }
+
+			switch(vpos){
+			case 0: 
+ 				 vtemp=iter.userid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 vtemp=iter.level;
+				 break;
+			 }
+
+			switch(dpos){
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.name);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.password);
+				 break;
+
+            }
+         }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+           
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
+			  }
+
+			 switch(dpos){
+
+                }
+            }       
+
+    
+            return a;
+        }
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
+			 }
+
+			 switch(dpos){
+			case 0: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.level);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+
+           
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 1: 
+ 				 vtemp=iter.name;
+				 break;
+			case 2: 
+ 				 vtemp=iter.password;
+				 break;
+			  }
+
+			 switch(dpos){
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.name);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.password);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.name);
+				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.password);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			 }
+
+			 switch(vpos){
+
+                }
+            }       
+
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 0: 
+ 				 a[ktemp].emplace_back(iter.userid);
+				 break;
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.isopen);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.level);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.name);
+				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.password);
+				 break;
+
+                }
+            }       
+
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+               
+
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
+
+			 switch(vpos){
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 0: 
+ 				 a[ktemp].emplace_back(iter.userid);
+				 break;
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.isopen);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.level);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
+        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        {
+            std::map<T,std::vector<meta>> a;
+
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+   
+            //T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 0: 
+ 				 a[iter.userid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[iter.isopen].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[iter.level].emplace_back(iter);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        {
+            std::map<T,std::vector<meta>> a;
+
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+   
+            //T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 a[iter.name].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[iter.password].emplace_back(iter);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   
+            T ktemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 1: 
+ 				 a[ktemp][iter.name].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[ktemp][iter.password].emplace_back(iter);
+				 break;
+
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+
+               
+            T ktemp;
+            
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 1: 
+ 				 ktemp=iter.name;
+				 break;
+			case 2: 
+ 				 ktemp=iter.password;
+				 break;
 	  }
 
  switch(vpos){
-case 0: 
- 	 vtemp=iter.userid;
-	 break;
-case 3: 
- 	 vtemp=iter.isopen;
-	 break;
-case 4: 
- 	 vtemp=iter.level;
-	 break;
-	  }
-
- switch(dpos){
-case 1: 
- 	 a[ktemp][vtemp].emplace_back(iter.name);
-	 break;
-case 2: 
- 	 a[ktemp][vtemp].emplace_back(iter.password);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
-
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
-	  }
-
- switch(dpos){
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
-
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
-	  }
-
- switch(dpos){
-case 0: 
- 	 a[ktemp][vtemp].emplace_back(iter.userid);
-	 break;
-case 3: 
- 	 a[ktemp][vtemp].emplace_back(iter.isopen);
-	 break;
-case 4: 
- 	 a[ktemp][vtemp].emplace_back(iter.level);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
-
- switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
-case 2: 
- 	 vtemp=iter.password;
-	 break;
-	  }
-
- switch(dpos){
-case 1: 
- 	 a[ktemp][vtemp].emplace_back(iter.name);
-	 break;
-case 2: 
- 	 a[ktemp][vtemp].emplace_back(iter.password);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
-
- switch(vpos){
-case 1: 
- 	 a[ktemp].emplace_back(iter.name);
-	 break;
-case 2: 
- 	 a[ktemp].emplace_back(iter.password);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
-
- switch(vpos){
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
-
- switch(vpos){
-case 0: 
- 	 a[ktemp].emplace_back(iter.userid);
-	 break;
-case 3: 
- 	 a[ktemp].emplace_back(iter.isopen);
-	 break;
-case 4: 
- 	 a[ktemp].emplace_back(iter.level);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
-
- switch(vpos){
-case 1: 
- 	 a[ktemp].emplace_back(iter.name);
-	 break;
-case 2: 
- 	 a[ktemp].emplace_back(iter.password);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
-
- switch(vpos){
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
-
- switch(vpos){
-case 0: 
- 	 a[ktemp].emplace_back(iter.userid);
-	 break;
-case 3: 
- 	 a[ktemp].emplace_back(iter.isopen);
-	 break;
-case 4: 
- 	 a[ktemp].emplace_back(iter.level);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-  std::map<T,std::vector<meta>> getgroupRows(std::string keyname){
-        std::map<T,std::vector<meta>> a;
-
-        unsigned char kpos;
-        kpos=findcolpos(keyname);
-
-        //T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 a[iter.userid].emplace_back(iter);
-	 break;
-case 3: 
- 	 a[iter.isopen].emplace_back(iter);
-	 break;
-case 4: 
- 	 a[iter.level].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<meta>> getgroupRows(std::string keyname){
-        std::map<T,std::vector<meta>> a;
-
-        unsigned char kpos;
-        kpos=findcolpos(keyname);
-
-        //T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 a[iter.name].emplace_back(iter);
-	 break;
-case 2: 
- 	 a[iter.password].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
-
- switch(vpos){
-case 1: 
- 	 a[ktemp][iter.name].emplace_back(iter);
-	 break;
-case 2: 
- 	 a[ktemp][iter.password].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
+			case 0: 
+ 				 a[ktemp][iter.userid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[ktemp][iter.isopen].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.level].emplace_back(iter);
+				 break;
+
+                }
+            }       
+
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+
+           
         T ktemp;
         
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
-	 break;
-	  }
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			 }
 
- switch(vpos){
-case 0: 
- 	 a[ktemp][iter.userid].emplace_back(iter);
-	 break;
-case 3: 
- 	 a[ktemp][iter.isopen].emplace_back(iter);
-	 break;
-case 4: 
- 	 a[ktemp][iter.level].emplace_back(iter);
-	 break;
+			 switch(vpos){
+			case 0: 
+ 				 a[ktemp][iter.userid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[ktemp][iter.isopen].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.level].emplace_back(iter);
+				 break;
 
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+                }
+            }       
+    
+            return a;
+        }
+    
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
 
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+               
+            T ktemp;
+            
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
+   			case 0: 
+ 				 ktemp=iter.userid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 4: 
+ 				 ktemp=iter.level;
+				 break;
+			  }
 
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
+			 switch(vpos){
+			case 1: 
+ 				 a[ktemp][iter.name].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[ktemp][iter.password].emplace_back(iter);
+				 break;
 
- switch(vpos){
-case 0: 
- 	 a[ktemp][iter.userid].emplace_back(iter);
-	 break;
-case 3: 
- 	 a[ktemp][iter.isopen].emplace_back(iter);
-	 break;
-case 4: 
- 	 a[ktemp][iter.level].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   case 0: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
-	 break;
-	  }
-
- switch(vpos){
-case 1: 
- 	 a[ktemp][iter.name].emplace_back(iter);
-	 break;
-case 2: 
- 	 a[ktemp][iter.password].emplace_back(iter);
-	 break;
-
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    }
-};
- } 
+                }
+            }       
+    
+            return a;
+        }
+    
+  };
+} 
 }
 #endif
    

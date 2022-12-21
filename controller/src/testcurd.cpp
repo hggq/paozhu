@@ -170,7 +170,7 @@ namespace http
 
    std::string articleadd(std::shared_ptr<httppeer> peer)
    {
-      httppeer &client = peer->getpeer();
+      //httppeer &client = peer->getpeer();
       peer->view("cms/add");
       return "";
    }

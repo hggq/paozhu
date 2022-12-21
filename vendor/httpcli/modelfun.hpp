@@ -954,7 +954,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     {
 
         FILE *ff = fopen(modelfileclasscpp.c_str(), "wb");
-        fwrite(&headtxt[0], 1, headtxt.size(), ff);
+        fwrite(&headtxt[0], headtxt.size(), 1, ff);
 
         fclose(ff);
 
@@ -1019,7 +1019,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     {
 
         FILE *ff = fopen(modelfileclasscpp.c_str(), "wb");
-        fwrite(&headtxt[0], 1, headtxt.size(), ff);
+        fwrite(&headtxt[0], headtxt.size(), 1, ff);
 
         fclose(ff);
         std::cout << " create model .h file: \033[1m\033[31m " << modelfileclasscpp << "\033[0m" << std::endl;
@@ -1141,7 +1141,7 @@ struct )";
     filemodelstrem.str("");
     // 头部定义
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     headtxt = "std::string tablename=\"";
     headtxt.append(realtablename);
@@ -1150,18 +1150,8 @@ struct )";
     headtxt.append(tablename);
     headtxt.append("\";\n");
 
-    headtxt += R"(
-	  unsigned char findcolpos(std::string coln){
-		    unsigned char  bi=coln[0];
-            char colpospppc;
-	         if(bi<91&&bi>64){
-				bi+=32;
-			}
-            switch(coln[0]){
-
-
-         )";
-    filemodelstrem.str("");
+    bool iscolpospppc=false;
+   filemodelstrem.str("");
     std::map<char, std::vector<unsigned char>> alpaz;
     for (unsigned char j = 0; j < tablecollist.size(); j++)
     {
@@ -1203,6 +1193,7 @@ struct )";
                         backcolz[ttttp].emplace_back(ittter->second[mm]);
                     }
                     std::ostringstream backcachep;
+                    iscolpospppc=true;
                     backcachep << "  colpospppc=coln.back();\n    if(colpospppc<91&&bi>64){ colpospppc+=32; }\n";
                     bool isbackppp = false;
                     std::map<unsigned char, unsigned char> hasbackpos;
@@ -1236,6 +1227,28 @@ struct )";
         }
     }
 
+  
+
+
+    headtxt += R"(
+	  unsigned char findcolpos(std::string coln){
+		    unsigned char  bi=coln[0];
+         )";     
+    if(iscolpospppc)
+    {
+        headtxt.append("char colpospppc;");
+    }
+
+
+    headtxt += R"(
+
+	         if(bi<91&&bi>64){
+				bi+=32;
+			}
+            switch(coln[0]){
+
+
+         )";
     headtxt.append(filemodelstrem.str());
     filemodelstrem.str("");
 
@@ -1252,7 +1265,7 @@ struct )";
     headtxt.append(tablepkname);
     headtxt.append("\";\n}\n");
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1264,7 +1277,7 @@ struct )";
                  switch(_keypos[i]){
         )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     filemodelstrem.str("");
@@ -1355,7 +1368,7 @@ struct )";
     headtxt.clear();
     headtxt.append(filemodelstrem.str());
     // filemodelstrem.str("");
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1379,12 +1392,12 @@ struct )";
 
         )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt.append(filemodelstrem.str());
     filemodelstrem.str("");
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1443,7 +1456,7 @@ struct )";
 
         )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     std::string insertstring;
@@ -1500,7 +1513,7 @@ struct )";
     insertstrem << "tempsql<<\")\";\n";
     headtxt.append(insertstrem.str());
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1508,7 +1521,7 @@ struct )";
        return tempsql.str();
    }     
     std::string _makeupdatesql(std::string fileld){
-       int j=0;
+       //int j=0;
             std::ostringstream tempsql;
                  tempsql<<"UPDATE ";
                  tempsql<<tablename;
@@ -1522,7 +1535,7 @@ struct )";
 
         )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     std::string updatestring;
@@ -1583,7 +1596,7 @@ struct )";
 
     headtxt.append(" }else{ \n");
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1613,7 +1626,7 @@ struct )";
 
         )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     std::string update2string;
@@ -1675,7 +1688,7 @@ struct )";
     }
     headtxt.append(update2strem.str());
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1694,7 +1707,7 @@ struct )";
 
         )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     std::ostringstream jsonstrem;
@@ -1756,7 +1769,7 @@ struct )";
     headtxt.append(jsonstrem.str());
     headtxt.append("tempsql<<\"}\";\n");
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1765,7 +1778,7 @@ struct )";
    }   
    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////////
     headtxt = R"(
@@ -1801,7 +1814,7 @@ struct )";
                  for(jj=0;jj<keypos.size();jj++){
                        switch(keypos[jj]){
         )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     update2strem.str("");
@@ -1863,7 +1876,7 @@ struct )";
 
     headtxt.append(update2strem.str());
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1876,7 +1889,7 @@ struct )";
    }   
    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////////
     headtxt = R"(
@@ -1919,7 +1932,7 @@ struct )";
                  for(jj=0;jj<keypos.size();jj++){
                        switch(keypos[jj]){
         )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     update2strem.str("");
@@ -1981,7 +1994,7 @@ struct )";
 
     headtxt.append(update2strem.str());
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -1996,7 +2009,7 @@ struct )";
    }   
    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     ///////////////////////////////////////////////
@@ -2047,7 +2060,7 @@ struct )";
                         
                        switch(keypos[jj]){
         )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     update2strem.str("");
@@ -2110,7 +2123,7 @@ struct )";
 
     headtxt.append(update2strem.str());
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
@@ -2125,7 +2138,7 @@ struct )";
    }   
    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     //////////////////////////////////////////////////////////
@@ -2141,7 +2154,7 @@ struct )";
     }
 
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     std::ostringstream getsetstrem;
@@ -2181,7 +2194,7 @@ struct )";
 
     headtxt.append(getsetstrem.str());
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = tablenamebase + "base::meta getnewData(){\n \t struct meta newdata;\n\t return newdata; \n} \n";
@@ -2192,185 +2205,233 @@ struct )";
     headtxt.append(tablenamebase);
     headtxt.append("base::meta> getRecord(){\n \t return record; \n} \n");
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+//////////////////////
+//getCol 1 int
 
     std::ostringstream getcollstrem;
-
-    headtxt = R"(
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-    std::vector<T> getCol(std::string keyname){
-         std::vector<T> a;
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-        for(auto &iter:record){
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    
     getcollstrem.str("");
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t a.emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\t\t a.emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
+    sqlqueryring=getcollstrem.str();
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+
+    headtxt = R"(
+            template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
+            std::vector<T> getCol(std::string keyname)
+            {
+                std::vector<T> a;
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+   )";
+    headtxt.append(sqlqueryring);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-          }
-        }
-        return a;
-    }
+                    }
+                }
     )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+
+    }
+
+    headtxt = R"(
+                return a;
+            }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     //////////////////
-
-    headtxt = R"(
-    template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-    std::vector<T> getCol(std::string keyname){
-        std::vector<T> a;
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-        for(auto &iter:record){
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getCol 2 float
+    sqlqueryring.clear();
     getcollstrem.str("");
-
     for (auto &kaa : floatcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a.emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t\t a.emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t break;\n";
     }
+    sqlqueryring=getcollstrem.str();
+   
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
 
     headtxt = R"(
-    }
-            }
-            return a;
-        }  
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
+			std::vector<T> getCol(std::string keyname)
+			{
+				std::vector<T> a;
+				unsigned char kpos;
+				kpos = findcolpos(keyname);
+)";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+
+    headtxt = R"(  
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+)";
+    headtxt.append(sqlqueryring);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                    }
+                }
     )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    }
+
+    headtxt = R"(
+                return a;
+            }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////
-
+    //getVal is_integral_v
     ////////////////////////////////////////////////
-
-    headtxt = R"(
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-    T getVal(std::string keyname){
-         
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-      
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    sqlqueryring.clear();    
     getcollstrem.str("");
 
     for (auto &kaa : numbercollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t return data." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t return data." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+   
+    headtxt = R"(
+            template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
+            T getVal(std::string keyname)
+            {
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    headtxt = R"(
-    }
-            return 0;
-        }  
-    )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+if(sqlqueryring.size()>0)
+{
+    headtxt = R"(                   
+                    switch(kpos)
+                    {
+
+   )";
+
+    headtxt.append(sqlqueryring);
+    headtxt.append("\t\t\t}");
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    ///------------------
+}
+
     headtxt = R"(
-     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-    T getVal()";
+                return 0;
+            }  
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+/////////////////////////////////
+///getVal base::meta  is_integral_v
+    sqlqueryring.clear();    
+    getcollstrem.str("");
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t return iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
+        T getVal()";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta & iter,std::string keyname){
-         
-         unsigned char kpos;
-         kpos=findcolpos(keyname);
-       
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt += R"(base::meta & iter,std::string keyname)
+        {
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+          )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
+    
+    if(sqlqueryring.size()>0)
     {
+        headtxt = R"(   
+            switch(kpos)
+            {
+   )";
+       headtxt+=sqlqueryring;
+       headtxt+="\n\t\t\t}\n";
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+       fwrite(&headtxt[0], headtxt.size(), 1, f);
+       headtxt.clear();
 
-        getcollstrem << "\t return iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
     }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
 
     headtxt = R"(
-    }
             return 0;
         }  
     )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     //////////////////////////
+    ////getVal float
 
     headtxt = R"(
-        template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-        T getVal(std::string keyname){
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
+            T getVal(std::string keyname)
+            {
+                
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
             
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
-        
-            switch(kpos){
+                switch(kpos)
+                {
 
     )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     getcollstrem.str("");
@@ -2378,78 +2439,78 @@ struct )";
     for (auto &kaa : floatcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t return data." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t return data." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
     headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-    }
-            return 0.0;
-        }  
+                    }
+                    return 0.0;
+            }  
     )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //--------------------
     headtxt = R"(
-     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-    T getVal()";
+            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
+            T getVal()";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta & iter,std::string keyname){
-         
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-         
-                switch(kpos){
-
+    headtxt += R"(base::meta & iter,std::string keyname)
+            {
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+                switch(kpos)
+                {
    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     getcollstrem.str("");
     for (auto &kaa : floatcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t return iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t return iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
     headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-    }
-            return 0.0;
-        }  
+                }
+                return 0.0;
+            }  
     )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
     /////////////////////////
 
     headtxt = R"(
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-    std::string getVal(std::string keyname){
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
+            std::string getVal(std::string keyname)
+            {
          
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
         
-                switch(kpos){
+                switch(kpos)
+                {
 
    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     getcollstrem.str("");
@@ -2457,41 +2518,43 @@ struct )";
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t return data." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t return data." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
     headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-  }
-        return "";
-    }  
+                }
+                return "";
+            }  
    )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
+    ////////////////////////////////
     //-----------------------
 
     headtxt = R"(
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-    std::string getVal()";
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
+            std::string getVal()";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta & iter,std::string keyname){
+    headtxt += R"(base::meta & iter,std::string keyname)
+            {
          
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
        
-                switch(kpos){
+                switch(kpos)
+                {
 
    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     getcollstrem.str("");
@@ -2499,259 +2562,314 @@ struct )";
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t return iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t return iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
     headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-    }
-            return "";
-        }  
+                }
+                return "";
+            }  
     )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
     /////////////////////////
-    headtxt = R"( 
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-    std::vector<std::string> getCol(std::string keyname){
-        std::vector<std::string> a;
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
- 
-         for(auto &iter:record){
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getCol 
+    sqlqueryring.clear();    
     getcollstrem.str("");
-
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t a.emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\t\t a.emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"( 
+            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
+            std::vector<std::string> getCol(std::string keyname)
+            {
+                std::vector<std::string> a;
+                unsigned char kpos;
+                kpos=findcolpos(keyname);
+           )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
+    if(sqlqueryring.size()>0)
+    {
+
+        headtxt = R"(        
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+    )";
+        headtxt+=sqlqueryring;
+        headtxt+="\t\t\t\t\t}\n\t\t\t\t}";
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+
+    }
+
+
     headtxt = R"(
-   }
-        }       
 
         return a;
-    }  
-    std::string getstrCol(std::string keyname,bool isyinhao=false){
-        std::ostringstream a;
-             unsigned char kpos;
-        kpos=findcolpos(keyname);
-  
-         int j=0;
-         if(isyinhao&&record.size()>0){
-             a<<'"';
-         }
-         for(auto &iter:record){
-                if(j>0){
-                    if(isyinhao){
-                        a<<"\",\"";
-                    }else{
-                        a<<',';    
-                    }
-                }
-                 switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
+    ////////////////////////////////////////////
+    //getstrCol("userid",false); // 33,44
+    //getstrCol("userid",true);  // "33","44"
     getcollstrem.str("");
+    sqlqueryring.clear();    
 
     for (int jj = 0; jj < tablecollist.size(); jj++)
     {
 
-        getcollstrem << "case " << std::to_string(jj) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(jj) << ": \n ";
 
         if (colltypeshuzi[jj] < 30)
         {
-            getcollstrem << "\t a<<std::to_string(iter." << tablecollist[jj] << ");"
+            getcollstrem << "\t\t\t\t a<<std::to_string(iter." << tablecollist[jj] << ");"
                          << "\n";
         }
         else
         {
-            getcollstrem << "\t if(isyinhao){ a<<jsonaddslash(iter." << tablecollist[jj] << "); \n\t }else{\n";
-            getcollstrem << "\t a<<iter." << tablecollist[jj] << ";\n";
-            getcollstrem << "\t }\n";
+            getcollstrem << "\t\t\t\t if(isyinhao){ a<<jsonaddslash(iter." << tablecollist[jj] << "); \n\t\t\t\t }else{\n";
+            getcollstrem << "\t\t\t\t a<<iter." << tablecollist[jj] << ";\n";
+            getcollstrem << "\t\t\t\t }\n";
         }
 
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"( 
+        std::string getstrCol(std::string keyname,bool isyinhao=false)
+        {
+            std::ostringstream a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+    )";    
+    fwrite(&headtxt[0], headtxt.size(),1, f);
     headtxt.clear();
 
+    if(sqlqueryring.size()>0)
+    {
+
+
+    headtxt = R"(   
+            int j=0;
+            if(isyinhao&&record.size()>0)
+            {
+                a<<'"';
+            }
+            for(auto &iter:record)
+            {
+                    if(j>0)
+                    {
+                        if(isyinhao)
+                        {
+                            a<<"\",\"";
+                        }else{
+                            a<<',';    
+                        }
+                    }
+                    switch(kpos)
+                    {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+     headtxt = R"(
+                    }
+                    j++;
+            } 
+            if(isyinhao&&j>0){
+                a<<'"';
+            }      
+    )";        
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    }
     headtxt = R"(
-    }
-                j++;
-        } 
-        if(isyinhao&&j>0){
-             a<<'"';
-        }      
-        return a.str();
-    }
+                return a.str();
+        }
     )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////
+    //getCols std::string,std::string
+    //getCols<std::string,std::string>("name","mobile");
+    getcollstrem.str("");
+    sqlqueryring.clear();    
+
+    for (auto &kaa : stringcollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t\t } \n\t\t\t switch(vpos){ \n";
+
+    for (auto &kaa : stringcollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols(std::string keyname,std::string valname){
+    std::map<std::string,std::string> getCols(std::string keyname,std::string valname)
+    {
         std::map<std::string,std::string> a;
         unsigned char kpos,vpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1,f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+
+    headtxt = R"(        
          std::string ktemp,vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
+         for(auto &iter:record)
+         {
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-    getcollstrem.str("");
-
-    for (auto &kaa : stringcollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t } \n\t\t switch(vpos){ \n";
-
-    for (auto &kaa : stringcollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-        }
-                    a.emplace(ktemp,vtemp);
+                }
+                a.emplace(ktemp,vtemp);
             }       
+
+   )";
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+    }
+    headtxt = R"(     
             return a;
-        } )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+        } 
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     ///////////////////////
-    headtxt = R"(
-
-  template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<std::string,U> getCols(std::string keyname,std::string valname){
-        std::map<std::string,U> a;
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-         std::string ktemp;
-         U vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
- 
-       )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    //getCols<std::string,U>
     getcollstrem.str("");
+    sqlqueryring.clear();  
 
     for (auto &kaa : stringcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t } \n        switch(vpos){ \n";
+    getcollstrem << "\t\t\t } \n \t\t    switch(vpos){ \n";
 
     for (auto &kaa : floatcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
+    sqlqueryring=getcollstrem.str();
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
 
     headtxt = R"(
-            }
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    } )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        {
+                std::map<std::string,U> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+     )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(             
+                std::string ktemp;
+                U vtemp;
+                for(auto &iter:record)
+                {    
+                    switch(kpos)
+                    {
+ 
+       )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                    }
+                    a.emplace(ktemp,vtemp);
+                }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(    
+            return a;
+        } 
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     ///////////////////////////////////////////////////////
-    headtxt = R"(
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-  std::map<T,U> getCols(std::string keyname,std::string valname){
-        std::map<T,U> a;
-        unsigned char kpos,vpos;
-         kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-         T ktemp;
-         U vtemp;
-         for(auto &iter:record){
-                
-                switch(kpos){
- 
-       )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getCols <int,float>
     getcollstrem.str("");
+    sqlqueryring.clear();  
 
     for (auto &kaa : numbercollist)
     {
-
         getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
         getcollstrem << "\t ktemp=iter." << kaa.second << ";"
                      << "\n";
         getcollstrem << "\t break;\n";
@@ -2761,608 +2879,736 @@ struct )";
 
     for (auto &kaa : floatcollist)
     {
-
         getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
         getcollstrem << "\t vtemp=iter." << kaa.second << ";"
                      << "\n";
         getcollstrem << "\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-             }
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
+        std::map<T,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<T,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+       )";
+    fwrite(&headtxt[0],headtxt.size(), 1,  f);
+    headtxt.clear();    
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(        
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+ 
+       )";
+    headtxt+=sqlqueryring;   
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
                 a.emplace(ktemp,vtemp);
-        }       
+            }       
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"( 
         return a;
     } )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     /////////////////////////
+    //getCols int,std::string 
+    getcollstrem.str("");
+    sqlqueryring.clear();  
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n \t\t\t switch(vpos){\n";
+
+    for (auto &kaa : stringcollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
     headtxt = R"( 
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-    std::map<T,std::string> getCols(std::string keyname,std::string valname){
-        std::map<T,std::string> a;
+            template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
+            std::map<T,std::string> getCols(std::string keyname,std::string valname)
+            {
+                std::map<T,std::string> a;
                 unsigned char kpos,vpos;
-         kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             std::string vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0],headtxt.size(), 1,  f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(         
+                T ktemp;
+                std::string vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;   
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n switch(vpos){\n";
-
-    for (auto &kaa : stringcollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    headtxt = R"(
-  }
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    }     )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-    ////////////////////////////
-
-    headtxt = R"(
-     template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-    std::map<std::string,U> getCols(std::string keyname,std::string valname){
-        std::map<std::string,U> a;
-             unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             std::string  ktemp;
-             U  vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    getcollstrem.str("");
-
-    for (auto &kaa : stringcollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n switch(vpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    headtxt = R"(
-                 }
-
-             
-                a.emplace(ktemp,vtemp);
-        }       
-        return a;
-    }  )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    /////////////////////////
-    headtxt = R"(
-    template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-    std::map<T,U> getCols(std::string keyname,std::string valname){
-        std::map<T,U> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n switch(vpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    headtxt = R"(
-                   }
-
+       headtxt = R"(
+                    }
                     a.emplace(ktemp,vtemp);
-            }       
+                } 
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
 
-            return a;
-        }   )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt = R"(     
+                return a;
+            }     
+        )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////
-    headtxt = R"(
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-    std::map<T,meta> getmapRows(std::string keyname){
-        std::map<T,meta> a;
-
-            unsigned char kpos;
-         kpos=findcolpos(keyname);
- 
-          //   long long ktemp;
-        
-         for(auto &iter:record){
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    //getCols std::string int
     getcollstrem.str("");
+    sqlqueryring.clear();  
+
+    for (auto &kaa : stringcollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n \t\t\t switch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        // getcollstrem<<"\t ktemp=iter."<<kaa.second<<";"<<"\n";
-        getcollstrem << "\t a.emplace(iter." << kaa.second << ",iter);\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+
+    headtxt = R"(
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
+        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<std::string,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";      
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();       
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(            
+            std::string  ktemp;
+            U  vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
                 }
-        }       
-        return a;
-    }     )";
+                a.emplace(ktemp,vtemp);
+            }       
+    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    }
+    headtxt = R"(  
+        return a;
+    }  
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    /////////////////////////
+    //getCols <int,int>
+    getcollstrem.str("");
+    sqlqueryring.clear();  
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n \t\t\t switch(vpos){\n";
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
+        std::map<T,U> getCols(std::string keyname,std::string valname)
+        {
+            std::map<T,U> a;
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(            
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    headtxt = R"(
+                }
+                a.emplace(ktemp,vtemp);
+            }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    
+    }
+    headtxt = R"(
+            return a;
+        }   
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    ////////////////////////////
+    ///getmapRows int meta
+    getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        // getcollstrem<<"\t ktemp=iter."<<kaa.second<<";"<<"\n";
+        getcollstrem << "\t\t\t\t a.emplace(iter." << kaa.second << ",iter);\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
+        std::map<T,meta> getmapRows(std::string keyname)
+        {
+            std::map<T,meta> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(            
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+
+    headtxt = R"( 
+            return a;
+        }     
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////////
-
-    headtxt = R"(
-   template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-   std::map<std::string,meta> getmapRows(std::string keyname){
-        std::map<std::string,meta> a;
-
-         unsigned char kpos;
- 
-        kpos=findcolpos(keyname);
-    
-
-        //std::string ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getmapRows std::string,meta
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
         // getcollstrem<<"\t ktemp=iter."<<kaa.second<<";"<<"\n";
-        getcollstrem << "\t a.emplace(iter." << kaa.second << ",iter);\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t a.emplace(iter." << kaa.second << ",iter);\n";
+        getcollstrem << "\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
+        std::map<std::string,meta> getmapRows(std::string keyname)
+        {
+            std::map<std::string,meta> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+
+    headtxt = R"(
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
                 }
-
                 //a.emplace(ktemp,iter);
-        }       
+            }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
 
         return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     /////////////////////////////////
-    headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
-    std::vector<std::pair<std::string,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<std::string,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             std::string ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getvecCols std::string float
     getcollstrem.str("");
+    sqlqueryring.clear();  
 
     for (auto &kaa : stringcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n switch(vpos){\n";
+    getcollstrem << "\t \t\t }\n \t\t\tswitch(vpos){\n";
 
     for (auto &kaa : floatcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
+        std::vector<std::pair<std::string,U>> getvecCols(std::string keyname,std::string valname)
+        {
+            std::vector<std::pair<std::string,U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";
+
+    fwrite(&headtxt[0],headtxt.size(), 1,  f);
     headtxt.clear();
 
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(       
+            std::string ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
     headtxt = R"(
                    }
 
-                    a.emplace_back(ktemp,vtemp);
+                 a.emplace_back(ktemp,vtemp);
             }       
 
+     )";
+
+    fwrite(&headtxt[0],headtxt.size(), 1,  f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+
             return a;
-        }   )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+        }   
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////
-    headtxt = R"(
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getvecCols int float
     getcollstrem.str("");
+    sqlqueryring.clear();  
 
     for (auto &kaa : numbercollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : floatcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+
+    headtxt = R"(
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(
+                T ktemp;
+                U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
                    }
 
-                    a.emplace_back(ktemp,vtemp);
-            }       
+                   a.emplace_back(ktemp,vtemp);
+                }       
+
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+        
+    }
+    headtxt = R"(
 
             return a;
-        }   )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+        }   
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////////////////////
-    headtxt = R"(
-  template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getvecCols int string
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : numbercollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n \t\t\tswitch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
                    }
 
                     a.emplace_back(ktemp,vtemp);
-            }       
-
+                }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    
+    }
+    headtxt = R"(
             return a;
-        }   )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+        }  
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////////////////////////////
-    headtxt = R"(
-  template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getvecCols string int
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n \t\t\t switch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+
+    headtxt = R"(                
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    
+                    switch(kpos)
+                    {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
                    }
-
                     a.emplace_back(ktemp,vtemp);
-            }       
-
+                }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+            
+    }
+    headtxt = R"(
             return a;
-        }   )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+        }  
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////////
+    //getvecCols int int
+    getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n\t\t\t switch(vpos){\n";
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
 
     headtxt = R"(
-  template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
+        template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
+    if(sqlqueryring.size()>0)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+    headtxt = R"(
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
 
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n switch(vpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
                    }
-
                     a.emplace_back(ktemp,vtemp);
-            }       
-
+                }       
+      )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+        
+    }
+    headtxt = R"(
             return a;
-        }   )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+        }   
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////////////////////////////////
-    headtxt = R"(
-  template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
-  std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname){
-        std::vector<std::pair<T,U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-             T ktemp;
-             U vtemp;
-         for(auto &iter:record){
-             
-                switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getvecCols std::string std::string
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
-
         getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
         getcollstrem << "\t ktemp=iter." << kaa.second << ";"
                      << "\n";
         getcollstrem << "\t break;\n";
@@ -3374,1707 +3620,1995 @@ struct )";
     {
 
         getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
         getcollstrem << "\t vtemp=iter." << kaa.second << ";"
                      << "\n";
         getcollstrem << "\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
+        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        {
+                std::vector<std::pair<T,U>> a;
+
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(
+                    T ktemp;
+                    U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
                    }
 
                     a.emplace_back(ktemp,vtemp);
-            }       
-
+                }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
             return a;
-        }   )";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+        }  
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////////////
-    headtxt = R"(
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-    std::vector<std::pair<T,meta>> getvecRows(std::string keyname){
-        std::vector<std::pair<T,meta>> a;
-
-         unsigned char kpos;
- 
-        kpos=findcolpos(keyname);
-    
-
-       // T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getvecRows int
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : numbercollist)
     {
 
         getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
         // getcollstrem<<"\t ktemp=iter."<<kaa.second<<";"<<"\n";
         getcollstrem << "\t a.emplace_back(iter." << kaa.second << ",iter);\n";
         getcollstrem << "\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
+        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
+        std::vector<std::pair<T,meta>> getvecRows(std::string keyname)
+        {
+            std::vector<std::pair<T,meta>> a;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+     )";    
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(      
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
                 }
+            }       
+    )";
 
-                
-        }       
-
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
         return a;
     })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////
-    headtxt = R"(
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-    std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname){
-        std::vector<std::pair<std::string,meta>> a;
-
-         unsigned char kpos;
-        kpos=findcolpos(keyname);
-        //std::string ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    //getvecRows std::string meta
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
-
         getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
         // getcollstrem<<"\t ktemp=iter."<<kaa.second<<";"<<"\n";
         getcollstrem << "\t a.emplace_back(iter." << kaa.second << ",iter);\n";
         getcollstrem << "\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
+        std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname)
+        {
+            std::vector<std::pair<std::string,meta>> a;
+
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+      )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(         
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+
+        return a;
+    })";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    ////////////////////////////////////////////////////
+    // getgroupCols int int float
+    getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
+
+    for (auto &kaa : numbercollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(dpos){\n";
+
+    for (auto &kaa : floatcollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        // getcollstrem<<"\t dtemp=iter."<<kaa.second<<";"<<"\n";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");"
+                     << "\n";
+        // a[ktemp][vtemp].emplace_back(dtemp);
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(      
+            T ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
                 }
+            }       
 
-                
-        }       
-
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
-    ////////////////////////////////////////////////////
-    // groupby int int float
+    }
     headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
-
-    for (auto &kaa : floatcollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-        // getcollstrem<<"\t dtemp=iter."<<kaa.second<<";"<<"\n";
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");"
-                     << "\n";
-        // a[ktemp][vtemp].emplace_back(dtemp);
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////
-    // groupby int int int
+    // getgroupCols int int int
+    getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(dpos){\n";
+
+    for (auto &kaa : numbercollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
     headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-        //D vtemp;
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(          
+            T ktemp;
+            U vtemp;
+            //D vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+                }
+            }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     /////////////////////////
-    // groupby int int string
-    headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    // getgroupCols int int string
     getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : numbercollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t\t  }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(dpos){\n";
 
     for (auto &kaa : stringcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(       
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+                }
+            }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////
-    // groupby int string float
-    headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    // getgroupCols int string float
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(dpos){\n";
 
     for (auto &kaa : floatcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
+
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+                std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+                unsigned char kpos,vpos,dpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                dpos=findcolpos(dataname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(
+                T ktemp;
+                U vtemp;
+            // D dtemp;
+
+                for(auto &iter:record)
+                {
+                    
+                    switch(kpos)
+                    {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                   }
+                }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////
-    // groupby int string int
+    // getgroupCols int string int
+    getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : numbercollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
+
+    for (auto &kaa : stringcollist)
+    {
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(dpos){\n";
+
+    for (auto &kaa : numbercollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
+
     headtxt = R"(
     template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    {
         std::map<T,std::map<U,std::vector<D>>> a;
 
         unsigned char kpos,vpos,dpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
         dpos=findcolpos(dataname);
+
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(        
         T ktemp;
         U vtemp;
        // D dtemp;
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+         for(auto &iter:record)
+         {
+            switch(kpos)
+            {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
-
-    for (auto &kaa : stringcollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+            }
+         }       
+    )";
 
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
         return a;
     })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////
-    // groupby int string string
-    headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    // getgroupCols int string string
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(dpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    //////////////////////////////////////////////
-    /////////////////////////////////////////////
 
-    ////////////////////////////////////////////////////
-    // groupby string int float
+    if(sqlqueryring.size()>0)
+    {
     headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+            T ktemp;
+            U vtemp;
+            // D dtemp;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            { 
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
+    headtxt = R"(
+                }
+            }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////////////
+    // getgroupCols string int float
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(dpos){\n";
 
     for (auto &kaa : floatcollist)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
         // getcollstrem<<"\t dtemp=iter."<<kaa.second<<";"<<"\n";
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");"
                      << "\n";
         // a[ktemp][vtemp].emplace_back(dtemp);
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+                std::map<T,std::map<U,std::vector<D>>> a;
+
+                unsigned char kpos,vpos,dpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                dpos=findcolpos(dataname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+     headtxt = R"(               
+                T ktemp;
+                U vtemp;
+                //D vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+                    }
+                }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////
     // groupby string int int
-    headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-        //D vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(dpos){\n";
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
+
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(            
+            T ktemp;
+            U vtemp;
+            //D vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+                }
+            }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     /////////////////////////
-    // groupby string int string
-    headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    // getgroupCols string int string
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\tswitch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\tswitch(dpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-    //////////////////////////////////////////////
-    // groupby string string float
-    headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
+    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    {
         std::map<T,std::map<U,std::vector<D>>> a;
 
         unsigned char kpos,vpos,dpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
         dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(
+        T ktemp;
+        U vtemp;
+        // D dtemp;
+
+         for(auto &iter:record)
+         {
+             
+            switch(kpos)
+            {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    headtxt = R"(
+            }
+         }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////////////
+    // getgroupCols string string float
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(dpos){\n";
 
     for (auto &kaa : floatcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    //////////////////////////////////////////////
-    // groupby string string int
-    headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(        
+            T ktemp;
+            U vtemp;
+            // D dtemp;
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+    headtxt = R"(
+                }
+            }       
 
+    )";
+  
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        })";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////////////
+    // getgroupCols string string int
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(dpos){\n";
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    //////////////////////////////////////////////
-    // groupby string string string
+
+    if(sqlqueryring.size()>0)
+    {
     headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname){
-        std::map<T,std::map<U,std::vector<D>>> a;
+            T ktemp;
+            U vtemp;
+            // D dtemp;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
 
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////////////
+    // getgroupCols string string string
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t vtemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(dpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(dpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t a[ktemp][vtemp].emplace_back(iter." << kaa.second << ");\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        {
+            std::map<T,std::map<U,std::vector<D>>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
+
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(        
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////
     // 2D data
-    /////////////////////////////////////////////
-    ////////////////////////////
-    // groupby string string
+    // getgroupCols string string
+    getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : stringcollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
+
+    for (auto &kaa : stringcollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp].emplace_back(iter." << kaa.second << ");"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
     headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    getcollstrem.str("");
-
-    for (auto &kaa : stringcollist)
+    if(sqlqueryring.size()>0)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
-
-    for (auto &kaa : stringcollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp].emplace_back(iter." << kaa.second << ");"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
     headtxt = R"(
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
+            T ktemp;
+            //U vtemp;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////
-    ////////////////////////////
-    // groupby string float
-    headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    // getgroupCols string float
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : floatcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
 
-        getcollstrem << "\t a[ktemp].emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\t\t a[ktemp].emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    //////////////////////////////////////
-    // groupby string int
+
+    if(sqlqueryring.size()>0)
+    {
     headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
+            T ktemp;
+            //U vtemp;
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+    headtxt = R"(
+                }
+            }       
 
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////
+    // getgroupCols string int
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp].emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp].emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    sqlqueryring=getcollstrem.str();
+    
+    headtxt = R"(
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    headtxt = R"(
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////
-    ////////////////////////////////////////////
-    ////////////////////////////
-    // groupby int string
-    headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    // getgroupCols int string
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp].emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp].emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    ///////////////////////////////////////////
-    ////////////////////////////
-    // groupby int float
+
+    if(sqlqueryring.size()>0)
+    {
     headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
+            T ktemp;
+            //U vtemp;
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-
-        T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+    headtxt = R"(
+                }
+            }       
 
+    )";
+ 
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    ///////////////////////////////////////////
+    //getgroupCols int float
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : floatcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp].emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp].emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    //////////////////////////////////////
-    // groupby int int
-    headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname){
-        std::map<T,std::vector<U>> a;
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(            
 
-        T ktemp;
-        //U vtemp;
+            T ktemp;
+            //U vtemp;
 
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
 
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////
+    // getgroupCols int int
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp].emplace_back(iter." << kaa.second << ");"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp].emplace_back(iter." << kaa.second << ");"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
+
 
     headtxt = R"(
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        {
+            std::map<T,std::vector<U>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////
     // meta row
     //////////////////////////////////////////
-    // groupby int meta
-    headtxt = R"(
-    template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-  std::map<T,std::vector<meta>> getgroupRows(std::string keyname){
-        std::map<T,std::vector<meta>> a;
-
-        unsigned char kpos;
-        kpos=findcolpos(keyname);
-
-        //T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    // getgroupRows int meta
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[iter." << kaa.second << "].emplace_back(iter);"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[iter." << kaa.second << "].emplace_back(iter);"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
+        template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
+        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        {
+            std::map<T,std::vector<meta>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    ///////////////////////////////////////////////
-    // groupby string meta
+
+    if(sqlqueryring.size()>0)
+    {
     headtxt = R"(
-    template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-  std::map<T,std::vector<meta>> getgroupRows(std::string keyname){
-        std::map<T,std::vector<meta>> a;
+            //T ktemp;
+            //U vtemp;
 
-        unsigned char kpos;
-        kpos=findcolpos(keyname);
-
-        //T ktemp;
-        //U vtemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
 
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    ///////////////////////////////////////////////
+    // getgroupRows string meta
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[iter." << kaa.second << "].emplace_back(iter);"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[iter." << kaa.second << "].emplace_back(iter);"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp].emplace_back(vtemp);
-        }       
+        template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
+        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        {
+            std::map<T,std::vector<meta>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(
+            //T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////
     ////3D meta row
     ////////////////////////////////////
-    // groupby string string meta
-    headtxt = R"(
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
+    // getgroupRows string string meta
     getcollstrem.str("");
+    sqlqueryring.clear(); 
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
+
+    for (auto &kaa : stringcollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][iter." << kaa.second << "].emplace_back(iter);"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
+
+    headtxt = R"(
+        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(
+            T ktemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////////
+    // getgroupRows string int meta
+    getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : stringcollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
     getcollstrem << "\t  }\n\n switch(vpos){\n";
 
-    for (auto &kaa : stringcollist)
+    for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][iter." << kaa.second << "].emplace_back(iter);"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][iter." << kaa.second << "].emplace_back(iter);"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
+    sqlqueryring=getcollstrem.str();
 
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(            
+            T ktemp;
+            
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   )";
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+
+    )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////
-    // groupby string int meta
-    headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
+    // getgroupRows int int meta
+    getcollstrem.str("");
+    sqlqueryring.clear(); 
 
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
+    for (auto &kaa : numbercollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t }\n\n\t\t\t switch(vpos){\n";
+
+    for (auto &kaa : numbercollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][iter." << kaa.second << "].emplace_back(iter);"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    sqlqueryring=getcollstrem.str();
+
+    headtxt = R"(
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
+    {
+    headtxt = R"(        
         T ktemp;
         
-         for(auto &iter:record){
-             
-                   switch(kpos){
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+    headtxt = R"(
+                }
+            }       
+    )";
 
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////////
+    // getgroupRows int string meta
     getcollstrem.str("");
+    sqlqueryring.clear(); 
+
+    for (auto &kaa : numbercollist)
+    {
+
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
+                     << "\n";
+        getcollstrem << "\t\t\t\t break;\n";
+    }
+
+    getcollstrem << "\t\t\t  }\n\n\t\t\t switch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
 
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
+        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\t\t a[ktemp][iter." << kaa.second << "].emplace_back(iter);"
                      << "\n";
-        getcollstrem << "\t break;\n";
+        getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
+    sqlqueryring=getcollstrem.str();
 
-    for (auto &kaa : numbercollist)
+    headtxt = R"(
+        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        {
+            std::map<T,std::map<U,std::vector<meta>>> a;
+
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    if(sqlqueryring.size()>0)
     {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][iter." << kaa.second << "].emplace_back(iter);"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-    //////////////////////////////////////////
-    // groupby int int meta
-    headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
+    headtxt = R"(            
+            T ktemp;
+            
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
 
    )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    headtxt+=sqlqueryring;
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][iter." << kaa.second << "].emplace_back(iter);"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
     headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
+                }
+            }       
+    )";
 
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    }
+    headtxt = R"(
+            return a;
+        }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////
-    // groupby int string meta
-    headtxt = R"(
-    template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-  std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname){
-        std::map<T,std::map<U,std::vector<meta>>> a;
-
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        T ktemp;
-        
-         for(auto &iter:record){
-             
-                   switch(kpos){
-
-   )";
-
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    getcollstrem.str("");
-
-    for (auto &kaa : numbercollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t ktemp=iter." << kaa.second << ";"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    getcollstrem << "\t  }\n\n switch(vpos){\n";
-
-    for (auto &kaa : stringcollist)
-    {
-
-        getcollstrem << "case " << std::to_string(kaa.first) << ": \n ";
-
-        getcollstrem << "\t a[ktemp][iter." << kaa.second << "].emplace_back(iter);"
-                     << "\n";
-        getcollstrem << "\t break;\n";
-    }
-
-    headtxt.append(getcollstrem.str());
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-
-    headtxt = R"(
-                   }
-                //a[ktemp][vtemp].emplace_back(dtemp);
-        }       
-
-        return a;
-    })";
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
-    headtxt.clear();
-    //////////////////////////////////////////
-
+    //end orm basefile
     //////////////////////////////////////////////
     //////////////////////
     headtxt = R"(
-};
+  };
 )";
     if (rmstag != "default")
     {
-        headtxt.append(" } ");
+        headtxt.append("} ");
     }
     headtxt += R"(
 }
 #endif
    )";
 
-    fwrite(&headtxt[0], 1, headtxt.size(), f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     fclose(f);
