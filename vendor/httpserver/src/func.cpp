@@ -35,6 +35,62 @@
 namespace http
 {
     namespace fs = std::filesystem;
+    void get_filename(const std::string &filename,std::string &filename_name,std::string &filename_ext)
+    {
+
+            int j = filename.size() - 1;
+            if(j==-1) return;
+            for (; j >= 0; j--)
+            {
+                if (filename[j] == '.')
+                {
+                    if(filename_name.size()==2&&filename_name[0]=='z'&&filename_name[1]=='g')
+                    {
+                        filename_name.push_back('.');
+                        continue;
+                    }
+                    filename_ext=filename_name;
+                    filename_name.clear();
+                    continue;
+                }
+                if (filename[j] == '/')
+                {
+                    j--;
+                    break;
+                }
+                filename_name.push_back(filename[j]);
+            }
+            std::reverse(filename_name.begin(), filename_name.end());
+            std::reverse(filename_ext.begin(), filename_ext.end());
+
+    }
+    std::string get_filename(const std::string &filename)
+    {
+            std::string filename_name;
+            int j = filename.size() - 1;
+            if(j==-1) return "";
+            for (; j >= 0; j--)
+            {
+                if (filename[j] == '.')
+                {
+                    if(filename_name.size()==2&&filename_name[0]=='z'&&filename_name[1]=='g')
+                    {
+                        continue;
+                    }
+                    filename_name.clear();
+                    continue;
+                }
+                if (filename[j] == '/')
+                {
+                    j--;
+                    break;
+                }
+                filename_name.push_back(filename[j]);
+            }
+            std::reverse(filename_name.begin(), filename_name.end());
+        return filename_name;
+
+    }
     std::vector<std::string> mb_split(std::string pattern, std::string &msg)
     {
         std::vector<std::string> temp;
@@ -1130,5 +1186,73 @@ namespace http
         }
         return temp;
     }
+        long long str2int(const char *source, unsigned int str_length)
+    {
+        long long  temp = 0;
+        int qi = 0;
+        bool issub=false;
+        for (; qi < str_length; qi++)
+        {
+            if (source[qi] != 0x20)
+            {
+                break;
+            }    
+        }
+        if(source[qi]=='-')
+        {
+            issub=true;
+            qi++;
+        }
+        for (; qi < str_length; qi++)
+        {
+            if (source[qi] < 0x3A && source[qi] > 0x2F)
+            {
+                temp = temp * 10 + (source[qi] - 0x30);
+            }
+        }
+        if(issub)
+        {
+            temp=0-temp;
+        }
+        return temp;
+    }
+    std::string str2safepath(const char *source, unsigned int str_length)
+    {
+        std::string temp;
+        for(int i=0;i<str_length;i++)
+        {
 
+            if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='('||source[i]==')'||source[i]=='~'||source[i]=='_'||source[i]=='-'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))
+            {
+              temp.push_back(source[i]);
+            }
+        }
+        return temp;
+    }
+    std::string str2safefile(const char *source, unsigned int str_length)
+    {
+        std::string temp;
+        for(int i=0;i<str_length;i++)
+        {
+
+            if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='.'||source[i]=='['||source[i]==']'||source[i]=='('||source[i]==')'||source[i]=='~'||source[i]=='_'||source[i]=='-'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))
+            {
+              temp.push_back(source[i]);
+            }
+        }
+        return temp;
+    }
+    std::string str2safemethold(const char *source, unsigned int str_length)
+    {
+        std::string temp;
+        for(int i=0;i<str_length;i++)
+        {
+
+            if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='_'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))
+            {
+              temp.push_back(source[i]);
+            }
+        }
+        return temp;
+    }
 }

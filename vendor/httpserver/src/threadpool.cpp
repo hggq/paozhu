@@ -44,8 +44,7 @@
 #include "client_session.h"
 #include "httppeer.h"
 #include "terminal_color.h"
-#include "str_fun.h"
-
+#include "func.h"
 #include "sendqueue.h"
 #include "http2_parse.h"
 #include "http_mime.h"
@@ -1123,17 +1122,19 @@ namespace http
 
         if (_http_regmethod_table.find(peer->pathinfos[0]) != _http_regmethod_table.end())
         {
-          regmethold_path = peer->pathinfos[0];
+          regmethold_path = get_filename(peer->pathinfos[0]);
         }
         else
         {
-          regmethold_path = peer->pathinfos[0] + "/" + peer->pathinfos[1];
+          regmethold_path = peer->pathinfos[0] + "/" + get_filename(peer->pathinfos[1]);
         }
       }
       else
       {
-        regmethold_path = peer->pathinfos[0];
+        regmethold_path = get_filename(peer->pathinfos[0]);
       }
+
+      
 
       if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
       {
@@ -1193,7 +1194,8 @@ namespace http
         serverconfig &sysconfigpath = getserversysconfig();
 
         std::string moduleso, sopath;
-        regmethold_path = str2safepath((const char *)&peer->pathinfos[0][0], peer->pathinfos[0].size());
+        regmethold_path=get_filename(peer->pathinfos[0]);
+        regmethold_path = str2safepath((const char *)&regmethold_path[0], regmethold_path.size());
 
         peer->pathinfos[0] = regmethold_path;
 

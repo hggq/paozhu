@@ -7,6 +7,8 @@
 #include <vector>
 #include <mutex>
 #include <atomic>
+#include "terminal_color.h"
+
 namespace http
 {
      struct sendqueue_t
@@ -51,8 +53,8 @@ namespace http
         }
         ~sendqueue_back()
         {
-            std::cout<<"~sendqueue_back type=0";
             mcache->type=0;
+            DEBUG_LOG(" ~sendqueue_back  ");
         }
       };
 

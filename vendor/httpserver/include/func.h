@@ -13,7 +13,9 @@
 
 namespace http
 { 
-    std::vector<std::string> mb_split(std::string,std::string &);
+    void get_filename(const std::string &filename,std::string &filename_name,std::string &filename_ext);
+    std::string get_filename(const std::string &filename);
+    std::vector<std::string> mb_split(const std::string,std::string &);
     std::string html_encode(std::string &);
     std::string mb_trim(std::string &);
     std::string mb_substr(std::string &,int,int length=0);
@@ -25,5 +27,10 @@ namespace http
     std::string file_get_contents(std::string);
     bool file_put_contents(std::string,std::string&,bool append=false);
     bool file_put_contents(std::string,const char *,unsigned int,bool append=false);
+
+    long long str2int(const char *source, unsigned int str_length);
+    std::string str2safepath(const char *source, unsigned int str_length);
+    std::string str2safefile(const char *source, unsigned int str_length);
+     std::string str2safemethold(const char *source, unsigned int str_length);
 }
 #endif

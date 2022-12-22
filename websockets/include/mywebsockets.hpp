@@ -18,7 +18,7 @@
 #include "orm.h"
 #include "httppeer.h"
 #include "websockets.h"
-
+#include "terminal_color.h"
 //g++ -shared -fPIC mywebsockets.cpp -o mywebsockets.so
 namespace http {
 
@@ -29,20 +29,19 @@ class mywebsockets : public websockets_api {
     unsigned int outcount=0;    
     mywebsockets(std::weak_ptr<httppeer> p) : websockets_api(4,0,p){}
     ~mywebsockets() {
-
-        std::cout<<"~mywebsockets"<<std::endl;
+        DEBUG_LOG(" ~mywebsockets ");
     }
 public:
     void onopen(){
-        std::cout<<"onopen"<<std::endl;
+        DEBUG_LOG(" onopen ");
     }
      void onclose(){
-        std::cout<<"onopen"<<std::endl;
+        DEBUG_LOG(" onclose ");
     }
      void pushloop() {
        std::shared_ptr<httppeer> peer=weak_peer.lock();
          if(peer){
-                std::cout<<"timeloop:"<<std::endl;
+                DEBUG_LOG(" timeloop ");
                 std::string aa="777888asdafa";
                 std::string outhello;
                 peer->ws->makeWSText(aa.data(), aa.length(), outhello);
@@ -56,16 +55,20 @@ public:
              }
              outcount++;
          }else{
-            std::cout<<"peer is die!"<<std::endl;
+            DEBUG_LOG(" peer is die! ");
          }
     }
     
      void onfiles(std::string_view filename) {
-        std::cout<<"--------onfiles:--------"<<filename<<std::endl;
+        DEBUG_LOG("onfiles");
 
     }
     void onmessage(std::string_view data) {
-        std::cout<<std::this_thread::get_id()<<" onmessage:"<<data<<std::endl;
+        std::ostringstream oss;
+        oss << std::this_thread::get_id();
+        oss <<" onmessage:"<<data<<std::endl;
+        std::string temp=oss.str();
+        DEBUG_LOG("%s",temp.c_str());
         std::shared_ptr<http::httppeer> peer=weak_peer.lock();
         if(peer){
                 std::string outhello;

@@ -39,7 +39,7 @@
 #include "server_localvar.h"
 #include "urlcode.h"
 #include "request.h"
-#include "str_fun.h"
+#include "func.h"
 #ifndef WIN32
 #include <unistd.h>
 #endif
