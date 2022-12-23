@@ -32,7 +32,7 @@ QQ群：668296235
 ### 2.运行环境
 
 - C++ standard request c++20
-- boost asio mysql gd MySQL Connector/C++ qrencode
+- boost asio mysql mysql-client gd qrencode
   zlib brotli(br)
 
 ### 3.环境配置
@@ -50,7 +50,7 @@ QQ群：668296235
 ```bash
 brew install boost
 brew install asio
-brew install mysql-connector-c++
+brew install mysql
 brew install gd
 brew install qrencode
 brew install zlib
@@ -84,6 +84,7 @@ make
 ### 5.hosts配置
 
 - 查看`conf/server.conf`文件中`mainhost`值
+- 替换 /Users/hzq/paozhu 为你的项目目录
 - 打开host文件
 
 ```shell
