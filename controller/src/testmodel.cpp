@@ -15,7 +15,7 @@ namespace http
             client << "userid: "<<users.getUserid();
             auto artlists=users.gettoparticle(1);
 
-            for(int i=0;i<artlists.size();i++)
+            for(size_t i=0;i<artlists.size();i++)
             {     
                   client << "<p> title "<<artlists[i].title<<"</p>";      
             }
