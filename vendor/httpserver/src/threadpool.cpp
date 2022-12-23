@@ -554,7 +554,7 @@ namespace http
       unsigned long long file_size = ftell(fp.get());
       fseek(fp.get(), 0, SEEK_SET);
       std::string htmlcontent;
-
+      std::string etag;
       std::string fileexttype;
       std::string mime_value = "text/html; charset=utf-8";
       peer->compress = 0;
@@ -576,6 +576,39 @@ namespace http
         {
           fileexttype.push_back(peer->sendfilename[filenameoffset]);
         }
+      }
+      if (fileexttype.size() > 0)
+      {
+        mime_value = mime_map[fileexttype];
+        if (mime_value.empty())
+        {
+          mime_value = "text/html; charset=utf-8";
+        }
+      }
+      else
+      {
+        if (file_size > 20480)
+        {
+          mime_value = "application/octet-stream";
+        }
+        else
+        {
+          mime_value = "text/plain";
+        }
+      }
+
+      etag=make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size())
+      if (peer->etag == etag)
+      {
+        peer->status(304);
+        peer->length(0);
+        peer->setHeader("date", getGmtTime());
+        peer->setHeader("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+        peer->setHeader("etag", etag);
+        peer->type(mime_value);
+        _send_header = peer->make_http2_header();
+        peer->socket_session->send_data(_send_header);
+        return true;
       }
 
       if (file_size < 16877216 && fileexttype.size() > 0 && mime_compress.contains(fileexttype))
@@ -607,25 +640,7 @@ namespace http
         }
       }
 
-      if (fileexttype.size() > 0)
-      {
-        mime_value = mime_map[fileexttype];
-        if (mime_value.empty())
-        {
-          mime_value = "text/html; charset=utf-8";
-        }
-      }
-      else
-      {
-        if (file_size > 20480)
-        {
-          mime_value = "application/octet-stream";
-        }
-        else
-        {
-          mime_value = "text/plain";
-        }
-      }
+
 
       peer->status(200);
       peer->length(file_size);
@@ -638,7 +653,7 @@ namespace http
       peer->setHeader("date", getGmtTime());
       peer->setHeader("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
 
-      peer->setHeader("etag", make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size()));
+      peer->setHeader("etag",etag);
 
       _send_header = peer->make_http2_header();
       peer->socket_session->send_data(_send_header);
