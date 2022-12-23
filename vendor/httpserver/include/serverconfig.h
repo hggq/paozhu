@@ -34,6 +34,7 @@ namespace http
     public:
         std::string serverpath;
         std::string wwwpath;
+        std::string mainhost;
         // std::map<std::string,std::function<std::shared_ptr<websockets_api>(std::weak_ptr<client_session>)>> websocketmethodcallback;
         std::map<std::string, std::function<std::string(http::client_session &)>> methodcallback;
         std::string configfile;

@@ -399,7 +399,7 @@ namespace http
          static_server_var.www_path=map_value["default"]["wwwpath"];
          static_server_var.temp_path=map_value["default"]["temppath"];
          static_server_var.log_path=map_value["default"]["logpath"];
-
+         mainhost=map_value["default"]["mainhost"];
          if(static_server_var.www_path.size()>0&&static_server_var.www_path.back()!='/')
          {
             static_server_var.www_path.push_back('/');
@@ -416,22 +416,21 @@ namespace http
     }
     bool serverconfig::checkmaindomain(const char *servername)
     {
-        std::string btmp;
-        std::string maindomain = map_value["default"]["mainhost"];
-        if (maindomain.empty())
+        if (mainhost.empty())
         {
             return false;
         }
-        if (maindomain[0] == 'w' && maindomain[1] == 'w' && maindomain[2] == 'w' && maindomain[3] == '.')
-        {
-            if (maindomain.size() > 4)
-            {
-                btmp.append(&maindomain[4], maindomain.size() - 4);
-            }
-        }
-        if (strcasecmp(servername, maindomain.c_str()) == 0)
+        if (strcasecmp(servername, mainhost.c_str()) == 0)
         {
             return true;
+        }
+        std::string btmp;
+        if (mainhost[0] == 'w' && mainhost[1] == 'w' && mainhost[2] == 'w' && mainhost[3] == '.')
+        {
+            if (mainhost.size() > 4)
+            {
+                btmp.append(&mainhost[4], mainhost.size() - 4);
+            }
         }
         if (btmp.size() > 0 && strcasecmp(servername, btmp.c_str()) == 0)
         {
