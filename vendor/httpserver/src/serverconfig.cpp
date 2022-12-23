@@ -313,6 +313,18 @@ namespace http
                     configfile.clear();
                 }
             }
+            if (fs::is_directory(cpath))
+            {
+                configfile = configfile + "/server.conf";
+                cpath = configfile;
+                if (fs::is_regular_file(cpath))
+                {
+                }
+                else
+                {
+                    configfile.clear();
+                }
+            }
 
         }
         if (configfile.size() > 0)
