@@ -1129,6 +1129,7 @@ namespace http
     error_path.append("error.log");
     struct flock lockstr = {};
     unsigned int mysqlpool_time=1;
+    std::size_t n_write;
     for (;;)
     {
       if (catch_num > 10)
@@ -1182,7 +1183,7 @@ namespace http
           std::unique_lock<std::mutex> loglock(log_mutex);
           while (!access_loglist.empty())
           {
-            write(fd, access_loglist.front().data(), access_loglist.front().size());
+            n_write=write(fd, access_loglist.front().data(), access_loglist.front().size());
             access_loglist.pop_front();
           }
           loglock.unlock();
@@ -1220,7 +1221,7 @@ namespace http
           std::unique_lock<std::mutex> loglock(log_mutex);
           while (!error_loglist.empty())
           {
-            write(fd, error_loglist.front().data(), error_loglist.front().size());
+            n_write=write(fd, error_loglist.front().data(), error_loglist.front().size());
             error_loglist.pop_front();
           }
           loglock.unlock();
