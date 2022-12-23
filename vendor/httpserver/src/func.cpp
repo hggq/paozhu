@@ -180,7 +180,7 @@ namespace http
                 }
 
                 int offsetnum = 0;
-                for (int pos = 0; pos < str.size(); pos++)
+                for (unsigned int pos = 0; pos < str.size(); pos++)
                 {
                     c = (unsigned char)str[pos];
                     if (c < 0x80)
@@ -930,7 +930,7 @@ namespace http
                 bool isport = false;
                 std::string temphost;
                 std::string tempport;
-                int j = i + 7;
+                unsigned int j = i + 7;
                 for (; j < str.size(); j++)
                 {
                     if (str[j] == '/')
@@ -983,7 +983,7 @@ namespace http
                 bool isport = false;
                 std::string temphost;
                 std::string tempport;
-                int j = i + 8;
+                unsigned int j = i + 8;
                 for (; j < str.size(); j++)
                 {
                     if (str[j] == '/')
@@ -1045,7 +1045,7 @@ namespace http
                 }
                 if (str[i] == '?')
                 {
-                    for (int j = i + 1; j < str.size(); j++)
+                    for (unsigned int j = i + 1; j < str.size(); j++)
                     {
                         if (str[j] == '#')
                         {

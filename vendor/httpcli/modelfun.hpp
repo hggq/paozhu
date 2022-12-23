@@ -91,17 +91,17 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     fields = mysql_fetch_fields(result);
 
     std::vector<std::string> table, tablecollist;
-    std::vector<int> tablecelwidth;
+    std::vector<unsigned int> tablecelwidth;
 
     table.resize(num_fields);
     tablecelwidth.resize(num_fields);
 
-    int defaultcolnamepos = 255;
+    //int defaultcolnamepos = 255;
 
     std::map<std::string, std::map<std::string, std::string>> tableinfo;
      std::map<unsigned char, unsigned char> table_type;
      std::map<unsigned char, unsigned char> table_type_unsigned;   
-    for (unsigned int index = 0; index < num_fields; index++)
+    for (int index = 0; index < num_fields; index++)
     {
         tablecelwidth[index] = 0;
         table[index].append(std::string(fields[index].name));
@@ -110,10 +110,10 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         {
             tablecelwidth[index] = table[index].size();
         }
-        if (table[index] == "default")
-        {
-            defaultcolnamepos = index;
-        }
+        // if (table[index] == "default")
+        // {
+        //     defaultcolnamepos = index;
+        // }
         //table_type[index]=fields[index].type;
     }
 
@@ -1170,7 +1170,7 @@ struct )";
             filemodelstrem << " switch(coln.size()){  \n";
             std::map<unsigned char, std::vector<unsigned char>> sizecolz;
 
-            for (int m = 0; m < itter->second.size(); m++)
+            for (unsigned int m = 0; m < itter->second.size(); m++)
             {
 
                 unsigned char taa = tablecollist[itter->second[m]].size();
@@ -1922,7 +1922,7 @@ struct )";
                      }
                  }
                 tempsql<<"[";
-              for(int n=0;n<record.size();n++){
+              for(size_t n=0;n<record.size();n++){
                   if(n>0){
                       tempsql<<",{";
                   }else{
@@ -2043,7 +2043,7 @@ struct )";
                      }
                  }
                 tempsql<<"[";
-              for(int n=0;n<record.size();n++){
+              for(size_t n=0;n<record.size();n++){
                  keyname.clear();
                  if(func(keyname,record[n])){ 
                             if(n>0){
@@ -6220,7 +6220,7 @@ maxpool=20
 
     std::vector<std::string> tablelist;
     std::vector<std::string> tableshow;
-    int maxchar = 0;
+    unsigned int maxchar = 0;
     int loopnumcount = 0;
     while (true)
     {
@@ -6276,10 +6276,11 @@ maxpool=20
         int groupp = ceil((float)tablelist.size() / percolnum);
         int pc = 0;
         maxchar += 4;
-        int n = 0,  toffset = 0;
+        unsigned int n = 0;
+        unsigned int  toffset = 0;
 
         tableshow.resize(percolnum);
-        for (unsigned  int i = 0; i < groupp; i++)
+        for (int i = 0; i < groupp; i++)
         {
             pc = i * percolnum;
             maxchar = 15;
@@ -6333,7 +6334,7 @@ maxpool=20
                 }
             }
         }
-        for (int i = 0; i < tableshow.size(); i++)
+        for (unsigned int i = 0; i < tableshow.size(); i++)
         {
             if (tableshow[i].size() > 0)
             {
@@ -6364,7 +6365,7 @@ maxpool=20
             for (unsigned  int tn = 0; tn < tablelist.size(); tn++)
             {
 
-                int indexnum = 0;
+                unsigned int indexnum = 0;
                 if (isloop)
                 {
                     indexnum = tn;
@@ -6375,7 +6376,7 @@ maxpool=20
                     if (command[0] >= '0' && command[0] <= '9')
                     {
 
-                        for (int i = 0; i < command.size(); i++)
+                        for (unsigned int i = 0; i < command.size(); i++)
                         {
                             if (command[i] == 0x20)
                             {
@@ -6403,7 +6404,7 @@ maxpool=20
                 {
                     std::string realtablename, tablename;
                     // std::string fixtablepre="web_";
-                    int offsetmodel, iszimu = 0;
+                    unsigned int offsetmodel, iszimu = 0;
                     realtablename = tablelist[indexnum];
                     offsetmodel = 0;
                     for (; offsetmodel < pretable.size(); offsetmodel++)

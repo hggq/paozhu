@@ -367,10 +367,10 @@ namespace json
     };
      
     std::string JSON_UTF8_TO_ASCII(const std::string&);
-    std::string JSON_STR(const std::string &,int &);
-    std::string JSON_VALUE(const std::string &,int &);
-    int JSON_OBJ(const std::string &,Object &,int);
-    int JSON_ARRAY(const std::string &,Array &,int);
+    std::string JSON_STR(const std::string &,unsigned int &);
+    std::string JSON_VALUE(const std::string &,unsigned int &);
+    int JSON_OBJ(const std::string &,Object &,unsigned int);
+    int JSON_ARRAY(const std::string &,Array &,unsigned int);
 
     std::string encode(json::Value&);
     std::string encode(json::Object&);

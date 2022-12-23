@@ -20,7 +20,7 @@ namespace http
         unsigned short big_char; //大端高位
         unsigned short low_char; //低位
         unsigned int code;
-        unsigned char c[5];
+        unsigned char c[5]={0x00};
         if (source.size() > 3)
         {
             c[0] = (unsigned char)source[0];
@@ -113,7 +113,7 @@ namespace http
         unsigned short big_char; //大端高位
         unsigned short low_char; //低位
         unsigned int code;
-        unsigned char c[5];
+        unsigned char c[5]={0x00};
         std::string obj;
         if (source.size() > 3)
         {
@@ -226,7 +226,7 @@ namespace http
         unsigned short big_char; //大端高位
         unsigned short low_char; //低位
         unsigned int code;
-        unsigned char c[5];
+        unsigned char c[5]={0x00};
         unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
         std::string obj;
         if (source.size() > 3)

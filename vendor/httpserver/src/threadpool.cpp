@@ -286,7 +286,7 @@ namespace http
     {
 
       fseek(fp.get(), 0, SEEK_END);
-      long long file_size = ftell(fp.get());
+      unsigned long long file_size = ftell(fp.get());
       fseek(fp.get(), 0, SEEK_SET);
       std::string htmlcontent;
 
@@ -551,7 +551,7 @@ namespace http
     if (fp.get())
     {
       fseek(fp.get(), 0, SEEK_END);
-      long long file_size = ftell(fp.get());
+      unsigned long long file_size = ftell(fp.get());
       fseek(fp.get(), 0, SEEK_SET);
       std::string htmlcontent;
 

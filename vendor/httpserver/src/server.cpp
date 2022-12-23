@@ -1129,7 +1129,7 @@ namespace http
     error_path.append("error.log");
     struct flock lockstr = {};
     unsigned int mysqlpool_time=1;
-    std::size_t n_write;
+    std::size_t n_write=0;
     for (;;)
     {
       if (catch_num > 10)
@@ -1234,6 +1234,10 @@ namespace http
           }
           close(fd);
         }
+        if(n_write>0)
+        {
+          n_write=0;
+        }
 
         if(mysqlpool_time%100==0)
         {
@@ -1266,6 +1270,7 @@ namespace http
         
         mysqlpool_time+=1;
         DEBUG_LOG("clear mysql poll time:%d,client live:%d",mysqlpool_time,total_count.load());
+        
       }
       catch (std::exception &e)
       {
@@ -1309,7 +1314,7 @@ namespace http
 
       total_count = sysconfigpath.get_co_thread_num();
       asio::io_context::work worker(io_context);
-      for (int i = 0; i < total_count; ++i)
+      for (std::size_t i = 0; i < total_count; ++i)
       {
         runthreads.emplace_back([this]()
                                 {

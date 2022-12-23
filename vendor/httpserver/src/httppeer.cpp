@@ -86,7 +86,7 @@ namespace http
                   {
                         return;
                   }
-                  for (int i = 0; i < sessionfile.size(); i++)
+                  for (unsigned int i = 0; i < sessionfile.size(); i++)
                   {
                         if (sessionfile[i] == '/')
                         {
@@ -174,8 +174,8 @@ namespace http
 
             if (sessionfile.size() > 0)
             {
-                  int j = 0;
-                  for (int i = 0; i < sessionfile.size(); i++)
+                  unsigned int j = 0;
+                  for (unsigned int i = 0; i < sessionfile.size(); i++)
                   {
                         if (sessionfile[i] == '.' || sessionfile[i] == '/')
                         {
@@ -234,7 +234,10 @@ namespace http
             sessionfile = session.tojson();
 
             ssize_t n=write(fd, sessionfile.data(), sessionfile.size());
-            n=0;
+            if(n>0)
+            {
+                  n=0;
+            }
             lock.l_type = F_UNLCK;
             if (fcntl(fd, F_SETLKW, &lock) == -1)
             {

@@ -431,7 +431,11 @@ namespace http
             compiler.append(compilercontent);
             compiler.append(cliapp);
             std::cout << compiler << std::endl;
-            system(compiler.c_str());
+            int ir=system(compiler.c_str());
+            if(ir==0)
+            {
+                
+            }
         }
 
     public:

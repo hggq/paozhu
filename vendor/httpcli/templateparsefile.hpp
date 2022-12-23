@@ -239,7 +239,7 @@ namespace http
                 content.append(first);
                 content.append("{ \n");
 
-                for (int i = 0; i < second.size(); i++)
+                for (unsigned int i = 0; i < second.size(); i++)
                 {
                     content.append(second[i]);
                 }
@@ -380,7 +380,7 @@ namespace http
             std::reverse(filename_namespace.begin(), filename_namespace.end());
             filename_namespace.append("::");
             filename_namespace.append(filename_methold);
-            for (int i = 0; i < viewcontent.size(); i++)
+            for (unsigned int i = 0; i < viewcontent.size(); i++)
             {
 
                 if (codein && viewcontent[i] == '<' && viewcontent[i + 1] == '%' && viewcontent[i + 2] == 'c')
@@ -461,7 +461,7 @@ namespace http
                                 {
 
                                     // echo<<render["view"]("show/after")(obj);
-                                    int jj = i + 11;
+                                    unsigned int jj = i + 11;
                                     int nn = 00;
 
                                     if (viewcontent[jj] == '(')
@@ -542,7 +542,7 @@ namespace http
 
                         if (viewcontent[i + 4] == 'l' && viewcontent[i + 5] == 'u' && viewcontent[i + 6] == 'd' && viewcontent[i + 7] == 'e')
                         {
-                            int jj = i + 8;
+                            unsigned int jj = i + 8;
                             for (; jj < viewcontent.size(); jj++)
                             {
                                 if (viewcontent[jj] != 0x20)

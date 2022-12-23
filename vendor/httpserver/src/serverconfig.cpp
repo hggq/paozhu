@@ -512,7 +512,7 @@ namespace http
     {
         unsigned int tempnum = 0;
 
-        for (int i = 0; i < map_value["default"]["httpport"].size(); i++)
+        for (std::size_t i = 0; i < map_value["default"]["httpport"].size(); i++)
         {
             if (map_value["default"]["httpport"][i] > 0x2F && map_value["default"]["httpport"][i] < 0x3A)
             {

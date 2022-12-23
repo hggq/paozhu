@@ -97,7 +97,7 @@ namespace http
                 }
                 else
                 {
-                    for (int j = 0; j < contentoffset; j++)
+                    for (unsigned int j = 0; j < contentoffset; j++)
                     {
                         fwrite(&inputdata[j + pos], 1, 1, rawfile.get());
                     }
@@ -277,7 +277,7 @@ namespace http
     int websocketparse::makeWSData(std::string_view msg, std::string &outBuf)
     {
         makeWSHeader(msg.length(), outBuf, 0x02);
-        for (int i = 0; i < msg.length(); i++)
+        for (unsigned int i = 0; i < msg.length(); i++)
         {
             outBuf.push_back(msg[i]);
         }
@@ -286,7 +286,7 @@ namespace http
     int websocketparse::makeWSText(std::string_view msg, std::string &outBuf)
     {
         makeWSHeader(msg.length(), outBuf, 0x01);
-        for (int i = 0; i < msg.length(); i++)
+        for (unsigned int i = 0; i < msg.length(); i++)
         {
             outBuf.push_back(msg[i]);
         }

@@ -742,7 +742,7 @@ namespace http
                   header_value.clear();
                   header_temp.clear();
                   header_input.clear();
-                  int qsize = header_key.size();
+                  unsigned int qsize = header_key.size();
                   unsigned char partype = 0;
                   for (j = 0; j < qsize; j++)
                   {
@@ -971,7 +971,7 @@ namespace http
                   {
 
                         long long tm = 0;
-                        for (int qi = 0; qi < buffer_value.size(); qi++)
+                        for (unsigned int qi = 0; qi < buffer_value.size(); qi++)
                         {
                               if (buffer_value[qi] < 0x3A && buffer_value[qi] > 0x2F)
                               {
@@ -989,7 +989,7 @@ namespace http
             if (j == header_value.length() || ismuilt)
             {
                   long long tm = 0;
-                  for (int qi = 0; qi < buffer_value.size(); qi++)
+                  for (unsigned int qi = 0; qi < buffer_value.size(); qi++)
                   {
                         if (buffer_value[qi] < 0x3A && buffer_value[qi] > 0x2F)
                         {
@@ -1335,7 +1335,7 @@ namespace http
       }
       void httpparse::getacceptlanguage()
       {
-            int i = 0;
+            unsigned int i = 0;
             for (; i < header_value.size(); i++)
             {
                   if (header_value[i] == 0x2C)
@@ -1822,7 +1822,7 @@ namespace http
                         {
                               if (header_temp == "name")
                               {
-                                    int mm = jj;
+                                    unsigned int mm = jj;
                                     mm += 1;
                                     if (buffer_key[mm] == '"')
                                     {
@@ -2018,7 +2018,7 @@ namespace http
                                           j++;
 
                                           buffer_key.push_back(0x2D);
-                                          for (int nnn = 0; nnn < poststate.boundary.size(); nnn++)
+                                          for (unsigned int nnn = 0; nnn < poststate.boundary.size(); nnn++)
                                           {
                                                 if (buffer[j] != poststate.boundary[nnn])
                                                 {
@@ -2536,7 +2536,7 @@ namespace http
                   header_value.clear();
                   header_temp.clear();
                   header_input.clear();
-                  int qsize = buffer_value.size();
+                  unsigned int qsize = buffer_value.size();
                   unsigned char partype = 0;
                   unsigned int j = 0;
                   for (j = 0; j < qsize; j++)

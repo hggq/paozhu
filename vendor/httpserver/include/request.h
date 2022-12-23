@@ -264,7 +264,7 @@ namespace http
 
             case STRING:
 
-                for (int i = 0; i < string_v.size(); i++)
+                for (std::size_t i = 0; i < string_v.size(); i++)
                 {
                     if (string_v[i] == 0x20)
                     {
@@ -384,10 +384,10 @@ namespace http
     OBJ_ARRAY fromjson(std::string &);
     OBJ_ARRAY fromjson(std::string &&);
     std::string JSON_UTF8_TO_ASCII(const std::string &source);
-    std::string JSON_STR(std::string &, int &);
-    std::string JSON_VALUE(std::string &, int &);
-    int JSON_OBJ(std::string &, OBJ_ARRAY &, int);
-    int JSON_ARRAY(std::string &, OBJ_ARRAY &, int);
+    std::string JSON_STR(std::string &,unsigned int &);
+    std::string JSON_VALUE(std::string &,unsigned int &);
+    int JSON_OBJ(std::string &, OBJ_ARRAY &,unsigned int);
+    int JSON_ARRAY(std::string &, OBJ_ARRAY &,unsigned int);
 
 }
 std::ostream &operator<<(std::ostream &, const http::OBJ_VALUE &);

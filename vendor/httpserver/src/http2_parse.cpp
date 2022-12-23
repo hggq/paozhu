@@ -606,20 +606,20 @@ namespace http
           http_data[block_steamid]->state.rangebegin = 0;
           http_data[block_steamid]->state.rangeend = 0;
           data_info[block_steamid].buffer_value.clear();
-          bool ismuilt = false;
+         // bool ismuilt = false;
           for (; j < linesize; j++)
           {
                if (header_value[j] == 0x2C)
                {
                     j++;
-                    ismuilt = true;
+                    //ismuilt = true;
                     break;
                }
                if (header_value[j] == 0x2D)
                {
 
                     long long tm = 0;
-                    for (int qi = 0; qi < data_info[block_steamid].buffer_value.size(); qi++)
+                    for (unsigned int qi = 0; qi < data_info[block_steamid].buffer_value.size(); qi++)
                     {
                          if (data_info[block_steamid].buffer_value[qi] < 0x3A && data_info[block_steamid].buffer_value[qi] > 0x2F)
                          {
@@ -636,7 +636,7 @@ namespace http
           if (data_info[block_steamid].buffer_value.size()>0)
           {
                long long tm = 0;
-               for (int qi = 0; qi < data_info[block_steamid].buffer_value.size(); qi++)
+               for (unsigned int qi = 0; qi < data_info[block_steamid].buffer_value.size(); qi++)
                {
                     if (data_info[block_steamid].buffer_value[qi] < 0x3A && data_info[block_steamid].buffer_value[qi] > 0x2F)
                     {
@@ -792,7 +792,7 @@ namespace http
 
      void http2parse::getacceptlanguage(const std::string &header_name, const std::string &header_value)
      {
-            int i = 0;
+            unsigned int i = 0;
             for (; i < header_value.size(); i++)
             {
                   if (header_value[i] == 0x2C)
@@ -1271,7 +1271,7 @@ namespace http
                     if (a == 0x3F)
                     {
                          begin += 1;
-                         a = a + header_data[begin] & 0x7F;
+                         a = a + (header_data[begin] & 0x7F);
                          if (header_data[begin] & 0x80)
                          {
                               error = 125;
@@ -1991,7 +1991,7 @@ namespace http
                     if (ishaskey)
                     {
 
-                         int m = n;
+                         unsigned int m = n;
                          if (n < data_info[block_steamid].buffer_key.length())
                          {
                               if (data_info[block_steamid].buffer_key[m] == '[')
@@ -2156,7 +2156,7 @@ namespace http
                if (data_info[block_steamid].upfile.name[j] == '[')
                {
                     std::string key1name;
-                    int n = j;
+                    unsigned int n = j;
                     n++;
                     bool ishaskey = false;
                     bool ishaskey2 = false;
@@ -2183,7 +2183,7 @@ namespace http
                     if (ishaskey)
                     {
 
-                         int m = n;
+                         unsigned int m = n;
                          if (n < data_info[block_steamid].upfile.name.length())
                          {
                               if (data_info[block_steamid].upfile.name[m] == '[')
@@ -2449,7 +2449,7 @@ namespace http
                                    j++;
 
                                    data_info[block_steamid].buffer_key.push_back(0x2D);
-                                   for (int nnn = 0; nnn < data_info[block_steamid].boundary.size(); nnn++)
+                                   for (unsigned int nnn = 0; nnn < data_info[block_steamid].boundary.size(); nnn++)
                                    {
                                         if (buffer[j] != data_info[block_steamid].boundary[nnn])
                                         {
@@ -2593,13 +2593,13 @@ namespace http
                data_info[block_steamid].buffer_key.clear();
           }
           unsigned baseoffset = begin;
-          bool islastmatch = false;
+          //bool islastmatch = false;
           pmi = 0, ib = 0;
           for (; begin < buffersize; begin++)
           {
                if (buffer[begin] == 0x0D)
                {
-                    islastmatch = false;
+                    //islastmatch = false;
                     pmi = begin + 1;
                     ib = 0;
 
@@ -2640,7 +2640,7 @@ namespace http
                               pmi++;
                               if (pmi >= buffersize)
                               {
-                                   islastmatch = true;
+                                   //islastmatch = true;
                                    data_info[block_steamid].match_offset = ib + 1;
                                    break;
                               }
@@ -2718,7 +2718,7 @@ namespace http
                {
                     if (header_temp.size() == 4 && strcasecmp(header_temp.c_str(), "name") == 0)
                     {
-                         int mm = jj;
+                         unsigned int mm = jj;
                          mm += 1;
                          if (tfheader_name[mm] == '"')
                          {
@@ -2750,7 +2750,7 @@ namespace http
                     else if (header_temp.size() == 8 && strcasecmp(header_temp.c_str(), "filename") == 0)
                     {
 
-                         int mm = jj;
+                         unsigned int mm = jj;
                          mm += 1;
                          if (tfheader_name[mm] == '"')
                          {
@@ -3121,7 +3121,7 @@ namespace http
           case 1:
                // x-www-form-urlencoded
                data_info[block_steamid].buffer_value.append(&stream_data[block_steamid][j], w_size);
-               if (data_info[block_steamid].buffer_value.size() == http_data[block_steamid]->content_length)
+               if (data_info[block_steamid].buffer_value.size() == (unsigned int)http_data[block_steamid]->content_length)
                {
                     readformurlencoded();
                     data_info[block_steamid].buffer_value.clear();
@@ -3134,7 +3134,7 @@ namespace http
           case 3:
                // json
                data_info[block_steamid].buffer_value.append(&stream_data[block_steamid][j], w_size);
-               if (data_info[block_steamid].buffer_value.size() == http_data[block_steamid]->content_length)
+               if (data_info[block_steamid].buffer_value.size() == (unsigned int)http_data[block_steamid]->content_length)
                {
                     http_data[block_steamid]->json.fromjson(data_info[block_steamid].buffer_value);
                     data_info[block_steamid].buffer_value.clear();

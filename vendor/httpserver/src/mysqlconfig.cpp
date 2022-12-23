@@ -35,7 +35,7 @@ namespace http
 
     keyname = "default";
     std::string typeone;
-    for (int i = 0; i < s.size(); i++)
+    for (unsigned int i = 0; i < s.size(); i++)
     {
       if (s[i] == ';' || s[i] == '#')
       {
@@ -261,7 +261,7 @@ namespace http
       // 转为rmstag分组
       if (myconfig.size() > 0)
       {
-        for (int li = 0; li < myconfig.size(); li++)
+        for (std::size_t li = 0; li < myconfig.size(); li++)
         {
           rmstag = myconfig[li].port;
           if (rmstag.size() < 3 || rmstag.size() > 6)

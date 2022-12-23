@@ -38,7 +38,7 @@ namespace http
         {
             if (pathfile.substr(pathfile.size() - 4, pathfile.size()) == ".png")
             {
-                for (int i = 0; i < pathfile.size(); i++)
+                for (unsigned int i = 0; i < pathfile.size(); i++)
                 {
 
                     if (pathfile[i] == '/')
@@ -128,8 +128,8 @@ namespace http
         im = gdImageCreate(totalwidth, totalheight);
 
         int black;
-        int white;
-        white = gdImageColorAllocate(im, 255, 255, 255);
+        //int white;
+        //white = gdImageColorAllocate(im, 255, 255, 255);
         black = gdImageColorAllocate(im, 0, 0, 0);
         for (int i = 0; i < owidth; i++)
         {
@@ -138,9 +138,9 @@ namespace http
 
                 if (qrCode->data[pixoffset] & 1)
                 {
-                    for (int n = 0; n < scale; n++)
+                    for (unsigned int n = 0; n < scale; n++)
                     {
-                        for (int m = 0; m < scale; m++)
+                        for (unsigned int m = 0; m < scale; m++)
                         {
                             gdImageSetPixel(im, beginx + i * scale + n, beginy + j * scale + m, black);
                         }

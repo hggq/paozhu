@@ -292,7 +292,7 @@ namespace http
                                     break;
                               case 1:
                               {
-                                    int readnum = 0;
+                                    unsigned int readnum = 0;
                                     socket.write_some(asio::buffer(p.tempfile));
                                     //FILE *fp = fopen(p.filename.c_str(), "rb");
                                     std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),&std::fclose);
@@ -329,7 +329,7 @@ namespace http
                               break;
                               case 2:
                               {
-                                    int readnum = 0;
+                                    unsigned int readnum = 0;
                                     //FILE *fp = fopen(p.filename.c_str(), "rb");
                                     std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),&std::fclose);
                                     if (!fp)

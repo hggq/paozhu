@@ -574,7 +574,11 @@ namespace http
                 compiler.append(" -shared -fPIC -std=c++20 -Ivendor/httpserver/include vendor/httpserver/src/request.cpp   -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lboost_filesystem vendor/httpserver/src/httpsocommonapi.cpp -lmysqlcppconn8 ");
             }
 
-            system(compiler.c_str());
+            int ir=system(compiler.c_str());
+            if(ir==0)
+            {
+                
+            }
         }
 
     public:

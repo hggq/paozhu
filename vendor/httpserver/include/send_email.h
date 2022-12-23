@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <list>
-#include "base64.h"
 #include "http_socket.h"
 
 namespace http

@@ -135,7 +135,7 @@ namespace http
     unsigned char compress;
     unsigned int stream_id = 0;
     unsigned int status_code = 0;
-    long long content_length = 0;
+    unsigned long long content_length = 0;
 
     struct headstate_t state;
     struct websocket_t websocket;

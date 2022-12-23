@@ -1764,9 +1764,9 @@ namespace http
         return os.str();
     }
 
-    std::string JSON_VALUE(std::string &jsonstr, int &offset)
+    std::string JSON_VALUE(std::string &jsonstr,unsigned int &offset)
     {
-        int j = 0;
+        unsigned int j = 0;
         std::string temp;
         if (jsonstr[offset] == 0x3a)
         { //:
@@ -1790,9 +1790,9 @@ namespace http
         return temp;
     }
 
-    std::string JSON_STR(std::string &jsonstr, int &offset)
+    std::string JSON_STR(std::string &jsonstr,unsigned int &offset)
     {
-        int j = 0;
+        unsigned int j = 0;
         std::string str;
         j = jsonstr.length();
         if (j > 200)
@@ -1933,9 +1933,9 @@ namespace http
         return str;
     }
 
-    int JSON_OBJ(std::string &jsonstr, OBJ_ARRAY &obj, int offset)
+    int JSON_OBJ(std::string &jsonstr, OBJ_ARRAY &obj,unsigned int offset)
     {
-        int i = 0, nobj = 0;
+        unsigned int i = 0, nobj = 0;
         std::string key, value;
         // OBJ_VALUE temp;
         if (jsonstr[offset] == 0x7b)
@@ -2139,9 +2139,9 @@ namespace http
         return i;
     }
 
-    int JSON_ARRAY(std::string &jsonstr, OBJ_ARRAY &obj, int offset)
+    int JSON_ARRAY(std::string &jsonstr, OBJ_ARRAY &obj,unsigned int offset)
     {
-        int i = 0;
+        unsigned int i = 0;
         std::string key, value;
         if (jsonstr[offset] == 0x5b)
         {
@@ -2304,7 +2304,7 @@ namespace http
         int offset = 0;
         type_t = ARRAY;
         // 分出数组或对象 消除前面空格
-        for (int i = 0; i < jsonstr.length(); i++)
+        for (unsigned int i = 0; i < jsonstr.length(); i++)
         {
             if (jsonstr[i] == 0x7b || jsonstr[i] == 0x5b)
             {
@@ -2332,7 +2332,7 @@ namespace http
         int offset = 0;
         type_t = ARRAY;
         // 分出数组或对象 消除前面空格
-        for (int i = 0; i < jsonstr.length(); i++)
+        for (unsigned int i = 0; i < jsonstr.length(); i++)
         {
             if (jsonstr[i] == 0x7b || jsonstr[i] == 0x5b)
             {
@@ -2358,7 +2358,7 @@ namespace http
     {
         OBJ_ARRAY obj;
         int offset = 0;
-        int zlsize = jsonstr.length();
+        unsigned int zlsize = jsonstr.length();
         if (zlsize > 5000000)
         {
             // limit size
@@ -2366,7 +2366,7 @@ namespace http
             return obj;
         }
         // 分出数组或对象 消除前面空格
-        for (int i = 0; i < zlsize; i++)
+        for (unsigned int i = 0; i < zlsize; i++)
         {
             if (jsonstr[i] == 0x7b || jsonstr[i] == 0x5b)
             {
@@ -2396,14 +2396,14 @@ namespace http
     {
         OBJ_ARRAY obj;
         int offset = 0;
-        int zlsize = jsonstr.length();
+        unsigned int zlsize = jsonstr.length();
         if (zlsize > 5000000)
         {
             // limit size
             return obj;
         }
         // 分出数组或对象 消除前面空格
-        for (int i = 0; i < zlsize; i++)
+        for (unsigned int i = 0; i < zlsize; i++)
         {
             if (jsonstr[i] == 0x7b || jsonstr[i] == 0x5b)
             {

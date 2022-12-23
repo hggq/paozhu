@@ -17,7 +17,7 @@ std::mutex lock_select_list;
 std::mutex lock_edit_list;
 mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info,struct mysql_connect_link_info e_info,unsigned int num, unsigned int editnum):select_link(std::move(s_info)),edit_link(std::move(e_info))
 {
-    for (int i = 0; i < num; i++)
+    for (unsigned int i = 0; i < num; i++)
     {
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
@@ -32,7 +32,7 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info,struct mysql_
         select_current_num++;
     }
 
-    for (int i = 0; i < editnum; i++)
+    for (unsigned int i = 0; i < editnum; i++)
     {
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 

@@ -1,5 +1,5 @@
-#ifndef __BASE64_H__
-#define __BASE64_H__
+#ifndef _PROJECT_BASE64_H__
+#define _PROJECT_BASE64_H__
 
 #include <iostream>
 #include <string>

@@ -1113,9 +1113,9 @@ namespace json
         return os.str();
     }
 
-    std::string JSON_VALUE(const std::string &jsonstr, int &offset)
+    std::string JSON_VALUE(const std::string &jsonstr,unsigned int &offset)
     {
-        int j = 0;
+        unsigned int j = 0;
         std::string temp;
         if (jsonstr[offset] == 0x3a)
         { //:
@@ -1139,9 +1139,9 @@ namespace json
         return temp;
     }
 
-    std::string JSON_STR(const std::string &jsonstr, int &offset)
+    std::string JSON_STR(const std::string &jsonstr,unsigned int &offset)
     {
-        int j = 0;
+        unsigned int j = 0;
         std::string str;
         j = jsonstr.length();
         if (j > 200)
@@ -1282,9 +1282,9 @@ namespace json
         return str;
     }
 
-    int JSON_OBJ(const std::string &jsonstr, Object &obj, int offset)
+    int JSON_OBJ(const std::string &jsonstr, Object &obj,unsigned int offset)
     {
-        int i = 0, nobj = 0;
+        unsigned int i = 0, nobj = 0;
         std::string key, value;
         Value temp;
         if (jsonstr[offset] == 0x7b)
@@ -1466,9 +1466,9 @@ namespace json
         return i;
     }
 
-    int JSON_ARRAY(const std::string &jsonstr, Array &obj, int offset)
+    int JSON_ARRAY(const std::string &jsonstr, Array &obj,unsigned int offset)
     {
-        int i = 0;
+        unsigned int i = 0;
         std::string key, value;
         if (jsonstr[offset] == 0x5b)
         {
@@ -1627,14 +1627,14 @@ namespace json
     {
         Object obj;
         int offset = 0;
-        int zlsize = jsonstr.length();
+        unsigned int zlsize = jsonstr.length();
         if (zlsize > 5000000)
         {
             // limit size
             return obj;
         }
         // 分出数组或对象 消除前面空格
-        for (int i = 0; i < zlsize; i++)
+        for (unsigned int i = 0; i < zlsize; i++)
         {
             if (jsonstr[i] == 0x7b || jsonstr[i] == 0x5b)
             {
@@ -1662,14 +1662,14 @@ namespace json
     {
         Array obj;
         int offset = 0;
-        int zlsize = jsonstr.length();
+        unsigned int zlsize = jsonstr.length();
         if (zlsize > 5000000)
         {
             // limit size
             return obj;
         }
         // 分出数组或对象 消除前面空格
-        for (int i = 0; i < zlsize; i++)
+        for (unsigned int i = 0; i < zlsize; i++)
         {
             if (jsonstr[i] == 0x7b || jsonstr[i] == 0x5b)
             {
