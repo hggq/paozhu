@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 23 Dec 2022 15:46:19 GMT
+*本文件为自动生成 Fri, 23 Dec 2022 16:21:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -481,7 +481,7 @@ if(data.level==0){
                      }
                  }
                 tempsql<<"[";
-              for(int n=0;n<record.size();n++){
+              for(size_t n=0;n<record.size();n++){
                   if(n>0){
                       tempsql<<",{";
                   }else{
@@ -562,7 +562,7 @@ if(record[n].level==0){
                      }
                  }
                 tempsql<<"[";
-              for(int n=0;n<record.size();n++){
+              for(size_t n=0;n<record.size();n++){
                  keyname.clear();
                  if(func(keyname,record[n])){ 
                             if(n>0){
