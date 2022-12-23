@@ -38,7 +38,7 @@ content
 ### 2.Runtime environment
 
 C++ standard request c++20   
-boost asio mysql gd MySQL Connector/C++ qrencode
+boost asio mysql gd mysql-client qrencode
 zlib brotli(br)
 
 
@@ -55,7 +55,7 @@ zlib brotli(br)
 ```bash
 brew install boost
 brew install asio
-brew install mysql-connector-c++
+brew install mysql
 brew install gd
 brew install qrencode
 brew install zlib
@@ -77,8 +77,6 @@ brew install brotli
 ### 4.Install
 
 ```shell
-mkdir temp
-mkdir log
 mkdir build
 cd build
 cmake ..
@@ -88,6 +86,7 @@ make
 ### 5.hosts configuration
 
 - view`conf/server.conf`file and get`mainhost`value
+- replace /Users/hzq/paozhu path to your project path
 - open host file
 
 ```shell
