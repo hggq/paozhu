@@ -43,18 +43,8 @@ namespace http
 
   bool httpserver::http1_send_file(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const std::string &filename)
   {
-    try
-    {
 
-  
     FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
-    FILE* fppp=fopen("/home/hzq/paozhu/bbb.txt","wb");
-        if(fppp)
-        {
-          std::string serverconffile="exception send file";
-          fwrite(&peer->sendfilename[0], peer->sendfilename.size(), 1, fppp);
-          fclose(fppp);
-        }
     if (fp.get())
     {
       fseek(fp.get(), 0, SEEK_END);
@@ -63,41 +53,7 @@ namespace http
       std::string htmlcontent;
       std::string etag;
 
-      fppp=fopen("/home/hzq/paozhu/ddd.txt","wb");
-        if(fppp)
-        {
-          std::string serverconffile="file size"+std::to_string(file_size);
-          fwrite(&serverconffile[0], serverconffile.size(), 1, fppp);
-          fclose(fppp);
-        }
-      try
-      {
-        fppp=fopen("/home/hzq/paozhu/makeetaga.txt","wb");
-        if(fppp)
-        {
-          std::string serverconffile(std::to_string(peer->fileinfo.st_mtime));
-          serverconffile.append(peer->url);
-          fwrite(&serverconffile[0], serverconffile.size(), 1, fppp);
-          fclose(fppp);
-        }
-        etag = make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size());
-      }
-      catch(const std::exception& e)
-      {
-        std::cerr << e.what() << '\n';
-        fppp=fopen("/home/hzq/paozhu/makeetag.txt","wb");
-        if(fppp)
-        {
-          std::string serverconffile(e.what());
-          fwrite(&serverconffile[0], serverconffile.size(), 1, fppp);
-          fclose(fppp);
-        }
-      }
-      
-      
-
-            
-
+      etag = make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size());
       std::string fileexttype;
       std::string mime_value = "text/html; charset=utf-8";
 
@@ -119,13 +75,6 @@ namespace http
           fileexttype.push_back(peer->sendfilename[filenameoffset]);
         }
       }
-        fppp=fopen("/home/hzq/paozhu/etag.txt","wb");
-        if(fppp)
-        {
-          std::string serverconffile=etag;
-          fwrite(&serverconffile[0], serverconffile.size(), 1, fppp);
-          fclose(fppp);
-        }
 
       if (peer->etag == etag)
       {
@@ -140,36 +89,16 @@ namespace http
         peer_session->send_data(etag);
         return true;
       }
-        
-
 
       peer->compress = 0;
       if (file_size < 16877216 && fileexttype.size() > 0 && mime_compress.contains(fileexttype))
       {
-
-        fppp=fopen("/home/hzq/paozhu/ggg.txt","wb");
-        if(fppp)
-        {
-          std::string serverconffile="file size"+std::to_string(file_size);
-          fwrite(&serverconffile[0], serverconffile.size(), 1, fppp);
-          fclose(fppp);
-        }
 
         if (peer->state.gzip || peer->state.br)
         {
           htmlcontent.resize(file_size);
           file_size = fread(&htmlcontent[0], 1, file_size, fp.get());
           htmlcontent.resize(file_size);
-
-
-
-        fppp=fopen("/home/hzq/paozhu/hhh.txt","wb");
-        if(fppp)
-        {
-         
-          fwrite(&htmlcontent[0], htmlcontent.size(), 1, fppp);
-          fclose(fppp);
-        }
 
           std::string tempcompress;
           if (peer->state.gzip)
@@ -190,15 +119,6 @@ namespace http
           file_size = htmlcontent.size();
         }
       }
-
-        fppp=fopen("/home/hzq/paozhu/fff.txt","wb");
-        if(fppp)
-        {
-          std::string serverconffile="file size"+std::to_string(file_size);
-          fwrite(&htmlcontent[0], htmlcontent.size(), 1, fppp);
-          fclose(fppp);
-        }
-
 
       if (fileexttype.size() > 0)
       {
@@ -269,18 +189,6 @@ namespace http
     else
     {
       http1_send_bad_server(500, peer, peer_session);
-    }
-          /* code */
-    }
-    catch(const std::exception& e)
-    {
-        FILE* fp=fopen("/home/hzq/paozhu/aaa.txt","wb");
-        if(fp)
-        {
-          std::string serverconffile="exception send file";
-          fwrite(&serverconffile[0], serverconffile.size(), 1, fp);
-          fclose(fp);
-        }
     }
     return true;
   }
@@ -1221,7 +1129,6 @@ namespace http
     error_path.append("error.log");
     struct flock lockstr = {};
     unsigned int mysqlpool_time=1;
-    ssize_t n_write;
     for (;;)
     {
       if (catch_num > 10)
@@ -1275,7 +1182,7 @@ namespace http
           std::unique_lock<std::mutex> loglock(log_mutex);
           while (!access_loglist.empty())
           {
-            n_write=write(fd, access_loglist.front().data(), access_loglist.front().size());
+            write(fd, access_loglist.front().data(), access_loglist.front().size());
             access_loglist.pop_front();
           }
           loglock.unlock();
@@ -1313,7 +1220,7 @@ namespace http
           std::unique_lock<std::mutex> loglock(log_mutex);
           while (!error_loglist.empty())
           {
-            n_write=write(fd, error_loglist.front().data(), error_loglist.front().size());
+            write(fd, error_loglist.front().data(), error_loglist.front().size());
             error_loglist.pop_front();
           }
           loglock.unlock();
@@ -1358,7 +1265,6 @@ namespace http
         
         mysqlpool_time+=1;
         DEBUG_LOG("clear mysql poll time:%d,client live:%d",mysqlpool_time,total_count.load());
-        n_write=0;
       }
       catch (std::exception &e)
       {
