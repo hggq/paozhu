@@ -597,7 +597,7 @@ namespace http
         }
       }
 
-      etag=make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size())
+      etag=make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size());
       if (peer->etag == etag)
       {
         peer->status(304);

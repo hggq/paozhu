@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 23 Dec 2022 13:02:56 GMT
+*本文件为自动生成 Fri, 23 Dec 2022 15:46:19 GMT
 ***/
 #include <iostream>
 #include <cstdio>
