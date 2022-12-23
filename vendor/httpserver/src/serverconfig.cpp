@@ -412,6 +412,17 @@ namespace http
          static_server_var.temp_path=map_value["default"]["temppath"];
          static_server_var.log_path=map_value["default"]["logpath"];
          mainhost=map_value["default"]["mainhost"];
+        if (mainhost[0] == 'w' && mainhost[1] == 'w' && mainhost[2] == 'w' && mainhost[3] == '.')
+        {
+            secondhost.clear();
+            if (mainhost.size() > 4)
+            {
+                secondhost.append(&mainhost[4], mainhost.size() - 4);
+            }
+        }else{
+            secondhost="www.";
+            secondhost.append(mainhost);
+        }
          if(static_server_var.www_path.size()>0&&static_server_var.www_path.back()!='/')
          {
             static_server_var.www_path.push_back('/');
@@ -436,18 +447,11 @@ namespace http
         {
             return true;
         }
-        std::string btmp;
-        if (mainhost[0] == 'w' && mainhost[1] == 'w' && mainhost[2] == 'w' && mainhost[3] == '.')
-        {
-            if (mainhost.size() > 4)
-            {
-                btmp.append(&mainhost[4], mainhost.size() - 4);
-            }
-        }
-        if (btmp.size() > 0 && strcasecmp(servername, btmp.c_str()) == 0)
+        if (strcasecmp(servername, secondhost.c_str()) == 0)
         {
             return true;
         }
+
         return false;
     }
     std::string serverconfig::ssl_chain_file()
