@@ -35,7 +35,7 @@
 namespace http
 {
 
-    union
+    union HTTP2_HEADER_FLAG
     {
         struct
         {
@@ -48,7 +48,7 @@ namespace http
 
         } data;
         char value;
-    } header_flags;
+    };
 
     class http2parse
     {

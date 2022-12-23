@@ -192,6 +192,7 @@ namespace http
           http_data[block_steamid]->window_update_bool=false;
 
           ispost = false;
+          HTTP2_HEADER_FLAG header_flags;
           header_flags.value = flag_type;
 
           if (header_flags.data.PADDED)
