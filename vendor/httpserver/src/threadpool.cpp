@@ -607,6 +607,7 @@ namespace http
         peer->setHeader("etag", etag);
         peer->type(mime_value);
         _send_header = peer->make_http2_header();
+        set_http2_headers_flag(_send_header,HTTP2_HEADER_END_STREAM|HTTP2_HEADER_END_HEADERS);
         peer->socket_session->send_data(_send_header);
         return true;
       }
