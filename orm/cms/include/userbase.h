@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 21 Dec 2022 15:39:16 GMT
+*本文件为自动生成 Fri, 23 Dec 2022 13:02:56 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -187,7 +187,7 @@ break;
 
   inline  std::string stringaddslash(std::string &content){
         std::string temp;
-        for(int i=0;i<content.size();i++){
+        for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
                 continue;
@@ -201,7 +201,7 @@ break;
    }  
   inline  std::string jsonaddslash(std::string &content){
         std::string temp;
-        for(int i=0;i<content.size();i++){
+        for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
                 continue;
@@ -212,7 +212,7 @@ break;
    }  
 
    std::string _makeinsertsql(){
-       int j=0;
+      unsigned int j=0;
                 std::ostringstream tempsql;
                 tempsql<<"INSERT INTO ";
                     tempsql<<tablename;
@@ -285,7 +285,7 @@ if(data.level==0){
  }else{ 
 
      
-  int jj=0;
+  unsigned int jj=0;
                   std::string keyname;
                   std::vector<unsigned char> keypos;
                   for(;jj<fileld.size();jj++){
