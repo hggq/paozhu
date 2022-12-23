@@ -74,7 +74,7 @@ namespace http
         unsigned char temp_char = 0x00, pre_char_length = 0, cur_char_length = 0;
 
         //上一个 预留多少位 每满8位 送一个字符到outstr
-        for (int i = 0; i < len; i++)
+        for (unsigned int i = 0; i < len; i++)
         {
 
             temp = huffman_encode_table[src[i]];

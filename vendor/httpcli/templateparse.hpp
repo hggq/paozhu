@@ -173,7 +173,7 @@ namespace http
             {
                 return;
             }
-            for (int i = 0; i < viewcontent.size(); i++)
+            for (unsigned int i = 0; i < viewcontent.size(); i++)
             {
 
                 if (codein && viewcontent[i] == '<' && viewcontent[i + 1] == '%' && viewcontent[i + 2] == 'c')
@@ -254,7 +254,7 @@ namespace http
                                 {
 
                                     // echo<<render["view"]("show/after")(obj);
-                                    int jj = i + 11;
+                                    unsigned int jj = i + 11;
                                     int nn = 00;
 
                                     if (viewcontent[jj] == '(')
@@ -326,7 +326,7 @@ namespace http
 
                         if (viewcontent[i + 4] == 'l' && viewcontent[i + 5] == 'u' && viewcontent[i + 6] == 'd' && viewcontent[i + 7] == 'e')
                         {
-                            int jj = i + 8;
+                            unsigned int jj = i + 8;
                             for (; jj < viewcontent.size(); jj++)
                             {
                                 if (viewcontent[jj] != 0x20)
@@ -470,7 +470,7 @@ namespace http
                 readcontent.resize(nread);
                 compiler.clear();
 
-                for (int i = 0; i < readcontent.size(); i++)
+                for (unsigned int i = 0; i < readcontent.size(); i++)
                 {
                     if (readcontent[i] == 0x0D)
                     {
@@ -503,7 +503,7 @@ namespace http
                 fclose(fp);
                 readcontent.resize(nread);
                 tempcontent.clear();
-                int i = 0;
+                unsigned int i = 0;
                 for (; i < readcontent.size(); i++)
                 {
                     if (readcontent[i] == 0x20 || readcontent[i] == '\t')

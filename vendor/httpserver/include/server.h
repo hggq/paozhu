@@ -94,7 +94,7 @@ namespace http
 
       io_context.stop();
 
-      for (int i = 0; i < runthreads.size(); ++i)
+      for (unsigned int i = 0; i < runthreads.size(); ++i)
       {
         if (runthreads[i].joinable())
         {

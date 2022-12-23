@@ -16,7 +16,7 @@ namespace http
     {
         //默认大端在前
         bool isbig = true;
-        int pos = 0;
+        unsigned int pos = 0;
         unsigned short big_char; //大端高位
         unsigned short low_char; //低位
         unsigned int code;
@@ -109,7 +109,7 @@ namespace http
      */
     std::string utf8_to_unicode(std::string &source)
     {
-        int pos = 0;
+        unsigned int pos = 0;
         unsigned short big_char; //大端高位
         unsigned short low_char; //低位
         unsigned int code;
@@ -222,7 +222,7 @@ namespace http
      */
     std::string utf8_to_unicodestring(std::string &source)
     {
-        int pos = 0;
+        unsigned int pos = 0;
         unsigned short big_char; //大端高位
         unsigned short low_char; //低位
         unsigned int code;
@@ -370,7 +370,7 @@ namespace http
      */
     std::string utf8_to_jsonstring(std::string &source)
     {
-        int pos = 0;
+        unsigned int pos = 0;
         unsigned short big_char; //大端高位
         unsigned short low_char; //低位
         unsigned int code;
@@ -551,7 +551,7 @@ namespace http
      */
     std::string unicode_to_unicodestring(std::string &source)
     {
-        int pos = 0;
+        unsigned int pos = 0;
         unsigned char c[3];
         unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
         std::string obj;
@@ -571,7 +571,7 @@ namespace http
      */
     std::string utf8_to_string(std::string &source)
     {
-        int pos = 0;
+        unsigned int pos = 0;
         unsigned char c[3];
         unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
         std::string obj;
@@ -592,7 +592,7 @@ namespace http
     std::string to_hexstring(unsigned long long soucr)
     {
         int pos = 0;
-        unsigned char c[16];
+        unsigned char c[18];
         unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
         std::string obj;
         bool isbegin = false;
@@ -602,7 +602,11 @@ namespace http
             c[pos] = str[soucr & 0x0F];
             soucr = soucr >> 4;
         }
-        pos--;
+        if(pos>0)
+        {
+            pos--;    
+        }
+        
         for (; pos >= 0; pos--)
         {
             if (c[pos] != '0')
@@ -622,7 +626,7 @@ namespace http
 
     std::string stringunicode_to_utf8(std::string &source)
     {
-        int pos = 0;
+        unsigned int pos = 0;
         unsigned char c[2], zi;
         std::string obj;
         for (; pos < source.size(); pos++)

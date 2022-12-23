@@ -661,7 +661,7 @@ namespace http
       unsigned int vsize_send = 6144;
       for (unsigned long long m = 0; m < file_size;)
       {
-        int per_size = 0;
+        unsigned int per_size = 0;
 
         send_cache->data[3] = 0x00;
         send_cache->data[4] = 0x00;
@@ -941,7 +941,7 @@ namespace http
           break;
         }
       }
-      for (int j = 0; j < peer->url.size(); j++)
+      for (unsigned int j = 0; j < peer->url.size(); j++)
       {
         threadlist[thread_id].url[offsetnum] = peer->url[j];
         offsetnum++;
@@ -1096,7 +1096,7 @@ namespace http
             break;
           }
         }
-        for (int j = 0; j < peer->url.size(); j++)
+        for (unsigned int j = 0; j < peer->url.size(); j++)
         {
           threadlist[thread_id].url[offsetnum] = peer->url[j];
           offsetnum++;
@@ -1263,7 +1263,7 @@ namespace http
             else if (sitecontent.size() > 2)
             {
               std::string filename;
-              int i = 0;
+              unsigned int i = 0;
               regmethold_path.clear();
               for (; i < sitecontent.size(); i++)
               {
@@ -1353,7 +1353,7 @@ namespace http
           break;
         }
       }
-      for (int j = 0; j < peer->url.size(); j++)
+      for (unsigned int j = 0; j < peer->url.size(); j++)
       {
         threadlist[thread_id].url[offsetnum] = peer->url[j];
         offsetnum++;

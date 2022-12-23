@@ -33,7 +33,7 @@ namespace http
             cache_data.reserve(256);
         }
         int j = cache_data.size();
-        for (int i = 0; i < create_size; i++)
+        for (unsigned int i = 0; i < create_size; i++)
         {
             try
             {
@@ -59,7 +59,7 @@ namespace http
     {
         unsigned int last_elm = cache_data.size() - 1;
         unsigned int total_count = 0;
-        for (int i = last_elm; i > 256; i--)
+        for (unsigned int i = last_elm; i > 256; i--)
         {
             if (cache_data[i].type == 0)
             {
@@ -121,7 +121,7 @@ namespace http
     {
         struct sendqueue_t *data_ptr = nullptr;
         unsigned int cache_size=cache_data.size();
-        for (int i = 0; i < cache_size; i++)
+        for (unsigned int i = 0; i < cache_size; i++)
         {
             if (cache_data[i].type == 0)
             {
@@ -133,7 +133,7 @@ namespace http
         }
         if (data_ptr == nullptr)
         {
-            for (int i = 0; i < 3; i++)
+            for (unsigned int i = 0; i < 3; i++)
             {
                 add_item();
                 data_ptr = &cache_data[cache_data.size() - 1];

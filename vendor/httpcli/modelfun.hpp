@@ -16,7 +16,7 @@ namespace fs = std::filesystem;
 int strtointval(std::string vval)
 {
     int temp = 0;
-    for (int i = 0; i < vval.size(); i++)
+    for (unsigned int i = 0; i < vval.size(); i++)
     {
         if (vval[i] == 0x20)
         {
@@ -101,7 +101,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     std::map<std::string, std::map<std::string, std::string>> tableinfo;
      std::map<unsigned char, unsigned char> table_type;
      std::map<unsigned char, unsigned char> table_type_unsigned;   
-    for (unsigned char index = 0; index < num_fields; index++)
+    for (unsigned int index = 0; index < num_fields; index++)
     {
         tablecelwidth[index] = 0;
         table[index].append(std::string(fields[index].name));
@@ -155,7 +155,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                 bool isc = false;
                 bool isnum = false;
                 std::string limitchar;
-                for (int n = 0; n < temp.size(); n++)
+                for (unsigned int n = 0; n < temp.size(); n++)
                 {
                     if (temp[n] == '(')
                     {
@@ -298,7 +298,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             if (temptype.size() > 3)
             {
-                for (int n = 0; n < temptype.size(); n++)
+                for (unsigned int n = 0; n < temptype.size(); n++)
                 {
                     if (temptype[n] == 0x20)
                     {
@@ -537,7 +537,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             if (temptype.size() > 8)
             {
-                for (int n = 0; n < temptype.size(); n++)
+                for (unsigned int n = 0; n < temptype.size(); n++)
                 {
                     if (temptype[n] == 0x20)
                     {
@@ -592,7 +592,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             if (temptype.size() > 7)
             {
-                for (int n = 0; n < temptype.size(); n++)
+                for (unsigned int n = 0; n < temptype.size(); n++)
                 {
                     if (temptype[n] == 0x20)
                     {
@@ -712,7 +712,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             if (temptype.size() > 8)
             {
-                for (int n = 0; n < temptype.size(); n++)
+                for (unsigned int n = 0; n < temptype.size(); n++)
                 {
                     if (temptype[n] == 0x20)
                     {
@@ -1097,7 +1097,7 @@ struct )";
 
     std::ostringstream filemodelstrem;
 
-    for (int j = 0; j < metalist.size(); j++)
+    for (unsigned int j = 0; j < metalist.size(); j++)
     {
         filemodelstrem << metalist[j] << std::endl;
     }
@@ -1114,7 +1114,7 @@ struct )";
 
     filemodelstrem << "const std::array<std::string," << std::to_string(tablecollist.size()) << "> colnames={";
 
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
         if (j > 0)
         {
@@ -1187,7 +1187,7 @@ struct )";
                 {
                     char ttttp = 0x00;
                     std::map<unsigned char, std::vector<unsigned char>> backcolz;
-                    for (int mm = 0; mm < ittter->second.size(); mm++)
+                    for (unsigned int mm = 0; mm < ittter->second.size(); mm++)
                     {
                         ttttp = tablecollist[ittter->second[mm]].back();
                         backcolz[ttttp].emplace_back(ittter->second[mm]);
@@ -1211,7 +1211,7 @@ struct )";
                     {
                         filemodelstrem << backcachep.str();
                     }
-                    for (int mm = 0; mm < ittter->second.size(); mm++)
+                    for (unsigned  int mm = 0; mm < ittter->second.size(); mm++)
                     {
                         auto ippter = hasbackpos.find(ittter->second[mm]);
                         if (ippter == hasbackpos.end())
@@ -1282,7 +1282,7 @@ struct )";
 
     filemodelstrem.str("");
  
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
     {
          if(table_type[j]<10)
         {
@@ -1411,7 +1411,7 @@ struct )";
 
   inline  std::string stringaddslash(std::string &content){
         std::string temp;
-        for(int i=0;i<content.size();i++){
+        for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
                 continue;
@@ -1425,7 +1425,7 @@ struct )";
    }  
   inline  std::string jsonaddslash(std::string &content){
         std::string temp;
-        for(int i=0;i<content.size();i++){
+        for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
                 continue;
@@ -1436,7 +1436,7 @@ struct )";
    }  
 
    std::string _makeinsertsql(){
-       int j=0;
+      unsigned int j=0;
                 std::ostringstream tempsql;
                 tempsql<<"INSERT INTO ";
                     tempsql<<tablename;
@@ -1462,7 +1462,7 @@ struct )";
     std::string insertstring;
     std::ostringstream insertstrem;
 
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -1541,7 +1541,7 @@ struct )";
     std::string updatestring;
     std::ostringstream updatestrem;
 
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -1601,7 +1601,7 @@ struct )";
 
     headtxt = R"(
      
-  int jj=0;
+  unsigned int jj=0;
                   std::string keyname;
                   std::vector<unsigned char> keypos;
                   for(;jj<fileld.size();jj++){
@@ -1632,7 +1632,7 @@ struct )";
     std::string update2string;
     std::ostringstream update2strem;
 
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -1712,7 +1712,7 @@ struct )";
 
     std::ostringstream jsonstrem;
     headtxt = "tempsql<<\"{\";\n";
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -1819,7 +1819,7 @@ struct )";
 
     update2strem.str("");
 
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -1937,7 +1937,7 @@ struct )";
 
     update2strem.str("");
 
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -2065,7 +2065,7 @@ struct )";
 
     update2strem.str("");
 
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -2160,7 +2160,7 @@ struct )";
     std::ostringstream getsetstrem;
     std::string uptempstring;
     // 自动get set方法
-    for (int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
         getsetstrem << collisttype[j];
         uptempstring = tablecollist[j];
@@ -2640,7 +2640,7 @@ if(sqlqueryring.size()>0)
     getcollstrem.str("");
     sqlqueryring.clear();    
 
-    for (int jj = 0; jj < tablecollist.size(); jj++)
+    for (unsigned int jj = 0; jj < tablecollist.size(); jj++)
     {
 
         getcollstrem << "\t\t\tcase " << std::to_string(jj) << ": \n ";
@@ -5654,7 +5654,7 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
 
     keyname = "default";
     std::string typeone;
-    for (int i = 0; i < s.size(); i++)
+    for (unsigned int i = 0; i < s.size(); i++)
     {
         if (s[i] == ';' || s[i] == '#')
         {
@@ -6044,7 +6044,7 @@ maxpool=20
         }
         else
         {
-            for (int i = 0; i < myconfig.size(); i++)
+            for (unsigned  int i = 0; i < myconfig.size(); i++)
             {
                 std::cout << " \033[1m\033[31m" << (i + 1) << "\033[0m " << myconfig[i].dbname << std::endl;
             }
@@ -6060,7 +6060,7 @@ maxpool=20
                 {
                     return 0;
                 }
-                for (int i = 0; i < command.size(); i++)
+                for (unsigned int i = 0; i < command.size(); i++)
                 {
                     if (command[i] == 0x20)
                     {
@@ -6279,7 +6279,7 @@ maxpool=20
         int n = 0,  toffset = 0;
 
         tableshow.resize(percolnum);
-        for (int i = 0; i < groupp; i++)
+        for (unsigned  int i = 0; i < groupp; i++)
         {
             pc = i * percolnum;
             maxchar = 15;
@@ -6361,7 +6361,7 @@ maxpool=20
             {
                 isloop = true;
             }
-            for (int tn = 0; tn < tablelist.size(); tn++)
+            for (unsigned  int tn = 0; tn < tablelist.size(); tn++)
             {
 
                 int indexnum = 0;
@@ -6441,7 +6441,7 @@ maxpool=20
                             }
                         }
                         offsetmodel += 1;
-                        for (int i = offsetmodel; i < realtablename.size(); i++)
+                        for (unsigned  int i = offsetmodel; i < realtablename.size(); i++)
                         {
 
                             if (realtablename[i] == '_')
@@ -6526,7 +6526,7 @@ maxpool=20
         {
             break;
         }
-        for (int i = 0; i < myconfig.size(); i++)
+        for (unsigned int i = 0; i < myconfig.size(); i++)
         {
             std::cout << " \033[1m\033[31m" << (i + 1) << "\033[0m " << myconfig[i].dbname << std::endl;
         }
@@ -6539,7 +6539,7 @@ maxpool=20
         }
         unsigned char indexsdb = 0;
 
-        for (int i = 0; i < command.size(); i++)
+        for  (unsigned int i = 0; i < command.size(); i++)
         {
             if (command[i] == 0x20)
             {

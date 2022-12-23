@@ -113,8 +113,8 @@ int viewcli()
                 }
                 char ss[10];
                 std::list<int> saveu;
-                int jj = 0;
-                for (int nn = 0; nn < commond.size(); nn++)
+                unsigned int jj = 0;
+                for (unsigned int nn = 0; nn < commond.size(); nn++)
                 {
                     if (commond[nn] == 0x20)
                     {

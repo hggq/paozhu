@@ -35,6 +35,21 @@
 namespace http
 {
 
+    union
+    {
+        struct
+        {
+            unsigned char END_STREAM : 1;
+            unsigned char e1 : 1;
+            unsigned char END_HEADERS : 1;
+            unsigned char PADDED : 1;
+            unsigned char e2 : 1;
+            unsigned char PRIORITY : 1;
+
+        } data;
+        char value;
+    } header_flags;
+
     class http2parse
     {
 

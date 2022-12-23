@@ -600,7 +600,7 @@ namespace http
       {
             std::string key, value;
             unsigned int code = 0;
-            int j = 0;
+            unsigned int j = 0;
             for (; j < contentline.size(); j++)
             {
                   if (contentline[j] == 0x20)
@@ -728,7 +728,7 @@ namespace http
                               std::string key, value;
                               bool isfirst;
                               isfirst = true;
-                              for (int j = 0; j < contentline.size(); j++)
+                              for (unsigned int j = 0; j < contentline.size(); j++)
                               {
                                     if (isfirst && contentline[j] == ':')
                                     {
@@ -793,7 +793,7 @@ namespace http
       {
             // Set-Cookie: name=aabb; expires=Mon, 28-Mar-2022 12:10:55 GMT; Max-Age=3600; path=/; domain=localhost; secure; HttpOnly
             std::string name, value;
-            for (int i = 0; i < str.length(); i++)
+            for (unsigned int i = 0; i < str.length(); i++)
             {
                   if (str[i] == '=')
                   {
@@ -820,7 +820,7 @@ namespace http
       {
             // Content-Disposition: attachment; filename="filename.jpg"
             std::string name, value;
-            for (int i = 0; i < str.length(); i++)
+            for (unsigned int i = 0; i < str.length(); i++)
             {
                   if (str[i] == '=')
                   {
@@ -855,7 +855,7 @@ namespace http
       {
             // text/html; charset=UTF-8 //application/xhtml+xml, application/json, application/xml
             std::string name, value;
-            for (int i = 0; i < str.length(); i++)
+            for (unsigned int i = 0; i < str.length(); i++)
             {
                   if (str[i] == '=')
                   {
@@ -1391,7 +1391,7 @@ namespace http
             std::string key;
             std::string value;
 
-            for (int j = 0; j < vvalue.size(); j++)
+            for (unsigned int j = 0; j < vvalue.size(); j++)
             {
                   if (vvalue[j] == 0x0A)
                   {

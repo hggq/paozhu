@@ -36,7 +36,7 @@ namespace http
         bool isvalue = false;
         keyname = "";
         std::string typeone;
-        for (int i = 0; i < s.size(); i++)
+        for (unsigned int i = 0; i < s.size(); i++)
         {
             if (s[i] == ';')
             {
@@ -186,7 +186,7 @@ namespace http
                 std::string dddmod = "*.";
                 bool isplithost = true;
                 std::string splithostpre;
-                for (int i = 0; i < host.size(); i++)
+                for (unsigned int i = 0; i < host.size(); i++)
                 {
                     if (isplithost && host[i] == '.')
                     {
@@ -364,7 +364,7 @@ namespace http
         else
         {
             siteusehtmlchachetime = 0;
-            for (int i = 0; i < map_value["default"]["usehtmlcachetime"].size(); i++)
+            for (unsigned int i = 0; i < map_value["default"]["usehtmlcachetime"].size(); i++)
             {
                 if (map_value["default"]["usehtmlcachetime"][i] > 0x2F && map_value["default"]["usehtmlcachetime"][i] < 0x3A)
                 {
@@ -471,7 +471,7 @@ namespace http
     {
         unsigned char tempnum = 0;
 
-        for (int i = 0; i < map_value["default"]["cothreadnum"].size(); i++)
+        for (unsigned int i = 0; i < map_value["default"]["cothreadnum"].size(); i++)
         {
             if (map_value["default"]["cothreadnum"][i] > 0x2F && map_value["default"]["cothreadnum"][i] < 0x3A)
             {
@@ -492,7 +492,7 @@ namespace http
     {
         unsigned int tempnum = 0;
 
-        for (int i = 0; i < map_value["default"]["httpsport"].size(); i++)
+        for (unsigned int i = 0; i < map_value["default"]["httpsport"].size(); i++)
         {
             if (map_value["default"]["httpsport"][i] > 0x2F && map_value["default"]["httpsport"][i] < 0x3A)
             {

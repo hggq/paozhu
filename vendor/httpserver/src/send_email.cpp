@@ -123,7 +123,7 @@ namespace http
                                 data[2048] = 0;
                                 std::string filecontent;
                                 std::string sendcontent;
-                                for (int j = 0; j < sendfiles.size(); j++)
+                                for (unsigned int j = 0; j < sendfiles.size(); j++)
                                 {
                                     if (sendfiles[j].predata.empty())
                                     {
@@ -192,7 +192,7 @@ namespace http
                     {
                         state = SEND_ERROR;
                         errormsg.clear();
-                        for (int j = 0; j < 100; j++)
+                        for (unsigned int j = 0; j < 100; j++)
                         {
                             if (data[j] != 0x00)
                             {
@@ -329,7 +329,7 @@ namespace http
                                 data[2048] = 0;
                                 std::string filecontent;
                                 std::string sendcontent;
-                                for (int j = 0; j < sendfiles.size(); j++)
+                                for (unsigned int j = 0; j < sendfiles.size(); j++)
                                 {
                                     if (sendfiles[j].predata.empty())
                                     {
@@ -397,7 +397,7 @@ namespace http
                     {
                         state = SEND_ERROR;
                         errormsg.clear();
-                        for (int j = 0; j < 100; j++)
+                        for (unsigned int j = 0; j < 100; j++)
                         {
                             if (data[j] != 0x00)
                             {

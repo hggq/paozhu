@@ -88,7 +88,7 @@ namespace http
                 if (mask == 1)
                 {
 
-                    for (int j = 0; j < contentoffset; j++)
+                    for (unsigned int j = 0; j < contentoffset; j++)
                     {
                         unsigned char nn = j % 4;
                         inputdata[j + pos] = inputdata[j + pos] ^ mask_key[nn];
@@ -111,7 +111,7 @@ namespace http
             if (mask == 1)
             {
 
-                for (int j = 0; j < contentoffset; j++)
+                for (unsigned int j = 0; j < contentoffset; j++)
                 {
                     unsigned char nn = j % 4;
                     char b = inputdata[j + pos] ^ mask_key[nn];
@@ -120,7 +120,7 @@ namespace http
             }
             else
             {
-                for (int j = 0; j < contentoffset; j++)
+                for (unsigned int j = 0; j < contentoffset; j++)
                 {
                     indata.push_back(inputdata[j + pos]);
                 }
@@ -147,7 +147,7 @@ namespace http
 
             if (mask == 1)
             {
-                for (int j = 0; j < buffersize; j++)
+                for (unsigned int j = 0; j < buffersize; j++)
                 {
                     unsigned char nn = j % 4;
                     inputdata[j] = inputdata[j] ^ mask_key[nn];
@@ -163,7 +163,7 @@ namespace http
         {
             if (mask == 1)
             {
-                for (int j = 0; j < buffersize; j++)
+                for (unsigned int j = 0; j < buffersize; j++)
                 {
                     unsigned char nn = j % 4;
                     char b = inputdata[j] ^ mask_key[nn];
@@ -173,7 +173,7 @@ namespace http
             }
             else
             {
-                for (int j = 0; j < buffersize; j++)
+                for (unsigned int j = 0; j < buffersize; j++)
                 {
                     indata.push_back(inputdata[j]);
                 }

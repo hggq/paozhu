@@ -60,7 +60,7 @@ namespace http
         std::string temp(30, 0x00);
         timeInfo = localtime(&curr_time);
         strftime(temp.data(), temp.length(), format.c_str(), timeInfo);
-        for (int i = 0; i < temp.size(); i++)
+        for (unsigned int i = 0; i < temp.size(); i++)
         {
             if (temp[i] == 0x00)
             {

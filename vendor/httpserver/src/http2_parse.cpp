@@ -437,12 +437,12 @@ namespace http
      {
           std::string objname;
           bool isgroup = true;
-          for (int j = 0; j < data_info[block_steamid].buffer_key.length(); j++)
+          for (unsigned int j = 0; j < data_info[block_steamid].buffer_key.length(); j++)
           {
                if (data_info[block_steamid].buffer_key[j] == '[')
                {
                     std::string key1name;
-                    int n = j;
+                    unsigned int n = j;
                     n++;
                     bool ishaskey = false;
                     bool ishaskey2 = false;
@@ -469,7 +469,7 @@ namespace http
                     if (ishaskey)
                     {
 
-                         int m = n;
+                         unsigned int m = n;
                          if (n < data_info[block_steamid].buffer_key.length())
                          {
                               if (data_info[block_steamid].buffer_key[m] == '[')
@@ -1771,7 +1771,7 @@ namespace http
           unsigned int ident_value;
           peer_session->window_update_num = 65535;
 
-          for (int n = readoffset; n < pin; n += 6)
+          for (unsigned int n = readoffset; n < pin; n += 6)
           {
 
                ident_type = buffer[n];
@@ -1834,7 +1834,7 @@ namespace http
 
           unsigned int ident_stream;
 
-          for (int n = readoffset; n < pin; n += 5)
+          for (unsigned  int n = readoffset; n < pin; n += 5)
           {
                struct http2_priority_t temp;
 
@@ -1958,12 +1958,12 @@ namespace http
           std::string objname;
           bool isgroup = true;
 
-          for (int j = 0; j < data_info[block_steamid].buffer_key.length(); j++)
+          for (unsigned  int j = 0; j < data_info[block_steamid].buffer_key.length(); j++)
           {
                if (data_info[block_steamid].buffer_key[j] == '[')
                {
                     std::string key1name;
-                    int n = j;
+                    unsigned int n = j;
                     n++;
                     bool ishaskey = false;
                     bool ishaskey2 = false;
@@ -2150,7 +2150,7 @@ namespace http
      {
           std::string objname;
           bool isgroup = true;
-          for (int j = 0; j < data_info[block_steamid].upfile.name.length(); j++)
+          for (unsigned int j = 0; j < data_info[block_steamid].upfile.name.length(); j++)
           {
                if (data_info[block_steamid].upfile.name[j] == '[')
                {
@@ -2419,7 +2419,7 @@ namespace http
                }
                data_info[block_steamid].buffer_key.clear();
           }
-          unsigned baseoffset = begin;
+          unsigned int baseoffset = begin;
           pmi = 0, ib = 0;
           data_info[block_steamid].match_offset = 0;
 
@@ -2701,7 +2701,7 @@ namespace http
      void http2parse::fieldname_process(const std::string &tfheader_name, std::string &fieldname, std::string &fieldfilename)
      {
           std::string header_temp;
-          for (int jj = 0; jj < tfheader_name.size(); jj++)
+          for (unsigned int jj = 0; jj < tfheader_name.size(); jj++)
           {
                if (tfheader_name[jj] == ';')
                {
@@ -2785,7 +2785,7 @@ namespace http
      void http2parse::fieldtype_process(const std::string &tfheader_name)
      {
 
-          int jj = 0;
+          unsigned int jj = 0;
           for (; jj < tfheader_name.size(); jj++)
           {
                if (tfheader_name[jj] == ':')

@@ -96,8 +96,8 @@ namespace http
         std::vector<std::string> temp;
 
         std::string mp;
-        int j=0,n=msg.size();
-        for (int i = 0; i < n; i++)
+        unsigned int j=0,n=msg.size();
+        for (unsigned int i = 0; i < n; i++)
         {
             for(j=0;j<pattern.size();j++){
                 if((i+j)>=n){
@@ -271,7 +271,7 @@ namespace http
                     return temp;
                 }
                 int offsetnum = 0;
-                for (int pos = 0; pos < str.size(); pos++)
+                for (unsigned int pos = 0; pos < str.size(); pos++)
                 {
                     c = (unsigned char)str[pos];
                     if (c < 0x80)
@@ -367,7 +367,7 @@ namespace http
                 }
 
                 int offsetnum = 0;
-                for (int pos = 0; pos < str.size(); pos++)
+                for (unsigned int pos = 0; pos < str.size(); pos++)
                 {
                     c = (unsigned char)str[pos];
                     if (c < 0x80)
@@ -443,7 +443,7 @@ namespace http
 
                 int offsetnum = 0;
                 int n = begin;
-                for (int pos = 0; pos < str.size(); pos++)
+                for (unsigned int pos = 0; pos < str.size(); pos++)
                 {
                     c = (unsigned char)str[pos];
                     if (c < 0x80)
@@ -524,7 +524,7 @@ namespace http
                 j = begin;
 
                 int offsetnum = 0;
-                for (int pos = 0; pos < str.size(); pos++)
+                for (unsigned  int pos = 0; pos < str.size(); pos++)
                 {
                     c = (unsigned char)str[pos];
                     if (c < 0x80)
@@ -607,7 +607,7 @@ namespace http
                 }
                 int n = begin;
                 int offsetnum = 0;
-                for (int pos = 0; pos < str.size(); pos++)
+                for (unsigned int pos = 0; pos < str.size(); pos++)
                 {
                     c = (unsigned char)str[pos];
                     if (c < 0x80)
@@ -912,7 +912,7 @@ namespace http
         std::vector<std::string> vpath;
         bool isext = false;
         bool isurl = false;
-        int i = 0;
+        unsigned int i = 0;
         for (; i < str.size(); i++)
         {
             if (str[i] == 0x20 || str[i] == 0x09 || str[i] == 0x0D || str[i] == 0x0A)
@@ -1107,7 +1107,7 @@ namespace http
         }
         if (vpath.size() > 0)
         {
-            for (int j = 0; j < vpath.size(); j++)
+            for (unsigned int j = 0; j < vpath.size(); j++)
             {
                 if (j > 0)
                 {
@@ -1121,7 +1121,7 @@ namespace http
     std::string mb_trim(std::string &str)
     {
         std::string temp;
-        int tlen = str.size();
+        unsigned int tlen = str.size();
         for (; tlen > 0; tlen--)
         {
             if (str[tlen - 1] == 0x20 || str[tlen - 1] == 0x09 || str[tlen - 1] == 0x0A || str[tlen - 1] == 0x0D)
@@ -1130,7 +1130,7 @@ namespace http
             }
             break;
         }
-        int i = 0;
+        unsigned  int i = 0;
         for (; i < tlen; i++)
         {
             if (str[i] == 0x20 || str[i] == 0x09 || str[i] == 0x0A || str[i] == 0x0D)
@@ -1148,7 +1148,7 @@ namespace http
     std::string html_encode(std::string &str)
     {
         std::string temp;
-        for (int i = 0; i < str.size(); i++)
+        for (unsigned int i = 0; i < str.size(); i++)
         {
             if (str[i] == '&')
             {
@@ -1189,7 +1189,7 @@ namespace http
         long long str2int(const char *source, unsigned int str_length)
     {
         long long  temp = 0;
-        int qi = 0;
+        unsigned int qi = 0;
         bool issub=false;
         for (; qi < str_length; qi++)
         {
@@ -1219,7 +1219,7 @@ namespace http
     std::string str2safepath(const char *source, unsigned int str_length)
     {
         std::string temp;
-        for(int i=0;i<str_length;i++)
+        for(unsigned  int i=0;i<str_length;i++)
         {
 
             if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='('||source[i]==')'||source[i]=='~'||source[i]=='_'||source[i]=='-'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))
@@ -1232,7 +1232,7 @@ namespace http
     std::string str2safefile(const char *source, unsigned int str_length)
     {
         std::string temp;
-        for(int i=0;i<str_length;i++)
+        for(unsigned int i=0;i<str_length;i++)
         {
 
             if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='.'||source[i]=='['||source[i]==']'||source[i]=='('||source[i]==')'||source[i]=='~'||source[i]=='_'||source[i]=='-'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))
@@ -1245,7 +1245,7 @@ namespace http
     std::string str2safemethold(const char *source, unsigned int str_length)
     {
         std::string temp;
-        for(int i=0;i<str_length;i++)
+        for(unsigned int i=0;i<str_length;i++)
         {
 
             if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='_'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))

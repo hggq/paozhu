@@ -68,7 +68,7 @@ namespace http
       unsigned int httpparse::header_valuetoint()
       {
             unsigned int temp = 0;
-            for (int qi = 0; qi < header_value.size(); qi++)
+            for (unsigned int qi = 0; qi < header_value.size(); qi++)
             {
                   if (header_value[qi] < 0x3A && header_value[qi] > 0x2F)
                   {
@@ -117,12 +117,12 @@ namespace http
       {
             std::string objname;
             bool isgroup = true;
-            for (int j = 0; j < header_temp.length(); j++)
+            for (unsigned int j = 0; j < header_temp.length(); j++)
             {
                   if (header_temp[j] == '[')
                   {
                         std::string key1name;
-                        int n = j;
+                        unsigned  int n = j;
                         n++;
                         bool ishaskey = false;
                         bool ishaskey2 = false;
@@ -149,7 +149,7 @@ namespace http
                         if (ishaskey)
                         {
 
-                              int m = n;
+                              unsigned  int m = n;
                               if (n < header_temp.length())
                               {
                                     if (header_temp[m] == '[')
@@ -262,12 +262,12 @@ namespace http
       {
             std::string objname;
             bool isgroup = true;
-            for (int j = 0; j < header_temp.length(); j++)
+            for (unsigned int j = 0; j < header_temp.length(); j++)
             {
                   if (header_temp[j] == '[')
                   {
                         std::string key1name;
-                        int n = j;
+                        unsigned int n = j;
                         n++;
                         bool ishaskey = false;
                         bool ishaskey2 = false;
@@ -294,7 +294,7 @@ namespace http
                         if (ishaskey)
                         {
 
-                              int m = n;
+                              unsigned int m = n;
                               if (n < header_temp.length())
                               {
                                     if (header_temp[m] == '[')
@@ -1050,7 +1050,7 @@ namespace http
                               header_value.clear();
                               bool isfirst;
                               isfirst = true;
-                              for (int j = 0; j < contentline.size(); j++)
+                              for (unsigned int j = 0; j < contentline.size(); j++)
                               {
                                     if (isfirst && contentline[j] == ':')
                                     {
@@ -1862,7 +1862,7 @@ namespace http
                               }
                               else if (header_temp == "filename")
                               {
-                                    int mm = jj;
+                                    unsigned int mm = jj;
                                     mm += 1;
                                     if (buffer_key[mm] == '"')
                                     {
@@ -2100,13 +2100,13 @@ namespace http
       {
             std::string objname;
             bool isgroup = true;
-            for (int j = 0; j < upfile.name.length(); j++)
+            for (unsigned int j = 0; j < upfile.name.length(); j++)
             {
                   if (upfile.name[j] == '[')
                   {
                         std::string key1name;
 
-                        int n = j;
+                        unsigned int n = j;
                         n++;
                         bool ishaskey = false;
                         bool ishaskey2 = false;
@@ -2133,7 +2133,7 @@ namespace http
                         if (ishaskey)
                         {
 
-                              int m = n;
+                              unsigned int m = n;
                               if (n < upfile.name.length())
                               {
                                     if (upfile.name[m] == '[')
@@ -2395,7 +2395,7 @@ namespace http
                                           j++;
                                           headerstep += 1;
                                           header_input.push_back(0x2D);
-                                          for (int nnn = 0; nnn < poststate.boundary.size(); nnn++)
+                                          for (unsigned int nnn = 0; nnn < poststate.boundary.size(); nnn++)
                                           {
                                                 if (buffer[j] != poststate.boundary[nnn])
                                                 {

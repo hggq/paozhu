@@ -11,7 +11,7 @@
     void init_daemon(void) 
     { 
         int pid; 
-        int i;
+        unsigned int i;
         pid=fork();
         if(pid>0) 
         {
@@ -38,8 +38,8 @@
         //是第二子进程，继续 
         //第二子进程不再是会话组长 
      
-        chdir("/tmp");//改变工作目录到/
-     
+       ssize_t n = chdir("/tmp");//改变工作目录到/
+        n=0;
         for(i=0;i< getdtablesize();++i)//关闭打开的文件描述符 
             close(i); 
         umask(022);//重设文件创建掩模 

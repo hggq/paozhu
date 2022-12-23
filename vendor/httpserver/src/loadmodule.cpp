@@ -144,7 +144,7 @@ namespace http
         bool hasmethod = true;
         if (iter != sharedmethodchache.end())
         {
-            for (int i = 0; i < iter->second.size(); i++)
+            for (unsigned int i = 0; i < iter->second.size(); i++)
             {
                 if (iter->second[i] == name)
                 {
@@ -272,7 +272,7 @@ namespace http
             {
                 //清除所有方法
                 std::string hash;
-                for (int i = 0; i < iter->second.size(); i++)
+                for (unsigned int i = 0; i < iter->second.size(); i++)
                 {
                     hash.clear();
                     hash.append(module);

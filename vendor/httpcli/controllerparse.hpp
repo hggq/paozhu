@@ -157,7 +157,7 @@ namespace http
 
             compiler.resize(compilercontent.size());
 
-            for (int i = 0; i < compilercontent.size(); i++)
+            for (unsigned int i = 0; i < compilercontent.size(); i++)
             {
                 if (compilercontent[i] == '\n')
                 {
@@ -211,7 +211,7 @@ namespace http
                 //bool iszhushi = true;
                 bool isblank = false;
 
-                for (int ij = 0; ij < readcontent.size(); ij++)
+                for (unsigned int ij = 0; ij < readcontent.size(); ij++)
                 {
                     if (isblank == false)
                     {
@@ -258,7 +258,7 @@ namespace http
 
                                 std::string first, second;
                                 bool isappend = true;
-                                int j = 0;
+                                unsigned int j = 0;
                                 for (; j < cppincludefilename.size(); j++)
                                 {
                                     if (cppincludefilename[j] == '/')
@@ -320,7 +320,7 @@ namespace http
                 readcontent.resize(nread);
                 compiler.clear();
 
-                for (int i = 0; i < readcontent.size(); i++)
+                for (unsigned int i = 0; i < readcontent.size(); i++)
                 {
                     if (readcontent[i] == 0x0D)
                     {
@@ -359,7 +359,7 @@ namespace http
                 fclose(fp);
                 readcontent.resize(nread);
                 sofilename.clear();
-                int i = 0;
+                unsigned int i = 0;
                 for (; i < readcontent.size(); i++)
                 {
                     if (readcontent[i] == 0x20 || readcontent[i] == '\t')

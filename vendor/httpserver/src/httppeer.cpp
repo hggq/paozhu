@@ -233,8 +233,8 @@ namespace http
 
             sessionfile = session.tojson();
 
-            write(fd, sessionfile.data(), sessionfile.size());
-
+            ssize_t n=write(fd, sessionfile.data(), sessionfile.size());
+            n=0;
             lock.l_type = F_UNLCK;
             if (fcntl(fd, F_SETLKW, &lock) == -1)
             {
@@ -242,6 +242,7 @@ namespace http
                   return;
             }
             close(fd);
+            
             sessionfile_time = timeid();
       }
       void httppeer::clear_session()
@@ -346,7 +347,7 @@ namespace http
             serverconfig &sysconfigpath = getserversysconfig();
 
             sendfilename = sitepath;
-            for (int i = 0; i < pathinfos.size(); i++)
+            for (unsigned int i = 0; i < pathinfos.size(); i++)
             {
                   if (i > 0)
                   {
