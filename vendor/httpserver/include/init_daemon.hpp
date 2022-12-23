@@ -8,7 +8,7 @@
     #include <sys/param.h> 
     #include <sys/types.h> 
     #include <sys/stat.h> 
-    void init_deamon(void) 
+    void init_daemon(void) 
     { 
         int pid; 
         int i;

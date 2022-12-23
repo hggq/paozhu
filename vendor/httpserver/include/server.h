@@ -86,7 +86,7 @@ namespace http
     bool http1_send_body(unsigned int streamid,std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session,const unsigned char *buffer, unsigned int begin_end);
     bool http1_send_file(unsigned int streamid,std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session,const std::string &filename);
     bool http1_send_file_range(unsigned int streamid,std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session,const std::string &filename);
-    void run(const char *);
+    void run(const std::string &);
     void httpwatch();
     ~httpserver()
     {
@@ -124,7 +124,7 @@ namespace http
     std::list<std::string> error_loglist;
     std::mutex log_mutex;
 
-     ThreadPool clientrunpool{32};
+     ThreadPool clientrunpool{16};
     // log end
     const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32, 0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};
   };

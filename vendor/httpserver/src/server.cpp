@@ -1234,9 +1234,9 @@ namespace http
           close(fd);
         }
 
-        if(mysqlpool_time%10==0)
+        if(mysqlpool_time%100==0)
         {
-            if(total_count.load()<5)
+            if(total_count.load()==0)
             {
                 std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
                 for(auto iter=mysqldbpoolglobal.begin();iter != mysqldbpoolglobal.end();iter++)
@@ -1246,7 +1246,6 @@ namespace http
                     DEBUG_LOG("mysql pool clearpoool ");
                 }
                 mysqlpool_time=1;
-
                  
             }
         }
@@ -1274,12 +1273,12 @@ namespace http
       }
     }
   }
-  void httpserver::run(const char *sysconfpath)
+  void httpserver::run(const std::string &sysconfpath)
   {
     try
     {
       serverconfig &sysconfigpath = getserversysconfig();
-      if (sysconfpath)
+      if (sysconfpath.empty())
       {
         sysconfigpath.configfile.clear();
         sysconfigpath.configfile.append(sysconfpath);

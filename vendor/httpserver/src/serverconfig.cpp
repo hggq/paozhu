@@ -258,6 +258,24 @@ namespace http
             }
             if (configfile.empty())
             {
+                currentpath = "/usr/local/etc/paozhu";
+                cpath = currentpath;
+                if (fs::is_directory(cpath))
+                {
+                    currentpath = currentpath + "/server.conf";
+                    cpath = currentpath;
+                    if (fs::is_regular_file(cpath))
+                    {
+                        configfile = currentpath;
+                    }
+                    else
+                    {
+                        configfile.clear();
+                    }
+                }
+            }
+            if (configfile.empty())
+            {
                 cpath = fs::current_path();
                 currentpath = cpath.string();
                 currentpath = currentpath + "/conf";
@@ -277,24 +295,7 @@ namespace http
                     }
                 }
             }
-            if (configfile.empty())
-            {
-                currentpath = "/usr/local/etc/paozhu";
-                cpath = currentpath;
-                if (fs::is_directory(cpath))
-                {
-                    currentpath = currentpath + "/server.conf";
-                    cpath = currentpath;
-                    if (fs::is_regular_file(cpath))
-                    {
-                        configfile = currentpath;
-                    }
-                    else
-                    {
-                        configfile.clear();
-                    }
-                }
-            }
+            
         }
         else
         {
