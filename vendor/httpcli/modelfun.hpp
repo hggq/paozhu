@@ -1471,25 +1471,98 @@ struct )";
         {
            if(table_type[j]!=7)
            {
+            if(j==0)
+            {
+                if(tablecollist[j]==tablepkname)
+                {
+                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "tempsql<<\"null\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+                else 
+                {
+                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\"0\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+            }
+            else
+            {
+                if(tablecollist[j]==tablepkname)
+                {
+                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "tempsql<<\",null\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<\",\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+                else 
+                {
+                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\",0\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<\",\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+            }
+
+
+            continue;
+           } 
+            
+        }
+                // 数字
+        if (j == 0)
+        {
+            if(tablecollist[j]==tablepkname)
+            {
             insertstrem << "if(data." << tablecollist[j] << "==0){\n";
             insertstrem << "tempsql<<\"null\";\n";
             insertstrem << " }else{ \n";
             insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
             insertstrem << "}\n";
+            }
+            else
+            {
+                if (colltypeshuzi[j] < 30)
+                {
+                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\"0\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<\"\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+                else if (colltypeshuzi[j] == 60)
+                {
+                    insertstrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+                    insertstrem << "tempsql<<\" CURRENT_TIMESTAMP \";\n";
+                    insertstrem << " }else{ \n tempsql<<\"'\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else if (colltypeshuzi[j] == 61)
+                {
+                    insertstrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+                    insertstrem << "tempsql<<\"CURRENT_DATE \";\n";
+                    insertstrem << " }else{ \n tempsql<<\"'\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else
+                {
+
+                    insertstrem << "tempsql<<\"'\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n";
+                }
+            }
+
             continue;
-           } 
-            
         }
         if (colltypeshuzi[j] < 30)
         {
             insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-
             insertstrem << "\ttempsql<<\",0\";\n";
-
             insertstrem << " }else{ \n";
-
             insertstrem << "\ttempsql<<\",\"<<std::to_string(data." << tablecollist[j] << ");\n";
-
             insertstrem << "}\n";
         }
         else if (colltypeshuzi[j] == 60)

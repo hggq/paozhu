@@ -71,7 +71,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultone = nullptr;
                 mysql_ping(conn.get());
-                int readnum = mysql_query(conn.get(), &countsql[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -164,9 +164,9 @@ namespace orm
 
             try
             {
-                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_query(conn.get(), &countsql[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -1285,7 +1285,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1390,7 +1390,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1506,7 +1506,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1642,7 +1642,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1721,7 +1721,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultone = nullptr;
                 mysql_ping(conn.get());
-                int readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1806,9 +1806,9 @@ namespace orm
             }
             try
             {
-                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -1856,9 +1856,9 @@ namespace orm
             }
             try
             {
-                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -1904,9 +1904,9 @@ namespace orm
             }
             try
             {
-                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -1937,9 +1937,9 @@ namespace orm
 
             try
             {
-                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_query(conn.get(), &sqlstring[0]);
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -1991,10 +1991,9 @@ namespace orm
 
                 try
                 {
-                    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                     mysql_ping(conn.get());
-                    long long readnum = mysql_query(conn.get(), &sqlstring[0]);
-
+                    long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
                     if (readnum != 0)
                     {
                         error_msg = std::string(mysql_error(conn.get()));
@@ -2029,10 +2028,10 @@ namespace orm
 
                 try
                 {
-                    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                    sqlstring = base::_makeinsertsql();
+                    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                     mysql_ping(conn.get());
-                    long long readnum = mysql_query(conn.get(), &sqlstring[0]);
-
+                    long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
                     if (readnum != 0)
                     {
                         error_msg = std::string(mysql_error(conn.get()));

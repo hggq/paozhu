@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 23 Dec 2022 16:21:15 GMT
+*本文件为自动生成 Sat, 24 Dec 2022 15:17:41 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -530,14 +530,14 @@ tempsql<<"null";
 	tempsql<<std::to_string(data.aid);
 }
 if(data.classtype==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.classtype);
+	tempsql<<","<<std::to_string(data.classtype);
 }
 if(data.userid==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.userid);
+	tempsql<<","<<std::to_string(data.userid);
 }
 tempsql<<",'"<<stringaddslash(data.title)<<"'";
 tempsql<<",'"<<stringaddslash(data.keywords)<<"'";
@@ -546,31 +546,31 @@ tempsql<<",'"<<stringaddslash(data.author)<<"'";
 tempsql<<",'"<<stringaddslash(data.addip)<<"'";
 tempsql<<",'"<<stringaddslash(data.createtime)<<"'";
 if(data.addtime==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.addtime);
+	tempsql<<","<<std::to_string(data.addtime);
 }
 if(data.readnum==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.readnum);
+	tempsql<<","<<std::to_string(data.readnum);
 }
 if(data.review==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.review);
+	tempsql<<","<<std::to_string(data.review);
 }
 tempsql<<",'"<<stringaddslash(data.icoimg)<<"'";
 tempsql<<",'"<<stringaddslash(data.content)<<"'";
 if(data.isopen==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.isopen);
+	tempsql<<","<<std::to_string(data.isopen);
 }
 if(data.iscomment==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.iscomment);
+	tempsql<<","<<std::to_string(data.iscomment);
 }
 tempsql<<",'"<<stringaddslash(data.fromlocal)<<"'";
 tempsql<<",'"<<stringaddslash(data.texturl)<<"'";

@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 23 Dec 2022 16:21:15 GMT
+*本文件为自动生成 Sat, 24 Dec 2022 15:17:41 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -238,14 +238,14 @@ tempsql<<"null";
 tempsql<<",'"<<stringaddslash(data.name)<<"'";
 tempsql<<",'"<<stringaddslash(data.password)<<"'";
 if(data.isopen==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.isopen);
+	tempsql<<","<<std::to_string(data.isopen);
 }
 if(data.level==0){
-tempsql<<"null";
+	tempsql<<",0";
  }else{ 
-	tempsql<<std::to_string(data.level);
+	tempsql<<","<<std::to_string(data.level);
 }
 tempsql<<")";
 
