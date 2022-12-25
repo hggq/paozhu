@@ -92,6 +92,14 @@ cmake ..
 make
 ```
 
+用于生产环境，可以编译为正式版，开-o3 优化同时编译为守护进程模式，方式如下加8个线程编译。
+
+```shell
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j8
+```
+
+
 ### 5.hosts配置
 
 - 查看`conf/server.conf`文件中`mainhost`值
