@@ -94,6 +94,13 @@ cmake ..
 make
 ```
 
+Use in production environment,Compile as daemon 
+```shell
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j8
+```
+
+
 ### 5.hosts configuration
 
 - view`conf/server.conf`file and get`mainhost`value
