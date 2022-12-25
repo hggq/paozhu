@@ -12,7 +12,7 @@
   </head>
   <body class="text-center">
     <%c include_sub("home/header",obj); %>
-     <h3><a href="/cms/list">返回列表</a> </h3>
+     <h3><a href="/cms/list">返回列表 Return content list</a> </h3>
      
  
 
@@ -20,19 +20,19 @@
       <div class="row">
         <div class="col-3"></div>  
         <div class="col-6">
-          <h2 id="horizontal-form">添加新内容</h2>
+          <h2 id="horizontal-form">添加新内容 Add new content</h2>
           <form action="/cms/addpost" method="post">
 
     <div class="mb-3">
-      <label for="title" class="form-label">内容标题</label>
-      <input type="text" class="form-control" id="title" name="title" placeholder="标题" value="">
+      <label for="title" class="form-label">内容标题 Title</label>
+      <input type="text" class="form-control" id="title" name="title" placeholder="标题 title" value="">
     </div>
     <div class="mb-3">
-      <label for="content" class="form-label">内容</label>
+      <label for="content" class="form-label">内容 Content</label>
       <textarea class="form-control" id="content" name="content"  rows="20"></textarea>
     </div>
     <input type="hidden" id="aid" name="aid"  value="0">
-    <button type="submit" class="btn btn-primary">提交</button>
+    <button type="submit" class="btn btn-primary">提交(Submit)</button>
   </form>
 
 </div>

@@ -12,14 +12,14 @@
   </head>
   <body class="text-center">
     <%c include_sub("home/header",obj); %>
-     <h3>内容列表 <a href="/cms/add">添加内容</a></h3>
+     <h3>article list 内容列表 <a href="/cms/add">(add)添加内容</a></h3>
      <p><%c echo<<obj["msg"].as_string(); %></p>
     <div class="list-group w-auto">
       <%c
       for(auto &a:obj["list"].as_array()){
       %>
       <div class="list-group-item list-group-item-action d-flex gap-3 py-3" aria-current="true">
-        <img src="#" alt="twbs" class="rounded-circle flex-shrink-0" width="32" height="32">
+        <img src="#" alt="Icon" class="rounded-circle flex-shrink-0" width="32" height="32">
         <div class="d-flex gap-2 w-100 justify-content-between">
           <div>
             <h6 class="mb-0"><a href="/cms/show?id=<%c echo<<a.second["aid"].to_string(); %>"><%c echo<<a.second["title"].as_string(); %></a></h6>
@@ -27,8 +27,8 @@
           </div>
           <small class="opacity-50 text-nowrap"><%c echo<<a.second["createtime"].as_string(); %></small>
 
-          <small class="opacity-50 text-nowrap"><a href="/cms/edit?id=<%c echo<<a.second["aid"].to_string(); %>">编辑</a></small>
-          <small class="opacity-50 text-nowrap"><a href="/cms/delete?id=<%c echo<<a.second["aid"].to_string(); %>">删除</a></small>
+          <small class="opacity-50 text-nowrap"><a href="/cms/edit?id=<%c echo<<a.second["aid"].to_string(); %>">编辑(edit)</a></small>
+          <small class="opacity-50 text-nowrap"><a href="/cms/delete?id=<%c echo<<a.second["aid"].to_string(); %>">删除(Delete)</a></small>
         </div>
       </div>
       <%c

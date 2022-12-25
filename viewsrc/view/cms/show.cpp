@@ -30,8 +30,8 @@ namespace view {
 
         
  			 echo<<"<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <meta name=\"description\" content=\"\">\n    <meta name=\"author\" content=\"Mark Otto, Jacob Thornton, and Bootstrap contributors\">\n    <meta name=\"generator\" content=\"Hugo 0.101.0\">\n    <title>Content Management System</title>\n\n    <link href=\"/assets/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  </head>\n  <body class=\"text-center\">\n    ";
-  			try{ echo<<http::view::home::header(vinfo,obj); }catch (std::exception& e)   {          echo<< "homeheader too long";  }
- 			 echo<<"     <h3><a href=\"/cms/list\">列表</a> 内容介绍</h3>\n     \n     <div class=\"container\">\n      <h1 class=\"mt-5\">";
+  			try{ echo<<http::view::home::header(vinfo,obj); }catch (std::exception& e)   {          echo<< "--- include_sub home/header error ---";  }
+ 			 echo<<"     <h3><a href=\"/cms/list\">列表 Return content list</a> 内容介绍 Content show</h3>\n     \n     <div class=\"container\">\n      <h1 class=\"mt-5\">";
  echo<<obj["title"].as_string(); 
  			 echo<<"</h1>\n      <div>";
  echo<<obj["content"].as_string(); 

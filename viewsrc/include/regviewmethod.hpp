@@ -17,7 +17,7 @@ namespace http
 {
   void _initview_method_regto(VIEW_REG  &_viewmetholdreg)
   {
-            	 //create time: Fri, 09 Dec 2022 15:11:13 GMT
+            	 //create time: Sun, 25 Dec 2022 01:10:24 GMT
 
 	_viewmetholdreg.emplace("cms/add",http::view::cms::add);
 	_viewmetholdreg.emplace("cms/edit",http::view::cms::edit);
