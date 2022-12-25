@@ -72,6 +72,17 @@ brew install brotli
 
 ### 4.安装方法
 
+下载新版asio到项目根目录
+```shell
+|-vendor
+|-CMakeLists.txt
+|-asio
+  |-asio
+  |-asio.hpp
+````
+类似这样的目录结构
+
+
 ```shell
 mkdir temp
 mkdir log
