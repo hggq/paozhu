@@ -1,6 +1,6 @@
 English | [简体中文](README_CN.md)
-<div style="text-align: center">
-[logo](https://www.paozhu.org/images/logo.png)
+<div align="center">
+<img src="https://www.paozhu.org/images/logo.png">
 </div>
 
 paozhu(炮竹🧨) is a comprehensive and fast C++ web framework that integrates ORM. The development speed is as
