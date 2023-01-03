@@ -453,7 +453,7 @@ namespace http
           std::ostringstream oss;
           oss << std::this_thread::get_id();
           std::string tempthread = oss.str();
-          DEBUG_LOG("client thread:%s", tempthread.c_str());
+          DEBUG_LOG("\033[31mclient thread:%s\033[0m", tempthread.c_str());
         }
 #endif
         int readnum, error_state = 0;
@@ -849,7 +849,59 @@ namespace http
       m_EndFrame = m_BeginFrame + invFpsLimit;
     }
   }
+  asio::awaitable<void> httpserver::sslhandshake(asio::ip::tcp::socket socket,asio::ssl::context& context_, unsigned long long temp_domain )
+  {
+    try
+    {
 
+      serverconfig &sysconfigpath = getserversysconfig();
+      const unsigned char *for_next_proto = nullptr;
+      unsigned int next_proto_len = 0;
+      bool httpversion = false;
+      asio::error_code ec_error;
+       DEBUG_LOG(" accept ok!");
+        // if all http2
+        if (sysconfigpath.isallnothttp2)
+        {
+          SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
+        }
+        asio::ssl::stream<asio::ip::tcp::socket> sslsocket(std::move(socket), context_);
+        sslsocket.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+        sslsocket.handshake(asio::ssl::stream_base::server, ec_error);
+        if (ec_error)
+        {
+          std::unique_lock<std::mutex> lock(log_mutex);
+          error_loglist.emplace_back(" handshake ec_error ");
+          lock.unlock();
+          DEBUG_LOG(" handshake ec_error !");
+          co_return;
+        }
+        // client select proto 看看客户端是否指定 协议，如果没有指定为null
+        SSL_get0_next_proto_negotiated(sslsocket.native_handle(), &for_next_proto, &next_proto_len);
+        if (for_next_proto == nullptr)
+        {
+          // openssl >2.0,5 必须大于2.0.5 alpn选择的协议
+          SSL_get0_alpn_selected(sslsocket.native_handle(), &for_next_proto, &next_proto_len);
+        }
+        if (next_proto_len > 0)
+        {
+          if (for_next_proto[0] == 'h' && for_next_proto[1] == '2')
+          {
+            DEBUG_LOG(" h2 ");
+            httpversion = true;
+          }
+        }
+        DEBUG_LOG(" https ok!");
+        total_count++;
+
+        struct httpsocket_t sock_temp(std::move(sslsocket));
+        co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), true, httpversion), asio::detached);
+    }
+    catch (std::exception &e)
+    {
+
+    }
+  }
   void httpserver::listeners()
   {
     serverconfig &sysconfigpath = getserversysconfig();
@@ -954,14 +1006,14 @@ namespace http
     }
     SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
 
-    const unsigned char *for_next_proto = nullptr;
-    unsigned int next_proto_len = 0;
-    bool httpversion = false;
+    //const unsigned char *for_next_proto = nullptr;
+    //unsigned int next_proto_len = 0;
+    //bool httpversion = false;
     for (;;)
     {
       try
       {
-        httpversion = false;
+        //httpversion = false;
         asio::ip::tcp::socket socket(this->io_context);
         DEBUG_LOG("https accept");
 
@@ -976,41 +1028,9 @@ namespace http
           continue;
         }
         DEBUG_LOG(" accept ok!");
-        // if all http2
-        if (sysconfigpath.isallnothttp2)
-        {
-          SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
-        }
-        asio::ssl::stream<asio::ip::tcp::socket> sslsocket(std::move(socket), context_);
-        sslsocket.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
-        sslsocket.handshake(asio::ssl::stream_base::server, ec_error);
-        if (ec_error)
-        {
-          std::unique_lock<std::mutex> lock(log_mutex);
-          error_loglist.emplace_back(" handshake ec_error ");
-          lock.unlock();
-          DEBUG_LOG(" handshake ec_error !");
-          continue;
-        }
-        // client select proto 看看客户端是否指定 协议，如果没有指定为null
-        SSL_get0_next_proto_negotiated(sslsocket.native_handle(), &for_next_proto, &next_proto_len);
-        if (for_next_proto == nullptr)
-        {
-          // openssl >2.0,5 必须大于2.0.5 alpn选择的协议
-          SSL_get0_alpn_selected(sslsocket.native_handle(), &for_next_proto, &next_proto_len);
-        }
-        if (next_proto_len > 0)
-        {
-          if (for_next_proto[0] == 'h' && for_next_proto[1] == '2')
-          {
-            httpversion = true;
-          }
-        }
-        DEBUG_LOG(" https ok!");
-        total_count++;
 
-        struct httpsocket_t sock_temp(std::move(sslsocket));
-        co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), true, httpversion), asio::detached);
+        co_spawn(this->io_context, sslhandshake(std::move(socket), std::ref(context_), temp_domain), asio::detached);
+
       }
       catch (std::exception &e)
       {

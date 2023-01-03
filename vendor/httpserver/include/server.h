@@ -75,6 +75,7 @@ namespace http
   public:
     httpserver() {}
     asio::awaitable<void> clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion);
+    asio::awaitable<void> sslhandshake(asio::ip::tcp::socket socket,asio::ssl::context& context_, unsigned long long temp_domain );
     void http1loop(unsigned int sig,std::shared_ptr<httppeer>,std::shared_ptr<client_session>);
     void websocket_loop(int myid);
     void listeners();
