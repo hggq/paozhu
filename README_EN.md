@@ -69,7 +69,7 @@ brew install brotli
 ```
 >= 20.04
 ```
-**Notice：** Requires gcc11 support. For more installation details, please see [ubuntu install gcc.txt](ubuntu%20install%20gcc.txt)
+**Notice：** Requires gcc11 support. For more installation details, please see 
 
 - Environment configuration  
 [paozhu linux environment configuration](https://github.com/hggq/paozhu/wiki/linux-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE)
@@ -127,9 +127,9 @@ sudo ./bin/paozhu
 
 open the browser and enter http://localhost in the address bar
 
-![正确运行效果](https://github.com/hggq/paozhu/blob/main/www/default/firstrun.jpg)
+![runing](https://www.paozhu.org/images/firstrun.jpg)
 
-for more details, please see the source code under the `controller` directory, which includes `CURD` examples.
+for more details, please see the source code under the `controller` directory, which includes `CRUD` examples.
 
 ###  7.Related tutorial
 
@@ -141,7 +141,7 @@ for more details, please see the source code under the `controller` directory, w
 
 4. [paozhu view](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6view-%E8%A7%86%E5%9B%BE%E5%85%A5%E9%97%A8)
 
-5. [paozhu CURD](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
+5. [paozhu CRUD](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
 
 ### 8.Roadmap
 

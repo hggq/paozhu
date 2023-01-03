@@ -4,7 +4,7 @@
 <img src="https://www.paozhu.org/images/logo.png">
 </div>
 
-**Paozhu**(炮竹🧨)是一个全面、快速的C++ web framework 开发框架，集成ORM，开发速度跟脚本语言一样，框架集成了webserver，自己原生解析http1.1、http2协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char
+**Paozhu**(炮竹🧨)是一个全面、快速的C++ web framework 开发框架，集成c++ mysql ORM，开发速度跟脚本语言一样，框架集成了webserver，自己原生解析http1.1、http2协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char
 int string float等，框架自动解析URL、POST参数到微型对象里面，使用urlpath映射到函数挂载点，使用协程、线程池、数据库链接池。
 
 QQ群：668296235  
@@ -65,7 +65,7 @@ brew install brotli
 >= 20.04
 ```
 
-**注意：** 需要gcc11支持，安装详情请查看[ubuntu install gcc.txt](ubuntu%20install%20gcc.txt)
+**注意：** 需要gcc11支持，安装详情请查看
 
 - 环境配置  
   [paozhu 框架linux 环境配置](https://github.com/hggq/paozhu/wiki/linux-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE)
@@ -126,9 +126,9 @@ sudo ./bin/paozhu
 
 打开浏览器，在地址栏输入`http://localhost`
 
-![正确运行效果](https://github.com/hggq/paozhu/blob/main/www/default/firstrun.jpg)
+![正确运行效果](https://www.paozhu.org/images/firstrun.jpg)
 
-更多细节请查看`controller`目录下源码，包含`CURD`示例
+更多细节请查看`controller`目录下源码，包含`CRUD`示例
 
 ### 7.相关教程
 
@@ -140,7 +140,7 @@ sudo ./bin/paozhu
 
 4. [Paozhu 框架view视图入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6view-%E8%A7%86%E5%9B%BE%E5%85%A5%E9%97%A8)
 
-5. [Paozhu 框架CURD教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
+5. [Paozhu 框架CRUD教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
 
 ### 8.路线图
 
