@@ -41,6 +41,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/websockets/include)
 
+file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
+#EXECUTE_PROCESS(COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
+set(PAOZHU_URL paozhu_url)
+add_executable(${PAOZHU_URL} ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopickmethod.cpp)
+add_executable(paozhu_empty ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autoemptymethod.cpp)
+
+
+
 file(GLOB_RECURSE orm_list ${CMAKE_CURRENT_SOURCE_DIR}/orm/*.cpp)
 file(GLOB_RECURSE source_list ${CMAKE_CURRENT_SOURCE_DIR}/models/*.cpp)
 file(GLOB_RECURSE FRAMEWORK_CPP_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/*.cpp)
@@ -81,6 +89,16 @@ else()
 endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
+
+add_custom_command(
+    TARGET paozhu_empty paozhu
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_url
+    PRE_BUILD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+    COMMAND echo "-- controls method --"
+    COMMAND ${PAOZHU_URL} ${CMAKE_CURRENT_SOURCE_DIR}/
+    COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty
+    )
 
 if(USE_STANDALONE_ASIO)
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
