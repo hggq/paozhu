@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <sstream>
 #include <map>
-#include <list>
+#include <vector>
 #include <filesystem>
 #include "autopickcontrolmethod.hpp"
 

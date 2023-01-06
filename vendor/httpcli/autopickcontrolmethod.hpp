@@ -24,6 +24,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <map>
+#include <vector>
 #include <cstring>
 namespace http
 {
