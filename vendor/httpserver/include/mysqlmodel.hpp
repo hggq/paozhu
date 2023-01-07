@@ -116,6 +116,11 @@ namespace orm
 
                 return readnum;
             }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
+            }            
             catch (const char *e)
             {
                 error_msg = std::string(e);
@@ -182,6 +187,11 @@ namespace orm
                    
                 }
                 return readnum;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
             }
             catch (const char *e)
             {
@@ -1727,7 +1737,6 @@ namespace orm
             catch (const char *e)
             {
                 error_msg = std::string(e);
-                return valuetemp;
             }
             return valuetemp;
         }
@@ -1852,6 +1861,11 @@ namespace orm
                 }
                 return readnum;
             }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
+            }
             catch (const char *e)
             {
                 error_msg = std::string(e);
@@ -1907,6 +1921,11 @@ namespace orm
                 }
                 return readnum;
             }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
+            }            
             catch (const char *e)
             {
                 error_msg = std::string(e);
@@ -1961,6 +1980,11 @@ namespace orm
                 }
                 return readnum;
             }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
+            }
             catch (const char *e)
             {
                 error_msg = std::string(e);
@@ -1999,6 +2023,11 @@ namespace orm
                    
                 }
                 return readnum;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
             }
             catch (const char *e)
             {
@@ -2072,6 +2101,11 @@ namespace orm
                     }
                     return readnum;
                 }
+                catch (const std::exception &e)
+                {
+                    error_msg = std::string(e.what());
+                    return 0;
+                }
                 catch (const char *e)
                 {
                     error_msg = std::string(e);
@@ -2118,6 +2152,7 @@ namespace orm
                 }
                 catch (const std::exception &e)
                 {
+                    error_msg = std::string(e.what());
                     return 0;
                 }
                 catch (const char *e)
