@@ -10,7 +10,7 @@
 #include <thread>
 #include "request.h"
 #include "unicode.h"
-
+#include <stdexcept>
 #include <iostream>
 #include <functional>
 #include "mysql.h"
@@ -116,6 +116,11 @@ namespace orm
 
                 return readnum;
             }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return 0;
+            }
             catch (...)
             {
                 return 0;
@@ -177,6 +182,11 @@ namespace orm
                    
                 }
                 return readnum;
+            }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return 0;
             }
             catch (...)
             {
@@ -1343,7 +1353,11 @@ namespace orm
                 error_msg = std::string(e.what());
                 
             }
-
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return temprecord;
+            }
             return temprecord;
 
         }
@@ -1448,7 +1462,11 @@ namespace orm
                 error_msg = std::string(e.what());
                 
             }
-
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return temprecord;
+            }
             return temprecord;
 
         }
@@ -1576,6 +1594,11 @@ namespace orm
                 error_msg = std::string(e.what());
                 return *mod;
             }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return *mod;
+            }
 
             // if (cachetime > 0)
             // {
@@ -1701,6 +1724,11 @@ namespace orm
                 error_msg = std::string(e.what());
                 
             }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return valuetemp;
+            }
             return valuetemp;
         }
         model &getone(long long id)
@@ -1773,7 +1801,11 @@ namespace orm
                 error_msg = std::string(e.what());
                 return *mod;
             }
-
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return *mod;
+            }
             return *mod;
         }
         int update()
@@ -1819,6 +1851,11 @@ namespace orm
                    
                 }
                 return readnum;
+            }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return 0;
             }
             catch (...)
             {
@@ -1870,6 +1907,12 @@ namespace orm
                 }
                 return readnum;
             }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                throw std::runtime_error(e);
+                return 0;
+            } 
             catch (...)
             {
                 return 0;
@@ -1918,6 +1961,12 @@ namespace orm
                 }
                 return readnum;
             }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                throw std::runtime_error(e);
+                return 0;
+            }
             catch (...)
             {
                 return 0;
@@ -1950,6 +1999,11 @@ namespace orm
                    
                 }
                 return readnum;
+            }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+                return 0;
             }
             catch (...)
             {
@@ -2018,6 +2072,11 @@ namespace orm
                     }
                     return readnum;
                 }
+                catch (const char *e)
+                {
+                    error_msg = std::string(e);
+                    return 0;
+                }
                 catch (...)
                 {
                     return 0;
@@ -2061,6 +2120,11 @@ namespace orm
                 {
                     return 0;
                 }
+                catch (const char *e)
+                {
+                    error_msg = std::string(e);
+                    return 0;
+                }
             }
             return 0;
         }
@@ -2072,6 +2136,7 @@ namespace orm
             groupsql.clear();
             limitsql.clear();
             sqlstring.clear();
+            error_msg.clear();
             iskuohao = false;
             ishascontent = false;
             if (both)

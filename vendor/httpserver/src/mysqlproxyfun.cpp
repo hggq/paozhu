@@ -10,7 +10,7 @@
 #include <thread>
 #include <iostream>
 #include <functional>
-
+#include <stdexcept>
 #include <map>
 #include <typeinfo>
 #include <memory>
@@ -32,11 +32,11 @@ namespace http
                   {
                         return iter->second.get_edit_connect();
                   }
-                  throw " not find db link in pool!";
+                  throw std::runtime_error(" not find db link in pool!");
             }
             catch (const char *e)
             {
-                  throw e;
+                  throw std::runtime_error(e);
             }
             std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(nullptr, &mysql_close);
             return conn;
@@ -51,11 +51,11 @@ namespace http
                   {
                         return iter->second.get_select_connect();
                   }
-                  throw " not find db link in pool!";
+                  throw std::runtime_error(" not find db link in pool!");
             }
             catch (const char *e)
             {
-                  throw e;
+                  throw std::runtime_error(e);
             }
             std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(nullptr, &mysql_close);
             return conn;

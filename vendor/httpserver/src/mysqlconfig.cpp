@@ -340,6 +340,10 @@ namespace http
         }
       }
     }
+    catch (const char *e)
+    {
+      throw e;
+    }
     catch (...)
     {
       //std::cout << "ERROR: " << err << ::std::endl;

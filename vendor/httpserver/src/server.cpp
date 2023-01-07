@@ -1104,7 +1104,16 @@ namespace http
   void httpserver::httpwatch()
   {
     serverconfig &sysconfigpath = getserversysconfig();
-    mysqlconfig_init_link();
+    try
+    {
+      mysqlconfig_init_link();
+    }
+    catch (const char *e)
+    {
+      std::string errorstr(e);
+      error_loglist.emplace_back(errorstr);
+    }
+    
     struct regmethold_t temp;
     temp.pre = nullptr;
     temp.regfun = [self = this](std::shared_ptr<httppeer> peer) -> std::string
