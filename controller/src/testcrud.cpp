@@ -4,7 +4,7 @@
 #include "md5.h"
 #include "func.h"
 #include "httppeer.h"
-#include "testcurd.h"
+#include "testcrud.h"
 namespace http
 {
 

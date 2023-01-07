@@ -9,7 +9,7 @@
 #include "testlogin.h"
 #include "testmysql.h"
 #include "testview.h"
-#include "testcurd.h"
+#include "testcrud.h"
 #include "testhello.h"
 #include "testjson.h"
 #include "testmodel.h"
