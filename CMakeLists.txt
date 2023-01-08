@@ -43,8 +43,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/websockets/include)
 
 file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
 #EXECUTE_PROCESS(COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
-set(PAOZHU_URL paozhu_url)
-add_executable(${PAOZHU_URL} ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopickmethod.cpp)
+set(PAOZHU_PRE paozhu_pre)
+add_executable(${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopickmethod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/md5.cpp)
 add_executable(paozhu_empty ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autoemptymethod.cpp)
 
 
@@ -92,11 +92,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 add_custom_command(
     TARGET paozhu_empty paozhu
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_url
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre
     PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
     COMMAND echo "-- controls method --"
-    COMMAND ${PAOZHU_URL} ${CMAKE_CURRENT_SOURCE_DIR}/
+    COMMAND ${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/
     COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty
     )
 

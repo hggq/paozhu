@@ -35,9 +35,121 @@ namespace http
         std::string func;
         std::string urlpath;
     };
+    struct file_regitem
+    {
+        std::string filename;
+        std::string filetime;
+        std::string filehash;
+    };
     class pickcontrol
     {
     public:
+        void savecacheinfo(const std::string &methodpathfile, const std::map<std::string, struct file_regitem> &info_list)
+        {
+
+            std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(methodpathfile.c_str(), "wb"), &std::fclose);
+            if (f == nullptr)
+            {
+                return;
+            }
+            std::string c_content;
+
+            for (const auto &[first, second] : info_list)
+            {
+                c_content.append(second.filename);
+                c_content.push_back(',');
+                c_content.append(second.filetime);
+                c_content.push_back(',');
+                c_content.append(second.filehash);
+                c_content.push_back(0x0A);
+            }
+            fwrite(&c_content[0], 1, c_content.size(), f.get());
+        }
+        std::map<std::string, struct file_regitem> loadcacheinfo(const std::string &methodpathfile)
+        {
+            std::map<std::string, struct file_regitem> reginfo_temp;
+            struct file_regitem str_temp;
+            std::string c_content;
+            std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(methodpathfile.c_str(), "rb"), &std::fclose);
+            if (f == nullptr)
+            {
+                return reginfo_temp;
+            }
+            fseek(f.get(), 0, SEEK_END);
+            unsigned int file_size = ftell(f.get());
+            fseek(f.get(), 0, SEEK_SET);
+            c_content.resize(file_size);
+            file_size = fread(&c_content[0], 1, file_size, f.get());
+            c_content.resize(file_size);
+
+            std::string tempstr;
+            unsigned char foffset = 0;
+            for (unsigned int i = 0; i < file_size; i++)
+            {
+                if (c_content[i] == 0x0A)
+                {
+                    str_temp.filehash = tempstr;
+                    reginfo_temp[str_temp.filename] = str_temp;
+
+                    str_temp.filename.clear();
+                    str_temp.filetime.clear();
+                    str_temp.filehash.clear();
+                    foffset = 0;
+                    tempstr.clear();
+                    continue;
+                }
+                if (c_content[i] == ',')
+                {
+                    if (foffset == 0)
+                    {
+                        str_temp.filename = tempstr;
+                        tempstr.clear();
+                        foffset = 1;
+                    }
+                    else if (foffset == 1)
+                    {
+                        str_temp.filetime = tempstr;
+                        tempstr.clear();
+                        foffset = 2;
+                    }
+                    else
+                    {
+                        str_temp.filehash = tempstr;
+                        tempstr.clear();
+                        foffset = 0;
+                    }
+                    continue;
+                }
+                if (c_content[i] == 0x20 || c_content[i] == '\t')
+                {
+                    continue;
+                }
+                tempstr.push_back(c_content[i]);
+            }
+            if (tempstr.size() > 0)
+            {
+                if (foffset == 0)
+                {
+                    str_temp.filename = tempstr;
+                    tempstr.clear();
+                    foffset = 1;
+                }
+                else if (foffset == 1)
+                {
+                    str_temp.filetime = tempstr;
+                    tempstr.clear();
+                    foffset = 2;
+                }
+                else
+                {
+                    str_temp.filehash = tempstr;
+                    tempstr.clear();
+                    foffset = 0;
+                }
+                reginfo_temp[str_temp.filename] = str_temp;
+            }
+            return reginfo_temp;
+        }
         std::vector<std::string> listpath(const std::string &methodpath)
         {
             fs::path tagetpath = methodpath;
@@ -152,7 +264,7 @@ namespace http
 
                         i = j;
                         std::string linestr;
-                        if(tempname.empty())
+                        if (tempname.empty())
                         {
                             isbegin = false;
                             continue;

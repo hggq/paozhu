@@ -1368,6 +1368,9 @@ namespace orm
                 error_msg = std::string(e);
                 return temprecord;
             }
+            catch (...)
+            {
+            }
             return temprecord;
 
         }
@@ -1476,6 +1479,9 @@ namespace orm
             {
                 error_msg = std::string(e);
                 return temprecord;
+            }
+            catch (...)
+            {
             }
             return temprecord;
 
@@ -1609,7 +1615,9 @@ namespace orm
                 error_msg = std::string(e);
                 return *mod;
             }
-
+            catch (...)
+            {
+            }
             // if (cachetime > 0)
             // {
             //     if (sqlhashid == 0)
@@ -1738,6 +1746,9 @@ namespace orm
             {
                 error_msg = std::string(e);
             }
+            catch (...)
+            {
+            }
             return valuetemp;
         }
         model &getone(long long id)
@@ -1814,6 +1825,9 @@ namespace orm
             {
                 error_msg = std::string(e);
                 return *mod;
+            }
+            catch (...)
+            {
             }
             return *mod;
         }
@@ -2159,6 +2173,9 @@ namespace orm
                 {
                     error_msg = std::string(e);
                     return 0;
+                }
+                catch (...)
+                {
                 }
             }
             return 0;

@@ -1352,6 +1352,16 @@ namespace http
         }
       }
     }
+    catch (...)
+    {
+      if (peer->loopresults.size() > 0)
+      {
+        if (peer->loopresults.front().valid())
+        {
+          peer->looprunpromise.set_exception(std::current_exception());
+        }
+      }
+    }
   }
   //
   void ThreadPool::http_websocketsrun(std::shared_ptr<httppeer> peer)
@@ -1402,6 +1412,10 @@ namespace http
     }
     catch (std::exception &e)
     {
+    }
+    catch (...)
+    {
+        
     }
   }
 
