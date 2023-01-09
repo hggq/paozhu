@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Mon, 09 Jan 2023 15:23:10 GMT
+*本文件为自动生成 Mon, 09 Jan 2023 15:30:05 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1395,6 +1395,310 @@ tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(data.editauthor)<<"\"";
 		case 19:
 		 try{
 			data.editauthor.append(set_value_name);
+		}catch (...) { 
+			data.editauthor.clear();
+			 }
+			break;
+	default:
+		 { }
+			
+
+
+        }
+   } 
+    
+    void set_val(const std::string& set_key_name,const long long set_value_name)
+    {
+        switch(findcolpos(set_key_name))
+        {
+    		case 0:
+		 try{
+			data.aid=set_value_name;
+		}catch (...) { 
+			data.aid=0;
+			 }
+			break;
+		case 1:
+		 try{
+			data.classtype=set_value_name;
+		}catch (...) { 
+			data.classtype=0;
+			 }
+			break;
+		case 2:
+		 try{
+			data.userid=set_value_name;
+		}catch (...) { 
+			data.userid=0;
+			 }
+			break;
+		case 3:
+		 try{
+			data.title=std::to_string(set_value_name);
+		}catch (...) { 
+			data.title.clear();
+			 }
+			break;
+		case 4:
+		 try{
+			data.keywords=std::to_string(set_value_name);
+		}catch (...) { 
+			data.keywords.clear();
+			 }
+			break;
+		case 5:
+		 try{
+			data.fromsource=std::to_string(set_value_name);
+		}catch (...) { 
+			data.fromsource.clear();
+			 }
+			break;
+		case 6:
+		 try{
+			data.author=std::to_string(set_value_name);
+		}catch (...) { 
+			data.author.clear();
+			 }
+			break;
+		case 7:
+		 try{
+			data.addip=std::to_string(set_value_name);
+		}catch (...) { 
+			data.addip.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.createtime=std::to_string(set_value_name);
+		}catch (...) { 
+			data.createtime.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.addtime=set_value_name;
+		}catch (...) { 
+			data.addtime=0;
+			 }
+			break;
+		case 10:
+		 try{
+			data.readnum=set_value_name;
+		}catch (...) { 
+			data.readnum=0;
+			 }
+			break;
+		case 11:
+		 try{
+			data.review=set_value_name;
+		}catch (...) { 
+			data.review=0;
+			 }
+			break;
+		case 12:
+		 try{
+			data.icoimg=std::to_string(set_value_name);
+		}catch (...) { 
+			data.icoimg.clear();
+			 }
+			break;
+		case 13:
+		 try{
+			data.content=std::to_string(set_value_name);
+		}catch (...) { 
+			data.content.clear();
+			 }
+			break;
+		case 14:
+		 try{
+			data.isopen=set_value_name;
+		}catch (...) { 
+			data.isopen=0;
+			 }
+			break;
+		case 15:
+		 try{
+			data.iscomment=set_value_name;
+		}catch (...) { 
+			data.iscomment=0;
+			 }
+			break;
+		case 16:
+		 try{
+			data.fromlocal=std::to_string(set_value_name);
+		}catch (...) { 
+			data.fromlocal.clear();
+			 }
+			break;
+		case 17:
+		 try{
+			data.texturl=std::to_string(set_value_name);
+		}catch (...) { 
+			data.texturl.clear();
+			 }
+			break;
+		case 18:
+		 try{
+			data.summary=std::to_string(set_value_name);
+		}catch (...) { 
+			data.summary.clear();
+			 }
+			break;
+		case 19:
+		 try{
+			data.editauthor=std::to_string(set_value_name);
+		}catch (...) { 
+			data.editauthor.clear();
+			 }
+			break;
+	default:
+		 { }
+			
+
+
+        }
+   } 
+    
+    void set_val(const std::string& set_key_name,const double set_value_name)
+    {
+        switch(findcolpos(set_key_name))
+        {
+    		case 0:
+		 try{
+			data.aid=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.aid=0;
+			 }
+			break;
+		case 1:
+		 try{
+			data.classtype=(int)set_value_name;
+		}catch (...) { 
+			data.classtype=0;
+			 }
+			break;
+		case 2:
+		 try{
+			data.userid=(int)set_value_name;
+		}catch (...) { 
+			data.userid=0;
+			 }
+			break;
+		case 3:
+		 try{
+			data.title=std::to_string(set_value_name);
+		}catch (...) { 
+			data.title.clear();
+			 }
+			break;
+		case 4:
+		 try{
+			data.keywords=std::to_string(set_value_name);
+		}catch (...) { 
+			data.keywords.clear();
+			 }
+			break;
+		case 5:
+		 try{
+			data.fromsource=std::to_string(set_value_name);
+		}catch (...) { 
+			data.fromsource.clear();
+			 }
+			break;
+		case 6:
+		 try{
+			data.author=std::to_string(set_value_name);
+		}catch (...) { 
+			data.author.clear();
+			 }
+			break;
+		case 7:
+		 try{
+			data.addip=std::to_string(set_value_name);
+		}catch (...) { 
+			data.addip.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.createtime=std::to_string(set_value_name);
+		}catch (...) { 
+			data.createtime.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.addtime=(unsigned long long)set_value_name;
+		}catch (...) { 
+			data.addtime=0;
+			 }
+			break;
+		case 10:
+		 try{
+			data.readnum=(int)set_value_name;
+		}catch (...) { 
+			data.readnum=0;
+			 }
+			break;
+		case 11:
+		 try{
+			data.review=(int)set_value_name;
+		}catch (...) { 
+			data.review=0;
+			 }
+			break;
+		case 12:
+		 try{
+			data.icoimg=std::to_string(set_value_name);
+		}catch (...) { 
+			data.icoimg.clear();
+			 }
+			break;
+		case 13:
+		 try{
+			data.content=std::to_string(set_value_name);
+		}catch (...) { 
+			data.content.clear();
+			 }
+			break;
+		case 14:
+		 try{
+			data.isopen=(int)set_value_name;
+		}catch (...) { 
+			data.isopen=0;
+			 }
+			break;
+		case 15:
+		 try{
+			data.iscomment=(int)set_value_name;
+		}catch (...) { 
+			data.iscomment=0;
+			 }
+			break;
+		case 16:
+		 try{
+			data.fromlocal=std::to_string(set_value_name);
+		}catch (...) { 
+			data.fromlocal.clear();
+			 }
+			break;
+		case 17:
+		 try{
+			data.texturl=std::to_string(set_value_name);
+		}catch (...) { 
+			data.texturl.clear();
+			 }
+			break;
+		case 18:
+		 try{
+			data.summary=std::to_string(set_value_name);
+		}catch (...) { 
+			data.summary.clear();
+			 }
+			break;
+		case 19:
+		 try{
+			data.editauthor=std::to_string(set_value_name);
 		}catch (...) { 
 			data.editauthor.clear();
 			 }

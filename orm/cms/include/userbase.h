@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Mon, 09 Jan 2023 15:23:10 GMT
+*本文件为自动生成 Mon, 09 Jan 2023 15:30:05 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -721,6 +721,100 @@ if(data.level==0){
 		case 4:
 		 try{
 			data.level=std::stoi(set_value_name);
+		}catch (...) { 
+			data.level=0;
+			 }
+			break;
+	default:
+		 { }
+			
+
+
+        }
+   } 
+    
+    void set_val(const std::string& set_key_name,const long long set_value_name)
+    {
+        switch(findcolpos(set_key_name))
+        {
+    		case 0:
+		 try{
+			data.userid=set_value_name;
+		}catch (...) { 
+			data.userid=0;
+			 }
+			break;
+		case 1:
+		 try{
+			data.name=std::to_string(set_value_name);
+		}catch (...) { 
+			data.name.clear();
+			 }
+			break;
+		case 2:
+		 try{
+			data.password=std::to_string(set_value_name);
+		}catch (...) { 
+			data.password.clear();
+			 }
+			break;
+		case 3:
+		 try{
+			data.isopen=set_value_name;
+		}catch (...) { 
+			data.isopen=0;
+			 }
+			break;
+		case 4:
+		 try{
+			data.level=set_value_name;
+		}catch (...) { 
+			data.level=0;
+			 }
+			break;
+	default:
+		 { }
+			
+
+
+        }
+   } 
+    
+    void set_val(const std::string& set_key_name,const double set_value_name)
+    {
+        switch(findcolpos(set_key_name))
+        {
+    		case 0:
+		 try{
+			data.userid=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.userid=0;
+			 }
+			break;
+		case 1:
+		 try{
+			data.name=std::to_string(set_value_name);
+		}catch (...) { 
+			data.name.clear();
+			 }
+			break;
+		case 2:
+		 try{
+			data.password=std::to_string(set_value_name);
+		}catch (...) { 
+			data.password.clear();
+			 }
+			break;
+		case 3:
+		 try{
+			data.isopen=(int)set_value_name;
+		}catch (...) { 
+			data.isopen=0;
+			 }
+			break;
+		case 4:
+		 try{
+			data.level=(int)set_value_name;
 		}catch (...) { 
 			data.level=0;
 			 }
