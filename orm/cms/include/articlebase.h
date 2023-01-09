@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Mon, 09 Jan 2023 07:43:46 GMT
+*本文件为自动生成 Mon, 09 Jan 2023 14:02:29 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1021,6 +1021,392 @@ tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(data.editauthor)<<"\"";
      return tempsql.str();             
    }   
    
+    void from_json(const std::string &json_content)
+   {
+        record.clear();
+        articlebase::meta metatemp; 
+        data=metatemp;
+        unsigned int json_offset=0;
+        bool isarray=false;
+        std::vector<std::string> list_content;
+        for(;json_offset<json_content.size();json_offset++)
+        {
+            if(json_content[json_offset]=='{')
+            {
+                break;
+            }
+            if(json_content[json_offset]=='[')
+            {
+                isarray=true;
+                break;
+            }
+        }
+        if(isarray)
+        {
+            json_offset+=1; 
+            std::string json_key_name,json_value_name; 
+            for(;json_offset<json_content.size();json_offset++)
+            {
+                for(;json_offset<json_content.size();json_offset++)
+                {
+                    if(json_content[json_offset]=='{')
+                    {
+                        json_offset+=1;
+                        break;
+                    }
+                }
+                if(record.size()>0)
+                {
+                    data=metatemp;
+                }
+                if(json_offset>=json_content.size())
+                {
+                    break;
+                }
+                for(;json_offset<json_content.size();json_offset++)
+                {
+    
+                            if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                if(json_content[json_offset]==0x22)
+                                {
+                                    unsigned int temp_offset=json_offset;
+                                    json_key_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                    json_offset=temp_offset;
+                                    if(json_content[json_offset]==0x22)
+                                    {
+                                        json_offset+=1;
+                                    }
+                                    for(;json_offset<json_content.size();json_offset++)
+                                    {
+                                    
+                                        if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                        {
+                                            continue;
+                                        }
+                                        break;
+                                    }       
+                                    if(json_content[json_offset]!=':')
+                                    {
+                                        break;
+                                    }
+                                    for(;json_offset<json_content.size();json_offset++)
+                                    {
+                                        if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                        {
+                                            continue;
+                                        }
+                                        break;
+                                    } 
+                                    json_offset+=1;
+                                    if(json_offset>=json_content.size())
+                                    {
+                                        break;
+                                    }
+                                    json_value_name.clear();
+                                    if(json_content[json_offset]==0x22)
+                                    {
+                                        
+                                        temp_offset=json_offset;
+                                        json_value_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                        json_offset=temp_offset;
+                                        if(json_content[json_offset]==0x22)
+                                        {
+                                            json_offset+=1;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if(json_content[json_offset]!='{'&&json_content[json_offset]!=']')
+                                        {
+                                            for(;json_offset<json_content.size();json_offset++)
+                                            {
+                                                if(json_content[json_offset]==0x5D||json_content[json_offset]==0x7D||json_content[json_offset]==0x22||json_content[json_offset]==0x2C||json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                                {
+                                                    if(json_content[json_offset]==0x7D)
+                                                    {
+                                                        json_offset-=1;
+                                                    } 
+                                                    break;
+                                                }
+                                                json_value_name.push_back(json_content[json_offset]);
+                                            }   
+                                        }
+                                    }
+                                    //////////////////////////
+                                    set_val(json_key_name,json_value_name);
+                                    continue;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+    
+                }
+                record.emplace_back(data);
+                
+                json_offset+=1;
+            }
+            if(record.size()>1)
+            {
+                data=record[0];
+            }
+        }
+        else
+        {
+           if(json_content[json_offset]=='{')
+            {
+                json_offset+=1; 
+                std::string json_key_name,json_value_name; 
+                 
+                
+                for(;json_offset<json_content.size();json_offset++)
+                {
+ 
+                        if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            if(json_content[json_offset]==0x22)
+                            {
+                                 unsigned int temp_offset=json_offset;
+                                 json_key_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                 json_offset=temp_offset;
+                                 if(json_content[json_offset]==0x22)
+                                 {
+                                    json_offset+=1;
+                                 }
+                                for(;json_offset<json_content.size();json_offset++)
+                                {
+                                
+                                    if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                    {
+                                        continue;
+                                    }
+                                    break;
+                                }       
+                                if(json_content[json_offset]!=':')
+                                {
+                                    break;
+                                }
+                                for(;json_offset<json_content.size();json_offset++)
+                                {
+                                    if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                    {
+                                        continue;
+                                    }
+                                    break;
+                                } 
+                                json_offset+=1;
+                                if(json_offset>=json_content.size())
+                                {
+                                    break;
+                                }
+                                json_value_name.clear();
+                                if(json_content[json_offset]==0x22)
+                                {
+                                    
+                                    temp_offset=json_offset;
+                                    json_value_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                    json_offset=temp_offset;
+                                    if(json_content[json_offset]==0x22)
+                                    {
+                                        json_offset+=1;
+                                    }
+                                }
+                                else
+                                {
+                                    if(json_content[json_offset]!='{'&&json_content[json_offset]!=']')
+                                    {
+                                        for(;json_offset<json_content.size();json_offset++)
+                                        {
+                                            if(json_content[json_offset]==0x5D||json_content[json_offset]==0x7D||json_content[json_offset]==0x22||json_content[json_offset]==0x2C||json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                            {
+                                               if(json_content[json_offset]==0x7D)
+                                               {
+                                                   json_offset-=1;
+                                               } 
+                                               break;
+                                            }
+                                            json_value_name.push_back(json_content[json_offset]);
+                                        }   
+                                    }
+                                }
+                                //////////////////////////
+                                set_val(json_key_name,json_value_name);
+                                continue;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+ 
+                }
+                record.emplace_back(data);
+            } 
+        }
+   }   
+    
+    void set_val(const std::string& set_key_name,const std::string& set_value_name)
+    {
+        switch(findcolpos(set_key_name))
+        {
+    		case 0:
+		 try{
+			data.aid=std::stoul(set_value_name);
+		}catch (...) { 
+			data.aid=0;
+			 }
+			break;
+		case 1:
+		 try{
+			data.classtype=std::stoi(set_value_name);
+		}catch (...) { 
+			data.classtype=0;
+			 }
+			break;
+		case 2:
+		 try{
+			data.userid=std::stoi(set_value_name);
+		}catch (...) { 
+			data.userid=0;
+			 }
+			break;
+		case 3:
+		 try{
+			data.title.append(set_value_name);
+		}catch (...) { 
+			data.title.clear();
+			 }
+			break;
+		case 4:
+		 try{
+			data.keywords.append(set_value_name);
+		}catch (...) { 
+			data.keywords.clear();
+			 }
+			break;
+		case 5:
+		 try{
+			data.fromsource.append(set_value_name);
+		}catch (...) { 
+			data.fromsource.clear();
+			 }
+			break;
+		case 6:
+		 try{
+			data.author.append(set_value_name);
+		}catch (...) { 
+			data.author.clear();
+			 }
+			break;
+		case 7:
+		 try{
+			data.addip.append(set_value_name);
+		}catch (...) { 
+			data.addip.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.createtime.append(set_value_name);
+		}catch (...) { 
+			data.createtime.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.addtime=std::stoull(set_value_name);
+		}catch (...) { 
+			data.addtime=0;
+			 }
+			break;
+		case 10:
+		 try{
+			data.readnum=std::stoi(set_value_name);
+		}catch (...) { 
+			data.readnum=0;
+			 }
+			break;
+		case 11:
+		 try{
+			data.review=std::stoi(set_value_name);
+		}catch (...) { 
+			data.review=0;
+			 }
+			break;
+		case 12:
+		 try{
+			data.icoimg.append(set_value_name);
+		}catch (...) { 
+			data.icoimg.clear();
+			 }
+			break;
+		case 13:
+		 try{
+			data.content.append(set_value_name);
+		}catch (...) { 
+			data.content.clear();
+			 }
+			break;
+		case 14:
+		 try{
+			data.isopen=std::stoi(set_value_name);
+		}catch (...) { 
+			data.isopen=0;
+			 }
+			break;
+		case 15:
+		 try{
+			data.iscomment=std::stoi(set_value_name);
+		}catch (...) { 
+			data.iscomment=0;
+			 }
+			break;
+		case 16:
+		 try{
+			data.fromlocal.append(set_value_name);
+		}catch (...) { 
+			data.fromlocal.clear();
+			 }
+			break;
+		case 17:
+		 try{
+			data.texturl.append(set_value_name);
+		}catch (...) { 
+			data.texturl.clear();
+			 }
+			break;
+		case 18:
+		 try{
+			data.summary.append(set_value_name);
+		}catch (...) { 
+			data.summary.clear();
+			 }
+			break;
+		case 19:
+		 try{
+			data.editauthor.append(set_value_name);
+		}catch (...) { 
+			data.editauthor.clear();
+			 }
+			break;
+	default:
+		 { }
+			
+
+
+        }
+   } 
+    
    std::string to_json(std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;

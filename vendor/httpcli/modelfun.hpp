@@ -1964,6 +1964,356 @@ struct )";
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+    //////////////////////////////////////////////
+    //from_json
+    headtxt = R"(
+    void from_json(const std::string &json_content)
+   {
+        record.clear();
+        )";
+    headtxt += tablenamebase;
+    headtxt += R"(base::meta metatemp; 
+        data=metatemp;
+        unsigned int json_offset=0;
+        bool isarray=false;
+        std::vector<std::string> list_content;
+        for(;json_offset<json_content.size();json_offset++)
+        {
+            if(json_content[json_offset]=='{')
+            {
+                break;
+            }
+            if(json_content[json_offset]=='[')
+            {
+                isarray=true;
+                break;
+            }
+        }
+        if(isarray)
+        {
+            json_offset+=1; 
+            std::string json_key_name,json_value_name; 
+            for(;json_offset<json_content.size();json_offset++)
+            {
+                for(;json_offset<json_content.size();json_offset++)
+                {
+                    if(json_content[json_offset]=='{')
+                    {
+                        json_offset+=1;
+                        break;
+                    }
+                }
+                if(record.size()>0)
+                {
+                    data=metatemp;
+                }
+                if(json_offset>=json_content.size())
+                {
+                    break;
+                }
+                for(;json_offset<json_content.size();json_offset++)
+                {
+    
+                            if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                if(json_content[json_offset]==0x22)
+                                {
+                                    unsigned int temp_offset=json_offset;
+                                    json_key_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                    json_offset=temp_offset;
+                                    if(json_content[json_offset]==0x22)
+                                    {
+                                        json_offset+=1;
+                                    }
+                                    for(;json_offset<json_content.size();json_offset++)
+                                    {
+                                    
+                                        if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                        {
+                                            continue;
+                                        }
+                                        break;
+                                    }       
+                                    if(json_content[json_offset]!=':')
+                                    {
+                                        break;
+                                    }
+                                    for(;json_offset<json_content.size();json_offset++)
+                                    {
+                                        if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                        {
+                                            continue;
+                                        }
+                                        break;
+                                    } 
+                                    json_offset+=1;
+                                    if(json_offset>=json_content.size())
+                                    {
+                                        break;
+                                    }
+                                    json_value_name.clear();
+                                    if(json_content[json_offset]==0x22)
+                                    {
+                                        
+                                        temp_offset=json_offset;
+                                        json_value_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                        json_offset=temp_offset;
+                                        if(json_content[json_offset]==0x22)
+                                        {
+                                            json_offset+=1;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if(json_content[json_offset]!='{'&&json_content[json_offset]!=']')
+                                        {
+                                            for(;json_offset<json_content.size();json_offset++)
+                                            {
+                                                if(json_content[json_offset]==0x5D||json_content[json_offset]==0x7D||json_content[json_offset]==0x22||json_content[json_offset]==0x2C||json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                                {
+                                                    if(json_content[json_offset]==0x7D)
+                                                    {
+                                                        json_offset-=1;
+                                                    } 
+                                                    break;
+                                                }
+                                                json_value_name.push_back(json_content[json_offset]);
+                                            }   
+                                        }
+                                    }
+                                    //////////////////////////
+                                    set_val(json_key_name,json_value_name);
+                                    continue;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+    
+                }
+                record.emplace_back(data);
+                
+                json_offset+=1;
+            }
+            if(record.size()>1)
+            {
+                data=record[0];
+            }
+        }
+        else
+        {
+           if(json_content[json_offset]=='{')
+            {
+                json_offset+=1; 
+                std::string json_key_name,json_value_name; 
+                 
+                
+                for(;json_offset<json_content.size();json_offset++)
+                {
+ 
+                        if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            if(json_content[json_offset]==0x22)
+                            {
+                                 unsigned int temp_offset=json_offset;
+                                 json_key_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                 json_offset=temp_offset;
+                                 if(json_content[json_offset]==0x22)
+                                 {
+                                    json_offset+=1;
+                                 }
+                                for(;json_offset<json_content.size();json_offset++)
+                                {
+                                
+                                    if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                    {
+                                        continue;
+                                    }
+                                    break;
+                                }       
+                                if(json_content[json_offset]!=':')
+                                {
+                                    break;
+                                }
+                                for(;json_offset<json_content.size();json_offset++)
+                                {
+                                    if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                    {
+                                        continue;
+                                    }
+                                    break;
+                                } 
+                                json_offset+=1;
+                                if(json_offset>=json_content.size())
+                                {
+                                    break;
+                                }
+                                json_value_name.clear();
+                                if(json_content[json_offset]==0x22)
+                                {
+                                    
+                                    temp_offset=json_offset;
+                                    json_value_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                    json_offset=temp_offset;
+                                    if(json_content[json_offset]==0x22)
+                                    {
+                                        json_offset+=1;
+                                    }
+                                }
+                                else
+                                {
+                                    if(json_content[json_offset]!='{'&&json_content[json_offset]!=']')
+                                    {
+                                        for(;json_offset<json_content.size();json_offset++)
+                                        {
+                                            if(json_content[json_offset]==0x5D||json_content[json_offset]==0x7D||json_content[json_offset]==0x22||json_content[json_offset]==0x2C||json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
+                                            {
+                                               if(json_content[json_offset]==0x7D)
+                                               {
+                                                   json_offset-=1;
+                                               } 
+                                               break;
+                                            }
+                                            json_value_name.push_back(json_content[json_offset]);
+                                        }   
+                                    }
+                                }
+                                //////////////////////////
+                                set_val(json_key_name,json_value_name);
+                                continue;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+ 
+                }
+                record.emplace_back(data);
+            } 
+        }
+   }   
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //////////////////////////////////////////////
+    //set_val
+    filemodelstrem.str("");
+ 
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    {
+         if(table_type[j]<10)
+        {
+                    switch(table_type[j])
+                    {
+                        case 0:
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+                            break;
+                        case 1:
+                           if(table_type_unsigned[j]==1)
+                           {
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                           }
+                           else
+                           {
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                           }
+
+
+                            break;  
+                        case 2:
+     
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                            break;
+                        case 3:
+                           if(table_type_unsigned[j]==1)
+                           {
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                           }
+                           else
+                           {
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                           }
+                            break;  
+
+                        case 4:
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                            break;  
+                       case 5:
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stod(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                            break;
+                        case 7:
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+
+                            break;    
+                        case 8:
+                            if(table_type_unsigned[j]==1)
+                            {
+                                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoull(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                            }
+                            else
+                            {
+                                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoll(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                            }
+                            break;    
+                        case 9:
+                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                    
+                    }
+            }else if(table_type[j]==12)
+            {
+                //filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+            } else if(table_type[j]==246)
+            {
+                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+            }
+            else
+            {
+                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+
+            }
+
+        
+    }
+ 
+    filemodelstrem<<"\tdefault:\n\t\t { }\n\t\t\t\n";
+
+
+    headtxt = R"(
+    void set_val(const std::string& set_key_name,const std::string& set_value_name)
+    {
+        switch(findcolpos(set_key_name))
+        {
+    )";
+    headtxt.append(filemodelstrem.str());
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    filemodelstrem.str("");
+    headtxt.clear();
+
+    headtxt = R"(
+
+        }
+   } 
+    )";
+   
+    
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
     ///////////////////////////////////////////////
     headtxt = R"(
    std::string to_json(std::string fileld=""){

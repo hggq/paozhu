@@ -8,6 +8,7 @@
 
 #include "httppeer.h" 
 
+#include "testmodelfromjson.h"
 #include "testcmake.h"
 
 
@@ -17,6 +18,9 @@ namespace http
   {
     struct regmethold_t temp;
 
+		temp.pre = nullptr;
+		temp.regfun = testmodelfromjson;
+		methodcallback.emplace("mfromjson",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcmake;
 		methodcallback.emplace("ccmake",temp);

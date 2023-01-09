@@ -744,6 +744,16 @@ namespace http
             output.append(a);
             return *this;
       }
+      httppeer &httppeer::operator<<(char a)
+      {
+            output.push_back(a);
+            return *this;
+      }
+      httppeer &httppeer::operator<<(unsigned char a)
+      {
+            output.push_back(a);
+            return *this;
+      }
       httppeer &httppeer::operator<<(const char *a)
       {
             output.append(a);

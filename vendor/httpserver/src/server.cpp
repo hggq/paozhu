@@ -20,6 +20,7 @@
 #include "func.h"
 #include "mysqlconfig.h"
 #include "mysqlpool.h"
+#include "autocontrolmethod.hpp"
 #include "reghttpmethod.hpp"
 #include "reghttpmethod_pre.hpp"
 #include "regviewmethod.hpp"
@@ -1330,6 +1331,7 @@ namespace http
       debug_log::instance()->setDebug(!static_server_var.deamon_enable);
       debug_log::instance()->setLogfile(static_server_var.log_path);
 
+      _initauto_control_httpmethodregto(_http_regmethod_table);
       _inithttpmethodregto(_http_regmethod_table);
       _inithttpmethodregto_pre(_http_regmethod_table);
       sendqueue &send_cache = get_sendqueue();

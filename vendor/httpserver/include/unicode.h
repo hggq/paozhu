@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <charconv>
 #include <cstring>
-#include <string>
+#include <string_view>
 #include <vector>
 
 namespace http
@@ -26,6 +26,10 @@ namespace http
      *  utf8转jsonstring
      */
     std::string utf8_to_jsonstring(std::string &source);
+    /*
+     *  jsonstring转utf8
+     */
+    std::string jsonstring_to_utf8(std::string_view source,unsigned int &offset);
     /*
      *  unicode转unicodestring
      */

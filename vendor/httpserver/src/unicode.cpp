@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <charconv>
 #include <cstring>
-#include <string>
+#include <string_view>
 #include <vector>
 #include "unicode.h"
 
@@ -545,7 +545,156 @@ namespace http
 
         return obj;
     }
+    /*
+     *  jsonstring 转 utf8
+     */
+    std::string jsonstring_to_utf8(std::string_view jsonstr,unsigned int &offset_length)
+    {
+        std::string str;
+        unsigned int j = 0;
 
+        if (jsonstr.length() > 20)
+        {
+            str.reserve(jsonstr.length());
+        }
+        if (jsonstr[j] == 0x22)
+        {
+            j++;
+        }
+
+        for (; j < jsonstr.length(); j++)
+        {
+
+            if (jsonstr[j] == 0x5c) //'\'
+            {
+                // 处理有斜杠情况 not slash
+                switch (jsonstr[j + 1])
+                {
+                case 0x22: //"
+                    str += 0x22;
+                    j += 1;
+                    break;
+                case 0x5c: //'\'
+                    str += 0x5c;
+                    j += 1;
+                    break;
+                // case 0x2f: //\/
+                case 0x62: //\b
+                    str += 0x08;
+                    j += 1;
+                    break;
+                case 0x66: //\f
+                    str += 0x0c;
+                    j += 1;
+                    break;
+                case 0x6e: //\n
+                    str += 0x0a;
+                    j += 1;
+                    break;
+                case 0x72: //\r
+                    str += 0x0d;
+                    j += 1;
+                    break;
+                case 0x74: //\t
+                    str += 0x09;
+                    j += 1;
+                    break;
+                case 'u':
+                    // str+=json.substr(j,6);
+                    {
+                        unsigned char c[10];
+                        unsigned char ch;
+                        unsigned int temp;
+
+                        // 检查是不是emoji两个转码符一共12个字符 this emoji char
+                        if (jsonstr[j + 2] == 'd' && jsonstr[j + 6] == 0x5c && jsonstr[j + 7] == 'u' && jsonstr[j + 8] == 'd')
+                        {
+
+                            // 转换成utf16
+                            for (int si = 2, cj = 0; si < 12; si++)
+                            {
+
+                                if (jsonstr[j + si] != 0x5c && jsonstr[j + si] != 'u')
+                                {
+                                    ch = jsonstr[j + si];
+                                    //chartoint(ch, c[cj]);
+
+                                    if (ch >= '0' && ch <= '9')
+                                        c[cj]= (unsigned char)(ch - '0');
+                                    if (ch >= 'a' && ch <= 'f')
+                                        c[cj] = (unsigned char)(ch - 'a' + 10);
+                                    if (ch >= 'A' && ch <= 'F')
+                                        c[cj]= (unsigned char)(ch - 'A' + 10);
+
+                                    cj++;
+                                }
+                            }
+
+                            unsigned short ca = c[0] << 12 | c[1] << 8 | c[2] << 4 | c[3];
+                            unsigned short cb = c[4] << 12 | c[5] << 8 | c[6] << 4 | c[7];
+                            temp = 0x10000 | ((ca - 0xD800) << 10) | (cb - 0xDC00);
+                            // Unicode码再转换成utf-8
+                            c[3] = (temp & 0x3F) | 0x80;
+                            c[2] = ((temp >> 6) & 0x3F) | 0x80;
+                            c[1] = ((temp >> 12) & 0x3F) | 0x80;
+                            c[0] = ((temp >> 18) & 0x07) | 0xF0;
+                            c[4] = '\0';
+                            // emoji:c
+                            // 再把utf-8组装到字符串上
+                            str += c[0];
+                            str += c[1];
+                            str += c[2];
+                            str += c[3];
+                            j += 11;
+                        }
+                        else
+                        {
+                            // 只是Unicode码情况 4 char
+                            for (int si = 2, cj = 0; si < 6; si++)
+                            {
+                                ch = jsonstr[j + si];
+                                //chartoint(ch, c[cj]);
+                                if (ch >= '0' && ch <= '9')
+                                    c[cj]= (unsigned char)(ch - '0');
+                                if (ch >= 'a' && ch <= 'f')
+                                    c[cj] = (unsigned char)(ch - 'a' + 10);
+                                if (ch >= 'A' && ch <= 'F')
+                                    c[cj]= (unsigned char)(ch - 'A' + 10);
+
+                                cj++;
+                            }
+                            temp = c[0] << 4 | c[1];
+                            temp = temp << 8 | c[2] << 4 | c[3];
+                            c[3] = '\0';
+                            c[2] = (temp & 0x3F) | 0x80;
+                            c[1] = ((temp >> 6) & 0x3F) | 0x80;
+                            c[0] = ((temp >> 12) & 0x0F) | 0xE0;
+
+                            str += c[0];
+                            str += c[1];
+                            str += c[2];
+                            j += 5;
+                        }
+                    }
+                    break;
+                default:
+                    str += jsonstr[j + 1];
+                    j += 1;
+                }
+            }
+            else if (jsonstr[j] == 0x22)
+            {
+                //" 如果是单独的双引号表示值结束 if quotation marks this end
+                break;
+            }
+            else
+            {
+                str += jsonstr[j];
+            }
+        }
+        offset_length=offset_length+j;
+        return str;
+    }
     /*
      *  unicode转unicodestring
      */

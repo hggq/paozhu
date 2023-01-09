@@ -80,6 +80,8 @@ namespace http
     httppeer &operator<<(std::string &&a);
     httppeer &operator<<(std::string &a);
     httppeer &operator<<(std::string_view a);
+    httppeer &operator<<(char a);
+    httppeer &operator<<(unsigned char a);
     httppeer &operator<<(const char *a);
     httppeer &operator<<(const std::string &a);
     httppeer &operator<<(unsigned int a);
