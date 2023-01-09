@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 24 Dec 2022 15:17:41 GMT
+*本文件为自动生成 Mon, 09 Jan 2023 07:43:46 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -28,7 +28,7 @@ struct userbase
  std::string name=""; //
  std::string password=""; //
  char isopen=0; //
-unsigned  int level= 0; //
+ int level= 0; //
  } data;
  std::vector<userbase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -113,7 +113,7 @@ break;
 			break;
 	case 4:
 		 try{
-			metatemp.level=std::stoul(_row[4]);
+			metatemp.level=std::stoi(_row[4]);
 		}catch (...) { 
 			metatemp.level=0;
 			 }
@@ -168,7 +168,7 @@ break;
 			break;
 	case 4:
 		 try{
-			metatemp.level=std::stoul(_row[4]);
+			metatemp.level=std::stoi(_row[4]);
 		}catch (...) { 
 			metatemp.level=0;
 			 }
@@ -351,7 +351,7 @@ if(data.level==0){
 
         return tempsql.str();
    } 
-   std::string datatojson(){
+   std::string data_tojson(){
        std::ostringstream tempsql;
 
         tempsql<<"{";
@@ -380,7 +380,7 @@ tempsql<<"}";
      return tempsql.str();             
    }   
    
-   std::string datatojson(std::string fileld){
+   std::string data_tojson(std::string fileld){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -452,7 +452,7 @@ if(data.level==0){
      return tempsql.str();             
    }   
    
-   std::string tojson(std::string fileld=""){
+   std::string to_json(std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -533,7 +533,7 @@ if(record[n].level==0){
      return tempsql.str();             
    }   
    
-   std::string tojson(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -638,8 +638,8 @@ std::string& getRefPassword(){  return std::ref(data.password); }
  int  getIsopen(){  return data.isopen; } 
  void setIsopen( int  val){  data.isopen=val;} 
 
-unsigned  int  getLevel(){  return data.level; } 
- void setLevel(unsigned  int  val){  data.level=val;} 
+ int  getLevel(){  return data.level; } 
+ void setLevel( int  val){  data.level=val;} 
 
 userbase::meta getnewData(){
  	 struct meta newdata;

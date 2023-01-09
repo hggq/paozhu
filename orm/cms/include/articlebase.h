@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 24 Dec 2022 15:17:41 GMT
+*本文件为自动生成 Mon, 09 Jan 2023 07:43:46 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -795,7 +795,7 @@ tempsql<<"`editauthor`='"<<stringaddslash(data.editauthor)<<"'";
 
         return tempsql.str();
    } 
-   std::string datatojson(){
+   std::string data_tojson(){
        std::ostringstream tempsql;
 
         tempsql<<"{";
@@ -869,7 +869,7 @@ tempsql<<"}";
      return tempsql.str();             
    }   
    
-   std::string datatojson(std::string fileld){
+   std::string data_tojson(std::string fileld){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -1021,7 +1021,7 @@ tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(data.editauthor)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string tojson(std::string fileld=""){
+   std::string to_json(std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -1182,7 +1182,7 @@ tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\
      return tempsql.str();             
    }   
    
-   std::string tojson(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
