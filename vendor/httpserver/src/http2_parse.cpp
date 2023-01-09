@@ -3136,7 +3136,7 @@ namespace http
                data_info[block_steamid].buffer_value.append(&stream_data[block_steamid][j], w_size);
                if (data_info[block_steamid].buffer_value.size() == (unsigned int)http_data[block_steamid]->content_length)
                {
-                    http_data[block_steamid]->json.fromjson(data_info[block_steamid].buffer_value);
+                    http_data[block_steamid]->json.from_json(data_info[block_steamid].buffer_value);
                     data_info[block_steamid].buffer_value.clear();
                }
                break;

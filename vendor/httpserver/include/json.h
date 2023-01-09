@@ -372,14 +372,14 @@ namespace json
     int JSON_OBJ(const std::string &,Object &,unsigned int);
     int JSON_ARRAY(const std::string &,Array &,unsigned int);
 
-    std::string encode(json::Value&);
-    std::string encode(json::Object&);
-    std::string encode(json::Array&);
+    std::string to_json(json::Value&);
+    std::string to_json(json::Object&);
+    std::string to_json(json::Array&);
 
     //Value decode(std::string&&);
-    Value decode(const std::string&);
+    Value from_json(const std::string&);
    // Value decode(std::string&&,bool);
-    Value decode(const std::string&,bool);
+    Value from_json(const std::string&,bool);
 
     std::string load_json(const std::string&);
     bool save_json(const std::string&,const std::string&);

@@ -964,7 +964,7 @@ namespace json
         return ptext;
     }
 
-    std::string encode(json::Value &v)
+    std::string to_json(json::Value &v)
     {
         std::ostringstream os;
         switch (v.type())
@@ -1048,7 +1048,7 @@ namespace json
         return os.str();
     }
 
-    std::string encode(json::Object &o)
+    std::string to_json(json::Object &o)
     {
 
         std::ostringstream os;
@@ -1099,7 +1099,7 @@ namespace json
         os << "}";
         return os.str();
     }
-    std::string encode(json::Array &a)
+    std::string to_json(json::Array &a)
     {
         std::ostringstream os;
         os << "[";
@@ -1623,7 +1623,7 @@ namespace json
         return i;
     }
 
-    Value decode(const std::string &jsonstr)
+    Value from_json(const std::string &jsonstr)
     {
         Object obj;
         int offset = 0;
@@ -1658,7 +1658,7 @@ namespace json
         return obj;
     }
 
-    Value decode(const std::string &jsonstr, bool isarray)
+    Value from_json(const std::string &jsonstr, bool isarray)
     {
         Array obj;
         int offset = 0;

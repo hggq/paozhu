@@ -151,7 +151,7 @@ namespace http
                   if (readsize > 0)
                   {
                         sessionfile.resize(readsize);
-                        session.fromjson(sessionfile);
+                        session.from_json(sessionfile);
                   }
 
                   lock.l_type = F_UNLCK;
@@ -231,7 +231,7 @@ namespace http
                   return;
             }
 
-            sessionfile = session.tojson();
+            sessionfile = session.to_json();
 
             ssize_t n=write(fd, sessionfile.data(), sessionfile.size());
             if(n>0)
@@ -803,12 +803,12 @@ namespace http
       {
             return *this;
       }
-      httppeer &httppeer::put(std::string a)
+      httppeer &httppeer::out(std::string a)
       {
             output.append(a);
             return *this;
       }
-      httppeer &httppeer::put(const std::string &a)
+      httppeer &httppeer::out(const std::string &a)
       {
             output.append(a);
             return *this;
@@ -1093,12 +1093,12 @@ namespace http
       void httppeer::out_json(OBJ_VALUE &a)
       {
             content_type = "application/json";
-            output = a.tojson();
+            output = a.to_json();
       }
       void httppeer::out_json()
       {
             content_type = "application/json";
-            output = val.tojson();
+            output = val.to_json();
       }
       void httppeer::out_jsontype()
       {

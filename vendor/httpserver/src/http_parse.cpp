@@ -2516,7 +2516,7 @@ namespace http
             if ((buffer_value.size() + 2) >= poststate.content_length)
             {
                   headerfinish = 2;
-                  peer->json.fromjson(buffer_value);
+                  peer->json.from_json(buffer_value);
                   peer->rawcontent=buffer_value;
             }
       }

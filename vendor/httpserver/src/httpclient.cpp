@@ -1267,7 +1267,7 @@ namespace http
             }
             if (state.isjson || parsetojson == 1)
             {
-                  state.json.fromjson(state.content);
+                  state.json.from_json(state.content);
                   if (parsetojson == 1)
                         state.isjson = true;
             }
@@ -2094,7 +2094,7 @@ namespace http
                               ptemp.size = 0;
                               ptemp.type.clear();
 
-                              ptemp.tempfile.append(data.tojson());
+                              ptemp.tempfile.append(data.to_json());
 
                               ptemp.size = ptemp.tempfile.size();
                               contentlength += ptemp.size;
@@ -2109,7 +2109,7 @@ namespace http
                               ptemp.size = 0;
                               ptemp.type.clear();
 
-                              ptemp.tempfile.append(parameter.tojson());
+                              ptemp.tempfile.append(parameter.to_json());
 
                               ptemp.size = ptemp.tempfile.size();
                               contentlength += ptemp.size;

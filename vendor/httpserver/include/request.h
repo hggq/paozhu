@@ -102,7 +102,7 @@ namespace http
         bool istag(unsigned long long n) const;
         bool is_numarray() const;
 
-        std::string tojson();
+        std::string to_json();
         // OBJ_VALUE   fromjson(const std::string& v);
         // OBJ_VALUE   fromjson(const std::string&& v);
     protected:
@@ -358,10 +358,10 @@ namespace http
         std::string tag(const std::string &v);
         std::string tag(const std::string &&v);
         std::string getkeyname(unsigned long long n);
-        std::string tojson();
+        std::string to_json();
 
-        void fromjson(std::string &v);
-        void fromjson(std::string &&v);
+        void from_json(std::string &v);
+        void from_json(std::string &&v);
 
     protected:
         long double float_v;
@@ -374,15 +374,15 @@ namespace http
     };
     unsigned long long hash_objkey(const std::string &key);
 
-    bool save_obj(const std::string &filename, const OBJ_VALUE &v);
-    bool save_obj(const std::string &&filename, const OBJ_VALUE &v);
+    bool save_json(const std::string &filename, const OBJ_VALUE &v);
+    bool save_json(const std::string &&filename, const OBJ_VALUE &v);
     bool value_write(FILE *, const OBJ_VALUE &v);
     bool array_write(FILE *, const OBJ_ARRAY &v, unsigned int &length);
 
     // std::string OBJ_ARRAY::tojson();
 
-    OBJ_ARRAY fromjson(std::string &);
-    OBJ_ARRAY fromjson(std::string &&);
+    OBJ_ARRAY from_json(std::string &);
+    OBJ_ARRAY from_json(std::string &&);
     std::string JSON_UTF8_TO_ASCII(const std::string &source);
     std::string JSON_STR(std::string &,unsigned int &);
     std::string JSON_VALUE(std::string &,unsigned int &);

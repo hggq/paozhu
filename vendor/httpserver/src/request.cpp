@@ -1251,7 +1251,7 @@ namespace http
         return temp;
     }
 
-    bool save_obj(const std::string &filename, const OBJ_VALUE &v)
+    bool save_json(const std::string &filename, const OBJ_VALUE &v)
     {
 
         FILE *f = fopen(filename.c_str(), "wb");
@@ -1263,7 +1263,7 @@ namespace http
         fclose(f);
         return true;
     }
-    bool save_obj(const std::string &&filename, const OBJ_VALUE &v)
+    bool save_json(const std::string &&filename, const OBJ_VALUE &v)
     {
 
         FILE *f = fopen(filename.c_str(), "wb");
@@ -1604,7 +1604,7 @@ namespace http
         ptext.resize(j);
         return ptext;
     }
-    std::string OBJ_ARRAY::tojson()
+    std::string OBJ_ARRAY::to_json()
     {
 
         std::stringstream os;
@@ -1643,7 +1643,7 @@ namespace http
                 }
                 else if (second.is_array())
                 {
-                    os << second.tojson();
+                    os << second.to_json();
                 }
                 else if (second.is_null())
                 {
@@ -1694,7 +1694,7 @@ namespace http
                 }
                 else if (second.is_array())
                 {
-                    os << second.tojson();
+                    os << second.to_json();
                 }
                 else if (second.is_null())
                 {
@@ -1706,7 +1706,7 @@ namespace http
         }
         return os.str();
     }
-    std::string OBJ_VALUE::tojson()
+    std::string OBJ_VALUE::to_json()
     {
 
         std::stringstream os;
@@ -1758,7 +1758,7 @@ namespace http
 
         case ARRAY:
 
-            os << array_v.tojson();
+            os << array_v.to_json();
             break;
         }
         return os.str();
@@ -2299,7 +2299,7 @@ namespace http
         return i;
     }
 
-    void OBJ_VALUE::fromjson(std::string &&jsonstr)
+    void OBJ_VALUE::from_json(std::string &&jsonstr)
     {
         int offset = 0;
         type_t = ARRAY;
@@ -2326,7 +2326,7 @@ namespace http
         }
     }
 
-    void OBJ_VALUE::fromjson(std::string &jsonstr)
+    void OBJ_VALUE::from_json(std::string &jsonstr)
     {
 
         int offset = 0;
@@ -2354,7 +2354,7 @@ namespace http
         }
     }
 
-    OBJ_ARRAY fromjson(std::string &&jsonstr)
+    OBJ_ARRAY from_json(std::string &&jsonstr)
     {
         OBJ_ARRAY obj;
         int offset = 0;
@@ -2392,7 +2392,7 @@ namespace http
         return obj;
     }
 
-    OBJ_ARRAY fromjson(std::string &jsonstr)
+    OBJ_ARRAY from_json(std::string &jsonstr)
     {
         OBJ_ARRAY obj;
         int offset = 0;

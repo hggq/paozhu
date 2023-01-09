@@ -73,8 +73,8 @@ namespace http
     std::string fetchview(const std::string &a);
     std::string fetchview(const std::string &a,OBJ_VALUE &b);
     void send(const std::string &a);
-    httppeer &put(std::string);
-    httppeer &put(const std::string &a);
+    httppeer &out(std::string);
+    httppeer &out(const std::string &a);
 
     httppeer &operator<<(OBJ_VALUE &a);
     httppeer &operator<<(std::string &&a);
