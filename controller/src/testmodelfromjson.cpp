@@ -42,6 +42,9 @@ namespace http
             client << "<p>level:" << std::to_string(users.record[i].level) << "</p>";
          }
 
+         client << "<p>data_tojson:" << users.data_tojson() << "</p>";
+         client << "<p>to_json:" << users.to_json() << "</p>";
+
       }
       catch (std::exception &e)
       {
