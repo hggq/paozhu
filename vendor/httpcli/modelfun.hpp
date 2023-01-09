@@ -1775,7 +1775,7 @@ struct )";
 
         return tempsql.str();
    } 
-   std::string datatojson(){
+   std::string data_tojson(){
        std::ostringstream tempsql;
 
         )";
@@ -1855,7 +1855,7 @@ struct )";
     headtxt.clear();
     ///////////////////////////////////////////////
     headtxt = R"(
-   std::string datatojson(std::string fileld){
+   std::string data_tojson(std::string fileld){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -1966,7 +1966,7 @@ struct )";
     headtxt.clear();
     ///////////////////////////////////////////////
     headtxt = R"(
-   std::string tojson(std::string fileld=""){
+   std::string to_json(std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -2087,7 +2087,7 @@ struct )";
 
     ///////////////////////////////////////////////
     headtxt = R"(
-   std::string tojson(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
