@@ -2180,13 +2180,21 @@ namespace orm
             }
             return 0;
         }
-        std::vector<std::vector<std::string>> select_query(const std::string &rawsql)
+        std::vector<std::vector<std::string>> query(const std::string &rawsql,bool isedit=false)
         {
              
             std::vector<std::vector<std::string>> temprecord;
             try
             {
-                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
+                if(isedit)
+                {
+                    conn.reset(http::get_mysqleditexecute(dbhash));
+                }
+                else
+                {
+                    conn.reset(http::get_mysqlselectexecute(dbhash));
+                }
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
                 long long readnum = mysql_real_query(conn.get(), &rawsql[0],rawsql.size());
@@ -2257,7 +2265,7 @@ namespace orm
             return temprecord;
 
         }
-        int edit_query(const std::string &rawsql)
+        long long edit_query(const std::string &rawsql,bool isinsert=false)
         {
             try
             {
@@ -2265,6 +2273,10 @@ namespace orm
                 mysql_ping(conn.get());
                 long long readnum = mysql_real_query(conn.get(), &rawsql[0],rawsql.size());
                 readnum = mysql_affected_rows(conn.get());
+                if(isinsert)
+                {
+                    readnum = mysql_insert_id(conn.get());
+                }
                 try
                 {
                     http::back_mysql_connect(dbhash, std::move(conn));
