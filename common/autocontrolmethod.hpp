@@ -10,6 +10,7 @@
 
 #include "testmodelfromjson.h"
 #include "testcmake.h"
+#include "testsqltuple.h"
 
 
 namespace http
@@ -27,6 +28,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testcauto;
 		methodcallback.emplace("ccauto",temp);
+		temp.pre = nullptr;
+		temp.regfun = testsqltuple;
+		methodcallback.emplace("mtuple",temp);
 
 
     }

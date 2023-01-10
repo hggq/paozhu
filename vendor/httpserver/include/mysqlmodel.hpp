@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <functional>
+#include <tuple>
 #include "mysql.h"
 #include <typeinfo>
 #include <memory>
@@ -1374,7 +1375,7 @@ namespace orm
             return temprecord;
 
         }
-        std::vector<std::vector<std::string>> fetchRow()
+        std::tuple<std::vector<std::string>,std::vector<std::vector<std::string>>> fetchRow()
         {
             if (selectsql.empty())
             {
@@ -1412,6 +1413,7 @@ namespace orm
             }
             
             std::vector<std::vector<std::string>> temprecord;
+            std::vector<std::string> table_fieldname;
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
@@ -1429,7 +1431,7 @@ namespace orm
                     catch (...)
                     {
                     }
-                    return temprecord;
+                    return std::make_tuple(table_fieldname,temprecord);
                 }
 
                 resultall = mysql_store_result(conn.get());
@@ -1447,7 +1449,7 @@ namespace orm
                 MYSQL_FIELD *fields;
                 fields = mysql_fetch_fields(resultall);
                 std::string type_temp;
-                std::vector<std::string> table_fieldname;
+                
                 for (unsigned char index = 0; index < num_fields; index++)
                 {
                     type_temp = std::string(fields[index].name);
@@ -1468,7 +1470,7 @@ namespace orm
                     j++;
                 }
                 mysql_free_result(resultall);
-                temprecord.push_back(std::move(table_fieldname));             
+                           
             }
             catch (const std::exception &e)
             {
@@ -1478,12 +1480,11 @@ namespace orm
             catch (const char *e)
             {
                 error_msg = std::string(e);
-                return temprecord;
             }
             catch (...)
             {
             }
-            return temprecord;
+            return std::make_tuple(table_fieldname,temprecord);
 
         }
         model &fetch()
@@ -2180,20 +2181,21 @@ namespace orm
             }
             return 0;
         }
-        std::vector<std::vector<std::string>> query(const std::string &rawsql,bool isedit=false)
+        std::tuple<std::vector<std::string>,std::vector<std::vector<std::string>>> query(const std::string &rawsql,bool isedit=false)
         {
              
             std::vector<std::vector<std::string>> temprecord;
+            std::vector<std::string> table_fieldname;
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
                 if(isedit)
                 {
-                    conn.reset(http::get_mysqleditexecute(dbhash));
+                    conn=http::get_mysqleditexecute(dbhash);
                 }
                 else
                 {
-                    conn.reset(http::get_mysqlselectexecute(dbhash));
+                    conn=http::get_mysqlselectexecute(dbhash);
                 }
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
@@ -2209,7 +2211,7 @@ namespace orm
                     catch (...)
                     {
                     }
-                    return temprecord;
+                    return std::make_tuple(table_fieldname,temprecord);
                 }
 
                 resultall = mysql_store_result(conn.get());
@@ -2221,7 +2223,7 @@ namespace orm
                 MYSQL_FIELD *fields;
                 fields = mysql_fetch_fields(resultall);
                 std::string type_temp;
-                std::vector<std::string> table_fieldname;
+                
                 for (unsigned char index = 0; index < num_fields; index++)
                 {
                     type_temp = std::string(fields[index].name);
@@ -2241,8 +2243,7 @@ namespace orm
                     temprecord.push_back(std::move(rowtemp));
                     j++;
                 }
-                mysql_free_result(resultall);
-                temprecord.push_back(std::move(table_fieldname));     
+                mysql_free_result(resultall); 
                 try
                 {
                     http::back_mysql_connect(dbhash, std::move(conn));
@@ -2262,7 +2263,7 @@ namespace orm
             catch (...)
             {
             }
-            return temprecord;
+            return std::make_tuple(table_fieldname,temprecord);
 
         }
         long long edit_query(const std::string &rawsql,bool isinsert=false)
