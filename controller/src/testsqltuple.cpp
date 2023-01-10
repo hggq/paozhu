@@ -17,7 +17,7 @@ namespace http
       {
          auto users = orm::cms::User();
 
-         auto [key_names,lists]=users.query("SELECT * FROM `user` ");
+         auto [key_names,key_mapname,lists]=users.query("SELECT * FROM `user` ");
          client << "<p>--------------</p>";
          client << users.error_msg;
          if(key_names.size()>0)
@@ -26,13 +26,14 @@ namespace http
             {
                client <<key_names[1]<<":"<< lists[i][1];
                client <<key_names[2]<<":"<< lists[i][2];
+               client <<key_names[key_mapname["level"]]<<":"<< lists[i][key_mapname["level"]];
             }
          }
 
          client << "<p>--------------</p>";
 
          users.clear();
-         auto [colnames,vallists]=users.where("name","admin").limit(1).fetchRow();
+         auto [colnames,colnamemaps,vallists]=users.where("name","admin").limit(1).fetchRow();
 
          client << "<p>--------------</p>";
          client << users.error_msg;
@@ -42,6 +43,7 @@ namespace http
             {
                client <<colnames[1]<<":"<< vallists[i][1];
                client <<colnames[2]<<":"<< vallists[i][2];
+               client <<colnames[colnamemaps["level"]]<<":"<< vallists[i][colnamemaps["level"]];
             }
          }
          client << "<p>--------------</p>";

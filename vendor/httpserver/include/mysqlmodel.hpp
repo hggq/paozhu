@@ -1375,7 +1375,7 @@ namespace orm
             return temprecord;
 
         }
-        std::tuple<std::vector<std::string>,std::vector<std::vector<std::string>>> fetchRow()
+        std::tuple<std::vector<std::string>,std::map<std::string,unsigned int>,std::vector<std::vector<std::string>>> fetchRow()
         {
             if (selectsql.empty())
             {
@@ -1414,6 +1414,7 @@ namespace orm
             
             std::vector<std::vector<std::string>> temprecord;
             std::vector<std::string> table_fieldname;
+            std::map<std::string,unsigned int> table_fieldmap;
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
@@ -1431,7 +1432,7 @@ namespace orm
                     catch (...)
                     {
                     }
-                    return std::make_tuple(table_fieldname,temprecord);
+                    return std::make_tuple(table_fieldname,table_fieldmap,temprecord);
                 }
 
                 resultall = mysql_store_result(conn.get());
@@ -1455,6 +1456,7 @@ namespace orm
                     type_temp = std::string(fields[index].name);
                     std::transform(type_temp.begin(), type_temp.end(), type_temp.begin(), ::tolower);
                     table_fieldname.push_back(type_temp);
+                    table_fieldmap.insert({type_temp,index});
                 }
 
                 int j=0;
@@ -1484,7 +1486,7 @@ namespace orm
             catch (...)
             {
             }
-            return std::make_tuple(table_fieldname,temprecord);
+            return std::make_tuple(table_fieldname,table_fieldmap,temprecord);
 
         }
         model &fetch()
@@ -2181,11 +2183,12 @@ namespace orm
             }
             return 0;
         }
-        std::tuple<std::vector<std::string>,std::vector<std::vector<std::string>>> query(const std::string &rawsql,bool isedit=false)
+        std::tuple<std::vector<std::string>,std::map<std::string,unsigned int>,std::vector<std::vector<std::string>>> query(const std::string &rawsql,bool isedit=false)
         {
              
             std::vector<std::vector<std::string>> temprecord;
             std::vector<std::string> table_fieldname;
+            std::map<std::string,unsigned int> table_fieldmap;
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
@@ -2211,7 +2214,7 @@ namespace orm
                     catch (...)
                     {
                     }
-                    return std::make_tuple(table_fieldname,temprecord);
+                    return std::make_tuple(table_fieldname,table_fieldmap,temprecord);
                 }
 
                 resultall = mysql_store_result(conn.get());
@@ -2229,6 +2232,7 @@ namespace orm
                     type_temp = std::string(fields[index].name);
                     std::transform(type_temp.begin(), type_temp.end(), type_temp.begin(), ::tolower);
                     table_fieldname.push_back(type_temp);
+                    table_fieldmap.insert({type_temp,index});
                 }
 
                 int j=0;
@@ -2263,7 +2267,7 @@ namespace orm
             catch (...)
             {
             }
-            return std::make_tuple(table_fieldname,temprecord);
+            return std::make_tuple(table_fieldname,table_fieldmap,temprecord);
 
         }
         long long edit_query(const std::string &rawsql,bool isinsert=false)
