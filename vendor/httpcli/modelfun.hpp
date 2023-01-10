@@ -2023,7 +2023,7 @@ struct )";
                                 if(json_content[json_offset]==0x22)
                                 {
                                     unsigned int temp_offset=json_offset;
-                                    json_key_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                    json_key_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
                                     if(json_content[json_offset]==0x22)
                                     {
@@ -2060,7 +2060,7 @@ struct )";
                                     {
                                         
                                         temp_offset=json_offset;
-                                        json_value_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                        json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                         json_offset=temp_offset;
                                         if(json_content[json_offset]==0x22)
                                         {
@@ -2125,7 +2125,7 @@ struct )";
                             if(json_content[json_offset]==0x22)
                             {
                                  unsigned int temp_offset=json_offset;
-                                 json_key_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                 json_key_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                  json_offset=temp_offset;
                                  if(json_content[json_offset]==0x22)
                                  {
@@ -2162,7 +2162,7 @@ struct )";
                                 {
                                     
                                     temp_offset=json_offset;
-                                    json_value_name=http::jsonstring_to_utf8(json_content.substr(json_offset),temp_offset);
+                                    json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
                                     if(json_content[json_offset]==0x22)
                                     {

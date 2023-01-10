@@ -548,21 +548,21 @@ namespace http
     /*
      *  jsonstring 转 utf8
      */
-    std::string jsonstring_to_utf8(std::string_view jsonstr,unsigned int &offset_length)
+    std::string jsonstring_to_utf8(const char * jsonstr,unsigned int str_length,unsigned int &offset_length)
     {
         std::string str;
         unsigned int j = 0;
 
-        if (jsonstr.length() > 20)
+        if (str_length > 20)
         {
-            str.reserve(jsonstr.length());
+            str.reserve(str_length);
         }
         if (jsonstr[j] == 0x22)
         {
             j++;
         }
 
-        for (; j < jsonstr.length(); j++)
+        for (; j < str_length; j++)
         {
 
             if (jsonstr[j] == 0x5c) //'\'
