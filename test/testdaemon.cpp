@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        std::cout<<"Not found server.conf file. Please copy conf Directory rename to /usr/local/etc/paozhu\n ";
+        std::cout<<"Not found server.conf file. Please copy conf Directory rename to /usr/local/etc/paozhu\n";
         return 0;
       }
       
