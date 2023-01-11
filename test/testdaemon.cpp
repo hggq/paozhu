@@ -56,8 +56,18 @@ int main(int argc, char *argv[])
     }
     else
     {
-      std::cout<<"Not found server.conf file. Please copy conf Directory rename to /usr/local/etc/paozhu\n ";
-      return 0;
+      argv_str="/usr/local/etc/paozhu/server.conf";
+      conf_path=argv_str;
+      if (fs::is_regular_file(conf_path))
+      {
+        
+      }
+      else
+      {
+        std::cout<<"Not found server.conf file. Please copy conf Directory rename to /usr/local/etc/paozhu\n ";
+        return 0;
+      }
+      
     }
   }
   init_daemon();
