@@ -1314,16 +1314,18 @@ namespace http
     try
     {
       serverconfig &sysconfigpath = getserversysconfig();
-      if (sysconfpath.empty())
-      {
-        sysconfigpath.configfile.clear();
-        sysconfigpath.configfile.append(sysconfpath);
-      }
-
       sysconfigpath.init_path();
       if (sysconfigpath.configfile.empty())
       {
+        sysconfigpath.configfile.clear();
+        sysconfigpath.configfile.append(sysconfpath);
+        sysconfigpath.init_path();
+      }
+
+      if (sysconfigpath.configfile.empty())
+      {
         LOG_ERROR << " specify server.conf fullpath,example: ./xxx_run /etc/paozhu/server.conf " << LOG_END;
+        std::this_thread::sleep_for(std::chrono::seconds(3));
         return;
       }
       server_loaclvar &static_server_var = get_server_global_var();

@@ -2,14 +2,64 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <filesystem>
 #include "server.h"
 #include "init_daemon.hpp"
 
 static sigjmp_buf env_startacs;
 static void sig_child(int signo);
-
+namespace fs = std::filesystem;
 int main(int argc, char *argv[])
 {
+  std::string argv_str;
+  if (argc > 1)
+  {
+    // server.conf filepath or confpath
+    argv_str.append(argv[1]);
+    fs::path conf_path = argv_str;
+    if (fs::is_regular_file(conf_path))
+    {
+        
+    }
+    else
+    {
+       if(argv_str.back()=='/')
+       {
+        argv_str=argv_str+"server.conf";
+       }
+       else
+       {
+        argv_str=argv_str+"/server.conf";
+       }
+       conf_path = argv_str;
+       if (fs::is_regular_file(conf_path))
+       {
+
+       }
+       else
+       {
+          std::cout<<"Not found server.conf file.";
+          return 0;
+       }
+
+    }
+  }
+  else
+  {
+ 
+    fs::path conf_path = fs::current_path();
+    argv_str=conf_path.string()+"/conf/server.conf";
+    conf_path=argv_str;
+    if (fs::is_regular_file(conf_path))
+    {
+
+    }
+    else
+    {
+      std::cout<<"Not found server.conf file. Please copy conf Directory rename to /usr/local/etc/paozhu\n ";
+      return 0;
+    }
+  }
   init_daemon();
   pid_t pid;//, subpid = 0;
   signal(SIGCHLD, sig_child);
@@ -36,12 +86,7 @@ int main(int argc, char *argv[])
     {
       http::httpserver httpmy;
  
-      std::string argv_str;
-      if (argc > 1)
-      {
-        // server.conf filepath or confpath
-        argv_str.append(argv[1]);
-      }
+
       httpmy.run(argv_str);
     }
     catch (std::exception &e)
