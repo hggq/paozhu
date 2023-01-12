@@ -56,7 +56,7 @@ namespace orm
             }
             return *mod;
         }
-        model &reset_table(std::string table_name)
+        model &reset_table()
         {
             if (!original_tablename.empty())
             {
