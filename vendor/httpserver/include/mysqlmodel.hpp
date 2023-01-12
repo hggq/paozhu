@@ -247,7 +247,7 @@ namespace orm
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &countsql[0], countsql.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
