@@ -1319,12 +1319,14 @@ namespace orm
         }
         model &limit(unsigned int num)
         {
+            limitsql.clear();
             limitsql.append(" limit ");
             limitsql.append(std::to_string(num));
             return *mod;
         }
         model &limit(unsigned int num, unsigned int endnum)
         {
+            limitsql.clear();
             limitsql.append(" limit ");
             limitsql.append(std::to_string(num));
             limitsql.push_back(',');

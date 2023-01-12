@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 12 Jan 2023 08:44:50 GMT
+*本文件为自动生成 Thu, 12 Jan 2023 13:41:38 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -314,7 +314,7 @@ tempsql<<")";
                     }
             tempsql<<") VALUES ";
 
-    for(int i=0;i<insert_data.size();i++)
+    for(unsigned int i=0;i<insert_data.size();i++)
     {
 		if(i>0)
 		{
@@ -340,7 +340,8 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].level);
 	}
-		tempsql<<")";	 } 
+		tempsql<<")";
+	 } 
 
      
        return tempsql.str();

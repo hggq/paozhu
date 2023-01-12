@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 12 Jan 2023 08:44:50 GMT
+*本文件为自动生成 Thu, 12 Jan 2023 13:41:38 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -678,7 +678,7 @@ tempsql<<")";
                     }
             tempsql<<") VALUES ";
 
-    for(int i=0;i<insert_data.size();i++)
+    for(unsigned int i=0;i<insert_data.size();i++)
     {
 		if(i>0)
 		{
@@ -739,7 +739,8 @@ tempsql<<")";
 		tempsql<<",'"<<stringaddslash(insert_data[i].texturl)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].summary)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].editauthor)<<"'";
-		tempsql<<")";	 } 
+		tempsql<<")";
+	 } 
 
      
        return tempsql.str();

@@ -1785,7 +1785,7 @@ struct )";
                     }
             tempsql<<") VALUES ";
 
-    for(int i=0;i<insert_data.size();i++)
+    for(unsigned int i=0;i<insert_data.size();i++)
     {
 		if(i>0)
 		{
