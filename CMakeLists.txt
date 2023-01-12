@@ -57,6 +57,15 @@ file(GLOB_RECURSE common_list ${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp)
 file(GLOB_RECURSE controller_list ${CMAKE_CURRENT_SOURCE_DIR}/controller/src/*.cpp)
 file(GLOB_RECURSE viewsrc_list ${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/view/*.cpp)
 
+foreach(cppfile IN LISTS controller_list)
+  string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" cppfilename ${cppfile})
+  string(REGEX REPLACE ".cpp" "" cppbasename ${cppfilename})
+#  message(${cppbasename})
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${cppbasename}.h")
+  else()
+      file(TOUCH "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${cppbasename}.h")
+  endif()
+endforeach()
 
 function(include_sub_directories_recursively root_dir)
     if (IS_DIRECTORY ${root_dir})               # 当前路径是一个目录吗，是的话就加入到包含目录
