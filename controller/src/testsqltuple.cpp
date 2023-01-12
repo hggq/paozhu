@@ -22,7 +22,7 @@ namespace http
          client << users.error_msg;
          if(key_names.size()>0)
          {
-            for(int i=0;i<lists.size();i++)
+            for(size_t i=0;i<lists.size();i++)
             {
                client <<key_names[1]<<":"<< lists[i][1];
                client <<key_names[2]<<":"<< lists[i][2];
@@ -39,7 +39,7 @@ namespace http
          client << users.error_msg;
          if(colnames.size()>0)
          {
-            for(int i=0;i<vallists.size();i++)
+            for(size_t i=0;i<vallists.size();i++)
             {
                client <<colnames[1]<<":"<< vallists[i][1];
                client <<colnames[2]<<":"<< vallists[i][2];
