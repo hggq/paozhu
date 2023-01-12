@@ -1923,7 +1923,7 @@ struct )";
             insertstrem << "\t\ttempsql<<\",'\"<<stringaddslash(insert_data[i]." << tablecollist[j] << ")<<\"'\";\n";
         }
     }
-    insertstrem << "\t\ttempsql<<\")\";\r\t } \n";
+    insertstrem << "\t\ttempsql<<\")\";\n\t } \n";
     headtxt.append(insertstrem.str());
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);

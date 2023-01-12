@@ -46,21 +46,21 @@ namespace orm
         }
         model &set_table(std::string table_name)
         {
-            if(original_tablename.empty())
+            if (original_tablename.empty())
             {
-                original_tablename=base::tablename;
+                original_tablename = base::tablename;
             }
-            if(table_name.size()>0)
+            if (table_name.size() > 0)
             {
-                base::tablename=table_name;
+                base::tablename = table_name;
             }
             return *mod;
         }
         model &reset_table(std::string table_name)
         {
-            if(!original_tablename.empty())
+            if (!original_tablename.empty())
             {
-                base::tablename=original_tablename;
+                base::tablename = original_tablename;
             }
             return *mod;
         }
@@ -93,7 +93,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultone = nullptr;
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &countsql[0],countsql.size());
+                long long readnum = mysql_real_query(conn.get(), &countsql[0], countsql.size());
 
                 if (readnum != 0)
                 {
@@ -142,7 +142,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
                 return 0;
-            }            
+            }
             catch (const char *e)
             {
                 error_msg = std::string(e);
@@ -155,54 +155,54 @@ namespace orm
 
             return 0;
         }
-        std::tuple<unsigned int,unsigned int,unsigned int,unsigned int> page(unsigned int page,unsigned int per_page=10,unsigned int list_num=5)
+        std::tuple<unsigned int, unsigned int, unsigned int, unsigned int> page(unsigned int page, unsigned int per_page = 10, unsigned int list_num = 5)
         {
-            unsigned int total_page=count();
-            if(per_page==0)
+            unsigned int total_page = count();
+            if (per_page == 0)
             {
-                per_page=10;
+                per_page = 10;
             }
-            if(list_num<1)
+            if (list_num < 1)
             {
-                list_num=1;
+                list_num = 1;
             }
-            total_page=std::ceil((float)total_page/per_page);
+            total_page = std::ceil((float)total_page / per_page);
 
-            if(total_page<1)
+            if (total_page < 1)
             {
-                total_page=1;
+                total_page = 1;
             }
-            if(page>total_page)
+            if (page > total_page)
             {
-                page=total_page;
+                page = total_page;
             }
-            if(page<1)
+            if (page < 1)
             {
-                page=1;
+                page = 1;
             }
-            unsigned int mid_num=std::floor(list_num/2);
-            unsigned int last_num= list_num-1;
+            unsigned int mid_num = std::floor(list_num / 2);
+            unsigned int last_num = list_num - 1;
 
-            int temp_num=   page-mid_num;
+            int temp_num = page - mid_num;
 
-            unsigned int minpage   =  temp_num<1 ? 1 : temp_num;
-		    unsigned int maxpage   =  minpage + last_num;
+            unsigned int minpage = temp_num < 1 ? 1 : temp_num;
+            unsigned int maxpage = minpage + last_num;
 
-            if (maxpage>total_page)
+            if (maxpage > total_page)
             {
-                maxpage =total_page;
-                temp_num=(maxpage - last_num);
-                if(temp_num<1)
+                maxpage = total_page;
+                temp_num = (maxpage - last_num);
+                if (temp_num < 1)
                 {
-                    minpage=1;
-                } 
+                    minpage = 1;
+                }
                 else
                 {
-                    minpage=temp_num;
-                } 
+                    minpage = temp_num;
+                }
             }
-            limit((page-1)*per_page,per_page);
-            return std::make_tuple(minpage,maxpage,page,total_page);
+            limit((page - 1) * per_page, per_page);
+            return std::make_tuple(minpage, maxpage, page, total_page);
         }
         int updateCol(std::string colname, int num)
         {
@@ -247,7 +247,7 @@ namespace orm
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -255,7 +255,6 @@ namespace orm
                 }
                 catch (...)
                 {
-                   
                 }
                 return readnum;
             }
@@ -282,7 +281,7 @@ namespace orm
         }
         model &cache(unsigned int livetime)
         {
-            //cachetime = livetime;
+            // cachetime = livetime;
             return *mod;
         }
         model &where(std::string wq)
@@ -1369,14 +1368,14 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-            
+
             std::vector<std::map<std::string, std::string>> temprecord;
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1414,25 +1413,23 @@ namespace orm
                     table_fieldname.push_back(type_temp);
                 }
 
-                int j=0;
+                int j = 0;
                 MYSQL_ROW json_row;
                 while ((json_row = mysql_fetch_row(resultall)))
                 {
                     std::map<std::string, std::string> rowtemp;
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        rowtemp.insert(table_fieldname[index],std::string(json_row[index]));
+                        rowtemp.insert(table_fieldname[index], std::string(json_row[index]));
                     }
                     temprecord.push_back(std::move(rowtemp));
                     j++;
                 }
                 mysql_free_result(resultall);
-                    
             }
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
-                
             }
             catch (const char *e)
             {
@@ -1443,9 +1440,8 @@ namespace orm
             {
             }
             return temprecord;
-
         }
-        std::tuple<std::vector<std::string>,std::map<std::string,unsigned int>,std::vector<std::vector<std::string>>> fetchRow()
+        std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>> fetchRow()
         {
             if (selectsql.empty())
             {
@@ -1481,16 +1477,16 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-            
+
             std::vector<std::vector<std::string>> temprecord;
             std::vector<std::string> table_fieldname;
-            std::map<std::string,unsigned int> table_fieldmap;
+            std::map<std::string, unsigned int> table_fieldmap;
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1502,7 +1498,7 @@ namespace orm
                     catch (...)
                     {
                     }
-                    return std::make_tuple(table_fieldname,table_fieldmap,temprecord);
+                    return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
 
                 resultall = mysql_store_result(conn.get());
@@ -1520,16 +1516,16 @@ namespace orm
                 MYSQL_FIELD *fields;
                 fields = mysql_fetch_fields(resultall);
                 std::string type_temp;
-                
+
                 for (unsigned char index = 0; index < num_fields; index++)
                 {
                     type_temp = std::string(fields[index].name);
                     std::transform(type_temp.begin(), type_temp.end(), type_temp.begin(), ::tolower);
                     table_fieldname.push_back(type_temp);
-                    table_fieldmap.insert({type_temp,index});
+                    table_fieldmap.insert({type_temp, index});
                 }
 
-                int j=0;
+                int j = 0;
                 MYSQL_ROW json_row;
                 while ((json_row = mysql_fetch_row(resultall)))
                 {
@@ -1542,12 +1538,10 @@ namespace orm
                     j++;
                 }
                 mysql_free_result(resultall);
-                           
             }
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
-                
             }
             catch (const char *e)
             {
@@ -1556,12 +1550,11 @@ namespace orm
             catch (...)
             {
             }
-            return std::make_tuple(table_fieldname,table_fieldmap,temprecord);
-
+            return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
         }
         model &fetch()
         {
-            //unsigned long long sqlhashid = 0;
+            // unsigned long long sqlhashid = 0;
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -1613,7 +1606,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1756,7 +1749,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1794,8 +1787,7 @@ namespace orm
                     table_fieldname.push_back(type_temp);
                 }
 
-                
-                int j=0;
+                int j = 0;
                 MYSQL_ROW json_row;
                 while ((json_row = mysql_fetch_row(resultall)))
                 {
@@ -1803,7 +1795,7 @@ namespace orm
                     rowtemp.set_array();
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        rowtemp[table_fieldname[index]]=std::string(json_row[index]);
+                        rowtemp[table_fieldname[index]] = std::string(json_row[index]);
                     }
                     valuetemp.push(j, std::move(rowtemp));
                     j++;
@@ -1813,7 +1805,6 @@ namespace orm
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
-                
             }
             catch (const char *e)
             {
@@ -1842,7 +1833,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultone = nullptr;
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
 
                 if (readnum != 0)
                 {
@@ -1936,7 +1927,7 @@ namespace orm
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -1944,7 +1935,6 @@ namespace orm
                 }
                 catch (...)
                 {
-                   
                 }
                 return readnum;
             }
@@ -1962,7 +1952,6 @@ namespace orm
             {
                 return 0;
             }
-           
         }
         int update(std::string fieldname)
         {
@@ -1996,7 +1985,7 @@ namespace orm
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -2004,7 +1993,6 @@ namespace orm
                 }
                 catch (...)
                 {
-                   
                 }
                 return readnum;
             }
@@ -2012,18 +2000,17 @@ namespace orm
             {
                 error_msg = std::string(e.what());
                 return 0;
-            }            
+            }
             catch (const char *e)
             {
                 error_msg = std::string(e);
                 throw std::runtime_error(e);
                 return 0;
-            } 
+            }
             catch (...)
             {
                 return 0;
             }
-
         }
         int remove()
         {
@@ -2055,7 +2042,7 @@ namespace orm
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -2063,7 +2050,6 @@ namespace orm
                 }
                 catch (...)
                 {
-                   
                 }
                 return readnum;
             }
@@ -2082,8 +2068,6 @@ namespace orm
             {
                 return 0;
             }
-
-           
         }
         int remove(long long id)
         {
@@ -2099,7 +2083,7 @@ namespace orm
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 readnum = mysql_affected_rows(conn.get());
                 try
                 {
@@ -2107,7 +2091,6 @@ namespace orm
                 }
                 catch (...)
                 {
-                   
                 }
                 return readnum;
             }
@@ -2125,68 +2108,16 @@ namespace orm
             {
                 return 0;
             }
- 
         }
-        std::tuple<long long,long long> insert(typename base::meta &insert_data,bool isclear=true)
+        std::tuple<long long, long long> insert(typename base::meta &insert_data, bool isclear = true)
         {
-             try
-             {
-                    sqlstring = base::_makerecordinsertsql(insert_data);
-                    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
-                    mysql_ping(conn.get());
-                    long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
-                    if(isclear)
-                    {
-                        sqlstring.clear();
-                    }
-                    if (readnum != 0)
-                    {
-                        error_msg = std::string(mysql_error(conn.get()));
-                        base::setPK(0);
-                        try
-                        {
-                            http::back_mysql_connect(dbhash, std::move(conn));
-                        }
-                        catch (...)
-                        {
-                        }
-                        return std::make_tuple(readnum,0);
-                    }
-                    readnum = mysql_affected_rows(conn.get());
-                    long long insertid = mysql_insert_id(conn.get());
-                    try
-                    {
-                        http::back_mysql_connect(dbhash, std::move(conn));
-                    }
-                    catch (...)
-                    {
-                    }
-                    return std::make_tuple(readnum,insertid);
-            }
-            catch (const std::exception &e)
+            try
             {
-                error_msg = std::string(e.what());
-
-            }
-            catch (const char *e)
-            {
-                error_msg = std::string(e);
-
-            }
-            catch (...)
-            {
-            }
-            return std::make_tuple(0,0);
-        }
-        std::tuple<long long,long long> insert(std::vector<typename base::meta> &insert_data,bool isclear=true)
-        {
-             try
-             {
                 sqlstring = base::_makerecordinsertsql(insert_data);
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
-                if(isclear)
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+                if (isclear)
                 {
                     sqlstring.clear();
                 }
@@ -2201,7 +2132,7 @@ namespace orm
                     catch (...)
                     {
                     }
-                    return std::make_tuple(readnum,0);
+                    return std::make_tuple(readnum, 0);
                 }
                 readnum = mysql_affected_rows(conn.get());
                 long long insertid = mysql_insert_id(conn.get());
@@ -2212,22 +2143,69 @@ namespace orm
                 catch (...)
                 {
                 }
-                return std::make_tuple(readnum,insertid);
+                return std::make_tuple(readnum, insertid);
             }
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
-
             }
             catch (const char *e)
             {
                 error_msg = std::string(e);
-
             }
             catch (...)
             {
             }
-            return std::make_tuple(0,0);
+            return std::make_tuple(0, 0);
+        }
+        std::tuple<long long, long long> insert(std::vector<typename base::meta> &insert_data, bool isclear = true)
+        {
+            try
+            {
+                sqlstring = base::_makerecordinsertsql(insert_data);
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                mysql_ping(conn.get());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+                if (isclear)
+                {
+                    sqlstring.clear();
+                }
+                if (readnum != 0)
+                {
+                    error_msg = std::string(mysql_error(conn.get()));
+                    base::setPK(0);
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return std::make_tuple(readnum, 0);
+                }
+                readnum = mysql_affected_rows(conn.get());
+                long long insertid = mysql_insert_id(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+                return std::make_tuple(readnum, insertid);
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+            }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+            }
+            catch (...)
+            {
+            }
+            return std::make_tuple(0, 0);
         }
         int save()
         {
@@ -2264,7 +2242,7 @@ namespace orm
                 {
                     std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                     mysql_ping(conn.get());
-                    long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                    long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                     if (readnum != 0)
                     {
                         error_msg = std::string(mysql_error(conn.get()));
@@ -2285,7 +2263,6 @@ namespace orm
                     }
                     catch (...)
                     {
-                      
                     }
                     return readnum;
                 }
@@ -2312,7 +2289,7 @@ namespace orm
                     sqlstring = base::_makeinsertsql();
                     std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                     mysql_ping(conn.get());
-                    long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                    long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                     if (readnum != 0)
                     {
                         error_msg = std::string(mysql_error(conn.get()));
@@ -2354,26 +2331,26 @@ namespace orm
             }
             return 0;
         }
-        std::tuple<std::vector<std::string>,std::map<std::string,unsigned int>,std::vector<std::vector<std::string>>> query(const std::string &rawsql,bool isedit=false)
+        std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>> query(const std::string &rawsql, bool isedit = false)
         {
-             
+
             std::vector<std::vector<std::string>> temprecord;
             std::vector<std::string> table_fieldname;
-            std::map<std::string,unsigned int> table_fieldmap;
+            std::map<std::string, unsigned int> table_fieldmap;
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
-                if(isedit)
+                if (isedit)
                 {
-                    conn=http::get_mysqleditexecute(dbhash);
+                    conn = http::get_mysqleditexecute(dbhash);
                 }
                 else
                 {
-                    conn=http::get_mysqlselectexecute(dbhash);
+                    conn = http::get_mysqlselectexecute(dbhash);
                 }
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &rawsql[0],rawsql.size());
+                long long readnum = mysql_real_query(conn.get(), &rawsql[0], rawsql.size());
 
                 if (readnum != 0)
                 {
@@ -2385,11 +2362,11 @@ namespace orm
                     catch (...)
                     {
                     }
-                    return std::make_tuple(table_fieldname,table_fieldmap,temprecord);
+                    return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
 
                 resultall = mysql_store_result(conn.get());
-              
+
                 readnum = 0;
 
                 int num_fields = mysql_num_fields(resultall);
@@ -2397,16 +2374,16 @@ namespace orm
                 MYSQL_FIELD *fields;
                 fields = mysql_fetch_fields(resultall);
                 std::string type_temp;
-                
+
                 for (unsigned char index = 0; index < num_fields; index++)
                 {
                     type_temp = std::string(fields[index].name);
                     std::transform(type_temp.begin(), type_temp.end(), type_temp.begin(), ::tolower);
                     table_fieldname.push_back(type_temp);
-                    table_fieldmap.insert({type_temp,index});
+                    table_fieldmap.insert({type_temp, index});
                 }
 
-                int j=0;
+                int j = 0;
                 MYSQL_ROW json_row;
                 while ((json_row = mysql_fetch_row(resultall)))
                 {
@@ -2418,14 +2395,14 @@ namespace orm
                     temprecord.push_back(std::move(rowtemp));
                     j++;
                 }
-                mysql_free_result(resultall); 
+                mysql_free_result(resultall);
                 try
                 {
                     http::back_mysql_connect(dbhash, std::move(conn));
                 }
                 catch (...)
                 {
-                }        
+                }
             }
             catch (const std::exception &e)
             {
@@ -2438,18 +2415,17 @@ namespace orm
             catch (...)
             {
             }
-            return std::make_tuple(table_fieldname,table_fieldmap,temprecord);
-
+            return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
         }
-        long long edit_query(const std::string &rawsql,bool isinsert=false)
+        long long edit_query(const std::string &rawsql, bool isinsert = false)
         {
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &rawsql[0],rawsql.size());
+                long long readnum = mysql_real_query(conn.get(), &rawsql[0], rawsql.size());
                 readnum = mysql_affected_rows(conn.get());
-                if(isinsert)
+                if (isinsert)
                 {
                     readnum = mysql_insert_id(conn.get());
                 }
@@ -2459,7 +2435,6 @@ namespace orm
                 }
                 catch (...)
                 {
-                   
                 }
                 return readnum;
             }
@@ -2473,7 +2448,6 @@ namespace orm
             }
             catch (...)
             {
-                
             }
             return 0;
         }
@@ -2503,9 +2477,10 @@ namespace orm
         }
         model &get()
         {
-             
+
             return *mod;
-        }    
+        }
+
     public:
         std::string selectsql;
         std::string wheresql;
