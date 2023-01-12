@@ -45,7 +45,7 @@ namespace http
         return time((time_t *)NULL);
     }
 
-    std::string date(std::string format, unsigned long inputtime)
+    std::string date(const std::string &format, unsigned long inputtime)
     {
         time_t curr_time;
         if (inputtime == 0)
@@ -64,7 +64,6 @@ namespace http
         {
             if (temp[i] == 0x00)
             {
-                i++;
                 temp.resize(i);
                 break;
             }
@@ -73,7 +72,7 @@ namespace http
     }
 
     // Sat, 02 Jan 2021 00:12:45 GMT to sec
-    unsigned long strgmttotime(std::string gmtstr)
+    unsigned long strgmttotime(const std::string &gmtstr)
     {
         unsigned long temp = 0;
         tm timeInfo;
@@ -245,7 +244,7 @@ namespace http
     }
 
     // 2022-02-09 08:12:45 to sec
-    unsigned long strtotime(std::string str)
+    unsigned long strtotime(const std::string &str)
     {
         unsigned long temp = 0;
         unsigned char i=0x00;

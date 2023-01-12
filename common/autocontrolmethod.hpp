@@ -8,6 +8,7 @@
 
 #include "httppeer.h" 
 
+#include "testmysqlinsert.h"
 #include "testmodelfromjson.h"
 #include "testcmake.h"
 #include "testsqltuple.h"
@@ -19,6 +20,12 @@ namespace http
   {
     struct regmethold_t temp;
 
+		temp.pre = nullptr;
+		temp.regfun = testmysqlinsert;
+		methodcallback.emplace("minsert",temp);
+		temp.pre = nullptr;
+		temp.regfun = testmysqlpagebar;
+		methodcallback.emplace("mpagebar",temp);
 		temp.pre = nullptr;
 		temp.regfun = testmodelfromjson;
 		methodcallback.emplace("mfromjson",temp);

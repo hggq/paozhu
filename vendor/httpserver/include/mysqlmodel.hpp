@@ -19,6 +19,7 @@
 #include <memory>
 #include <list>
 #include <queue>
+#include <cmath>
 #include <condition_variable>
 #include "mysqlproxyfun.h"
 
@@ -42,6 +43,26 @@ namespace orm
             dbhash = hash_fn(dbtag);
 
             mod = &static_cast<model &>(*this);
+        }
+        model &set_table(std::string table_name)
+        {
+            if(original_tablename.empty())
+            {
+                original_tablename=base::tablename;
+            }
+            if(table_name.size()>0)
+            {
+                base::tablename=table_name;
+            }
+            return *mod;
+        }
+        model &reset_table(std::string table_name)
+        {
+            if(!original_tablename.empty())
+            {
+                base::tablename=original_tablename;
+            }
+            return *mod;
         }
         unsigned int count()
         {
@@ -72,7 +93,7 @@ namespace orm
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultone = nullptr;
                 mysql_ping(conn.get());
-                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                long long readnum = mysql_real_query(conn.get(), &countsql[0],countsql.size());
 
                 if (readnum != 0)
                 {
@@ -133,6 +154,55 @@ namespace orm
             }
 
             return 0;
+        }
+        std::tuple<unsigned int,unsigned int,unsigned int,unsigned int> page(unsigned int page,unsigned int per_page=10,unsigned int list_num=5)
+        {
+            unsigned int total_page=count();
+            if(per_page==0)
+            {
+                per_page=10;
+            }
+            if(list_num<1)
+            {
+                list_num=1;
+            }
+            total_page=std::ceil((float)total_page/per_page);
+
+            if(total_page<1)
+            {
+                total_page=1;
+            }
+            if(page>total_page)
+            {
+                page=total_page;
+            }
+            if(page<1)
+            {
+                page=1;
+            }
+            unsigned int mid_num=std::floor(list_num/2);
+            unsigned int last_num= list_num-1;
+
+            int temp_num=   page-mid_num;
+
+            unsigned int minpage   =  temp_num<1 ? 1 : temp_num;
+		    unsigned int maxpage   =  minpage + last_num;
+
+            if (maxpage>total_page)
+            {
+                maxpage =total_page;
+                temp_num=(maxpage - last_num);
+                if(temp_num<1)
+                {
+                    minpage=1;
+                } 
+                else
+                {
+                    minpage=temp_num;
+                } 
+            }
+            limit((page-1)*per_page,per_page);
+            return std::make_tuple(minpage,maxpage,page,total_page);
         }
         int updateCol(std::string colname, int num)
         {
@@ -2057,7 +2127,108 @@ namespace orm
             }
  
         }
+        std::tuple<long long,long long> insert(typename base::meta &insert_data,bool isclear=true)
+        {
+             try
+             {
+                    sqlstring = base::_makerecordinsertsql(insert_data);
+                    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                    mysql_ping(conn.get());
+                    long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                    if(isclear)
+                    {
+                        sqlstring.clear();
+                    }
+                    if (readnum != 0)
+                    {
+                        error_msg = std::string(mysql_error(conn.get()));
+                        base::setPK(0);
+                        try
+                        {
+                            http::back_mysql_connect(dbhash, std::move(conn));
+                        }
+                        catch (...)
+                        {
+                        }
+                        return std::make_tuple(readnum,0);
+                    }
+                    readnum = mysql_affected_rows(conn.get());
+                    long long insertid = mysql_insert_id(conn.get());
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return std::make_tuple(readnum,insertid);
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
 
+            }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+
+            }
+            catch (...)
+            {
+            }
+            return std::make_tuple(0,0);
+        }
+        std::tuple<long long,long long> insert(std::vector<typename base::meta> &insert_data,bool isclear=true)
+        {
+             try
+             {
+                sqlstring = base::_makerecordinsertsql(insert_data);
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                mysql_ping(conn.get());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0],sqlstring.size());
+                if(isclear)
+                {
+                    sqlstring.clear();
+                }
+                if (readnum != 0)
+                {
+                    error_msg = std::string(mysql_error(conn.get()));
+                    base::setPK(0);
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return std::make_tuple(readnum,0);
+                }
+                readnum = mysql_affected_rows(conn.get());
+                long long insertid = mysql_insert_id(conn.get());
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+                return std::make_tuple(readnum,insertid);
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+
+            }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+
+            }
+            catch (...)
+            {
+            }
+            return std::make_tuple(0,0);
+        }
         int save()
         {
             if (base::getPK() > 0)
@@ -2344,6 +2515,7 @@ namespace orm
         std::string sqlstring;
         std::string dbtag;
         std::string error_msg;
+        std::string original_tablename;
         bool iskuohao = false;
         bool iscommit = false;
         bool ishascontent = false;

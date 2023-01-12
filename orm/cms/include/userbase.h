@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 10 Jan 2023 04:56:30 GMT
+*本文件为自动生成 Thu, 12 Jan 2023 08:44:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -251,7 +251,101 @@ tempsql<<")";
 
      
        return tempsql.str();
-   }     
+   } 
+      
+      std::string _makerecordinsertsql( meta &insert_data){
+      unsigned int j=0;
+                std::ostringstream tempsql;
+                tempsql<<"INSERT INTO ";
+                    tempsql<<tablename;
+                   tempsql<<" (";
+                    for(;j<colnames.size();j++){
+                            if(j>0){
+                                tempsql<<"`,`";
+                            }else{
+                                tempsql<<"`";
+                            }
+                            tempsql<<colnames[j];
+                    }
+                    if(j>0){
+                        tempsql<<"`";
+                    }
+            tempsql<<") VALUES (";
+
+        if(insert_data.userid==0){
+tempsql<<"null";
+ }else{ 
+	tempsql<<std::to_string(insert_data.userid);
+}
+tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.password)<<"'";
+if(insert_data.isopen==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.isopen);
+}
+if(insert_data.level==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.level);
+}
+tempsql<<")";
+
+     
+       return tempsql.str();
+   } 
+       
+      std::string _makerecordinsertsql( std::vector<meta> &insert_data){
+      unsigned int j=0;
+                std::ostringstream tempsql;
+                tempsql<<"INSERT INTO ";
+                    tempsql<<tablename;
+                   tempsql<<" (";
+                    for(;j<colnames.size();j++){
+                            if(j>0){
+                                tempsql<<"`,`";
+                            }else{
+                                tempsql<<"`";
+                            }
+                            tempsql<<colnames[j];
+                    }
+                    if(j>0){
+                        tempsql<<"`";
+                    }
+            tempsql<<") VALUES ";
+
+    for(int i=0;i<insert_data.size();i++)
+    {
+		if(i>0)
+		{
+			tempsql<<",";	
+		}
+		tempsql<<"(";
+
+
+        	if(insert_data[i].userid==0){
+	tempsql<<"null";
+	 }else{ 
+	tempsql<<std::to_string(insert_data[i].userid);
+	}
+		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].password)<<"'";
+	if(insert_data[i].isopen==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].isopen);
+	}
+	if(insert_data[i].level==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].level);
+	}
+		tempsql<<")";	 } 
+
+     
+       return tempsql.str();
+   } 
+       
     std::string _makeupdatesql(std::string fileld){
        //int j=0;
             std::ostringstream tempsql;

@@ -1592,7 +1592,357 @@ struct )";
     headtxt = R"(
      
        return tempsql.str();
-   }     
+   } 
+   )";
+   fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    //insert mate
+
+    headtxt = R"(   
+      std::string _makerecordinsertsql( meta &insert_data){
+      unsigned int j=0;
+                std::ostringstream tempsql;
+                tempsql<<"INSERT INTO ";
+                    tempsql<<tablename;
+                   tempsql<<" (";
+                    for(;j<colnames.size();j++){
+                            if(j>0){
+                                tempsql<<"`,`";
+                            }else{
+                                tempsql<<"`";
+                            }
+                            tempsql<<colnames[j];
+                    }
+                    if(j>0){
+                        tempsql<<"`";
+                    }
+            tempsql<<") VALUES (";
+
+        )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+
+    insertstrem.str("");
+
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    {
+
+        // 数字
+        // if (j == 0)
+        if (table_type[j]<10||table_type[j]==246)
+        {
+           if(table_type[j]!=7)
+           {
+            if(j==0)
+            {
+                if(tablecollist[j]==tablepkname)
+                {
+                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "tempsql<<\"null\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+                else 
+                {
+                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\"0\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+            }
+            else
+            {
+                if(tablecollist[j]==tablepkname)
+                {
+                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "tempsql<<\",null\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+                else 
+                {
+                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\",0\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+            }
+
+
+            continue;
+           } 
+            
+        }
+                // 数字
+        if (j == 0)
+        {
+            if(tablecollist[j]==tablepkname)
+            {
+            insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+            insertstrem << "tempsql<<\"null\";\n";
+            insertstrem << " }else{ \n";
+            insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+            insertstrem << "}\n";
+            }
+            else
+            {
+                if (colltypeshuzi[j] < 30)
+                {
+                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\"0\";\n";
+                    insertstrem << " }else{ \n";
+                    insertstrem << "\ttempsql<<\"\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                    insertstrem << "}\n";
+                }
+                else if (colltypeshuzi[j] == 60)
+                {
+                    insertstrem << "  \nif(insert_data." << tablecollist[j] << ".size()==0){ \n";
+                    insertstrem << "tempsql<<\" CURRENT_TIMESTAMP \";\n";
+                    insertstrem << " }else{ \n tempsql<<\"'\"<<insert_data." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else if (colltypeshuzi[j] == 61)
+                {
+                    insertstrem << "  \nif(insert_data." << tablecollist[j] << ".size()==0){ \n";
+                    insertstrem << "tempsql<<\"CURRENT_DATE \";\n";
+                    insertstrem << " }else{ \n tempsql<<\"'\"<<insert_data." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else
+                {
+
+                    insertstrem << "tempsql<<\"'\"<<stringaddslash(insert_data." << tablecollist[j] << ")<<\"'\";\n";
+                }
+            }
+
+            continue;
+        }
+        if (colltypeshuzi[j] < 30)
+        {
+            insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+            insertstrem << "\ttempsql<<\",0\";\n";
+            insertstrem << " }else{ \n";
+            insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+            insertstrem << "}\n";
+        }
+        else if (colltypeshuzi[j] == 60)
+        {
+            insertstrem << "  \nif(insert_data." << tablecollist[j] << ".size()==0){ \n";
+            insertstrem << "tempsql<<\", CURRENT_TIMESTAMP \";\n";
+            insertstrem << " }else{ \n tempsql<<\",'\"<<insert_data." << tablecollist[j] << "<<\"'\";\n }\n";
+        }
+        else if (colltypeshuzi[j] == 61)
+        {
+            insertstrem << "  \nif(insert_data." << tablecollist[j] << ".size()==0){ \n";
+            insertstrem << "tempsql<<\", CURRENT_DATE \";\n";
+            insertstrem << " }else{ \n tempsql<<\",'\"<<insert_data." << tablecollist[j] << "<<\"'\";\n }\n";
+        }
+        else
+        {
+
+            insertstrem << "tempsql<<\",'\"<<stringaddslash(insert_data." << tablecollist[j] << ")<<\"'\";\n";
+        }
+    }
+    insertstrem << "tempsql<<\")\";\n";
+    headtxt.append(insertstrem.str());
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    headtxt = R"(
+     
+       return tempsql.str();
+   } 
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+ headtxt.clear();
+ insertstrem.str("");
+    //insert mate array 
+ 
+    headtxt = R"(   
+      std::string _makerecordinsertsql( std::vector<meta> &insert_data){
+      unsigned int j=0;
+                std::ostringstream tempsql;
+                tempsql<<"INSERT INTO ";
+                    tempsql<<tablename;
+                   tempsql<<" (";
+                    for(;j<colnames.size();j++){
+                            if(j>0){
+                                tempsql<<"`,`";
+                            }else{
+                                tempsql<<"`";
+                            }
+                            tempsql<<colnames[j];
+                    }
+                    if(j>0){
+                        tempsql<<"`";
+                    }
+            tempsql<<") VALUES ";
+
+    for(int i=0;i<insert_data.size();i++)
+    {
+		if(i>0)
+		{
+			tempsql<<",";	
+		}
+		tempsql<<"(";
+
+
+        )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+
+    insertstrem.str("");
+
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    {
+
+        // 数字
+        // if (j == 0)
+        if (table_type[j]<10||table_type[j]==246)
+        {
+           if(table_type[j]!=7)
+           {
+            if(j==0)
+            {
+                if(tablecollist[j]==tablepkname)
+                {
+                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\"null\";\n";
+                    insertstrem << "\t }else{ \n";
+                    insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                    insertstrem << "\t}\n";
+                }
+                else 
+                {
+                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\"0\";\n";
+                    insertstrem << "\t }else{ \n";
+                    insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                    insertstrem << "\t}\n";
+                }
+            }
+            else
+            {
+                if(tablecollist[j]==tablepkname)
+                {
+                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\",null\";\n";
+                    insertstrem << "\t }else{ \n";
+                    insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                    insertstrem << "\t}\n";
+                }
+                else 
+                {
+                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\",0\";\n";
+                    insertstrem << "\t }else{ \n";
+                    insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                    insertstrem << "\t}\n";
+                }
+            }
+
+
+            continue;
+           } 
+            
+        }
+                // 数字
+        if (j == 0)
+        {
+            if(tablecollist[j]==tablepkname)
+            {
+            insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+            insertstrem << "\ttempsql<<\"null\";\n";
+            insertstrem << "\t }else{ \n";
+            insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+            insertstrem << "\t}\n";
+            }
+            else
+            {
+                if (colltypeshuzi[j] < 30)
+                {
+                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                    insertstrem << "\ttempsql<<\"0\";\n";
+                    insertstrem << "\t }else{ \n";
+                    insertstrem << "\ttempsql<<\"\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                    insertstrem << "\t}\n";
+                }
+                else if (colltypeshuzi[j] == 60)
+                {
+                    insertstrem << "  \nif(insert_data[i]." << tablecollist[j] << ".size()==0){ \n";
+                    insertstrem << "tempsql<<\" CURRENT_TIMESTAMP \";\n";
+                    insertstrem << " }else{ \n tempsql<<\"'\"<<insert_data[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else if (colltypeshuzi[j] == 61)
+                {
+                    insertstrem << "  \n\tif(insert_data[i]." << tablecollist[j] << ".size()==0){ \n";
+                    insertstrem << "\ttempsql<<\"CURRENT_DATE \";\n";
+                    insertstrem << "\t }else{ \n tempsql<<\"'\"<<insert_data[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else
+                {
+
+                    insertstrem << "\ttempsql<<\"'\"<<stringaddslash(insert_data[i]." << tablecollist[j] << ")<<\"'\";\n";
+                }
+            }
+
+            continue;
+        }
+        if (colltypeshuzi[j] < 30)
+        {
+            insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+            insertstrem << "\ttempsql<<\",0\";\n";
+            insertstrem << "\t }else{ \n";
+            insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+            insertstrem << "\t}\n";
+        }
+        else if (colltypeshuzi[j] == 60)
+        {
+            insertstrem << "  \n\t\tif(insert_data[i]." << tablecollist[j] << ".size()==0){ \n";
+            insertstrem << "\t\ttempsql<<\", CURRENT_TIMESTAMP \";\n";
+            insertstrem << "\t\t }else{ \n tempsql<<\",'\"<<insert_data[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+        }
+        else if (colltypeshuzi[j] == 61)
+        {
+            insertstrem << "  \n\t\tif(insert_data[i]." << tablecollist[j] << ".size()==0){ \n";
+            insertstrem << "\t\ttempsql<<\", CURRENT_DATE \";\n";
+            insertstrem << "\t\t }else{ \n tempsql<<\",'\"<<insert_data[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+        }
+        else
+        {
+
+            insertstrem << "\t\ttempsql<<\",'\"<<stringaddslash(insert_data[i]." << tablecollist[j] << ")<<\"'\";\n";
+        }
+    }
+    insertstrem << "\t\ttempsql<<\")\";\r\t } \n";
+    headtxt.append(insertstrem.str());
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    headtxt = R"(
+     
+       return tempsql.str();
+   } 
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+
+
+///////////////////
+    //update sql
+    headtxt.clear();
+    headtxt = R"(   
     std::string _makeupdatesql(std::string fileld){
        //int j=0;
             std::ostringstream tempsql;
