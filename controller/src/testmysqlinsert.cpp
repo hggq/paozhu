@@ -65,7 +65,33 @@ namespace http
          client << "<p>current_page:" << std::to_string(current_page) << "</p>";
          client << "<p>total_page:" << std::to_string(total_page) << "</p>";
 
+         articles.order("aid desc").fetch();
 
+         if(articles.size()>0)
+         {
+            for(auto &item:articles)
+            {
+                 client << "<p>id:" << std::to_string(item.aid)<<" "<< item.title << "</p>";
+            }
+         }
+
+         client << "<p>";
+         for(unsigned int i=bar_min;i<=bar_max;i++)
+         {
+
+             client << " <a href=\"/mpagebar?page="<<std::to_string(i)<<"\">";
+             if(i==current_page)
+             {
+               client <<"<strong><font color=red>["<<std::to_string(i)<<"]</font></strong>";
+             }
+             else
+             {
+               client <<"["<<std::to_string(i)<<"]";
+             }
+             
+             client <<"</a> ";
+         }
+         client << "</p>";
       }
       catch (std::exception &e)
       {
