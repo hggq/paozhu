@@ -76,6 +76,10 @@ namespace http
          }
 
          client << "<p>";
+         if(bar_min>1)
+         {
+            client << " <a href=\"/mpagebar?page=1\">[1]</a>";   
+         }
          for(unsigned int i=bar_min;i<=bar_max;i++)
          {
 
@@ -90,6 +94,10 @@ namespace http
              }
              
              client <<"</a> ";
+         }
+         if(total_page>bar_max)
+         {
+            client << " <a href=\"/mpagebar?page="<<total_page<<"\">["<<total_page<<"]</a>";   
          }
          client << "</p>";
       }
