@@ -2419,6 +2419,7 @@ namespace http
                                                 header_input.clear();
 
                                                 fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile.get());
+                                                upfile.size += (i - readoffset);
                                                 i = j;
                                                 if (uprawfile)
                                                 {

@@ -23,7 +23,7 @@
   </head>
   <body> 
   <p>提交表单测试 http from test</p>
-  <form method="post" enctype="multipart/form-data" name="form1" id="form1" action="/weibo/post?aabb=1122">
+  <form method="post" enctype="multipart/form-data" name="form1" id="form1" action="/tfilepost">
     <p>
       <label for="textfield">Text Field:</label>
       <input type="text" name="textfield" id="textfield">
@@ -53,7 +53,7 @@
       <input type="submit" name="submit" id="submit" value="Submit">
     </p>
   </form>
-  <form id="form2" name="form2" method="post" action="/weibo/post?aabb=1122">
+  <form id="form2" name="form2" method="post" action="/tformpost">
     <p>
       <label for="textfield2">Text Field:</label>
       <input type="text" name="textfield2" id="textfield2">
@@ -104,13 +104,13 @@
 	  <script language="javascript">
 	  
 	  function uploadajax(){
-		     $.post("/weibo/urlpost?aabb=1122",{aa:$("#textfield2").val(),bb:$("#textarea2").val()},function(result){
+		     $.post("/tfilepost",{aa:$("#textfield2").val(),bb:$("#textarea2").val()},function(result){
 			 
 		  });
 	  }
 	  
 	function axiopost(){
-		axios.post('/weibo/formpost', {
+		axios.post('/tjsonpost', {
 			firstName: 'Fred',
 			lastName: 'Flintstone'
 		  })
@@ -124,7 +124,7 @@
 		  
 	function typepost(){
 		   $.ajax({
-        url:"/weibo/xmlupload",
+        url:"/txmlupload",
         type:"POST",
         processData: false,
         contentType:"application/xml",

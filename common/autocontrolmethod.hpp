@@ -10,6 +10,7 @@
 
 #include "testmysqlinsert.h"
 #include "testmodelfromjson.h"
+#include "testformpost.h"
 #include "testcmake.h"
 #include "testsqltuple.h"
 
@@ -29,6 +30,18 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testmodelfromjson;
 		methodcallback.emplace("mfromjson",temp);
+		temp.pre = nullptr;
+		temp.regfun = testurlencoded;
+		methodcallback.emplace("tformpost",temp);
+		temp.pre = nullptr;
+		temp.regfun = testformmultipart;
+		methodcallback.emplace("tfilepost",temp);
+		temp.pre = nullptr;
+		temp.regfun = testformjsonpost;
+		methodcallback.emplace("tjsonpost",temp);
+		temp.pre = nullptr;
+		temp.regfun = testformxmlpost;
+		methodcallback.emplace("txmlupload",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcmake;
 		methodcallback.emplace("ccmake",temp);
