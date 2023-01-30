@@ -64,6 +64,8 @@ namespace http
               mysqlconf.pretable.clear();
               mysqlconf.maxpool.clear();
               mysqlconf.spname = keyname;
+              mysqlconf.dbtype.clear();
+              
             }
           }
         }
@@ -140,6 +142,10 @@ namespace http
           if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
           {
             mysqlconf.unix_socket = strval;
+          }
+          if (strcasecmp(linestr.c_str(), "dbtype") == 0)
+          {
+            mysqlconf.dbtype = strval;
           }
         }
 
@@ -229,6 +235,10 @@ namespace http
       {
         mysqlconf.unix_socket = strval;
       }
+      if (strcasecmp(linestr.c_str(), "dbtype") == 0)
+      {
+        mysqlconf.dbtype = strval;
+      }
       mysqlconf.spname = keyname;
       myconfig.push_back(mysqlconf);
     }
@@ -252,7 +262,7 @@ namespace http
       {
         rmstag.push_back('/');
       }
-      rmstag.append("mysqlorm.conf");
+      rmstag.append("orm.conf");
       std::vector<mysqlconnect_t> myconfig = getmysqlconfig(rmstag);
       std::map<std::string, std::vector<struct mysql_connect_link_info>> mysqldblinkgroupjion;
       std::map<size_t, mysqllinkpool> &mysql_pool_map = get_mysqlpool();
@@ -263,6 +273,12 @@ namespace http
       {
         for (std::size_t li = 0; li < myconfig.size(); li++)
         {
+          
+          if(myconfig[li].dbtype!="mysql")
+          {
+              continue;
+          }
+
           rmstag = myconfig[li].port;
           if (rmstag.size() < 3 || rmstag.size() > 6)
           {

@@ -6618,6 +6618,7 @@ struct mysqlconnect_t
     std::string pretable;
     std::string maxpool;
     std::string spname;
+    std::string dbtype;
 };
 
 std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
@@ -6977,12 +6978,12 @@ int modelcli()
     std::string command;
     std::string rmstag = "default";
     std::string pretable;
-    std::vector<mysqlconnect_t> myconfig = getmysqlconfig("conf/mysqlorm.conf");
+    std::vector<mysqlconnect_t> myconfig = getmysqlconfig("conf/orm.conf");
 
     //std::string mysqlconnect = ""; //"mysqlx://root:123456@127.0.0.1:33060/aaa";
     if (myconfig.size() == 0)
     {
-        std::cout << " Sorry, not found [config/mysqlorm.conf] config file \033[1m\033[31m This file format example: \033[0m " << std::endl;
+        std::cout << " Sorry, not found [config/orm.conf] config file \033[1m\033[31m This file format example: \033[0m " << std::endl;
         command = R"(
 [default]
 type=main
@@ -6993,6 +6994,7 @@ user=root
 password=123456
 pretable=
 maxpool=5
+dbtype=mysql
 
 type=second
 host=127.0.0.1
@@ -7002,6 +7004,8 @@ user=root
 password=123456
 pretable=
 maxpool=20
+dbtype=mysql
+
         )";
         std::cout << command << std::endl;
         command.clear();
@@ -7036,7 +7040,7 @@ maxpool=20
         {
             for (unsigned  int i = 0; i < myconfig.size(); i++)
             {
-                std::cout << " \033[1m\033[31m" << (i + 1) << "\033[0m " << myconfig[i].dbname << std::endl;
+                std::cout << " \033[1m\033[31m" << (i + 1) << "\033[0m " << myconfig[i].dbname <<" ["<< myconfig[i].dbtype <<"]"<< std::endl;
             }
 
             unsigned int indexsdb = 0;

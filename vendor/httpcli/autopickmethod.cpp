@@ -186,6 +186,7 @@ int main(int argc, char *argv[])
                 cahce_info.filetime = mttime_value;
                 cahce_info.filehash = hash_value;
                 reginfo_list[filename] = cahce_info;
+                is_must_again = true;
             }
 
             for (unsigned int j = 0; j < method_item.size(); j++)
@@ -194,7 +195,7 @@ int main(int argc, char *argv[])
             }
             filename.append(".h\"\r\n");
             header_lists.emplace_back(filename);
-            is_must_again = true;
+            
         }
     }
 

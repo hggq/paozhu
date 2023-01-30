@@ -21,6 +21,7 @@ namespace http
           std::string maxpool;
           std::string spname;
           std::string unix_socket;
+          std::string dbtype;
     };
 
     //class mysqlconfig;
