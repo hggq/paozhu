@@ -21,7 +21,7 @@
     </linearGradient>
     <linearGradient
        xlink:href="#linearGradient863"
-       id="linearGradient1655"
+       id="linearGradient2470"
        gradientUnits="userSpaceOnUse"
        x1="113.38786"
        y1="63.53466"
@@ -31,27 +31,6 @@
   <g
      id="layer1"
      transform="translate(-2.3390853,-17.635602)">
-    <g
-       id="g3299"
-       transform="matrix(0.99276653,0.23591498,-0.18413301,0.77486005,-14.055356,-122.50122)">
-      <g
-         id="g3297">
-        <rect
-           style="fill:#e00000;fill-opacity:1;stroke-width:0.264583"
-           id="rect3293"
-           width="54.768749"
-           height="21.960417"
-           x="79.110413"
-           y="201.6125" />
-        <rect
-           style="fill:#e9bb00;fill-opacity:1;stroke-width:0.2663"
-           id="rect3295"
-           width="5.0308094"
-           height="21.895321"
-           x="81.329445"
-           y="201.60504" />
-      </g>
-    </g>
     <path
        d="m 22.006264,29.558082 c -0.153576,2.165682 -0.544338,7.784788 -0.732514,14.026604 -0.04931,1.635599 -0.09675,3.689105 -0.111804,5.99663 0.01859,1.871108 -0.03675,4.9916 0.416582,7.646481 0.04614,0.406323 0.178097,0.794223 0.390192,1.137515 0.217227,0.351596 0.508268,0.640049 0.848967,0.853576 0.416121,0.308381 0.846544,0.556553 1.209886,0.751979 0.360106,0.193686 1.138464,0.580894 1.234182,0.629561 a 0.50391715,0.50391715 90 0 0 0.45677,-0.898382 c -0.123746,-0.06292 -0.865667,-0.431658 -1.213553,-0.618771 -0.349965,-0.188232 -0.738128,-0.413684 -1.102247,-0.685283 -0.01208,-0.009 -0.02455,-0.01747 -0.03739,-0.02536 -0.218037,-0.134038 -0.4022,-0.315259 -0.539224,-0.537042 -0.133314,-0.215778 -0.218534,-0.464605 -0.24736,-0.732099 -0.0011,-0.01045 -0.0026,-0.02087 -0.0044,-0.03123 -0.438515,-2.555656 -0.385494,-5.571427 -0.404653,-7.492684 0.015,-2.289443 0.06225,-4.334777 0.111382,-5.964521 0.187534,-6.2205 0.577076,-11.822875 0.730448,-13.985684 a 0.50391715,0.50391715 90 0 0 -1.00531,-0.07129 z"
        id="path4006"
@@ -84,13 +63,34 @@
          y="52.374569">Paozhu</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8.46667px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#d40000;fill-opacity:1;stroke:url(#linearGradient1655);stroke-width:0.264583;stroke-opacity:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8.46667px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#d40000;fill-opacity:1;stroke:url(#linearGradient2470);stroke-width:0.264583;stroke-opacity:1"
        x="113.30849"
        y="66.768929"
        id="text12258"><tspan
          id="tspan12256"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8.46667px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#d40000;fill-opacity:1;stroke:url(#linearGradient1655);stroke-width:0.264583;stroke-opacity:1"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8.46667px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#d40000;fill-opacity:1;stroke:url(#linearGradient2470);stroke-width:0.264583;stroke-opacity:1"
          x="113.30849"
          y="66.768929">炮竹</tspan></text>
+    <g
+       id="g3299"
+       transform="matrix(0.99276654,0.23591498,-0.18413301,0.77486005,-14.055356,-122.50122)">
+      <g
+         id="g3297">
+        <rect
+           style="fill:#e00000;fill-opacity:1;stroke-width:0.264583"
+           id="rect3293"
+           width="54.768749"
+           height="21.960417"
+           x="79.110413"
+           y="201.6125" />
+        <rect
+           style="fill:#e9bb00;fill-opacity:1;stroke-width:0.2663"
+           id="rect3295"
+           width="5.0308094"
+           height="21.895321"
+           x="81.329445"
+           y="201.60504" />
+      </g>
+    </g>
   </g>
 </svg>
