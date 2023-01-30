@@ -159,27 +159,40 @@ namespace http
 
                 for (const auto &entry : fs::directory_iterator(tagetpath))
                 {
-                    auto filename = entry.path().filename();
+                    auto filename = entry.path().filename().string();
                     if (fs::is_regular_file(entry.status()))
                     {
                         std::string ext = entry.path().extension().string();
                         if (ext == ".cpp")
                         {
-                            ext.clear();
-                            if (methodpath.back() == '/')
-                            {
+                            temp.emplace_back(filename.substr(0,filename.size()-4));
+                        }
+                    }else if(fs::is_directory(entry.status()))
+                    {
+                        std::string ext;
+                        if (methodpath.back() == '/')
+                        {
 
-                                ext.append(methodpath);
-                                ext.append(filename);
-                            }
-                            else
+                            ext.append(methodpath);
+                            ext.append(filename);
+                        }
+                        else
+                        {
+                            ext.append(methodpath);
+                            ext.append("/");
+                            ext.append(filename);
+                        }
+                        std::vector<std::string> directory_temp=listpath(ext); 
+                        if(directory_temp.size()>0)
+                        {
+                            for(unsigned int j=0;j<directory_temp.size();j++)
                             {
-                                ext.append(methodpath);
+                                ext.clear();
+                                ext.append(filename);
                                 ext.append("/");
-                                ext.append(filename);
+                                ext.append(directory_temp[j]);
+                                temp.emplace_back(ext);
                             }
-
-                            temp.emplace_back(ext);
                         }
                     }
                 }
