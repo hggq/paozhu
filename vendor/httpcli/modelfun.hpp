@@ -6674,6 +6674,8 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                         mysqlconf.pretable.clear();
                         mysqlconf.maxpool.clear();
                         mysqlconf.spname = keyname;
+                        mysqlconf.dbtype.clear();
+                        mysqlconf.unix_socket.clear(); 
                     }
                 }
             }
@@ -6716,6 +6718,8 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                         mysqlconf.pretable.clear();
                         mysqlconf.maxpool.clear();
                         mysqlconf.spname = keyname;
+                        mysqlconf.dbtype.clear();
+                        mysqlconf.unix_socket.clear(); 
                     }
                 }
                 if (strcasecmp(linestr.c_str(), "host") == 0)
@@ -6750,6 +6754,10 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                 if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
                 {
                     mysqlconf.unix_socket = strval;
+                }
+                if (strcasecmp(linestr.c_str(), "dbtype") == 0)
+                {
+                    mysqlconf.dbtype = strval;
                 }
             }
 
@@ -6839,6 +6847,10 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
         if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
         {
             mysqlconf.unix_socket = strval;
+        }
+        if (strcasecmp(linestr.c_str(), "dbtype") == 0)
+        {
+            mysqlconf.dbtype = strval;
         }
         mysqlconf.spname = keyname;
         myconfig.push_back(mysqlconf);

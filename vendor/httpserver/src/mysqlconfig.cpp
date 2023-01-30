@@ -65,7 +65,7 @@ namespace http
               mysqlconf.maxpool.clear();
               mysqlconf.spname = keyname;
               mysqlconf.dbtype.clear();
-              
+              mysqlconf.unix_socket.clear(); 
             }
           }
         }
@@ -108,6 +108,7 @@ namespace http
               mysqlconf.pretable.clear();
               mysqlconf.maxpool.clear();
               mysqlconf.spname = keyname;
+              mysqlconf.unix_socket.clear(); 
             }
           }
           if (strcasecmp(linestr.c_str(), "host") == 0)
