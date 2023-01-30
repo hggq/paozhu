@@ -165,9 +165,10 @@ namespace http
                         std::string ext = entry.path().extension().string();
                         if (ext == ".cpp")
                         {
-                            temp.emplace_back(filename.substr(0,filename.size()-4));
+                            temp.emplace_back(filename.substr(0, filename.size() - 4));
                         }
-                    }else if(fs::is_directory(entry.status()))
+                    }
+                    else if (fs::is_directory(entry.status()))
                     {
                         std::string ext;
                         if (methodpath.back() == '/')
@@ -182,10 +183,10 @@ namespace http
                             ext.append("/");
                             ext.append(filename);
                         }
-                        std::vector<std::string> directory_temp=listpath(ext); 
-                        if(directory_temp.size()>0)
+                        std::vector<std::string> directory_temp = listpath(ext);
+                        if (directory_temp.size() > 0)
                         {
-                            for(unsigned int j=0;j<directory_temp.size();j++)
+                            for (unsigned int j = 0; j < directory_temp.size(); j++)
                             {
                                 ext.clear();
                                 ext.append(filename);

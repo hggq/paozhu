@@ -45,17 +45,17 @@ std::string get_filename(const std::string &filename)
     return filename_name;
 }
 
-void make_all_directory(const std::string &path,const std::string &pathname)
+void make_all_directory(const std::string &path, const std::string &pathname)
 {
-    std::string path_temp=path;
+    std::string path_temp = path;
 
-    unsigned int path_size=pathname.size();
+    unsigned int path_size = pathname.size();
 
-    for(unsigned int j=0;j<path_size;j++)
+    for (unsigned int j = 0; j < path_size; j++)
     {
-        if (pathname[j] == '/'&&path_temp.size()>0)
+        if (pathname[j] == '/' && path_temp.size() > 0)
         {
-            fs::path paths =  path_temp;
+            fs::path paths = path_temp;
             if (!fs::exists(paths))
             {
                 fs::create_directories(paths);
@@ -65,7 +65,6 @@ void make_all_directory(const std::string &path,const std::string &pathname)
         }
         path_temp.push_back(pathname[j]);
     }
-
 }
 
 int main(int argc, char *argv[])
@@ -121,11 +120,11 @@ int main(int argc, char *argv[])
     std::string md5hash;
     std::string hash_value;
     std::string mttime_value;
-    struct http::file_regitem cahce_info;  
-    bool is_must_again=false; 
+    struct http::file_regitem cahce_info;
+    bool is_must_again = false;
     for (unsigned int i = 0; i < plist.size(); i++)
     {
-        std::string filename =src_path;// get_filename(plist[i]);
+        std::string filename = src_path; // get_filename(plist[i]);
         if (filename.back() != '/')
         {
             filename.push_back('/');
@@ -149,13 +148,13 @@ int main(int argc, char *argv[])
             filename.clear();
             filename.append(current_run_path);
             filename.append("controller/include/");
-            //create custom directory
-            make_all_directory(filename,plist[i]);
+            // create custom directory
+            make_all_directory(filename, plist[i]);
 
             filename.append(plist[i]);
 
             std::string fileinh = filename + ".h";
-            filename=plist[i];
+            filename = plist[i];
 
             memset(&sessfileinfo, 0, sizeof(sessfileinfo));
             if (stat(fileinh.c_str(), &sessfileinfo) == 0)
@@ -195,7 +194,7 @@ int main(int argc, char *argv[])
             }
             filename.append(".h\"\r\n");
             header_lists.emplace_back(filename);
-            is_must_again=true;
+            is_must_again = true;
         }
     }
 
@@ -270,6 +269,10 @@ namespace http
 
     )");
     fwrite(&automethod_content[0], 1, automethod_content.size(), fp.get());
-    std::cout<<"\033[36m You must cmake and make again because the .h header file has changed. \033[0m"<<std::endl;
+    if (is_must_again)
+    {
+        std::cout << "\033[36m You must cmake and make again because the .h header file has changed. \033[0m" << std::endl;
+    }
+
     return 0;
 }
