@@ -502,11 +502,6 @@ namespace http
 
                   std::string samesite = send_cookie.getSamesite(key);
 
-                  if (httpv == 1)
-                  {
-                        temph.append("Set-Cookie: ");
-                  }
-
                   temph.append(url_encode(iter.first.data(), iter.first.size()));
                   temph.push_back('=');
                   temph.append(url_encode(iter.second.data(), iter.second.size()));
@@ -635,8 +630,7 @@ namespace http
             {
                   for (; cookielist.size() > 0;)
                   {
-                        http1header.append("set_cookie");
-                        http1header.append(": ");
+                        http1header.append("Set-Cookie: ");
                         http1header.append(cookielist.front());
                         http1header.append("\r\n");
                         cookielist.pop_front();

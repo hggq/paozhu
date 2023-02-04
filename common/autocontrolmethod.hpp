@@ -10,8 +10,10 @@
 
 #include "testmysqlinsert.h"
 #include "testmodelfromjson.h"
+#include "testormcache.h"
 #include "testformpost.h"
 #include "testcmake.h"
+#include "testcommit.h"
 #include "testsqltuple.h"
 
 
@@ -31,6 +33,9 @@ namespace http
 		temp.regfun = testmodelfromjson;
 		methodcallback.emplace("mfromjson",temp);
 		temp.pre = nullptr;
+		temp.regfun = testormcache;
+		methodcallback.emplace("testormcache",temp);
+		temp.pre = nullptr;
 		temp.regfun = testurlencoded;
 		methodcallback.emplace("tformpost",temp);
 		temp.pre = nullptr;
@@ -48,6 +53,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testcauto;
 		methodcallback.emplace("ccauto",temp);
+		temp.pre = nullptr;
+		temp.regfun = testcommit;
+		methodcallback.emplace("testcommit",temp);
 		temp.pre = nullptr;
 		temp.regfun = testsqltuple;
 		methodcallback.emplace("mtuple",temp);

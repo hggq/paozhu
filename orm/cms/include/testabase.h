@@ -1,5 +1,5 @@
-#ifndef ORM_CMS_USERBASEMATA_H
-#define ORM_CMS_USERBASEMATA_H
+#ifndef ORM_CMS_TESTABASEMATA_H
+#define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
 *本文件为自动生成 Sat, 04 Feb 2023 16:02:08 GMT
@@ -21,27 +21,25 @@
 namespace orm { 
      namespace cms { 
 
-struct userbase
+struct testabase
 {
     struct meta{
-    unsigned  int userid= 0; //
- std::string name=""; //
- std::string password=""; //
- char isopen=0; //
- int level= 0; //
+     int id= 0; //
+ char value=0; //
+ std::string content=""; //
  } data;
- std::vector<userbase::meta> record;
+ std::vector<testabase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 std::vector<unsigned char> _keypos{0x00};
 MYSQL_ROW _row;
-std::vector<userbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<userbase::meta>::iterator end(){     return record.end(); }
-std::vector<userbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<userbase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,5> colnames={"userid","name","password","isopen","level"};
-const std::array<unsigned char,5> colnamestype= {3,253,253,1,3};
-std::string tablename="user";
-std::string modelname="User";
+std::vector<testabase::meta>::iterator begin(){     return record.begin(); }
+std::vector<testabase::meta>::iterator end(){     return record.end(); }
+std::vector<testabase::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<testabase::meta>::const_iterator end() const{     return record.end(); }
+const std::array<std::string,3> colnames={"id","value","content"};
+const std::array<unsigned char,3> colnamestype= {3,1,253};
+std::string tablename="testa";
+std::string modelname="Testa";
 
 	  unsigned char findcolpos(std::string coln){
 		    unsigned char  bi=coln[0];
@@ -53,20 +51,14 @@ std::string modelname="User";
             switch(coln[0]){
 
 
-         case 'i':
-   	 return 3;
-break;
-case 'l':
-   	 return 4;
-break;
-case 'n':
-   	 return 1;
-break;
-case 'p':
+         case 'c':
    	 return 2;
 break;
-case 'u':
+case 'i':
    	 return 0;
+break;
+case 'v':
+   	 return 1;
 break;
 
              }
@@ -76,51 +68,37 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "userid";
+       return "id";
 }
 
       void metadata_reset(){
-     userbase::meta metatemp;    
+     testabase::meta metatemp;    
             data = metatemp; 
             record.clear();     
       }  
       void _setColnamevalue(){
-          userbase::meta metatemp;   
+          testabase::meta metatemp;   
          for(unsigned char i=0;i<_keypos.size();i++){
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.userid=std::stoul(_row[0]);
+			metatemp.id=std::stoi(_row[0]);
 		}catch (...) { 
-			metatemp.userid=0;
+			metatemp.id=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.name.append((_row[1]==NULL?"":_row[1]));
+			metatemp.value=std::stoi(_row[1]);
 		}catch (...) { 
-			metatemp.name.clear();
+			metatemp.value=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.password.append((_row[2]==NULL?"":_row[2]));
+			metatemp.content.append((_row[2]==NULL?"":_row[2]));
 		}catch (...) { 
-			metatemp.password.clear();
-			 }
-			break;
-	case 3:
-		 try{
-			metatemp.isopen=std::stoi(_row[3]);
-		}catch (...) { 
-			metatemp.isopen=0;
-			 }
-			break;
-	case 4:
-		 try{
-			metatemp.level=std::stoi(_row[4]);
-		}catch (...) { 
-			metatemp.level=0;
+			metatemp.content.clear();
 			 }
 			break;
 	default:
@@ -137,7 +115,7 @@ break;
           record.emplace_back(metatemp);   
    } 
          void _addnewrowvalue(){
-           userbase::meta metatemp;   
+           testabase::meta metatemp;   
 
           for(unsigned char i=0;i<_keypos.size();i++){
  
@@ -145,37 +123,23 @@ break;
 
         	case 0:
 		 try{
-			metatemp.userid=std::stoul(_row[0]);
+			metatemp.id=std::stoi(_row[0]);
 		}catch (...) { 
-			metatemp.userid=0;
+			metatemp.id=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.name.append((_row[1]==NULL?"":_row[1]));
+			metatemp.value=std::stoi(_row[1]);
 		}catch (...) { 
-			metatemp.name.clear();
+			metatemp.value=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.password.append((_row[2]==NULL?"":_row[2]));
+			metatemp.content.append((_row[2]==NULL?"":_row[2]));
 		}catch (...) { 
-			metatemp.password.clear();
-			 }
-			break;
-	case 3:
-		 try{
-			metatemp.isopen=std::stoi(_row[3]);
-		}catch (...) { 
-			metatemp.isopen=0;
-			 }
-			break;
-	case 4:
-		 try{
-			metatemp.level=std::stoi(_row[4]);
-		}catch (...) { 
-			metatemp.level=0;
+			metatemp.content.clear();
 			 }
 			break;
 	default:
@@ -235,23 +199,17 @@ break;
                     }
             tempsql<<") VALUES (";
 
-        if(data.userid==0){
+        if(data.id==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.userid);
+	tempsql<<std::to_string(data.id);
 }
-tempsql<<",'"<<stringaddslash(data.name)<<"'";
-tempsql<<",'"<<stringaddslash(data.password)<<"'";
-if(data.isopen==0){
+if(data.value==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.isopen);
+	tempsql<<","<<std::to_string(data.value);
 }
-if(data.level==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.level);
-}
+tempsql<<",'"<<stringaddslash(data.content)<<"'";
 tempsql<<")";
 
      
@@ -277,23 +235,17 @@ tempsql<<")";
                     }
             tempsql<<") VALUES (";
 
-        if(insert_data.userid==0){
+        if(insert_data.id==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.userid);
+	tempsql<<std::to_string(insert_data.id);
 }
-tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.password)<<"'";
-if(insert_data.isopen==0){
+if(insert_data.value==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.isopen);
+	tempsql<<","<<std::to_string(insert_data.value);
 }
-if(insert_data.level==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.level);
-}
+tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
 tempsql<<")";
 
      
@@ -328,23 +280,17 @@ tempsql<<")";
 		tempsql<<"(";
 
 
-        	if(insert_data[i].userid==0){
+        	if(insert_data[i].id==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].userid);
+	tempsql<<std::to_string(insert_data[i].id);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].password)<<"'";
-	if(insert_data[i].isopen==0){
+	if(insert_data[i].value==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].isopen);
+	tempsql<<","<<std::to_string(insert_data[i].value);
 	}
-	if(insert_data[i].level==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].level);
-	}
+		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -365,23 +311,17 @@ tempsql<<")";
             }
             if(isall){
 
-        if(data.userid==0){
-	tempsql<<"`userid`=0";
+        if(data.id==0){
+	tempsql<<"`id`=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
+	tempsql<<"`id`="<<std::to_string(data.id);
 }
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
-tempsql<<",`password`='"<<stringaddslash(data.password)<<"'";
-if(data.isopen==0){
-	tempsql<<",`isopen`=0";
+if(data.value==0){
+	tempsql<<",`value`=0";
  }else{ 
-	tempsql<<",`isopen`="<<std::to_string(data.isopen);
+	tempsql<<",`value`="<<std::to_string(data.value);
 }
-if(data.level==0){
-	tempsql<<",`level`=0";
- }else{ 
-	tempsql<<",`level`="<<std::to_string(data.level);
-}
+tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
  }else{ 
 
      
@@ -410,35 +350,23 @@ if(data.level==0){
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.userid==0){
-	tempsql<<"`userid`=0";
+if(data.id==0){
+	tempsql<<"`id`=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
+	tempsql<<"`id`="<<std::to_string(data.id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+if(data.value==0){
+	tempsql<<"`value`=0";
+ }else{ 
+	tempsql<<"`value`="<<std::to_string(data.value);
+}
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`password`='"<<stringaddslash(data.password)<<"'";
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(data.isopen==0){
-	tempsql<<"`isopen`=0";
- }else{ 
-	tempsql<<"`isopen`="<<std::to_string(data.isopen);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(data.level==0){
-	tempsql<<"`level`=0";
- }else{ 
-	tempsql<<"`level`="<<std::to_string(data.level);
-}
+tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
  break;
 
      
@@ -484,31 +412,21 @@ if(data.level==0){
                  for(jj=0;jj<keypos.size();jj++){
                        switch(keypos[jj]){
          case 0:
-if(data.userid==0){
+if(data.id==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.userid));
+	temparray.push_back(std::to_string(data.id));
 }
  break;
  case 1:
-	temparray.push_back(data.name);
+if(data.value==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.value));
+}
  break;
  case 2:
-	temparray.push_back(data.password);
- break;
- case 3:
-if(data.isopen==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.isopen));
-}
- break;
- case 4:
-if(data.level==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.level));
-}
+	temparray.push_back(data.content);
  break;
 
                              default:
@@ -551,31 +469,21 @@ if(data.level==0){
                  for(jj=0;jj<keypos.size();jj++){
                        switch(keypos[jj]){
          case 0:
-if(data.userid==0){
-	tempsql.insert({"userid","0"});
+if(data.id==0){
+	tempsql.insert({"id","0"});
  }else{ 
-	tempsql.insert({"userid",std::to_string(data.userid)});
+	tempsql.insert({"id",std::to_string(data.id)});
 }
  break;
  case 1:
-	tempsql.insert({"name",data.name});
+if(data.value==0){
+	tempsql.insert({"value","0"});
+ }else{ 
+	tempsql.insert({"value",std::to_string(data.value)});
+}
  break;
  case 2:
-	tempsql.insert({"password",data.password});
- break;
- case 3:
-if(data.isopen==0){
-	tempsql.insert({"isopen","0"});
- }else{ 
-	tempsql.insert({"isopen",std::to_string(data.isopen)});
-}
- break;
- case 4:
-if(data.level==0){
-	tempsql.insert({"level","0"});
- }else{ 
-	tempsql.insert({"level",std::to_string(data.level)});
-}
+	tempsql.insert({"content",data.content});
  break;
 
                              default:
@@ -590,25 +498,18 @@ if(data.level==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.userid==0){
-	tempsql<<"\"userid\":0";
+if(data.id==0){
+	tempsql<<"\"id\":0";
  }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(data.userid);
+	tempsql<<"\"id\":"<<std::to_string(data.id);
 }
-tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
+if(data.value==0){
+	tempsql<<",\"value\":0";
+ }else{ 
+	tempsql<<",\"value\":"<<std::to_string(data.value);
+}
+tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
 tempsql<<"\"";
-tempsql<<",\"password\":\""<<http::utf8_to_jsonstring(data.password);
-tempsql<<"\"";
-if(data.isopen==0){
-	tempsql<<",\"isopen\":0";
- }else{ 
-	tempsql<<",\"isopen\":"<<std::to_string(data.isopen);
-}
-if(data.level==0){
-	tempsql<<",\"level\":0";
- }else{ 
-	tempsql<<",\"level\":"<<std::to_string(data.level);
-}
 tempsql<<"}";
 
      
@@ -648,35 +549,23 @@ tempsql<<"}";
                        switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.userid==0){
-	tempsql<<"\"userid\":0";
+if(data.id==0){
+	tempsql<<"\"id\":0";
  }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(data.userid);
+	tempsql<<"\"id\":"<<std::to_string(data.id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
+if(data.value==0){
+	tempsql<<"\"value\":0";
+ }else{ 
+	tempsql<<"\"value\":"<<std::to_string(data.value);
+}
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(data.password)<<"\"";
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(data.isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(data.isopen);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(data.level==0){
-	tempsql<<"\"level\":0";
- }else{ 
-	tempsql<<"\"level\":"<<std::to_string(data.level);
-}
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
  break;
 
                              default:
@@ -690,7 +579,7 @@ if(data.level==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        userbase::meta metatemp; 
+        testabase::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -927,37 +816,23 @@ if(data.level==0){
         {
     		case 0:
 		 try{
-			data.userid=std::stoul(set_value_name);
+			data.id=std::stoi(set_value_name);
 		}catch (...) { 
-			data.userid=0;
+			data.id=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.name.append(set_value_name);
+			data.value=std::stoi(set_value_name);
 		}catch (...) { 
-			data.name.clear();
+			data.value=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.password.append(set_value_name);
+			data.content.append(set_value_name);
 		}catch (...) { 
-			data.password.clear();
-			 }
-			break;
-		case 3:
-		 try{
-			data.isopen=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.level=std::stoi(set_value_name);
-		}catch (...) { 
-			data.level=0;
+			data.content.clear();
 			 }
 			break;
 	default:
@@ -974,37 +849,23 @@ if(data.level==0){
         {
     		case 0:
 		 try{
-			data.userid=set_value_name;
+			data.id=set_value_name;
 		}catch (...) { 
-			data.userid=0;
+			data.id=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.value=set_value_name;
 		}catch (...) { 
-			data.name.clear();
+			data.value=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.password=std::to_string(set_value_name);
+			data.content=std::to_string(set_value_name);
 		}catch (...) { 
-			data.password.clear();
-			 }
-			break;
-		case 3:
-		 try{
-			data.isopen=set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.level=set_value_name;
-		}catch (...) { 
-			data.level=0;
+			data.content.clear();
 			 }
 			break;
 	default:
@@ -1021,37 +882,23 @@ if(data.level==0){
         {
     		case 0:
 		 try{
-			data.userid=(unsigned int)set_value_name;
+			data.id=(int)set_value_name;
 		}catch (...) { 
-			data.userid=0;
+			data.id=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.value=(int)set_value_name;
 		}catch (...) { 
-			data.name.clear();
+			data.value=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.password=std::to_string(set_value_name);
+			data.content=std::to_string(set_value_name);
 		}catch (...) { 
-			data.password.clear();
-			 }
-			break;
-		case 3:
-		 try{
-			data.isopen=(int)set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.level=(int)set_value_name;
-		}catch (...) { 
-			data.level=0;
+			data.content.clear();
 			 }
 			break;
 	default:
@@ -1102,35 +949,23 @@ if(data.level==0){
                        switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].userid==0){
-	tempsql<<"\"userid\":0";
+if(record[n].id==0){
+	tempsql<<"\"id\":0";
  }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
+	tempsql<<"\"id\":"<<std::to_string(record[n].id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+if(record[n].value==0){
+	tempsql<<"\"value\":0";
+ }else{ 
+	tempsql<<"\"value\":"<<std::to_string(record[n].value);
+}
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(record[n].password)<<"\"";
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(record[n].isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(record[n].level==0){
-	tempsql<<"\"level\":0";
- }else{ 
-	tempsql<<"\"level\":"<<std::to_string(record[n].level);
-}
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
 
                              default:
@@ -1190,35 +1025,23 @@ if(record[n].level==0){
                        switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].userid==0){
-	tempsql<<"\"userid\":0";
+if(record[n].id==0){
+	tempsql<<"\"id\":0";
  }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
+	tempsql<<"\"id\":"<<std::to_string(record[n].id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+if(record[n].value==0){
+	tempsql<<"\"value\":0";
+ }else{ 
+	tempsql<<"\"value\":"<<std::to_string(record[n].value);
+}
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(record[n].password)<<"\"";
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(record[n].isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(record[n].level==0){
-	tempsql<<"\"level\":0";
- }else{ 
-	tempsql<<"\"level\":"<<std::to_string(record[n].level);
-}
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
 
                              default:
@@ -1230,35 +1053,27 @@ if(record[n].level==0){
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.userid; } 
- void setPK(long long val){  data.userid=val;} 
-unsigned  int  getUserid(){  return data.userid; } 
- void setUserid(unsigned  int  val){  data.userid=val;} 
+   long long getPK(){  return data.id; } 
+ void setPK(long long val){  data.id=val;} 
+ int  getId(){  return data.id; } 
+ void setId( int  val){  data.id=val;} 
 
-std::string getName(){  return data.name; } 
-std::string& getRefName(){  return std::ref(data.name); } 
- void setName(std::string &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ int  getValue(){  return data.value; } 
+ void setValue( int  val){  data.value=val;} 
 
-std::string getPassword(){  return data.password; } 
-std::string& getRefPassword(){  return std::ref(data.password); } 
- void setPassword(std::string &val){  data.password=val;} 
- void setPassword(std::string_view val){  data.password=val;} 
+std::string getContent(){  return data.content; } 
+std::string& getRefContent(){  return std::ref(data.content); } 
+ void setContent(std::string &val){  data.content=val;} 
+ void setContent(std::string_view val){  data.content=val;} 
 
- int  getIsopen(){  return data.isopen; } 
- void setIsopen( int  val){  data.isopen=val;} 
-
- int  getLevel(){  return data.level; } 
- void setLevel( int  val){  data.level=val;} 
-
-userbase::meta getnewData(){
+testabase::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-userbase::meta getData(){
+testabase::meta getData(){
  	 return data; 
 } 
-std::vector<userbase::meta> getRecord(){
+std::vector<testabase::meta> getRecord(){
  	 return record; 
 } 
 
@@ -1266,13 +1081,9 @@ std::vector<userbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta(std::string key_name)
     {
-   		 if(key_name=="name")
+   		 if(key_name=="content")
 		{
-			return data.name;
-		}
-		 if(key_name=="password")
-		{
-			return data.password;
+			return data.content;
 		}
 		return nullptr; 
 	}
@@ -1281,17 +1092,13 @@ std::vector<userbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta(std::string key_name)
     {
-   		 if(key_name=="userid")
+   		 if(key_name=="id")
 		{
-			return data.userid;
+			return data.id;
 		}
-		 if(key_name=="isopen")
+		 if(key_name=="value")
 		{
-			return data.isopen;
-		}
-		 if(key_name=="level")
-		{
-			return data.level;
+			return data.value;
 		}
 		return nullptr; 
 	}
@@ -1315,13 +1122,10 @@ std::vector<userbase::meta> getRecord(){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.userid);
+ 				 a.emplace_back(iter.id);
 				 break;
-			case 3: 
- 				 a.emplace_back(iter.isopen);
-				 break;
-			case 4: 
- 				 a.emplace_back(iter.level);
+			case 1: 
+ 				 a.emplace_back(iter.value);
 				 break;
 
                     }
@@ -1350,20 +1154,17 @@ std::vector<userbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 return data.userid;
+ 				 return data.id;
 				 break;
-			case 3: 
- 				 return data.isopen;
-				 break;
-			case 4: 
- 				 return data.level;
+			case 1: 
+ 				 return data.value;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal(userbase::meta & iter,std::string keyname)
+        T getVal(testabase::meta & iter,std::string keyname)
         {
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -1371,13 +1172,10 @@ std::vector<userbase::meta> getRecord(){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.userid;
+ 				 return iter.id;
 				 break;
-			case 3: 
- 				 return iter.isopen;
-				 break;
-			case 4: 
- 				 return iter.level;
+			case 1: 
+ 				 return iter.value;
 				 break;
 
 			}
@@ -1401,7 +1199,7 @@ std::vector<userbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal(userbase::meta & iter,std::string keyname)
+            T getVal(testabase::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1422,11 +1220,8 @@ std::vector<userbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 return data.name;
-				 break;
-			case 2: 
- 				 return data.password;
+   			case 2: 
+ 				 return data.content;
 				 break;
 
                 }
@@ -1434,7 +1229,7 @@ std::vector<userbase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal(userbase::meta & iter,std::string keyname)
+            std::string getVal(testabase::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -1443,11 +1238,8 @@ std::vector<userbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 return iter.name;
-				 break;
-			case 2: 
- 				 return iter.password;
+   			case 2: 
+ 				 return iter.content;
 				 break;
 
                 }
@@ -1466,11 +1258,8 @@ std::vector<userbase::meta> getRecord(){
                     switch(kpos)
                     {
 
-    			case 1: 
- 				 a.emplace_back(iter.name);
-					 break;
-			case 2: 
- 				 a.emplace_back(iter.password);
+    			case 2: 
+ 				 a.emplace_back(iter.content);
 					 break;
 					}
 				}
@@ -1504,25 +1293,16 @@ std::vector<userbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.userid);
+ 				 a<<std::to_string(iter.id);
 				 break;
 			case 1: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.name); 
-				 }else{
-				 a<<iter.name;
-				 }
+ 				 a<<std::to_string(iter.value);
 				 break;
 			case 2: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.password); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
-				 a<<iter.password;
+				 a<<iter.content;
 				 }
-				 break;
-			case 3: 
- 				 a<<std::to_string(iter.isopen);
-				 break;
-			case 4: 
- 				 a<<std::to_string(iter.level);
 				 break;
 
                     }
@@ -1549,19 +1329,13 @@ std::vector<userbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 				 } 
 			 switch(vpos){ 
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 
                 }
@@ -1588,11 +1362,8 @@ std::vector<userbase::meta> getRecord(){
                     switch(kpos)
                     {
  
-       			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+       			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			 } 
  		    switch(vpos){ 
@@ -1620,13 +1391,10 @@ std::vector<userbase::meta> getRecord(){
                 {
  
        case 0: 
- 	 ktemp=iter.userid;
+ 	 ktemp=iter.id;
 	 break;
-case 3: 
- 	 ktemp=iter.isopen;
-	 break;
-case 4: 
- 	 ktemp=iter.level;
+case 1: 
+ 	 ktemp=iter.value;
 	 break;
 	 } 
  		   switch(vpos){ 
@@ -1653,21 +1421,15 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
  			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 
                     }
@@ -1692,22 +1454,16 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 
                 }
@@ -1733,24 +1489,18 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 
                 }
@@ -1773,13 +1523,10 @@ case 4:
                 {
 
    			case 0: 
- 				 a.emplace(iter.userid,iter);
+ 				 a.emplace(iter.id,iter);
 				 break;
-			case 3: 
- 				 a.emplace(iter.isopen,iter);
-				 break;
-			case 4: 
- 				 a.emplace(iter.level,iter);
+			case 1: 
+ 				 a.emplace(iter.value,iter);
 				 break;
 
                 }
@@ -1800,11 +1547,8 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 a.emplace(iter.name,iter);
-			 break;
-			case 2: 
- 				 a.emplace(iter.password,iter);
+   			case 2: 
+ 				 a.emplace(iter.content,iter);
 			 break;
 
                 }
@@ -1831,11 +1575,8 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 	 		 }
  			switch(vpos){
@@ -1867,13 +1608,10 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 			 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-			 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 			 break;
 			  }
 			 switch(vpos){
@@ -1905,21 +1643,15 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
  			switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 
                    }
@@ -1947,22 +1679,16 @@ case 4:
                     switch(kpos)
                     {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 
                    }
@@ -1989,24 +1715,18 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 
                    }
@@ -2032,19 +1752,13 @@ case 4:
                     switch(kpos)
                     {
 
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
+   case 2: 
+ 	 ktemp=iter.content;
 	 break;
 	  }
  switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
 case 2: 
- 	 vtemp=iter.password;
+ 	 vtemp=iter.content;
 	 break;
 
                    }
@@ -2068,13 +1782,10 @@ case 2:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.userid,iter);
+ 	 a.emplace_back(iter.id,iter);
 	 break;
-case 3: 
- 	 a.emplace_back(iter.isopen,iter);
-	 break;
-case 4: 
- 	 a.emplace_back(iter.level,iter);
+case 1: 
+ 	 a.emplace_back(iter.value,iter);
 	 break;
 
                 }
@@ -2095,11 +1806,8 @@ case 4:
                 switch(kpos)
                 {
 
-   case 1: 
- 	 a.emplace_back(iter.name,iter);
-	 break;
-case 2: 
- 	 a.emplace_back(iter.password,iter);
+   case 2: 
+ 	 a.emplace_back(iter.content,iter);
 	 break;
 
                 }
@@ -2126,25 +1834,19 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 			  }
 
@@ -2178,37 +1880,28 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
+ 				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.value);
 				 break;
 
                 }
@@ -2237,34 +1930,25 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 			 }
 
 			 switch(dpos){
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.password);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -2294,22 +1978,16 @@ case 2:
                     {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 			  }
 
@@ -2342,34 +2020,25 @@ case 2:
             {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
+ 				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.value);
 				 break;
 
             }
@@ -2397,31 +2066,22 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.password);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -2448,23 +2108,17 @@ case 2:
                     switch(kpos)
                     {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 			  }
 
@@ -2497,35 +2151,26 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
+ 				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.value);
 				 break;
 
                 }
@@ -2554,32 +2199,23 @@ case 2:
             switch(kpos)
             {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.userid;
+ 				 vtemp=iter.id;
 				 break;
-			case 3: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 4: 
- 				 vtemp=iter.level;
+			case 1: 
+ 				 vtemp=iter.value;
 				 break;
 			 }
 
 			switch(dpos){
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.password);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
             }
@@ -2607,20 +2243,14 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 			  }
 
@@ -2652,32 +2282,23 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
+ 				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.value);
 				 break;
 
                 }
@@ -2706,29 +2327,20 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.content;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.password);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -2755,20 +2367,14 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 a[ktemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.password);
+ 				 a[ktemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -2794,11 +2400,8 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
@@ -2829,23 +2432,17 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.userid);
+ 				 a[ktemp].emplace_back(iter.id);
 				 break;
-			case 3: 
- 				 a[ktemp].emplace_back(iter.isopen);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.level);
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.value);
 				 break;
 
                 }
@@ -2873,22 +2470,16 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 a[ktemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.password);
+ 				 a[ktemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -2918,13 +2509,10 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
 
@@ -2955,25 +2543,19 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.userid);
+ 				 a[ktemp].emplace_back(iter.id);
 				 break;
-			case 3: 
- 				 a[ktemp].emplace_back(iter.isopen);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.level);
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.value);
 				 break;
 
                 }
@@ -2999,13 +2581,10 @@ case 2:
                 {
 
    			case 0: 
- 				 a[iter.userid].emplace_back(iter);
+ 				 a[iter.id].emplace_back(iter);
 				 break;
-			case 3: 
- 				 a[iter.isopen].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[iter.level].emplace_back(iter);
+			case 1: 
+ 				 a[iter.value].emplace_back(iter);
 				 break;
 
                 }
@@ -3031,11 +2610,8 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 a[iter.name].emplace_back(iter);
-				 break;
-			case 2: 
- 				 a[iter.password].emplace_back(iter);
+   			case 2: 
+ 				 a[iter.content].emplace_back(iter);
 				 break;
 
                 }
@@ -3061,20 +2637,14 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 a[ktemp][iter.name].emplace_back(iter);
-				 break;
 			case 2: 
- 				 a[ktemp][iter.password].emplace_back(iter);
+ 				 a[ktemp][iter.content].emplace_back(iter);
 				 break;
 
                 }
@@ -3101,23 +2671,17 @@ case 2:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.content;
 				 break;
 	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.userid].emplace_back(iter);
+ 				 a[ktemp][iter.id].emplace_back(iter);
 				 break;
-			case 3: 
- 				 a[ktemp][iter.isopen].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.level].emplace_back(iter);
+			case 1: 
+ 				 a[ktemp][iter.value].emplace_back(iter);
 				 break;
 
                 }
@@ -3146,25 +2710,19 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.userid].emplace_back(iter);
+ 				 a[ktemp][iter.id].emplace_back(iter);
 				 break;
-			case 3: 
- 				 a[ktemp][iter.isopen].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.level].emplace_back(iter);
+			case 1: 
+ 				 a[ktemp][iter.value].emplace_back(iter);
 				 break;
 
                 }
@@ -3191,22 +2749,16 @@ case 2:
                 {
 
    			case 0: 
- 				 ktemp=iter.userid;
+ 				 ktemp=iter.id;
 				 break;
-			case 3: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 4: 
- 				 ktemp=iter.level;
+			case 1: 
+ 				 ktemp=iter.value;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 a[ktemp][iter.name].emplace_back(iter);
-				 break;
 			case 2: 
- 				 a[ktemp][iter.password].emplace_back(iter);
+ 				 a[ktemp][iter.content].emplace_back(iter);
 				 break;
 
                 }

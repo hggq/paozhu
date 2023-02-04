@@ -272,7 +272,7 @@ namespace http
     fwrite(&automethod_content[0], 1, automethod_content.size(), fp.get());
     if (is_must_again)
     {
-        std::cout << "\033[36m You must cmake and make again because the .h header file has changed. \033[0m" << std::endl;
+        std::cout << "\033[1m\033[31m You must cmake and make again because the .h header file has changed. \033[0m" << std::endl;
     }
 
     return 0;

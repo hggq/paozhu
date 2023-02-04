@@ -1269,6 +1269,13 @@ struct )";
     headtxt.clear();
 
     headtxt = R"(
+      void metadata_reset(){
+     )";
+     headtxt += tablenamebase;     
+     headtxt += R"(base::meta metatemp;    
+            data = metatemp; 
+            record.clear();     
+      }  
       void _setColnamevalue(){
           )";
     headtxt += tablenamebase;
@@ -1328,7 +1335,7 @@ struct )";
 
                             break;
                         case 7:
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append((_row["<<std::to_string(j)<<"]==NULL?\"\":_row["<<std::to_string(j)<<"]));\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
 
                             break;    
                         case 8:
@@ -1348,14 +1355,14 @@ struct )";
             }else if(table_type[j]==12)
             {
                 //filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoul(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append((_row["<<std::to_string(j)<<"]==NULL?\"\":_row["<<std::to_string(j)<<"]));\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
             } else if(table_type[j]==246)
             {
                 filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stof(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
             }
             else
             {
-                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append((_row["<<std::to_string(j)<<"]==NULL?\"\":_row["<<std::to_string(j)<<"]));\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
 
             }
 
@@ -2125,6 +2132,236 @@ struct )";
 
         return tempsql.str();
    } 
+   )"; 
+   fwrite(&headtxt[0], headtxt.size(), 1, f);
+   headtxt.clear();
+      /////////////////////////////////////////////////////////////////////////////////////
+
+    headtxt = R"(
+   std::vector<std::string> data_toarray(std::string fileld=""){
+        std::vector<std::string> temparray;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>1){
+            for(;jj<fileld.size();jj++){
+                    if(fileld[jj]==','){
+                        keypos.emplace_back(findcolpos(keyname)); 
+                        keyname.clear();
+                        continue;   
+                    }
+                    if(fileld[jj]==0x20){
+
+                        continue;   
+                    }
+                    keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<colnames.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+               
+                 for(jj=0;jj<keypos.size();jj++){
+                       switch(keypos[jj]){
+        )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    update2strem.str("");
+
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    {
+
+        // 数字
+        update2strem << " case " << std::to_string(j) << ":\n";
+ 
+        if (colltypeshuzi[j] < 30)
+        {
+            update2strem << "if(data." << tablecollist[j] << "==0){\n";
+            if (j > 0)
+            {
+                update2strem << "\ttemparray.push_back(\"0\");\n";
+            }
+            else
+            {
+                update2strem << "\ttemparray.push_back(\"0\");\n";
+            }
+            update2strem << " }else{ \n";
+            if (j > 0)
+            {
+                update2strem << "\ttemparray.push_back(std::to_string(data." << tablecollist[j] << "));\n";
+            }
+            else
+            {
+                update2strem << "\ttemparray.push_back(std::to_string(data." << tablecollist[j] << "));\n";
+            }
+
+            update2strem << "}\n";
+        }
+        else if (colltypeshuzi[j] == 60)
+        {
+            update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+            update2strem << "\ttemparray.push_back(\"0000-00-00 00:00:00\");\n";
+            update2strem << " }else{ \n\t temparray.push_back(data." << tablecollist[j] << ");\n }\n";
+        }
+        else if (colltypeshuzi[j] == 61)
+        {
+            update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+            update2strem << "\ttemparray.push_back(\"0000-00-00\");\n";
+            update2strem << " }else{ \n\t temparray.push_back(data." << tablecollist[j] << ");\n }\n";
+        }
+        else
+        {
+            if (j > 0)
+            {
+                update2strem << "\ttemparray.push_back(data." << tablecollist[j] << ");\n";
+            }
+            else
+            {
+                update2strem << "\ttemparray.push_back(data." << tablecollist[j] << ");\n";
+            }
+        }
+        update2strem << " break;\n";
+    }
+
+    headtxt.append(update2strem.str());
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    headtxt = R"(
+                             default:
+                                ;
+                     }
+                 }   
+   
+     return temparray;             
+   }   
+   )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+  ///////////////////////////////////////////////////////////////////////////////////////
+   headtxt = R"(
+   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+       std::map<std::string,std::string> tempsql;
+            std::string keyname;
+            unsigned char jj=0;
+                  std::vector<unsigned char> keypos;
+                  if(fileld.size()>1){
+                    for(;jj<fileld.size();jj++){
+                            if(fileld[jj]==','){
+                                keypos.emplace_back(findcolpos(keyname)); 
+                                keyname.clear();
+                                continue;   
+                            }
+                            if(fileld[jj]==0x20){
+
+                                continue;   
+                            }
+                            keyname.push_back(fileld[jj]);
+
+                    }  
+                    if(keyname.size()>0){
+                                    keypos.emplace_back(findcolpos(keyname)); 
+                                    keyname.clear();
+                    }
+                 }else{
+                     for(jj=0;jj<colnames.size();jj++){
+                         keypos.emplace_back(jj); 
+                     }
+                 }
+                
+                 for(jj=0;jj<keypos.size();jj++){
+                       switch(keypos[jj]){
+        )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    update2strem.str("");
+
+    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    {
+
+        // 数字
+        update2strem << " case " << std::to_string(j) << ":\n";
+       
+        if (colltypeshuzi[j] < 30)
+        {
+            update2strem << "if(data." << tablecollist[j] << "==0){\n";
+            if (j > 0)
+            {
+                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",\"0\"});\n";
+            }
+            else
+            {
+                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",\"0\"});\n";
+            }
+            update2strem << " }else{ \n";
+            if (j > 0)
+            {
+                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",std::to_string(data." << tablecollist[j] << ")});\n";
+            }
+            else
+            {
+                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",std::to_string(data." << tablecollist[j] << ")});\n";
+            }
+
+            update2strem << "}\n";
+        }
+        else if (colltypeshuzi[j] == 60)
+        {
+            update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+            update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",\"0000-00-00 00:00:00\"});\n";
+            update2strem << " }else{ \n\t tempsql.insert({\"" << tablecollist[j] << "\",data." << tablecollist[j] << "});\n }\n";
+        }
+        else if (colltypeshuzi[j] == 61)
+        {
+            update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+            update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",\"0000-00-00\\\"\";\n";
+            update2strem << " }else{ \n\t tempsql.insert({\"" << tablecollist[j] << "\",\"data." << tablecollist[j] << "});\n }\n";
+        }
+        else
+        {
+            if (j > 0)
+            {
+                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",data." << tablecollist[j] << "});\n";
+            }
+            else
+            {
+                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",data." << tablecollist[j] << "});\n";
+            }
+        }
+        update2strem << " break;\n";
+    }
+
+    headtxt.append(update2strem.str());
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    headtxt = R"(
+                             default:
+                                ;
+                     }
+                 }   
+    
+     return tempsql;             
+   }   
+   )";
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+   /////////////////////////////////////////////////////////////////////////////////////
+
+   headtxt = R"(
    std::string data_tojson(){
        std::ostringstream tempsql;
 
@@ -3197,10 +3434,81 @@ struct )";
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+//////////////////////////////////////////////
+
+    std::ostringstream getcollstrem; 
+///////////////////////////////////////////////////////
+//get_meta string
+ headtxt.clear();
+ update2strem.str("");
+ headtxt=R"(
+
+    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
+    T& ref_meta(std::string key_name)
+    {
+   )";
+
+    for (auto &kaa : stringcollist)
+    {
+        update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
+        update2strem << "\t\t\treturn data." << kaa.second<<";\n";
+        update2strem << "\t\t}\n";
+    }
+    headtxt.append(update2strem.str());
+    headtxt.append("\t\treturn nullptr; \n\t}\n");
+ 
+ fwrite(&headtxt[0], headtxt.size(), 1, f);
+ headtxt.clear();
+
+///////////////////////////////////////////////////////
+//get_meta is_integral_v
+ headtxt.clear();
+ update2strem.str("");
+ headtxt=R"(
+
+    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
+    T& ref_meta(std::string key_name)
+    {
+   )";
+
+    for (auto &kaa : numbercollist)
+    {
+        update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
+        update2strem << "\t\t\treturn data." << kaa.second<<";\n";
+        update2strem << "\t\t}\n";
+    }
+    headtxt.append(update2strem.str());
+    headtxt.append("\t\treturn nullptr; \n\t}\n");
+ 
+ fwrite(&headtxt[0], headtxt.size(), 1, f);
+ headtxt.clear();
+///////////////////////////////////////////////////////
+//get_meta float
+ headtxt.clear();
+ update2strem.str("");
+ headtxt=R"(
+
+    template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
+    T& ref_meta(std::string key_name)
+    {
+   )";
+
+    for (auto &kaa : floatcollist)
+    {
+        update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
+        update2strem << "\t\t\treturn data." << kaa.second<<";\n";
+        update2strem << "\t\t}\n";
+    }
+    headtxt.append(update2strem.str());
+    headtxt.append("\t\treturn nullptr; \n\t}\n");
+
+ fwrite(&headtxt[0], headtxt.size(), 1, f);
+ headtxt.clear();
+ 
 //////////////////////
 //getCol 1 int
 
-    std::ostringstream getcollstrem;
+   
     
     getcollstrem.str("");
 
@@ -6588,7 +6896,9 @@ if(sqlqueryring.size()>0)
     //////////////////////
     headtxt = R"(
   };
+    
 )";
+ 
     if (rmstag != "default")
     {
         headtxt.append("} ");

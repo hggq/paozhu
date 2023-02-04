@@ -2,3 +2,5 @@
 
 #include "cms/include/Article.h"
 #include "cms/include/User.h"
+#include "cms/include/Testa.h"
+#include "cms/include/Testb.h"

@@ -10,6 +10,7 @@
 #include <thread>
 #include "request.h"
 #include "unicode.h"
+#include "datetime.h"
 #include <stdexcept>
 #include <iostream>
 #include <functional>
@@ -21,12 +22,163 @@
 #include <queue>
 #include <cmath>
 #include <condition_variable>
+#include <sstream>
 #include "mysqlproxyfun.h"
 
 namespace orm
 {
     // 通用操作 类 mysql 方法 在这里接上getSession(); 这里可以操作 data sql count page
     //  using namespace http;
+    typedef std::vector<std::pair<std::string, std::function<void(long long, long long)>>> commit_lists_callback;
+
+    template <typename BASE_T>
+    std::map<std::size_t, BASE_T> &get_static_model_cache()
+    {
+        static std::map<std::size_t, BASE_T> instance;
+        return instance;
+    }
+
+    template <typename BASE_MODEL>
+    class model_meta_cache
+    {
+    public:
+        struct data_cache_t
+        {
+            std::vector<BASE_MODEL> data;
+            unsigned int exptime = 0;
+        };
+
+    public:
+        void save(std::size_t hashid, BASE_MODEL &data_list, int expnum = 0)
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            struct data_cache_t temp;
+            temp.data.push_back(data_list);
+            if (expnum != 0)
+            {
+                temp.exptime = http::timeid() + expnum;
+            }
+            else
+            {
+                temp.exptime = 0;
+            }
+            std::unique_lock<std::mutex> lock(editlock);
+            obj.insert({hashid, temp});
+        }
+        void save(std::size_t hashid, std::vector<BASE_MODEL> &data_list, int expnum = 0)
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            struct data_cache_t temp;
+            temp.data = data_list;
+            if (expnum != 0)
+            {
+                temp.exptime = http::timeid() + expnum;
+            }
+            else
+            {
+                temp.exptime = 0;
+            }
+            std::unique_lock<std::mutex> lock(editlock);
+            obj.insert({hashid, temp});
+        }
+        bool remove(std::size_t hashid)
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            std::unique_lock<std::mutex> lock(editlock);
+            auto iter = obj.find(hashid);
+            if (iter != obj.end())
+            {
+                obj.erase(iter++);
+                return true;
+            }
+            return false;
+        }
+        void remove_exptime()
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            unsigned int nowtime = http::timeid();
+            std::unique_lock<std::mutex> lock(editlock);
+            for (auto iter = obj.begin(); iter != obj.end();)
+            {
+                if (iter->second.exptime == 0)
+                {
+                    continue;
+                }
+                if (iter->second.exptime < nowtime)
+                {
+                    obj.erase(iter++);
+                }
+            }
+        }
+        bool clear()
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            std::unique_lock<std::mutex> lock(editlock);
+            obj.clear();
+        }
+        std::vector<BASE_MODEL> get(std::size_t hashid)
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            unsigned int nowtime = http::timeid();
+            std::unique_lock<std::mutex> lock(editlock);
+            auto iter = obj.find(hashid);
+            if (iter != obj.end())
+            {
+                if (iter->second.exptime == 0)
+                {
+                    return iter->second.data;
+                }
+
+                if (iter->second.exptime > nowtime)
+                {
+                    return iter->second.data;
+                }
+                else
+                {
+                    obj.erase(iter++);
+                }
+            }
+            lock.unlock();
+            std::vector<BASE_MODEL> temp;
+            return temp;
+        }
+        BASE_MODEL get_obj(std::size_t hashid)
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            unsigned int nowtime = http::timeid();
+            std::unique_lock<std::mutex> lock(editlock);
+            auto iter = obj.find(hashid);
+            if (iter != obj.end())
+            {
+                if (iter->second.exptime == 0)
+                {
+                    if (iter->second.data.size() > 0)
+                    {
+                        return iter->second.data;
+                    }
+                }
+
+                if (iter->second.exptime > nowtime)
+                {
+                    if (iter->second.data.size() > 0)
+                    {
+                        return iter->second.data;
+                    }
+                }
+                else
+                {
+                    obj.erase(iter++);
+                }
+            }
+            lock.unlock();
+            BASE_MODEL temp;
+            return temp;
+        }
+
+    public:
+        std::mutex editlock;
+    };
+
     template <typename model, typename base>
     class mysqlclientDB : public base
     {
@@ -228,7 +380,20 @@ namespace orm
             countsql.append(" where ");
             if (wheresql.empty())
             {
-                return 0;
+                if (base::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << base::getPKname();
+                    tempsql << " = '";
+                    tempsql << base::getPK();
+                    tempsql << "' ";
+                    countsql.append(tempsql.str());
+                }
+                else
+                {
+                    return 0;
+                }
             }
             else
             {
@@ -242,7 +407,11 @@ namespace orm
             {
                 countsql.append(limitsql);
             }
-
+            if (iscommit)
+            {
+                iscommit = false;
+                return 0;
+            }
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
@@ -279,11 +448,7 @@ namespace orm
             selectsql = fieldname;
             return *mod;
         }
-        model &cache(unsigned int livetime)
-        {
-            // cachetime = livetime;
-            return *mod;
-        }
+
         model &where(std::string wq)
         {
             if (wheresql.empty() || ishascontent)
@@ -1422,7 +1587,10 @@ namespace orm
                     std::map<std::string, std::string> rowtemp;
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        rowtemp.insert(table_fieldname[index], std::string(json_row[index]));
+                        if(json_row[index]!=NULL)
+                        {
+                            rowtemp.insert(table_fieldname[index], std::string(json_row[index]));
+                        }
                     }
                     temprecord.push_back(std::move(rowtemp));
                     j++;
@@ -1534,7 +1702,10 @@ namespace orm
                     std::vector<std::string> rowtemp;
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        rowtemp.push_back(std::string(json_row[index]));
+                        if(json_row[index]!=NULL)
+                        {
+                            rowtemp.push_back(std::string(json_row[index]));
+                        }
                     }
                     temprecord.push_back(std::move(rowtemp));
                     j++;
@@ -1591,20 +1762,21 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
-            base::record.clear();
 
-            // if (cachetime > 0)
-            // {
-            //     sqlhashid = std::hash<std::string>{}(sqlstring);
-            //     if (getcacherecord(sqlhashid))
-            //     {
-            //         cachetime = 0;
-            //         return *mod;
-            //     }
-            // }
-
+            if (iscache)
+            {
+                std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+                if (get_cacherecord(sqlhashid))
+                {
+                    iscache = false;
+                    return *mod;
+                }
+                iscache = false;
+            }
+            
             try
             {
+                base::metadata_reset();
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultall = nullptr;
                 mysql_ping(conn.get());
@@ -1697,15 +1869,71 @@ namespace orm
             // }
             return *mod;
         }
-        bool getcacherecord(unsigned long long cacheid)
+        model &get_cache()
         {
-
-            return false;
+            iscache = true;
+            return *mod;
         }
-        bool savecacherecord(unsigned long long cacheid)
+        std::vector<typename base::meta> get_cache_data(std::size_t cache_key_name)
         {
-
+            model_meta_cache<typename base::meta> temp_cache;
+            auto cache_data = temp_cache.get(cache_key_name);
+            return cache_data;
+        }
+        typename base::meta get_cache_obj(std::size_t cache_key_name)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            auto cache_data = temp_cache.get_obj(cache_key_name);
+            return cache_data;
+        }
+        model &get_cache(std::size_t cache_key_name)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            base::record = temp_cache.get(cache_key_name);
+            if (base::record.size() == 0)
+            {
+                base::metadata_reset();
+            }
+            else
+            {
+                base::data = base::record[0];
+            }
+            return *mod;
+        }
+        bool save_cache(int exp_time = 0)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+            temp_cache.save(sqlhashid,base::record, exp_time);            
             return true;
+        }
+
+        bool save_cache(std::size_t cache_key_name,typename base::meta &cache_data, int exp_time = 0)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            temp_cache.save(cache_key_name,cache_data, exp_time);
+            return true;
+        }
+
+        bool save_cache(std::size_t cache_key_name,std::vector<typename base::meta> &cache_data, int exp_time = 0)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            temp_cache.save(cache_key_name,cache_data, exp_time);
+            return true;
+        }
+        bool get_cacherecord(std::size_t cache_key_name)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            base::record = temp_cache.get(cache_key_name);
+            if (base::record.size() == 0)
+            {
+                return false;
+            }
+            else
+            {
+                base::data = base::record[0];
+                return true;
+            }
         }
         http::OBJ_VALUE fetchJson()
         {
@@ -1797,7 +2025,10 @@ namespace orm
                     rowtemp.set_array();
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        rowtemp[table_fieldname[index]] = std::string(json_row[index]);
+                        if(json_row[index]!=NULL)
+                        {
+                            rowtemp[table_fieldname[index]] = std::string(json_row[index]);
+                        }
                     }
                     valuetemp.push(j, std::move(rowtemp));
                     j++;
@@ -1828,10 +2059,19 @@ namespace orm
             sqlstring.append(base::getPKname());
             sqlstring.append("=");
             sqlstring.append(std::to_string(id));
-            base::record.clear();
-
+            if (iscache)
+            {
+                std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+                if (get_cacherecord(sqlhashid))
+                {
+                    iscache = false;
+                    return *mod;
+                }
+                iscache = false;
+            }
             try
             {
+                base::metadata_reset();
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
                 MYSQL_RES *resultone = nullptr;
                 mysql_ping(conn.get());
@@ -1901,7 +2141,20 @@ namespace orm
         {
             if (wheresql.empty())
             {
-                return 0;
+                if (base::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << base::getPKname();
+                    tempsql << " = '";
+                    tempsql << base::getPK();
+                    tempsql << "' ";
+                    wheresql = tempsql.str();
+                }
+                else
+                {
+                    return 0;
+                }
             }
             sqlstring = base::_makeupdatesql("");
             sqlstring.append(" where ");
@@ -1925,6 +2178,13 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
+
+            if (iscommit)
+            {
+                iscommit = false;
+                return 0;
+            }
+
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
@@ -1959,8 +2219,22 @@ namespace orm
         {
             if (wheresql.empty())
             {
-                return 0;
+                if (base::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << base::getPKname();
+                    tempsql << " = '";
+                    tempsql << base::getPK();
+                    tempsql << "' ";
+                    wheresql = tempsql.str();
+                }
+                else
+                {
+                    return 0;
+                }
             }
+
             sqlstring = base::_makeupdatesql(fieldname);
             sqlstring.append(" where ");
             if (wheresql.empty())
@@ -1983,6 +2257,13 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
+
+            if (iscommit)
+            {
+                iscommit = false;
+                return 0;
+            }
+
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
@@ -2016,6 +2297,24 @@ namespace orm
         }
         int remove()
         {
+            if (wheresql.empty())
+            {
+                if (base::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << base::getPKname();
+                    tempsql << " = '";
+                    tempsql << base::getPK();
+                    tempsql << "' ";
+                    wheresql = tempsql.str();
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+
             sqlstring = "DELETE FROM  ";
             sqlstring.append(base::tablename);
             sqlstring.append(" WHERE ");
@@ -2040,6 +2339,13 @@ namespace orm
             {
                 sqlstring.append(limitsql);
             }
+
+            if (iscommit)
+            {
+                iscommit = false;
+                return 0;
+            }
+
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
@@ -2081,6 +2387,11 @@ namespace orm
             sqlstring.append("=");
             sqlstring.append(std::to_string(id));
 
+            if (iscommit)
+            {
+                iscommit = false;
+                return 0;
+            }
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
@@ -2116,6 +2427,11 @@ namespace orm
             try
             {
                 sqlstring = base::_makerecordinsertsql(insert_data);
+                if (iscommit)
+                {
+                    iscommit = false;
+                    return std::make_tuple(0, 0);
+                }
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
                 long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
@@ -2165,6 +2481,11 @@ namespace orm
             try
             {
                 sqlstring = base::_makerecordinsertsql(insert_data);
+                if (iscommit)
+                {
+                    iscommit = false;
+                    return std::make_tuple(0, 0);
+                }
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                 mysql_ping(conn.get());
                 long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
@@ -2209,13 +2530,71 @@ namespace orm
             }
             return std::make_tuple(0, 0);
         }
-        int save()
+        std::tuple<long long, long long> insert()
         {
-            if (base::getPK() > 0)
+            try
+            {
+                sqlstring = base::_makeinsertsql();
+                if (iscommit)
+                {
+                    iscommit = false;
+                    return std::make_tuple(0, 0);
+                }
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                mysql_ping(conn.get());
+                long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+                if (readnum != 0)
+                {
+                    error_msg = std::string(mysql_error(conn.get()));
+                    base::setPK(0);
+                    try
+                    {
+                        http::back_mysql_connect(dbhash, std::move(conn));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return std::make_tuple(readnum, 0);
+                }
+                readnum = mysql_affected_rows(conn.get());
+                long long insertid = mysql_insert_id(conn.get());
+                base::setPK(insertid);
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+                return std::make_tuple(readnum, insertid);
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+            }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+            }
+            catch (...)
+            {
+            }
+            return std::make_tuple(0, 0);
+        }
+
+        int save(bool isrealnew = false)
+        {
+            if (base::getPK() > 0 && isrealnew == false)
             {
                 if (wheresql.empty())
                 {
-                    return 0;
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << base::getPKname();
+                    tempsql << " = '";
+                    tempsql << base::getPK();
+                    tempsql << "' ";
+                    wheresql = tempsql.str();
                 }
                 sqlstring = base::_makeupdatesql("");
                 sqlstring.append(" where ");
@@ -2239,7 +2618,11 @@ namespace orm
                 {
                     sqlstring.append(limitsql);
                 }
-
+                if (iscommit)
+                {
+                    iscommit = false;
+                    return 0;
+                }
                 try
                 {
                     std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
@@ -2285,10 +2668,14 @@ namespace orm
             }
             else
             {
-
+                sqlstring = base::_makeinsertsql();
+                if (iscommit)
+                {
+                    iscommit = false;
+                    return 0;
+                }
                 try
                 {
-                    sqlstring = base::_makeinsertsql();
                     std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
                     mysql_ping(conn.get());
                     long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
@@ -2392,7 +2779,10 @@ namespace orm
                     std::vector<std::string> rowtemp;
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        rowtemp.push_back(std::string(json_row[index]));
+                        if(json_row[index]!=NULL)
+                        {
+                            rowtemp.push_back(std::string(json_row[index]));
+                        }
                     }
                     temprecord.push_back(std::move(rowtemp));
                     j++;
@@ -2464,10 +2854,11 @@ namespace orm
             error_msg.clear();
             iskuohao = false;
             ishascontent = false;
+            iscommit = false;
+            iscache = false;
             if (both)
             {
-                typename base::meta newdata;
-                base::data = newdata;
+                base::metadata_reset();
             }
             return *mod;
         }
@@ -2482,7 +2873,107 @@ namespace orm
 
             return *mod;
         }
+        std::string get_query()
+        {
+            return sqlstring;
+        }
+        model &open_commit()
+        {
+            iscommit = true;
+            return *mod;
+        }
+        model &close_commit()
+        {
+            iscommit = false;
+            return *mod;
+        }
+        int submit_commit(const commit_lists_callback &commit_sqllist)
+        {
+            iscommit = false;
 
+            try
+            {
+                int turn_state = 0;
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                mysql_ping(conn.get());
+
+                mysql_autocommit(conn.get(), turn_state);
+                long long readnum = 0;
+                std::vector<long long> insert_lastid;
+                for (unsigned int j = 0; j < commit_sqllist.size(); j++)
+                {
+                    readnum = mysql_real_query(conn.get(), &commit_sqllist[j].first[0], commit_sqllist[j].first.size());
+                    if (readnum != 0)
+                    {
+                        error_msg = std::string(mysql_error(conn.get()));
+                        mysql_rollback(conn.get());
+
+                        error_msg.append(" Commit error, raw sql: ");
+                        error_msg.append(commit_sqllist[j].first);
+
+                        break;
+                    }
+                    if (commit_sqllist[j].first.size() > 2 && commit_sqllist[j].first[0] == 'I' && commit_sqllist[j].first[1] == 'N')
+                    {
+                        long long tempid = mysql_insert_id(conn.get());
+                        insert_lastid.push_back(tempid);
+                    }
+                    else
+                    {
+                        insert_lastid.push_back(0);
+                    }
+                }
+
+                if (readnum == 0)
+                {
+                    mysql_commit(conn.get());
+                }
+                turn_state = 1;
+                mysql_autocommit(conn.get(), turn_state);
+
+                try
+                {
+                    http::back_mysql_connect(dbhash, std::move(conn));
+                }
+                catch (...)
+                {
+                }
+                if (readnum == 0)
+                {
+                    for (unsigned int j = 0; j < commit_sqllist.size(); j++)
+                    {
+                        if (j < insert_lastid.size())
+                        {
+                            if (insert_lastid[j] > 0 && commit_sqllist[j].second != nullptr)
+                            {
+                                commit_sqllist[j].second(0, insert_lastid[j]);
+                            }
+                        }
+                    }
+                }
+                return readnum;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+            }
+            catch (const char *e)
+            {
+                error_msg = std::string(e);
+            }
+            catch (...)
+            {
+            }
+
+            return -1;
+        }
+        // template <typename MODEL_OBJ_T>
+        // void add_commit(MODEL_OBJ_T model_obj)
+        // {
+
+        //     commit_sqllist.push_back(model_obj.get_query());
+
+        // }
     public:
         std::string selectsql;
         std::string wheresql;
@@ -2493,15 +2984,17 @@ namespace orm
         std::string dbtag;
         std::string error_msg;
         std::string original_tablename;
+
+        // std::list<std::string> commit_sqllist;
         bool iskuohao = false;
         bool iscommit = false;
         bool ishascontent = false;
+        bool iscache = false;
         size_t dbhash;
         model *mod;
-        unsigned int offsetbegin = 0, offsetend = 0;
+        // unsigned int offsetbegin = 0, offsetend = 0;
 
         std::hash<std::string> hash_fn;
-        unsigned int cachetime = 0;
     };
 
 }
