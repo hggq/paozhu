@@ -3133,16 +3133,16 @@ namespace http
                break;
           case 3:
                // json
-               data_info[block_steamid].buffer_value.append(&stream_data[block_steamid][j], w_size);
-               if (data_info[block_steamid].buffer_value.size() == (unsigned int)http_data[block_steamid]->content_length)
+               http_data[block_steamid]->rawcontent.append(&stream_data[block_steamid][j], w_size);
+               if (http_data[block_steamid]->rawcontent.size() == (unsigned int)http_data[block_steamid]->content_length)
                {
-                    http_data[block_steamid]->json.from_json(data_info[block_steamid].buffer_value);
-                    data_info[block_steamid].buffer_value.clear();
+                    http_data[block_steamid]->json.from_json(http_data[block_steamid]->rawcontent);
                }
                break;
           case 4:
                // xml
-               readrawfileformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
+               //readrawfileformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
+               http_data[block_steamid]->rawcontent.append(&stream_data[block_steamid][j], w_size);
                break;
           case 5:
                // octet-stream

@@ -75,6 +75,7 @@ namespace http
          client << "<p>lastName:" << client.json["lastName"] << "</p>";
 
          client << "<p>--------------</p>";
+         client << "<p>rawcontent:" << client.rawcontent << "</p>";
       }
       catch (std::exception &e)
       {
