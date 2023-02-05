@@ -132,6 +132,29 @@ namespace orm
             }
             return -1;
         }
+        
+        int update(std::size_t hashid,int exptime=0)
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            unsigned int nowtime = http::timeid()+exptime;
+            if(exptime==0)
+            {
+                nowtime=0;
+            }
+            std::unique_lock<std::mutex> lock(editlock);
+            auto iter = obj.find(hashid);
+            if (iter != obj.end())
+            {
+                if (iter->second.exptime == 0)
+                {
+                    iter->second.exptime=nowtime;
+                    return 0;
+                }
+                iter->second.exptime=nowtime;
+                return 1;
+            }
+            return -1;
+        }
         std::vector<BASE_MODEL> get(std::size_t hashid)
         {
             std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
@@ -1873,15 +1896,6 @@ namespace orm
             catch (...)
             {
             }
-            // if (cachetime > 0)
-            // {
-            //     if (sqlhashid == 0)
-            //     {
-            //         sqlhashid = std::hash<std::string>{}(sqlstring);
-            //     }
-            //     savecacherecord(sqlhashid);
-            //     cachetime = 0;
-            // }
             return *mod;
         }
         model &use_cache()
@@ -1948,6 +1962,17 @@ namespace orm
                 base::data = base::record[0];
             }
             return *mod;
+        }
+        int update_cache(int exp_time = 0)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+            return temp_cache.update(sqlhashid,exp_time);            
+        }
+        int update_cache(std::size_t cache_key_name,int exp_time)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            return temp_cache.update(cache_key_name,exp_time);            
         }
         bool save_cache(int exp_time = 0)
         {
@@ -3015,13 +3040,7 @@ namespace orm
 
             return -1;
         }
-        // template <typename MODEL_OBJ_T>
-        // void add_commit(MODEL_OBJ_T model_obj)
-        // {
 
-        //     commit_sqllist.push_back(model_obj.get_query());
-
-        // }
     public:
         std::string selectsql;
         std::string wheresql;
