@@ -7890,8 +7890,8 @@ dbtype=mysql
         // command=myconfig[indexsdb].dbname;
         pretable = myconfig[indexsdb].pretable;
 
-        MYSQL conn_mar2;
-        conn.reset(&conn_mar2);
+        // MYSQL conn_mar2;
+        // conn.reset(&conn_mar2);
         mysql_init(conn.get()); 
 
         if(!mysql_real_connect(conn.get(), myconfig[indexsdb].host.c_str(),myconfig[indexsdb].user.c_str(),myconfig[indexsdb].password.c_str(),myconfig[indexsdb].dbname.c_str(),myport,(myconfig[indexsdb].unix_socket.size()>0?myconfig[indexsdb].unix_socket.c_str():NULL),0))
