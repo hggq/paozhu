@@ -12,6 +12,7 @@
 #include "testmodelfromjson.h"
 #include "testormcache.h"
 #include "testformpost.h"
+#include "testpzcache.h"
 #include "testcmake.h"
 #include "testcommit.h"
 #include "testsqltuple.h"
@@ -47,6 +48,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testformxmlpost;
 		methodcallback.emplace("txmlupload",temp);
+		temp.pre = nullptr;
+		temp.regfun = testpzcache;
+		methodcallback.emplace("testcache",temp);
+		temp.pre = nullptr;
+		temp.regfun = testshowcache;
+		methodcallback.emplace("testshowcache",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcmake;
 		methodcallback.emplace("ccmake",temp);

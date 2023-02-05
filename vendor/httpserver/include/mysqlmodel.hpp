@@ -41,6 +41,12 @@ namespace orm
     template <typename BASE_MODEL>
     class model_meta_cache
     {
+    private:
+        model_meta_cache() { };
+        ~model_meta_cache() { };
+        model_meta_cache(const model_meta_cache&);
+        model_meta_cache& operator=(const model_meta_cache&);
+
     public:
         struct data_cache_t
         {
@@ -116,7 +122,7 @@ namespace orm
             std::unique_lock<std::mutex> lock(editlock);
             obj.clear();
         }
-        int check_exptime(std::size_t hashid)
+        int check(std::size_t hashid)
         {
             std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
             unsigned int nowtime = http::timeid();
@@ -213,7 +219,11 @@ namespace orm
             BASE_MODEL temp;
             return temp;
         }
-
+        static model_meta_cache& getinstance() 
+        {
+            static model_meta_cache instance;
+            return instance;
+    	}
     public:
         std::mutex editlock;
     };
@@ -1913,45 +1923,45 @@ namespace orm
         }
         void remove_exptime_cache()
         {
-            model_meta_cache<typename base::meta> temp_cache;
-            temp_cache->remove_exptime();
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            temp_cache.remove_exptime();
         }
         void clear_cache()
         {
-            model_meta_cache<typename base::meta> temp_cache;
-            temp_cache->clear();
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            temp_cache.clear();
         }
         bool remove_cache()
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-            return temp_cache->remove(sqlhashid);
+            return temp_cache.remove(sqlhashid);
         }
         bool remove_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> temp_cache;
-            return temp_cache->remove(cache_key_name);
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            return temp_cache.remove(cache_key_name);
         }
         int check_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> temp_cache;
-            return temp_cache->check_exptime(cache_key_name);
+           model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            return temp_cache.check(cache_key_name);
         }
         std::vector<typename base::meta> get_cache_data(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             auto cache_data = temp_cache.get(cache_key_name);
             return cache_data;
         }
         typename base::meta get_cache_obj(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             auto cache_data = temp_cache.get_obj(cache_key_name);
             return cache_data;
         }
         model &get_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             base::record = temp_cache.get(cache_key_name);
             if (base::record.size() == 0)
             {
@@ -1965,18 +1975,18 @@ namespace orm
         }
         int update_cache(int exp_time = 0)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
             return temp_cache.update(sqlhashid,exp_time);            
         }
         int update_cache(std::size_t cache_key_name,int exp_time)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             return temp_cache.update(cache_key_name,exp_time);            
         }
         bool save_cache(int exp_time = 0)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
             temp_cache.save(sqlhashid,base::record, exp_time);            
             return true;
@@ -1984,20 +1994,20 @@ namespace orm
 
         bool save_cache(std::size_t cache_key_name,typename base::meta &cache_data, int exp_time = 0)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             temp_cache.save(cache_key_name,cache_data, exp_time);
             return true;
         }
 
         bool save_cache(std::size_t cache_key_name,std::vector<typename base::meta> &cache_data, int exp_time = 0)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             temp_cache.save(cache_key_name,cache_data, exp_time);
             return true;
         }
         bool get_cacherecord(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> temp_cache;
+            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
             base::record = temp_cache.get(cache_key_name);
             if (base::record.size() == 0)
             {
