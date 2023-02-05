@@ -110,11 +110,27 @@ namespace orm
                 }
             }
         }
-        bool clear()
+        void clear()
         {
             std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
             std::unique_lock<std::mutex> lock(editlock);
             obj.clear();
+        }
+        int check_exptime(std::size_t hashid)
+        {
+            std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
+            unsigned int nowtime = http::timeid();
+            std::unique_lock<std::mutex> lock(editlock);
+            auto iter = obj.find(hashid);
+            if (iter != obj.end())
+            {
+                if (iter->second.exptime == 0)
+                {
+                    return 0;
+                }
+                return ((int)(iter->second.exptime - nowtime)); 
+            }
+            return -1;
         }
         std::vector<BASE_MODEL> get(std::size_t hashid)
         {
@@ -129,7 +145,7 @@ namespace orm
                     return iter->second.data;
                 }
 
-                if (iter->second.exptime > nowtime)
+                if (iter->second.exptime >= nowtime)
                 {
                     return iter->second.data;
                 }
@@ -158,7 +174,7 @@ namespace orm
                     }
                 }
 
-                if (iter->second.exptime > nowtime)
+                if (iter->second.exptime >= nowtime)
                 {
                     if (iter->second.data.size() > 0)
                     {
@@ -1771,9 +1787,8 @@ namespace orm
                     iscache = false;
                     return *mod;
                 }
-                iscache = false;
             }
-            
+
             try
             {
                 base::metadata_reset();
@@ -1869,10 +1884,44 @@ namespace orm
             // }
             return *mod;
         }
-        model &get_cache()
+        model &use_cache()
         {
             iscache = true;
             return *mod;
+        }
+        bool isuse_cache()
+        {
+            return iscache;
+        }
+        void set_cache_state(bool isrestatus=false)
+        {
+            iscache = isrestatus;
+        }
+        void remove_exptime_cache()
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            temp_cache->remove_exptime();
+        }
+        void clear_cache()
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            temp_cache->clear();
+        }
+        bool remove_cache()
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+            return temp_cache->remove(sqlhashid);
+        }
+        bool remove_cache(std::size_t cache_key_name)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            return temp_cache->remove(cache_key_name);
+        }
+        int check_cache(std::size_t cache_key_name)
+        {
+            model_meta_cache<typename base::meta> temp_cache;
+            return temp_cache->check_exptime(cache_key_name);
         }
         std::vector<typename base::meta> get_cache_data(std::size_t cache_key_name)
         {
@@ -2067,7 +2116,6 @@ namespace orm
                     iscache = false;
                     return *mod;
                 }
-                iscache = false;
             }
             try
             {
