@@ -1,5 +1,5 @@
-#ifndef __HTTP_VERSION_H
-#define __HTTP_VERSION_H
+#ifndef __HTTP_PZ_CACHE_H
+#define __HTTP_PZ_CACHE_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
