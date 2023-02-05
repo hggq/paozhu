@@ -7333,8 +7333,10 @@ dbtype=mysql
         command.clear();
         return 0;
     }
-
-    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(new MYSQL, &mysql_close);
+    MYSQL conn_mar1;
+    // std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(new MYSQL, &mysql_close);
+    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(&conn_mar1, &mysql_close);
+    
     //MYSQL conn;
     mysql_init(conn.get()); 
 
@@ -7888,7 +7890,8 @@ dbtype=mysql
         // command=myconfig[indexsdb].dbname;
         pretable = myconfig[indexsdb].pretable;
 
-        conn.reset(new MYSQL);
+        MYSQL conn_mar2;
+        conn.reset(&conn_mar2);
         mysql_init(conn.get()); 
 
         if(!mysql_real_connect(conn.get(), myconfig[indexsdb].host.c_str(),myconfig[indexsdb].user.c_str(),myconfig[indexsdb].password.c_str(),myconfig[indexsdb].dbname.c_str(),myport,(myconfig[indexsdb].unix_socket.size()>0?myconfig[indexsdb].unix_socket.c_str():NULL),0))
