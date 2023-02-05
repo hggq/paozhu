@@ -7249,6 +7249,14 @@ void addhfiletoormfile(std::string mpath, std::string modelname, std::string rms
     s.clear();
     s.shrink_to_fit();
 }
+std::unique_ptr<MYSQL, decltype(&mysql_close)> get_newmysqlconn()
+{
+    MYSQL *conn_mar1;
+    conn_mar1=mysql_init(NULL); 
+    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(std::move(conn_mar1), &mysql_close);
+    return conn;
+}
+
 int modelcli()
 {
 
@@ -7333,14 +7341,9 @@ dbtype=mysql
         command.clear();
         return 0;
     }
-    MYSQL conn_mar1;
-    // std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(new MYSQL, &mysql_close);
-    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(&conn_mar1, &mysql_close);
-    
-    //MYSQL conn;
-    mysql_init(conn.get()); 
-
-    
+ 
+    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn=get_newmysqlconn();
+ 
 
     if (myconfig.size() > 0)
     {
@@ -7890,9 +7893,7 @@ dbtype=mysql
         // command=myconfig[indexsdb].dbname;
         pretable = myconfig[indexsdb].pretable;
 
-        // MYSQL conn_mar2;
-        // conn.reset(&conn_mar2);
-        mysql_init(conn.get()); 
+        conn=get_newmysqlconn();
 
         if(!mysql_real_connect(conn.get(), myconfig[indexsdb].host.c_str(),myconfig[indexsdb].user.c_str(),myconfig[indexsdb].password.c_str(),myconfig[indexsdb].dbname.c_str(),myport,(myconfig[indexsdb].unix_socket.size()>0?myconfig[indexsdb].unix_socket.c_str():NULL),0))
         {
