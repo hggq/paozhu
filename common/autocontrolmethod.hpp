@@ -37,6 +37,12 @@ namespace http
 		temp.regfun = testormcache;
 		methodcallback.emplace("testormcache",temp);
 		temp.pre = nullptr;
+		temp.regfun = testormcacheb;
+		methodcallback.emplace("testormcacheb",temp);
+		temp.pre = nullptr;
+		temp.regfun = testormcachec;
+		methodcallback.emplace("testormcachec",temp);
+		temp.pre = nullptr;
 		temp.regfun = testurlencoded;
 		methodcallback.emplace("tformpost",temp);
 		temp.pre = nullptr;

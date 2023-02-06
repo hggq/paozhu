@@ -42,10 +42,10 @@ namespace orm
     class model_meta_cache
     {
     private:
-        model_meta_cache() { };
-        ~model_meta_cache() { };
-        model_meta_cache(const model_meta_cache&);
-        model_meta_cache& operator=(const model_meta_cache&);
+        model_meta_cache(){};
+        ~model_meta_cache(){};
+        model_meta_cache(const model_meta_cache &);
+        model_meta_cache &operator=(const model_meta_cache &);
 
     public:
         struct data_cache_t
@@ -55,7 +55,7 @@ namespace orm
         };
 
     public:
-        void save(std::size_t hashid, BASE_MODEL &data_list, int expnum = 0)
+        void save(std::size_t hashid, BASE_MODEL &data_list, int expnum = 0, bool cover_data = false)
         {
             std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
             struct data_cache_t temp;
@@ -69,9 +69,20 @@ namespace orm
                 temp.exptime = 0;
             }
             std::unique_lock<std::mutex> lock(editlock);
-            obj.insert({hashid, temp});
+            auto [_, success] = obj.insert({hashid, temp});
+            if (!success)
+            {
+                if (cover_data)
+                {
+                    obj[hashid] = temp;
+                }
+                else
+                {
+                    obj[hashid].exptime = temp.exptime;
+                }
+            }
         }
-        void save(std::size_t hashid, std::vector<BASE_MODEL> &data_list, int expnum = 0)
+        void save(std::size_t hashid, std::vector<BASE_MODEL> &data_list, int expnum = 0, bool cover_data = false)
         {
             std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
             struct data_cache_t temp;
@@ -85,7 +96,18 @@ namespace orm
                 temp.exptime = 0;
             }
             std::unique_lock<std::mutex> lock(editlock);
-            obj.insert({hashid, temp});
+            auto [_, success] = obj.insert({hashid, temp});
+            if (!success)
+            {
+                if (cover_data)
+                {
+                    obj[hashid] = temp;
+                }
+                else
+                {
+                    obj[hashid].exptime = temp.exptime;
+                }
+            }
         }
         bool remove(std::size_t hashid)
         {
@@ -134,18 +156,18 @@ namespace orm
                 {
                     return 0;
                 }
-                return ((int)(iter->second.exptime - nowtime)); 
+                return ((int)(iter->second.exptime - nowtime));
             }
             return -1;
         }
-        
-        int update(std::size_t hashid,int exptime=0)
+
+        int update(std::size_t hashid, int exptime = 0)
         {
             std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
-            unsigned int nowtime = http::timeid()+exptime;
-            if(exptime==0)
+            unsigned int nowtime = http::timeid() + exptime;
+            if (exptime == 0)
             {
-                nowtime=0;
+                nowtime = 0;
             }
             std::unique_lock<std::mutex> lock(editlock);
             auto iter = obj.find(hashid);
@@ -153,10 +175,10 @@ namespace orm
             {
                 if (iter->second.exptime == 0)
                 {
-                    iter->second.exptime=nowtime;
+                    iter->second.exptime = nowtime;
                     return 0;
                 }
-                iter->second.exptime=nowtime;
+                iter->second.exptime = nowtime;
                 return 1;
             }
             return -1;
@@ -199,7 +221,7 @@ namespace orm
                 {
                     if (iter->second.data.size() > 0)
                     {
-                        return iter->second.data;
+                        return iter->second.data[0];
                     }
                 }
 
@@ -207,7 +229,7 @@ namespace orm
                 {
                     if (iter->second.data.size() > 0)
                     {
-                        return iter->second.data;
+                        return iter->second.data[0];
                     }
                 }
                 else
@@ -219,11 +241,12 @@ namespace orm
             BASE_MODEL temp;
             return temp;
         }
-        static model_meta_cache& getinstance() 
+        static model_meta_cache &getinstance()
         {
             static model_meta_cache instance;
             return instance;
-    	}
+        }
+
     public:
         std::mutex editlock;
     };
@@ -234,15 +257,14 @@ namespace orm
     public:
         mysqlclientDB(std::string tag) : dbtag(tag)
         {
-            dbhash = hash_fn(dbtag);
-
+            // dbhash = hash_fn(dbtag);
+            dbhash = std::hash<std::string>{}(dbtag);
             mod = &static_cast<model &>(*this);
         }
         mysqlclientDB() : dbtag(base::_rmstag)
         {
 
-            dbhash = hash_fn(dbtag);
-
+            dbhash = std::hash<std::string>{}(dbtag);
             mod = &static_cast<model &>(*this);
         }
         model &set_table(std::string table_name)
@@ -1636,9 +1658,13 @@ namespace orm
                     std::map<std::string, std::string> rowtemp;
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        if(json_row[index]!=NULL)
+                        if (json_row[index] != NULL)
                         {
                             rowtemp.insert(table_fieldname[index], std::string(json_row[index]));
+                        }
+                        else
+                        {
+                            rowtemp.insert(table_fieldname[index], std::string(""));
                         }
                     }
                     temprecord.push_back(std::move(rowtemp));
@@ -1700,6 +1726,25 @@ namespace orm
             std::vector<std::vector<std::string>> temprecord;
             std::vector<std::string> table_fieldname;
             std::map<std::string, unsigned int> table_fieldmap;
+
+            if (iscache)
+            {
+                std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+
+                model_meta_cache<std::vector<std::string>> &temp_cache = model_meta_cache<std::vector<std::string>>::getinstance();
+                temprecord = temp_cache.get(sqlhashid);
+                if (temprecord.size() > 0)
+                {
+                    iscache = false;
+                    model_meta_cache<std::string> &table_cache = model_meta_cache<std::string>::getinstance();
+                    table_fieldname = table_cache.get(sqlhashid);
+
+                    model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache = model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
+                    table_fieldmap = tablemap_cache.get_obj(sqlhashid);
+
+                    return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                }
+            }
             try
             {
                 std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
@@ -1751,15 +1796,42 @@ namespace orm
                     std::vector<std::string> rowtemp;
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        if(json_row[index]!=NULL)
+                        if (json_row[index] != NULL)
                         {
                             rowtemp.push_back(std::string(json_row[index]));
+                        }
+                        else
+                        {
+                            rowtemp.push_back("");
                         }
                     }
                     temprecord.push_back(std::move(rowtemp));
                     j++;
                 }
                 mysql_free_result(resultall);
+
+                if (iscache)
+                {
+                    if (exptime > 0)
+                    {
+                        if (temprecord.size() > 0)
+                        {
+                            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+
+                            model_meta_cache<std::vector<std::string>> &temp_cache = model_meta_cache<std::vector<std::string>>::getinstance();
+                            temp_cache.save(sqlhashid, temprecord, exptime);
+
+                            exptime += 1;
+                            model_meta_cache<std::string> &table_cache = model_meta_cache<std::string>::getinstance();
+                            table_cache.save(sqlhashid, table_fieldname, exptime);
+
+                            model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache = model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
+                            tablemap_cache.save(sqlhashid, table_fieldmap, exptime);
+                            exptime = 0;
+                            iscache = false;
+                        }
+                    }
+                }
             }
             catch (const std::exception &e)
             {
@@ -1890,7 +1962,15 @@ namespace orm
                     j++;
                 }
                 mysql_free_result(resultall);
-
+                if (iscache)
+                {
+                    if (exptime > 0)
+                    {
+                        save_cache(exptime);
+                        exptime = 0;
+                        iscache = false;
+                    }
+                }
                 return *mod;
             }
             catch (const std::exception &e)
@@ -1908,60 +1988,65 @@ namespace orm
             }
             return *mod;
         }
-        model &use_cache()
+        model &use_cache(int cache_time = 0)
         {
             iscache = true;
+            exptime = cache_time;
             return *mod;
         }
-        bool isuse_cache()
+        bool isuse_cache(bool iscachedate = false)
         {
+            if (iscachedate)
+            {
+                return exptime == 0 && iscache == false;
+            }
             return iscache;
         }
-        void set_cache_state(bool isrestatus=false)
+        void set_cache_state(bool isrestatus = false)
         {
             iscache = isrestatus;
         }
         void remove_exptime_cache()
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             temp_cache.remove_exptime();
         }
         void clear_cache()
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             temp_cache.clear();
         }
         bool remove_cache()
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
             return temp_cache.remove(sqlhashid);
         }
         bool remove_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             return temp_cache.remove(cache_key_name);
         }
         int check_cache(std::size_t cache_key_name)
         {
-           model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             return temp_cache.check(cache_key_name);
         }
         std::vector<typename base::meta> get_cache_data(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             auto cache_data = temp_cache.get(cache_key_name);
             return cache_data;
         }
         typename base::meta get_cache_obj(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             auto cache_data = temp_cache.get_obj(cache_key_name);
             return cache_data;
         }
         model &get_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             base::record = temp_cache.get(cache_key_name);
             if (base::record.size() == 0)
             {
@@ -1975,39 +2060,39 @@ namespace orm
         }
         int update_cache(int exp_time = 0)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-            return temp_cache.update(sqlhashid,exp_time);            
+            return temp_cache.update(sqlhashid, exp_time);
         }
-        int update_cache(std::size_t cache_key_name,int exp_time)
+        int update_cache(std::size_t cache_key_name, int exp_time)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
-            return temp_cache.update(cache_key_name,exp_time);            
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
+            return temp_cache.update(cache_key_name, exp_time);
         }
         bool save_cache(int exp_time = 0)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-            temp_cache.save(sqlhashid,base::record, exp_time);            
+            temp_cache.save(sqlhashid, base::record, exp_time);
             return true;
         }
 
-        bool save_cache(std::size_t cache_key_name,typename base::meta &cache_data, int exp_time = 0)
+        bool save_cache(std::size_t cache_key_name, typename base::meta &cache_data, int exp_time = 0)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
-            temp_cache.save(cache_key_name,cache_data, exp_time);
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
+            temp_cache.save(cache_key_name, cache_data, exp_time);
             return true;
         }
 
-        bool save_cache(std::size_t cache_key_name,std::vector<typename base::meta> &cache_data, int exp_time = 0)
+        bool save_cache(std::size_t cache_key_name, std::vector<typename base::meta> &cache_data, int exp_time = 0)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
-            temp_cache.save(cache_key_name,cache_data, exp_time);
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
+            temp_cache.save(cache_key_name, cache_data, exp_time);
             return true;
         }
         bool get_cacherecord(std::size_t cache_key_name)
         {
-            model_meta_cache<typename base::meta> &temp_cache=model_meta_cache<typename base::meta>::getinstance();
+            model_meta_cache<typename base::meta> &temp_cache = model_meta_cache<typename base::meta>::getinstance();
             base::record = temp_cache.get(cache_key_name);
             if (base::record.size() == 0)
             {
@@ -2109,9 +2194,13 @@ namespace orm
                     rowtemp.set_array();
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        if(json_row[index]!=NULL)
+                        if (json_row[index] != NULL)
                         {
                             rowtemp[table_fieldname[index]] = std::string(json_row[index]);
+                        }
+                        else
+                        {
+                            rowtemp[table_fieldname[index]] = "";
                         }
                     }
                     valuetemp.push(j, std::move(rowtemp));
@@ -2202,7 +2291,15 @@ namespace orm
                 }
 
                 mysql_free_result(resultone);
-
+                if (iscache)
+                {
+                    if (exptime > 0)
+                    {
+                        save_cache(exptime);
+                        exptime = 0;
+                        iscache = false;
+                    }
+                }
                 return *mod;
             }
             catch (const std::exception &e)
@@ -2862,9 +2959,13 @@ namespace orm
                     std::vector<std::string> rowtemp;
                     for (unsigned char index = 0; index < num_fields; index++)
                     {
-                        if(json_row[index]!=NULL)
+                        if (json_row[index] != NULL)
                         {
                             rowtemp.push_back(std::string(json_row[index]));
+                        }
+                        else
+                        {
+                            rowtemp.push_back("");
                         }
                     }
                     temprecord.push_back(std::move(rowtemp));
@@ -3067,11 +3168,12 @@ namespace orm
         bool iscommit = false;
         bool ishascontent = false;
         bool iscache = false;
-        size_t dbhash;
+        std::size_t dbhash;
         model *mod;
+        int exptime = 0;
         // unsigned int offsetbegin = 0, offsetend = 0;
 
-        std::hash<std::string> hash_fn;
+        // std::hash<std::string> hash_fn;
     };
 
 }

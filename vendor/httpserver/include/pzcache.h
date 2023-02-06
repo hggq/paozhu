@@ -2,7 +2,7 @@
 #define __HTTP_PZ_CACHE_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
-# pragma once
+#pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 namespace http
@@ -18,10 +18,10 @@ namespace http
     class pzcache
     {
     private:
-        pzcache() { };
-        ~pzcache() { };
-        pzcache(const pzcache&);
-        pzcache& operator=(const pzcache&);
+        pzcache(){};
+        ~pzcache(){};
+        pzcache(const pzcache &);
+        pzcache &operator=(const pzcache &);
 
     public:
         struct data_cache_t
@@ -31,7 +31,7 @@ namespace http
         };
 
     public:
-        void save(std::size_t hashid, BASE_TYPE &data_list, int expnum = 0)
+        void save(std::size_t hashid, BASE_TYPE &data_list, int expnum = 0, bool cover_data = false)
         {
             std::map<std::size_t, data_cache_t> &obj = get_pz_cache<data_cache_t>();
             struct data_cache_t temp;
@@ -45,9 +45,20 @@ namespace http
                 temp.exptime = 0;
             }
             std::unique_lock<std::mutex> lock(editlock);
-            obj.insert({hashid, temp});
+            auto [_, success] = obj.insert({hashid, temp});
+            if (!success)
+            {
+                if (cover_data)
+                {
+                    obj[hashid] = temp;
+                }
+                else
+                {
+                    obj[hashid].exptime = temp.exptime;
+                }
+            }
         }
-        void save(std::size_t hashid, std::vector<BASE_TYPE> &data_list, int expnum = 0)
+        void save(std::size_t hashid, std::vector<BASE_TYPE> &data_list, int expnum = 0, bool cover_data = false)
         {
             std::map<std::size_t, data_cache_t> &obj = get_pz_cache<data_cache_t>();
             struct data_cache_t temp;
@@ -61,7 +72,18 @@ namespace http
                 temp.exptime = 0;
             }
             std::unique_lock<std::mutex> lock(editlock);
-            obj.insert({hashid, temp});
+            auto [_, success] = obj.insert({hashid, temp});
+            if (!success)
+            {
+                if (cover_data)
+                {
+                    obj[hashid] = temp;
+                }
+                else
+                {
+                    obj[hashid].exptime = temp.exptime;
+                }
+            }
         }
         bool remove(std::size_t hashid)
         {
@@ -110,8 +132,8 @@ namespace http
                 {
                     return 0;
                 }
-                int temp=(int)(iter->second.exptime - nowtime); 
-                if(temp==-1)
+                int temp = (int)(iter->second.exptime - nowtime);
+                if (temp == -1)
                 {
                     return -2;
                 }
@@ -119,14 +141,14 @@ namespace http
             }
             return -1;
         }
-        
-        int update(std::size_t hashid,int exptime=0)
+
+        int update(std::size_t hashid, int exptime = 0)
         {
             std::map<std::size_t, data_cache_t> &obj = get_pz_cache<data_cache_t>();
-            unsigned int nowtime = http::timeid()+exptime;
-            if(exptime==0)
+            unsigned int nowtime = http::timeid() + exptime;
+            if (exptime == 0)
             {
-                nowtime=0;
+                nowtime = 0;
             }
             std::unique_lock<std::mutex> lock(editlock);
             auto iter = obj.find(hashid);
@@ -134,10 +156,10 @@ namespace http
             {
                 if (iter->second.exptime == 0)
                 {
-                    iter->second.exptime=nowtime;
+                    iter->second.exptime = nowtime;
                     return 0;
                 }
-                iter->second.exptime=nowtime;
+                iter->second.exptime = nowtime;
                 return 1;
             }
             return -1;
@@ -200,11 +222,12 @@ namespace http
             BASE_TYPE temp;
             return temp;
         }
-        static pzcache& conn() 
+        static pzcache &conn()
         {
             static pzcache instance;
             return instance;
-    	}
+        }
+
     public:
         std::mutex editlock;
     };
