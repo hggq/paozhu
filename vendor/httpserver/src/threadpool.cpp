@@ -230,7 +230,7 @@ namespace http
   }
 
   // the constructor just launches some amount of workers
-  ThreadPool::ThreadPool(size_t threads) : stop(false)
+  ThreadPool::ThreadPool(size_t threads) : stop(true)
   {
     pooltotalnum.store(0);
     livethreadcount.store(0);
@@ -245,6 +245,7 @@ namespace http
       threadlist[tinfo.id] = std::move(tinfo);
       pooltotalnum++;
     }
+    stop=false;
   }
 
   // the destructor joins all threads
@@ -272,7 +273,7 @@ namespace http
       std::unique_lock<std::mutex> lock(queue_mutex);
       clienttasks.emplace(peer);
     }
-
+    
     condition.notify_one();
     return false;
   }
