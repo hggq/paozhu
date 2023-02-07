@@ -55,6 +55,9 @@ namespace http
 		temp.regfun = testformxmlpost;
 		methodcallback.emplace("txmlupload",temp);
 		temp.pre = nullptr;
+		temp.regfun = testuploadpostfile;
+		methodcallback.emplace("addpostfile",temp);
+		temp.pre = nullptr;
 		temp.regfun = testpzcache;
 		methodcallback.emplace("testcache",temp);
 		temp.pre = nullptr;

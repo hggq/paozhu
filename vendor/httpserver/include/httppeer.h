@@ -61,6 +61,7 @@ namespace http
 
     std::list<std::string> cookietoheader();
     std::string gethosturl();
+    std::string getsitepath();
     void goto_url(std::string url, unsigned char second=0, std::string msg="");
     bool issettype();
 

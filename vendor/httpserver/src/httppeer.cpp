@@ -286,6 +286,10 @@ namespace http
                   }
             }
       }
+      std::string httppeer::getsitepath()
+      {
+            return getserversysconfig().getsitepath(host);
+      }
       std::string httppeer::gethosturl()
       {
             std::string tempurl;

@@ -147,11 +147,14 @@ namespace http
             if (map_value[host]["wwwpath"].empty())
             {
                 sitepath = map_value["default"]["wwwpath"];
+                if (sitepath.empty())
+                {
+                    sitepath = "www/";
+                }
                 if (sitepath.back() != '/')
                 {
                     sitepath.push_back('/');
                 }
-                sitepath.append(host);
             }
             else
             {

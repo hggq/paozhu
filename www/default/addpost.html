@@ -4,13 +4,13 @@
 <title>http2 post提交测试</title>
 </header>
 <body>
-<form action="addpost" method="post" enctype="multipart/form-data">
-  <p>资讯标题:<input name="title" type="text" id="title" style="width: 480px; height: 25px;" size="50" maxlength="120"> 一句话说清楚</p>
+<form action="/addpostfile" method="post" enctype="multipart/form-data">
+  <p>标题(Title):<input name="title" type="text" id="title" style="width: 480px; height: 25px;" size="50" maxlength="120"> </p>
   <p>
-      <label for="fileField">File:</label>
-      <input type="file" name="fileField" id="fileField">
+      <label for="fileField">选择上传文件(Choose File):</label>
+      <input type="file" name="fileField" id="fileField"> (jpg,png,js,html,pdf,zip,tar.gz,apk)
   </p>
-  <button type="submit">发表</button>
+  <button type="submit">提交(Send)</button>
 </form>
 </body>
 </html>
