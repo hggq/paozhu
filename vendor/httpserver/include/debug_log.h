@@ -357,34 +357,33 @@ namespace http
             
             return *this;
         }
-        static debug_log *instance()
+        static debug_log &instance()
         {
-            if (singleton == NULL)
-                singleton = new debug_log();
+            static debug_log singleton;
             return singleton;
         }
         debug_log &get()
         {
             return *this;
         }
-        static debug_log *singleton;
-        static debug_log *setdebug_logapi(debug_log *p)
-        {
-            singleton = p;
-            return singleton;
-        }
-        class ctxmarCollector {
-            public:
-                ~ctxmarCollector() {
-                        delete debug_log::singleton;
-                        debug_log::singleton = 0;
-                }
-         };
-         static ctxmarCollector gc;
+        // static debug_log *singleton;
+        // static debug_log *setdebug_logapi(debug_log *p)
+        // {
+        //     singleton = p;
+        //     return singleton;
+        // }
+        // class ctxmarCollector {
+        //     public:
+        //         ~ctxmarCollector() {
+        //                 delete debug_log::singleton;
+        //                 debug_log::singleton = 0;
+        //         }
+        //  };
+        //  static ctxmarCollector gc;
     };
-#define LOG_OUT (debug_log::instance()->get()) << (long long)0xFFFFFFFA << __FILE__ << __FUNCTION__ << __LINE__
-#define LOG_SAVE (debug_log::instance()->get()) << (long long)0xFFFFFFFB
-#define LOG_ERROR (debug_log::instance()->get()) << (long long)0xFFFFFFFC << __FILE__ << __FUNCTION__ << __LINE__
+#define LOG_OUT (debug_log::instance()) << (long long)0xFFFFFFFA << __FILE__ << __FUNCTION__ << __LINE__
+#define LOG_SAVE (debug_log::instance()) << (long long)0xFFFFFFFB
+#define LOG_ERROR (debug_log::instance()) << (long long)0xFFFFFFFC << __FILE__ << __FUNCTION__ << __LINE__
 #define LOG_END (long long)0xFFFFFFF0
 }
 #endif

@@ -244,9 +244,12 @@ namespace http
     {
         if (configfile.empty())
         {
+            std::string currentpath;
+            fs::path cpath = fs::current_path();
+            
+            currentpath = cpath.string();
+            currentpath = currentpath + "/conf";
 
-            std::string currentpath = "/etc/paozhu";
-            fs::path cpath = currentpath;
             if (fs::is_directory(cpath))
             {
                 currentpath = currentpath + "/server.conf";
@@ -276,8 +279,7 @@ namespace http
             }
             if (configfile.empty())
             {
-                cpath = fs::current_path();
-                currentpath = cpath.string();
+                currentpath = "/etc/paozhu";
                 currentpath = currentpath + "/conf";
                 cpath = currentpath;
                 if (fs::is_directory(cpath))

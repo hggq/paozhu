@@ -492,6 +492,7 @@ namespace http
             log_item.append(peer->host);
             log_item.push_back(0x20);
             log_item.append(peer->url);
+            log_item.push_back('\n');
             std::unique_lock<std::mutex> lock(log_mutex);
             error_loglist.emplace_back(log_item);
             lock.unlock();
@@ -549,6 +550,7 @@ namespace http
                 log_item.append(peer->host);
                 log_item.push_back(0x20);
                 log_item.append(peer->url);
+                log_item.push_back('\n');
                 std::unique_lock<std::mutex> lock(log_mutex);
                 access_loglist.emplace_back(log_item);
                 lock.unlock();
@@ -733,6 +735,7 @@ namespace http
                   log_item.append(http2pre->http_data[block_steamid]->host);
                   log_item.push_back(0x20);
                   log_item.append(http2pre->http_data[block_steamid]->url);
+                  log_item.push_back('\n');
                   std::unique_lock<std::mutex> lock(log_mutex);
                   access_loglist.emplace_back(log_item);
                   lock.unlock();
@@ -768,6 +771,7 @@ namespace http
         log_item.clear();
         log_item.append(" client thread exception  ");
         log_item.append(e.what());
+        log_item.push_back('\n');
         std::unique_lock<std::mutex> lock(log_mutex);
         error_loglist.emplace_back(log_item);
         lock.unlock();
@@ -1330,8 +1334,8 @@ namespace http
       }
       server_loaclvar &static_server_var = get_server_global_var();
 
-      debug_log::instance()->setDebug(!static_server_var.deamon_enable);
-      debug_log::instance()->setLogfile(static_server_var.log_path);
+      debug_log::instance().setDebug(!static_server_var.deamon_enable);
+      debug_log::instance().setLogfile(static_server_var.log_path);
 
       _initauto_control_httpmethodregto(_http_regmethod_table);
       _inithttpmethodregto(_http_regmethod_table);
