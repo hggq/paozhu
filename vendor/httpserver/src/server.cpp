@@ -96,7 +96,14 @@ namespace http
         mime_value = mime_map[fileexttype];
         if (mime_value.empty())
         {
-          mime_value = "text/html; charset=utf-8";
+          if (file_size > 20480)
+          {
+            mime_value = "application/octet-stream";
+          }
+          else
+          {
+            mime_value = "text/html; charset=utf-8";
+          }
         }
       }
       else
@@ -341,7 +348,14 @@ namespace http
         mime_value = mime_map[fileexttype];
         if (mime_value.empty())
         {
-          mime_value = "text/html; charset=utf-8";
+          if (file_size > 20480)
+          {
+            mime_value = "application/octet-stream";
+          }
+          else
+          {
+            mime_value = "text/html; charset=utf-8";
+          }
         }
       }
       else
@@ -892,7 +906,7 @@ namespace http
     {
       http2_ff_send.peer->socket_session->window_update_num = 0;
     }
-
+    http2_ff_send.pre_size=http2_ff_send.peer->socket_session->window_update_num;
     data_send_id += 9;
 
     http2_ff_send.peer->socket_session->send_data((const unsigned char *)&send_cache->data[0], data_send_id);
@@ -923,6 +937,10 @@ namespace http
           else
           {
             long long tmp = std::chrono::duration_cast<std::chrono::microseconds>(start - (iter->last_time)).count();
+            if(iter->pre_size>10485760)
+            {
+              tmp=tmp*3;
+            }
             if (tmp > 500)
             {
               http2send_filedata(*iter);
@@ -1028,7 +1046,14 @@ namespace http
         mime_value = mime_map[fileexttype];
         if (mime_value.empty())
         {
-          mime_value = "text/html; charset=utf-8";
+          if (file_size > 20480)
+          {
+            mime_value = "application/octet-stream";
+          }
+          else
+          {
+            mime_value = "text/html; charset=utf-8";
+          }
         }
       }
       else
@@ -1139,7 +1164,14 @@ namespace http
         mime_value = mime_map[fileexttype];
         if (mime_value.empty())
         {
-          mime_value = "text/html; charset=utf-8";
+          if (file_size > 20480)
+          {
+            mime_value = "application/octet-stream";
+          }
+          else
+          {
+            mime_value = "text/html; charset=utf-8";
+          }
         }
       }
       else
