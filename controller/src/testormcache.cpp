@@ -50,7 +50,7 @@ namespace http
             auto articles = orm::cms::Article();
             int aid = 5;
 
-            auto [colnames,colnamemaps,vallists]=articles.where("isopen=1").where(" aid=", aid).limit(1).use_cache(60).fetchRow();
+            auto [colnames,colnamemaps,vallists]=articles.where("isopen=1").where(" aid=", aid).limit(1).use_cache(60).fetch_row();
 
             client << "<br />Record size:" << std::to_string(vallists.size());  
             client << "<br />Colname size:" << std::to_string(colnames.size());  

@@ -427,7 +427,7 @@ namespace orm
             limit((page - 1) * per_page, per_page);
             return std::make_tuple(minpage, maxpage, page, total_page);
         }
-        int updateCol(std::string colname, int num)
+        int update_col(std::string colname, int num)
         {
             std::string countsql;
             countsql = "UPDATE ";
@@ -1542,17 +1542,6 @@ namespace orm
             return *mod;
         }
 
-        model &startTransaction()
-        {
-            iscommit = true;
-            return *mod;
-        }
-        model &commit()
-        {
-            iscommit = false;
-
-            return *mod;
-        }
         model &limit(unsigned int num)
         {
             limitsql.clear();
@@ -1570,7 +1559,7 @@ namespace orm
             return *mod;
         }
 
-        std::vector<std::map<std::string, std::string>> fetchObj()
+        std::vector<std::map<std::string, std::string>> fetch_obj()
         {
             if (selectsql.empty())
             {
@@ -1686,7 +1675,7 @@ namespace orm
             }
             return temprecord;
         }
-        std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>> fetchRow()
+        std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>> fetch_row()
         {
             if (selectsql.empty())
             {
@@ -2104,7 +2093,7 @@ namespace orm
                 return true;
             }
         }
-        http::OBJ_VALUE fetchJson()
+        http::OBJ_VALUE fetch_json()
         {
             if (selectsql.empty())
             {
@@ -2221,7 +2210,7 @@ namespace orm
             }
             return valuetemp;
         }
-        model &getone(long long id)
+        model &get_one(long long id)
         {
 
             sqlstring = "SELECT *  FROM ";
@@ -3047,7 +3036,7 @@ namespace orm
             return *mod;
         }
 
-        model &setData(typename base::meta indata)
+        model &set_data(typename base::meta indata)
         {
             base::data = indata;
             return *mod;

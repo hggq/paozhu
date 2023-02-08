@@ -33,7 +33,7 @@ namespace http
          client << "<p>--------------</p>";
 
          users.clear();
-         auto [colnames,colnamemaps,vallists]=users.where("name","admin").limit(1).fetchRow();
+         auto [colnames,colnamemaps,vallists]=users.where("name","admin").limit(1).fetch_row();
 
          client << "<p>--------------</p>";
          client << users.error_msg;
