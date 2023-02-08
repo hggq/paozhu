@@ -24,10 +24,9 @@ namespace http
   {
     isssl = true;
   }
-    client_session::~client_session()
-    {
-             
-    }
+  client_session::~client_session()
+  {
+  }
   std::shared_ptr<client_session> client_session::get_ptr()
   {
     return shared_from_this();
@@ -153,12 +152,12 @@ namespace http
       return false;
     }
   }
-    bool client_session::send_goway()
+  bool client_session::send_goway()
   {
     std::unique_lock<std::mutex> lock(writemutex);
     try
     {
-      unsigned char _recvack[] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00};
+      unsigned char _recvack[] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
       if (isssl)
       {
 
@@ -311,7 +310,30 @@ namespace http
     }
   }
 
-
+  asio::awaitable<void> client_session::loopwriter(const unsigned char *buffer, unsigned int buffersize)
+  {
+    try
+    {
+      if (buffersize == 0)
+      {
+        co_return;
+      }
+      if (isssl)
+      {
+        std::unique_lock<std::mutex> lock(writemutex);
+        co_await asio::async_write(_sslsocket.front(), asio::buffer(buffer, buffersize), asio::use_awaitable);
+      }
+      else
+      {
+        std::unique_lock<std::mutex> lock(writemutex);
+        co_await asio::async_write(_socket.front(), asio::buffer(buffer, buffersize), asio::use_awaitable);
+      }
+    }
+    catch (...)
+    {
+      stop();
+    }
+  }
 
   void client_session::stop()
   {
@@ -325,7 +347,7 @@ namespace http
       _socket.front().close();
     }
 
-    //timer_.cancel();
+    // timer_.cancel();
   }
 
   std::string client_session::getremoteip()

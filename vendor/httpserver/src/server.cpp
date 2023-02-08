@@ -13,6 +13,7 @@
 #include "http_parse.h"
 #include "serverconfig.h"
 #include "httppeer.h"
+#include "http2_flow.h"
 #include "directory_fun.h"
 #include "https_brotli.h"
 #include "gzip.h"
@@ -41,6 +42,907 @@ namespace fs = std::filesystem;
 
 namespace http
 {
+
+  bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
+  {
+    std::string _send_header;
+    std::string _send_data;
+    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
+    if (fp.get())
+    {
+
+      fseek(fp.get(), 0, SEEK_END);
+      unsigned long long file_size = ftell(fp.get());
+      fseek(fp.get(), 0, SEEK_SET);
+      std::string htmlcontent;
+
+      std::string fileexttype;
+      std::string mime_value = "text/html; charset=utf-8";
+      unsigned short statecode = 200;
+      unsigned long long readnum = 0, mustnum = 0;
+      peer->compress = 0;
+
+      if (peer->state.rangebegin >= file_size || peer->state.rangeend < 0 || peer->state.rangeend > file_size)
+      {
+        peer->status(400);
+        peer->length(0);
+        peer->type(mime_value);
+        _send_header = peer->make_http2_header(HTTP2_HEADER_END_STREAM);
+        peer->socket_session->send_data(_send_header);
+        return false;
+      }
+
+      unsigned int filebasesize = peer->sendfilename.size();
+      unsigned int filenameoffset = 0;
+
+      if (filebasesize > 0)
+      {
+        for (filenameoffset = filebasesize - 1; filenameoffset > 0; filenameoffset--)
+        {
+          if (peer->sendfilename[filenameoffset] == '.')
+          {
+            break;
+          }
+        }
+        filenameoffset += 1;
+        for (; filenameoffset < filebasesize; filenameoffset++)
+        {
+          fileexttype.push_back(peer->sendfilename[filenameoffset]);
+        }
+      }
+
+      if (fileexttype.size() > 0)
+      {
+        mime_value = mime_map[fileexttype];
+        if (mime_value.empty())
+        {
+          mime_value = "text/html; charset=utf-8";
+        }
+      }
+      else
+      {
+        if (file_size > 20480)
+        {
+          mime_value = "application/octet-stream";
+        }
+        else
+        {
+          mime_value = "text/plain";
+        }
+      }
+
+      mustnum = file_size;
+      if (peer->state.rangebegin > 0)
+      {
+        readnum = peer->state.rangebegin;
+        statecode = 206;
+      }
+      if (peer->state.rangeend > 0)
+      {
+        mustnum = peer->state.rangeend + 1;
+        statecode = 206;
+      }
+
+      peer->status(statecode);
+      peer->length(mustnum - readnum);
+      peer->type(mime_value);
+
+      if (statecode == 206)
+      {
+        peer->set_header("content-range", "bytes " + std::to_string(readnum) + "-" + std::to_string(mustnum - 1) + "/" + std::to_string(file_size));
+      }
+      else
+      {
+        peer->set_header("accept-ranges", "bytes");
+      }
+      DEBUG_LOG("start send file range");
+      peer->set_header("date", getGmtTime());
+      peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+
+      std::string etag;
+      etag = make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size());
+
+      peer->set_header("etag", etag);
+
+      _send_header = peer->make_http2_header();
+
+      peer->socket_session->send_data(_send_header);
+
+      unsigned int data_send_id = peer->stream_id;
+      data_send_id = 0;
+
+      fseek(fp.get(), readnum, SEEK_SET);
+
+      if ((mustnum - readnum) > 16877215)
+      {
+        struct http2sendblock_t temp_send_obj;
+        temp_send_obj.filename = peer->sendfilename;
+        temp_send_obj.isfinish = false;
+        temp_send_obj.peer = peer;
+        temp_send_obj.offset = readnum;
+        temp_send_obj.total_size = mustnum;
+        temp_send_obj.last_time = std::chrono::steady_clock::now();
+        temp_send_obj.last_size = 0;
+        temp_send_obj.pre_size = 0;
+        temp_send_obj.pre_count = 0;
+        temp_send_obj.stream_id = peer->stream_id;
+        temp_send_obj.fp = std::move(fp);
+
+        http2send_tasks.emplace_back(std::move(temp_send_obj));
+        condition.notify_one();
+        return true;
+      }
+
+      // unsigned int jj = 0;
+
+      sendqueue &send_cache_list = get_sendqueue();
+      struct sendqueue_t *send_cache = send_cache_list.get_cache_ptr();
+      sendqueue_back unsetcahceback;
+      unsetcahceback.setptr(send_cache);
+
+      bool mustwait_window_update = true;
+      unsigned long long totalsend_num = 0;
+      unsigned long long old_window_update_num = peer->socket_session->window_update_num;
+      unsigned long long per_window_update_num = peer->socket_session->window_update_num;
+      unsigned int vsize_send = 8181;
+      for (unsigned long long m = readnum; m < mustnum;)
+      {
+        int per_size = 0;
+
+        send_cache->data[3] = 0x00;
+        send_cache->data[4] = 0x00;
+        data_send_id = peer->stream_id;
+        send_cache->data[8] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[7] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[6] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[5] = data_send_id & 0x7F;
+
+        if (m < mustnum)
+        {
+          memset(&send_cache->data[9], 0x00, vsize_send);
+          data_send_id = vsize_send;
+          if ((mustnum - m) < vsize_send)
+          {
+            data_send_id = mustnum - m;
+          }
+
+          per_size = fread(&send_cache->data[9], 1, data_send_id, fp.get());
+          m += per_size;
+        }
+        if (m >= mustnum)
+        {
+          send_cache->data[4] = 0x01;
+        }
+
+        data_send_id = per_size;
+        send_cache->data[2] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[1] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[0] = data_send_id & 0xFF;
+
+        if (peer->isclose)
+        {
+          DEBUG_LOG("---  peer->isclose --------");
+
+          break;
+        }
+        if (peer->socket_session->isclose)
+        {
+          DEBUG_LOG("---  peer->socket_session->isclose exit --------");
+          return true;
+        }
+
+        if (peer->socket_session->send_data(send_cache->data, per_size + 9))
+        {
+        }
+        else
+        {
+          LOG_ERROR << " send_data error " << LOG_END;
+          return false;
+        }
+
+        peer->socket_session->window_update_num -= per_size;
+        totalsend_num += per_size;
+        if (peer->socket_session->window_update_num < 8192)
+        {
+          DEBUG_LOG("--- wait window_update_num --------");
+          std::promise<int> p;
+          std::future<int> f{p.get_future()};
+
+          peer->window_update_results.emplace_back(std::move(f));
+          peer->window_update_promise = std::move(p);
+          peer->window_update_bool = true;
+          peer->socket_session->promise_list.emplace_back(peer->stream_id);
+          try
+          {
+            peer->window_update_results.front().get();
+            peer->window_update_results.pop_front();
+            DEBUG_LOG("--- from window_update_num --------");
+            mustwait_window_update = false;
+          }
+          catch (const std::exception &e)
+          {
+            // peer->window_update_results.clear();
+          }
+        }
+
+        if (file_size > 10485760)
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        else if (file_size > 1048576)
+        {
+          if (m < 20096)
+          {
+            std::this_thread::sleep_for(std::chrono::nanoseconds(512));
+          }
+        }
+        per_window_update_num = peer->socket_session->window_update_num;
+      }
+      DEBUG_LOG("send file ok!");
+      return false;
+    }
+    else
+    {
+      std::string stfilecom = "<h3>500 Internal Server Error</h3>";
+      stfilecom.append("<hr /><p>File: " + peer->urlpath + " Access is denied!</p>");
+      peer->status(500);
+      peer->length(stfilecom.size());
+      peer->type("text/html; charset=utf-8");
+      _send_header = peer->make_http2_header();
+      peer->socket_session->send_data(_send_header);
+
+      http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
+      return false;
+    }
+    return true;
+  }
+  bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
+  {
+    std::string _send_header;
+    std::string _send_data;
+    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
+    DEBUG_LOG("%s", peer->sendfilename.c_str());
+    if (fp.get())
+    {
+      fseek(fp.get(), 0, SEEK_END);
+      unsigned long long file_size = ftell(fp.get());
+      fseek(fp.get(), 0, SEEK_SET);
+      std::string htmlcontent;
+      std::string etag;
+      std::string fileexttype;
+      std::string mime_value = "text/html; charset=utf-8";
+      peer->compress = 0;
+
+      unsigned int filebasesize = peer->sendfilename.size();
+      unsigned int filenameoffset = 0;
+
+      if (filebasesize > 0)
+      {
+        for (filenameoffset = filebasesize - 1; filenameoffset > 0; filenameoffset--)
+        {
+          if (peer->sendfilename[filenameoffset] == '.')
+          {
+            break;
+          }
+        }
+        filenameoffset += 1;
+        for (; filenameoffset < filebasesize; filenameoffset++)
+        {
+          fileexttype.push_back(peer->sendfilename[filenameoffset]);
+        }
+      }
+      if (fileexttype.size() > 0)
+      {
+        mime_value = mime_map[fileexttype];
+        if (mime_value.empty())
+        {
+          mime_value = "text/html; charset=utf-8";
+        }
+      }
+      else
+      {
+        if (file_size > 20480)
+        {
+          mime_value = "application/octet-stream";
+        }
+        else
+        {
+          mime_value = "text/plain";
+        }
+      }
+
+      etag = make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size());
+      if (peer->etag == etag)
+      {
+        peer->status(304);
+        peer->length(0);
+        peer->set_header("date", getGmtTime());
+        peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+        peer->set_header("etag", etag);
+        peer->type(mime_value);
+        _send_header = peer->make_http2_header();
+        set_http2_headers_flag(_send_header, HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
+        peer->socket_session->send_data(_send_header);
+        return true;
+      }
+
+      if (file_size < 16877216 && fileexttype.size() > 0 && mime_compress.contains(fileexttype))
+      {
+
+        if (peer->state.gzip || peer->state.br)
+        {
+          htmlcontent.resize(file_size);
+          file_size = fread(&htmlcontent[0], 1, file_size, fp.get());
+          htmlcontent.resize(file_size);
+          std::string tempcompress;
+
+          if (peer->state.br)
+          {
+            brotli_encode(htmlcontent, tempcompress);
+            peer->compress = 2;
+            htmlcontent = tempcompress;
+          }
+          else if (peer->state.gzip)
+          {
+
+            if (compress(htmlcontent.data(), htmlcontent.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+            {
+              htmlcontent = tempcompress;
+              peer->compress = 1;
+            }
+          }
+          file_size = htmlcontent.size();
+        }
+      }
+
+      peer->status(200);
+      peer->length(file_size);
+      peer->type(mime_value);
+      if (peer->compress == 0)
+      {
+        peer->set_header("accept-ranges", "bytes");
+      }
+      DEBUG_LOG("start send file");
+      peer->set_header("date", getGmtTime());
+      peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+
+      peer->set_header("etag", etag);
+
+      _send_header = peer->make_http2_header();
+      peer->socket_session->send_data(_send_header);
+
+      unsigned int data_send_id = peer->stream_id;
+      data_send_id = 0;
+      // int jj = 0;
+      if (file_size > 16877215)
+      {
+        struct http2sendblock_t temp_send_obj;
+        temp_send_obj.filename = peer->sendfilename;
+        temp_send_obj.isfinish = false;
+        temp_send_obj.peer = peer;
+        temp_send_obj.offset = 0;
+        temp_send_obj.total_size = file_size;
+        temp_send_obj.last_time = std::chrono::steady_clock::now();
+        temp_send_obj.last_size = 0;
+        temp_send_obj.pre_size = 0;
+        temp_send_obj.pre_count = 0;
+        temp_send_obj.stream_id = peer->stream_id;
+        temp_send_obj.fp = std::move(fp);
+
+        http2send_tasks.emplace_back(std::move(temp_send_obj));
+        condition.notify_one();
+        return true;
+      }
+
+      sendqueue &send_cache_list = get_sendqueue();
+      struct sendqueue_t *send_cache = send_cache_list.get_cache_ptr();
+
+      sendqueue_back unsetcahceback;
+      unsetcahceback.setptr(send_cache);
+
+      bool mustwait_window_update = true;
+      unsigned long long totalsend_num = 0;
+      unsigned long long old_window_update_num = peer->socket_session->window_update_num;
+      unsigned long long per_window_update_num = peer->socket_session->window_update_num;
+
+      unsigned int vsize_send = 8181;
+      for (unsigned long long m = 0; m < file_size;)
+      {
+        unsigned int per_size = 0;
+
+        send_cache->data[3] = 0x00;
+        send_cache->data[4] = 0x00;
+        data_send_id = peer->stream_id;
+        send_cache->data[8] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[7] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[6] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[5] = data_send_id & 0x7F;
+
+        if (peer->compress > 0)
+        {
+          for (; m < file_size;)
+          {
+
+            send_cache->data[9 + per_size] = htmlcontent[m];
+            m += 1;
+            per_size++;
+            if (per_size == vsize_send)
+            {
+              break;
+            }
+          }
+          send_cache->data[vsize_send + 9] = 0x00;
+          if (m >= file_size)
+          {
+            send_cache->data[4] = 0x01;
+          }
+        }
+        else
+        {
+          if (m < file_size)
+          {
+            memset(&send_cache->data[9], 0x00, vsize_send);
+            per_size = fread(&send_cache->data[9], 1, vsize_send, fp.get());
+            m += per_size;
+          }
+          if (m >= file_size)
+          {
+            send_cache->data[4] = 0x01;
+          }
+        }
+
+        data_send_id = per_size;
+        send_cache->data[2] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[1] = data_send_id & 0xFF;
+        data_send_id = data_send_id >> 8;
+        send_cache->data[0] = data_send_id & 0xFF;
+
+        if (peer->isclose)
+        {
+          DEBUG_LOG(" peer->isclose  ");
+          LOG_ERROR << "peer->isclose " << LOG_END;
+          break;
+        }
+
+        if (peer->socket_session->isclose)
+        {
+          DEBUG_LOG(" peer->socket_session->isclose exit ");
+          LOG_ERROR << "peer->socket_session->isclose exit " << LOG_END;
+          return true;
+        }
+
+        if (peer->socket_session->send_data(send_cache->data, per_size + 9))
+        {
+        }
+        else
+        {
+          LOG_ERROR << " range error ";
+          return false;
+        }
+
+        peer->socket_session->window_update_num -= per_size;
+        totalsend_num += per_size;
+        if (peer->socket_session->window_update_num < 8192)
+        {
+          std::promise<int> p;
+          std::future<int> f{p.get_future()};
+
+          peer->window_update_results.emplace_back(std::move(f));
+          peer->window_update_promise = std::move(p);
+          peer->window_update_bool = true;
+          peer->socket_session->promise_list.emplace_back(peer->stream_id);
+          try
+          {
+            peer->window_update_results.front().get();
+            peer->window_update_results.pop_front();
+            mustwait_window_update = false;
+          }
+          catch (const std::exception &e)
+          {
+            break;
+          }
+        }
+
+        if (file_size > 10485760)
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        else if (file_size > 1048576)
+        {
+          if (m < 20096)
+          {
+            std::this_thread::sleep_for(std::chrono::nanoseconds(512));
+          }
+        }
+        per_window_update_num = peer->socket_session->window_update_num;
+      }
+      DEBUG_LOG("send files ok");
+      return false;
+    }
+    else
+    {
+      std::string stfilecom = "<h3>500 Internal Server Error</h3>";
+      stfilecom.append("<hr /><p>File: " + peer->urlpath + " Access is denied!</p>");
+      peer->status(500);
+      peer->length(stfilecom.size());
+      peer->type("text/html; charset=utf-8");
+      _send_header = peer->make_http2_header();
+      peer->socket_session->send_data(_send_header);
+
+      http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
+      return false;
+    }
+
+    return true;
+  }
+  bool httpserver::http2_send_body(std::shared_ptr<httppeer> peer, const unsigned char *buffer, unsigned int begin_end)
+  {
+    std::string _send_data;
+    unsigned int data_send_id = peer->stream_id;
+    _send_data.resize(9);
+    _send_data[3] = 0x00;
+    _send_data[4] = 0x00;
+    _send_data[8] = data_send_id & 0xFF;
+    data_send_id = data_send_id >> 8;
+    _send_data[7] = data_send_id & 0xFF;
+    data_send_id = data_send_id >> 8;
+    _send_data[6] = data_send_id & 0xFF;
+    data_send_id = data_send_id >> 8;
+    _send_data[5] = data_send_id & 0xFF;
+    data_send_id = 0;
+
+    for (unsigned long long m = 0; m < begin_end; m += PER_DATA_BLOCK_SIZE)
+    {
+      unsigned int offset = PER_DATA_BLOCK_SIZE;
+      if (offset > begin_end)
+      {
+        offset = begin_end;
+        _send_data[4] = 0x01;
+      }
+      else
+      {
+        if ((m + offset) > begin_end)
+        {
+          offset = begin_end - m;
+          _send_data[4] = 0x01;
+        }
+      }
+
+      // 还剩多少窗口
+      if (peer->socket_session->window_update_num - offset <= 0)
+      {
+        offset = peer->socket_session->window_update_num;
+        peer->socket_session->window_update_num = 0;
+        m = m - PER_DATA_BLOCK_SIZE + offset;
+      }
+      else
+      {
+        peer->socket_session->window_update_num -= offset;
+      }
+      _send_data.resize(9);
+      _send_data.append((char *)&buffer[m], offset);
+
+      data_send_id = offset;
+      _send_data[2] = data_send_id & 0xFF;
+      data_send_id = data_send_id >> 8;
+      _send_data[1] = data_send_id & 0xFF;
+      data_send_id = data_send_id >> 8;
+      _send_data[0] = data_send_id & 0xFF;
+
+      if (peer->socket_session->isclose)
+      {
+        return true;
+      }
+      if (peer->socket_session->send_data(_send_data))
+      {
+      }
+      else
+      {
+        return false;
+      }
+      // 结束流
+      if (peer->isclose)
+      {
+        return true;
+      }
+
+      if (peer->socket_session->window_update_num < 8192)
+      {
+
+        std::promise<int> p;
+        std::future<int> f{p.get_future()};
+
+        peer->window_update_results.emplace_back(std::move(f));
+        peer->window_update_promise = std::move(p);
+        peer->window_update_bool = true;
+        peer->socket_session->promise_list.emplace_back(peer->stream_id);
+        try
+        {
+          peer->window_update_results.front().get();
+          peer->window_update_results.clear();
+        }
+        catch (const std::exception &e)
+        {
+        }
+      }
+
+      // peer_session->window_update_num -= ii;
+      if (begin_end > 10485760)
+      {
+        if (m < 35000)
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        if (peer->socket_session->window_update_num < 125535)
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+      }
+    }
+    return true;
+  }
+
+  asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
+  {
+    try
+    {
+
+      serverconfig &sysconfigpath = getserversysconfig();
+      std::string _send_header;
+      std::string _send_data;
+
+      DEBUG_LOG("%s", peer->urlpath.c_str());
+      DEBUG_LOG("%s", peer->host.c_str());
+      DEBUG_LOG("%s", peer->header["user-agent"].c_str());
+
+      peer->sitepath = sysconfigpath.getsitepath(peer->host);
+
+      unsigned char sendtype = peer->get_fileinfo();
+      if (sendtype == 1)
+      {
+        if (peer->state.rangebytes)
+        {
+          http2_send_file_range(peer);
+        }
+        else
+        {
+          http2_send_file(peer);
+        }
+      }
+      else if (sendtype == 2 && peer->isshow_directory())
+      {
+        std::string htmlcontent = displaydirectory(peer->sendfilename, peer->urlpath, peer->get["sort"].as_string(), sysconfigpath.configpath);
+        peer->status(200);
+        peer->length(htmlcontent.size());
+        peer->type("text/html; charset=utf-8");
+        _send_header = peer->make_http2_header();
+
+        peer->socket_session->send_data(_send_header);
+        http2_send_body(peer, (const unsigned char *)&htmlcontent[0], htmlcontent.size());
+      }
+      else
+      {
+        DEBUG_LOG("htttp2 pool in");
+
+        if (peer->cookie.check(COOKIE_SESSION_NAME))
+        {
+          peer->parse_session();
+        }
+        peer->status(200);
+
+        peer->type("text/html; charset=utf-8");
+        // http_clientrun(peer);
+        //////////////
+        peer->linktype = 0;
+
+        std::promise<int> p;
+        std::future<int> f = p.get_future();
+        peer->loopresults.emplace_back(std::move(f));
+        peer->looprunpromise = std::move(p);
+        peer->status(200);
+        peer->content_type.clear();
+        peer->etag.clear();
+        try
+        {
+          clientrunpool.addclient(peer);
+
+          peer->loopresults.front().get();
+          peer->loopresults.pop_front();
+        }
+        catch (const std::exception &e)
+        {
+          peer->status(500);
+        }
+        ////////////////////////
+
+        std::string tempcompress;
+        peer->compress = 0;
+        if (peer->state.gzip || peer->state.br)
+        {
+          if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 || strcasecmp(peer->content_type.c_str(), "application/json") == 0 || strcasecmp(peer->content_type.c_str(), "text/html") == 0 || strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
+          {
+            if (peer->output.size() > 100)
+            {
+
+              if (peer->state.br)
+              {
+                brotli_encode(peer->output, tempcompress);
+                peer->compress = 2;
+              }
+              else if (peer->state.gzip)
+              {
+                if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+                {
+                  peer->compress = 1;
+                }
+              }
+            }
+          }
+        }
+
+        if (peer->compress > 0)
+        {
+          peer->length(tempcompress.size());
+        }
+        else
+        {
+          peer->length(peer->output.size());
+        }
+
+        if (peer->get_status() < 100)
+        {
+          peer->status(200);
+        }
+        DEBUG_LOG("htttp2 pool out");
+        if (!peer->isset_type())
+        {
+          peer->type("text/html; charset=utf-8");
+        }
+        _send_header = peer->make_http2_header();
+
+        peer->socket_session->send_data(_send_header);
+
+        if (peer->compress > 0)
+        {
+          http2_send_body(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
+        }
+        else
+        {
+          http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+        }
+      }
+      peer->output.shrink_to_fit();
+      peer->val.clear();
+      peer->post.clear();
+      peer->session.clear();
+      peer->issend = true;
+    }
+    catch (std::exception &e)
+    {
+      peer->socket_session->send_goway();
+      peer->socket_session->isclose = true;
+    }
+    co_return;
+  }
+  void httpserver::http2send_filedata(struct http2sendblock_t &http2_ff_send)
+  {
+    http2_ff_send.last_time = std::chrono::steady_clock::now();
+    if (http2_ff_send.peer->isclose)
+    {
+      http2_ff_send.isfinish = true;
+      return;
+    }
+    if (http2_ff_send.peer->socket_session->isclose)
+    {
+      http2_ff_send.isfinish = true;
+      return;
+    }
+    if (http2_ff_send.peer->socket_session->window_update_num == 0)
+    {
+      return;
+    }
+    sendqueue &send_cache_list = get_sendqueue();
+    struct sendqueue_t *send_cache = send_cache_list.get_cache_ptr();
+
+    sendqueue_back unsetcahceback;
+    unsetcahceback.setptr(send_cache);
+
+    unsigned int data_send_id;
+
+    send_cache->data[3] = 0x00;
+    send_cache->data[4] = 0x00;
+    data_send_id = http2_ff_send.stream_id;
+    send_cache->data[8] = data_send_id & 0xFF;
+    data_send_id = data_send_id >> 8;
+    send_cache->data[7] = data_send_id & 0xFF;
+    data_send_id = data_send_id >> 8;
+    send_cache->data[6] = data_send_id & 0xFF;
+    data_send_id = data_send_id >> 8;
+    send_cache->data[5] = data_send_id & 0x7F;
+
+    data_send_id = fread(&send_cache->data[9], 1, 8183, http2_ff_send.fp.get());
+
+    unsigned int temp_data_size = data_send_id;
+    send_cache->data[2] = temp_data_size & 0xFF;
+    temp_data_size = temp_data_size >> 8;
+    send_cache->data[1] = temp_data_size & 0xFF;
+    temp_data_size = temp_data_size >> 8;
+    send_cache->data[0] = temp_data_size & 0xFF;
+
+    http2_ff_send.offset += data_send_id;
+    if (http2_ff_send.offset >= http2_ff_send.total_size)
+    {
+      http2_ff_send.isfinish = true;
+      send_cache->data[4] = 0x01;
+    }
+    if (http2_ff_send.peer->socket_session->window_update_num >= data_send_id)
+    {
+      http2_ff_send.peer->socket_session->window_update_num -= data_send_id;
+    }
+    else
+    {
+      http2_ff_send.peer->socket_session->window_update_num = 0;
+    }
+
+    data_send_id += 9;
+
+    http2_ff_send.peer->socket_session->send_data((const unsigned char *)&send_cache->data[0], data_send_id);
+  }
+  void httpserver::http2pool(int threadid)
+  {
+
+    while (true)
+    {
+      if (this->http2send_tasks.empty())
+      {
+        std::unique_lock<std::mutex> lock(this->queue_mutex);
+        this->condition.wait(lock, [this]
+                             { return !this->http2send_tasks.empty(); });
+      }
+
+      const std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
+
+      try
+      {
+        for (auto iter = http2send_tasks.begin(); iter != http2send_tasks.end();)
+        {
+          if (iter->isfinish == true)
+          {
+            DEBUG_LOG("big file end");
+            iter = http2send_tasks.erase(iter);
+          }
+          else
+          {
+            long long tmp = std::chrono::duration_cast<std::chrono::microseconds>(start - (iter->last_time)).count();
+            if (tmp > 500)
+            {
+              http2send_filedata(*iter);
+            }
+            ++iter;
+          }
+        }
+      }
+      catch (...)
+      {
+        http2send_tasks.clear();
+      }
+      const auto end = std::chrono::steady_clock::now();
+      long long tmp = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+      if (tmp < 20)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+    }
+  }
 
   bool httpserver::http1_send_file(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const std::string &filename)
   {
@@ -81,9 +983,9 @@ namespace http
       {
         peer->status(304);
         peer->length(0);
-        peer->setHeader("date", getGmtTime());
-        peer->setHeader("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
-        peer->setHeader("etag", etag);
+        peer->set_header("date", getGmtTime());
+        peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+        peer->set_header("etag", etag);
         peer->type(mime_value);
         etag = peer->make_http1_header();
         etag.append("\r\n");
@@ -145,13 +1047,13 @@ namespace http
       peer->type(mime_value);
       if (peer->compress == 0)
       {
-        peer->setHeader("accept-ranges", "bytes");
+        peer->set_header("accept-ranges", "bytes");
       }
 
-      peer->setHeader("date", getGmtTime());
-      peer->setHeader("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+      peer->set_header("date", getGmtTime());
+      peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
 
-      peer->setHeader("etag", etag);
+      peer->set_header("etag", etag);
 
       etag = peer->make_http1_header();
       etag.append("\r\n");
@@ -269,16 +1171,16 @@ namespace http
 
       if (statecode == 206)
       {
-        peer->setHeader("content-range", "bytes " + std::to_string(readnum) + "-" + std::to_string(mustnum - 1) + "/" + std::to_string(file_size));
+        peer->set_header("content-range", "bytes " + std::to_string(readnum) + "-" + std::to_string(mustnum - 1) + "/" + std::to_string(file_size));
       }
       else
       {
-        peer->setHeader("accept-ranges", "bytes");
+        peer->set_header("accept-ranges", "bytes");
       }
 
-      peer->setHeader("date", getGmtTime());
-      peer->setHeader("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
-      peer->setHeader("etag", etag);
+      peer->set_header("date", getGmtTime());
+      peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+      peer->set_header("etag", etag);
       htmlcontent = peer->make_http1_header();
       htmlcontent.append("\r\n");
 
@@ -316,7 +1218,7 @@ namespace http
   {
     serverconfig &sysconfigpath = getserversysconfig();
     peer->sitepath = sysconfigpath.getsitepath(peer->host);
-    unsigned char sendtype = peer->getfileinfo();
+    unsigned char sendtype = peer->get_fileinfo();
     DEBUG_LOG("http1loop:%s %d", peer->sendfilename.c_str(), sendtype);
     if (sendtype == 1)
     {
@@ -357,7 +1259,7 @@ namespace http
       try
       {
         clientrunpool.addclient(peer);
-        
+
         peer->loopresults.front().get();
         peer->loopresults.pop_front();
       }
@@ -366,11 +1268,11 @@ namespace http
         peer->status(500);
       }
 
-      if (peer->getStatus() < 100)
+      if (peer->get_status() < 100)
       {
         peer->status(200);
       }
-      if (!peer->issettype())
+      if (!peer->isset_type())
       {
         peer->type("text/html; charset=utf-8");
       }
@@ -438,7 +1340,7 @@ namespace http
       std::string log_item;
       try
       {
-        //serverconfig &sysconfigpath = getserversysconfig();
+        // serverconfig &sysconfigpath = getserversysconfig();
         std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
 
         peer->client_ip = peer_session->getremoteip();
@@ -459,7 +1361,7 @@ namespace http
 #endif
         int readnum, error_state = 0;
         unsigned linktype = 0;
-        //bool isbegin = false;
+        // bool isbegin = false;
 
         std::unique_ptr<http2parse> http2pre;
         std::unique_ptr<httpparse> http1pre;
@@ -748,7 +1650,8 @@ namespace http
                 DEBUG_LOG("http2parse end");
 #endif
 
-                clientrunpool.addclient(http2pre->http_data[block_steamid]);
+                // clientrunpool.addclient(http2pre->http_data[block_steamid]);
+                co_spawn(this->io_context, http2loop(http2pre->http_data[block_steamid]), asio::detached);
                 http2pre->stream_list.pop();
               }
             }
@@ -854,7 +1757,7 @@ namespace http
       m_EndFrame = m_BeginFrame + invFpsLimit;
     }
   }
-  asio::awaitable<void> httpserver::sslhandshake(asio::ip::tcp::socket socket,asio::ssl::context& context_, unsigned long long temp_domain )
+  asio::awaitable<void> httpserver::sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &context_, unsigned long long temp_domain)
   {
     try
     {
@@ -864,47 +1767,46 @@ namespace http
       unsigned int next_proto_len = 0;
       bool httpversion = false;
       asio::error_code ec_error;
-       DEBUG_LOG(" accept ok!");
-        // if all http2
-        if (sysconfigpath.isallnothttp2)
+      DEBUG_LOG(" accept ok!");
+      // if all http2
+      if (sysconfigpath.isallnothttp2)
+      {
+        SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
+      }
+      asio::ssl::stream<asio::ip::tcp::socket> sslsocket(std::move(socket), context_);
+      sslsocket.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+      sslsocket.handshake(asio::ssl::stream_base::server, ec_error);
+      if (ec_error)
+      {
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back(" handshake ec_error ");
+        lock.unlock();
+        DEBUG_LOG(" handshake ec_error !");
+        co_return;
+      }
+      // client select proto 看看客户端是否指定 协议，如果没有指定为null
+      SSL_get0_next_proto_negotiated(sslsocket.native_handle(), &for_next_proto, &next_proto_len);
+      if (for_next_proto == nullptr)
+      {
+        // openssl >2.0,5 必须大于2.0.5 alpn选择的协议
+        SSL_get0_alpn_selected(sslsocket.native_handle(), &for_next_proto, &next_proto_len);
+      }
+      if (next_proto_len > 0)
+      {
+        if (for_next_proto[0] == 'h' && for_next_proto[1] == '2')
         {
-          SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
+          DEBUG_LOG(" h2 ");
+          httpversion = true;
         }
-        asio::ssl::stream<asio::ip::tcp::socket> sslsocket(std::move(socket), context_);
-        sslsocket.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
-        sslsocket.handshake(asio::ssl::stream_base::server, ec_error);
-        if (ec_error)
-        {
-          std::unique_lock<std::mutex> lock(log_mutex);
-          error_loglist.emplace_back(" handshake ec_error ");
-          lock.unlock();
-          DEBUG_LOG(" handshake ec_error !");
-          co_return;
-        }
-        // client select proto 看看客户端是否指定 协议，如果没有指定为null
-        SSL_get0_next_proto_negotiated(sslsocket.native_handle(), &for_next_proto, &next_proto_len);
-        if (for_next_proto == nullptr)
-        {
-          // openssl >2.0,5 必须大于2.0.5 alpn选择的协议
-          SSL_get0_alpn_selected(sslsocket.native_handle(), &for_next_proto, &next_proto_len);
-        }
-        if (next_proto_len > 0)
-        {
-          if (for_next_proto[0] == 'h' && for_next_proto[1] == '2')
-          {
-            DEBUG_LOG(" h2 ");
-            httpversion = true;
-          }
-        }
-        DEBUG_LOG(" https ok!");
-        total_count++;
+      }
+      DEBUG_LOG(" https ok!");
+      total_count++;
 
-        struct httpsocket_t sock_temp(std::move(sslsocket));
-        co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), true, httpversion), asio::detached);
+      struct httpsocket_t sock_temp(std::move(sslsocket));
+      co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), true, httpversion), asio::detached);
     }
     catch (std::exception &e)
     {
-
     }
   }
   void httpserver::listeners()
@@ -1011,14 +1913,14 @@ namespace http
     }
     SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
 
-    //const unsigned char *for_next_proto = nullptr;
-    //unsigned int next_proto_len = 0;
-    //bool httpversion = false;
+    // const unsigned char *for_next_proto = nullptr;
+    // unsigned int next_proto_len = 0;
+    // bool httpversion = false;
     for (;;)
     {
       try
       {
-        //httpversion = false;
+        // httpversion = false;
         asio::ip::tcp::socket socket(this->io_context);
         DEBUG_LOG("https accept");
 
@@ -1035,7 +1937,6 @@ namespace http
         DEBUG_LOG(" accept ok!");
 
         co_spawn(this->io_context, sslhandshake(std::move(socket), std::ref(context_), temp_domain), asio::detached);
-
       }
       catch (std::exception &e)
       {
@@ -1118,7 +2019,7 @@ namespace http
       std::string errorstr(e);
       error_loglist.emplace_back(errorstr);
     }
-    
+
     struct regmethold_t temp;
     temp.pre = nullptr;
     temp.regfun = [self = this](std::shared_ptr<httppeer> peer) -> std::string
@@ -1146,7 +2047,7 @@ namespace http
     pn->api_mysqlcommit = get_mysqlselectexecute;
     pn->map_value = sysconfigpath.map_value;
     pn->server_global_var = get_server_global_var;
-    pn->api_mysql_back_conn=back_mysql_connect;
+    pn->api_mysql_back_conn = back_mysql_connect;
     int catch_num = 0;
     unsigned int updatetimetemp = 0;
     std::string currentpath;
@@ -1158,12 +2059,12 @@ namespace http
     {
       currentpath.push_back('/');
     }
-    error_path=currentpath;
+    error_path = currentpath;
     currentpath.append("access.log");
     error_path.append("error.log");
     struct flock lockstr = {};
-    unsigned int mysqlpool_time=1;
-    std::size_t n_write=0;
+    unsigned int mysqlpool_time = 1;
+    std::size_t n_write = 0;
     for (;;)
     {
       if (catch_num > 10)
@@ -1217,7 +2118,7 @@ namespace http
           std::unique_lock<std::mutex> loglock(log_mutex);
           while (!access_loglist.empty())
           {
-            n_write=write(fd, access_loglist.front().data(), access_loglist.front().size());
+            n_write = write(fd, access_loglist.front().data(), access_loglist.front().size());
             access_loglist.pop_front();
           }
           loglock.unlock();
@@ -1231,7 +2132,7 @@ namespace http
           close(fd);
         }
 
-         // save error.log
+        // save error.log
         if (!error_loglist.empty())
         {
           int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
@@ -1255,7 +2156,7 @@ namespace http
           std::unique_lock<std::mutex> loglock(log_mutex);
           while (!error_loglist.empty())
           {
-            n_write=write(fd, error_loglist.front().data(), error_loglist.front().size());
+            n_write = write(fd, error_loglist.front().data(), error_loglist.front().size());
             error_loglist.pop_front();
           }
           loglock.unlock();
@@ -1268,43 +2169,41 @@ namespace http
           }
           close(fd);
         }
-        if(n_write>0)
+        if (n_write > 0)
         {
-          n_write=0;
+          n_write = 0;
         }
 
-        if(mysqlpool_time%100==0)
+        if (mysqlpool_time % 100 == 0)
         {
-            if(total_count.load()==0)
+          if (total_count.load() == 0)
+          {
+            std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
+            for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
             {
-                std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
-                for(auto iter=mysqldbpoolglobal.begin();iter != mysqldbpoolglobal.end();iter++)
-                {
-                    iter->second.clearpool();
+              iter->second.clearpool();
 
-                    DEBUG_LOG("mysql pool clearpoool ");
-                }
-                mysqlpool_time=1;
-                 
+              DEBUG_LOG("mysql pool clearpoool ");
             }
+            mysqlpool_time = 1;
+          }
         }
 
         std::time_t t = std::time(nullptr);
-        std::tm* now = std::localtime(&t);
+        std::tm *now = std::localtime(&t);
 
-       if(now->tm_hour<3&&mysqlpool_time>82800)
-       {
-            std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
-            for(auto iter=mysqldbpoolglobal.begin();iter != mysqldbpoolglobal.end();iter++)
-            {
-                iter->second.clearpool();
-            }
-            mysqlpool_time=1;
-       } 
-        
-        mysqlpool_time+=1;
-        DEBUG_LOG("clear mysql poll time:%d,client live:%d",mysqlpool_time,total_count.load());
-        
+        if (now->tm_hour < 3 && mysqlpool_time > 82800)
+        {
+          std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
+          for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+          {
+            iter->second.clearpool();
+          }
+          mysqlpool_time = 1;
+        }
+
+        mysqlpool_time += 1;
+        DEBUG_LOG("clear mysql poll time:%d,client live:%d", mysqlpool_time, total_count.load());
       }
       catch (std::exception &e)
       {
@@ -1372,6 +2271,7 @@ namespace http
       {
         websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));
       }
+      websocketthreads.emplace_back(std::bind(&httpserver::http2pool, this, 0));
 
       if (https.joinable())
       {

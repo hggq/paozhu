@@ -286,11 +286,11 @@ namespace http
                   }
             }
       }
-      std::string httppeer::getsitepath()
+      std::string httppeer::get_sitepath()
       {
             return getserversysconfig().getsitepath(host);
       }
-      std::string httppeer::gethosturl()
+      std::string httppeer::get_hosturl()
       {
             std::string tempurl;
             if (isssl)
@@ -347,7 +347,7 @@ namespace http
             }
             return false;
       }
-      unsigned char httppeer::getfileinfo()
+      unsigned char httppeer::get_fileinfo()
       {
 
             std::string filenamebase, fileexttype;
@@ -449,7 +449,7 @@ namespace http
       {
             // socket_session->send_data("hello world!");
       }
-      unsigned int httppeer::getStatus()
+      unsigned int httppeer::get_status()
       {
             return status_code;
       }
@@ -461,11 +461,11 @@ namespace http
       {
             content_type = a;
       }
-      bool httppeer::issettype()
+      bool httppeer::isset_type()
       {
             return content_type.size() > 0 ? true : false;
       }
-      void httppeer::setHeader(const std::string &a, const std::string &v)
+      void httppeer::set_header(const std::string &a, const std::string &v)
       {
             if (httpv == 2)
             {
@@ -485,7 +485,7 @@ namespace http
                   send_header[a] = v;
             }
       }
-      void httppeer::setCookie(std::string key, std::string val, long long exptime, std::string domain, std::string path, bool secure, bool httponly, std::string issamesite)
+      void httppeer::set_cookie(std::string key, std::string val, long long exptime, std::string domain, std::string path, bool secure, bool httponly, std::string issamesite)
       {
             cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);
             send_cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);

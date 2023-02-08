@@ -119,7 +119,7 @@ namespace http
          client << "<p>fileField:size:" << client.files["fileField"]["size"] << "</p>";
          client << "<p>fileField:error:" << client.files["fileField"]["error"] << "</p>";
 
-         std::string sitepath= client.getsitepath();
+         std::string sitepath= client.get_sitepath();
 
          if(!sitepath.empty())
          {
@@ -251,11 +251,11 @@ namespace http
                         sitepath.push_back('/');
                         sitepath.append(get_filename(client.files["fileField"]["tempfile"].as_string()));
                         sitepath.append(".data");
-                        client<<"<p><a href=\""<<client.gethosturl()<<"/upload/"<<get_filename(client.files["fileField"]["tempfile"].as_string())<<".data\" target=_blank>show</a></p>";
+                        client<<"<p><a href=\""<<client.get_hosturl()<<"/upload/"<<get_filename(client.files["fileField"]["tempfile"].as_string())<<".data\" target=_blank>show</a></p>";
                      }
                      else
                      {
-                        client<<"<p><a href=\""<<client.gethosturl()<<"/upload/"<<filename<<"\" target=_blank>show</a></p>";
+                        client<<"<p><a href=\""<<client.get_hosturl()<<"/upload/"<<filename<<"\" target=_blank>show</a></p>";
                      }
                      fs::rename(client.files["fileField"]["tempfile"].as_string(),sitepath);   
                }

@@ -12,7 +12,7 @@ namespace http
    {
       httppeer &client = peer->getpeer();
       client << "hello world!  testmodelfromjson ";
-      client << client.gethosturl();
+      client << client.get_hosturl();
  
       try
       {

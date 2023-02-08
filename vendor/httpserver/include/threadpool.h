@@ -87,10 +87,10 @@ namespace http
     unsigned int gettasknum() { return 0; clienttasks.size(); };
     unsigned int getmixthreads() { return mixthreads.load(); };
 
-    void http2loop(std::shared_ptr<httppeer>);
-    bool http2_send_body(std::shared_ptr<httppeer> peer,const unsigned char *buffer, unsigned int begin_end);
-    bool http2_send_file(std::shared_ptr<httppeer>);
-    bool http2_send_file_range(std::shared_ptr<httppeer> peer);
+    // void http2loop(std::shared_ptr<httppeer>);
+    // bool http2_send_body(std::shared_ptr<httppeer> peer,const unsigned char *buffer, unsigned int begin_end);
+    // bool http2_send_file(std::shared_ptr<httppeer>);
+    // bool http2_send_file_range(std::shared_ptr<httppeer> peer);
     ~ThreadPool();
     std::string name; //测试共享
   private:

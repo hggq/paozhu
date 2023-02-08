@@ -35,44 +35,44 @@
 
 namespace http
 {
-  #define COOKIE_SESSION_NAME "PHPSESSID"
+#define COOKIE_SESSION_NAME "PHPSESSID"
   template <typename T>
-  concept VALNUM_T =std::is_floating_point_v<T>||std::is_integral_v<T>;
+  concept VALNUM_T = std::is_floating_point_v<T> || std::is_integral_v<T>;
 
   class httppeer : public std::enable_shared_from_this<httppeer>
   {
   public:
-    unsigned char getfileinfo();
+    unsigned char get_fileinfo();
     bool isshow_directory();
     void send_files(std::string);
     void status(unsigned int);
-    unsigned int getStatus();
+    unsigned int get_status();
     void type(const std::string &);
     void length(unsigned long long);
     void scheme(unsigned char);
     std::shared_ptr<httppeer> get_ptr();
     std::string make_http2_header(unsigned char flag_code = 0);
     std::string make_http1_header();
-    void setHeader(const std::string &, const std::string &);
-    void getHeader(const std::string &);
-    void getCookie(const std::string &);
+    void set_header(const std::string &, const std::string &);
+    void get_header(const std::string &);
+    void get_cookie(const std::string &);
 
-    void setCookie(std::string key, std::string val, long long exptime = 0, std::string path = "", std::string domain = "", bool secure = false, bool httponly = true, std::string issamesite = "");
+    void set_cookie(std::string key, std::string val, long long exptime = 0, std::string path = "", std::string domain = "", bool secure = false, bool httponly = true, std::string issamesite = "");
 
     std::list<std::string> cookietoheader();
-    std::string gethosturl();
-    std::string getsitepath();
-    void goto_url(std::string url, unsigned char second=0, std::string msg="");
-    bool issettype();
+    std::string get_hosturl();
+    std::string get_sitepath();
+    void goto_url(std::string url, unsigned char second = 0, std::string msg = "");
+    bool isset_type();
 
     void parse_session();
     void save_session();
     void clear_session();
 
     void view(const std::string &a);
-    void view(const std::string &a,OBJ_VALUE &b);
+    void view(const std::string &a, OBJ_VALUE &b);
     std::string fetchview(const std::string &a);
-    std::string fetchview(const std::string &a,OBJ_VALUE &b);
+    std::string fetchview(const std::string &a, OBJ_VALUE &b);
     void send(const std::string &a);
     httppeer &out(std::string);
     httppeer &out(const std::string &a);
@@ -171,19 +171,18 @@ namespace http
     std::list<std::future<int>> loopresults;
     std::promise<int> looprunpromise;
 
-    // 等待滑动窗口 
+    // 等待滑动窗口
     std::atomic_bool window_update_bool = false;
     std::list<std::future<int>> window_update_results;
     std::promise<int> window_update_promise;
-
   };
   struct regmethold_t
   {
-     std::function<std::string(std::shared_ptr<httppeer>)> pre=nullptr;
-     std::function<std::string(std::shared_ptr<httppeer>)> regfun;
+    std::function<std::string(std::shared_ptr<httppeer>)> pre = nullptr;
+    std::function<std::string(std::shared_ptr<httppeer>)> regfun;
   };
-  //extern std::map<std::string, std::function<std::string(std::shared_ptr<httppeer>)>> _http_regmethod_table;
+  // extern std::map<std::string, std::function<std::string(std::shared_ptr<httppeer>)>> _http_regmethod_table;
   extern std::map<std::string, regmethold_t> _http_regmethod_table;
-   void make_404_content(std::shared_ptr<httppeer> peer);   
+  void make_404_content(std::shared_ptr<httppeer> peer);
 }
 #endif

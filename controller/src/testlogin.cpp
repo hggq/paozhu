@@ -16,8 +16,8 @@ namespace http
             if(client.session["aaa"].as_int()==0)
             {
                   client << " 必须登录 ";
-                  client << client.gethosturl();
-                  client<<"<p><a href=\""<<client.gethosturl()<<"/showlogin\">show</a></p>";
+                  client << client.get_hosturl();
+                  client<<"<p><a href=\""<<client.get_hosturl()<<"/showlogin\">show</a></p>";
                   return "showlogin";
             }
             return "ok";
@@ -30,9 +30,9 @@ namespace http
             // client<<"<p><a href=\""<<client.gethosturl()<<"/showcookie\">show</a></p>";
  
                   client << " 点击登录 ";
-                  client << client.gethosturl();
-                  client<<"<p><a href=\""<<client.gethosturl()<<"/loginpost?login=1\">show</a></p>";
-                  client<<"<p><a href=\""<<client.gethosturl()<<"/loginpost?login=0\">clear</a></p>";      
+                  client << client.get_hosturl();
+                  client<<"<p><a href=\""<<client.get_hosturl()<<"/loginpost?login=1\">show</a></p>";
+                  client<<"<p><a href=\""<<client.get_hosturl()<<"/loginpost?login=0\">clear</a></p>";      
             return "";
       }
       std::string testloginpost(std::shared_ptr<httppeer> peer)

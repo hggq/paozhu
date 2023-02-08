@@ -21,8 +21,8 @@ namespace http
             //e.g hhttps://www.xxx.com/testviewso/viewso
             httppeer &client = peer->getpeer();
             client << "hello world!  so视图测试 ";
-            client << client.gethosturl();
-            client << "<p><a href=\"" << client.gethosturl() << "/showcookie\">show</a></p>";
+            client << client.get_hosturl();
+            client << "<p><a href=\"" << client.get_hosturl() << "/showcookie\">show</a></p>";
             auto users = orm::cms::User();
 
             users.where("name", "admin").limit(1).fetch();

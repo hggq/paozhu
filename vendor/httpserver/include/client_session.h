@@ -66,6 +66,7 @@
 
 namespace http
 {
+
   struct filesend_promise
   {
     std::string filename;
@@ -104,10 +105,11 @@ namespace http
     void send_window_update(unsigned int, unsigned int streamid = 0);
     void recv_window_update(unsigned int, unsigned int streamid = 0);
     void stop();
+    asio::awaitable<void> loopwriter(const unsigned char *buffer, unsigned int buffersize);
 
   public:
     unsigned char _cache_data[4106];
-    //unsigned char _write_data[4106];
+    // unsigned char _write_data[4106];
     unsigned int _cache_size = 0;
     unsigned int _write_size = 0;
     std::atomic_bool sendtype = false;
