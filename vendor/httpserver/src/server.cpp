@@ -275,11 +275,14 @@ namespace http
 
         if (file_size > 10485760)
         {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          if (peer->socket_session->window_update_num < 1048576)
+          {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          }
         }
         else if (file_size > 1048576)
         {
-          if (m < 20096)
+          if (m < 20096&&peer->socket_session->window_update_num < 1048576)
           {
             std::this_thread::sleep_for(std::chrono::nanoseconds(512));
           }
@@ -559,11 +562,15 @@ namespace http
 
         if (file_size > 10485760)
         {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          if(peer->socket_session->window_update_num < 1048576)
+          {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          }
+
         }
         else if (file_size > 1048576)
         {
-          if (m < 20096)
+          if (m < 10096&&peer->socket_session->window_update_num < 1048576)
           {
             std::this_thread::sleep_for(std::chrono::nanoseconds(512));
           }

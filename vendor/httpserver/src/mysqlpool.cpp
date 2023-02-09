@@ -61,6 +61,7 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info,struct mysql_
             throw mysql_error(conn.get());
         }
         mysql_select_pool_list.emplace_back(std::move(conn));
+        select_current_num++;
     }
 
     for (int i = 0; i < 1; i++)
@@ -75,6 +76,7 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info,struct mysql_
             throw mysql_error(conn.get());
         }
         mysql_edit_pool_list.emplace_back(std::move(conn));
+        edit_current_num++;
     }
 }
 
@@ -165,11 +167,16 @@ unsigned int mysqllinkpool::clearpool()
                 mysql_edit_pool_list.pop_front();
                 temp.reset();
                 edit_current_num--;
+                if(edit_current_num<0)
+                {
+                    edit_current_num=0;
+                }
                 i++;
                 if(i>1)
                 {
                     break;
                 }
+                
         }
         lock.unlock();
     }
@@ -184,11 +191,16 @@ unsigned int mysqllinkpool::clearpool()
                 mysql_select_pool_list.pop_front();
                 temp.reset();
                 select_current_num--;
+                if(select_current_num<0)
+                {
+                    select_current_num=0;
+                }
                 i++;
                 if(i>1)
                 {
                     break;
                 }
+
         }
         lock.unlock();
     }
