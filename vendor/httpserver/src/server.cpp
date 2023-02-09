@@ -2065,13 +2065,30 @@ namespace http
                           static_server_var.show_visit_info = true;
                           client<<"<p>"; 
                           client<<"online:"<<self->total_count.load();
-                          client<<"</p>"; 
+                          client<<" ";  
+                          try
+                          {
+                            std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
+                            isshow=0;
+                            for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+                            {
+                              client<<" [link"<<std::to_string(isshow)<<" select:"<<std::to_string(iter->second.select_current_num);
+                              client<<" edit:"<<std::to_string(iter->second.edit_current_num);
+                              ++isshow;
+                            }
+                            client<<"]</p>"; 
+                            client<<self->clientrunpool.printthreads(true);
+                          }
+                          catch (...)
+                          {
+                             client<<"<p>exception</p>";  
+                          }
                       }
                       else
                       {
                           static_server_var.show_visit_info = false;
                       }
-                      client<<self->clientrunpool.printthreads(true);
+                      
                     }
 
        return ""; };
