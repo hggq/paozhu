@@ -1036,7 +1036,14 @@ namespace http
         mime_value = mime_map[fileexttype];
         if (mime_value.empty())
         {
-          mime_value = "text/html; charset=utf-8";
+          if (file_size > 20480)
+          {
+            mime_value = "application/octet-stream";
+          }
+          else
+          {
+            mime_value = "text/plain";
+          }
         }
       }
       else
@@ -1147,7 +1154,14 @@ namespace http
         mime_value = mime_map[fileexttype];
         if (mime_value.empty())
         {
-          mime_value = "text/html; charset=utf-8";
+          if (file_size > 20480)
+          {
+            mime_value = "application/octet-stream";
+          }
+          else
+          {
+            mime_value = "text/plain";
+          }
         }
       }
       else
@@ -2061,7 +2075,7 @@ namespace http
                     }
 
        return ""; };
-    _http_regmethod_table.emplace("paozhu_version", std::move(temp));
+    _http_regmethod_table.emplace("paozhu_status", std::move(temp));
 
     clientapi *pn = clientapi::instance();
 

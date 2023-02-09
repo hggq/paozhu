@@ -240,6 +240,7 @@ namespace http
   // the constructor just launches some amount of workers
   ThreadPool::ThreadPool(size_t threads) : stop(false)
   {
+    isclose_add=true;
     pooltotalnum.store(0);
     livethreadcount.store(0);
     mixthreads.store(32);
@@ -253,6 +254,7 @@ namespace http
       threadlist[tinfo.id] = std::move(tinfo);
       pooltotalnum++;
     }
+    isclose_add=false;
   }
 
   // the destructor joins all threads
@@ -275,6 +277,10 @@ namespace http
   //
   bool ThreadPool::addclient(std::shared_ptr<httppeer> peer)
   {
+    if(isclose_add)
+    {
+      return false;
+    }
     if (!stop)
     {
       std::unique_lock<std::mutex> lock(queue_mutex);

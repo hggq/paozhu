@@ -377,7 +377,7 @@ namespace http
                 }
             }
         }
-        if (map_value["default"]["http2_enable"][0] == '1')
+        if (map_value["default"]["http2_enable"].size()>0&&map_value["default"]["http2_enable"][0] == '1')
         {
             isallnothttp2 = false;
         }
@@ -396,7 +396,7 @@ namespace http
         {
             static_server_var.view_so_path=map_value["default"]["viewsopath"];
         }
-        if (map_value["default"]["debug_enable"][0] == '1')
+        if (map_value["default"]["debug_enable"].size()>0&&map_value["default"]["debug_enable"][0] == '1')
         {
             static_server_var.debug_enable = true;
         }
@@ -404,7 +404,7 @@ namespace http
         {
             static_server_var.debug_enable = false;
         }
-        if (map_value["default"]["deamon_enable"][0] == '1')
+        if (map_value["default"]["deamon_enable"].size()>0&&map_value["default"]["deamon_enable"][0] == '1')
         {
             static_server_var.deamon_enable = true;
         }
@@ -427,7 +427,7 @@ namespace http
          static_server_var.temp_path=map_value["default"]["temppath"];
          static_server_var.log_path=map_value["default"]["logpath"];
          mainhost=map_value["default"]["mainhost"];
-        if (mainhost[0] == 'w' && mainhost[1] == 'w' && mainhost[2] == 'w' && mainhost[3] == '.')
+        if (mainhost.size()>3&&mainhost[0] == 'w' && mainhost[1] == 'w' && mainhost[2] == 'w' && mainhost[3] == '.')
         {
             secondhost.clear();
             if (mainhost.size() > 4)
@@ -435,8 +435,15 @@ namespace http
                 secondhost.append(&mainhost[4], mainhost.size() - 4);
             }
         }else{
-            secondhost="www.";
-            secondhost.append(mainhost);
+             if(mainhost.empty())
+            {
+                mainhost="localhost";
+            }
+            else
+            {
+                secondhost="www.";
+                secondhost.append(mainhost);
+            }
         }
          if(static_server_var.www_path.size()>0&&static_server_var.www_path.back()!='/')
          {

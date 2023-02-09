@@ -99,6 +99,7 @@ namespace http
     std::mutex queue_mutex, livemtx;
     std::condition_variable condition;
     bool stop;
+    bool isclose_add=true;
     std::map<std::thread::id, struct threadinfo_t> threadlist;
     std::atomic<unsigned int> pooltotalnum, mixthreads;
     std::atomic<unsigned int> livethreadcount;
