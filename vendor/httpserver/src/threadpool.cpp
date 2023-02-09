@@ -364,7 +364,7 @@ namespace http
           }
           if (_http_regmethod_table[regmethold_path].pre != nullptr)
           {
-            sitecontent=regmethold_path;
+            sitecontent = regmethold_path;
             sitecontent.append("pre");
             if (method_alone.contains(sitecontent))
             {
@@ -378,7 +378,34 @@ namespace http
             }
             else
             {
-              peer->push_path_method(regmethold_path);
+              if (regmethold_path != sitecontent)
+              {
+                peer->push_path_method(regmethold_path); // record not execute method
+                if (method_alone.contains(sitecontent))
+                {
+                  break;
+                }
+                if (i > 0 && _http_regmethod_table.find(sitecontent) == _http_regmethod_table.end())
+                {
+                  method_alone.emplace(sitecontent);
+                  sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
+
+                  // again check same in regmethold_path
+                  //
+                  //    a -> b -> a
+                  //
+                  if (regmethold_path == sitecontent)
+                  {
+                    method_alone.emplace(regmethold_path);
+                    sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
+                  }
+                }
+              }
+              else
+              {
+                // or self
+                sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
+              }
             }
             regmethold_path.append("pre");
             method_alone.emplace(regmethold_path);
