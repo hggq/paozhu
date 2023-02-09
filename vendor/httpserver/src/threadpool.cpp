@@ -61,17 +61,29 @@
 namespace http
 {
 
-  void ThreadPool::printthreads()
+  std::string  ThreadPool::printthreads(bool is_onlineout)
   {
+    std::string temp_thread,temp_str;
+    std::ostringstream oss;
     std::unique_lock<std::mutex> lck(livemtx);
     for (auto iter = threadlist.begin(); iter != threadlist.end(); iter++)
     {
-      std::ostringstream oss;
+      oss.str("");
       oss << iter->first << " isbusy:" << iter->second.busy << " ip:" << (iter->second.ip) << " url:" << iter->second.url;
-      std::string tempthread = oss.str();
-      INFO("[INFO  ] %s", tempthread.c_str());
+      temp_thread = oss.str();
+      #ifdef DEBUG
+      INFO("[INFO  ] %s", temp_thread.c_str());
+      #endif
+      if(is_onlineout)
+      {
+        temp_str.append(temp_thread);
+        temp_str.append("<br/>");
+      }
     }
+    #ifdef DEBUG
     INFO("-------------");
+    #endif
+    return temp_str;
   }
 
   unsigned int ThreadPool::getpoolthreadnum() { return threadlist.size(); }
@@ -226,7 +238,7 @@ namespace http
   }
 
   // the constructor just launches some amount of workers
-  ThreadPool::ThreadPool(size_t threads) : stop(true)
+  ThreadPool::ThreadPool(size_t threads) : stop(false)
   {
     pooltotalnum.store(0);
     livethreadcount.store(0);
@@ -241,7 +253,6 @@ namespace http
       threadlist[tinfo.id] = std::move(tinfo);
       pooltotalnum++;
     }
-    stop = false;
   }
 
   // the destructor joins all threads
@@ -284,7 +295,9 @@ namespace http
       DEBUG_LOG("pool in");
       std::string regmethold_path;
 
-      // if (peer->linktype == 0)
+      server_loaclvar &static_server_var = get_server_global_var();
+
+      if (static_server_var.show_visit_info == true)
       {
 
         unsigned int offsetnum = 0;
@@ -553,31 +566,36 @@ namespace http
       DEBUG_LOG("websockets pool");
       std::thread::id thread_id = std::this_thread::get_id();
       unsigned int offsetnum = 0;
-      for (; offsetnum < peer->host.size(); offsetnum++)
-      {
-        threadlist[thread_id].url[offsetnum] = peer->host[offsetnum];
-        if (offsetnum > 60)
-        {
-          break;
-        }
-      }
-      for (unsigned int j = 0; j < peer->url.size(); j++)
-      {
-        threadlist[thread_id].url[offsetnum] = peer->url[j];
-        offsetnum++;
-        if (offsetnum > 63)
-        {
-          break;
-        }
-      }
-      threadlist[thread_id].url[offsetnum] = 0x00;
+      server_loaclvar &static_server_var = get_server_global_var();
 
+      if (static_server_var.show_visit_info == true)
       {
-        unsigned int offsetnum = peer->client_ip.size();
-        if (offsetnum < 61)
+        for (; offsetnum < peer->host.size(); offsetnum++)
         {
-          memcpy(threadlist[thread_id].ip, peer->client_ip.data(), offsetnum);
-          threadlist[thread_id].ip[offsetnum] = 0x00;
+          threadlist[thread_id].url[offsetnum] = peer->host[offsetnum];
+          if (offsetnum > 60)
+          {
+            break;
+          }
+        }
+        for (unsigned int j = 0; j < peer->url.size(); j++)
+        {
+          threadlist[thread_id].url[offsetnum] = peer->url[j];
+          offsetnum++;
+          if (offsetnum > 63)
+          {
+            break;
+          }
+        }
+        threadlist[thread_id].url[offsetnum] = 0x00;
+
+        {
+          unsigned int offsetnum = peer->client_ip.size();
+          if (offsetnum < 61)
+          {
+            memcpy(threadlist[thread_id].ip, peer->client_ip.data(), offsetnum);
+            threadlist[thread_id].ip[offsetnum] = 0x00;
+          }
         }
       }
 

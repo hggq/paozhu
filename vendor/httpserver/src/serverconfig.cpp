@@ -412,6 +412,16 @@ namespace http
         {
             static_server_var.deamon_enable = false;
         }
+
+        if (map_value["default"]["show_visitinfo"].size()>0&&map_value["default"]["show_visitinfo"][0] == '1')
+        {
+            static_server_var.show_visit_info = true;
+        }
+        else
+        {
+            static_server_var.show_visit_info = false;
+        }
+
          static_server_var.map_value=map_value;
          static_server_var.www_path=map_value["default"]["wwwpath"];
          static_server_var.temp_path=map_value["default"]["temppath"];

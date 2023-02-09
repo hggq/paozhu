@@ -22,4 +22,5 @@ temp
 cmake-build-debug
 cmake-build-release
 .idea
+.vscode
 www/default/upload

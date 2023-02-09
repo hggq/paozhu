@@ -176,7 +176,7 @@ namespace http
         temp_send_obj.fp = std::move(fp);
 
         http2send_tasks.emplace_back(std::move(temp_send_obj));
-        condition.notify_one();
+        http2condition.notify_one();
         return true;
       }
 
@@ -187,10 +187,7 @@ namespace http
       sendqueue_back unsetcahceback;
       unsetcahceback.setptr(send_cache);
 
-      bool mustwait_window_update = true;
       unsigned long long totalsend_num = 0;
-      unsigned long long old_window_update_num = peer->socket_session->window_update_num;
-      unsigned long long per_window_update_num = peer->socket_session->window_update_num;
       unsigned int vsize_send = 8181;
       for (unsigned long long m = readnum; m < mustnum;)
       {
@@ -269,7 +266,6 @@ namespace http
             peer->window_update_results.front().get();
             peer->window_update_results.pop_front();
             DEBUG_LOG("--- from window_update_num --------");
-            mustwait_window_update = false;
           }
           catch (const std::exception &e)
           {
@@ -288,7 +284,6 @@ namespace http
             std::this_thread::sleep_for(std::chrono::nanoseconds(512));
           }
         }
-        per_window_update_num = peer->socket_session->window_update_num;
       }
       DEBUG_LOG("send file ok!");
       return false;
@@ -449,7 +444,7 @@ namespace http
         temp_send_obj.fp = std::move(fp);
 
         http2send_tasks.emplace_back(std::move(temp_send_obj));
-        condition.notify_one();
+        http2condition.notify_one();
         return true;
       }
 
@@ -459,10 +454,7 @@ namespace http
       sendqueue_back unsetcahceback;
       unsetcahceback.setptr(send_cache);
 
-      bool mustwait_window_update = true;
       unsigned long long totalsend_num = 0;
-      unsigned long long old_window_update_num = peer->socket_session->window_update_num;
-      unsigned long long per_window_update_num = peer->socket_session->window_update_num;
 
       unsigned int vsize_send = 8181;
       for (unsigned long long m = 0; m < file_size;)
@@ -558,7 +550,6 @@ namespace http
           {
             peer->window_update_results.front().get();
             peer->window_update_results.pop_front();
-            mustwait_window_update = false;
           }
           catch (const std::exception &e)
           {
@@ -577,7 +568,6 @@ namespace http
             std::this_thread::sleep_for(std::chrono::nanoseconds(512));
           }
         }
-        per_window_update_num = peer->socket_session->window_update_num;
       }
       DEBUG_LOG("send files ok");
       return false;
@@ -906,7 +896,7 @@ namespace http
     {
       http2_ff_send.peer->socket_session->window_update_num = 0;
     }
-    http2_ff_send.pre_size=http2_ff_send.peer->socket_session->window_update_num;
+    http2_ff_send.pre_size = http2_ff_send.peer->socket_session->window_update_num;
     data_send_id += 9;
 
     http2_ff_send.peer->socket_session->send_data((const unsigned char *)&send_cache->data[0], data_send_id);
@@ -918,9 +908,9 @@ namespace http
     {
       if (this->http2send_tasks.empty())
       {
-        std::unique_lock<std::mutex> lock(this->queue_mutex);
-        this->condition.wait(lock, [this]
-                             { return !this->http2send_tasks.empty(); });
+        std::unique_lock<std::mutex> lock(this->http2_task_mutex);
+        this->http2condition.wait(lock, [this]
+                                  { return !this->http2send_tasks.empty(); });
       }
 
       const std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
@@ -937,9 +927,9 @@ namespace http
           else
           {
             long long tmp = std::chrono::duration_cast<std::chrono::microseconds>(start - (iter->last_time)).count();
-            if(iter->pre_size>10485760)
+            if (iter->pre_size > 10485760)
             {
-              tmp=tmp*3;
+              tmp = tmp * 3;
             }
             if (tmp > 500)
             {
@@ -1046,14 +1036,7 @@ namespace http
         mime_value = mime_map[fileexttype];
         if (mime_value.empty())
         {
-          if (file_size > 20480)
-          {
-            mime_value = "application/octet-stream";
-          }
-          else
-          {
-            mime_value = "text/html; charset=utf-8";
-          }
+          mime_value = "text/html; charset=utf-8";
         }
       }
       else
@@ -1164,14 +1147,7 @@ namespace http
         mime_value = mime_map[fileexttype];
         if (mime_value.empty())
         {
-          if (file_size > 20480)
-          {
-            mime_value = "application/octet-stream";
-          }
-          else
-          {
-            mime_value = "text/html; charset=utf-8";
-          }
+          mime_value = "text/html; charset=utf-8";
         }
       }
       else
@@ -1652,7 +1628,7 @@ namespace http
                   error_state = 1;
                   break;
                 }
-                http2pre->http_data[block_steamid]->linktype = 1;
+                http2pre->http_data[block_steamid]->linktype = 0;
                 http2pre->http_data[block_steamid]->server_ip = peer_session->getlocalip();
                 http2pre->http_data[block_steamid]->client_ip = peer_session->getremoteip();
                 http2pre->http_data[block_steamid]->client_port = peer_session->getremoteport();
@@ -1706,7 +1682,6 @@ namespace http
         log_item.clear();
         log_item.append(" client thread exception  ");
         log_item.append(e.what());
-        log_item.push_back('\n');
         std::unique_lock<std::mutex> lock(log_mutex);
         error_loglist.emplace_back(log_item);
         lock.unlock();
@@ -2057,15 +2032,34 @@ namespace http
     temp.regfun = [self = this](std::shared_ptr<httppeer> peer) -> std::string
     {
                     httppeer &client=peer->getpeer();
-                    client<<"<h3 align=\"center\" title=\"Live ";
-                    client<<self->total_count.load();
-                    client<<"\"><span style=\"font-size:2em\">🧨 Paozhu</h3> <p align=\"center\">Version ";
+                    client<<"<h3 align=\"center\">";
+                    client<<"<span style=\"font-size:2em\">🧨 Paozhu</h3> <p align=\"center\">Version ";
                     client<<(PAOZHU_VERSION/100000);
                     client<<".";
                     client<<(PAOZHU_VERSION/100%1000);
                     client<<".";
                     client<<(PAOZHU_VERSION%100);
                     client<<"</p>"; 
+
+                    int isshow = -1;
+                    if(client.get.isset("show_visitinfo"))
+                    {
+                      isshow = client.get["show_visitinfo"].to_int();
+                      server_loaclvar &static_server_var = get_server_global_var();
+                      if(isshow==1&&static_server_var.debug_enable)
+                      {
+                          static_server_var.show_visit_info = true;
+                          client<<"<p>"; 
+                          client<<"online:"<<self->total_count.load();
+                          client<<"</p>"; 
+                      }
+                      else
+                      {
+                          static_server_var.show_visit_info = false;
+                      }
+                      client<<self->clientrunpool.printthreads(true);
+                    }
+
        return ""; };
     _http_regmethod_table.emplace("paozhu_version", std::move(temp));
 
@@ -2123,7 +2117,7 @@ namespace http
         }
         DEBUG_LOG("pool thread:%d", clientrunpool.getpoolthreadnum());
 #ifdef DEBUG
-        clientrunpool.printthreads();
+        clientrunpool.printthreads(false);
 #endif
 
         // save access.log
@@ -2268,6 +2262,10 @@ namespace http
       debug_log::instance().setDebug(!static_server_var.deamon_enable);
       debug_log::instance().setLogfile(static_server_var.log_path);
 
+#ifdef DEBUG
+      static_server_var.show_visit_info = true;
+#endif
+
       _initauto_control_httpmethodregto(_http_regmethod_table);
       _inithttpmethodregto(_http_regmethod_table);
       _inithttpmethodregto_pre(_http_regmethod_table);
@@ -2298,12 +2296,11 @@ namespace http
       std::this_thread::sleep_for(std::chrono::seconds(1));
       std::thread https(std::bind(&httpserver::listeners, this));
       std::thread http(std::bind(&httpserver::listener, this));
-
+      std::thread http2pool(std::bind(&httpserver::http2pool, this, 0));
       for (int i = 0; i < 1; ++i)
       {
         websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));
       }
-      websocketthreads.emplace_back(std::bind(&httpserver::http2pool, this, 0));
 
       if (https.joinable())
       {
@@ -2312,6 +2309,10 @@ namespace http
       if (http.joinable())
       {
         http.join();
+      }
+      if (http2pool.joinable())
+      {
+        http2pool.join();
       }
       for (int i = 0; i < 1; ++i)
       {
