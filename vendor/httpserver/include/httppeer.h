@@ -19,7 +19,7 @@
 #include <cmath>
 #include <thread>
 #include <chrono>
-
+#include <stack>
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -104,6 +104,11 @@ namespace http
     void out_json(OBJ_VALUE &a);
     void out_json();
     void out_jsontype();
+
+    void push_path_method(const std::string &);
+    std::string pop_path_method();
+
+  public:
     std::string host;
     std::string url;
     std::string urlpath;
@@ -156,6 +161,7 @@ namespace http
     std::string output;
     std::string sitepath;
     std::string sendfilename;
+    std::stack<std::string> path_method_names;
     unsigned char sendfiletype;
     unsigned char linktype;
     unsigned char method;

@@ -26,7 +26,6 @@
 #include <cmath>
 #include <thread>
 #include <chrono>
-
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -62,24 +61,24 @@ namespace http
             peer->type("text/html; charset=utf-8");
       }
       void httppeer::send(const std::string &a)
-      {     
-            if(httpv==2)
+      {
+            if (httpv == 2)
             {
                   return;
             }
-            if(socket_session)
+            if (socket_session)
             {
                   socket_session->send_data(a);
-            }  
-      }      
+            }
+      }
       void httppeer::parse_session()
       {
-            //serverconfig &sysconfigpath = getserversysconfig();
+            // serverconfig &sysconfigpath = getserversysconfig();
             if (cookie.check(COOKIE_SESSION_NAME))
             {
                   std::string root_path;
-                  server_loaclvar &localvar=get_server_global_var();
-                  root_path=localvar.temp_path;
+                  server_loaclvar &localvar = get_server_global_var();
+                  root_path = localvar.temp_path;
 
                   std::string sessionfile = cookie.get(COOKIE_SESSION_NAME);
                   if (sessionfile.empty())
@@ -203,10 +202,9 @@ namespace http
                   send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
             }
             std::string root_path;
-            //serverconfig &sysconfigpath = getserversysconfig();
-            server_loaclvar &localvar=get_server_global_var();
-            root_path=localvar.temp_path;      
-            
+            // serverconfig &sysconfigpath = getserversysconfig();
+            server_loaclvar &localvar = get_server_global_var();
+            root_path = localvar.temp_path;
 
             sessionfile.append("_sess");
             root_path.append(sessionfile);
@@ -233,10 +231,10 @@ namespace http
 
             sessionfile = session.to_json();
 
-            ssize_t n=write(fd, sessionfile.data(), sessionfile.size());
-            if(n>0)
+            ssize_t n = write(fd, sessionfile.data(), sessionfile.size());
+            if (n > 0)
             {
-                  n=0;
+                  n = 0;
             }
             lock.l_type = F_UNLCK;
             if (fcntl(fd, F_SETLKW, &lock) == -1)
@@ -245,18 +243,18 @@ namespace http
                   return;
             }
             close(fd);
-            
+
             sessionfile_time = timeid();
       }
       void httppeer::clear_session()
       {
-            //serverconfig &sysconfigpath = getserversysconfig();
+            // serverconfig &sysconfigpath = getserversysconfig();
             if (cookie.check(COOKIE_SESSION_NAME))
             {
                   std::string root_path;
-                  server_loaclvar &localvar=get_server_global_var();
-                  root_path=localvar.temp_path;         
-                  
+                  server_loaclvar &localvar = get_server_global_var();
+                  root_path = localvar.temp_path;
+
                   std::string sessionfile = cookie.get(COOKIE_SESSION_NAME);
                   if (sessionfile.empty())
                   {
@@ -266,7 +264,7 @@ namespace http
                   root_path.append(sessionfile);
 
                   struct stat sessfileinfo;
-                  //unsigned long long tempsesstime = 0;
+                  // unsigned long long tempsesstime = 0;
                   memset(&sessfileinfo, 0, sizeof(sessfileinfo));
                   if (stat(root_path.c_str(), &sessfileinfo) == 0)
                   {
@@ -1111,5 +1109,19 @@ namespace http
       void httppeer::out_jsontype()
       {
             content_type = "application/json";
+      }
+      void httppeer::push_path_method(const std::string &m_name)
+      {
+            path_method_names.push(m_name);
+      }
+      std::string httppeer::pop_path_method()
+      {
+            if (path_method_names.empty())
+            {
+                  return "";
+            }
+            std::string tempmethod = path_method_names.top();
+            path_method_names.pop();
+            return tempmethod;
       }
 }

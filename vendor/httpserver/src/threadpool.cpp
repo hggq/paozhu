@@ -30,7 +30,7 @@
 #include <map>
 #include <thread>
 #include <mutex>
-
+#include <stack>
 #include <condition_variable>
 #include <future>
 #include <functional>
@@ -61,9 +61,9 @@
 namespace http
 {
 
-  std::string  ThreadPool::printthreads(bool is_onlineout)
+  std::string ThreadPool::printthreads(bool is_onlineout)
   {
-    std::string temp_thread,temp_str;
+    std::string temp_thread, temp_str;
     std::ostringstream oss;
     std::unique_lock<std::mutex> lck(livemtx);
     for (auto iter = threadlist.begin(); iter != threadlist.end(); iter++)
@@ -71,18 +71,18 @@ namespace http
       oss.str("");
       oss << iter->first << " isbusy:" << iter->second.busy << " ip:" << (iter->second.ip) << " url:" << iter->second.url;
       temp_thread = oss.str();
-      #ifdef DEBUG
+#ifdef DEBUG
       INFO("[INFO  ] %s", temp_thread.c_str());
-      #endif
-      if(is_onlineout)
+#endif
+      if (is_onlineout)
       {
         temp_str.append(temp_thread);
         temp_str.append("<br/>");
       }
     }
-    #ifdef DEBUG
+#ifdef DEBUG
     INFO("-------------");
-    #endif
+#endif
     return temp_str;
   }
 
@@ -240,7 +240,7 @@ namespace http
   // the constructor just launches some amount of workers
   ThreadPool::ThreadPool(size_t threads) : stop(false)
   {
-    isclose_add=true;
+    isclose_add = true;
     pooltotalnum.store(0);
     livethreadcount.store(0);
     mixthreads.store(32);
@@ -254,7 +254,7 @@ namespace http
       threadlist[tinfo.id] = std::move(tinfo);
       pooltotalnum++;
     }
-    isclose_add=false;
+    isclose_add = false;
   }
 
   // the destructor joins all threads
@@ -277,7 +277,7 @@ namespace http
   //
   bool ThreadPool::addclient(std::shared_ptr<httppeer> peer)
   {
-    if(isclose_add)
+    if (isclose_add)
     {
       return false;
     }
@@ -356,53 +356,40 @@ namespace http
       if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
       {
         std::string sitecontent;
-        if (_http_regmethod_table[regmethold_path].pre != nullptr)
+        for (int i = 0; i < 6; i++)
         {
-          sitecontent = _http_regmethod_table[regmethold_path].pre(peer);
-          if (strcasecmp(sitecontent.c_str(), "ok") == 0)
+          if (i > 0 && _http_regmethod_table.find(regmethold_path) == _http_regmethod_table.end())
           {
+            break;
+          }
+          if (_http_regmethod_table[regmethold_path].pre != nullptr)
+          {
+            sitecontent = _http_regmethod_table[regmethold_path].pre(peer);
+            if (sitecontent.size() == 2 && strcasecmp(sitecontent.c_str(), "ok") == 0)
+            {
+              method_alone.emplace(regmethold_path);
+              sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
+            }
+            else
+            {
+              peer->push_path_method(regmethold_path);
+            }
+          }
+          else
+          {
+            method_alone.emplace(regmethold_path);
             sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
           }
-        }
-        else
-        {
-          sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
-        }
 
-        if (sitecontent.size() > 2 && _http_regmethod_table.find(sitecontent) != _http_regmethod_table.end())
-        {
-          method_alone.emplace(sitecontent);
-          // Flow max executed 5 times
-          for (int i = 0; i < 5; i++)
+          if (sitecontent.empty())
           {
-            if (_http_regmethod_table[sitecontent].pre != nullptr)
-            {
-              sitecontent = _http_regmethod_table[sitecontent].pre(peer);
-              if (strcasecmp(sitecontent.c_str(), "ok") == 0)
-              {
-                sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
-              }
-            }
-            else
-            {
-              sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
-            }
-            if (sitecontent.empty() || sitecontent.size() < 3)
-            {
-              break;
-            }
-            if (_http_regmethod_table.find(sitecontent) == _http_regmethod_table.end())
-            {
-              break;
-            }
-            if (method_alone.find(sitecontent) != method_alone.end())
-            {
-              method_alone.emplace(sitecontent);
-            }
-            else
-            {
-              break;
-            }
+            break;
+          }
+
+          regmethold_path = sitecontent;
+          if (method_alone.contains(regmethold_path))
+          {
+            break;
           }
         }
       }
@@ -457,10 +444,10 @@ namespace http
             {
               regmethold_path = "home";
             }
-
             auto sitemodloadis = loadcontrol(moduleso, regmethold_path);
             std::string sitecontent = sitemodloadis(peer);
             peer->isso = false;
+
             if (sitecontent.size() > 2 && _http_regmethod_table.find(sitecontent) != _http_regmethod_table.end())
             {
 
