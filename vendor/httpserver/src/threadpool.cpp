@@ -226,8 +226,8 @@ namespace http
     for (size_t i = 0; i < threads; ++i)
     {
       struct threadinfo_t tinfo;
-      tinfo.thread = std::thread(
-          std::bind(&ThreadPool::threadloop, this, pooltotalnum.load()));
+      // tinfo.thread = std::thread(
+      //     std::bind(&ThreadPool::threadloop, this, pooltotalnum.load()));
       tinfo.thread = std::thread(&ThreadPool::threadloop, this, pooltotalnum.load());
       std::thread::id temp = tinfo.thread.get_id();
       tinfo.id = temp;

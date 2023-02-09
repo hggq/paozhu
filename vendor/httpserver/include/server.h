@@ -124,8 +124,8 @@ namespace http
     std::queue<httpsocket_t> tasks;
     // std::queue<std::shared_ptr<client_session>> tasks;
     // std::list<std::shared_ptr<chat_room>> clientlist;
-    std::mutex headqueue_mutex;
-    std::condition_variable headqueue_condition;
+    // std::mutex headqueue_mutex;
+    // std::condition_variable headqueue_condition;
     bool stop;
     std::atomic_uint total_count = 0;
     // httpheader end

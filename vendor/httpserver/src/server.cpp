@@ -2079,7 +2079,7 @@ namespace http
                             isshow=0;
                             for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                             {
-                              client<<" [link"<<std::to_string(isshow)<<" select:"<<std::to_string(iter->second.select_current_num);
+                              client<<" [db:"<<iter->second.select_link.db<<" select:"<<std::to_string(iter->second.select_current_num);
                               client<<" edit:"<<std::to_string(iter->second.edit_current_num);
                               ++isshow;
                             }
