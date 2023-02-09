@@ -378,6 +378,10 @@ namespace http
             }
             else
             {
+              if (sitecontent.empty())
+              {
+                break;
+              }
               if (regmethold_path != sitecontent)
               {
                 peer->push_path_method(regmethold_path); // record not execute method
