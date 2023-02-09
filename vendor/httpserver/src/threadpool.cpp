@@ -364,6 +364,12 @@ namespace http
           }
           if (_http_regmethod_table[regmethold_path].pre != nullptr)
           {
+            sitecontent=regmethold_path;
+            sitecontent.append("pre");
+            if (method_alone.contains(sitecontent))
+            {
+              break;
+            }
             sitecontent = _http_regmethod_table[regmethold_path].pre(peer);
             if (sitecontent.size() == 2 && strcasecmp(sitecontent.c_str(), "ok") == 0)
             {
@@ -374,6 +380,8 @@ namespace http
             {
               peer->push_path_method(regmethold_path);
             }
+            regmethold_path.append("pre");
+            method_alone.emplace(regmethold_path);
           }
           else
           {
