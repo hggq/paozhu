@@ -2304,7 +2304,7 @@ namespace http
   {
     try
     {
-      stop=true;
+      stop=false;
       serverconfig &sysconfigpath = getserversysconfig();
       sysconfigpath.init_path();
       if (sysconfigpath.configfile.empty())
@@ -2364,7 +2364,7 @@ namespace http
       {
         websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));
       }
-      stop=false;
+      
       if (https.joinable())
       {
         https.join();
