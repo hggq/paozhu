@@ -18,6 +18,7 @@ namespace http
       bool debug_enable = false;
       bool deamon_enable = true;
       bool show_visit_info = false;
+      std::string reboot_password;
       std::string www_path;
       std::string config_path;
       std::map<std::string, std::map<std::string, std::string>> map_value;

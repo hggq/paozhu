@@ -770,11 +770,16 @@ namespace http
             output.append(std::to_string(a));
             return *this;
       }
-      httppeer &httppeer::operator<<(long long a)
+      httppeer &httppeer::operator<<(unsigned long a)
       {
             output.append(std::to_string(a));
             return *this;
       }
+      httppeer &httppeer::operator<<(long long a)
+      {
+            output.append(std::to_string(a));
+            return *this;
+      }      
       httppeer &httppeer::operator<<(float a)
       {
             output.append(std::to_string(a));

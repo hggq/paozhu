@@ -7,7 +7,7 @@ int main(int argc, char* argv[])
 
   try
   {
-    http::httpserver httpmy;
+    http::httpserver &httpmy=http::get_server_app();
     std::string argv_str;
     if(argc>1){
       //server.conf filepath or confpath

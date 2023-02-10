@@ -1,5 +1,6 @@
-#ifndef PROJECT_FUNC_H
-#define PROJECT_FUNC_H
+#pragma once
+#ifndef _PROJECT_FUNC_H
+#define _PROJECT_FUNC_H
 
 #include <iostream>
 #include <list>

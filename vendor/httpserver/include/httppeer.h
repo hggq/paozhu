@@ -88,6 +88,7 @@ namespace http
     httppeer &operator<<(unsigned int a);
     httppeer &operator<<(int a);
     httppeer &operator<<(unsigned long long a);
+    httppeer &operator<<(unsigned long a);
     httppeer &operator<<(long long a);
     httppeer &operator<<(float a);
     httppeer &operator<<(double a);

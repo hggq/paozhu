@@ -94,9 +94,7 @@ int main(int argc, char *argv[])
 
     try
     {
-      http::httpserver httpmy;
- 
-
+      http::httpserver &httpmy=http::get_server_app();
       httpmy.run(argv_str);
     }
     catch (std::exception &e)

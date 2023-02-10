@@ -42,7 +42,11 @@ namespace fs = std::filesystem;
 
 namespace http
 {
-
+  httpserver &get_server_app()
+  {
+    static httpserver instance;
+    return instance;
+  }
   bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
   {
     std::string _send_header;
@@ -917,7 +921,7 @@ namespace http
       {
         std::unique_lock<std::mutex> lock(this->http2_task_mutex);
         this->http2condition.wait(lock, [this]
-                                  { return !this->http2send_tasks.empty(); });
+                                  { return this->stop||!this->http2send_tasks.empty(); });
       }
 
       const std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
@@ -955,6 +959,10 @@ namespace http
       if (tmp < 20)
       {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+      if(stop)
+      {
+        break;
       }
     }
   }
@@ -1783,6 +1791,10 @@ namespace http
       std::this_thread::sleep_until(m_EndFrame);
       m_BeginFrame = m_EndFrame;
       m_EndFrame = m_BeginFrame + invFpsLimit;
+      if(stop)
+      {
+        break;
+      }
     }
   }
   asio::awaitable<void> httpserver::sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &context_, unsigned long long temp_domain)
@@ -1969,6 +1981,10 @@ namespace http
       catch (std::exception &e)
       {
       }
+      if(stop)
+      {
+        break;
+      }
     }
   }
   void httpserver::listener()
@@ -2020,6 +2036,10 @@ namespace http
         std::unique_lock<std::mutex> lock(log_mutex);
         error_loglist.emplace_back(" http accept error  ");
         lock.unlock();
+      }
+      if(stop)
+      {
+        break;
       }
     }
   }
@@ -2274,12 +2294,17 @@ namespace http
         DEBUG_LOG("frame thread:%s", e.what());
         catch_num += 1;
       }
+      if(stop)
+      {
+        break;
+      }
     }
   }
   void httpserver::run(const std::string &sysconfpath)
   {
     try
     {
+      stop=true;
       serverconfig &sysconfigpath = getserversysconfig();
       sysconfigpath.init_path();
       if (sysconfigpath.configfile.empty())
@@ -2339,7 +2364,7 @@ namespace http
       {
         websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));
       }
-
+      stop=false;
       if (https.joinable())
       {
         https.join();

@@ -31,13 +31,79 @@ namespace http
         std::string temp(timestr);
         return temp;
     }
-    unsigned long rand_range(int a, int b)
+    unsigned long rand_range(unsigned int a, unsigned int b)
     {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<unsigned int> distrib(a, b);
 
         return distrib(gen);
+    }
+    std::string rand_string(unsigned int a, unsigned char isupper)
+    {
+        const char strrand[] = {"0123456789abcdefghijkmnpqrstuvwxyABCDEFGHJKLMNPQRSTUVWXY"};
+        const char strrand_pure[] = {"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"};
+        std::string temp;
+
+        switch (isupper)
+        {
+        case 0:
+            srand((int)time(NULL));
+            temp.resize(a);
+            for (unsigned int i = 0; i < a; i++)
+            {
+                unsigned char ta = ((rand() % (56 - 0)) + 0);
+                temp[i] = strrand[ta];
+            }
+            break;
+        case 1:
+            srand((int)time(NULL));
+            temp.resize(a);
+            for (unsigned int i = 0; i < a; i++)
+            {
+                unsigned char ta = ((rand() % (36 - 0)) + 0);
+                temp[i] = strrand_pure[ta];
+            }
+            break;
+        case 2:
+            srand((int)time(NULL));
+            temp.resize(a);
+            for (unsigned int i = 0; i < a; i++)
+            {
+                unsigned char ta = ((rand() % (26 - 0)) + 0) + 10;
+                temp[i] = strrand_pure[ta];
+            }
+            break;
+        case 3:
+            srand((int)time(NULL));
+            temp.resize(a);
+            for (unsigned int i = 0; i < a; i++)
+            {
+                unsigned char ta = ((rand() % (26 - 0)) + 0) + 36;
+                temp[i] = strrand_pure[ta];
+            }
+            break;
+        case 4:
+            srand((int)time(NULL));
+            temp.resize(a);
+            for (unsigned int i = 0; i < a; i++)
+            {
+                unsigned char ta = ((rand() % (10 - 0)) + 0);
+                temp[i] = strrand[ta];
+            }
+            break;
+        default:
+            srand((int)time(NULL));
+            temp.resize(a);
+            for (unsigned int i = 0; i < a; i++)
+            {
+                unsigned char ta = ((rand() % (56 - 0)) + 0);
+                temp[i] = strrand[ta];
+            }
+            break;
+        }
+
+        return temp;
     }
 
     unsigned long timeid()
@@ -247,7 +313,7 @@ namespace http
     unsigned long strtotime(const std::string &str)
     {
         unsigned long temp = 0;
-        unsigned char i=0x00;
+        unsigned char i = 0x00;
         tm datetime;
         char tc[4] = {0x00};
 
