@@ -69,6 +69,11 @@ namespace http
     void save_session();
     void clear_session();
 
+    void parse_session_file(std::string &sessionfile_id);
+    void parse_session_memory(std::string &sessionfile_id);
+    void save_session_memory(std::string &sessionfile);
+    void save_session_file(std::string &sessionfile);
+
     void view(const std::string &a);
     void view(const std::string &a, OBJ_VALUE &b);
     std::string fetchview(const std::string &a);

@@ -49,6 +49,7 @@
 #include "viewmethold_reg.h"
 #include "debug_log.h"
 #include "server_localvar.h"
+#include "pzcache.h"
 namespace http
 {
 
@@ -71,15 +72,93 @@ namespace http
                   socket_session->send_data(a);
             }
       }
+      void httppeer::parse_session_file(std::string &sessionfile)
+      {
+            std::string root_path;
+            server_loaclvar &localvar = get_server_global_var();
+            root_path = localvar.temp_path;
+            sessionfile.append("_sess");
+            root_path.append(sessionfile);
+
+            struct stat sessfileinfo;
+            unsigned long long tempsesstime = 0;
+            unsigned long long vistsesstime = 0;
+            memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+            if (stat(root_path.c_str(), &sessfileinfo) == 0)
+            {
+                  if (sessfileinfo.st_mode & S_IFREG)
+                  {
+                        tempsesstime = sessfileinfo.st_mtime;
+                        vistsesstime = sessfileinfo.st_atime;
+                  }
+            }
+
+            unsigned long long reseetime = timeid();
+
+            if (reseetime > (vistsesstime + 5400))
+            {
+                  sessionfile = cookie.get(COOKIE_SESSION_NAME);
+                  cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
+                  send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
+            }
+
+            if (tempsesstime > 0 && tempsesstime == sessionfile_time)
+            {
+                  return;
+            }
+            int fd = open(root_path.c_str(), O_RDONLY);
+            if (fd == -1)
+            {
+                  // perror("open");
+                  return;
+            }
+
+            // 锁住整个文件
+            struct flock lock = {};
+            lock.l_type = F_RDLCK;
+            lock.l_whence = 0;
+            lock.l_start = 0;
+            lock.l_len = 0;
+
+            lock.l_pid = 0;
+
+            if (fcntl(fd, F_SETLKW, &lock) == -1)
+            {
+                  return;
+            }
+            int filelen = lseek(fd, 0L, SEEK_END);
+            sessionfile.clear();
+            sessionfile.resize(filelen);
+            lseek(fd, 0L, SEEK_SET);
+            int readsize = read(fd, sessionfile.data(), filelen);
+            if (readsize > 0)
+            {
+                  sessionfile.resize(readsize);
+                  session.from_json(sessionfile);
+            }
+
+            lock.l_type = F_UNLCK;
+            if (fcntl(fd, F_SETLKW, &lock) == -1)
+            {
+
+                  return;
+            }
+            close(fd);
+            sessionfile_time = tempsesstime;
+      }
+      void httppeer::parse_session_memory(std::string &sessionfile_id)
+      {
+            pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
+            std::size_t cache_hashid = std::hash<std::string>{}(sessionfile_id);
+            temp_cache.update(cache_hashid, 3600);
+            session = temp_cache.get(cache_hashid);
+      }
       void httppeer::parse_session()
       {
-            // serverconfig &sysconfigpath = getserversysconfig();
+
             if (cookie.check(COOKIE_SESSION_NAME))
             {
-                  std::string root_path;
                   server_loaclvar &localvar = get_server_global_var();
-                  root_path = localvar.temp_path;
-
                   std::string sessionfile = cookie.get(COOKIE_SESSION_NAME);
                   if (sessionfile.empty())
                   {
@@ -90,81 +169,27 @@ namespace http
                         if (sessionfile[i] == '/')
                         {
                               cookie[COOKIE_SESSION_NAME] = "";
+                              send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
                               return;
                         }
                   }
-                  sessionfile.append("_sess");
-                  root_path.append(sessionfile);
-
-                  struct stat sessfileinfo;
-                  unsigned long long tempsesstime = 0;
-                  unsigned long long vistsesstime = 0;
-                  memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                  if (stat(root_path.c_str(), &sessfileinfo) == 0)
+                  switch (localvar.session_type)
                   {
-                        if (sessfileinfo.st_mode & S_IFREG)
-                        {
-                              tempsesstime = sessfileinfo.st_mtime;
-                              vistsesstime = sessfileinfo.st_atime;
-                        }
+                  case 0:
+                        parse_session_file(sessionfile);
+                        break;
+                  case 1:
+                        parse_session_memory(sessionfile);
+                        break;
+                  default:
+                        parse_session_file(sessionfile);
+                        break;
                   }
-
-                  unsigned long long reseetime = timeid();
-
-                  if (reseetime > (vistsesstime + 5400))
-                  {
-                        sessionfile = cookie.get(COOKIE_SESSION_NAME);
-                        cookie.set("CPPSESSID", sessionfile, 7200, "/", host);
-                        send_cookie.set("CPPSESSID", sessionfile, 7200, "/", host);
-                  }
-
-                  if (tempsesstime > 0 && tempsesstime == sessionfile_time)
-                  {
-                        return;
-                  }
-                  int fd = open(root_path.c_str(), O_RDONLY);
-                  if (fd == -1)
-                  {
-                        // perror("open");
-                        return;
-                  }
-
-                  // 锁住整个文件
-                  struct flock lock = {};
-                  lock.l_type = F_RDLCK;
-                  lock.l_whence = 0;
-                  lock.l_start = 0;
-                  lock.l_len = 0;
-
-                  lock.l_pid = 0;
-
-                  if (fcntl(fd, F_SETLKW, &lock) == -1)
-                  {
-                        return;
-                  }
-                  int filelen = lseek(fd, 0L, SEEK_END);
-                  sessionfile.clear();
-                  sessionfile.resize(filelen);
-                  lseek(fd, 0L, SEEK_SET);
-                  int readsize = read(fd, sessionfile.data(), filelen);
-                  if (readsize > 0)
-                  {
-                        sessionfile.resize(readsize);
-                        session.from_json(sessionfile);
-                  }
-
-                  lock.l_type = F_UNLCK;
-                  if (fcntl(fd, F_SETLKW, &lock) == -1)
-                  {
-
-                        return;
-                  }
-                  close(fd);
-                  sessionfile_time = tempsesstime;
             }
       }
       void httppeer::save_session()
       {
+            server_loaclvar &localvar = get_server_global_var();
             std::string sessionfile;
             if (cookie.check(COOKIE_SESSION_NAME))
             {
@@ -201,6 +226,24 @@ namespace http
                   cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
                   send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
             }
+            if (localvar.session_type == 1)
+            {
+                  save_session_memory(sessionfile);
+            }
+            else
+            {
+                  save_session_file(sessionfile);
+            }
+      }
+      void httppeer::save_session_memory(std::string &sessionfile)
+      {
+            pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
+            std::size_t cache_hashid = std::hash<std::string>{}(sessionfile);
+            temp_cache.save(cache_hashid, session, 3600, true);
+      }
+      void httppeer::save_session_file(std::string &sessionfile)
+      {
+
             std::string root_path;
             // serverconfig &sysconfigpath = getserversysconfig();
             server_loaclvar &localvar = get_server_global_var();
@@ -260,6 +303,14 @@ namespace http
                   {
                         return;
                   }
+                  if (localvar.session_type == 1)
+                  {
+                        pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
+                        std::size_t cache_hashid = std::hash<std::string>{}(sessionfile);
+                        temp_cache.remove(cache_hashid);
+                        return;
+                  }
+
                   sessionfile.append("_sess");
                   root_path.append(sessionfile);
 
@@ -779,7 +830,7 @@ namespace http
       {
             output.append(std::to_string(a));
             return *this;
-      }      
+      }
       httppeer &httppeer::operator<<(float a)
       {
             output.append(std::to_string(a));

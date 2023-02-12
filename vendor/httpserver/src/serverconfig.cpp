@@ -15,8 +15,8 @@ namespace http
     {
         std::map<std::string, std::map<std::string, std::string>> sys_config;
         std::map<std::string, std::string> itemconfig;
-        //FILE *f = fopen(filename.c_str(), "rb");
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(filename.c_str(), "rb"),&std::fclose);
+        // FILE *f = fopen(filename.c_str(), "rb");
+        std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(filename.c_str(), "rb"), &std::fclose);
         if (f == nullptr)
         {
             return sys_config;
@@ -30,7 +30,7 @@ namespace http
 
         auto nread = fread(&s[0], 1, size, f.get());
         s.resize(nread);
-        //fclose(f);
+        // fclose(f);
 
         bool readkey = false;
         bool isvalue = false;
@@ -137,7 +137,7 @@ namespace http
     }
     std::string serverconfig::getsitepath(const std::string &host)
     {
-    
+
         std::string sitepath;
         bool isnothost = true;
 
@@ -241,7 +241,6 @@ namespace http
             sitepath.push_back('/');
         }
         return sitepath;
-
     }
     void serverconfig::init_path()
     {
@@ -249,7 +248,7 @@ namespace http
         {
             std::string currentpath;
             fs::path cpath = fs::current_path();
-            
+
             currentpath = cpath.string();
             currentpath = currentpath + "/conf";
 
@@ -300,7 +299,6 @@ namespace http
                     }
                 }
             }
-            
         }
         else
         {
@@ -330,7 +328,6 @@ namespace http
                     configfile.clear();
                 }
             }
-
         }
         if (configfile.size() > 0)
         {
@@ -338,10 +335,9 @@ namespace http
             configpath = configfile.substr(0, found);
             configpath.push_back('/');
         }
-        server_loaclvar &static_server_var=get_server_global_var();
-        static_server_var.config_path=configpath;
+        server_loaclvar &static_server_var = get_server_global_var();
+        static_server_var.config_path = configpath;
         loadserverglobalconfig();
-
     }
     bool serverconfig::loadserverglobalconfig()
     {
@@ -377,7 +373,7 @@ namespace http
                 }
             }
         }
-        if (map_value["default"]["http2_enable"].size()>0&&map_value["default"]["http2_enable"][0] == '1')
+        if (map_value["default"]["http2_enable"].size() > 0 && map_value["default"]["http2_enable"][0] == '1')
         {
             isallnothttp2 = false;
         }
@@ -385,18 +381,18 @@ namespace http
         {
             isallnothttp2 = true;
         }
-        server_loaclvar &static_server_var=get_server_global_var();
-        static_server_var.http2_enable=isallnothttp2;
+        server_loaclvar &static_server_var = get_server_global_var();
+        static_server_var.http2_enable = isallnothttp2;
 
-        if (map_value["default"]["controlsopath"].size()>0)
+        if (map_value["default"]["controlsopath"].size() > 0)
         {
-            static_server_var.control_so_path=map_value["default"]["controlsopath"];
+            static_server_var.control_so_path = map_value["default"]["controlsopath"];
         }
-        if (map_value["default"]["viewsopath"].size()>0)
+        if (map_value["default"]["viewsopath"].size() > 0)
         {
-            static_server_var.view_so_path=map_value["default"]["viewsopath"];
+            static_server_var.view_so_path = map_value["default"]["viewsopath"];
         }
-        if (map_value["default"]["debug_enable"].size()>0&&map_value["default"]["debug_enable"][0] == '1')
+        if (map_value["default"]["debug_enable"].size() > 0 && map_value["default"]["debug_enable"][0] == '1')
         {
             static_server_var.debug_enable = true;
         }
@@ -404,7 +400,7 @@ namespace http
         {
             static_server_var.debug_enable = false;
         }
-        if (map_value["default"]["deamon_enable"].size()>0&&map_value["default"]["deamon_enable"][0] == '1')
+        if (map_value["default"]["deamon_enable"].size() > 0 && map_value["default"]["deamon_enable"][0] == '1')
         {
             static_server_var.deamon_enable = true;
         }
@@ -413,7 +409,7 @@ namespace http
             static_server_var.deamon_enable = false;
         }
 
-        if (map_value["default"]["show_visitinfo"].size()>0&&map_value["default"]["show_visitinfo"][0] == '1')
+        if (map_value["default"]["show_visitinfo"].size() > 0 && map_value["default"]["show_visitinfo"][0] == '1')
         {
             static_server_var.show_visit_info = true;
         }
@@ -421,42 +417,59 @@ namespace http
         {
             static_server_var.show_visit_info = false;
         }
+        if (map_value["default"]["session_type"].size() > 0)
+        {
+            switch (map_value["default"]["session_type"][0])
+            {
+            case '1':
+                static_server_var.session_type = 1;
+                break;
+            default:
+                static_server_var.session_type = 0;
+            }
+        }
+        else
+        {
+            static_server_var.session_type = 0;
+        }
 
-         static_server_var.map_value=map_value;
-         static_server_var.www_path=map_value["default"]["wwwpath"];
-         static_server_var.temp_path=map_value["default"]["temppath"];
-         static_server_var.log_path=map_value["default"]["logpath"];
-         mainhost=map_value["default"]["mainhost"];
-        if (mainhost.size()>3&&mainhost[0] == 'w' && mainhost[1] == 'w' && mainhost[2] == 'w' && mainhost[3] == '.')
+        static_server_var.map_value = map_value;
+        static_server_var.www_path = map_value["default"]["wwwpath"];
+        static_server_var.temp_path = map_value["default"]["temppath"];
+        static_server_var.log_path = map_value["default"]["logpath"];
+        mainhost = map_value["default"]["mainhost"];
+        if (mainhost.size() > 3 && mainhost[0] == 'w' && mainhost[1] == 'w' && mainhost[2] == 'w' && mainhost[3] == '.')
         {
             secondhost.clear();
             if (mainhost.size() > 4)
             {
                 secondhost.append(&mainhost[4], mainhost.size() - 4);
             }
-        }else{
-             if(mainhost.empty())
+        }
+        else
+        {
+            if (mainhost.empty())
             {
-                mainhost="localhost";
+                mainhost = "localhost";
             }
             else
             {
-                secondhost="www.";
+                secondhost = "www.";
                 secondhost.append(mainhost);
             }
         }
-         if(static_server_var.www_path.size()>0&&static_server_var.www_path.back()!='/')
-         {
+        if (static_server_var.www_path.size() > 0 && static_server_var.www_path.back() != '/')
+        {
             static_server_var.www_path.push_back('/');
-         }
-        if(static_server_var.temp_path.size()>0&&static_server_var.temp_path.back()!='/')
-         {
+        }
+        if (static_server_var.temp_path.size() > 0 && static_server_var.temp_path.back() != '/')
+        {
             static_server_var.temp_path.push_back('/');
-         }  
-        if(static_server_var.log_path.size()>0&&static_server_var.log_path.back()!='/')
-         {
+        }
+        if (static_server_var.log_path.size() > 0 && static_server_var.log_path.back() != '/')
+        {
             static_server_var.log_path.push_back('/');
-         }       
+        }
         return true;
     }
     bool serverconfig::checkmaindomain(const char *servername)

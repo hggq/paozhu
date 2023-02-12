@@ -286,7 +286,7 @@ namespace http
         }
         else if (file_size > 1048576)
         {
-          if (m < 20096&&peer->socket_session->window_update_num < 1048576)
+          if (m < 20096 && peer->socket_session->window_update_num < 1048576)
           {
             std::this_thread::sleep_for(std::chrono::nanoseconds(512));
           }
@@ -566,15 +566,14 @@ namespace http
 
         if (file_size > 10485760)
         {
-          if(peer->socket_session->window_update_num < 1048576)
+          if (peer->socket_session->window_update_num < 1048576)
           {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
           }
-
         }
         else if (file_size > 1048576)
         {
-          if (m < 10096&&peer->socket_session->window_update_num < 1048576)
+          if (m < 10096 && peer->socket_session->window_update_num < 1048576)
           {
             std::this_thread::sleep_for(std::chrono::nanoseconds(512));
           }
@@ -748,10 +747,7 @@ namespace http
       {
         DEBUG_LOG("htttp2 pool in");
 
-        if (peer->cookie.check(COOKIE_SESSION_NAME))
-        {
-          peer->parse_session();
-        }
+        peer->parse_session();
         peer->status(200);
 
         peer->type("text/html; charset=utf-8");
@@ -921,7 +917,7 @@ namespace http
       {
         std::unique_lock<std::mutex> lock(this->http2_task_mutex);
         this->http2condition.wait(lock, [this]
-                                  { return this->stop||!this->http2send_tasks.empty(); });
+                                  { return this->stop || !this->http2send_tasks.empty(); });
       }
 
       const std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
@@ -960,7 +956,7 @@ namespace http
       {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
-      if(stop)
+      if (stop)
       {
         break;
       }
@@ -1282,10 +1278,7 @@ namespace http
       DEBUG_LOG("---  http1 pool pre --------");
       peer->linktype = 0;
 
-      if (peer->cookie.check(COOKIE_SESSION_NAME))
-      {
-        peer->parse_session();
-      }
+      peer->parse_session();
       std::promise<int> p;
       std::future<int> f = p.get_future();
       peer->loopresults.emplace_back(std::move(f));
@@ -1791,7 +1784,7 @@ namespace http
       std::this_thread::sleep_until(m_EndFrame);
       m_BeginFrame = m_EndFrame;
       m_EndFrame = m_BeginFrame + invFpsLimit;
-      if(stop)
+      if (stop)
       {
         break;
       }
@@ -1981,7 +1974,7 @@ namespace http
       catch (std::exception &e)
       {
       }
-      if(stop)
+      if (stop)
       {
         break;
       }
@@ -2037,7 +2030,7 @@ namespace http
         error_loglist.emplace_back(" http accept error  ");
         lock.unlock();
       }
-      if(stop)
+      if (stop)
       {
         break;
       }
@@ -2294,7 +2287,7 @@ namespace http
         DEBUG_LOG("frame thread:%s", e.what());
         catch_num += 1;
       }
-      if(stop)
+      if (stop)
       {
         break;
       }
@@ -2304,7 +2297,7 @@ namespace http
   {
     try
     {
-      stop=false;
+      stop = false;
       serverconfig &sysconfigpath = getserversysconfig();
       sysconfigpath.init_path();
       if (sysconfigpath.configfile.empty())
@@ -2364,7 +2357,7 @@ namespace http
       {
         websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));
       }
-      
+
       if (https.joinable())
       {
         https.join();
