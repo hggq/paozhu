@@ -121,11 +121,9 @@ namespace http
     std::vector<std::thread> runthreads;
     std::vector<std::thread> websocketthreads;
     std::list<std::weak_ptr<httppeer>> websockettasks;
+    std::list<std::pair<std::size_t,std::shared_ptr<httppeer>>> clientlooptasks;
     std::queue<httpsocket_t> tasks;
-    // std::queue<std::shared_ptr<client_session>> tasks;
-    // std::list<std::shared_ptr<chat_room>> clientlist;
-    // std::mutex headqueue_mutex;
-    // std::condition_variable headqueue_condition;
+ 
     bool stop;
     std::atomic_uint total_count = 0;
     // httpheader end
@@ -147,5 +145,6 @@ namespace http
     const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32, 0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};
   };
   httpserver &get_server_app();
+  void add_server_timetask(std::shared_ptr<httppeer>);
 }
 #endif

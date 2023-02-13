@@ -47,6 +47,10 @@ namespace http
     static httpserver instance;
     return instance;
   }
+  void add_server_timetask(std::size_t keyname, std::shared_ptr<httppeer> peer)
+  {
+    get_server_app().clientlooptasks.push_back({keyname, peer});
+  }
   bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
   {
     std::string _send_header;
@@ -1735,11 +1739,11 @@ namespace http
     unsigned int fps = 0;
     for (;;)
     {
-      if (this->websockettasks.empty())
+      if (this->websockettasks.empty() && this->clientlooptasks.empty())
       {
         std::unique_lock<std::mutex> lock(this->websocket_task_mutex);
         this->websocketcondition.wait(lock, [this]
-                                      { return this->stop || !this->websockettasks.empty(); });
+                                      { return this->stop || !this->websockettasks.empty() || !this->clientlooptasks.empty(); });
       }
 
       auto time_in_seconds = time_point_cast<seconds>(system_clock::now());
@@ -1780,11 +1784,34 @@ namespace http
               websockettasks.erase(iter++);
             }
           }
-          catch (std::exception &e)
+          catch (...)
           {
             websockettasks.erase(iter++);
           }
         }
+        for (auto iter = clientlooptasks.begin(); iter != clientlooptasks.end();)
+        {
+          try
+          {
+            if (iter->second->timeloop_num > 0 && (fps % iter->second->timeloop_num) == 0)
+            {
+              clientrunpool.addclient(iter->second);
+            }
+            if (iter->second->timecount_num == 0 || iter->second->timeloop_num == 0)
+            {
+              clientlooptasks.erase(iter++);
+            }
+            else
+            {
+              ++iter;
+            }
+          }
+          catch (...)
+          {
+            clientlooptasks.clear();
+          }
+        }
+
         if (fps > 31536000)
         {
           fps = 1;
@@ -2122,6 +2149,51 @@ namespace http
 
        return ""; };
     _http_regmethod_table.emplace("paozhu_status", std::move(temp));
+    temp.pre = nullptr;
+    temp.regfun = [self = this](std::shared_ptr<httppeer> peer) -> std::string
+    {
+      if (peer->linktype != 7)
+      {
+        return "";
+      }
+      if (peer->pathinfos.size() > 0 && peer->etag.size() > 0)
+      {
+        std::string temptaskhash = peer->pathinfos[0];
+        temptaskhash.append(peer->url);
+        std::size_t temp_name_id = std::hash<std::string>{}(temptaskhash);
+        std::ostringstream oss;
+        oss << temp_name_id;
+        temptaskhash = oss.str();
+
+        if (temptaskhash == peer->etag)
+        {
+          bool isintask = true;
+          for (auto iter = self->clientlooptasks.begin(); iter != self->clientlooptasks.end();)
+          {
+            if (iter->first == temp_name_id)
+            {
+              isintask = false;
+              break;
+            }
+          }
+          if (isintask)
+          {
+            // std::shared_ptr<httppeer> peertemp = std::make_shared<httppeer>();
+            // peertemp->url=peer->url;
+            // peertemp->pathinfos=peer->pathinfos;
+            // peertemp->get=peer->get;
+            // peertemp->timeloop_num=peer->timeloop_num;
+            // peertemp->timecount_num=peer->timecount_num;
+            // peertemp->linktype=peer->linktype;
+            // peertemp->etag=peer->etag;
+            self->clientlooptasks.push_back({temp_name_id, peer});
+            self->websocketcondition.notify_one();
+          }
+        }
+      }
+      return "";
+    };
+    _http_regmethod_table.emplace("frametasks_timeloop", std::move(temp));
 
     clientapi *pn = clientapi::instance();
 

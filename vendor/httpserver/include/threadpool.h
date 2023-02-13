@@ -14,7 +14,7 @@
 #include <iostream>
 #include <string>
 #include <asio.hpp>
-//#include <asio/ssl.hpp>
+// #include <asio/ssl.hpp>
 #include <thread>
 #include <cstdlib>
 #include <fstream>
@@ -79,16 +79,21 @@ namespace http
     bool addthread(size_t);
     bool addclient(std::shared_ptr<httppeer>);
     void http_clientrun(std::shared_ptr<httppeer>);
+    void timetasks_run(std::shared_ptr<httppeer>);
     void http_websocketsrun(std::shared_ptr<httppeer>);
     bool fixthread();
     unsigned int getpoolthreadnum();
     std::string printthreads(bool);
     unsigned int getlivenum() { return livethreadcount.load(); };
-    unsigned int gettasknum() { return 0; clienttasks.size(); };
+    unsigned int gettasknum()
+    {
+      return 0;
+      clienttasks.size();
+    };
     unsigned int getmixthreads() { return mixthreads.load(); };
 
     ~ThreadPool();
-    std::string name; //测试共享
+    std::string name; // 测试共享
   private:
     // need to keep track of threads so we can join them
     std::vector<std::thread> workers;
@@ -99,11 +104,10 @@ namespace http
     std::mutex queue_mutex, livemtx;
     std::condition_variable condition;
     bool stop;
-    bool isclose_add=true;
+    bool isclose_add = true;
     std::map<std::thread::id, struct threadinfo_t> threadlist;
     std::atomic<unsigned int> pooltotalnum, mixthreads;
     std::atomic<unsigned int> livethreadcount;
-
   };
 
 }

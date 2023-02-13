@@ -61,6 +61,46 @@ namespace http
             peer->status(404);
             peer->type("text/html; charset=utf-8");
       }
+      void httppeer::clear_timeloop_task()
+      {
+            timeloop_num = 0;
+      }
+      unsigned int httppeer::get_timeloop_count()
+      {
+            return timecount_num;
+      }
+      void httppeer::add_timeloop_count(unsigned int a)
+      {
+            if (a == 0)
+            {
+                  timecount_num = 0;
+            }
+            else
+            {
+                  timecount_num++;
+            }
+      }
+      unsigned char httppeer::add_timeloop_task(const std::string &path_method, unsigned int count_id)
+      {
+            linktype = 7;
+            timeloop_num = count_id;
+            timecount_num = 1;
+            if (pathinfos.size() == 0)
+            {
+                  pathinfos.push_back(path_method);
+            }
+            else
+            {
+                  pathinfos[0] = path_method;
+            }
+            std::string temptaskhash = path_method;
+            temptaskhash.append(url);
+            std::size_t temp_name_id = std::hash<std::string>{}(temptaskhash);
+            std::ostringstream oss;
+            oss << temp_name_id;
+            etag = oss.str();
+            return linktype;
+      }
       void httppeer::send(const std::string &a)
       {
             if (httpv == 2)

@@ -113,6 +113,10 @@ namespace http
 
     void push_path_method(const std::string &);
     std::string pop_path_method();
+    unsigned char add_timeloop_task(const std::string &, unsigned int);
+    void clear_timeloop_task();
+    unsigned int get_timeloop_count();
+    void add_timeloop_count(unsigned int a=1);
 
   public:
     std::string host;
@@ -149,6 +153,8 @@ namespace http
     unsigned char compress;
     unsigned int stream_id = 0;
     unsigned int status_code = 0;
+    unsigned int timeloop_num = 0;
+    unsigned int timecount_num = 0;
     unsigned long long content_length = 0;
 
     struct headstate_t state;

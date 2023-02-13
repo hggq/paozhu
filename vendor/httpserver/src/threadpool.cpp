@@ -148,7 +148,10 @@ namespace http
       {
         this->http_websocketsrun(task);
       }
-
+      else if (task->linktype == 7)
+      {
+        this->timetasks_run(task);
+      }
       livethreadcount -= 1;
       this->threadlist[thread_id].busy = false;
       live_end(thread_id);
@@ -371,10 +374,20 @@ namespace http
               break;
             }
             sitecontent = _http_regmethod_table[regmethold_path].pre(peer);
+
             if (sitecontent.size() == 2 && strcasecmp(sitecontent.c_str(), "ok") == 0)
             {
               method_alone.emplace(regmethold_path);
               sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
+              if (sitecontent.size() == 1 && sitecontent[0] == 'T')
+              {
+                sitecontent = "frametasks_timeloop";
+                if (_http_regmethod_table.find(sitecontent) != _http_regmethod_table.end())
+                {
+                  sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
+                }
+                sitecontent.clear();
+              }
             }
             else
             {
@@ -649,5 +662,42 @@ namespace http
     {
     }
   }
+  void ThreadPool::timetasks_run(std::shared_ptr<httppeer> peer)
+  {
+    try
+    {
+      DEBUG_LOG("timetasks_run pool");
+      std::string regmethold_path;
+      regmethold_path = get_filename(peer->pathinfos[0]);
+      regmethold_path = str2safepath((const char *)&regmethold_path[0], regmethold_path.size());
 
+      std::thread::id thread_id = std::this_thread::get_id();
+      server_loaclvar &static_server_var = get_server_global_var();
+
+      if (static_server_var.show_visit_info == true)
+      {
+        unsigned int offsetnum = 0;
+        for (unsigned int j = 0; j < regmethold_path.size(); j++)
+        {
+          threadlist[thread_id].url[offsetnum] = regmethold_path[j];
+          offsetnum++;
+          if (offsetnum > 63)
+          {
+            break;
+          }
+        }
+      }
+
+      if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
+      {
+        std::string sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
+      }
+    }
+    catch (std::exception &e)
+    {
+    }
+    catch (...)
+    {
+    }
+  }
 }

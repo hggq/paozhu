@@ -15,6 +15,7 @@
 #include "testformpost.h"
 #include "testpzcache.h"
 #include "testcmake.h"
+#include "testaddclienttask.h"
 #include "testcommit.h"
 #include "testsqltuple.h"
 
@@ -73,6 +74,15 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testcauto;
 		methodcallback.emplace("ccauto",temp);
+		temp.pre = nullptr;
+		temp.regfun = testaddclienttaskpre;
+		methodcallback.emplace("testnotaddclienttaskpre",temp);
+		temp.pre = testaddclienttaskpre;
+		temp.regfun = testaddclienttask;
+		methodcallback.emplace("testaddclienttask",temp);
+		temp.pre = nullptr;
+		temp.regfun = testexecuteclienttask;
+		methodcallback.emplace("executeclienttask",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcommit;
 		methodcallback.emplace("testcommit",temp);
