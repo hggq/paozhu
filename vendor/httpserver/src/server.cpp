@@ -2178,14 +2178,6 @@ namespace http
           }
           if (isintask)
           {
-            // std::shared_ptr<httppeer> peertemp = std::make_shared<httppeer>();
-            // peertemp->url=peer->url;
-            // peertemp->pathinfos=peer->pathinfos;
-            // peertemp->get=peer->get;
-            // peertemp->timeloop_num=peer->timeloop_num;
-            // peertemp->timecount_num=peer->timecount_num;
-            // peertemp->linktype=peer->linktype;
-            // peertemp->etag=peer->etag;
             self->clientlooptasks.push_back({temp_name_id, peer});
             self->websocketcondition.notify_one();
           }

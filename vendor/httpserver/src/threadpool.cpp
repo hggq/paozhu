@@ -686,6 +686,15 @@ namespace http
             break;
           }
         }
+        for (unsigned int j = 0; j < peer->url.size(); j++)
+        {
+          threadlist[thread_id].url[offsetnum] = peer->url[j];
+          offsetnum++;
+          if (offsetnum > 63)
+          {
+            break;
+          }
+        }
       }
 
       if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
