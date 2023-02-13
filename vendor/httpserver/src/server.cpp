@@ -1538,11 +1538,13 @@ namespace http
                 peer->websockets = myclientwsplugin(peer);
                 peer->ws->isopen = true;
                 peer->websockets->onopen();
+                peer->ws->contentlength = 0;
                 if (peer->websockets->timeloop_num > 0)
                 {
                   websockettasks.emplace_back(peer);
+                  websocketcondition.notify_one();
                 }
-                peer->ws->contentlength = 0;
+
                 continue;
               }
               http1loop(1, peer, peer_session);
@@ -1733,6 +1735,13 @@ namespace http
     unsigned int fps = 0;
     for (;;)
     {
+      if (this->websockettasks.empty())
+      {
+        std::unique_lock<std::mutex> lock(this->websocket_task_mutex);
+        this->websocketcondition.wait(lock, [this]
+                                      { return this->stop || !this->websockettasks.empty(); });
+      }
+
       auto time_in_seconds = time_point_cast<seconds>(system_clock::now());
       ++frame_count_per_second;
       if (time_in_seconds > prev_time_in_seconds)

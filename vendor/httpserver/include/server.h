@@ -65,7 +65,7 @@
 #include "http2_flow.h"
 // #include "http2_define.h"
 // #include "http_domain.h"
-//namespace this_coro = asio::this_coro;
+// namespace this_coro = asio::this_coro;
 namespace fs = std::filesystem;
 
 namespace http
@@ -76,8 +76,8 @@ namespace http
   public:
     httpserver() {}
     asio::awaitable<void> clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion);
-    asio::awaitable<void> sslhandshake(asio::ip::tcp::socket socket,asio::ssl::context& context_, unsigned long long temp_domain );
-    
+    asio::awaitable<void> sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &context_, unsigned long long temp_domain);
+
     void http2pool(int threadid);
     asio::awaitable<void> http2loop(std::shared_ptr<httppeer>);
     bool http2_send_body(std::shared_ptr<httppeer> peer, const unsigned char *buffer, unsigned int begin_end);
@@ -85,18 +85,18 @@ namespace http
     bool http2_send_file_range(std::shared_ptr<httppeer> peer);
 
     void http2send_filedata(struct http2sendblock_t &http2_ff_send);
-    
-    void http1loop(unsigned int sig,std::shared_ptr<httppeer>,std::shared_ptr<client_session>);
+
+    void http1loop(unsigned int sig, std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
     void websocket_loop(int myid);
     void listeners();
     void listener();
     void add_runsocketthread();
-    int  checkhttp2(std::shared_ptr<client_session> peer_session);
-    void http1_send_bad_request(unsigned int,std::shared_ptr<client_session>);
-    void http1_send_bad_server(unsigned int,std::shared_ptr<httppeer>,std::shared_ptr<client_session>);
-    bool http1_send_body(unsigned int streamid,std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session,const unsigned char *buffer, unsigned int begin_end);
-    bool http1_send_file(unsigned int streamid,std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session,const std::string &filename);
-    bool http1_send_file_range(unsigned int streamid,std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session,const std::string &filename);
+    int checkhttp2(std::shared_ptr<client_session> peer_session);
+    void http1_send_bad_request(unsigned int, std::shared_ptr<client_session>);
+    void http1_send_bad_server(unsigned int, std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
+    bool http1_send_body(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const unsigned char *buffer, unsigned int begin_end);
+    bool http1_send_file(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const std::string &filename);
+    bool http1_send_file_range(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const std::string &filename);
     void run(const std::string &);
     void httpwatch();
     ~httpserver()
@@ -140,7 +140,10 @@ namespace http
     std::mutex http2_task_mutex;
     std::condition_variable http2condition;
     std::list<struct http2sendblock_t> http2send_tasks;
-  
+
+    std::mutex websocket_task_mutex;
+    std::condition_variable websocketcondition;
+
     const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32, 0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};
   };
   httpserver &get_server_app();
