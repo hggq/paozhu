@@ -32,7 +32,7 @@ QQ群：668296235
 ### 2.运行环境
 
 - C++ standard request c++20
-- boost asio mysql mysql-client gd qrencode
+- boost asio mysql libmysqlclient-dev gd qrencode
   zlib brotli(br)
 
 ### 3.环境配置
@@ -51,6 +51,7 @@ QQ群：668296235
 brew install boost
 brew install asio
 brew install mysql
+brew install mysql-client
 brew install gd
 brew install qrencode
 brew install zlib
