@@ -63,6 +63,7 @@
 #include "http_socket.h"
 #include "http2_frame.h"
 #include "cookie.h"
+#include "clientdatacache.h"
 
 namespace http
 {
@@ -108,8 +109,10 @@ namespace http
     asio::awaitable<void> loopwriter(const unsigned char *buffer, unsigned int buffersize);
 
   public:
-    unsigned char _cache_data[4106];
-    // unsigned char _write_data[4106];
+    //client_data_cache_back cache_back_obj;
+    unsigned char *_cache_data;
+    
+    //unsigned char _cache_data[2048];
     unsigned int _cache_size = 0;
     unsigned int _write_size = 0;
     std::atomic_bool sendtype = false;

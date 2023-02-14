@@ -9,23 +9,32 @@
 #include "unicode.h"
 #include "directory_fun.h"
 #include "http_header.h"
-
+#include "clientdatacache.h"
 namespace http
 {
   client_session::client_session(std::list<asio::ip::tcp::socket> sock)
       : _socket(std::move(sock))
   {
+    auto &cc=get_client_data_cache();  
+    _cache_data=cc.get_data_ptr();
 
+    //cache_back_obj.setptr(_cache_data);
     isssl = false;
   }
 
   client_session::client_session(std::list<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket)
       : _sslsocket(std::move(sslsocket))
   {
+    auto &cc=get_client_data_cache();  
+    _cache_data=cc.get_data_ptr();
+
+    //cache_back_obj.setptr(_cache_data);
     isssl = true;
   }
   client_session::~client_session()
   {
+    auto &cc=get_client_data_cache();  
+    cc.back_data_ptr(_cache_data);
   }
   std::shared_ptr<client_session> client_session::get_ptr()
   {

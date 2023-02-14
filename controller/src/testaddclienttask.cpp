@@ -14,7 +14,7 @@ namespace http
       client << " testaddclienttaskpre <br/> ";
       return "ok";
    }
-   //testaddclienttask must has pre method
+   // testaddclienttask must has pre method
    //@urlpath(testaddclienttaskpre,testaddclienttask)
    std::string testaddclienttask(std::shared_ptr<httppeer> peer)
    {

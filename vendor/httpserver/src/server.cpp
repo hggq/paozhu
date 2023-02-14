@@ -2399,7 +2399,9 @@ namespace http
       _inithttpmethodregto(_http_regmethod_table);
       _inithttpmethodregto_pre(_http_regmethod_table);
       sendqueue &send_cache = get_sendqueue();
-      send_cache.inti_sendqueue(256);
+      send_cache.inti_sendqueue(512);
+      auto &link_cache=get_client_data_cache();
+      link_cache.inti_sendqueue(1024);
 
       VIEW_REG &viewreg = get_viewmetholdreg();
       _initview_method_regto(viewreg);

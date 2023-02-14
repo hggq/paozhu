@@ -12,7 +12,7 @@ namespace http
    {
       httppeer &client = peer->getpeer();
       client << "hello world!  application/x-www-form-urlencoded ";
-
+      // from /addpost.html url
       try
       {
          client << "<p>--------------</p>";
@@ -119,150 +119,145 @@ namespace http
          client << "<p>fileField:size:" << client.files["fileField"]["size"] << "</p>";
          client << "<p>fileField:error:" << client.files["fileField"]["error"] << "</p>";
 
-         std::string sitepath= client.get_sitepath();
+         std::string sitepath = client.get_sitepath();
 
-         if(!sitepath.empty())
+         if (!sitepath.empty())
          {
 
             namespace fs = std::filesystem;
-            fs::path paths=sitepath;
+            fs::path paths = sitepath;
             if (fs::exists(paths))
             {
-               if(sitepath.back()!='/')
+               if (sitepath.back() != '/')
                {
                   sitepath.push_back('/');
                }
                sitepath.append("upload");
-               paths=sitepath;
-               bool is_success=false;
+               paths = sitepath;
+               bool is_success = false;
                if (!fs::exists(paths))
                {
-                  bool is_success=fs::create_directories(paths);
-                  if(is_success)
+                  bool is_success = fs::create_directories(paths);
+                  if (is_success)
                   {
                      fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                    fs::perm_options::add);
-                     
-                      is_success=true;             
+                                     fs::perm_options::add);
+
+                     is_success = true;
                   }
-                  
                }
                else
                {
-                  is_success=true;
+                  is_success = true;
                }
-               if(is_success)
+               if (is_success)
                {
-                  std::string filename=client.files["fileField"]["filename"].as_string();
-                     filename=str2safefile((const char *)&filename[0],filename.size());
+                  std::string filename = client.files["fileField"]["filename"].as_string();
+                  filename = str2safefile((const char *)&filename[0], filename.size());
 
-                     unsigned int extfilesize=filename.size();
-                     bool isshowfile=true;
-                     if(extfilesize>3)
-                     {
-                        if(filename[extfilesize-1]=='s'&&filename[extfilesize-2]=='j'&&filename[extfilesize-3]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='d'&&filename[extfilesize-2]=='m'&&filename[extfilesize-3]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='g'&&filename[extfilesize-2]=='n'&&filename[extfilesize-3]=='p'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='g'&&filename[extfilesize-2]=='p'&&filename[extfilesize-3]=='j'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='t'&&filename[extfilesize-2]=='x'&&filename[extfilesize-3]=='t'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='f'&&filename[extfilesize-2]=='d'&&filename[extfilesize-3]=='p'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='s'&&filename[extfilesize-2]=='s'&&filename[extfilesize-3]=='c'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='m'&&filename[extfilesize-2]=='t'&&filename[extfilesize-3]=='h'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='g'&&filename[extfilesize-2]=='v'&&filename[extfilesize-3]=='s'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='f'&&filename[extfilesize-2]=='i'&&filename[extfilesize-3]=='g'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&filename[extfilesize-1]=='p'&&filename[extfilesize-2]=='a'&&filename[extfilesize-3]=='m'&filename[extfilesize-4]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&extfilesize>4&&filename[extfilesize-1]=='l'&&filename[extfilesize-2]=='m'&&filename[extfilesize-3]=='t'&filename[extfilesize-4]=='h'&&filename[extfilesize-5]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&extfilesize>4&&filename[extfilesize-1]=='g'&&filename[extfilesize-2]=='e'&&filename[extfilesize-3]=='p'&filename[extfilesize-4]=='j'&&filename[extfilesize-5]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-                        if(isshowfile&&extfilesize>4&&filename[extfilesize-1]=='p'&&filename[extfilesize-2]=='b'&&filename[extfilesize-3]=='e'&filename[extfilesize-4]=='w'&&filename[extfilesize-5]=='.')
-                        {
-                              sitepath.push_back('/');
-                              sitepath.append(filename);
-                              isshowfile=false;
-                        }
-
-                     }
-                     if(isshowfile)
+                  unsigned int extfilesize = filename.size();
+                  bool isshowfile = true;
+                  if (extfilesize > 3)
+                  {
+                     if (filename[extfilesize - 1] == 's' && filename[extfilesize - 2] == 'j' && filename[extfilesize - 3] == '.')
                      {
                         sitepath.push_back('/');
-                        sitepath.append(get_filename(client.files["fileField"]["tempfile"].as_string()));
-                        sitepath.append(".data");
-                        client<<"<p><a href=\""<<client.get_hosturl()<<"/upload/"<<get_filename(client.files["fileField"]["tempfile"].as_string())<<".data\" target=_blank>show</a></p>";
+                        sitepath.append(filename);
+                        isshowfile = false;
                      }
-                     else
+                     if (isshowfile && filename[extfilesize - 1] == 'd' && filename[extfilesize - 2] == 'm' && filename[extfilesize - 3] == '.')
                      {
-                        client<<"<p><a href=\""<<client.get_hosturl()<<"/upload/"<<filename<<"\" target=_blank>show</a></p>";
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
                      }
-                     fs::rename(client.files["fileField"]["tempfile"].as_string(),sitepath);   
+                     if (isshowfile && filename[extfilesize - 1] == 'g' && filename[extfilesize - 2] == 'n' && filename[extfilesize - 3] == 'p' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && filename[extfilesize - 1] == 'g' && filename[extfilesize - 2] == 'p' && filename[extfilesize - 3] == 'j' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && filename[extfilesize - 1] == 't' && filename[extfilesize - 2] == 'x' && filename[extfilesize - 3] == 't' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && filename[extfilesize - 1] == 'f' && filename[extfilesize - 2] == 'd' && filename[extfilesize - 3] == 'p' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && filename[extfilesize - 1] == 's' && filename[extfilesize - 2] == 's' && filename[extfilesize - 3] == 'c' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && filename[extfilesize - 1] == 'm' && filename[extfilesize - 2] == 't' && filename[extfilesize - 3] == 'h' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && filename[extfilesize - 1] == 'g' && filename[extfilesize - 2] == 'v' && filename[extfilesize - 3] == 's' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && filename[extfilesize - 1] == 'f' && filename[extfilesize - 2] == 'i' && filename[extfilesize - 3] == 'g' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && filename[extfilesize - 1] == 'p' && filename[extfilesize - 2] == 'a' && filename[extfilesize - 3] == 'm' & filename[extfilesize - 4] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && extfilesize > 4 && filename[extfilesize - 1] == 'l' && filename[extfilesize - 2] == 'm' && filename[extfilesize - 3] == 't' & filename[extfilesize - 4] == 'h' && filename[extfilesize - 5] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && extfilesize > 4 && filename[extfilesize - 1] == 'g' && filename[extfilesize - 2] == 'e' && filename[extfilesize - 3] == 'p' & filename[extfilesize - 4] == 'j' && filename[extfilesize - 5] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                     if (isshowfile && extfilesize > 4 && filename[extfilesize - 1] == 'p' && filename[extfilesize - 2] == 'b' && filename[extfilesize - 3] == 'e' & filename[extfilesize - 4] == 'w' && filename[extfilesize - 5] == '.')
+                     {
+                        sitepath.push_back('/');
+                        sitepath.append(filename);
+                        isshowfile = false;
+                     }
+                  }
+                  if (isshowfile)
+                  {
+                     sitepath.push_back('/');
+                     sitepath.append(get_filename(client.files["fileField"]["tempfile"].as_string()));
+                     sitepath.append(".data");
+                     client << "<p><a href=\"" << client.get_hosturl() << "/upload/" << get_filename(client.files["fileField"]["tempfile"].as_string()) << ".data\" target=_blank>show</a></p>";
+                  }
+                  else
+                  {
+                     client << "<p><a href=\"" << client.get_hosturl() << "/upload/" << filename << "\" target=_blank>show</a></p>";
+                  }
+                  fs::rename(client.files["fileField"]["tempfile"].as_string(), sitepath);
                }
-
             }
-
-
          }
       }
       catch (std::exception &e)

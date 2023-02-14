@@ -8,7 +8,7 @@ namespace http
       std::string testrand(std::shared_ptr<httppeer> peer)
       {
             httppeer &client = peer->getpeer();
-            client << " 随机数测试 ";
+            client << " Number random number and character random generation 随机数测试 ";
             client << "<p>100,999: " << rand_range(100, 999) << "</p>";
             client << "<p>1-0 A-Z a-z: " << rand_string(8, 0) << "</p>"; //(length,type )  1-0 A-Z a-z
             client << "<p>1-0 A-Z:  " << rand_string(8, 1) << "</p>";    //(length,type )  1-0 A-Z
