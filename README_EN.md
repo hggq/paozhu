@@ -38,7 +38,7 @@ content
 ### 2.Runtime environment
 
 C++ standard request c++20   
-boost asio mysql gd mysql-client qrencode
+boost asio mysql gd libmysqlclient-dev qrencode
 zlib brotli(br)
 
 
@@ -56,6 +56,7 @@ zlib brotli(br)
 brew install boost
 brew install asio
 brew install mysql
+brew install mysql-client
 brew install gd
 brew install qrencode
 brew install zlib
