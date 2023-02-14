@@ -293,11 +293,6 @@ namespace http
       {
             pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
             std::size_t cache_hashid = std::hash<std::string>{}(sessionfile);
-            
-            output.append("<p>cache_hashid:");
-            output.append(std::to_string(cache_hashid));
-            output.append("</p>");
-
             temp_cache.save(cache_hashid, session, 3600, true);
       }
       void httppeer::save_session_file(std::string &sessionfile)
