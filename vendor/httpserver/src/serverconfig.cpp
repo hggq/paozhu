@@ -417,6 +417,16 @@ namespace http
         {
             static_server_var.show_visit_info = false;
         }
+
+        if (map_value["default"]["static_file_compress_cache"].size() > 0 && map_value["default"]["static_file_compress_cache"][0] == '1')
+        {
+            static_server_var.static_file_compress_cache = true;
+        }
+        else
+        {
+            static_server_var.static_file_compress_cache = false;
+        }
+
         if (map_value["default"]["session_type"].size() > 0)
         {
             switch (map_value["default"]["session_type"][0])

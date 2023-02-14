@@ -396,27 +396,109 @@ namespace http
 
         if (peer->state.gzip || peer->state.br)
         {
-          htmlcontent.resize(file_size);
-          file_size = fread(&htmlcontent[0], 1, file_size, fp.get());
-          htmlcontent.resize(file_size);
-          std::string tempcompress;
-
-          if (peer->state.br)
+          // check cache compress content
+          bool is_not_cache_content = true;
+          std::string path_temp;
+          server_loaclvar &static_server_var = get_server_global_var();
+          if (etag.size() > 0)
           {
-            brotli_encode(htmlcontent, tempcompress);
-            peer->compress = 2;
-            htmlcontent = tempcompress;
-          }
-          else if (peer->state.gzip)
-          {
-
-            if (compress(htmlcontent.data(), htmlcontent.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+            if (static_server_var.static_file_compress_cache)
             {
-              htmlcontent = tempcompress;
-              peer->compress = 1;
+
+              path_temp = static_server_var.temp_path;
+              if (path_temp.size() > 0 && path_temp.back() != '/')
+              {
+                path_temp.push_back('/');
+              }
+              path_temp.append("statichtml");
+              fs::path paths = path_temp;
+              if (!fs::exists(paths))
+              {
+                fs::create_directories(paths);
+                fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                fs::perm_options::add);
+              }
+              path_temp.push_back('/');
+              path_temp.push_back(etag[0]);
+              paths = path_temp;
+              if (!fs::exists(paths))
+              {
+                fs::create_directories(paths);
+                fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                fs::perm_options::add);
+              }
+              path_temp.push_back('/');
+              path_temp.append(etag);
+              if (peer->state.br)
+              {
+                peer->compress = 2;
+                path_temp.append(".br");
+              }
+              else if (peer->state.gzip)
+              {
+                peer->compress = 1;
+                path_temp.append(".gzip");
+              }
+              FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), &std::fclose);
+              if (fpcompress.get())
+              {
+                fseek(fpcompress.get(), 0, SEEK_END);
+                unsigned long long file_size = ftell(fpcompress.get());
+                fseek(fpcompress.get(), 0, SEEK_SET);
+                htmlcontent.resize(file_size);
+                file_size = fread(&htmlcontent[0], 1, file_size, fpcompress.get());
+                htmlcontent.resize(file_size);
+                is_not_cache_content = false;
+                if (peer->state.br)
+                {
+                  peer->compress = 2;
+                }
+                else if (peer->state.gzip)
+                {
+                  peer->compress = 1;
+                }
+              }
             }
           }
+          if (is_not_cache_content)
+          {
+            htmlcontent.resize(file_size);
+            file_size = fread(&htmlcontent[0], 1, file_size, fp.get());
+            htmlcontent.resize(file_size);
+            std::string tempcompress;
+
+            if (peer->state.br)
+            {
+              brotli_encode(htmlcontent, tempcompress);
+              peer->compress = 2;
+              htmlcontent = tempcompress;
+            }
+            else if (peer->state.gzip)
+            {
+
+              if (compress(htmlcontent.data(), htmlcontent.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+              {
+                htmlcontent = tempcompress;
+                peer->compress = 1;
+              }
+            }
+          }
+
           file_size = htmlcontent.size();
+          if (is_not_cache_content && etag.size() > 0)
+          {
+            if (static_server_var.static_file_compress_cache)
+            {
+              if (path_temp.size() > 0)
+              {
+                FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), &std::fclose);
+                if (fpcompress.get())
+                {
+                  fwrite(&htmlcontent[0], 1, htmlcontent.size(), fpcompress.get());
+                }
+              }
+            }
+          }
         }
       }
 
@@ -1022,27 +1104,109 @@ namespace http
 
         if (peer->state.gzip || peer->state.br)
         {
-          htmlcontent.resize(file_size);
-          file_size = fread(&htmlcontent[0], 1, file_size, fp.get());
-          htmlcontent.resize(file_size);
-
-          std::string tempcompress;
-          if (peer->state.gzip)
+          // check cache compress content
+          bool is_not_cache_content = true;
+          std::string path_temp;
+          server_loaclvar &static_server_var = get_server_global_var();
+          if (etag.size() > 0)
           {
-
-            if (compress(htmlcontent.data(), htmlcontent.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+            if (static_server_var.static_file_compress_cache)
             {
-              htmlcontent = tempcompress;
-              peer->compress = 1;
+
+              path_temp = static_server_var.temp_path;
+              if (path_temp.size() > 0 && path_temp.back() != '/')
+              {
+                path_temp.push_back('/');
+              }
+              path_temp.append("statichtml");
+              fs::path paths = path_temp;
+              if (!fs::exists(paths))
+              {
+                fs::create_directories(paths);
+                fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                fs::perm_options::add);
+              }
+              path_temp.push_back('/');
+              path_temp.push_back(etag[0]);
+              paths = path_temp;
+              if (!fs::exists(paths))
+              {
+                fs::create_directories(paths);
+                fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                fs::perm_options::add);
+              }
+              path_temp.push_back('/');
+              path_temp.append(etag);
+              if (peer->state.br)
+              {
+                peer->compress = 2;
+                path_temp.append(".br");
+              }
+              else if (peer->state.gzip)
+              {
+                peer->compress = 1;
+                path_temp.append(".gzip");
+              }
+              FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), &std::fclose);
+              if (fpcompress.get())
+              {
+                fseek(fpcompress.get(), 0, SEEK_END);
+                unsigned long long file_size = ftell(fpcompress.get());
+                fseek(fpcompress.get(), 0, SEEK_SET);
+                htmlcontent.resize(file_size);
+                file_size = fread(&htmlcontent[0], 1, file_size, fpcompress.get());
+                htmlcontent.resize(file_size);
+                is_not_cache_content = false;
+                if (peer->state.br)
+                {
+                  peer->compress = 2;
+                }
+                else if (peer->state.gzip)
+                {
+                  peer->compress = 1;
+                }
+              }
             }
           }
-          else if (peer->state.br)
+          if (is_not_cache_content)
           {
-            brotli_encode(htmlcontent, tempcompress);
-            peer->compress = 2;
-            htmlcontent = tempcompress;
+            htmlcontent.resize(file_size);
+            file_size = fread(&htmlcontent[0], 1, file_size, fp.get());
+            htmlcontent.resize(file_size);
+
+            std::string tempcompress;
+            if (peer->state.gzip)
+            {
+
+              if (compress(htmlcontent.data(), htmlcontent.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+              {
+                htmlcontent = tempcompress;
+                peer->compress = 1;
+              }
+            }
+            else if (peer->state.br)
+            {
+              brotli_encode(htmlcontent, tempcompress);
+              peer->compress = 2;
+              htmlcontent = tempcompress;
+            }
           }
+
           file_size = htmlcontent.size();
+          if (is_not_cache_content && etag.size() > 0)
+          {
+            if (static_server_var.static_file_compress_cache)
+            {
+              if (path_temp.size() > 0)
+              {
+                FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), &std::fclose);
+                if (fpcompress.get())
+                {
+                  fwrite(&htmlcontent[0], 1, htmlcontent.size(), fpcompress.get());
+                }
+              }
+            }
+          }
         }
       }
 
@@ -2400,7 +2564,7 @@ namespace http
       _inithttpmethodregto_pre(_http_regmethod_table);
       sendqueue &send_cache = get_sendqueue();
       send_cache.inti_sendqueue(512);
-      auto &link_cache=get_client_data_cache();
+      auto &link_cache = get_client_data_cache();
       link_cache.inti_sendqueue(1024);
 
       VIEW_REG &viewreg = get_viewmetholdreg();
