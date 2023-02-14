@@ -191,7 +191,21 @@ namespace http
             pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
             std::size_t cache_hashid = std::hash<std::string>{}(sessionfile_id);
             temp_cache.update(cache_hashid, 3600);
-            session = temp_cache.get(cache_hashid);
+            session = std::move(temp_cache.get(cache_hashid)) ;
+      }
+      std::string httppeer::get_session_id()
+      {
+            if (cookie.check(COOKIE_SESSION_NAME))
+            {
+                  return cookie.get(COOKIE_SESSION_NAME);
+            }
+            return "";
+      }
+      void httppeer::set_session_id(const std::string &a)
+      {
+            cookie.set(COOKIE_SESSION_NAME, a, 7200, "/", host);
+            send_cookie.set(COOKIE_SESSION_NAME, a, timeid() + 7200*12, "/", host);
+            parse_session();
       }
       void httppeer::parse_session()
       {
@@ -208,7 +222,7 @@ namespace http
                   {
                         if (sessionfile[i] == '/')
                         {
-                              cookie[COOKIE_SESSION_NAME] = "";
+                              cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
                               send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
                               return;
                         }
@@ -279,6 +293,11 @@ namespace http
       {
             pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
             std::size_t cache_hashid = std::hash<std::string>{}(sessionfile);
+            
+            output.append("<p>cache_hashid:");
+            output.append(std::to_string(cache_hashid));
+            output.append("</p>");
+
             temp_cache.save(cache_hashid, session, 3600, true);
       }
       void httppeer::save_session_file(std::string &sessionfile)
@@ -365,7 +384,7 @@ namespace http
                               remove(root_path.c_str());
                               sessionfile_time = 0;
                               session.clear();
-                              cookie[COOKIE_SESSION_NAME] = "";
+                              cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
                               send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
                         }
                   }

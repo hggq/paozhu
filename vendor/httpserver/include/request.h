@@ -95,6 +95,7 @@ namespace http
         bool is_string() const { return false; }
         bool is_array() const { return true; }
         bool is_null() const { return false; }
+        bool empty() const { return _array.empty(); }
 
         bool isval() const { return false; }
 

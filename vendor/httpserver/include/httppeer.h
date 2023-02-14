@@ -68,7 +68,8 @@ namespace http
     void parse_session();
     void save_session();
     void clear_session();
-
+    std::string get_session_id();
+    void set_session_id(const std::string &a);
     void parse_session_file(std::string &sessionfile_id);
     void parse_session_memory(std::string &sessionfile_id);
     void save_session_memory(std::string &sessionfile);

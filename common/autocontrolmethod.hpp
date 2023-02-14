@@ -18,6 +18,7 @@
 #include "testaddclienttask.h"
 #include "testcommit.h"
 #include "testsqltuple.h"
+#include "testsessionid.h"
 
 
 namespace http
@@ -89,6 +90,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testsqltuple;
 		methodcallback.emplace("mtuple",temp);
+		temp.pre = nullptr;
+		temp.regfun = testsetsession;
+		methodcallback.emplace("testsetsession",temp);
+		temp.pre = nullptr;
+		temp.regfun = testshowsession;
+		methodcallback.emplace("testshowsession",temp);
 
 
     }

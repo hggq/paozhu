@@ -190,19 +190,27 @@ namespace http
         {
             unsigned int len;
             len = array_v.size();
-
-            for (long long i = len; i >= 0; i--)
+            if(v.type()!=ARRAY)
             {
-                if (!array_v.isset(i))
+                for (long long i = len; i >= 0; i--)
                 {
-                    array_v.push(i, v);
-                    break;
+                    if (!array_v.isset(i))
+                    {
+                        array_v.push(i, v);
+                        break;
+                    }
+                }
+            }    
+            else
+            {
+                if(!v.array_v.empty())
+                {
+                    array_v = v.array_v;
                 }
             }
         }
         else
         {
-
             switch (v.type())
             {
             case INT:
@@ -224,7 +232,10 @@ namespace http
                 type_t = STRING;
                 break;
             case ARRAY:
-                array_v = v.array_v;
+                if(!array_v.empty())
+                {
+                    array_v = v.array_v;
+                }
                 type_t = ARRAY;
                 break;
             }
@@ -238,13 +249,22 @@ namespace http
         {
             unsigned int len;
             len = array_v.size();
-
-            for (long long i = len; i >= 0; i--)
+            if(v.type()!=ARRAY)
             {
-                if (!array_v.isset(i))
+                for (long long i = len; i >= 0; i--)
                 {
-                    array_v.push(i, std::move(v));
-                    break;
+                    if (!array_v.isset(i))
+                    {
+                        array_v.push(i, std::move(v));
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                 if(!v.array_v.empty())
+                {
+                    array_v = v.array_v;
                 }
             }
         }
@@ -772,6 +792,10 @@ namespace http
 
     OBJ_ARRAY &OBJ_ARRAY::operator=(const OBJ_ARRAY &a)
     {
+        if(a._array.empty())
+        {
+            return *this;
+        }
         _array = a._array;
         _tag = a._tag;
         return *this;
@@ -779,6 +803,10 @@ namespace http
 
     OBJ_ARRAY &OBJ_ARRAY::operator=(OBJ_ARRAY &&a)
     {
+        if(a._array.empty())
+        {
+            return *this;
+        }
         _array = std::move(a._array);
         _tag = std::move(a._tag);
         return *this;
