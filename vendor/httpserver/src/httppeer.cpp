@@ -189,9 +189,8 @@ namespace http
       void httppeer::parse_session_memory(std::string &sessionfile_id)
       {
             pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
-            std::size_t cache_hashid = std::hash<std::string>{}(sessionfile_id);
-            temp_cache.update(cache_hashid, 3600);
-            session = std::move(temp_cache.get(cache_hashid)) ;
+            temp_cache.update(sessionfile_id, 3600);
+            session = std::move(temp_cache.get(sessionfile_id)) ;
       }
       std::string httppeer::get_session_id()
       {
@@ -292,8 +291,7 @@ namespace http
       void httppeer::save_session_memory(std::string &sessionfile)
       {
             pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
-            std::size_t cache_hashid = std::hash<std::string>{}(sessionfile);
-            temp_cache.save(cache_hashid, session, 3600, true);
+            temp_cache.save(sessionfile, session, 3600, true);
       }
       void httppeer::save_session_file(std::string &sessionfile)
       {
@@ -360,8 +358,7 @@ namespace http
                   if (localvar.session_type == 1)
                   {
                         pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
-                        std::size_t cache_hashid = std::hash<std::string>{}(sessionfile);
-                        temp_cache.remove(cache_hashid);
+                        temp_cache.remove(sessionfile);
                         return;
                   }
 

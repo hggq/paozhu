@@ -15,32 +15,31 @@ namespace http
 
             //one hashid
             std::string namestring = "testname";
-            std::size_t cache_hashid = std::hash<std::string>{}(namestring);
 
             //two hashid 
             std::size_t num_hashid = 2244;
 
-            if (temp_cache.check(cache_hashid) > -1)
+            if (temp_cache.check(namestring) > -1)
             {
                   client << " data has cache <a href=\"/testshowcache\">show</a>";
             }
             else
             {
                   std::string cache_data = "This cache content!";
-                  temp_cache.save(cache_hashid, cache_data, 30);
+                  temp_cache.save(namestring, cache_data, 30);
 
                   client << "<p> Visit this pzcache cache data1 </p>";
                   client << "<p><a href=\"/testshowcache\">show</a></p>";
             }
-
-            if (temp_cache.check(num_hashid) > -1)
+            namestring= std::to_string(num_hashid);      
+            if (temp_cache.check(namestring) > -1)
             {
                   client << " data has cache <a href=\"/testshowcache\">show</a>";
             }
             else
             {
                   std::string cache_data = "This cache hashid is number!";
-                  temp_cache.save(num_hashid, cache_data,40);
+                  temp_cache.save(namestring, cache_data,40);
 
                   client << "<p> Visit this pzcache cache data2 </p>";
                   client << "<p><a href=\"/testshowcache\">show</a></p>";
@@ -56,15 +55,14 @@ namespace http
             pzcache<std::string> &temp_cache = pzcache<std::string>::conn();
 
             std::string namestring = "testname";
-            std::size_t cache_hashid = std::hash<std::string>{}(namestring);
 
-            std::string cache_data = temp_cache.get(cache_hashid);
+            std::string cache_data = temp_cache.get(namestring);
 
             client << " data1: <p>" << cache_data << "</p>";
 
             std::size_t num_hashid = 2244;
-
-            cache_data = temp_cache.get(num_hashid);
+            namestring= std::to_string(num_hashid);      
+            cache_data = temp_cache.get(namestring);
             client << " data2: <p>" << cache_data << "</p>";
 
             client << "<p><a href=\"/testcache\">return</a></p>";
