@@ -67,6 +67,10 @@ namespace http
     std::string get_filename(const std::string &filename)
     {
             std::string filename_name;
+            if(filename.empty())
+            {
+                return "";
+            }
             int j = filename.size() - 1;
             if(j==-1) return "";
             for (; j >= 0; j--)

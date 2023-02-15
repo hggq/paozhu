@@ -351,9 +351,13 @@ namespace http
           regmethold_path = peer->pathinfos[0] + "/" + get_filename(peer->pathinfos[1]);
         }
       }
-      else
+      else if (peer->pathinfos.size() == 1)
       {
         regmethold_path = get_filename(peer->pathinfos[0]);
+      }
+      else
+      {
+        regmethold_path = "/";
       }
 
       if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
@@ -450,10 +454,17 @@ namespace http
         serverconfig &sysconfigpath = getserversysconfig();
 
         std::string moduleso, sopath;
-        regmethold_path = get_filename(peer->pathinfos[0]);
-        regmethold_path = str2safepath((const char *)&regmethold_path[0], regmethold_path.size());
+        if(peer->pathinfos.size()>0)
+        {
+          regmethold_path = get_filename(peer->pathinfos[0]);
+          regmethold_path = str2safepath((const char *)&regmethold_path[0], regmethold_path.size());
 
-        peer->pathinfos[0] = regmethold_path;
+          peer->pathinfos[0] = regmethold_path;
+        }
+        else
+        {
+          regmethold_path = "";
+        }
 
         if (sysconfigpath.map_value.find(peer->host) != sysconfigpath.map_value.end())
         {
@@ -472,7 +483,10 @@ namespace http
         }
 
         sopath = moduleso;
-        moduleso.append(peer->pathinfos[0]);
+        if(peer->pathinfos.size()>0)
+        {
+          moduleso.append(peer->pathinfos[0]);
+        }
         moduleso.append(".so");
         struct stat modso;
         DEBUG_LOG("so:%s", moduleso.c_str());
