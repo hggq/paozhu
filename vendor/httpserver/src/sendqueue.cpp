@@ -126,9 +126,12 @@ namespace http
             if (cache_data[i].type == 0)
             {
                 std::unique_lock<std::mutex> lock(locklist);
-                cache_data[i].type = 1;
-                data_ptr = &cache_data[i];
-                break;
+                if (cache_data[i].type == 0)
+                {
+                    cache_data[i].type = 1;
+                    data_ptr = &cache_data[i];
+                    break;
+                }
             }
         }
         if (data_ptr == nullptr)
@@ -140,8 +143,13 @@ namespace http
 
                 if (data_ptr != nullptr)
                 {
-                    data_ptr->type = 1;
-                    break;
+                    std::unique_lock<std::mutex> lock(locklist);
+                    if(data_ptr->type == 0)
+                    {
+                        data_ptr->type = 1;
+                        break;
+                    }
+
                 }
             }
         }

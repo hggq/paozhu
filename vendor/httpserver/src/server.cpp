@@ -1542,6 +1542,18 @@ namespace http
         std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
 
         peer->client_ip = peer_session->getremoteip();
+        if(peer_session->_cache_data==nullptr)
+        {
+          log_item.clear();
+          log_item.append("cache data malloc empty for empty peer_session->_cache_data ");
+          log_item.push_back(0x20);
+          log_item.append(peer->client_ip);
+          log_item.push_back('\n');
+          std::unique_lock<std::mutex> lock(log_mutex);
+          error_loglist.emplace_back(log_item);
+          lock.unlock();
+        }
+
         if (check_blockip(peer->client_ip))
         {
           total_count--;

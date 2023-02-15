@@ -112,7 +112,7 @@ namespace http
     //client_data_cache_back cache_back_obj;
     unsigned char *_cache_data;
     
-    //unsigned char _cache_data[2048];
+    //unsigned char _cache_data[4096];
     unsigned int _cache_size = 0;
     unsigned int _write_size = 0;
     std::atomic_bool sendtype = false;

@@ -5,6 +5,7 @@
 #include <queue>
 #include <mutex>
 #include <atomic>
+#include <thread>
 #include "terminal_color.h"
 #include "clientdatacache.h"
 
@@ -31,15 +32,31 @@ namespace http
     {
 
         unsigned char *a=nullptr;
+        std::unique_lock<std::mutex> lock(locklist);
         if(data_list.empty())
         {
-            a=reinterpret_cast<unsigned char *>(std::malloc(4096 * sizeof(unsigned char)));
+            lock.unlock();
+            for(int i=0;i<10;i++)
+            {
+                try
+                {
+                    a=reinterpret_cast<unsigned char *>(std::malloc(4096 * sizeof(unsigned char)));
+                    if(a!=nullptr)
+                    {
+                        break;
+                    }
+                }
+                catch(...)
+                {
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+                }   
+            }
         }
         else
         {
             a= data_list.front();
-            std::unique_lock<std::mutex> lock(locklist);
             data_list.pop();
+            lock.unlock();
         }
          
         return a;
