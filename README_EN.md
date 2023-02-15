@@ -34,7 +34,7 @@ content
 ✅15. Generating QR code requires gd and qrencode libraries  
 ✅16. Plugin module,Hot Module Replacement  
 ✅17. The framework supports cache Module，ORM supports Result save to cache  
-✅18. The controller directory auto annotation pick to url mapping  
+✅18. The controller directory cpp files annotation auto pick to url mapping  
 
 
 ### 2.Runtime environment
