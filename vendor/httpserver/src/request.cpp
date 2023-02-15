@@ -205,7 +205,8 @@ namespace http
             {
                 if(!v.array_v.empty())
                 {
-                    array_v = v.array_v;
+                    array_v._array = v.array_v._array;
+                    array_v._tag = v.array_v._tag;
                 }
             }
         }
@@ -232,7 +233,7 @@ namespace http
                 type_t = STRING;
                 break;
             case ARRAY:
-                //if(!array_v._array.empty())
+                if(!v.array_v.empty())
                 {
                     array_v._array = v.array_v._array;
                     array_v._tag = v.array_v._tag;
@@ -265,7 +266,7 @@ namespace http
             {
                  if(!v.array_v.empty())
                 {
-                    array_v = v.array_v;
+                    array_v = std::move(v.array_v);
                 }
             }
         }
