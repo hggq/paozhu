@@ -346,6 +346,47 @@ namespace http
             return false;
         }
         map_value = loadserversconfig(configfile);
+
+        std::string current_wwwpath = map_value["default"]["wwwpath"];
+        fs::path cpath = current_wwwpath;
+        if (!fs::is_directory(cpath))
+        {
+            cpath = fs::current_path();
+            current_wwwpath = cpath.string();
+            map_value["default"]["wwwpath"] = current_wwwpath + "/www/default/";
+            map_value["default"]["temppath"] = current_wwwpath + "/temp/";
+            map_value["default"]["logpath"] = current_wwwpath + "/log/";
+            map_value["default"]["serverpath"] = current_wwwpath + "/";
+
+            if (map_value["default"]["mainhost"].size() > 0)
+            {
+                std::string temphost = map_value["default"]["mainhost"];
+
+                if (map_value.find(temphost) != map_value.end())
+                {
+                    if (map_value[temphost].find("wwwpath") != map_value[temphost].end())
+                    {
+                        current_wwwpath = map_value[temphost]["wwwpath"];
+                        cpath = current_wwwpath;
+                        bool is_has_wwwpath = true;
+                        if (current_wwwpath.size() > 0)
+                        {
+                            if (fs::is_directory(cpath))
+                            {
+                                is_has_wwwpath = false;
+                            }
+                        }
+                        if (is_has_wwwpath)
+                        {
+                            cpath = fs::current_path();
+                            current_wwwpath = cpath.string();
+                            map_value[temphost]["wwwpath"] = current_wwwpath + "/www/default/";
+                        }
+                    }
+                }
+            }
+        }
+
         if (map_value["default"]["index"].empty())
         {
             map_value["default"]["index"] = "index.html";
