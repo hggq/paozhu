@@ -106,7 +106,8 @@ namespace http
         std::string to_json();
         // OBJ_VALUE   fromjson(const std::string& v);
         // OBJ_VALUE   fromjson(const std::string&& v);
-    protected:
+    //protected:
+    public:
         std::map<unsigned long long, OBJ_VALUE> _array;
         std::map<unsigned long long, std::string> _tag;
     };

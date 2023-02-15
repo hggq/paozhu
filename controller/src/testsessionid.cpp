@@ -30,6 +30,7 @@ namespace http
             client.set_header("server", "cpphttp");
             client << "<p><a href=\"" << client.get_hosturl() << "/testshowsession\">show</a></p>";
             client << "<p><a href=\"" << client.get_hosturl() << "/testshowsession?sessionid=" << client.get_session_id() << "\">session(" << client.get_session_id() << ")</a></p>";
+            client << "<p>session aaa:|" << client.session.to_json() << "|</p>";
             return "";
       }
       //@urlpath(null,testshowsession)
@@ -38,6 +39,7 @@ namespace http
             httppeer &client = peer->getpeer();
             client << "hello world!  show cookie<br/>";
             client << "<p><a href=\"" << client.get_hosturl() << "/testsetsession\">add cookie</a></p>";
+            client << "<p>session aaa:|" << client.session.to_json() << "|</p>";
             client << "<p>session aaa:|" << client.session["aaa"].to_string() << "|</p>";
             client << "<p>session_id:|" << client.get_session_id()<< "|</p>";
 
@@ -52,6 +54,7 @@ namespace http
                   client << "<p>new session aaa:|" << client.session["aaa"] << "|</p>";
                   client << "<p>cookie same:" << client.cookie["same"] << "</p>";
                   client << "<p>cookie ccbb:" << client.cookie["ccbb"] << "</p>";
+                  client << "<p>session aaa:|" << client.session.to_json() << "|</p>";
             }
             client.view("cookie/show");
             return "";

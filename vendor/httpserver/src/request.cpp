@@ -232,9 +232,10 @@ namespace http
                 type_t = STRING;
                 break;
             case ARRAY:
-                if(!array_v.empty())
+                //if(!array_v._array.empty())
                 {
-                    array_v = v.array_v;
+                    array_v._array = v.array_v._array;
+                    array_v._tag = v.array_v._tag;
                 }
                 type_t = ARRAY;
                 break;
