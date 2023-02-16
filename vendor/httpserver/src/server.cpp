@@ -967,6 +967,7 @@ namespace http
     {
       http2_ff_send.peer->socket_session->send_enddata(http2_ff_send.peer->stream_id);
       //http2_ff_send.peer->socket_session->send_goway();
+      http2_ff_send.isfinish = true;
       return;
     }
     sendqueue_back unsetcahceback;
