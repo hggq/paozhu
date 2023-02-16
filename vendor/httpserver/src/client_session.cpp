@@ -33,9 +33,9 @@ namespace http
   }
   client_session::~client_session()
   {
-    auto &cc=get_client_data_cache(); 
     if(_cache_data!=nullptr)
     {
+      auto &cc=get_client_data_cache(); 
       cc.back_data_ptr(_cache_data);
     } 
   }
