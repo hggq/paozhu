@@ -33,8 +33,11 @@ namespace http
   }
   client_session::~client_session()
   {
-    auto &cc=get_client_data_cache();  
-    cc.back_data_ptr(_cache_data);
+    auto &cc=get_client_data_cache(); 
+    if(_cache_data!=nullptr)
+    {
+      cc.back_data_ptr(_cache_data);
+    } 
   }
   std::shared_ptr<client_session> client_session::get_ptr()
   {
