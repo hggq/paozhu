@@ -24,7 +24,7 @@ namespace http
         bool add_item();
         unsigned int del_item();
         unsigned int size();
-
+        bool fix_lists();
     public:
         std::queue<unsigned char *> data_list;
         std::mutex locklist;

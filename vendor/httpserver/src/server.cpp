@@ -195,6 +195,13 @@ namespace http
       sendqueue_back unsetcahceback;
       unsetcahceback.setptr(send_cache);
 
+      if(send_cache==nullptr)
+      {
+        peer->socket_session->send_enddata(peer->stream_id);
+        //peer->socket_session->send_goway();
+        return false;
+      }
+
       unsigned long long totalsend_num = 0;
       unsigned int vsize_send = 8181;
       for (unsigned long long m = readnum; m < mustnum;)
@@ -547,8 +554,14 @@ namespace http
       sendqueue_back unsetcahceback;
       unsetcahceback.setptr(send_cache);
 
-      unsigned long long totalsend_num = 0;
+      if(send_cache==nullptr)
+      {
+        peer->socket_session->send_enddata(peer->stream_id);
+        //peer->socket_session->send_goway();
+        return false;
+      }
 
+      unsigned long long totalsend_num = 0;
       unsigned int vsize_send = 8181;
       for (unsigned long long m = 0; m < file_size;)
       {
@@ -684,6 +697,7 @@ namespace http
 
     return true;
   }
+
   bool httpserver::http2_send_body(std::shared_ptr<httppeer> peer, const unsigned char *buffer, unsigned int begin_end)
   {
     std::string _send_data;
@@ -949,7 +963,12 @@ namespace http
     }
     sendqueue &send_cache_list = get_sendqueue();
     struct sendqueue_t *send_cache = send_cache_list.get_cache_ptr();
-
+    if(send_cache==nullptr)
+    {
+      http2_ff_send.peer->socket_session->send_enddata(http2_ff_send.peer->stream_id);
+      //http2_ff_send.peer->socket_session->send_goway();
+      return;
+    }
     sendqueue_back unsetcahceback;
     unsetcahceback.setptr(send_cache);
 
@@ -1552,6 +1571,7 @@ namespace http
           std::unique_lock<std::mutex> lock(log_mutex);
           error_loglist.emplace_back(log_item);
           lock.unlock();
+          co_return;
         }
 
         if (check_blockip(peer->client_ip))

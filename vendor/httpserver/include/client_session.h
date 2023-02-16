@@ -99,6 +99,7 @@ namespace http
     std::string getlocalip();
     unsigned int getlocalport();
 
+    bool send_enddata(unsigned int);
     bool send_setting();
     bool send_switch101();
     bool send_goway();

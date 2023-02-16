@@ -21,6 +21,28 @@ namespace http
             std::free(a);
         }
     }
+    bool client_data_cache::fix_lists()
+    {
+        unsigned int list_size = data_list.size();
+        if(list_size<1025)
+        {
+            return false;
+        }
+        std::unique_lock<std::mutex> lock(locklist);
+        for (; !data_list.empty();)
+        {
+            unsigned char *a = data_list.front();
+            data_list.pop();
+            std::free(a);
+            --list_size;
+            if(list_size<1025)
+            {
+                break;
+            }
+        }
+        lock.unlock();
+        return true;
+    }
     void client_data_cache::inti_sendqueue(unsigned int a)
     {
         for (unsigned int i = 0; i < a; i++)

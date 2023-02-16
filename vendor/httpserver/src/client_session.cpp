@@ -161,6 +161,34 @@ namespace http
       return false;
     }
   }
+  bool client_session::send_enddata(unsigned int s_stream_id)
+  {
+    std::unique_lock<std::mutex> lock(writemutex);
+    try
+    {
+      unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
+      _recvack[8] = s_stream_id & 0xFF;
+      s_stream_id = s_stream_id >> 8;
+      _recvack[7] = s_stream_id & 0xFF;
+      s_stream_id = s_stream_id >> 8;
+      _recvack[6] = s_stream_id & 0xFF;
+      s_stream_id = s_stream_id >> 8;
+      _recvack[5] = s_stream_id & 0x7F;
+      if (isssl)
+      {
+        asio::write(_sslsocket.front(), asio::buffer(_recvack, 9));
+      }
+      else
+      {
+        asio::write(_socket.front(), asio::buffer(_recvack, 9));
+      }
+      return true;
+    }
+    catch (std::exception &)
+    {
+      return false;
+    }
+  }
   bool client_session::send_goway()
   {
     std::unique_lock<std::mutex> lock(writemutex);
