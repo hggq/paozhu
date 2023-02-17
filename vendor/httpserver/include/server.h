@@ -98,6 +98,8 @@ namespace http
     bool http1_send_file(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const std::string &filename);
     bool http1_send_file_range(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const std::string &filename);
     void run(const std::string &);
+
+    void add_nullptrlog(const std::string &logstrb);
     void httpwatch();
     ~httpserver()
     {

@@ -128,9 +128,8 @@ sudo vim /etc/hosts
 sudo ./bin/paozhu 
 ```
 
-打开浏览器，在地址栏输入`http://localhost`
+打开浏览器，在地址栏输入`http://localhost` 或 `http://www.869869.com`
 
-![正确运行效果](https://www.paozhu.org/images/firstrun.jpg)
 
 更多细节请查看`controller`目录下源码，包含`CRUD`示例
 

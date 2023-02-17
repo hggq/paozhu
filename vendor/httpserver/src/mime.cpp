@@ -67,8 +67,8 @@ namespace http
         {"md"},
         {"map"},
         {"tsx"},
-        {"log"}
-
+        {"log"},
+        {"svg"}
     };
 
 }

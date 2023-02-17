@@ -1550,6 +1550,17 @@ namespace http
       return 1;
     }
   }
+  void httpserver::add_nullptrlog(const std::string &logstrb)
+  {
+    std::string log_item;
+    log_item.append("cache data malloc empty for empty peer_session->_cache_data ");
+    log_item.push_back(0x20);
+    log_item.append(logstrb);
+    log_item.push_back('\n');
+    std::unique_lock<std::mutex> lock(log_mutex);
+    error_loglist.emplace_back(log_item);
+    lock.unlock();
+  }
   asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion)
   {
     try
@@ -1564,14 +1575,7 @@ namespace http
         peer->client_ip = peer_session->getremoteip();
         if(peer_session->_cache_data==nullptr)
         {
-          log_item.clear();
-          log_item.append("cache data malloc empty for empty peer_session->_cache_data ");
-          log_item.push_back(0x20);
-          log_item.append(peer->client_ip);
-          log_item.push_back('\n');
-          std::unique_lock<std::mutex> lock(log_mutex);
-          error_loglist.emplace_back(log_item);
-          lock.unlock();
+          add_nullptrlog(peer->client_ip);
           co_return;
         }
 

@@ -128,9 +128,8 @@ run
 sudo ./bin/paozhu 
 ```
 
-open the browser and enter http://localhost in the address bar
+open the browser and enter `http://localhost` or `http://www.869869.com` in the address bar
 
-![runing](https://www.paozhu.org/images/firstrun.jpg)
 
 for more details, please see the source code under the `controller` directory, which includes `CRUD` examples.
 
