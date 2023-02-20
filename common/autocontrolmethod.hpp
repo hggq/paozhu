@@ -16,6 +16,7 @@
 #include "testpzcache.h"
 #include "testcmake.h"
 #include "testaddclienttask.h"
+#include "testormclient.h"
 #include "testcommit.h"
 #include "testsqltuple.h"
 #include "testsessionid.h"
@@ -84,6 +85,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testexecuteclienttask;
 		methodcallback.emplace("executeclienttask",temp);
+		temp.pre = nullptr;
+		temp.regfun = testormclient;
+		methodcallback.emplace("testormclient",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcommit;
 		methodcallback.emplace("testcommit",temp);

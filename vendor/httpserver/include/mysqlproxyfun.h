@@ -24,11 +24,14 @@
 namespace http
 {
 
-      std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqleditexecute(size_t dbhash);
-      std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqlselectexecute(size_t dbhash);
-      bool do_mysqlcommit(size_t dbhash);
-      bool back_mysql_connect(size_t dbhash,std::unique_ptr<MYSQL, decltype(&mysql_close)> conn);
+std::unique_ptr<MYSQL, decltype(&mysql_close)>
+get_mysqleditexecute(size_t dbhash);
+std::unique_ptr<MYSQL, decltype(&mysql_close)>
+get_mysqlselectexecute(size_t dbhash);
+bool do_mysqlcommit(size_t dbhash);
+bool back_mysql_connect(size_t dbhash,
+                        std::unique_ptr<MYSQL, decltype(&mysql_close)> conn);
 
-}
+} // namespace http
 
 #endif
