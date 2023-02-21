@@ -269,7 +269,8 @@ class get_orm_client
 public:
   get_orm_client(const std::string &tag)
   {
-    dbhash = std::hash<std::string>{}(tag);
+    dbhash  = std::hash<std::string>{}(tag);
+    db_type = 0; // 0 Mysql 1 MariaDB 2 PostgreSQL 3 SQLite
   }
   std::tuple<std::vector<std::string>, std::vector<std::vector<std::string>>>
   query(const std::string &rawsql, bool isedit = false)
@@ -401,15 +402,11 @@ public:
     }
     return 0;
   }
-  static get_orm_client &getinstance(const std::string &tag)
-  {
-    static get_orm_client instance(tag);
-    return instance;
-  }
 
 public:
   std::size_t dbhash;
   std::string error_msg;
+  unsigned char db_type;
 };
 
 template <typename model, typename base> class mysqlclientDB : public base

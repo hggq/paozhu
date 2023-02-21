@@ -14,11 +14,11 @@ std::string testormclient(std::shared_ptr<httppeer> peer)
   client << "hello world!  testormclient ";
   client << client.get_hosturl();
 
-  auto dbclient = orm::get_orm_client::getinstance("cms");
-
   try
   {
-    auto [colname, results] = dbclient.query("show databases;");
+    auto dbclient = std::make_shared<orm::get_orm_client>("cms");
+
+    auto [colname, results] = dbclient->query("show databases;");
     client << "<p>show databases;</p>";
     if (results.empty())
     {
