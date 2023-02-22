@@ -3,15 +3,14 @@ English | [简体中文](README_CN.md)
 <img src="https://www.paozhu.org/images/logo.svg">
 </div>
 
-paozhu(炮竹🧨) is a comprehensive and fast C++ web framework that integrates ORM. The development speed is as
-fast as script languages. The framework integrates a webserver, which can natively parse HTTP 1.1 and HTTP 2 protocols
+paozhu(炮竹🧨) is a comprehensive and fast C++ web framework that integrates C++ ORM. The development speed is as
+fast as script languages. The framework integrates a webserver, which can natively parse HTTP/1.1 HTTP/2 JSON WebSocket protocols
 and GET and POST requests. The framework also distinguishes between different methods of POST requests. The framework
 comes with a built-in OBJ micro-object that can store data such as char, int, string, float, etc. The framework
 automatically parses URL and POST parameters into the micro-object, and uses URL path mapping to function mounting
 points. It also uses coroutines, thread pools, and database connection pools.
 
-
-QQgroup：668296235  
+ 
 Discussing the joy of C++ web development with community developers.
 
 ### 1.Features🔥🔥🔥🔥🔥
@@ -19,8 +18,8 @@ Discussing the joy of C++ web development with community developers.
 ✅ 1. support json decode encode, not use thirdparty, support json standard  
 ✅ 2. Support multiple domain name websites  
 ✅ 3. Support multiple domain name ssl server  
-✅ 4. Support http1.1 and http2 protocols  
-✅ 5. Support websocket server  
+✅ 4. Support http/1.1 and http/2 protocols  
+✅ 5. Support WebSocket server  
 ✅ 6. The framework comes with websocket push, which supports regular push to websocket client  
 ✅ 7. Support synchronization of httpclient get post  
 ✅ 8. The framework comes with an ORM. It uses the link pool method and currently supports MySQL  
@@ -150,7 +149,7 @@ for more details, please see the source code under the `controller` directory, w
 * [x] 1.Improved http features  
 * [x] 2.Websocket client  
 * [x] 3.Support windows  
-* [x] 4.Postgres,sqlite orm  
+* [x] 4.Postgres,sqlite ORM  
 
 ### 9.Contribute👏👋
 

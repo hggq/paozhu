@@ -4,7 +4,7 @@
 <img src="https://www.paozhu.org/images/logo.svg">
 </div>
 
-**Paozhu**(炮竹🧨)是一个全面、快速的C++ web framework 开发框架，集成c++ mysql ORM，开发速度跟脚本语言一样，日写1000行业务代码没有压力，框架集成了webserver，自己原生解析HTTP/1、HTTP/2协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char
+**Paozhu**(炮竹🧨)是一个全面、快速的C++ web framework 开发框架，集成C++ ORM，开发速度跟脚本语言一样，日写1000行业务代码没有压力，框架集成了WebServer，自己原生解析HTTP/1、HTTP/2、JSON协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char
 int string float等，框架自动解析URL、POST参数到微型对象里面，使用urlpath映射到函数挂载点，使用协程、线程池、数据库链接池。
 
 QQ群：668296235  
@@ -15,7 +15,7 @@ QQ群：668296235
 ✅ 1. 自带json编解码不用第三方库，标准json支持  
 ✅ 2. 支持多域名网站  
 ✅ 3. 支持多域名ssl 服务端  
-✅ 4. 支持http1.1、http2协议  
+✅ 4. 支持http/1.1、http/2协议  
 ✅ 5. 支持websocket服务端  
 ✅ 6. 框架自带websocket推送，支持定时推送到webscoket客户端  
 ✅ 7. 支持同步httpclient get post  
@@ -150,7 +150,7 @@ sudo ./bin/paozhu
 * [x] 增强http特性
 * [x] Websocket 客户端
 * [x] 支持windows操作系统
-* [x] Postgres、sqlite orm 支持
+* [x] Postgres、sqlite ORM 支持
 
 ### 9.贡献👏👋
 
