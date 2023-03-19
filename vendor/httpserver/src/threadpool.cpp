@@ -341,23 +341,38 @@ namespace http
 
       if (peer->pathinfos.size() > 1)
       {
+        if (peer->pathinfos.size() > 2)
+        {
+          regmethold_path = get_filename(peer->pathinfos[0]) + "/" + get_filename(peer->pathinfos[1])+ "/" + get_filename(peer->pathinfos[2]);
+          if (_http_regmethod_table.find(regmethold_path) == _http_regmethod_table.end())
+          {
+            regmethold_path.clear();
+          }
+        }
 
-        if (_http_regmethod_table.find(peer->pathinfos[0]) != _http_regmethod_table.end())
+        if (regmethold_path.empty())
+        {
+          regmethold_path = get_filename(peer->pathinfos[0]) + "/" + get_filename(peer->pathinfos[1]);
+          if (_http_regmethod_table.find(regmethold_path) == _http_regmethod_table.end())
+          {
+            regmethold_path.clear();
+          }
+        }
+
+        if (regmethold_path.empty())
         {
           regmethold_path = get_filename(peer->pathinfos[0]);
         }
-        else
-        {
-          regmethold_path = peer->pathinfos[0] + "/" + get_filename(peer->pathinfos[1]);
-        }
       }
-      else if (peer->pathinfos.size() == 1)
+      
+      if (peer->pathinfos.size() == 1)
       {
         regmethold_path = get_filename(peer->pathinfos[0]);
       }
-      else
+      
+      if (regmethold_path.empty())
       {
-        regmethold_path = "/";
+        regmethold_path = "home";
       }
 
       if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
