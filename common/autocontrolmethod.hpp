@@ -18,6 +18,7 @@
 #include "testaddclienttask.h"
 #include "testormclient.h"
 #include "testcommit.h"
+#include "testcors.h"
 #include "testsqltuple.h"
 #include "testsessionid.h"
 
@@ -91,6 +92,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testcommit;
 		methodcallback.emplace("testcommit",temp);
+		temp.pre = nullptr;
+		temp.regfun = testcors;
+		methodcallback.emplace("pxapi/user/info",temp);
 		temp.pre = nullptr;
 		temp.regfun = testsqltuple;
 		methodcallback.emplace("mtuple",temp);
