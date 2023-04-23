@@ -2466,7 +2466,7 @@ header_content += R"(
                                     }
                                     //键名 后就是键值类型 循环去除空格
                                     _offset=http::json_string_trim(_json_data,_offset);
-                                    if(_json_data[_offset]!=',')
+                                    if(_json_data[_offset]!=':')
                                     {
                                         return _offset; 
                                     }
@@ -2523,7 +2523,7 @@ header_content += R"(
                                     }
                                     //键名 后就是键值类型 循环去除空格
                                     _offset=http::json_string_trim(_json_data,_offset);
-                                    if(_json_data[_offset]!=',')
+                                    if(_json_data[_offset]!=':')
                                     {
                                         return _offset; 
                                     }
@@ -2572,7 +2572,7 @@ header_content += R"(
                                     }
                                     //键名 后就是键值类型 循环去除空格
                                     _offset=http::json_string_trim(_json_data,_offset);
-                                    if(_json_data[_offset]!=',')
+                                    if(_json_data[_offset]!=':')
                                     {
                                         return _offset; 
                                     }
@@ -2630,7 +2630,7 @@ header_content += R"(
                                     }
                                     //键名 后就是键值类型 循环去除空格
                                     _offset=http::json_string_trim(_json_data,_offset);
-                                    if(_json_data[_offset]!=',')
+                                    if(_json_data[_offset]!=':')
                                     {
                                         return _offset; 
                                     }
