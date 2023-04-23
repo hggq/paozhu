@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(mode "CMAKE_BUILD_TYPE")
+set(climode "cli")
 
 
 if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))  
@@ -56,6 +57,7 @@ file(GLOB_RECURSE FRAMEWORK_CPP_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserv
 file(GLOB_RECURSE common_list ${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp)
 file(GLOB_RECURSE controller_list ${CMAKE_CURRENT_SOURCE_DIR}/controller/src/*.cpp)
 file(GLOB_RECURSE viewsrc_list ${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/view/*.cpp)
+file(GLOB_RECURSE reflect_list ${CMAKE_CURRENT_SOURCE_DIR}/libs/*.cpp)
 
 foreach(cppfile IN LISTS controller_list)
   string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" cppfilename ${cppfile})
@@ -88,16 +90,69 @@ include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserve
 include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/orm)
 include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/models)
 include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/controller/include)
-
+include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/libs)
  
 add_executable(paozhu_cli ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/http_cli.cpp)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
+
+if(${climode} AND (cli STREQUAL "ON"))  
+
+add_custom_command(
+    TARGET paozhu_empty
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre
+    PRE_BUILD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+    COMMAND echo "-- controls method --"
+    COMMAND ${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/
+    
+    )
+
+find_path(MYSQL_ROOT_DIR mysql)
+MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
+
+FIND_PATH(MYSQL_INCLUDE_DIR mysql.h
+  /usr/local/include/mysql
+  /usr/include/mysql
+  /usr/local/mysql/include
+)
+SET(MYSQL_NAMES mysqlclient)
+FIND_LIBRARY(MYSQL_LIBRARY
+  NAMES ${MYSQL_NAMES}
+  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib
+  PATH_SUFFIXES mysql
+)
+
+IF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+  SET(MYSQL_FOUND TRUE)
+  SET( MYSQL_LIBRARIES ${MYSQL_LIBRARY} )
+ELSE (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+  SET(MYSQL_FOUND FALSE)
+  SET( MYSQL_LIBRARIES )
+ENDIF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+
+IF (MYSQL_FOUND)
+  IF (NOT MYSQL_FIND_QUIETLY)
+    MESSAGE(STATUS "Found MySQL: ${MYSQL_LIBRARY}")
+  ENDIF (NOT MYSQL_FIND_QUIETLY)
+ELSE (MYSQL_FOUND)
+  IF (MYSQL_FIND_REQUIRED)
+    MESSAGE(STATUS "Looked for MySQL libraries named ${MYSQL_NAMES}.")
+    MESSAGE(FATAL_ERROR "Could NOT find MySQL library")
+  ENDIF (MYSQL_FIND_REQUIRED)
+ENDIF (MYSQL_FOUND)
+
+target_include_directories(paozhu_cli PUBLIC ${MYSQL_INCLUDE_DIR})
+target_link_libraries(paozhu_cli ${MYSQL_LIBRARY})
+
+else()
 
 if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release")) 
-  add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/test/testdaemon.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${source_list} ${controller_list})
+  add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/test/testdaemon.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${reflect_list} ${source_list} ${controller_list})
 else()
-  add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/test/test.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${source_list} ${controller_list})
+  add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/test/test.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${reflect_list} ${source_list} ${controller_list})
 endif()
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
 
 
 add_custom_command(
@@ -340,7 +395,9 @@ message(STATUS "Brotli at: ${BRDEC_LIB_DIR}")
 target_link_libraries(paozhu ${BRDEC_LIB_DIR})
 
 
+message("Compile framework mode")
+
 target_link_libraries(paozhu  m  dl)
 
-
+endif()
 

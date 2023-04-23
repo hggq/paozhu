@@ -15,6 +15,7 @@
 #include "testformpost.h"
 #include "testpzcache.h"
 #include "testcmake.h"
+#include "testjsonreflect.h"
 #include "testaddclienttask.h"
 #include "testormclient.h"
 #include "testcommit.h"
@@ -77,6 +78,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testcauto;
 		methodcallback.emplace("ccauto",temp);
+		temp.pre = nullptr;
+		temp.regfun = testjsonreflect;
+		methodcallback.emplace("testjsonreflect",temp);
 		temp.pre = nullptr;
 		temp.regfun = testaddclienttaskpre;
 		methodcallback.emplace("testnotaddclienttaskpre",temp);

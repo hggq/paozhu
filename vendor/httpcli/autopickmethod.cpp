@@ -12,8 +12,21 @@
 #include <map>
 #include <vector>
 #include <filesystem>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
+#ifdef WIN32
+#define stat _stat
+#endif
+
 #include "autopickcontrolmethod.hpp"
 #include "md5.h"
+#include "typestatement.hpp"
 
 namespace fs = std::filesystem;
 
@@ -275,5 +288,40 @@ namespace http
         std::cout << "\033[1m\033[31m You must cmake and make again because the .h header file has changed. \033[0m" << std::endl;
     }
 
+      typejsonfiles tjf;
+    std::string filepath=current_run_path+"libs";
+    auto filist=tjf.readallfile(filepath);
+    std::string jsonreflect_headers_content;
+    std::vector<std::string> filelists;
+    for(unsigned int i=0;i<filist.size();i++)
+    {
+        std::string tempfile=filepath+"/"+filist[i]+".h";
+        auto fa=tjf.pickreflectfile(tempfile);
+        //取出所有 对象 命名空间 kv 方式 留作 生成json_encode json_decode使用
+        std::string tempcppfile=filepath+"/"+filist[i]+"_jsonreflect.cpp";
+        std::string headerincludefile="#include \""+filist[i]+".h\"";
+        filelists.push_back(headerincludefile);
+        if(fa.size()>0)
+        {
+            tjf.createhfile(tempcppfile,fa,headerincludefile);
+            jsonreflect_headers_content+=tjf.get_jsonreflect_header(fa);
+        }
+        else
+        {
+            struct stat sessfileinfo;
+            memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+            if (stat(tempcppfile.c_str(), &sessfileinfo) == 0)
+            {
+                  if (sessfileinfo.st_mode & S_IFREG)
+                  {
+                        remove(tempcppfile.c_str());
+                  }
+            }   
+        }
+        
+    }
+    std::string json_header_filename=current_run_path+"common/json_reflect_headers.h";
+    tjf.createhjson_reflectfile(json_header_filename,jsonreflect_headers_content,filelists);
+ 
     return 0;
 }

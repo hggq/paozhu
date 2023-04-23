@@ -10,6 +10,11 @@
 
 namespace http
 {
+
+    /*
+    *   消除空格
+    */
+    unsigned int json_string_trim(std::string_view _json_data,unsigned int _offset);
     /*
      *  utf-16转utf8
      */
@@ -26,6 +31,7 @@ namespace http
      *  utf8转jsonstring
      */
     std::string utf8_to_jsonstring(std::string &source);
+    std::string utf8_to_jsonstring(const std::string &source);
     /*
      *  jsonstring转utf8
      */
