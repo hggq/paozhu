@@ -34,7 +34,8 @@ content
 ✅16. Plugin module,Hot Module Replacement  
 ✅17. The framework supports cache Module，ORM supports Result save to cache  
 ✅18. The controller directory cpp files annotation auto pick to url mapping  
-
+✅19. Struct or class annotation to JSON Object, json_encode json_decode function  
+ 
 
 ### 2.Runtime environment
 
