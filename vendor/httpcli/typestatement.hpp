@@ -444,28 +444,28 @@ class typejsonfiles
                         {
                             temp.children.push_back(a);
                         }
-
-                        if (isfunc > 0)
+                        unsigned a = isfunc;
+                        if (isfunc < 0)
                         {
-                            unsigned a = isfunc;
-                            if (a < linecontent.size())
-                            {
+                            a = 0;
+                        }
+                        if (a < linecontent.size())
+                        {
 
-                                // offset=newoffset - ( linecontent.size() -   isfunc );
-                                // for ( ; offset < filecontent.size(); offset++)
-                                // {
-                                //     if (filecontent[offset] != ' ' && filecontent[offset] != '\t')
-                                //     {
-                                //         break;
-                                //     }
-                                // }
-                                // if (filecontent[offset] == '}')
-                                // {
-                                //     offset+=1;
-                                // }
-                                // this obj end;
-                                break;
-                            }
+                            // offset=newoffset - ( linecontent.size() -   isfunc );
+                            // for ( ; offset < filecontent.size(); offset++)
+                            // {
+                            //     if (filecontent[offset] != ' ' && filecontent[offset] != '\t')
+                            //     {
+                            //         break;
+                            //     }
+                            // }
+                            // if (filecontent[offset] == '}')
+                            // {
+                            //     offset+=1;
+                            // }
+                            // this obj end;
+                            break;
                         }
                         else
                         {

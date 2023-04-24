@@ -94,8 +94,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                 {
                     _isarray=false;
                     break;
-                }
-                
+                }   
             }
         }
 
@@ -451,8 +450,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                 {
                     _isarray=false;
                     break;
-                }
-                
+                }   
             }
         }
 
