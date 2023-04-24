@@ -88,7 +88,15 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
 
         if(_isarray)
         {
-
+            for(;_offset<_json_data.size();_offset++)
+            {
+                if(_json_data[_offset]=='{')
+                {
+                    _isarray=false;
+                    break;
+                }
+                
+            }
         }
 
         if(_isarray==false)
@@ -437,7 +445,15 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
 
         if(_isarray)
         {
-
+            for(;_offset<_json_data.size();_offset++)
+            {
+                if(_json_data[_offset]=='{')
+                {
+                    _isarray=false;
+                    break;
+                }
+                
+            }
         }
 
         if(_isarray==false)
