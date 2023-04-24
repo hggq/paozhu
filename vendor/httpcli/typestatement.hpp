@@ -534,7 +534,7 @@ class typejsonfiles
     {
         unsigned int levelnum = 0;
         bool isdefinefunc     = true;
-        unsigned int beginpos = offset;
+        // unsigned int beginpos = offset;
         for (; offset < filecontent.size(); offset++)
         {
             if (isdefinefunc)
@@ -631,7 +631,7 @@ class typejsonfiles
         struct obj_reflect_type temp;
         unsigned int offset      = 0;
         unsigned int startoffset = 0;
-        unsigned int saveoffset  = 0;
+        // unsigned int saveoffset  = 0;
         std::string fulltypename;
         std::string vartypename;
         for (; offset < linecontent.size(); offset++)
