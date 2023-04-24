@@ -10,6 +10,7 @@ comes with a built-in OBJ micro-object that can store data such as char, int, st
 automatically parses URL and POST parameters into the micro-object, and uses URL path mapping to function mounting
 points. It also uses coroutines, thread pools, and database connection pools.
 
+QQ GROUP 668296235
  
 Discussing the joy of C++ web development with community developers.
 
