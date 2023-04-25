@@ -36,11 +36,11 @@
 namespace http
 {
 #define COOKIE_SESSION_NAME "PHPSESSID"
-  template <typename T>
-  concept VALNUM_T = std::is_floating_point_v<T> || std::is_integral_v<T>;
+template <typename T>
+concept VALNUM_T = std::is_floating_point_v<T> || std::is_integral_v<T>;
 
-  class httppeer : public std::enable_shared_from_this<httppeer>
-  {
+class httppeer : public std::enable_shared_from_this<httppeer>
+{
   public:
     unsigned char get_fileinfo();
     bool isshow_directory();
@@ -57,7 +57,14 @@ namespace http
     void get_header(const std::string &);
     void get_cookie(const std::string &);
 
-    void set_cookie(std::string key, std::string val, long long exptime = 0, std::string path = "", std::string domain = "", bool secure = false, bool httponly = true, std::string issamesite = "");
+    void set_cookie(std::string key,
+                    std::string val,
+                    long long exptime      = 0,
+                    std::string path       = "",
+                    std::string domain     = "",
+                    bool secure            = false,
+                    bool httponly          = true,
+                    std::string issamesite = "");
 
     std::list<std::string> cookietoheader();
     std::string get_hosturl();
@@ -99,25 +106,24 @@ namespace http
     httppeer &operator<<(float a);
     httppeer &operator<<(double a);
 
-    template <typename T>
-    httppeer &operator<<(VALNUM_T auto a);
+    template <typename T> httppeer &operator<<(VALNUM_T auto a);
 
-    template <typename T>
-    httppeer &operator<<(T a);
-    template <typename T>
-    httppeer &operator<<(T *a);
+    template <typename T> httppeer &operator<<(T a);
+    template <typename T> httppeer &operator<<(T *a);
 
     httppeer &getpeer();
     void out_json(OBJ_VALUE &a);
     void out_json();
     void out_jsontype();
 
+    void cors_domain(const std::string &);
+    void cors_method();
     void push_path_method(const std::string &);
     std::string pop_path_method();
     unsigned char add_timeloop_task(const std::string &, unsigned int);
     void clear_timeloop_task();
     unsigned int get_timeloop_count();
-    void add_timeloop_count(unsigned int a=1);
+    void add_timeloop_count(unsigned int a = 1);
 
   public:
     std::string host;
@@ -142,20 +148,20 @@ namespace http
     std::vector<std::string> pathinfos;
 
     bool issendheader = false;
-    bool ischunked = false;
-    bool isfinish = false;
-    bool issend = false;
-    bool isclose = false;
-    bool isssl = false;
-    bool keeplive = true;
-    bool isso = false;
+    bool ischunked    = false;
+    bool isfinish     = false;
+    bool issend       = false;
+    bool isclose      = false;
+    bool isssl        = false;
+    bool keeplive     = true;
+    bool isso         = false;
 
     unsigned char posttype;
     unsigned char compress;
-    unsigned int stream_id = 0;
-    unsigned int status_code = 0;
-    unsigned int timeloop_num = 0;
-    unsigned int timecount_num = 0;
+    unsigned int stream_id            = 0;
+    unsigned int status_code          = 0;
+    unsigned int timeloop_num         = 0;
+    unsigned int timecount_num        = 0;
     unsigned long long content_length = 0;
 
     struct headstate_t state;
@@ -194,14 +200,14 @@ namespace http
     std::atomic_bool window_update_bool = false;
     std::list<std::future<int>> window_update_results;
     std::promise<int> window_update_promise;
-  };
-  struct regmethold_t
-  {
+};
+struct regmethold_t
+{
     std::function<std::string(std::shared_ptr<httppeer>)> pre = nullptr;
     std::function<std::string(std::shared_ptr<httppeer>)> regfun;
-  };
-  // extern std::map<std::string, std::function<std::string(std::shared_ptr<httppeer>)>> _http_regmethod_table;
-  extern std::map<std::string, regmethold_t> _http_regmethod_table;
-  void make_404_content(std::shared_ptr<httppeer> peer);
-}
+};
+// extern std::map<std::string, std::function<std::string(std::shared_ptr<httppeer>)>> _http_regmethod_table;
+extern std::map<std::string, regmethold_t> _http_regmethod_table;
+void make_404_content(std::shared_ptr<httppeer> peer);
+} // namespace http
 #endif

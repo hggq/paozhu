@@ -1181,6 +1181,32 @@ void httppeer::out_json()
     output       = val.to_json();
 }
 void httppeer::out_jsontype() { content_type = "application/json"; }
+void httppeer::cors_domain(const std::string &name)
+{
+    if (httpv == 2)
+    {
+
+        if (http2_header_codes_table["access-control-allow-origin"] > 0)
+        {
+            http2_send_header[http2_header_codes_table["access-control-allow-origin"]] = name;
+        }
+        else
+        {
+            send_header["access-control-allow-origin"] = name;
+        }
+    }
+    else
+    {
+        send_header["Access-Control-Allow-Origin"] = name;
+    }
+}
+void httppeer::cors_method()
+{
+    send_header["Access-Control-Allow-Headers"]  = "*";
+    send_header["Access-Control-Expose-Headers"] = "*";
+    send_header["Access-Control-Max-Age"]        = "86400";
+    send_header["Access-Control-Allow-Methods"]  = "POST, GET, OPTIONS";
+}
 void httppeer::push_path_method(const std::string &m_name) { path_method_names.push(m_name); }
 std::string httppeer::pop_path_method()
 {

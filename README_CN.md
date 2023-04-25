@@ -88,10 +88,9 @@ brew install brotli
 ````
 类似这样的目录结构
 
+linux下注意目录权限
 
 ```shell
-mkdir temp
-mkdir log
 mkdir build
 cd build
 cmake ..

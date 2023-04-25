@@ -98,6 +98,9 @@ namespace http
 		methodcallback.emplace("testcommit",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcors;
+		methodcallback.emplace("pxapi/user/infos",temp);
+		temp.pre = nullptr;
+		temp.regfun = testcorssimple;
 		methodcallback.emplace("pxapi/user/info",temp);
 		temp.pre = nullptr;
 		temp.regfun = testsqltuple;
