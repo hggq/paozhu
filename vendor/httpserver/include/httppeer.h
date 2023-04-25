@@ -116,8 +116,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void out_json();
     void out_jsontype();
 
-    void cors_domain(const std::string &);
-    void cors_method();
+    void cors_domain(const std::string &, const std::string &header_v = "");
+    void cors_method(const std::string &header_v = "");
     void push_path_method(const std::string &);
     std::string pop_path_method();
     unsigned char add_timeloop_task(const std::string &, unsigned int);

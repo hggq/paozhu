@@ -553,7 +553,7 @@ void httppeer::set_header(const std::string &a, const std::string &v)
         }
         else
         {
-            send_header[a] = v;
+            send_header[temp] = v;
         }
     }
     else
@@ -1181,7 +1181,7 @@ void httppeer::out_json()
     output       = val.to_json();
 }
 void httppeer::out_jsontype() { content_type = "application/json"; }
-void httppeer::cors_domain(const std::string &name)
+void httppeer::cors_domain(const std::string &name, const std::string &header_v)
 {
     if (httpv == 2)
     {
@@ -1194,18 +1194,56 @@ void httppeer::cors_domain(const std::string &name)
         {
             send_header["access-control-allow-origin"] = name;
         }
+        if (header_v.size() > 0)
+        {
+            send_header["access-control-allow-headers"] = header_v;
+        }
+        else
+        {
+            send_header["access-control-allow-headers"] = "*";
+        }
     }
     else
     {
         send_header["Access-Control-Allow-Origin"] = name;
+        if (header_v.size() > 0)
+        {
+            send_header["Access-Control-Allow-Headers"] = header_v;
+        }
+        else
+        {
+            send_header["Access-Control-Allow-Headers"] = "*";
+        }
     }
 }
-void httppeer::cors_method()
+void httppeer::cors_method(const std::string &header_v)
 {
-    send_header["Access-Control-Allow-Headers"]  = "*";
-    send_header["Access-Control-Expose-Headers"] = "*";
-    send_header["Access-Control-Max-Age"]        = "86400";
-    send_header["Access-Control-Allow-Methods"]  = "POST, GET, OPTIONS";
+    if (httpv == 2)
+    {
+        if (header_v.size() > 0)
+        {
+            send_header["access-control-expose-headers"] = header_v;
+        }
+        else
+        {
+            send_header["access-control-expose-headers"] = "*";
+        }
+        send_header["access-control-max-age"]       = "86400";
+        send_header["access-control-allow-methods"] = "POST, GET, OPTIONS";
+    }
+    else
+    {
+        if (header_v.size() > 0)
+        {
+            send_header["Access-Control-Expose-Headers"] = header_v;
+        }
+        else
+        {
+            send_header["Access-Control-Expose-Headers"] = "*";
+        }
+        send_header["Access-Control-Max-Age"]       = "86400";
+        send_header["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
+    }
 }
 void httppeer::push_path_method(const std::string &m_name) { path_method_names.push(m_name); }
 std::string httppeer::pop_path_method()
