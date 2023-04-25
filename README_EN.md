@@ -132,6 +132,11 @@ sudo ./bin/paozhu
 open the browser and enter `http://localhost` or `http://www.869869.com` in the address bar
 
 
+<div align="center">
+<img src="https://www.paozhu.org/images/home.png">
+</div>
+
+
 for more details, please see the source code under the `controller` directory, which includes `CRUD` examples.
 
 ###  7.Related tutorial
