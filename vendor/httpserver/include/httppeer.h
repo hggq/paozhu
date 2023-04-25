@@ -114,7 +114,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     httppeer &getpeer();
     void out_json(OBJ_VALUE &a);
     void out_json();
-    void out_jsontype();
+    void json_type();
 
     void cors_domain(const std::string &, const std::string &header_v = "");
     void cors_method(const std::string &header_v = "");

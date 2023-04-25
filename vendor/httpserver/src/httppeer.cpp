@@ -1178,9 +1178,12 @@ void httppeer::out_json(OBJ_VALUE &a)
 void httppeer::out_json()
 {
     content_type = "application/json";
-    output       = val.to_json();
+    if (val.is_array())
+    {
+        output = val.to_json();
+    }
 }
-void httppeer::out_jsontype() { content_type = "application/json"; }
+void httppeer::json_type() { content_type = "application/json"; }
 void httppeer::cors_domain(const std::string &name, const std::string &header_v)
 {
     if (httpv == 2)
