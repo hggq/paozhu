@@ -4,7 +4,7 @@
 #include "testcors.h"
 namespace http
 {
-//@urlpath(null,pxapi/user/infos)
+//@urlpath(null,api/user/message)
 std::string testcors(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -26,12 +26,15 @@ std::string testcors(std::shared_ptr<httppeer> peer)
         return "";
     }
     // main content output
-    client << " testcors 🧨 Paozhu c++ web framework ";
-
+    {
+        client.val["code"] = 0;
+        client.val["data"] = (int)rand_range(0, 99);
+    }
+    client.out_json();
     return "";
 }
 
-//@urlpath(null,pxapi/user/info)
+//@urlpath(null,api/user/info)
 std::string testcorssimple(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();

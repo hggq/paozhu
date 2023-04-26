@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2023-02-04 13:09:19
+-- 生成日期： 2023-04-26 15:07:27
 -- 服务器版本： 8.0.28
--- PHP 版本： 8.1.12
+-- PHP 版本： 8.2.4
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -57,7 +57,42 @@ CREATE TABLE `article` (
 
 INSERT INTO `article` (`aid`, `classtype`, `userid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`) VALUES
 (4, 0, 0, NULL, '1111', '', '', '', '', '', 0, 0, 0, '', '2222', 1, 0, '', '', '', ''),
-(5, 0, 0, NULL, 'fffaaa', '', '', '', '127.0.0.1', '2023-01-09 22:18:17', 1673273897, 0, 0, '', 'sadfafa', 1, 0, '', '', '', '');
+(5, 0, 0, NULL, '理解8888完这', '', '', '', '127.0.0.1', '2023-01-09 22:18:17', 1673273897, 0, 0, '', 'sadfafa点点滴滴ggg9999', 1, 0, '', '', '', '');
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `department`
+--
+
+CREATE TABLE `department` (
+  `dpid` int UNSIGNED NOT NULL,
+  `userid` int NOT NULL COMMENT '用户id',
+  `parentid` int NOT NULL COMMENT '父id',
+  `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '部门名称',
+  `depart_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '部门代号',
+  `bianzhi_num` int NOT NULL COMMENT '编制人数',
+  `real_num` int NOT NULL COMMENT '实际人数',
+  `quan_weight` int NOT NULL COMMENT '部门权重',
+  `isopen` tinyint NOT NULL COMMENT '是否开放',
+  `memo` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '备注',
+  `addtime` int UNSIGNED NOT NULL COMMENT '添加时间',
+  `edittime` int UNSIGNED NOT NULL COMMENT '修改时间',
+  `isvirtual` tinyint NOT NULL COMMENT '是否虚拟部门',
+  `linkdpid` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '关联部门'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='部门';
+
+--
+-- 转存表中的数据 `department`
+--
+
+INSERT INTO `department` (`dpid`, `userid`, `parentid`, `name`, `depart_code`, `bianzhi_num`, `real_num`, `quan_weight`, `isopen`, `memo`, `addtime`, `edittime`, `isvirtual`, `linkdpid`) VALUES
+(38, 0, 0, 'aabb', '', 11, 0, 0, 1, 'aa desc', 0, 0, 0, ''),
+(50, 0, 0, 'bbcc', '', 110, 0, 0, 1, 'bb desc', 0, 0, 0, ''),
+(51, 0, 50, 'bbcc11', '', 66, 0, 0, 1, 'bbcc desc', 0, 0, 0, ''),
+(52, 0, 0, 'ccdd', '', 20, 0, 0, 1, 'cc desc', 0, 0, 0, ''),
+(53, 0, 52, 'ccddee', '', 10, 0, 0, 1, 'ccdd desc', 0, 0, 0, ''),
+(54, 0, 51, 'bbcc1122', '', 30, 0, 0, 1, 'bbcc11 desc', 0, 0, 0, '');
 
 -- --------------------------------------------------------
 
@@ -76,7 +111,8 @@ CREATE TABLE `testa` (
 --
 
 INSERT INTO `testa` (`id`, `value`, `content`) VALUES
-(1, 65, 'commit test');
+(1, 65, 'commit test'),
+(5, 65, 'commit test');
 
 -- --------------------------------------------------------
 
@@ -94,6 +130,7 @@ CREATE TABLE `testb` (
 --
 
 INSERT INTO `testb` (`tid`, `name`) VALUES
+(2, 'caname'),
 (4, 'caname');
 
 -- --------------------------------------------------------
@@ -115,7 +152,7 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`userid`, `name`, `password`, `isopen`, `level`) VALUES
-(1, 'admin', 'e10adc3949ba59abbe56e057f20f883e', 1, 9);
+(1, 'admin', 'e10adc3949ba59abbe56e057f20f883e', 1, 191);
 
 --
 -- 转储表的索引
@@ -126,6 +163,12 @@ INSERT INTO `user` (`userid`, `name`, `password`, `isopen`, `level`) VALUES
 --
 ALTER TABLE `article`
   ADD PRIMARY KEY (`aid`);
+
+--
+-- 表的索引 `department`
+--
+ALTER TABLE `department`
+  ADD PRIMARY KEY (`dpid`);
 
 --
 -- 表的索引 `testa`
@@ -156,10 +199,16 @@ ALTER TABLE `article`
   MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
 
 --
+-- 使用表AUTO_INCREMENT `department`
+--
+ALTER TABLE `department`
+  MODIFY `dpid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+
+--
 -- 使用表AUTO_INCREMENT `testa`
 --
 ALTER TABLE `testa`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- 使用表AUTO_INCREMENT `testb`

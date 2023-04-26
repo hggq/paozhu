@@ -37,10 +37,21 @@ std::string testjsonreflect(std::shared_ptr<httppeer> peer)
 
     depsjsonlist.push_back(deps_json_one);
 
+    deps_json_one.id          = 52;
+    deps_json_one.key         = 52;
+    deps_json_one.value       = 52;
+    deps_json_one.parentid    = 48;
+    deps_json_one.isopen      = true;
+    deps_json_one.title       = "Sub Second Item 第二条";
+    deps_json_one.desc        = "Sub Second memo 第二条备注";
+    deps_json_one.bianzhi_num = 16;
+
+    depsjsonlist.push_back(deps_json_one);
+
     deps_json_one.id          = 58;
     deps_json_one.key         = 58;
     deps_json_one.value       = 58;
-    deps_json_one.parentid    = 48;
+    deps_json_one.parentid    = 0;
     deps_json_one.isopen      = true;
     deps_json_one.title       = "Three Item 第二条01";
     deps_json_one.desc        = "Three memo 第二条01备注";
