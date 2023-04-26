@@ -113,7 +113,6 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                 //如果是右侧括号表示这个对象已经结束
                 if(_json_data[_offset]==0x7D)
                 {
-                    _offset+=1;
                     return _offset;
                 }
                 //直到引号
@@ -124,20 +123,20 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                     _json_key_name=http::jsonstring_to_utf8(&_json_data[_offset],_json_data.size()-_offset,temp_offset);
 
                     _offset=temp_offset;
-                    if(_json_data[_offset]==0x22)
+                    if(_offset < _json_data.size() &&_json_data[_offset]==0x22)
                     {
                         _offset+=1;
                     }
                     //键名 后就是键值类型 循环去除空格
                     _offset=http::json_string_trim(_json_data,_offset);
-                    if(_json_data[_offset]!=':')
+                    if(_offset < _json_data.size() &&_json_data[_offset]!=':')
                     {
                         return _offset; 
                     }
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
                     
-                    if(_json_data[_offset]=='{')
+                    if(_offset < _json_data.size() &&_json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                         //1 内置 struct map<std::string,*>
                         //递归代码
@@ -332,7 +331,6 @@ unsigned int json_decode(std::vector<department_outjson_t> &json_reflectobj,cons
                 //直接返回，这样可以防插入空的对象
                 if(_json_data[_offset]==0x5D)
                 {
-                    _offset+=1;
                     return _offset;
                 }else if(_json_data[_offset]=='{')
                 {
@@ -469,7 +467,6 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                 //如果是右侧括号表示这个对象已经结束
                 if(_json_data[_offset]==0x7D)
                 {
-                    _offset+=1;
                     return _offset;
                 }
                 //直到引号
@@ -480,20 +477,20 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                     _json_key_name=http::jsonstring_to_utf8(&_json_data[_offset],_json_data.size()-_offset,temp_offset);
 
                     _offset=temp_offset;
-                    if(_json_data[_offset]==0x22)
+                    if(_offset < _json_data.size() &&_json_data[_offset]==0x22)
                     {
                         _offset+=1;
                     }
                     //键名 后就是键值类型 循环去除空格
                     _offset=http::json_string_trim(_json_data,_offset);
-                    if(_json_data[_offset]!=':')
+                    if(_offset < _json_data.size() &&_json_data[_offset]!=':')
                     {
                         return _offset; 
                     }
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
                     
-                    if(_json_data[_offset]=='{')
+                    if(_offset < _json_data.size() &&_json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                         //1 内置 struct map<std::string,*>
                         //递归代码
@@ -996,7 +993,6 @@ unsigned int json_decode(std::vector<department_listoutjson_t> &json_reflectobj,
                 //直接返回，这样可以防插入空的对象
                 if(_json_data[_offset]==0x5D)
                 {
-                    _offset+=1;
                     return _offset;
                 }else if(_json_data[_offset]=='{')
                 {
