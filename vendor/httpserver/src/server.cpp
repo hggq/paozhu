@@ -152,8 +152,8 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
             peer->set_header("accept-ranges", "bytes");
         }
         DEBUG_LOG("start send file range");
-        peer->set_header("date", getGmtTime());
-        peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+        peer->set_header("date", get_gmttime());
+        peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
 
         std::string etag;
         etag = make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size());
@@ -420,8 +420,8 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
         {
             peer->status(304);
             peer->length(0);
-            peer->set_header("date", getGmtTime());
-            peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+            peer->set_header("date", get_gmttime());
+            peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
             peer->set_header("etag", etag);
             peer->type(mime_value);
             _send_header = peer->make_http2_header();
@@ -552,8 +552,8 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
             peer->set_header("accept-ranges", "bytes");
         }
         DEBUG_LOG("start send file");
-        peer->set_header("date", getGmtTime());
-        peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+        peer->set_header("date", get_gmttime());
+        peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
 
         peer->set_header("etag", etag);
 
@@ -1201,8 +1201,8 @@ bool httpserver::http1_send_file(unsigned int streamid,
         {
             peer->status(304);
             peer->length(0);
-            peer->set_header("date", getGmtTime());
-            peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+            peer->set_header("date", get_gmttime());
+            peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
             peer->set_header("etag", etag);
             peer->type(mime_value);
             etag = peer->make_http1_header();
@@ -1360,8 +1360,8 @@ bool httpserver::http1_send_file(unsigned int streamid,
             peer->set_header("accept-ranges", "bytes");
         }
 
-        peer->set_header("date", getGmtTime());
-        peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+        peer->set_header("date", get_gmttime());
+        peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
 
         peer->set_header("etag", etag);
 
@@ -1500,8 +1500,8 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
             peer->set_header("accept-ranges", "bytes");
         }
 
-        peer->set_header("date", getGmtTime());
-        peer->set_header("last-modified", getGmtTime((unsigned long long)peer->fileinfo.st_mtime));
+        peer->set_header("date", get_gmttime());
+        peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
         peer->set_header("etag", etag);
         htmlcontent = peer->make_http1_header();
         htmlcontent.append("\r\n");

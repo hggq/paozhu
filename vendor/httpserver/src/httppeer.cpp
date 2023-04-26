@@ -601,7 +601,7 @@ std::list<std::string> httppeer::cookietoheader()
         key.clear();
         if (timeexp > 0)
         {
-            key = getGmtTime((unsigned long long)timeexp);
+            key = get_gmttime((unsigned long long)timeexp);
             temph.append("; Expires=");
             temph.append(key);
         }

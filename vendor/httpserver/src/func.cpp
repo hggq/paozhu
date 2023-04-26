@@ -17,6 +17,8 @@
 #include <thread>
 #include <memory>
 #include <cstdio>
+#include <sstream>
+
 #include <sys/fcntl.h>
 #include "datetime.h"
 #include "urlcode.h"
@@ -34,1229 +36,1247 @@
 
 namespace http
 {
-    namespace fs = std::filesystem;
-    void get_filename(const std::string &filename,std::string &filename_name,std::string &filename_ext)
+namespace fs = std::filesystem;
+void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext)
+{
+
+    int j = filename.size() - 1;
+    if (j == -1)
+        return;
+    for (; j >= 0; j--)
     {
-
-            int j = filename.size() - 1;
-            if(j==-1) return;
-            for (; j >= 0; j--)
-            {
-                if (filename[j] == '.')
-                {
-                    if(filename_name.size()==2&&filename_name[0]=='z'&&filename_name[1]=='g')
-                    {
-                        filename_name.push_back('.');
-                        continue;
-                    }
-                    filename_ext=filename_name;
-                    filename_name.clear();
-                    continue;
-                }
-                if (filename[j] == '/')
-                {
-                    j--;
-                    break;
-                }
-                filename_name.push_back(filename[j]);
-            }
-            std::reverse(filename_name.begin(), filename_name.end());
-            std::reverse(filename_ext.begin(), filename_ext.end());
-
-    }
-    std::string get_filename(const std::string &filename)
-    {
-            std::string filename_name;
-            if(filename.empty())
-            {
-                return "";
-            }
-            int j = filename.size() - 1;
-            if(j==-1) return "";
-            for (; j >= 0; j--)
-            {
-                if (filename[j] == '.')
-                {
-                    if(filename_name.size()==2&&filename_name[0]=='z'&&filename_name[1]=='g')
-                    {
-                        continue;
-                    }
-                    filename_name.clear();
-                    continue;
-                }
-                if (filename[j] == '/')
-                {
-                    j--;
-                    break;
-                }
-                filename_name.push_back(filename[j]);
-            }
-            std::reverse(filename_name.begin(), filename_name.end());
-        return filename_name;
-
-    }
-    std::vector<std::string> mb_split(std::string pattern, std::string &msg)
-    {
-        std::vector<std::string> temp;
-
-        std::string mp;
-        unsigned int j=0,n=msg.size();
-        for (unsigned int i = 0; i < n; i++)
+        if (filename[j] == '.')
         {
-            for(j=0;j<pattern.size();j++){
-                if((i+j)>=n){
-                    break;
-                }
-                if(pattern[j]!=msg[i+j]){
-                    break;
-                }
-            }
-            if(j==pattern.size()){
-                temp.emplace_back(mp);
-                mp.clear();
-                i=i+j-1;
+            if (filename_name.size() == 2 && filename_name[0] == 'z' && filename_name[1] == 'g')
+            {
+                filename_name.push_back('.');
                 continue;
             }
-            mp.push_back(msg[i]);
+            filename_ext = filename_name;
+            filename_name.clear();
+            continue;
         }
-        if(mp.size()>0){
+        if (filename[j] == '/')
+        {
+            j--;
+            break;
+        }
+        filename_name.push_back(filename[j]);
+    }
+    std::reverse(filename_name.begin(), filename_name.end());
+    std::reverse(filename_ext.begin(), filename_ext.end());
+}
+std::string get_filename(const std::string &filename)
+{
+    std::string filename_name;
+    if (filename.empty())
+    {
+        return "";
+    }
+    int j = filename.size() - 1;
+    if (j == -1)
+        return "";
+    for (; j >= 0; j--)
+    {
+        if (filename[j] == '.')
+        {
+            if (filename_name.size() == 2 && filename_name[0] == 'z' && filename_name[1] == 'g')
+            {
+                continue;
+            }
+            filename_name.clear();
+            continue;
+        }
+        if (filename[j] == '/')
+        {
+            j--;
+            break;
+        }
+        filename_name.push_back(filename[j]);
+    }
+    std::reverse(filename_name.begin(), filename_name.end());
+    return filename_name;
+}
+std::vector<std::string> mb_split(std::string pattern, std::string &msg)
+{
+    std::vector<std::string> temp;
+
+    std::string mp;
+    unsigned int j = 0, n = msg.size();
+    for (unsigned int i = 0; i < n; i++)
+    {
+        for (j = 0; j < pattern.size(); j++)
+        {
+            if ((i + j) >= n)
+            {
+                break;
+            }
+            if (pattern[j] != msg[i + j])
+            {
+                break;
+            }
+        }
+        if (j == pattern.size())
+        {
             temp.emplace_back(mp);
+            mp.clear();
+            i = i + j - 1;
+            continue;
         }
-        return temp;
+        mp.push_back(msg[i]);
     }
-    int mb_strlen(std::string &str)
+    if (mp.size() > 0)
     {
-        int length = 0;
-        unsigned long long pos = 0;
-        unsigned char c;
-        for (; pos < str.size(); pos++)
+        temp.emplace_back(mp);
+    }
+    return temp;
+}
+int mb_strlen(std::string &str)
+{
+    int length             = 0;
+    unsigned long long pos = 0;
+    unsigned char c;
+    for (; pos < str.size(); pos++)
+    {
+        c = (unsigned char)str[pos];
+        if (c < 0x80)
         {
-            c = (unsigned char)str[pos];
-            if (c < 0x80)
-            {
-                length++;
-            }
-            else if (c < 0xC0)
-            {
-                length++;
-            }
-            else if (c >= 0xC0 && c < 0xE0)
-            {
-                pos += 1;
-                length++;
-            }
-            else if (c >= 0xE0 && c < 0xF0)
-            {
-                pos += 2;
-                length++;
-            }
-            else if (c >= 0xF0 && c < 0xF8)
-            {
-                pos += 3;
-                length++;
-            }
-            else
-            {
-                length++;
-            }
+            length++;
         }
-        return length;
-    }
-    std::string mb_substr(std::string &str, int begin, int length)
-    {
-        std::string temp;
-        int strlength = 0;
-       // int spacenum = 0;
-        unsigned char c;
-        if (begin < 0)
+        else if (c < 0xC0)
         {
-            if (length == 0)
-            {
-                strlength = mb_strlen(str);
-                int n = strlength + begin;
-                if (n > strlength)
-                {
-                    n = strlength;
-                }
-                if (n < 0)
-                {
-                    n = 0;
-                }
-
-                int offsetnum = 0;
-                for (unsigned int pos = 0; pos < str.size(); pos++)
-                {
-                    c = (unsigned char)str[pos];
-                    if (c < 0x80)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c < 0xC0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c >= 0xC0 && c < 0xE0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                        }
-                        pos += 1;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xE0 && c < 0xF0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                        }
-                        pos += 2;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xF0 && c < 0xF8)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                            temp.push_back(str[pos + 3]);
-                        }
-                        pos += 3;
-                        offsetnum++;
-                    }
-                    else
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                }
-
-                return temp;
-            }
-            else if (length < 0)
-            {
-                strlength = mb_strlen(str);
-                int j = strlength + length;
-                if (j > strlength)
-                {
-                    j = strlength;
-                }
-                if (j < 0)
-                {
-                    j = 0;
-                }
-                int n = strlength + begin;
-                if (n > strlength)
-                {
-                    n = strlength;
-                }
-                if (n < 0)
-                {
-                    n = 0;
-                }
-
-                if (n >= j)
-                {
-                    return temp;
-                }
-                int offsetnum = 0;
-                for (unsigned int pos = 0; pos < str.size(); pos++)
-                {
-                    c = (unsigned char)str[pos];
-                    if (c < 0x80)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c < 0xC0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c >= 0xC0 && c < 0xE0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                        }
-                        pos += 1;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xE0 && c < 0xF0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                        }
-                        pos += 2;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xF0 && c < 0xF8)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                            temp.push_back(str[pos + 3]);
-                        }
-                        pos += 3;
-                        offsetnum++;
-                    }
-                    else
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    if (offsetnum >= j)
-                    {
-                        break;
-                    }
-                }
-                return temp;
-            }
-            else
-            {
-                strlength = mb_strlen(str);
-
-                int n = strlength + begin;
-                if (n > strlength)
-                {
-                    n = strlength;
-                }
-                if (n < 0)
-                {
-                    n = 0;
-                }
-
-                int j = n + length;
-                if (j > strlength)
-                {
-                    j = strlength;
-                }
-                if (j < 0)
-                {
-                    j = 0;
-                }
-                if (n >= j)
-                {
-                    return temp;
-                }
-
-                int offsetnum = 0;
-                for (unsigned int pos = 0; pos < str.size(); pos++)
-                {
-                    c = (unsigned char)str[pos];
-                    if (c < 0x80)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c < 0xC0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c >= 0xC0 && c < 0xE0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                        }
-                        pos += 1;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xE0 && c < 0xF0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                        }
-                        pos += 2;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xF0 && c < 0xF8)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                            temp.push_back(str[pos + 3]);
-                        }
-                        pos += 3;
-                        offsetnum++;
-                    }
-                    else
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    if (offsetnum >= j)
-                    {
-                        break;
-                    }
-                }
-
-                return temp;
-            }
+            length++;
+        }
+        else if (c >= 0xC0 && c < 0xE0)
+        {
+            pos += 1;
+            length++;
+        }
+        else if (c >= 0xE0 && c < 0xF0)
+        {
+            pos += 2;
+            length++;
+        }
+        else if (c >= 0xF0 && c < 0xF8)
+        {
+            pos += 3;
+            length++;
         }
         else
         {
-            if (length == 0)
-            {
-
-                int offsetnum = 0;
-                int n = begin;
-                for (unsigned int pos = 0; pos < str.size(); pos++)
-                {
-                    c = (unsigned char)str[pos];
-                    if (c < 0x80)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c < 0xC0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c >= 0xC0 && c < 0xE0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                        }
-                        pos += 1;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xE0 && c < 0xF0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                        }
-                        pos += 2;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xF0 && c < 0xF8)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                            temp.push_back(str[pos + 3]);
-                        }
-                        pos += 3;
-                        offsetnum++;
-                    }
-                    else
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                }
-
-                return temp;
-            }
-            else if (length < 0)
-            {
-                strlength = mb_strlen(str);
-                int j = strlength + length;
-                if (j < 0)
-                {
-                    j = 0;
-                }
-                if (begin > strlength)
-                {
-                    begin = strlength;
-                }
-
-                int n = j;
-                j = begin;
-
-                int offsetnum = 0;
-                for (unsigned  int pos = 0; pos < str.size(); pos++)
-                {
-                    c = (unsigned char)str[pos];
-                    if (c < 0x80)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c < 0xC0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c >= 0xC0 && c < 0xE0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                        }
-                        pos += 1;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xE0 && c < 0xF0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                        }
-                        pos += 2;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xF0 && c < 0xF8)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                            temp.push_back(str[pos + 3]);
-                        }
-                        pos += 3;
-                        offsetnum++;
-                    }
-                    else
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    if (offsetnum >= j)
-                    {
-                        break;
-                    }
-                }
-
-                return temp;
-            }
-            else
-            {
-                strlength = mb_strlen(str);
-
-                if (begin > strlength)
-                {
-                    begin = strlength;
-                }
-                int j = begin + length;
-                if (j > strlength)
-                {
-                    j = strlength;
-                }
-                int n = begin;
-                int offsetnum = 0;
-                for (unsigned int pos = 0; pos < str.size(); pos++)
-                {
-                    c = (unsigned char)str[pos];
-                    if (c < 0x80)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c < 0xC0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    else if (c >= 0xC0 && c < 0xE0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                        }
-                        pos += 1;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xE0 && c < 0xF0)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                        }
-                        pos += 2;
-                        offsetnum++;
-                    }
-                    else if (c >= 0xF0 && c < 0xF8)
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                            temp.push_back(str[pos + 1]);
-                            temp.push_back(str[pos + 2]);
-                            temp.push_back(str[pos + 3]);
-                        }
-                        pos += 3;
-                        offsetnum++;
-                    }
-                    else
-                    {
-                        if (offsetnum >= n)
-                        {
-                            temp.push_back(str[pos]);
-                        }
-                        offsetnum++;
-                    }
-                    if (offsetnum >= j)
-                    {
-                        break;
-                    }
-                }
-                return temp;
-            }
+            length++;
         }
-
-        return temp;
     }
-    std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody)
+    return length;
+}
+std::string mb_substr(std::string &str, int begin, int length)
+{
+    std::string temp;
+    int strlength = 0;
+    // int spacenum = 0;
+    unsigned char c;
+    if (begin < 0)
     {
-        std::string file_body;
-        bool isurl = false;
-        unsigned i = 0;
-        if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' && str[i + 5] == '/' && str[i + 6] == '/')
+        if (length == 0)
         {
-
-            isurl = true;
-        }
-        else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' && str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
-        {
-            isurl = true;
-        }
-
-        if (isurl)
-        {
-            http::client a;
-            // http::OBJ_VALUE parameter;
-            bool isaccept = false;
-            bool isget = false;
-            for (auto [hkey, vvalue] : parabody)
+            strlength = mb_strlen(str);
+            int n     = strlength + begin;
+            if (n > strlength)
             {
-                if (hkey == "Content-Type")
+                n = strlength;
+            }
+            if (n < 0)
+            {
+                n = 0;
+            }
+
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < str.size(); pos++)
+            {
+                c = (unsigned char)str[pos];
+                if (c < 0x80)
                 {
-                    a.setheader("Content-Type", vvalue);
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
                 }
-                else if (hkey == "Post-Type")
+                else if (c < 0xC0)
                 {
-                    a.posttype(vvalue);
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
                 }
-                else if (hkey == "User-Agent")
+                else if (c >= 0xC0 && c < 0xE0)
                 {
-                    a.setheader("User-Agent", vvalue);
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
                 }
-                else if (hkey == "Accept")
+                else if (c >= 0xE0 && c < 0xF0)
                 {
-                    a.setheader("Accept", vvalue);
-                    isaccept = true;
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
                 }
-                else if (hkey == "method")
+                else if (c >= 0xF0 && c < 0xF8)
                 {
-                    isget = true;
-                }
-                else if (hkey == "header-content")
-                {
-                    a.addheader(vvalue);
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                        temp.push_back(str[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
                 }
                 else
                 {
-                    a.data[hkey] = vvalue;
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
                 }
             }
 
-            if (!isaccept)
+            return temp;
+        }
+        else if (length < 0)
+        {
+            strlength = mb_strlen(str);
+            int j     = strlength + length;
+            if (j > strlength)
             {
-                a.setheader("Accept", "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8");
+                j = strlength;
             }
-            if (isget)
+            if (j < 0)
             {
-                a.get(str);
+                j = 0;
             }
-            else
+            int n = strlength + begin;
+            if (n > strlength)
             {
-                a.post(str);
+                n = strlength;
+            }
+            if (n < 0)
+            {
+                n = 0;
             }
 
-            a.timeout(30);
-            // a.data=parameter;
-            a.send();
-            parabody["state"]=std::to_string(a.getstate());
-            parabody["response-header"]=a.getheader();
-            parabody["content-length"]=std::to_string(a.getlength());
-            if (a.getstate() == 200)
+            if (n >= j)
             {
-                if (a.getlength() < 33554432)
+                return temp;
+            }
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < str.size(); pos++)
+            {
+                c = (unsigned char)str[pos];
+                if (c < 0x80)
                 {
-                    return a.getbody();
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                        temp.push_back(str[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
                 }
                 else
                 {
-                    return a.gettempfile();
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                if (offsetnum >= j)
+                {
+                    break;
                 }
             }
+            return temp;
+        }
+        else
+        {
+            strlength = mb_strlen(str);
+
+            int n = strlength + begin;
+            if (n > strlength)
+            {
+                n = strlength;
+            }
+            if (n < 0)
+            {
+                n = 0;
+            }
+
+            int j = n + length;
+            if (j > strlength)
+            {
+                j = strlength;
+            }
+            if (j < 0)
+            {
+                j = 0;
+            }
+            if (n >= j)
+            {
+                return temp;
+            }
+
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < str.size(); pos++)
+            {
+                c = (unsigned char)str[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                        temp.push_back(str[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                if (offsetnum >= j)
+                {
+                    break;
+                }
+            }
+
+            return temp;
+        }
+    }
+    else
+    {
+        if (length == 0)
+        {
+
+            int offsetnum = 0;
+            int n         = begin;
+            for (unsigned int pos = 0; pos < str.size(); pos++)
+            {
+                c = (unsigned char)str[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                        temp.push_back(str[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+            }
+
+            return temp;
+        }
+        else if (length < 0)
+        {
+            strlength = mb_strlen(str);
+            int j     = strlength + length;
+            if (j < 0)
+            {
+                j = 0;
+            }
+            if (begin > strlength)
+            {
+                begin = strlength;
+            }
+
+            int n = j;
+            j     = begin;
+
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < str.size(); pos++)
+            {
+                c = (unsigned char)str[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                        temp.push_back(str[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                if (offsetnum >= j)
+                {
+                    break;
+                }
+            }
+
+            return temp;
+        }
+        else
+        {
+            strlength = mb_strlen(str);
+
+            if (begin > strlength)
+            {
+                begin = strlength;
+            }
+            int j = begin + length;
+            if (j > strlength)
+            {
+                j = strlength;
+            }
+            int n         = begin;
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < str.size(); pos++)
+            {
+                c = (unsigned char)str[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                        temp.push_back(str[pos + 1]);
+                        temp.push_back(str[pos + 2]);
+                        temp.push_back(str[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(str[pos]);
+                    }
+                    offsetnum++;
+                }
+                if (offsetnum >= j)
+                {
+                    break;
+                }
+            }
+            return temp;
+        }
+    }
+
+    return temp;
+}
+std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody)
+{
+    std::string file_body;
+    bool isurl = false;
+    unsigned i = 0;
+    if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' &&
+        str[i + 5] == '/' && str[i + 6] == '/')
+    {
+
+        isurl = true;
+    }
+    else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' &&
+             str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
+    {
+        isurl = true;
+    }
+
+    if (isurl)
+    {
+        http::client a;
+        // http::OBJ_VALUE parameter;
+        bool isaccept = false;
+        bool isget    = false;
+        for (auto [hkey, vvalue] : parabody)
+        {
+            if (hkey == "Content-Type")
+            {
+                a.setheader("Content-Type", vvalue);
+            }
+            else if (hkey == "Post-Type")
+            {
+                a.posttype(vvalue);
+            }
+            else if (hkey == "User-Agent")
+            {
+                a.setheader("User-Agent", vvalue);
+            }
+            else if (hkey == "Accept")
+            {
+                a.setheader("Accept", vvalue);
+                isaccept = true;
+            }
+            else if (hkey == "method")
+            {
+                isget = true;
+            }
+            else if (hkey == "header-content")
+            {
+                a.addheader(vvalue);
+            }
             else
+            {
+                a.data[hkey] = vvalue;
+            }
+        }
+
+        if (!isaccept)
+        {
+            a.setheader("Accept",
+                        "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8");
+        }
+        if (isget)
+        {
+            a.get(str);
+        }
+        else
+        {
+            a.post(str);
+        }
+
+        a.timeout(30);
+        // a.data=parameter;
+        a.send();
+        parabody["state"]           = std::to_string(a.getstate());
+        parabody["response-header"] = a.getheader();
+        parabody["content-length"]  = std::to_string(a.getlength());
+        if (a.getstate() == 200)
+        {
+            if (a.getlength() < 33554432)
             {
                 return a.getbody();
             }
+            else
+            {
+                return a.gettempfile();
+            }
         }
         else
         {
-
-            FILE *ffp = fopen(str.c_str(), "rb");
-            if (!ffp)
-            {
-                return file_body;
-            }
-            fseek(ffp, 0, SEEK_END);
-            unsigned int nsize = ftell(ffp);
-            fseek(ffp, 0, SEEK_SET);
-
-            file_body.resize(nsize);
-
-            unsigned int nread = fread(&file_body[0], 1, nsize, ffp);
-            file_body.resize(nread);
-            fclose(ffp);
+            return a.getbody();
         }
-
-        return file_body;
     }
-    std::string file_get_contents(std::string str)
+    else
     {
-        std::string file_body;
-        bool isurl = false;
-        unsigned i = 0;
-        if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' && str[i + 5] == '/' && str[i + 6] == '/')
-        {
 
-            isurl = true;
-        }
-        else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' && str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
+        FILE *ffp = fopen(str.c_str(), "rb");
+        if (!ffp)
         {
-            isurl = true;
+            return file_body;
         }
+        fseek(ffp, 0, SEEK_END);
+        unsigned int nsize = ftell(ffp);
+        fseek(ffp, 0, SEEK_SET);
 
-        if (isurl)
+        file_body.resize(nsize);
+
+        unsigned int nread = fread(&file_body[0], 1, nsize, ffp);
+        file_body.resize(nread);
+        fclose(ffp);
+    }
+
+    return file_body;
+}
+std::string file_get_contents(std::string str)
+{
+    std::string file_body;
+    bool isurl = false;
+    unsigned i = 0;
+    if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' &&
+        str[i + 5] == '/' && str[i + 6] == '/')
+    {
+
+        isurl = true;
+    }
+    else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' &&
+             str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
+    {
+        isurl = true;
+    }
+
+    if (isurl)
+    {
+        http::client a;
+        a.get(str);
+        a.timeout(30);
+        a.send();
+        if (a.getstate() == 200)
         {
-            http::client a;
-            a.get(str);
-            a.timeout(30);
-            a.send();
-            if (a.getstate() == 200)
+            if (a.getlength() < 33554432)
             {
-                if (a.getlength() < 33554432)
+                return a.getbody();
+            }
+            else
+            {
+                return a.gettempfile();
+            }
+        }
+        else
+        {
+            return a.getheader();
+        }
+    }
+    else
+    {
+
+        FILE *ffp = fopen(str.c_str(), "rb");
+        if (!ffp)
+        {
+            return file_body;
+        }
+        fseek(ffp, 0, SEEK_END);
+        unsigned int nsize = ftell(ffp);
+        fseek(ffp, 0, SEEK_SET);
+
+        file_body.resize(nsize);
+
+        unsigned int nread = fread(&file_body[0], 1, nsize, ffp);
+        file_body.resize(nread);
+        fclose(ffp);
+    }
+
+    return file_body;
+}
+bool file_put_contents(std::string str, std::string &body, bool append)
+{
+    bool issuccess = false;
+    FILE *ffp;
+    if (append)
+    {
+        ffp = fopen(str.c_str(), "ab");
+    }
+    else
+    {
+        ffp = fopen(str.c_str(), "wb");
+    }
+
+    if (!ffp)
+    {
+        return issuccess;
+    }
+
+    auto nsize = fwrite(&body[0], body.size(), 1, ffp);
+    fclose(ffp);
+    if (nsize > 0)
+    {
+        issuccess = true;
+    }
+    return issuccess;
+}
+bool file_put_contents(std::string str, const char *body, unsigned int length, bool append)
+{
+    bool issuccess = false;
+    FILE *ffp;
+    if (append)
+    {
+        ffp = fopen(str.c_str(), "ab");
+    }
+    else
+    {
+        ffp = fopen(str.c_str(), "wb");
+    }
+
+    if (!ffp)
+    {
+        return issuccess;
+    }
+
+    auto nsize = fwrite(body, length, 1, ffp);
+    fclose(ffp);
+    if (nsize > 0)
+    {
+        issuccess = true;
+    }
+    return issuccess;
+}
+struct stat filestat(std::string &file_name)
+{
+    struct stat finfo;
+    if (stat(file_name.c_str(), &finfo) == 0)
+    {
+    }
+    return finfo;
+}
+std::map<std::string, std::string> filepath(std::string &str)
+{
+    std::map<std::string, std::string> temp;
+    std::vector<std::string> vpath;
+    bool isext     = false;
+    bool isurl     = false;
+    unsigned int i = 0;
+    for (; i < str.size(); i++)
+    {
+        if (str[i] == 0x20 || str[i] == 0x09 || str[i] == 0x0D || str[i] == 0x0A)
+        {
+            continue;
+        }
+        break;
+    }
+    if (str[i] == 'h')
+    {
+        if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' &&
+            str[i + 5] == '/' && str[i + 6] == '/')
+        {
+            temp["scheme"] = "http";
+            bool isip6     = false;
+            bool isport    = false;
+            std::string temphost;
+            std::string tempport;
+            unsigned int j = i + 7;
+            for (; j < str.size(); j++)
+            {
+                if (str[j] == '/')
                 {
-                    return a.getbody();
+                    break;
+                }
+                if (str[j] == '[')
+                {
+                    isip6 = true;
+                    continue;
+                }
+                if (str[j] == ']')
+                {
+                    isip6 = false;
+                    continue;
+                }
+                if (isip6)
+                {
+                    temphost.push_back(str[j]);
                 }
                 else
                 {
-                    return a.gettempfile();
-                }
-            }
-            else
-            {
-                return a.getheader();
-            }
-        }
-        else
-        {
-
-            FILE *ffp = fopen(str.c_str(), "rb");
-            if (!ffp)
-            {
-                return file_body;
-            }
-            fseek(ffp, 0, SEEK_END);
-            unsigned int nsize = ftell(ffp);
-            fseek(ffp, 0, SEEK_SET);
-
-            file_body.resize(nsize);
-
-            unsigned int nread = fread(&file_body[0], 1, nsize, ffp);
-            file_body.resize(nread);
-            fclose(ffp);
-        }
-
-        return file_body;
-    }
-    bool file_put_contents(std::string str, std::string &body, bool append)
-    {
-        bool issuccess = false;
-        FILE *ffp;
-        if (append)
-        {
-            ffp = fopen(str.c_str(), "ab");
-        }
-        else
-        {
-            ffp = fopen(str.c_str(), "wb");
-        }
-
-        if (!ffp)
-        {
-            return issuccess;
-        }
-
-        auto nsize = fwrite(&body[0], body.size(), 1, ffp);
-        fclose(ffp);
-        if (nsize > 0)
-        {
-            issuccess = true;
-        }
-        return issuccess;
-    }
-    bool file_put_contents(std::string str,const char *body,unsigned int length, bool append)
-    {
-        bool issuccess = false;
-        FILE *ffp;
-        if (append)
-        {
-            ffp = fopen(str.c_str(), "ab");
-        }
-        else
-        {
-            ffp = fopen(str.c_str(), "wb");
-        }
-
-        if (!ffp)
-        {
-            return issuccess;
-        }
-
-        auto nsize = fwrite(body, length, 1, ffp);
-        fclose(ffp);
-        if (nsize > 0)
-        {
-            issuccess = true;
-        }
-        return issuccess;
-    } 
-    struct stat filestat(std::string &file_name)
-    {
-        struct stat finfo;
-        if (stat(file_name.c_str(), &finfo) == 0)
-        {
-        }
-        return finfo;
-    }
-    std::map<std::string, std::string> filepath(std::string &str)
-    {
-        std::map<std::string, std::string> temp;
-        std::vector<std::string> vpath;
-        bool isext = false;
-        bool isurl = false;
-        unsigned int i = 0;
-        for (; i < str.size(); i++)
-        {
-            if (str[i] == 0x20 || str[i] == 0x09 || str[i] == 0x0D || str[i] == 0x0A)
-            {
-                continue;
-            }
-            break;
-        }
-        if (str[i] == 'h')
-        {
-            if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' && str[i + 5] == '/' && str[i + 6] == '/')
-            {
-                temp["scheme"] = "http";
-                bool isip6 = false;
-                bool isport = false;
-                std::string temphost;
-                std::string tempport;
-                unsigned int j = i + 7;
-                for (; j < str.size(); j++)
-                {
-                    if (str[j] == '/')
+                    if (str[j] == ':')
                     {
-                        break;
-                    }
-                    if (str[j] == '[')
-                    {
-                        isip6 = true;
+                        isport = true;
                         continue;
                     }
-                    if (str[j] == ']')
+                    if (isport)
                     {
-                        isip6 = false;
-                        continue;
-                    }
-                    if (isip6)
-                    {
-                        temphost.push_back(str[j]);
+                        tempport.push_back(str[j]);
                     }
                     else
                     {
-                        if (str[j] == ':')
-                        {
-                            isport = true;
-                            continue;
-                        }
-                        if (isport)
-                        {
-                            tempport.push_back(str[j]);
-                        }
-                        else
-                        {
-                            temphost.push_back(str[j]);
-                        }
-                    }
-                }
-                temp["host"] = temphost;
-                if (tempport.size() > 0)
-                {
-                    temp["port"] = tempport;
-                }
-                i = j;
-                isurl = true;
-            }
-            else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' && str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
-            {
-                temp["scheme"] = "https";
-                bool isip6 = false;
-                bool isport = false;
-                std::string temphost;
-                std::string tempport;
-                unsigned int j = i + 8;
-                for (; j < str.size(); j++)
-                {
-                    if (str[j] == '/')
-                    {
-                        break;
-                    }
-                    if (str[j] == '[')
-                    {
-                        isip6 = true;
-                        continue;
-                    }
-                    if (str[j] == ']')
-                    {
-                        isip6 = false;
-                        continue;
-                    }
-                    if (isip6)
-                    {
                         temphost.push_back(str[j]);
+                    }
+                }
+            }
+            temp["host"] = temphost;
+            if (tempport.size() > 0)
+            {
+                temp["port"] = tempport;
+            }
+            i     = j;
+            isurl = true;
+        }
+        else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' &&
+                 str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
+        {
+            temp["scheme"] = "https";
+            bool isip6     = false;
+            bool isport    = false;
+            std::string temphost;
+            std::string tempport;
+            unsigned int j = i + 8;
+            for (; j < str.size(); j++)
+            {
+                if (str[j] == '/')
+                {
+                    break;
+                }
+                if (str[j] == '[')
+                {
+                    isip6 = true;
+                    continue;
+                }
+                if (str[j] == ']')
+                {
+                    isip6 = false;
+                    continue;
+                }
+                if (isip6)
+                {
+                    temphost.push_back(str[j]);
+                }
+                else
+                {
+                    if (str[j] == ':')
+                    {
+                        isport = true;
+                        continue;
+                    }
+                    if (isport)
+                    {
+                        tempport.push_back(str[j]);
                     }
                     else
                     {
-                        if (str[j] == ':')
-                        {
-                            isport = true;
-                            continue;
-                        }
-                        if (isport)
-                        {
-                            tempport.push_back(str[j]);
-                        }
-                        else
-                        {
-                            temphost.push_back(str[j]);
-                        }
+                        temphost.push_back(str[j]);
                     }
                 }
-                temp["host"] = temphost;
-                if (tempport.size() > 0)
+            }
+            temp["host"] = temphost;
+            if (tempport.size() > 0)
+            {
+                temp["port"] = tempport;
+            }
+            i     = j;
+            isurl = true;
+        }
+    }
+
+    if (str[i] == '/')
+    {
+        temp["dirname"] = "/";
+    }
+    for (; i < str.size(); i++)
+    {
+        if (isurl)
+        {
+            if (str[i] == '#')
+            {
+                break;
+            }
+            if (str[i] == '?')
+            {
+                for (unsigned int j = i + 1; j < str.size(); j++)
                 {
-                    temp["port"] = tempport;
+                    if (str[j] == '#')
+                    {
+                        break;
+                    }
+                    temp["querystring"].push_back(str[j]);
                 }
-                i = j;
-                isurl = true;
+                break;
             }
         }
-
         if (str[i] == '/')
         {
-            temp["dirname"] = "/";
+            if (temp["basename"].size() > 0)
+            {
+                if (temp["basename"].size() == 1 && temp["basename"][0] == '.')
+                {
+                }
+                else if (temp["basename"].size() == 2 && temp["basename"] == "..")
+                {
+
+                    if (vpath.size() > 0)
+                    {
+                        vpath.pop_back();
+                    }
+                }
+                else
+                {
+                    vpath.push_back(temp["basename"]);
+                }
+            }
+            temp["basename"]  = "";
+            temp["extension"] = "";
+            temp["filename"]  = "";
+            isext             = false;
+
+            continue;
         }
-        for (; i < str.size(); i++)
+        temp["basename"].push_back(str[i]);
+        if (str[i] == '.')
         {
-            if (isurl)
-            {
-                if (str[i] == '#')
-                {
-                    break;
-                }
-                if (str[i] == '?')
-                {
-                    for (unsigned int j = i + 1; j < str.size(); j++)
-                    {
-                        if (str[j] == '#')
-                        {
-                            break;
-                        }
-                        temp["querystring"].push_back(str[j]);
-                    }
-                    break;
-                }
-            }
-            if (str[i] == '/')
-            {
-                if (temp["basename"].size() > 0)
-                {
-                    if (temp["basename"].size() == 1 && temp["basename"][0] == '.')
-                    {
-                    }
-                    else if (temp["basename"].size() == 2 && temp["basename"] == "..")
-                    {
-
-                        if (vpath.size() > 0)
-                        {
-                            vpath.pop_back();
-                        }
-                    }
-                    else
-                    {
-                        vpath.push_back(temp["basename"]);
-                    }
-                }
-                temp["basename"] = "";
-                temp["extension"] = "";
-                temp["filename"] = "";
-                isext = false;
-
-                continue;
-            }
-            temp["basename"].push_back(str[i]);
-            if (str[i] == '.')
-            {
-                if (isext)
-                {
-                    temp["filename"].push_back('.');
-                    temp["filename"].append(temp["extension"]);
-                    temp["extension"] = "";
-                }
-                isext = true;
-                continue;
-            }
-
             if (isext)
             {
-                temp["extension"].push_back(str[i]);
+                temp["filename"].push_back('.');
+                temp["filename"].append(temp["extension"]);
+                temp["extension"] = "";
             }
-            else
-            {
-                temp["filename"].push_back(str[i]);
-            }
+            isext = true;
+            continue;
         }
-        if (vpath.size() > 0)
+
+        if (isext)
         {
-            for (unsigned int j = 0; j < vpath.size(); j++)
-            {
-                if (j > 0)
-                {
-                    temp["dirname"].push_back('/');
-                }
-                temp["dirname"].append(vpath[j]);
-            }
+            temp["extension"].push_back(str[i]);
         }
-        return temp;
+        else
+        {
+            temp["filename"].push_back(str[i]);
+        }
     }
-    std::string mb_trim(std::string &str)
+    if (vpath.size() > 0)
     {
-        std::string temp;
-        unsigned int tlen = str.size();
-        for (; tlen > 0; tlen--)
+        for (unsigned int j = 0; j < vpath.size(); j++)
         {
-            if (str[tlen - 1] == 0x20 || str[tlen - 1] == 0x09 || str[tlen - 1] == 0x0A || str[tlen - 1] == 0x0D)
+            if (j > 0)
             {
-                continue;
+                temp["dirname"].push_back('/');
             }
-            break;
+            temp["dirname"].append(vpath[j]);
         }
-        unsigned  int i = 0;
-        for (; i < tlen; i++)
+    }
+    return temp;
+}
+std::string mb_trim(std::string &str)
+{
+    std::string temp;
+    unsigned int tlen = str.size();
+    for (; tlen > 0; tlen--)
+    {
+        if (str[tlen - 1] == 0x20 || str[tlen - 1] == 0x09 || str[tlen - 1] == 0x0A || str[tlen - 1] == 0x0D)
         {
-            if (str[i] == 0x20 || str[i] == 0x09 || str[i] == 0x0A || str[i] == 0x0D)
-            {
-                continue;
-            }
-            break;
+            continue;
         }
-        for (; i < tlen; i++)
+        break;
+    }
+    unsigned int i = 0;
+    for (; i < tlen; i++)
+    {
+        if (str[i] == 0x20 || str[i] == 0x09 || str[i] == 0x0A || str[i] == 0x0D)
+        {
+            continue;
+        }
+        break;
+    }
+    for (; i < tlen; i++)
+    {
+        temp.push_back(str[i]);
+    }
+    return temp;
+}
+std::string html_encode(std::string &str)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < str.size(); i++)
+    {
+        if (str[i] == '&')
+        {
+            temp.append("&amp;");
+            continue;
+        }
+        else if (str[i] == 0x22)
+        {
+            // double quote
+            temp.append("&quot;");
+            continue;
+        }
+        else if (str[i] == 0x27)
+        {
+            // single quote &#039; ie not support &apos;
+            temp.append("&apos;");
+            continue;
+        }
+        else if (str[i] == 0x3C)
+        {
+            //<
+            temp.append("&lt;");
+            continue;
+        }
+        else if (str[i] == 0x3E)
+        {
+            //>
+            temp.append("&gt;");
+            continue;
+        }
+        else
         {
             temp.push_back(str[i]);
         }
-        return temp;
     }
-    std::string html_encode(std::string &str)
-    {
-        std::string temp;
-        for (unsigned int i = 0; i < str.size(); i++)
-        {
-            if (str[i] == '&')
-            {
-                temp.append("&amp;");
-                continue;
-            }
-            else if (str[i] == 0x22)
-            {
-                // double quote
-                temp.append("&quot;");
-                continue;
-            }
-            else if (str[i] == 0x27)
-            {
-                // single quote &#039; ie not support &apos;
-                temp.append("&apos;");
-                continue;
-            }
-            else if (str[i] == 0x3C)
-            {
-                //<
-                temp.append("&lt;");
-                continue;
-            }
-            else if (str[i] == 0x3E)
-            {
-                //>
-                temp.append("&gt;");
-                continue;
-            }
-            else
-            {
-                temp.push_back(str[i]);
-            }
-        }
-        return temp;
-    }
-        long long str2int(const char *source, unsigned int str_length)
-    {
-        long long  temp = 0;
-        unsigned int qi = 0;
-        bool issub=false;
-        for (; qi < str_length; qi++)
-        {
-            if (source[qi] != 0x20)
-            {
-                break;
-            }    
-        }
-        if(source[qi]=='-')
-        {
-            issub=true;
-            qi++;
-        }
-        for (; qi < str_length; qi++)
-        {
-            if (source[qi] < 0x3A && source[qi] > 0x2F)
-            {
-                temp = temp * 10 + (source[qi] - 0x30);
-            }
-        }
-        if(issub)
-        {
-            temp=0-temp;
-        }
-        return temp;
-    }
-    std::string str2safepath(const char *source, unsigned int str_length)
-    {
-        std::string temp;
-        for(unsigned  int i=0;i<str_length;i++)
-        {
-
-            if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='('||source[i]==')'||source[i]=='~'||source[i]=='_'||source[i]=='-'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))
-            {
-              temp.push_back(source[i]);
-            }
-        }
-        return temp;
-    }
-    std::string str2safefile(const char *source, unsigned int str_length)
-    {
-        std::string temp;
-        for(unsigned int i=0;i<str_length;i++)
-        {
-
-            if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='.'||source[i]=='['||source[i]==']'||source[i]=='('||source[i]==')'||source[i]=='~'||source[i]=='_'||source[i]=='-'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))
-            {
-              temp.push_back(source[i]);
-            }
-        }
-        return temp;
-    }
-    std::string str2safemethold(const char *source, unsigned int str_length)
-    {
-        std::string temp;
-        for(unsigned int i=0;i<str_length;i++)
-        {
-
-            if((source[i]>0x2F&&source[i]<0x3A)||source[i]=='_'||(source[i]>0x40&&source[i]<0x5B)||(source[i]>0x60&&source[i]<0x7B))
-            {
-              temp.push_back(source[i]);
-            }
-        }
-        return temp;
-    }
+    return temp;
 }
+long long str2int(const char *source, unsigned int str_length)
+{
+    long long temp  = 0;
+    unsigned int qi = 0;
+    bool issub      = false;
+    for (; qi < str_length; qi++)
+    {
+        if (source[qi] != 0x20)
+        {
+            break;
+        }
+    }
+    if (source[qi] == '-')
+    {
+        issub = true;
+        qi++;
+    }
+    for (; qi < str_length; qi++)
+    {
+        if (source[qi] < 0x3A && source[qi] > 0x2F)
+        {
+            temp = temp * 10 + (source[qi] - 0x30);
+        }
+    }
+    if (issub)
+    {
+        temp = 0 - temp;
+    }
+    return temp;
+}
+std::string str2safepath(const char *source, unsigned int str_length)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < str_length; i++)
+    {
+
+        if ((source[i] > 0x2F && source[i] < 0x3A) || source[i] == '(' || source[i] == ')' || source[i] == '~' ||
+            source[i] == '_' || source[i] == '-' || (source[i] > 0x40 && source[i] < 0x5B) ||
+            (source[i] > 0x60 && source[i] < 0x7B))
+        {
+            temp.push_back(source[i]);
+        }
+    }
+    return temp;
+}
+std::string str2safefile(const char *source, unsigned int str_length)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < str_length; i++)
+    {
+
+        if ((source[i] > 0x2F && source[i] < 0x3A) || source[i] == '.' || source[i] == '[' || source[i] == ']' ||
+            source[i] == '(' || source[i] == ')' || source[i] == '~' || source[i] == '_' || source[i] == '-' ||
+            (source[i] > 0x40 && source[i] < 0x5B) || (source[i] > 0x60 && source[i] < 0x7B))
+        {
+            temp.push_back(source[i]);
+        }
+    }
+    return temp;
+}
+std::string str2safemethold(const char *source, unsigned int str_length)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < str_length; i++)
+    {
+
+        if ((source[i] > 0x2F && source[i] < 0x3A) || source[i] == '_' || (source[i] > 0x40 && source[i] < 0x5B) ||
+            (source[i] > 0x60 && source[i] < 0x7B))
+        {
+            temp.push_back(source[i]);
+        }
+    }
+    return temp;
+}
+
+} // namespace http
