@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 04 Feb 2023 16:02:08 GMT
+*本文件为自动生成 Wed, 26 Apr 2023 06:24:54 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -82,21 +82,21 @@ break;
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.id=std::stoi(_row[0]);
+			metatemp.id=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.id=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.value=std::stoi(_row[1]);
+			metatemp.value=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.value=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.content.append((_row[2]==NULL?"":_row[2]));
+			metatemp.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.content.clear();
 			 }
@@ -123,21 +123,21 @@ break;
 
         	case 0:
 		 try{
-			metatemp.id=std::stoi(_row[0]);
+			metatemp.id=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.id=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.value=std::stoi(_row[1]);
+			metatemp.value=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.value=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.content.append((_row[2]==NULL?"":_row[2]));
+			metatemp.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.content.clear();
 			 }

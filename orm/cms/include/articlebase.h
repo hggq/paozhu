@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 04 Feb 2023 16:02:08 GMT
+*本文件为自动生成 Wed, 26 Apr 2023 06:24:40 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -178,147 +178,147 @@ break;
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.aid=std::stoul(_row[0]);
+			metatemp.aid=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.aid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.classtype=std::stoi(_row[1]);
+			metatemp.classtype=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.classtype=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.userid=std::stoi(_row[2]);
+			metatemp.userid=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.userid=0;
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.topicname.append((_row[3]==NULL?"":_row[3]));
+			metatemp.topicname.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.topicname.clear();
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.title.append((_row[4]==NULL?"":_row[4]));
+			metatemp.title.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.title.clear();
 			 }
 			break;
 	case 5:
 		 try{
-			metatemp.keywords.append((_row[5]==NULL?"":_row[5]));
+			metatemp.keywords.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.keywords.clear();
 			 }
 			break;
 	case 6:
 		 try{
-			metatemp.fromsource.append((_row[6]==NULL?"":_row[6]));
+			metatemp.fromsource.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.fromsource.clear();
 			 }
 			break;
 	case 7:
 		 try{
-			metatemp.author.append((_row[7]==NULL?"":_row[7]));
+			metatemp.author.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.author.clear();
 			 }
 			break;
 	case 8:
 		 try{
-			metatemp.addip.append((_row[8]==NULL?"":_row[8]));
+			metatemp.addip.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.addip.clear();
 			 }
 			break;
 	case 9:
 		 try{
-			metatemp.createtime.append((_row[9]==NULL?"":_row[9]));
+			metatemp.createtime.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.createtime.clear();
 			 }
 			break;
 	case 10:
 		 try{
-			metatemp.addtime=std::stoull(_row[10]);
+			metatemp.addtime=std::stoull(_row[i]);
 		}catch (...) { 
 			metatemp.addtime=0;
 			 }
 			break;
 	case 11:
 		 try{
-			metatemp.readnum=std::stoi(_row[11]);
+			metatemp.readnum=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.readnum=0;
 			 }
 			break;
 	case 12:
 		 try{
-			metatemp.review=std::stoi(_row[12]);
+			metatemp.review=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.review=0;
 			 }
 			break;
 	case 13:
 		 try{
-			metatemp.icoimg.append((_row[13]==NULL?"":_row[13]));
+			metatemp.icoimg.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.icoimg.clear();
 			 }
 			break;
 	case 14:
 		 try{
-			metatemp.content.append((_row[14]==NULL?"":_row[14]));
+			metatemp.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.content.clear();
 			 }
 			break;
 	case 15:
 		 try{
-			metatemp.isopen=std::stoi(_row[15]);
+			metatemp.isopen=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.isopen=0;
 			 }
 			break;
 	case 16:
 		 try{
-			metatemp.iscomment=std::stoi(_row[16]);
+			metatemp.iscomment=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.iscomment=0;
 			 }
 			break;
 	case 17:
 		 try{
-			metatemp.fromlocal.append((_row[17]==NULL?"":_row[17]));
+			metatemp.fromlocal.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.fromlocal.clear();
 			 }
 			break;
 	case 18:
 		 try{
-			metatemp.texturl.append((_row[18]==NULL?"":_row[18]));
+			metatemp.texturl.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.texturl.clear();
 			 }
 			break;
 	case 19:
 		 try{
-			metatemp.summary.append((_row[19]==NULL?"":_row[19]));
+			metatemp.summary.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.summary.clear();
 			 }
 			break;
 	case 20:
 		 try{
-			metatemp.editauthor.append((_row[20]==NULL?"":_row[20]));
+			metatemp.editauthor.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.editauthor.clear();
 			 }
@@ -345,147 +345,147 @@ break;
 
         	case 0:
 		 try{
-			metatemp.aid=std::stoul(_row[0]);
+			metatemp.aid=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.aid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.classtype=std::stoi(_row[1]);
+			metatemp.classtype=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.classtype=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.userid=std::stoi(_row[2]);
+			metatemp.userid=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.userid=0;
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.topicname.append((_row[3]==NULL?"":_row[3]));
+			metatemp.topicname.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.topicname.clear();
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.title.append((_row[4]==NULL?"":_row[4]));
+			metatemp.title.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.title.clear();
 			 }
 			break;
 	case 5:
 		 try{
-			metatemp.keywords.append((_row[5]==NULL?"":_row[5]));
+			metatemp.keywords.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.keywords.clear();
 			 }
 			break;
 	case 6:
 		 try{
-			metatemp.fromsource.append((_row[6]==NULL?"":_row[6]));
+			metatemp.fromsource.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.fromsource.clear();
 			 }
 			break;
 	case 7:
 		 try{
-			metatemp.author.append((_row[7]==NULL?"":_row[7]));
+			metatemp.author.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.author.clear();
 			 }
 			break;
 	case 8:
 		 try{
-			metatemp.addip.append((_row[8]==NULL?"":_row[8]));
+			metatemp.addip.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.addip.clear();
 			 }
 			break;
 	case 9:
 		 try{
-			metatemp.createtime.append((_row[9]==NULL?"":_row[9]));
+			metatemp.createtime.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.createtime.clear();
 			 }
 			break;
 	case 10:
 		 try{
-			metatemp.addtime=std::stoull(_row[10]);
+			metatemp.addtime=std::stoull(_row[i]);
 		}catch (...) { 
 			metatemp.addtime=0;
 			 }
 			break;
 	case 11:
 		 try{
-			metatemp.readnum=std::stoi(_row[11]);
+			metatemp.readnum=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.readnum=0;
 			 }
 			break;
 	case 12:
 		 try{
-			metatemp.review=std::stoi(_row[12]);
+			metatemp.review=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.review=0;
 			 }
 			break;
 	case 13:
 		 try{
-			metatemp.icoimg.append((_row[13]==NULL?"":_row[13]));
+			metatemp.icoimg.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.icoimg.clear();
 			 }
 			break;
 	case 14:
 		 try{
-			metatemp.content.append((_row[14]==NULL?"":_row[14]));
+			metatemp.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.content.clear();
 			 }
 			break;
 	case 15:
 		 try{
-			metatemp.isopen=std::stoi(_row[15]);
+			metatemp.isopen=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.isopen=0;
 			 }
 			break;
 	case 16:
 		 try{
-			metatemp.iscomment=std::stoi(_row[16]);
+			metatemp.iscomment=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.iscomment=0;
 			 }
 			break;
 	case 17:
 		 try{
-			metatemp.fromlocal.append((_row[17]==NULL?"":_row[17]));
+			metatemp.fromlocal.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.fromlocal.clear();
 			 }
 			break;
 	case 18:
 		 try{
-			metatemp.texturl.append((_row[18]==NULL?"":_row[18]));
+			metatemp.texturl.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.texturl.clear();
 			 }
 			break;
 	case 19:
 		 try{
-			metatemp.summary.append((_row[19]==NULL?"":_row[19]));
+			metatemp.summary.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.summary.clear();
 			 }
 			break;
 	case 20:
 		 try{
-			metatemp.editauthor.append((_row[20]==NULL?"":_row[20]));
+			metatemp.editauthor.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.editauthor.clear();
 			 }

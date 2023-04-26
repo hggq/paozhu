@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 04 Feb 2023 16:02:08 GMT
+*本文件为自动生成 Wed, 26 Apr 2023 06:25:08 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -90,35 +90,35 @@ break;
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.userid=std::stoul(_row[0]);
+			metatemp.userid=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.userid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.name.append((_row[1]==NULL?"":_row[1]));
+			metatemp.name.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.name.clear();
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.password.append((_row[2]==NULL?"":_row[2]));
+			metatemp.password.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.password.clear();
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.isopen=std::stoi(_row[3]);
+			metatemp.isopen=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.isopen=0;
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.level=std::stoi(_row[4]);
+			metatemp.level=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.level=0;
 			 }
@@ -145,35 +145,35 @@ break;
 
         	case 0:
 		 try{
-			metatemp.userid=std::stoul(_row[0]);
+			metatemp.userid=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.userid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.name.append((_row[1]==NULL?"":_row[1]));
+			metatemp.name.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.name.clear();
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.password.append((_row[2]==NULL?"":_row[2]));
+			metatemp.password.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.password.clear();
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.isopen=std::stoi(_row[3]);
+			metatemp.isopen=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.isopen=0;
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.level=std::stoi(_row[4]);
+			metatemp.level=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.level=0;
 			 }

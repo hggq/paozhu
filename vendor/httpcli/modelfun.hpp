@@ -47,13 +47,18 @@ std::string getgmtdatetime(time_t inputtime = 0)
     tm *timeInfo;
 
     char timestr[30] = {'\0'};
-    timeInfo = gmtime(&curr_time);
+    timeInfo         = gmtime(&curr_time);
     strftime(timestr, sizeof(timestr), "%a, %d %b %Y %H:%M:%S GMT", timeInfo);
 
     std::string temp(timestr);
     return temp;
 }
-int createtabletoorm(std::string basefilepath,std::string modelspath, std::string realtablename, std::string tablename, std::string rmstag,MYSQL *conn)
+int createtabletoorm(std::string basefilepath,
+                     std::string modelspath,
+                     std::string realtablename,
+                     std::string tablename,
+                     std::string rmstag,
+                     MYSQL *conn)
 {
 
     // std::string modelspath="models/";
@@ -71,19 +76,19 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         rmstag = "default";
     }
 
-    MYSQL_RES *result=nullptr;
-    int readnum = mysql_query(conn,&sqlqueryring[0]);
-    if(readnum!=0)
+    MYSQL_RES *result = nullptr;
+    int readnum       = mysql_query(conn, &sqlqueryring[0]);
+    if (readnum != 0)
     {
-        std::cout<<mysql_error(conn)<<std::endl;
+        std::cout << mysql_error(conn) << std::endl;
         return 0;
     }
 
     result = mysql_store_result(conn);
 
-    if(!result)
+    if (!result)
     {
-        std::cout<<"not show tables COLUMNS! "<<std::endl;
+        std::cout << "not show tables COLUMNS! " << std::endl;
         return 0;
     }
     int num_fields = mysql_num_fields(result);
@@ -96,11 +101,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     table.resize(num_fields);
     tablecelwidth.resize(num_fields);
 
-    //int defaultcolnamepos = 255;
+    // int defaultcolnamepos = 255;
 
     std::map<std::string, std::map<std::string, std::string>> tableinfo;
-     std::map<unsigned char, unsigned char> table_type;
-     std::map<unsigned char, unsigned char> table_type_unsigned;   
+    std::map<unsigned char, unsigned char> table_type;
+    std::map<unsigned char, unsigned char> table_type_unsigned;
     for (int index = 0; index < num_fields; index++)
     {
         tablecelwidth[index] = 0;
@@ -114,18 +119,18 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         // {
         //     defaultcolnamepos = index;
         // }
-        //table_type[index]=fields[index].type;
+        // table_type[index]=fields[index].type;
     }
 
-    //int j = 0;
+    // int j = 0;
     std::ostringstream tp;
     std::string temp;
     std::string fieldname;
-    std::string tablepkname,tablepriname;
+    std::string tablepkname, tablepriname;
 
     MYSQL_ROW row;
-    int row_num_count=0;
-    row_num_count=mysql_num_rows(result);
+    int row_num_count = 0;
+    row_num_count     = mysql_num_rows(result);
     tablecollist.reserve(row_num_count);
 
     while ((row = mysql_fetch_row(result)))
@@ -134,34 +139,33 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         std::transform(fieldname.begin(), fieldname.end(), fieldname.begin(), ::tolower);
         tablecollist.push_back(fieldname);
 
-        for(int j = 1; j < num_fields; j++)
+        for (int j = 1; j < num_fields; j++)
         {
 
             temp.clear();
-            if(row[j])
+            if (row[j])
             {
                 temp.append(std::string(row[j]));
             }
-            
-            if (table[j]!="default")
+
+            if (table[j] != "default")
             {
                 std::transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
-                
             }
             tableinfo[fieldname][table[j]] = temp;
 
-            if(table[j]=="type")
+            if (table[j] == "type")
             {
-                bool isc = false;
+                bool isc   = false;
                 bool isnum = false;
                 std::string limitchar;
                 for (unsigned int n = 0; n < temp.size(); n++)
                 {
                     if (temp[n] == '(')
                     {
-                        isc = true;
+                        isc     = true;
                         temp[n] = 0x00;
-                        isnum = true;
+                        isnum   = true;
                         limitchar.clear();
                         continue;
                     }
@@ -171,7 +175,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                         if (temp[n] == ')')
                         {
                             tableinfo[fieldname]["limitchar"] = limitchar;
-                            isnum = false;
+                            isnum                             = false;
                         }
                         if (isnum)
                         {
@@ -183,77 +187,74 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             if (table[j] == "extra")
             {
-                //PRI
+                // PRI
                 if (temp == "auto_increment")
                 {
                     tablepkname = fieldname;
                 }
-                
             }
             if (table[j] == "key")
             {
-                //PRI
-               
+                // PRI
+
                 if (temp == "pri")
                 {
                     tablepriname = fieldname;
                 }
-                
             }
         }
-
     }
     mysql_free_result(result);
 
-    sqlqueryring="SHOW CREATE TABLE ";//SHOW CREATE TABLE article; 
+    sqlqueryring = "SHOW CREATE TABLE "; // SHOW CREATE TABLE article;
     sqlqueryring.append(realtablename);
 
-    readnum = mysql_query(conn,&sqlqueryring[0]);
-    if(readnum!=0)
+    readnum = mysql_query(conn, &sqlqueryring[0]);
+    if (readnum != 0)
     {
-        std::cout<<mysql_error(conn)<<std::endl;
+        std::cout << mysql_error(conn) << std::endl;
         return 0;
     }
-    result = mysql_store_result(conn);
-    num_fields = mysql_num_fields(result); 
- 
+    result     = mysql_store_result(conn);
+    num_fields = mysql_num_fields(result);
+
     while ((row = mysql_fetch_row(result)))
     {
-        if(num_fields>0)
+        if (num_fields > 0)
         {
-            fieldname = basefilepath;
-            std::string filename=(std::string(row[0]));
+            fieldname            = basefilepath;
+            std::string filename = (std::string(row[0]));
             fieldname.append(tablename);
-            std::string content=   (std::string(row[1])); 
+            std::string content = (std::string(row[1]));
             fieldname.append(".sql");
-      
-            FILE* fp=fopen(fieldname.c_str(),"wb");
-            if(fp)
+
+            FILE *fp = fopen(fieldname.c_str(), "wb");
+            if (fp)
             {
-                fwrite(&content[0],1,content.size(),fp);
+                fwrite(&content[0], 1, content.size(), fp);
                 fclose(fp);
             }
- 
+
             break;
         }
     }
 
     mysql_free_result(result);
 
-    sqlqueryring="select * from ";//SHOW CREATE TABLE article; 
+    sqlqueryring = "select * from "; // SHOW CREATE TABLE article;
     sqlqueryring.append(realtablename);
     sqlqueryring.append(" WHERE 0 LIMIT 1");
 
-    readnum = mysql_query(conn,&sqlqueryring[0]);
-    if(readnum!=0)
+    readnum = mysql_query(conn, &sqlqueryring[0]);
+    if (readnum != 0)
     {
-        std::cout<<mysql_error(conn)<<std::endl;
+        std::cout << mysql_error(conn) << std::endl;
         return 0;
     }
-    result = mysql_store_result(conn);
-    num_fields = mysql_num_fields(result); 
-    
-    if(result)
+    result     = mysql_store_result(conn);
+    num_fields = mysql_num_fields(result);
+
+    if (result)
     {
         int num_fields = mysql_num_fields(result);
 
@@ -261,15 +262,13 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
         std::string type_temp;
         fields = mysql_fetch_fields(result);
-        for(int i = 0; i < num_fields; i++)
+        for (int i = 0; i < num_fields; i++)
         {
-            table_type[i]=fields[i].type;
-            
+            table_type[i] = fields[i].type;
         }
     }
 
     mysql_free_result(result);
-
 
     std::string temptype;
     std::vector<std::string> metalist;
@@ -281,15 +280,15 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     std::map<unsigned char, std::string> collisttype;
 
     std::map<unsigned char, unsigned char> colltypeshuzi;
-   
+
     std::string collnametemp;
     for (auto &bb : tablecollist)
     {
 
         outlist.clear();
         collnametemp.clear();
-        temptype = tableinfo[bb]["type"];
-        table_type_unsigned[colpos]=0;
+        temptype                    = tableinfo[bb]["type"];
+        table_type_unsigned[colpos] = 0;
         if (temptype[0] == 'i' && temptype[1] == 'n' && temptype[2] == 't')
         {
             // int
@@ -304,8 +303,8 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                     {
                         if (temptype[n + 1] == 'u')
                         {
-                            pretype = "unsigned ";
-                            table_type_unsigned[colpos]=1;
+                            pretype                     = "unsigned ";
+                            table_type_unsigned[colpos] = 1;
                         }
                         break;
                     }
@@ -324,15 +323,14 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-               if(tableinfo[bb]["default"].size()>0)
-               {
-                  defaultvalue.append(tableinfo[bb]["default"]);
-               }
-               else
-               {
-                  defaultvalue.append("0");
-               } 
-                
+                if (tableinfo[bb]["default"].size() > 0)
+                {
+                    defaultvalue.append(tableinfo[bb]["default"]);
+                }
+                else
+                {
+                    defaultvalue.append("0");
+                }
             }
 
             outlist.append("= ");
@@ -372,7 +370,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = "std::string";
+            collnametemp          = "std::string";
             colltypeshuzi[colpos] = 30;
         }
         if (temptype[0] == 't' && temptype[1] == 'e' && temptype[2] == 'x' && temptype[3] == 't')
@@ -398,7 +396,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = "std::string";
+            collnametemp          = "std::string";
             colltypeshuzi[colpos] = 30;
         }
         if (temptype[0] == 'e' && temptype[1] == 'n' && temptype[2] == 'u' && temptype[3] == 'm')
@@ -445,10 +443,12 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = "std::string";
+            collnametemp          = "std::string";
             colltypeshuzi[colpos] = 30;
         }
-        if (temptype[0] == 'm' && temptype[1] == 'e' && temptype[2] == 'd' && temptype[3] == 'i' && temptype[4] == 'u' && temptype[5] == 'm' && temptype[6] == 't' && temptype[7] == 'e' && temptype[8] == 'x' && temptype[9] == 't')
+        if (temptype[0] == 'm' && temptype[1] == 'e' && temptype[2] == 'd' && temptype[3] == 'i' &&
+            temptype[4] == 'u' && temptype[5] == 'm' && temptype[6] == 't' && temptype[7] == 'e' &&
+            temptype[8] == 'x' && temptype[9] == 't')
         {
 
             // mediumtext
@@ -471,10 +471,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = "std::string";
+            collnametemp          = "std::string";
             colltypeshuzi[colpos] = 30;
         }
-        if (temptype[0] == 'l' && temptype[1] == 'o' && temptype[2] == 'n' && temptype[3] == 'g' && temptype[4] == 't' && temptype[5] == 'e' && temptype[6] == 'x' && temptype[7] == 't')
+        if (temptype[0] == 'l' && temptype[1] == 'o' && temptype[2] == 'n' && temptype[3] == 'g' &&
+            temptype[4] == 't' && temptype[5] == 'e' && temptype[6] == 'x' && temptype[7] == 't')
         {
 
             // longtext
@@ -498,10 +499,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = "std::string";
+            collnametemp          = "std::string";
             colltypeshuzi[colpos] = 30;
         }
-        if (temptype[0] == 'v' && temptype[1] == 'a' && temptype[2] == 'r' && temptype[3] == 'c' && temptype[4] == 'h' && temptype[5] == 'a' && temptype[6] == 'r')
+        if (temptype[0] == 'v' && temptype[1] == 'a' && temptype[2] == 'r' && temptype[3] == 'c' &&
+            temptype[4] == 'h' && temptype[5] == 'a' && temptype[6] == 'r')
         {
             // varchar
             int limitnumber = strtointval(tableinfo[bb]["limitchar"]);
@@ -525,10 +527,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = "std::string";
+            collnametemp          = "std::string";
             colltypeshuzi[colpos] = 30;
         }
-        if (temptype[0] == 't' && temptype[1] == 'i' && temptype[2] == 'n' && temptype[3] == 'y' && temptype[4] == 'i' && temptype[5] == 'n' && temptype[6] == 't')
+        if (temptype[0] == 't' && temptype[1] == 'i' && temptype[2] == 'n' && temptype[3] == 'y' &&
+            temptype[4] == 'i' && temptype[5] == 'n' && temptype[6] == 't')
         {
 
             // tinyint
@@ -543,8 +546,8 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                     {
                         if (temptype[n + 1] == 'u')
                         {
-                            pretype = "unsigned ";
-                            table_type_unsigned[colpos]=1;
+                            pretype                     = "unsigned ";
+                            table_type_unsigned[colpos] = 1;
                         }
                         break;
                     }
@@ -560,11 +563,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                 if(tableinfo[bb]["default"].empty())
-               {
-                   outlist.append("=0; //");
-               }
-               else if (tableinfo[bb]["default"][0] >= '0' && tableinfo[bb]["default"][0] <= '9')
+                if (tableinfo[bb]["default"].empty())
+                {
+                    outlist.append("=0; //");
+                }
+                else if (tableinfo[bb]["default"][0] >= '0' && tableinfo[bb]["default"][0] <= '9')
                 {
                     outlist.append("=");
                     outlist.append(tableinfo[bb]["default"]);
@@ -580,10 +583,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             outlist.append(tableinfo[bb]["comment"]);
             metalist.push_back(outlist);
             numbercollist.push_back({colpos, bb});
-            collnametemp = pretype + " int ";
+            collnametemp          = pretype + " int ";
             colltypeshuzi[colpos] = 1;
         }
-        if (temptype[0] == 'b' && temptype[1] == 'i' && temptype[2] == 'g' && temptype[3] == 'i' && temptype[4] == 'n' && temptype[5] == 't')
+        if (temptype[0] == 'b' && temptype[1] == 'i' && temptype[2] == 'g' && temptype[3] == 'i' &&
+            temptype[4] == 'n' && temptype[5] == 't')
         {
 
             // bigint
@@ -598,8 +602,8 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                     {
                         if (temptype[n + 1] == 'u')
                         {
-                            pretype = "unsigned ";
-                            table_type_unsigned[colpos]=1;
+                            pretype                     = "unsigned ";
+                            table_type_unsigned[colpos] = 1;
                         }
                         break;
                     }
@@ -617,7 +621,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                if(tableinfo[bb]["default"].empty())
+                if (tableinfo[bb]["default"].empty())
                 {
                     outlist.append("=0; //");
                 }
@@ -626,17 +630,17 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                     outlist.append("=");
                     outlist.append(tableinfo[bb]["default"]);
                     outlist.append("; //");
-                } 
-                
+                }
             }
 
             outlist.append(tableinfo[bb]["comment"]);
             metalist.push_back(outlist);
             numbercollist.push_back({colpos, bb});
-            collnametemp = pretype + " long long ";
+            collnametemp          = pretype + " long long ";
             colltypeshuzi[colpos] = 1;
         }
-        if (temptype[0] == 't' && temptype[1] == 'i' && temptype[2] == 'm' && temptype[3] == 'e' && temptype[4] == 's' && temptype[5] == 't' && temptype[6] == 'a' && temptype[7] == 'm' && temptype[8] == 'p')
+        if (temptype[0] == 't' && temptype[1] == 'i' && temptype[2] == 'm' && temptype[3] == 'e' &&
+            temptype[4] == 's' && temptype[5] == 't' && temptype[6] == 'a' && temptype[7] == 'm' && temptype[8] == 'p')
         {
 
             // timestamp
@@ -655,10 +659,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             outlist.append(tableinfo[bb]["comment"]);
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = pretype + " std::string ";
+            collnametemp          = pretype + " std::string ";
             colltypeshuzi[colpos] = 60;
         }
-        if (temptype[0] == 'd' && temptype[1] == 'a' && temptype[2] == 't' && temptype[3] == 'e' && temptype[4] == 't' && temptype[5] == 'i' && temptype[6] == 'm' && temptype[7] == 'e')
+        if (temptype[0] == 'd' && temptype[1] == 'a' && temptype[2] == 't' && temptype[3] == 'e' &&
+            temptype[4] == 't' && temptype[5] == 'i' && temptype[6] == 'm' && temptype[7] == 'e')
         {
 
             // datetime
@@ -677,7 +682,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             outlist.append(tableinfo[bb]["comment"]);
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = pretype + " std::string ";
+            collnametemp          = pretype + " std::string ";
             colltypeshuzi[colpos] = 60;
         }
         else if (temptype[0] == 'd' && temptype[1] == 'a' && temptype[2] == 't' && temptype[3] == 'e')
@@ -699,11 +704,12 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             outlist.append(tableinfo[bb]["comment"]);
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = pretype + " std::string ";
+            collnametemp          = pretype + " std::string ";
             colltypeshuzi[colpos] = 61;
         }
 
-        if (temptype[0] == 's' && temptype[1] == 'm' && temptype[2] == 'a' && temptype[3] == 'l' && temptype[4] == 'l' && temptype[5] == 'i' && temptype[6] == 'n' && temptype[7] == 't')
+        if (temptype[0] == 's' && temptype[1] == 'm' && temptype[2] == 'a' && temptype[3] == 'l' &&
+            temptype[4] == 'l' && temptype[5] == 'i' && temptype[6] == 'n' && temptype[7] == 't')
         {
 
             // smallint
@@ -718,8 +724,8 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                     {
                         if (temptype[n + 1] == 'u')
                         {
-                            pretype = "unsigned ";
-                            table_type_unsigned[colpos]=1;
+                            pretype                     = "unsigned ";
+                            table_type_unsigned[colpos] = 1;
                         }
                         break;
                     }
@@ -736,7 +742,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                if(tableinfo[bb]["default"].empty())
+                if (tableinfo[bb]["default"].empty())
                 {
                     outlist.append("=0; //");
                 }
@@ -745,19 +751,19 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                     outlist.append("=");
                     outlist.append(tableinfo[bb]["default"]);
                     outlist.append("; //");
-                } 
-
+                }
             }
             outlist.append(tableinfo[bb]["comment"]);
 
             metalist.push_back(outlist);
             numbercollist.push_back({colpos, bb});
-            collnametemp = pretype + " int ";
+            collnametemp          = pretype + " int ";
             colltypeshuzi[colpos] = 1;
         }
 
         // decimal
-        if (temptype[0] == 'd' && temptype[1] == 'e' && temptype[2] == 'c' && temptype[3] == 'i' && temptype[4] == 'm' && temptype[5] == 'a' && temptype[6] == 'l')
+        if (temptype[0] == 'd' && temptype[1] == 'e' && temptype[2] == 'c' && temptype[3] == 'i' &&
+            temptype[4] == 'm' && temptype[5] == 'a' && temptype[6] == 'l')
         {
 
             outlist.append(" float ");
@@ -769,7 +775,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                 if(tableinfo[bb]["default"].empty())
+                if (tableinfo[bb]["default"].empty())
                 {
                     outlist.append("=0.0; //");
                 }
@@ -778,13 +784,12 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                     outlist.append("=");
                     outlist.append(tableinfo[bb]["default"]);
                     outlist.append("; //");
-                } 
-
+                }
             }
             outlist.append(tableinfo[bb]["comment"]);
             metalist.push_back(outlist);
             floatcollist.push_back({colpos, bb});
-            collnametemp = " double ";
+            collnametemp          = " double ";
             colltypeshuzi[colpos] = 20;
         }
         if (temptype[0] == 'f' && temptype[1] == 'l' && temptype[2] == 'o' && temptype[3] == 'a' && temptype[4] == 't')
@@ -807,10 +812,11 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             metalist.push_back(outlist);
             floatcollist.push_back({colpos, bb});
-            collnametemp = " double ";
+            collnametemp          = " double ";
             colltypeshuzi[colpos] = 20;
         }
-        if (temptype[0] == 'd' && temptype[1] == 'o' && temptype[2] == 'u' && temptype[3] == 'b' && temptype[4] == 'l' && temptype[5] == 'e')
+        if (temptype[0] == 'd' && temptype[1] == 'o' && temptype[2] == 'u' && temptype[3] == 'b' &&
+            temptype[4] == 'l' && temptype[5] == 'e')
         {
             // double
 
@@ -832,7 +838,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             metalist.push_back(outlist);
 
             floatcollist.push_back({colpos, bb});
-            collnametemp = " double ";
+            collnametemp          = " double ";
             colltypeshuzi[colpos] = 20;
         }
         if (temptype[0] == 'r' && temptype[1] == 'e' && temptype[2] == 'a' && temptype[3] == 'l')
@@ -848,7 +854,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
             }
             else
             {
-                 if(tableinfo[bb]["default"].empty())
+                if (tableinfo[bb]["default"].empty())
                 {
                     outlist.append("=0.0; //");
                 }
@@ -857,15 +863,14 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
                     outlist.append("=");
                     outlist.append(tableinfo[bb]["default"]);
                     outlist.append("; //");
-                } 
-                
+                }
             }
             outlist.append(tableinfo[bb]["comment"]);
 
             metalist.push_back(outlist);
 
             floatcollist.push_back({colpos, bb});
-            collnametemp = " double ";
+            collnametemp          = " double ";
             colltypeshuzi[colpos] = 20;
         }
         if (collnametemp.size() == 0)
@@ -880,7 +885,7 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
-            collnametemp = "std::string";
+            collnametemp          = "std::string";
             colltypeshuzi[colpos] = 90;
         }
         collisttype[colpos] = collnametemp;
@@ -922,13 +927,15 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     }
     else
     {
-        filemodelstremcpp << "#include \"mysqlmodel.hpp\" \n#include \"" << tablenamebase << "base.h\"\n#include \"" << createfilename << ".h\"\n";
+        filemodelstremcpp << "#include \"mysqlmodel.hpp\" \n#include \"" << tablenamebase << "base.h\"\n#include \""
+                          << createfilename << ".h\"\n";
     }
 
-    filemodelstremcpp << "\n/* 如果此文件存在不会自动覆盖，没有则会自动生成。\n*If this file exists, it will not be overwritten automatically. If not, it will be generated automatically. */\n";
+    filemodelstremcpp << "\n/* 如果此文件存在不会自动覆盖，没有则会自动生成。\n*If this file exists, it will not be "
+                         "overwritten automatically. If not, it will be generated automatically. */\n";
     filemodelstremcpp << "\n";
-    // filemodelstremcpp<<"class "<<createfilename<<" : public HTTP::mysqlclienDB<"<<createfilename<<","<<tablename<<"base>{\n";
-    // filemodelstremcpp<<"\t public:\n";
+    // filemodelstremcpp<<"class "<<createfilename<<" : public
+    // HTTP::mysqlclienDB<"<<createfilename<<","<<tablename<<"base>{\n"; filemodelstremcpp<<"\t public:\n";
     filemodelstremcpp << "\t \n namespace orm{\r\n";
     if (rmstag != "default")
     {
@@ -937,7 +944,8 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         filemodelstremcpp << "{ ";
     }
     filemodelstremcpp << " ";
-    filemodelstremcpp << "\r\n\r\n\t\t\t " << createfilename << "::" << createfilename << "(std::string dbtag):mysqlclientDB(dbtag){}\n";
+    filemodelstremcpp << "\r\n\r\n\t\t\t " << createfilename << "::" << createfilename
+                      << "(std::string dbtag):mysqlclientDB(dbtag){}\n";
     filemodelstremcpp << "\t\t\t " << createfilename << "::" << createfilename << "():mysqlclientDB(){}\n";
     if (rmstag != "default")
     {
@@ -992,7 +1000,8 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
     {
         filemodelstremcpp << "\n#include \"mysqlmodel.hpp\" \n#include \"" << tablenamebase << "base.h\"\n";
     }
-    filemodelstremcpp << "\n/* 如果此文件存在不会自动覆盖，没有则会自动生成。\n*If this file exists, it will not be overwritten automatically. If not, it will be generated automatically. */\n";
+    filemodelstremcpp << "\n/* 如果此文件存在不会自动覆盖，没有则会自动生成。\n*If this file exists, it will not be "
+                         "overwritten automatically. If not, it will be generated automatically. */\n";
     filemodelstremcpp << "\n namespace orm {\n";
     if (rmstag != "default")
     {
@@ -1000,7 +1009,8 @@ int createtabletoorm(std::string basefilepath,std::string modelspath, std::strin
         filemodelstremcpp << rmstag;
         filemodelstremcpp << " { \n";
     }
-    filemodelstremcpp << "\t\tclass " << createfilename << " : public mysqlclientDB<" << createfilename << "," << tablenamebase << "base>{\n";
+    filemodelstremcpp << "\t\tclass " << createfilename << " : public mysqlclientDB<" << createfilename << ","
+                      << tablenamebase << "base>{\n";
     filemodelstremcpp << "\t\t public:\n";
     filemodelstremcpp << "\t\t " << createfilename << "(std::string dbtag);\n";
     filemodelstremcpp << "\t\t " << createfilename << "();\n";
@@ -1103,14 +1113,18 @@ struct )";
     }
     filemodelstrem << " } data;\n ";
     filemodelstrem << "std::vector<" << tablenamebase << "base::meta> record;\n";
-    filemodelstrem << "std::string _rmstag=\"" << rmstag << "\";//this value must be default or tag value, tag in mysqlconnect config file .\n";
+    filemodelstrem << "std::string _rmstag=\"" << rmstag
+                   << "\";//this value must be default or tag value, tag in mysqlconnect config file .\n";
     filemodelstrem << "std::vector<unsigned char> _keypos{0x00};\n";
     filemodelstrem << "MYSQL_ROW _row;\n";
 
-    filemodelstrem << "std::vector<" << tablenamebase << "base::meta>::iterator begin(){     return record.begin(); }\n";
+    filemodelstrem << "std::vector<" << tablenamebase
+                   << "base::meta>::iterator begin(){     return record.begin(); }\n";
     filemodelstrem << "std::vector<" << tablenamebase << "base::meta>::iterator end(){     return record.end(); }\n";
-    filemodelstrem << "std::vector<" << tablenamebase << "base::meta>::const_iterator begin() const{     return record.begin(); }\n";
-    filemodelstrem << "std::vector<" << tablenamebase << "base::meta>::const_iterator end() const{     return record.end(); }\n";
+    filemodelstrem << "std::vector<" << tablenamebase
+                   << "base::meta>::const_iterator begin() const{     return record.begin(); }\n";
+    filemodelstrem << "std::vector<" << tablenamebase
+                   << "base::meta>::const_iterator end() const{     return record.end(); }\n";
 
     filemodelstrem << "const std::array<std::string," << std::to_string(tablecollist.size()) << "> colnames={";
 
@@ -1150,8 +1164,8 @@ struct )";
     headtxt.append(tablename);
     headtxt.append("\";\n");
 
-    bool iscolpospppc=false;
-   filemodelstrem.str("");
+    bool iscolpospppc = false;
+    filemodelstrem.str("");
     std::map<char, std::vector<unsigned char>> alpaz;
     for (unsigned char j = 0; j < tablecollist.size(); j++)
     {
@@ -1193,7 +1207,7 @@ struct )";
                         backcolz[ttttp].emplace_back(ittter->second[mm]);
                     }
                     std::ostringstream backcachep;
-                    iscolpospppc=true;
+                    iscolpospppc = true;
                     backcachep << "  colpospppc=coln.back();\n    if(colpospppc<91&&bi>64){ colpospppc+=32; }\n";
                     bool isbackppp = false;
                     std::map<unsigned char, unsigned char> hasbackpos;
@@ -1202,8 +1216,9 @@ struct )";
 
                         if (ipper->second.size() == 1)
                         {
-                            backcachep << " if(colpospppc=='" << tablecollist[ipper->second[0]].back() << "'){ return " << std::to_string(ipper->second[0]) << "; }\n";
-                            isbackppp = true;
+                            backcachep << " if(colpospppc=='" << tablecollist[ipper->second[0]].back() << "'){ return "
+                                       << std::to_string(ipper->second[0]) << "; }\n";
+                            isbackppp                    = true;
                             hasbackpos[ipper->second[0]] = 1;
                         }
                     }
@@ -1211,12 +1226,13 @@ struct )";
                     {
                         filemodelstrem << backcachep.str();
                     }
-                    for (unsigned  int mm = 0; mm < ittter->second.size(); mm++)
+                    for (unsigned int mm = 0; mm < ittter->second.size(); mm++)
                     {
                         auto ippter = hasbackpos.find(ittter->second[mm]);
                         if (ippter == hasbackpos.end())
                         {
-                            filemodelstrem << " if(strcasecmp(coln.c_str(), \"" << tablecollist[ittter->second[mm]] << "\") == 0){ return " << std::to_string(ittter->second[mm]) << "; }\n";
+                            filemodelstrem << " if(strcasecmp(coln.c_str(), \"" << tablecollist[ittter->second[mm]]
+                                           << "\") == 0){ return " << std::to_string(ittter->second[mm]) << "; }\n";
                         }
                     }
                     filemodelstrem << "   \t break;\n";
@@ -1227,18 +1243,14 @@ struct )";
         }
     }
 
-  
-
-
     headtxt += R"(
 	  unsigned char findcolpos(std::string coln){
 		    unsigned char  bi=coln[0];
-         )";     
-    if(iscolpospppc)
+         )";
+    if (iscolpospppc)
     {
         headtxt.append("char colpospppc;");
     }
-
 
     headtxt += R"(
 
@@ -1271,8 +1283,8 @@ struct )";
     headtxt = R"(
       void metadata_reset(){
      )";
-     headtxt += tablenamebase;     
-     headtxt += R"(base::meta metatemp;    
+    headtxt += tablenamebase;
+    headtxt += R"(base::meta metatemp;    
             data = metatemp; 
             record.clear();     
       }  
@@ -1288,89 +1300,117 @@ struct )";
     headtxt.clear();
 
     filemodelstrem.str("");
- 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
-         if(table_type[j]<10)
+        if (table_type[j] < 10)
         {
-                    switch(table_type[j])
-                    {
-                        case 0:
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stof(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            break;
-                        case 1:
-                           if(table_type_unsigned[j]==1)
-                           {
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                           else
-                           {
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-
-
-                            break;  
-                        case 2:
-     
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;
-                        case 3:
-                           if(table_type_unsigned[j]==1)
-                           {
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoul(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                           else
-                           {
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                            break;  
-
-                        case 4:
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stof(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;  
-                       case 5:
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stod(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;
-                        case 7:
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append((_row["<<std::to_string(j)<<"]==NULL?\"\":_row["<<std::to_string(j)<<"]));\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;    
-                        case 8:
-                            if(table_type_unsigned[j]==1)
-                            {
-                                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoull(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            }
-                            else
-                            {
-                                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoll(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            }
-                            break;    
-                        case 9:
-                            filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoi(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                    
-                    }
-            }else if(table_type[j]==12)
+            switch (table_type[j])
             {
-                //filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoul(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append((_row["<<std::to_string(j)<<"]==NULL?\"\":_row["<<std::to_string(j)<<"]));\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-            } else if(table_type[j]==246)
-            {
-                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stof(_row["<<std::to_string(j)<<"]);\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+            case 0:
+                filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                               << "=std::stof(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+                break;
+            case 1:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=std::stoi(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=std::stoi(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+
+                break;
+            case 2:
+
+                filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                               << "=std::stoi(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp." << tablecollist[j]
+                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 3:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=std::stoul(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=std::stoi(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                break;
+
+            case 4:
+                filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                               << "=std::stof(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 5:
+                filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                               << "=std::stod(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 7:
+                filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                               << ".append((_row[i]==NULL?\"\":_row[i]));\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                               << tablecollist[j] << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 8:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=std::stoull(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=std::stoll(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                break;
+            case 9:
+                filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                               << "=std::stoi(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp." << tablecollist[j]
+                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
             }
-            else
-            {
-                filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tmetatemp."<<tablecollist[j]<<".append((_row["<<std::to_string(j)<<"]==NULL?\"\":_row["<<std::to_string(j)<<"]));\n\t\t}catch (...) { \n\t\t\tmetatemp."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-            }
-
-        
+        }
+        else if (table_type[j] == 12)
+        {
+            // filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t
+            // try{\n\t\t\tmetatemp."<<tablecollist[j]<<"=std::stoul(_row[i]);\n\t\t}catch (...) {
+            // \n\t\t\tmetatemp."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+            filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                           << ".append((_row[i]==NULL?\"\":_row[i]));\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                           << tablecollist[j] << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+        }
+        else if (table_type[j] == 246)
+        {
+            filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                           << "=std::stof(_row[i]);\n\t\t}catch (...) { \n\t\t\tmetatemp." << tablecollist[j]
+                           << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+        }
+        else
+        {
+            filemodelstrem << "\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tmetatemp." << tablecollist[j]
+                           << ".append((_row[i]==NULL?\"\":_row[i]));\n\t\t}catch (...) { \n\t\t\tmetatemp."
+                           << tablecollist[j] << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+        }
     }
- 
-    filemodelstrem<<"\tdefault:\n\t\t { }\n\t\t\t\n";
-    
+
+    filemodelstrem << "\tdefault:\n\t\t { }\n\t\t\t\n";
 
     headtxt.clear();
     headtxt.append(filemodelstrem.str());
@@ -1469,69 +1509,67 @@ struct )";
     std::string insertstring;
     std::ostringstream insertstrem;
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
         // if (j == 0)
-        if (table_type[j]<10||table_type[j]==246)
+        if (table_type[j] < 10 || table_type[j] == 246)
         {
-           if(table_type[j]!=7)
-           {
-            if(j==0)
+            if (table_type[j] != 7)
             {
-                if(tablecollist[j]==tablepkname)
+                if (j == 0)
                 {
-                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                    insertstrem << "tempsql<<\"null\";\n";
-                    insertstrem << " }else{ \n";
-                    insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
-                    insertstrem << "}\n";
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                        insertstrem << "tempsql<<\"null\";\n";
+                        insertstrem << " }else{ \n";
+                        insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
+                        insertstrem << "}\n";
+                    }
+                    else
+                    {
+                        insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                        insertstrem << "\ttempsql<<\"0\";\n";
+                        insertstrem << " }else{ \n";
+                        insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
+                        insertstrem << "}\n";
+                    }
                 }
-                else 
+                else
                 {
-                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                    insertstrem << "\ttempsql<<\"0\";\n";
-                    insertstrem << " }else{ \n";
-                    insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
-                    insertstrem << "}\n";
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                        insertstrem << "tempsql<<\",null\";\n";
+                        insertstrem << " }else{ \n";
+                        insertstrem << "\ttempsql<<\",\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                        insertstrem << "}\n";
+                    }
+                    else
+                    {
+                        insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                        insertstrem << "\ttempsql<<\",0\";\n";
+                        insertstrem << " }else{ \n";
+                        insertstrem << "\ttempsql<<\",\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                        insertstrem << "}\n";
+                    }
                 }
-            }
-            else
-            {
-                if(tablecollist[j]==tablepkname)
-                {
-                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                    insertstrem << "tempsql<<\",null\";\n";
-                    insertstrem << " }else{ \n";
-                    insertstrem << "\ttempsql<<\",\"<<std::to_string(data." << tablecollist[j] << ");\n";
-                    insertstrem << "}\n";
-                }
-                else 
-                {
-                    insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                    insertstrem << "\ttempsql<<\",0\";\n";
-                    insertstrem << " }else{ \n";
-                    insertstrem << "\ttempsql<<\",\"<<std::to_string(data." << tablecollist[j] << ");\n";
-                    insertstrem << "}\n";
-                }
-            }
 
-
-            continue;
-           } 
-            
+                continue;
+            }
         }
-                // 数字
+        // 数字
         if (j == 0)
         {
-            if(tablecollist[j]==tablepkname)
+            if (tablecollist[j] == tablepkname)
             {
-            insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-            insertstrem << "tempsql<<\"null\";\n";
-            insertstrem << " }else{ \n";
-            insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
-            insertstrem << "}\n";
+                insertstrem << "if(data." << tablecollist[j] << "==0){\n";
+                insertstrem << "tempsql<<\"null\";\n";
+                insertstrem << " }else{ \n";
+                insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
+                insertstrem << "}\n";
             }
             else
             {
@@ -1601,9 +1639,9 @@ struct )";
        return tempsql.str();
    } 
    )";
-   fwrite(&headtxt[0], headtxt.size(), 1, f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    //insert mate
+    // insert mate
 
     headtxt = R"(   
       std::string _makerecordinsertsql( meta &insert_data){
@@ -1630,72 +1668,69 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
     insertstrem.str("");
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
         // if (j == 0)
-        if (table_type[j]<10||table_type[j]==246)
+        if (table_type[j] < 10 || table_type[j] == 246)
         {
-           if(table_type[j]!=7)
-           {
-            if(j==0)
+            if (table_type[j] != 7)
             {
-                if(tablecollist[j]==tablepkname)
+                if (j == 0)
                 {
-                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                    insertstrem << "tempsql<<\"null\";\n";
-                    insertstrem << " }else{ \n";
-                    insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
-                    insertstrem << "}\n";
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                        insertstrem << "tempsql<<\"null\";\n";
+                        insertstrem << " }else{ \n";
+                        insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                        insertstrem << "}\n";
+                    }
+                    else
+                    {
+                        insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                        insertstrem << "\ttempsql<<\"0\";\n";
+                        insertstrem << " }else{ \n";
+                        insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                        insertstrem << "}\n";
+                    }
                 }
-                else 
+                else
                 {
-                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                    insertstrem << "\ttempsql<<\"0\";\n";
-                    insertstrem << " }else{ \n";
-                    insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
-                    insertstrem << "}\n";
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                        insertstrem << "tempsql<<\",null\";\n";
+                        insertstrem << " }else{ \n";
+                        insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                        insertstrem << "}\n";
+                    }
+                    else
+                    {
+                        insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                        insertstrem << "\ttempsql<<\",0\";\n";
+                        insertstrem << " }else{ \n";
+                        insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                        insertstrem << "}\n";
+                    }
                 }
-            }
-            else
-            {
-                if(tablecollist[j]==tablepkname)
-                {
-                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                    insertstrem << "tempsql<<\",null\";\n";
-                    insertstrem << " }else{ \n";
-                    insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
-                    insertstrem << "}\n";
-                }
-                else 
-                {
-                    insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                    insertstrem << "\ttempsql<<\",0\";\n";
-                    insertstrem << " }else{ \n";
-                    insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
-                    insertstrem << "}\n";
-                }
-            }
 
-
-            continue;
-           } 
-            
+                continue;
+            }
         }
-                // 数字
+        // 数字
         if (j == 0)
         {
-            if(tablecollist[j]==tablepkname)
+            if (tablecollist[j] == tablepkname)
             {
-            insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-            insertstrem << "tempsql<<\"null\";\n";
-            insertstrem << " }else{ \n";
-            insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
-            insertstrem << "}\n";
+                insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
+                insertstrem << "tempsql<<\"null\";\n";
+                insertstrem << " }else{ \n";
+                insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
+                insertstrem << "}\n";
             }
             else
             {
@@ -1768,10 +1803,10 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
- headtxt.clear();
- insertstrem.str("");
-    //insert mate array 
- 
+    headtxt.clear();
+    insertstrem.str("");
+    // insert mate array
+
     headtxt = R"(   
       std::string _makerecordinsertsql( std::vector<meta> &insert_data){
       unsigned int j=0;
@@ -1806,72 +1841,69 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
     insertstrem.str("");
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
         // if (j == 0)
-        if (table_type[j]<10||table_type[j]==246)
+        if (table_type[j] < 10 || table_type[j] == 246)
         {
-           if(table_type[j]!=7)
-           {
-            if(j==0)
+            if (table_type[j] != 7)
             {
-                if(tablecollist[j]==tablepkname)
+                if (j == 0)
                 {
-                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                    insertstrem << "\ttempsql<<\"null\";\n";
-                    insertstrem << "\t }else{ \n";
-                    insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
-                    insertstrem << "\t}\n";
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                        insertstrem << "\ttempsql<<\"null\";\n";
+                        insertstrem << "\t }else{ \n";
+                        insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                        insertstrem << "\t}\n";
+                    }
+                    else
+                    {
+                        insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                        insertstrem << "\ttempsql<<\"0\";\n";
+                        insertstrem << "\t }else{ \n";
+                        insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                        insertstrem << "\t}\n";
+                    }
                 }
-                else 
+                else
                 {
-                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                    insertstrem << "\ttempsql<<\"0\";\n";
-                    insertstrem << "\t }else{ \n";
-                    insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
-                    insertstrem << "\t}\n";
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                        insertstrem << "\ttempsql<<\",null\";\n";
+                        insertstrem << "\t }else{ \n";
+                        insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                        insertstrem << "\t}\n";
+                    }
+                    else
+                    {
+                        insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                        insertstrem << "\ttempsql<<\",0\";\n";
+                        insertstrem << "\t }else{ \n";
+                        insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                        insertstrem << "\t}\n";
+                    }
                 }
-            }
-            else
-            {
-                if(tablecollist[j]==tablepkname)
-                {
-                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                    insertstrem << "\ttempsql<<\",null\";\n";
-                    insertstrem << "\t }else{ \n";
-                    insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
-                    insertstrem << "\t}\n";
-                }
-                else 
-                {
-                    insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                    insertstrem << "\ttempsql<<\",0\";\n";
-                    insertstrem << "\t }else{ \n";
-                    insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
-                    insertstrem << "\t}\n";
-                }
-            }
 
-
-            continue;
-           } 
-            
+                continue;
+            }
         }
-                // 数字
+        // 数字
         if (j == 0)
         {
-            if(tablecollist[j]==tablepkname)
+            if (tablecollist[j] == tablepkname)
             {
-            insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-            insertstrem << "\ttempsql<<\"null\";\n";
-            insertstrem << "\t }else{ \n";
-            insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
-            insertstrem << "\t}\n";
+                insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
+                insertstrem << "\ttempsql<<\"null\";\n";
+                insertstrem << "\t }else{ \n";
+                insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
+                insertstrem << "\t}\n";
             }
             else
             {
@@ -1893,12 +1925,14 @@ struct )";
                 {
                     insertstrem << "  \n\tif(insert_data[i]." << tablecollist[j] << ".size()==0){ \n";
                     insertstrem << "\ttempsql<<\"CURRENT_DATE \";\n";
-                    insertstrem << "\t }else{ \n tempsql<<\"'\"<<insert_data[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+                    insertstrem << "\t }else{ \n tempsql<<\"'\"<<insert_data[i]." << tablecollist[j]
+                                << "<<\"'\";\n }\n";
                 }
                 else
                 {
 
-                    insertstrem << "\ttempsql<<\"'\"<<stringaddslash(insert_data[i]." << tablecollist[j] << ")<<\"'\";\n";
+                    insertstrem << "\ttempsql<<\"'\"<<stringaddslash(insert_data[i]." << tablecollist[j]
+                                << ")<<\"'\";\n";
                 }
             }
 
@@ -1944,10 +1978,8 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
-
-///////////////////
-    //update sql
+    ///////////////////
+    // update sql
     headtxt.clear();
     headtxt = R"(   
     std::string _makeupdatesql(std::string fileld){
@@ -1971,7 +2003,7 @@ struct )";
     std::string updatestring;
     std::ostringstream updatestrem;
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -1989,11 +2021,13 @@ struct )";
             updatestrem << " }else{ \n";
             if (j > 0)
             {
-                updatestrem << "\ttempsql<<\",`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                updatestrem << "\ttempsql<<\",`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j]
+                            << ");\n";
             }
             else
             {
-                updatestrem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                updatestrem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j]
+                            << ");\n";
             }
 
             updatestrem << "}\n";
@@ -2002,23 +2036,27 @@ struct )";
         {
             updatestrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             updatestrem << "tempsql<<\",`" << tablecollist[j] << "`=CURRENT_TIMESTAMP\";\n";
-            updatestrem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+            updatestrem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
+                        << "<<\"'\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             updatestrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             updatestrem << "tempsql<<\",`" << tablecollist[j] << "`=CURRENT_DATE\";\n";
-            updatestrem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+            updatestrem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
+                        << "<<\"'\";\n }\n";
         }
         else
         {
             if (j > 0)
             {
-                updatestrem << "tempsql<<\",`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n";
+                updatestrem << "tempsql<<\",`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j]
+                            << ")<<\"'\";\n";
             }
             else
             {
-                updatestrem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n";
+                updatestrem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j]
+                            << ")<<\"'\";\n";
             }
         }
     }
@@ -2036,7 +2074,16 @@ struct )";
                   std::vector<unsigned char> keypos;
                   for(;jj<fileld.size();jj++){
                         if(fileld[jj]==','){
-                               keypos.emplace_back(findcolpos(keyname)); 
+                                unsigned char bpos_i=findcolpos(keyname);
+                               keypos.emplace_back(bpos_i); 
+#ifdef DEBUG
+                    if (bpos_i == 254)
+                    {
+                        std::cout << "\033[1m\033[31m-----------\n"
+                                  << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
+                                  << std::endl;
+                    }
+#endif                               
                                keyname.clear();
                              continue;   
                         }
@@ -2048,7 +2095,16 @@ struct )";
 
                   }  
                  if(keyname.size()>0){
-                                keypos.emplace_back(findcolpos(keyname)); 
+                                unsigned char bpos_i=findcolpos(keyname);
+ #ifdef DEBUG
+                    if (bpos_i == 254)
+                    {
+                        std::cout << "\033[1m\033[31m-----------\n"
+                                  << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
+                                  << std::endl;
+                    }
+#endif                                       
+                                keypos.emplace_back(bpos_i); 
                                 keyname.clear();
                  }
                  for(jj=0;jj<keypos.size();jj++){
@@ -2062,7 +2118,7 @@ struct )";
     std::string update2string;
     std::ostringstream update2strem;
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -2082,11 +2138,13 @@ struct )";
             update2strem << " }else{ \n";
             if (j > 0)
             {
-                update2strem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                update2strem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j]
+                             << ");\n";
             }
             else
             {
-                update2strem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                update2strem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j]
+                             << ");\n";
             }
 
             update2strem << "}\n";
@@ -2095,23 +2153,27 @@ struct )";
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "tempsql<<\"`" << tablecollist[j] << "`=CURRENT_TIMESTAMP\";\n";
-            update2strem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+            update2strem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
+                         << "<<\"'\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "tempsql<<\"`" << tablecollist[j] << "`=CURRENT_DATE\";\n";
-            update2strem << " }else{ \n tempsql<<\"`" << tablecollist[j] << "'='\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+            update2strem << " }else{ \n tempsql<<\"`" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
+                         << "<<\"'\";\n }\n";
         }
         else
         {
             if (j > 0)
             {
-                update2strem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n";
+                update2strem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j]
+                             << ")<<\"'\";\n";
             }
             else
             {
-                update2strem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n";
+                update2strem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j]
+                             << ")<<\"'\";\n";
             }
         }
         update2strem << " break;\n";
@@ -2132,10 +2194,10 @@ struct )";
 
         return tempsql.str();
    } 
-   )"; 
-   fwrite(&headtxt[0], headtxt.size(), 1, f);
-   headtxt.clear();
-      /////////////////////////////////////////////////////////////////////////////////////
+   )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    /////////////////////////////////////////////////////////////////////////////////////
 
     headtxt = R"(
    std::vector<std::string> data_toarray(std::string fileld=""){
@@ -2175,12 +2237,12 @@ struct )";
 
     update2strem.str("");
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
         update2strem << " case " << std::to_string(j) << ":\n";
- 
+
         if (colltypeshuzi[j] < 30)
         {
             update2strem << "if(data." << tablecollist[j] << "==0){\n";
@@ -2247,8 +2309,8 @@ struct )";
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-  ///////////////////////////////////////////////////////////////////////////////////////
-   headtxt = R"(
+    ///////////////////////////////////////////////////////////////////////////////////////
+    headtxt = R"(
    std::map<std::string,std::string> data_tomap(std::string fileld=""){
        std::map<std::string,std::string> tempsql;
             std::string keyname;
@@ -2286,12 +2348,12 @@ struct )";
 
     update2strem.str("");
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
         update2strem << " case " << std::to_string(j) << ":\n";
-       
+
         if (colltypeshuzi[j] < 30)
         {
             update2strem << "if(data." << tablecollist[j] << "==0){\n";
@@ -2306,11 +2368,13 @@ struct )";
             update2strem << " }else{ \n";
             if (j > 0)
             {
-                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",std::to_string(data." << tablecollist[j] << ")});\n";
+                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",std::to_string(data."
+                             << tablecollist[j] << ")});\n";
             }
             else
             {
-                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",std::to_string(data." << tablecollist[j] << ")});\n";
+                update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",std::to_string(data."
+                             << tablecollist[j] << ")});\n";
             }
 
             update2strem << "}\n";
@@ -2319,13 +2383,15 @@ struct )";
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",\"0000-00-00 00:00:00\"});\n";
-            update2strem << " }else{ \n\t tempsql.insert({\"" << tablecollist[j] << "\",data." << tablecollist[j] << "});\n }\n";
+            update2strem << " }else{ \n\t tempsql.insert({\"" << tablecollist[j] << "\",data." << tablecollist[j]
+                         << "});\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "\ttempsql.insert({\"" << tablecollist[j] << "\",\"0000-00-00\\\"\";\n";
-            update2strem << " }else{ \n\t tempsql.insert({\"" << tablecollist[j] << "\",\"data." << tablecollist[j] << "});\n }\n";
+            update2strem << " }else{ \n\t tempsql.insert({\"" << tablecollist[j] << "\",\"data." << tablecollist[j]
+                         << "});\n }\n";
         }
         else
         {
@@ -2359,9 +2425,9 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-   /////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////
 
-   headtxt = R"(
+    headtxt = R"(
    std::string data_tojson(){
        std::ostringstream tempsql;
 
@@ -2372,7 +2438,7 @@ struct )";
 
     std::ostringstream jsonstrem;
     headtxt = "tempsql<<\"{\";\n";
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -2390,11 +2456,13 @@ struct )";
             jsonstrem << " }else{ \n";
             if (j > 0)
             {
-                jsonstrem << "\ttempsql<<\",\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                jsonstrem << "\ttempsql<<\",\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(data."
+                          << tablecollist[j] << ");\n";
             }
             else
             {
-                jsonstrem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                jsonstrem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(data."
+                          << tablecollist[j] << ");\n";
             }
             // jsonstrem<<"\ttempsql<<\"}\";\n";
 
@@ -2404,23 +2472,27 @@ struct )";
         {
             jsonstrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             jsonstrem << "tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00 00:00:00\\\"\";\n";
-            jsonstrem << " }else{ \n tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"\"<<data." << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            jsonstrem << " }else{ \n tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"\"<<data." << tablecollist[j]
+                      << "<<\"\\\"\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             jsonstrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             jsonstrem << "tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00\\\"\";\n";
-            jsonstrem << " }else{ \n tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"\"<<data." << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            jsonstrem << " }else{ \n tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"\"<<data." << tablecollist[j]
+                      << "<<\"\\\"\";\n }\n";
         }
         else
         {
             if (j > 0)
             {
-                jsonstrem << "tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data." << tablecollist[j] << ");\n";
+                jsonstrem << "tempsql<<\",\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data."
+                          << tablecollist[j] << ");\n";
             }
             else
             {
-                jsonstrem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data." << tablecollist[j] << ");\n";
+                jsonstrem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data."
+                          << tablecollist[j] << ");\n";
             }
 
             jsonstrem << "tempsql<<\"\\\"\";\n";
@@ -2479,7 +2551,7 @@ struct )";
 
     update2strem.str("");
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -2499,11 +2571,13 @@ struct )";
             update2strem << " }else{ \n";
             if (j > 0)
             {
-                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(data."
+                             << tablecollist[j] << ");\n";
             }
             else
             {
-                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(data." << tablecollist[j] << ");\n";
+                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(data."
+                             << tablecollist[j] << ");\n";
             }
 
             update2strem << "}\n";
@@ -2512,23 +2586,27 @@ struct )";
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00 00:00:00\\\"\";\n";
-            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<data." << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<data." << tablecollist[j]
+                         << "<<\"\\\"\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00\\\"\";\n";
-            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<data." << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<data." << tablecollist[j]
+                         << "<<\"\\\"\";\n }\n";
         }
         else
         {
             if (j > 0)
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data."
+                             << tablecollist[j] << ")<<\"\\\"\";\n";
             }
             else
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(data."
+                             << tablecollist[j] << ")<<\"\\\"\";\n";
             }
         }
         update2strem << " break;\n";
@@ -2552,7 +2630,7 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////
-    //from_json
+    // from_json
     headtxt = R"(
     void from_json(const std::string &json_content)
    {
@@ -2793,91 +2871,119 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////
-    //set_val
+    // set_val
     filemodelstrem.str("");
- 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
-         if(table_type[j]<10)
+        if (table_type[j] < 10)
         {
-                    switch(table_type[j])
-                    {
-                        case 0:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            break;
-                        case 1:
-                           if(table_type_unsigned[j]==1)
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                           else
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-
-
-                            break;  
-                        case 2:
-     
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;
-                        case 3:
-                           if(table_type_unsigned[j]==1)
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                           else
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                            break;  
-
-                        case 4:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;  
-                       case 5:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stod(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;
-                        case 7:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;    
-                        case 8:
-                            if(table_type_unsigned[j]==1)
-                            {
-                                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoull(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            }
-                            else
-                            {
-                                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoll(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            }
-                            break;    
-                        case 9:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                    
-                    }
-            }else if(table_type[j]==12)
+            switch (table_type[j])
             {
-                //filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-            } else if(table_type[j]==246)
-            {
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+            case 0:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+                break;
+            case 1:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+
+                break;
+            case 2:
+
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 3:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=std::stoul(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                break;
+
+            case 4:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 5:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=std::stod(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 7:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << ".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 8:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=std::stoull(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=std::stoll(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                break;
+            case 9:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
             }
-            else
-            {
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-            }
-
-        
+        }
+        else if (table_type[j] == 12)
+        {
+            // filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t
+            // try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) {
+            // \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << ".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+        }
+        else if (table_type[j] == 246)
+        {
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << "=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+        }
+        else
+        {
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << ".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+        }
     }
- 
-    filemodelstrem<<"\tdefault:\n\t\t { }\n\t\t\t\n";
 
+    filemodelstrem << "\tdefault:\n\t\t { }\n\t\t\t\n";
 
     headtxt = R"(
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
@@ -2896,97 +3002,124 @@ struct )";
         }
    } 
     )";
-   
-    
+
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-    
+
     //////////////////////////////////////////////
-    //set_val long long
+    // set_val long long
     filemodelstrem.str("");
- 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
-         if(table_type[j]<10)
+        if (table_type[j] < 10)
         {
-                    switch(table_type[j])
-                    {
-                        case 0:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            break;
-                        case 1:
-                           if(table_type_unsigned[j]==1)
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                           else
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-
-
-                            break;  
-                        case 2:
-     
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;
-                        case 3:
-                           if(table_type_unsigned[j]==1)
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                           else
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                            break;  
-
-                        case 4:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;  
-                       case 5:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(double)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;
-                        case 7:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;    
-                        case 8:
-                            if(table_type_unsigned[j]==1)
-                            {
-                                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            }
-                            else
-                            {
-                                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            }
-                            break;    
-                        case 9:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                    
-                    }
-            }else if(table_type[j]==12)
+            switch (table_type[j])
             {
-                //filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-            } else if(table_type[j]==246)
-            {
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+            case 0:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+                break;
+            case 1:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+
+                break;
+            case 2:
+
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 3:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                break;
+
+            case 4:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 5:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=(double)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 7:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
+                               << tablecollist[j] << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 8:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                break;
+            case 9:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
             }
-            else
-            {
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-            }
-
-        
+        }
+        else if (table_type[j] == 12)
+        {
+            // filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t
+            // try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) {
+            // \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+        }
+        else if (table_type[j] == 246)
+        {
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << "=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+        }
+        else
+        {
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+        }
     }
- 
-    filemodelstrem<<"\tdefault:\n\t\t { }\n\t\t\t\n";
 
+    filemodelstrem << "\tdefault:\n\t\t { }\n\t\t\t\n";
 
     headtxt = R"(
     void set_val(const std::string& set_key_name,const long long set_value_name)
@@ -3005,97 +3138,124 @@ struct )";
         }
    } 
     )";
-   
-    
+
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-        //////////////////////////////////////////////
-    //set_val
+    //////////////////////////////////////////////
+    // set_val
     filemodelstrem.str("");
- 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
-         if(table_type[j]<10)
+        if (table_type[j] < 10)
         {
-                    switch(table_type[j])
-                    {
-                        case 0:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            break;
-                        case 1:
-                           if(table_type_unsigned[j]==1)
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                           else
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-
-
-                            break;  
-                        case 2:
-     
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;
-                        case 3:
-                           if(table_type_unsigned[j]==1)
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(unsigned int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                           else
-                           {
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                           }
-                            break;  
-
-                        case 4:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;  
-                       case 5:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;
-                        case 7:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-                            break;    
-                        case 8:
-                            if(table_type_unsigned[j]==1)
-                            {
-                                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(unsigned long long)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            }
-                            else
-                            {
-                                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(long long)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                            }
-                            break;    
-                        case 9:
-                            filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                    
-                    }
-            }else if(table_type[j]==12)
+            switch (table_type[j])
             {
-                //filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-            } else if(table_type[j]==246)
-            {
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<"=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+            case 0:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+                break;
+            case 1:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+
+                break;
+            case 2:
+
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 3:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=(unsigned int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                break;
+
+            case 4:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 5:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 7:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
+                               << tablecollist[j] << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+
+                break;
+            case 8:
+                if (table_type_unsigned[j] == 1)
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=(unsigned long long)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."
+                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                else
+                {
+                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                                   << "=(long long)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
+                }
+                break;
+            case 9:
+                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                               << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
             }
-            else
-            {
-                filemodelstrem<<"\t\tcase "<<std::to_string(j)<<":\n\t\t try{\n\t\t\tdata."<<tablecollist[j]<<"=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."<<tablecollist[j]<<".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-            }
-
-        
+        }
+        else if (table_type[j] == 12)
+        {
+            // filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t
+            // try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) {
+            // \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+        }
+        else if (table_type[j] == 246)
+        {
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << "=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
+        }
+        else
+        {
+            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
+                           << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
+                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
+        }
     }
- 
-    filemodelstrem<<"\tdefault:\n\t\t { }\n\t\t\t\n";
 
+    filemodelstrem << "\tdefault:\n\t\t { }\n\t\t\t\n";
 
     headtxt = R"(
     void set_val(const std::string& set_key_name,const double set_value_name)
@@ -3114,8 +3274,7 @@ struct )";
         }
    } 
     )";
-   
-    
+
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////////
@@ -3164,7 +3323,7 @@ struct )";
 
     update2strem.str("");
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -3184,11 +3343,13 @@ struct )";
             update2strem << " }else{ \n";
             if (j > 0)
             {
-                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(record[n]." << tablecollist[j] << ");\n";
+                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(record[n]."
+                             << tablecollist[j] << ");\n";
             }
             else
             {
-                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(record[n]." << tablecollist[j] << ");\n";
+                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(record[n]."
+                             << tablecollist[j] << ");\n";
             }
 
             update2strem << "}\n";
@@ -3197,23 +3358,29 @@ struct )";
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00 00:00:00\\\"\";\n";
-            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<record[n]." << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<record[n]."
+                         << tablecollist[j] << "<<\"\\\"\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00\\\"\";\n";
-            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<record[n]." << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<record[n]."
+                         << tablecollist[j] << "<<\"\\\"\";\n }\n";
         }
         else
         {
             if (j > 0)
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j]
+                             << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j]
+                             << ")<<\"\\\"\";\n";
             }
             else
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j]
+                             << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j]
+                             << ")<<\"\\\"\";\n";
             }
         }
         update2strem << " break;\n";
@@ -3292,7 +3459,7 @@ struct )";
 
     update2strem.str("");
 
-    for (unsigned  int j = 0; j < tablecollist.size(); j++)
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
         // 数字
@@ -3313,11 +3480,13 @@ struct )";
             update2strem << " }else{ \n";
             if (j > 0)
             {
-                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(record[n]." << tablecollist[j] << ");\n";
+                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(record[n]."
+                             << tablecollist[j] << ");\n";
             }
             else
             {
-                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(record[n]." << tablecollist[j] << ");\n";
+                update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(record[n]."
+                             << tablecollist[j] << ");\n";
             }
 
             update2strem << "}\n";
@@ -3326,23 +3495,29 @@ struct )";
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00 00:00:00\\\"\";\n";
-            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<record[n]." << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<record[n]."
+                         << tablecollist[j] << "<<\"\\\"\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00\\\"\";\n";
-            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<record[n]." << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<record[n]."
+                         << tablecollist[j] << "<<\"\\\"\";\n }\n";
         }
         else
         {
             if (j > 0)
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j]
+                             << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j]
+                             << ")<<\"\\\"\";\n";
             }
             else
             {
-                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j] << ")<<\"\\\"\";\n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j]
+                             << "\\\":\\\"\"<<http::utf8_to_jsonstring(record[n]." << tablecollist[j]
+                             << ")<<\"\\\"\";\n";
             }
         }
         update2strem << " break;\n";
@@ -3369,7 +3544,7 @@ struct )";
     headtxt.clear();
 
     //////////////////////////////////////////////////////////
-    if(tablepkname.empty())
+    if (tablepkname.empty())
     {
         headtxt = "long long getPK(){  return data." + tablepriname + "; } \n";
         headtxt.append(" void setPK(long long val){   } \n");
@@ -3379,7 +3554,6 @@ struct )";
         headtxt = "long long getPK(){  return data." + tablepkname + "; } \n";
         headtxt.append(" void setPK(long long val){  data." + tablepkname + "=val;} \n");
     }
-
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -3401,20 +3575,25 @@ struct )";
         {
             getsetstrem << collisttype[j];
             getsetstrem << "& getRef" << uptempstring << "(){  return std::ref(data." + tablecollist[j] + "); } \n";
-            getsetstrem << " void set" << uptempstring << "(" << collisttype[j] << " &val){  data." + tablecollist[j] + "=val;} \n";
-            if (collisttype[j].find("std::string")!= std::string::npos)
+            getsetstrem << " void set" << uptempstring << "(" << collisttype[j]
+                        << " &val){  data." + tablecollist[j] + "=val;} \n";
+            if (collisttype[j].find("std::string") != std::string::npos)
             {
-                getsetstrem << " void set" << uptempstring << "(std::string_view val){  data." + tablecollist[j] + "=val;} \n";
+                getsetstrem << " void set" << uptempstring
+                            << "(std::string_view val){  data." + tablecollist[j] + "=val;} \n";
             }
             else
             {
-                getsetstrem << " void set" << uptempstring << "(" << collisttype[j] << " &val){  data." + tablecollist[j] + "=val;} \n";
-                getsetstrem << " void set" << uptempstring << "(" << collisttype[j] << " val){  data." + tablecollist[j] + "=val;} \n";
+                getsetstrem << " void set" << uptempstring << "(" << collisttype[j]
+                            << " &val){  data." + tablecollist[j] + "=val;} \n";
+                getsetstrem << " void set" << uptempstring << "(" << collisttype[j]
+                            << " val){  data." + tablecollist[j] + "=val;} \n";
             }
         }
         else
         {
-            getsetstrem << " void set" << uptempstring << "(" << collisttype[j] << " val){  data." + tablecollist[j] + "=val;} \n";
+            getsetstrem << " void set" << uptempstring << "(" << collisttype[j]
+                        << " val){  data." + tablecollist[j] + "=val;} \n";
         }
         getsetstrem << "\n";
     }
@@ -3434,14 +3613,14 @@ struct )";
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-//////////////////////////////////////////////
+    //////////////////////////////////////////////
 
-    std::ostringstream getcollstrem; 
-///////////////////////////////////////////////////////
-//get_meta string
- headtxt.clear();
- update2strem.str("");
- headtxt=R"(
+    std::ostringstream getcollstrem;
+    ///////////////////////////////////////////////////////
+    // get_meta string
+    headtxt.clear();
+    update2strem.str("");
+    headtxt = R"(
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta(std::string key_name)
@@ -3451,20 +3630,20 @@ struct )";
     for (auto &kaa : stringcollist)
     {
         update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
-        update2strem << "\t\t\treturn data." << kaa.second<<";\n";
+        update2strem << "\t\t\treturn data." << kaa.second << ";\n";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
     headtxt.append("\t\treturn nullptr; \n\t}\n");
- 
- fwrite(&headtxt[0], headtxt.size(), 1, f);
- headtxt.clear();
 
-///////////////////////////////////////////////////////
-//get_meta is_integral_v
- headtxt.clear();
- update2strem.str("");
- headtxt=R"(
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+
+    ///////////////////////////////////////////////////////
+    // get_meta is_integral_v
+    headtxt.clear();
+    update2strem.str("");
+    headtxt = R"(
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta(std::string key_name)
@@ -3474,19 +3653,19 @@ struct )";
     for (auto &kaa : numbercollist)
     {
         update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
-        update2strem << "\t\t\treturn data." << kaa.second<<";\n";
+        update2strem << "\t\t\treturn data." << kaa.second << ";\n";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
     headtxt.append("\t\treturn nullptr; \n\t}\n");
- 
- fwrite(&headtxt[0], headtxt.size(), 1, f);
- headtxt.clear();
-///////////////////////////////////////////////////////
-//get_meta float
- headtxt.clear();
- update2strem.str("");
- headtxt=R"(
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    ///////////////////////////////////////////////////////
+    // get_meta float
+    headtxt.clear();
+    update2strem.str("");
+    headtxt = R"(
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
     T& ref_meta(std::string key_name)
@@ -3496,20 +3675,18 @@ struct )";
     for (auto &kaa : floatcollist)
     {
         update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
-        update2strem << "\t\t\treturn data." << kaa.second<<";\n";
+        update2strem << "\t\t\treturn data." << kaa.second << ";\n";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
     headtxt.append("\t\treturn nullptr; \n\t}\n");
 
- fwrite(&headtxt[0], headtxt.size(), 1, f);
- headtxt.clear();
- 
-//////////////////////
-//getCol 1 int
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
 
-   
-    
+    //////////////////////
+    // getCol 1 int
+
     getcollstrem.str("");
 
     for (auto &kaa : numbercollist)
@@ -3521,8 +3698,7 @@ struct )";
                      << "\n";
         getcollstrem << "\t\t\t\t break;\n";
     }
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
@@ -3535,27 +3711,25 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(
+        headtxt = R"(
                 for(auto &iter:record)
                 {
                     switch(kpos)
                     {
    )";
-    headtxt.append(sqlqueryring);
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt.append(sqlqueryring);
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                     }
                 }
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-
-
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
 
     headtxt = R"(
@@ -3566,7 +3740,7 @@ struct )";
     headtxt.clear();
 
     //////////////////
-    //getCol 2 float
+    // getCol 2 float
     sqlqueryring.clear();
     getcollstrem.str("");
     for (auto &kaa : floatcollist)
@@ -3576,9 +3750,7 @@ struct )";
                      << "\n";
         getcollstrem << "\t\t\t break;\n";
     }
-    sqlqueryring=getcollstrem.str();
-   
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
@@ -3591,27 +3763,25 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-
-    headtxt = R"(  
+        headtxt = R"(  
                 for(auto &iter:record)
                 {
                     switch(kpos)
                     {
 
 )";
-    headtxt.append(sqlqueryring);
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt.append(sqlqueryring);
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                     }
                 }
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
 
     headtxt = R"(
@@ -3621,9 +3791,9 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////
-    //getVal is_integral_v
+    // getVal is_integral_v
     ////////////////////////////////////////////////
-    sqlqueryring.clear();    
+    sqlqueryring.clear();
     getcollstrem.str("");
 
     for (auto &kaa : numbercollist)
@@ -3633,8 +3803,8 @@ struct )";
                      << "\n";
         getcollstrem << "\t\t\t\t break;\n";
     }
-    sqlqueryring=getcollstrem.str();
-   
+    sqlqueryring = getcollstrem.str();
+
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
             T getVal(std::string keyname)
@@ -3645,19 +3815,19 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-if(sqlqueryring.size()>0)
-{
-    headtxt = R"(                   
+    if (sqlqueryring.size() > 0)
+    {
+        headtxt = R"(                   
                     switch(kpos)
                     {
 
    )";
 
-    headtxt.append(sqlqueryring);
-    headtxt.append("\t\t\t}");
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-}
+        headtxt.append(sqlqueryring);
+        headtxt.append("\t\t\t}");
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+    }
 
     headtxt = R"(
                 return 0;
@@ -3665,9 +3835,9 @@ if(sqlqueryring.size()>0)
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-/////////////////////////////////
-///getVal base::meta  is_integral_v
-    sqlqueryring.clear();    
+    /////////////////////////////////
+    /// getVal base::meta  is_integral_v
+    sqlqueryring.clear();
     getcollstrem.str("");
 
     for (auto &kaa : numbercollist)
@@ -3677,7 +3847,7 @@ if(sqlqueryring.size()>0)
                      << "\n";
         getcollstrem << "\t\t\t\t break;\n";
     }
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
@@ -3691,19 +3861,17 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
         headtxt = R"(   
             switch(kpos)
             {
    )";
-       headtxt+=sqlqueryring;
-       headtxt+="\n\t\t\t}\n";
+        headtxt += sqlqueryring;
+        headtxt += "\n\t\t\t}\n";
 
-       fwrite(&headtxt[0], headtxt.size(), 1, f);
-       headtxt.clear();
-
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
 
     headtxt = R"(
@@ -3879,8 +4047,8 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     /////////////////////////
-    //getCol 
-    sqlqueryring.clear();    
+    // getCol
+    sqlqueryring.clear();
     getcollstrem.str("");
     for (auto &kaa : stringcollist)
     {
@@ -3892,7 +4060,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"( 
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
@@ -3906,7 +4074,7 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
         headtxt = R"(        
@@ -3916,13 +4084,11 @@ if(sqlqueryring.size()>0)
                     {
 
     )";
-        headtxt+=sqlqueryring;
-        headtxt+="\t\t\t\t\t}\n\t\t\t\t}";
+        headtxt += sqlqueryring;
+        headtxt += "\t\t\t\t\t}\n\t\t\t\t}";
         fwrite(&headtxt[0], headtxt.size(), 1, f);
         headtxt.clear();
-
     }
-
 
     headtxt = R"(
 
@@ -3933,10 +4099,10 @@ if(sqlqueryring.size()>0)
     headtxt.clear();
 
     ////////////////////////////////////////////
-    //getstrCol("userid",false); // 33,44
-    //getstrCol("userid",true);  // "33","44"
+    // getstrCol("userid",false); // 33,44
+    // getstrCol("userid",true);  // "33","44"
     getcollstrem.str("");
-    sqlqueryring.clear();    
+    sqlqueryring.clear();
 
     for (unsigned int jj = 0; jj < tablecollist.size(); jj++)
     {
@@ -3950,7 +4116,8 @@ if(sqlqueryring.size()>0)
         }
         else
         {
-            getcollstrem << "\t\t\t\t if(isyinhao){ a<<jsonaddslash(iter." << tablecollist[jj] << "); \n\t\t\t\t }else{\n";
+            getcollstrem << "\t\t\t\t if(isyinhao){ a<<jsonaddslash(iter." << tablecollist[jj]
+                         << "); \n\t\t\t\t }else{\n";
             getcollstrem << "\t\t\t\t a<<iter." << tablecollist[jj] << ";\n";
             getcollstrem << "\t\t\t\t }\n";
         }
@@ -3958,7 +4125,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"( 
         std::string getstrCol(std::string keyname,bool isyinhao=false)
@@ -3966,15 +4133,14 @@ if(sqlqueryring.size()>0)
             std::ostringstream a;
             unsigned char kpos;
             kpos=findcolpos(keyname);
-    )";    
-    fwrite(&headtxt[0], headtxt.size(),1, f);
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-
-    headtxt = R"(   
+        headtxt = R"(   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -3995,21 +4161,20 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-     headtxt = R"(
+        headtxt = R"(
                     }
                     j++;
             } 
             if(isyinhao&&j>0){
                 a<<'"';
             }      
-    )";        
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-
+    )";
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
                 return a.str();
@@ -4018,10 +4183,10 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////
-    //getCols std::string,std::string
-    //getCols<std::string,std::string>("name","mobile");
+    // getCols std::string,std::string
+    // getCols<std::string,std::string>("name","mobile");
     getcollstrem.str("");
-    sqlqueryring.clear();    
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -4044,7 +4209,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
@@ -4055,14 +4220,13 @@ if(sqlqueryring.size()>0)
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1,f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-
-    headtxt = R"(        
+        headtxt = R"(        
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
@@ -4070,11 +4234,11 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
                 a.emplace(ktemp,vtemp);
             }       
@@ -4091,9 +4255,9 @@ if(sqlqueryring.size()>0)
     headtxt.clear();
 
     ///////////////////////
-    //getCols<std::string,U>
+    // getCols<std::string,U>
     getcollstrem.str("");
-    sqlqueryring.clear();  
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -4114,8 +4278,7 @@ if(sqlqueryring.size()>0)
                      << "\n";
         getcollstrem << "\t\t\t\t break;\n";
     }
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
 
@@ -4130,10 +4293,10 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(             
+        headtxt = R"(             
                 std::string ktemp;
                 U vtemp;
                 for(auto &iter:record)
@@ -4142,16 +4305,16 @@ if(sqlqueryring.size()>0)
                     {
  
        )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                     }
                     a.emplace(ktemp,vtemp);
                 }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(    
             return a;
@@ -4161,9 +4324,9 @@ if(sqlqueryring.size()>0)
     headtxt.clear();
 
     ///////////////////////////////////////////////////////
-    //getCols <int,float>
+    // getCols <int,float>
     getcollstrem.str("");
-    sqlqueryring.clear();  
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -4183,7 +4346,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
@@ -4194,12 +4357,12 @@ if(sqlqueryring.size()>0)
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
        )";
-    fwrite(&headtxt[0],headtxt.size(), 1,  f);
-    headtxt.clear();    
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(        
+        headtxt = R"(        
             T ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -4208,17 +4371,17 @@ if(sqlqueryring.size()>0)
                 {
  
        )";
-    headtxt+=sqlqueryring;   
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
                 a.emplace(ktemp,vtemp);
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"( 
         return a;
@@ -4227,9 +4390,9 @@ if(sqlqueryring.size()>0)
     headtxt.clear();
 
     /////////////////////////
-    //getCols int,std::string 
+    // getCols int,std::string
     getcollstrem.str("");
-    sqlqueryring.clear();  
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -4249,7 +4412,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"( 
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
@@ -4260,13 +4423,13 @@ if(sqlqueryring.size()>0)
                 kpos=findcolpos(keyname);
                 vpos=findcolpos(valname);
    )";
-    fwrite(&headtxt[0],headtxt.size(), 1,  f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(         
+        headtxt = R"(         
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
@@ -4275,17 +4438,17 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;   
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-       headtxt = R"(
+        headtxt = R"(
                     }
                     a.emplace(ktemp,vtemp);
                 } 
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
 
     headtxt = R"(     
@@ -4295,9 +4458,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////
-    //getCols std::string int
+    // getCols std::string int
     getcollstrem.str("");
-    sqlqueryring.clear();  
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -4317,8 +4480,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
@@ -4328,14 +4490,14 @@ if(sqlqueryring.size()>0)
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-   )";      
+   )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();       
+    headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(            
+        headtxt = R"(            
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
@@ -4344,19 +4506,18 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
                 a.emplace(ktemp,vtemp);
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(  
         return a;
@@ -4366,9 +4527,9 @@ if(sqlqueryring.size()>0)
     headtxt.clear();
 
     /////////////////////////
-    //getCols <int,int>
+    // getCols <int,int>
     getcollstrem.str("");
-    sqlqueryring.clear();  
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -4388,7 +4549,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
@@ -4402,10 +4563,10 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(            
+        headtxt = R"(            
             T ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -4414,18 +4575,17 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
                 a.emplace(ktemp,vtemp);
             }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -4434,9 +4594,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////
-    ///getmapRows int meta
+    /// getmapRows int meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -4446,7 +4606,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
@@ -4459,25 +4619,25 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(            
+        headtxt = R"(            
             for(auto &iter:record)
             {
                 switch(kpos)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
 
     headtxt = R"( 
@@ -4488,9 +4648,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////////
-    //getmapRows std::string,meta
+    // getmapRows std::string,meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -4500,7 +4660,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
@@ -4513,28 +4673,27 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-
-    headtxt = R"(
+        headtxt = R"(
             for(auto &iter:record)
             {
                 switch(kpos)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
                 //a.emplace(ktemp,iter);
             }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
 
@@ -4544,9 +4703,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     /////////////////////////////////
-    //getvecCols std::string float
+    // getvecCols std::string float
     getcollstrem.str("");
-    sqlqueryring.clear();  
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -4566,7 +4725,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
@@ -4579,13 +4738,12 @@ if(sqlqueryring.size()>0)
             vpos=findcolpos(valname);
    )";
 
-    fwrite(&headtxt[0],headtxt.size(), 1,  f);
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(       
+        headtxt = R"(       
             std::string ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -4594,10 +4752,10 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                    }
 
                  a.emplace_back(ktemp,vtemp);
@@ -4605,8 +4763,8 @@ if(sqlqueryring.size()>0)
 
      )";
 
-    fwrite(&headtxt[0],headtxt.size(), 1,  f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
 
@@ -4616,9 +4774,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////
-    //getvecCols int float
+    // getvecCols int float
     getcollstrem.str("");
-    sqlqueryring.clear();  
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -4638,8 +4796,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
@@ -4654,11 +4811,10 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(
+        headtxt = R"(
                 T ktemp;
                 U vtemp;
                 for(auto &iter:record)
@@ -4667,20 +4823,19 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                    }
 
                    a.emplace_back(ktemp,vtemp);
                 }       
 
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-        
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
 
@@ -4690,9 +4845,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////////////////////
-    //getvecCols int string
+    // getvecCols int string
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -4712,7 +4867,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
@@ -4727,10 +4882,10 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(
+        headtxt = R"(
                     T ktemp;
                     U vtemp;
                 for(auto &iter:record)
@@ -4739,19 +4894,18 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                    }
 
                     a.emplace_back(ktemp,vtemp);
                 }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -4760,9 +4914,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////////////////////////////
-    //getvecCols string int
+    // getvecCols string int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -4782,7 +4936,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
@@ -4797,10 +4951,10 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(                
+        headtxt = R"(                
                     T ktemp;
                     U vtemp;
                 for(auto &iter:record)
@@ -4810,18 +4964,17 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                    }
                     a.emplace_back(ktemp,vtemp);
                 }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-            
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -4830,9 +4983,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////////
-    //getvecCols int int
+    // getvecCols int int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -4852,8 +5005,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
@@ -4868,10 +5020,10 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
 
-    headtxt = R"(
+        headtxt = R"(
                     T ktemp;
                     U vtemp;
                 for(auto &iter:record)
@@ -4880,18 +5032,17 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                    }
                     a.emplace_back(ktemp,vtemp);
                 }       
       )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-        
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -4900,9 +5051,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ////////////////////////////////////////////////////////
-    //getvecCols std::string std::string
+    // getvecCols std::string std::string
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -4923,7 +5074,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
@@ -4938,9 +5089,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
                     T ktemp;
                     U vtemp;
                 for(auto &iter:record)
@@ -4949,18 +5100,18 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                    }
 
                     a.emplace_back(ktemp,vtemp);
                 }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -4969,9 +5120,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////////////
-    //getvecRows int
+    // getvecRows int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -4982,7 +5133,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
@@ -4991,29 +5142,29 @@ if(sqlqueryring.size()>0)
             std::vector<std::pair<T,meta>> a;
             unsigned char kpos;
             kpos=findcolpos(keyname);
-     )";    
+     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(      
+        headtxt = R"(      
             for(auto &iter:record)
             { 
                 switch(kpos)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
         return a;
@@ -5021,9 +5172,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////
-    //getvecRows std::string meta
+    // getvecRows std::string meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -5033,7 +5184,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
@@ -5047,25 +5198,25 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(         
+        headtxt = R"(         
             for(auto &iter:record)
             {
                 switch(kpos)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
 
@@ -5077,7 +5228,7 @@ if(sqlqueryring.size()>0)
     ////////////////////////////////////////////////////
     // getgroupCols int int float
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -5110,7 +5261,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
@@ -5126,9 +5277,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(      
+        headtxt = R"(      
             T ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -5137,17 +5288,17 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
             }       
 
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5158,7 +5309,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////
     // getgroupCols int int int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -5189,7 +5340,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
@@ -5206,10 +5357,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(          
+        headtxt = R"(          
             T ktemp;
             U vtemp;
             //D vtemp;
@@ -5220,17 +5370,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
             }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5241,7 +5390,7 @@ if(sqlqueryring.size()>0)
     /////////////////////////
     // getgroupCols int int string
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -5271,7 +5420,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
@@ -5287,9 +5436,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(       
+        headtxt = R"(       
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -5300,17 +5449,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
             }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5321,7 +5469,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////////
     // getgroupCols int string float
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -5353,8 +5501,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
@@ -5370,10 +5517,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
                 T ktemp;
                 U vtemp;
             // D dtemp;
@@ -5385,15 +5531,15 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                    }
                 }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5404,7 +5550,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////////
     // getgroupCols int string int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -5435,8 +5581,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
     template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
@@ -5453,9 +5598,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(        
+        headtxt = R"(        
         T ktemp;
         U vtemp;
        // D dtemp;
@@ -5466,16 +5611,16 @@ if(sqlqueryring.size()>0)
             {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
             }
          }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
         return a;
@@ -5485,7 +5630,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////////
     // getgroupCols int string string
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -5519,7 +5664,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
@@ -5535,9 +5680,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -5548,16 +5693,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
             }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5568,7 +5713,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////////
     // getgroupCols string int float
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -5602,7 +5747,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
@@ -5618,9 +5763,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-     headtxt = R"(               
+        headtxt = R"(               
                 T ktemp;
                 U vtemp;
                 //D vtemp;
@@ -5630,16 +5775,16 @@ if(sqlqueryring.size()>0)
                     {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                     }
                 }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
 
@@ -5651,7 +5796,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////
     // groupby string int int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -5684,7 +5829,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
@@ -5700,9 +5845,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(            
+        headtxt = R"(            
             T ktemp;
             U vtemp;
             //D vtemp;
@@ -5714,16 +5859,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
                 }
             }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5734,7 +5879,7 @@ if(sqlqueryring.size()>0)
     /////////////////////////
     // getgroupCols string int string
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -5766,7 +5911,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
     template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
@@ -5782,9 +5927,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
         T ktemp;
         U vtemp;
         // D dtemp;
@@ -5796,16 +5941,16 @@ if(sqlqueryring.size()>0)
             {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
 
-    headtxt = R"(
+        headtxt = R"(
             }
          }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5816,7 +5961,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////////
     // getgroupCols string string float
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -5848,7 +5993,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
@@ -5864,9 +6009,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(        
+        headtxt = R"(        
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -5877,17 +6022,17 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
 
     )";
-  
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5897,7 +6042,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////////
     // getgroupCols string string int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -5932,7 +6077,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
@@ -5948,9 +6093,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -5962,16 +6107,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -5982,7 +6127,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////////
     // getgroupCols string string string
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -6017,7 +6162,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
@@ -6034,9 +6179,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(        
+        headtxt = R"(        
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -6047,16 +6192,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6068,7 +6213,7 @@ if(sqlqueryring.size()>0)
     // 2D data
     // getgroupCols string string
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -6090,7 +6235,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
@@ -6106,9 +6251,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             T ktemp;
             //U vtemp;
 
@@ -6118,15 +6263,15 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6137,7 +6282,7 @@ if(sqlqueryring.size()>0)
     ///////////////////////////////////////////
     // getgroupCols string float
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -6161,7 +6306,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
@@ -6176,9 +6321,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             T ktemp;
             //U vtemp;
 
@@ -6188,17 +6333,17 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
 
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6209,7 +6354,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////
     // getgroupCols string int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -6231,8 +6376,8 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
-    
+    sqlqueryring = getcollstrem.str();
+
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
         std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
@@ -6246,10 +6391,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             T ktemp;
             //U vtemp;
 
@@ -6260,16 +6404,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6280,7 +6424,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////////
     // getgroupCols int string
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -6302,7 +6446,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
@@ -6317,9 +6461,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             T ktemp;
             //U vtemp;
 
@@ -6330,17 +6474,17 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
 
     )";
- 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6349,9 +6493,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////////////
-    //getgroupCols int float
+    // getgroupCols int float
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -6373,7 +6517,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
@@ -6388,9 +6532,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(            
+        headtxt = R"(            
 
             T ktemp;
             //U vtemp;
@@ -6402,16 +6546,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6422,7 +6566,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////
     // getgroupCols int int
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -6444,8 +6588,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
@@ -6460,9 +6603,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             T ktemp;
             //U vtemp;
 
@@ -6473,16 +6616,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6495,7 +6638,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////
     // getgroupRows int meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -6506,7 +6649,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
@@ -6520,9 +6663,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             //T ktemp;
             //U vtemp;
 
@@ -6532,16 +6675,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6552,7 +6695,7 @@ if(sqlqueryring.size()>0)
     ///////////////////////////////////////////////
     // getgroupRows string meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -6563,7 +6706,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
@@ -6577,9 +6720,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             //T ktemp;
             //U vtemp;
 
@@ -6590,16 +6733,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6612,7 +6755,7 @@ if(sqlqueryring.size()>0)
     ////////////////////////////////////
     // getgroupRows string string meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -6634,8 +6777,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
-
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
@@ -6650,9 +6792,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(
+        headtxt = R"(
             T ktemp;
 
             for(auto &iter:record)
@@ -6662,16 +6804,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6682,7 +6824,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////
     // getgroupRows string int meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : stringcollist)
     {
@@ -6704,7 +6846,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
@@ -6720,10 +6862,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(            
+        headtxt = R"(            
             T ktemp;
             
             for(auto &iter:record)
@@ -6733,17 +6874,17 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
 
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6754,7 +6895,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////
     // getgroupRows int int meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -6776,7 +6917,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
@@ -6792,9 +6933,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(        
+        headtxt = R"(        
         T ktemp;
         
             for(auto &iter:record)
@@ -6804,16 +6945,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6824,7 +6965,7 @@ if(sqlqueryring.size()>0)
     //////////////////////////////////////////
     // getgroupRows int string meta
     getcollstrem.str("");
-    sqlqueryring.clear(); 
+    sqlqueryring.clear();
 
     for (auto &kaa : numbercollist)
     {
@@ -6846,7 +6987,7 @@ if(sqlqueryring.size()>0)
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    sqlqueryring=getcollstrem.str();
+    sqlqueryring = getcollstrem.str();
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
@@ -6861,9 +7002,9 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if(sqlqueryring.size()>0)
+    if (sqlqueryring.size() > 0)
     {
-    headtxt = R"(            
+        headtxt = R"(            
             T ktemp;
             
             for(auto &iter:record)
@@ -6873,16 +7014,16 @@ if(sqlqueryring.size()>0)
                 {
 
    )";
-    headtxt+=sqlqueryring;
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-    headtxt = R"(
+        headtxt += sqlqueryring;
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+        headtxt = R"(
                 }
             }       
     )";
 
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
     }
     headtxt = R"(
             return a;
@@ -6891,14 +7032,14 @@ if(sqlqueryring.size()>0)
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////
-    //end orm basefile
+    // end orm basefile
     //////////////////////////////////////////////
     //////////////////////
     headtxt = R"(
   };
     
 )";
- 
+
     if (rmstag != "default")
     {
         headtxt.append("} ");
@@ -6967,14 +7108,14 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                 {
                     if (typeone.empty())
                     {
-                        typeone = strval;
+                        typeone          = strval;
                         mysqlconf.spname = keyname;
                     }
                     else
                     {
 
                         myconfig.push_back(mysqlconf);
-                        typeone = strval;
+                        typeone        = strval;
                         mysqlconf.type = strval;
                         mysqlconf.host.clear();
                         mysqlconf.port.clear();
@@ -6985,7 +7126,7 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                         mysqlconf.maxpool.clear();
                         mysqlconf.spname = keyname;
                         mysqlconf.dbtype.clear();
-                        mysqlconf.unix_socket.clear(); 
+                        mysqlconf.unix_socket.clear();
                     }
                 }
             }
@@ -7011,14 +7152,14 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                 {
                     if (typeone.empty())
                     {
-                        typeone = strval;
+                        typeone          = strval;
                         mysqlconf.spname = keyname;
                     }
                     else
                     {
 
                         myconfig.push_back(mysqlconf);
-                        typeone = strval;
+                        typeone        = strval;
                         mysqlconf.type = strval;
                         mysqlconf.host.clear();
                         mysqlconf.port.clear();
@@ -7029,7 +7170,7 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                         mysqlconf.maxpool.clear();
                         mysqlconf.spname = keyname;
                         mysqlconf.dbtype.clear();
-                        mysqlconf.unix_socket.clear(); 
+                        mysqlconf.unix_socket.clear();
                     }
                 }
                 if (strcasecmp(linestr.c_str(), "host") == 0)
@@ -7252,7 +7393,7 @@ void addhfiletoormfile(std::string mpath, std::string modelname, std::string rms
 std::unique_ptr<MYSQL, decltype(&mysql_close)> get_newmysqlconn()
 {
     MYSQL *conn_mar1;
-    conn_mar1=mysql_init(NULL); 
+    conn_mar1 = mysql_init(NULL);
     std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(std::move(conn_mar1), &mysql_close);
     return conn;
 }
@@ -7263,12 +7404,12 @@ int modelcli()
     fs::path current_path = fs::current_path();
 
     std::cout << "\033[36m 🍄 current path:\033[0m \033[1m\033[35m" << current_path.string() << "\033[0m" << std::endl;
-    std::string ormfilepath="orm/";
-    std::string ormnowpath="orm/";
+    std::string ormfilepath     = "orm/";
+    std::string ormnowpath      = "orm/";
     std::string rootcontrolpath = "models/";
-    std::string controlpath = rootcontrolpath;
+    std::string controlpath     = rootcontrolpath;
     std::string controlrunpath;
-    fs::path vpath = controlpath;
+    fs::path vpath   = controlpath;
     fs::path ormpath = ormfilepath;
     if (!fs::exists(vpath))
     {
@@ -7279,15 +7420,17 @@ int modelcli()
     if (!fs::exists(ormpath))
     {
         fs::create_directories(ormpath);
-        fs::permissions(ormpath, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+        fs::permissions(ormpath,
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                         fs::perm_options::add);
     }
 
-    ormpath = ormnowpath+"include";
+    ormpath = ormnowpath + "include";
     if (!fs::exists(ormpath))
     {
         fs::create_directories(ormpath);
-        fs::permissions(ormpath, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+        fs::permissions(ormpath,
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                         fs::perm_options::add);
     }
 
@@ -7297,11 +7440,12 @@ int modelcli()
         controlpath.push_back('/');
     }
     controlrunpath = controlpath + "include/";
-    paths = controlrunpath;
+    paths          = controlrunpath;
     if (!fs::exists(paths))
     {
         fs::create_directories(paths);
-        fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+        fs::permissions(paths,
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                         fs::perm_options::add);
     }
 
@@ -7310,10 +7454,12 @@ int modelcli()
     std::string pretable;
     std::vector<mysqlconnect_t> myconfig = getmysqlconfig("conf/orm.conf");
 
-    //std::string mysqlconnect = ""; //"mysqlx://root:123456@127.0.0.1:33060/aaa";
+    // std::string mysqlconnect = ""; //"mysqlx://root:123456@127.0.0.1:33060/aaa";
     if (myconfig.size() == 0)
     {
-        std::cout << " Sorry, not found [config/orm.conf] config file \033[1m\033[31m This file format example: \033[0m " << std::endl;
+        std::cout
+            << " Sorry, not found [config/orm.conf] config file \033[1m\033[31m This file format example: \033[0m "
+            << std::endl;
         command = R"(
 [default]
 type=main
@@ -7341,33 +7487,39 @@ dbtype=mysql
         command.clear();
         return 0;
     }
- 
-    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn=get_newmysqlconn();
- 
+
+    std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = get_newmysqlconn();
 
     if (myconfig.size() > 0)
     {
         if (myconfig.size() < 3)
         {
-            std::string port = myconfig[0].port;
+            std::string port    = myconfig[0].port;
             unsigned int myport = atol(port.c_str());
- 
-            rmstag = myconfig[0].spname;
-            command = myconfig[0].dbname;
+
+            rmstag   = myconfig[0].spname;
+            command  = myconfig[0].dbname;
             pretable = myconfig[0].pretable;
 
-            if(!mysql_real_connect(conn.get(), myconfig[0].host.c_str(),myconfig[0].user.c_str(),myconfig[0].password.c_str(),myconfig[0].dbname.c_str(),myport,(myconfig[0].unix_socket.size()>0?myconfig[0].unix_socket.c_str():NULL),0))
+            if (!mysql_real_connect(conn.get(),
+                                    myconfig[0].host.c_str(),
+                                    myconfig[0].user.c_str(),
+                                    myconfig[0].password.c_str(),
+                                    myconfig[0].dbname.c_str(),
+                                    myport,
+                                    (myconfig[0].unix_socket.size() > 0 ? myconfig[0].unix_socket.c_str() : NULL),
+                                    0))
             {
-                std::cout<<"mysql db link error!"<<std::endl;
-                std::cout<<mysql_error(conn.get())<<std::endl;
-            } 
-
+                std::cout << "mysql db link error!" << std::endl;
+                std::cout << mysql_error(conn.get()) << std::endl;
+            }
         }
         else
         {
-            for (unsigned  int i = 0; i < myconfig.size(); i++)
+            for (unsigned int i = 0; i < myconfig.size(); i++)
             {
-                std::cout << " \033[1m\033[31m" << (i + 1) << "\033[0m " << myconfig[i].dbname <<" ["<< myconfig[i].dbtype <<"]"<< std::endl;
+                std::cout << " \033[1m\033[31m" << (i + 1) << "\033[0m " << myconfig[i].dbname << " ["
+                          << myconfig[i].dbtype << "]" << std::endl;
             }
 
             unsigned int indexsdb = 0;
@@ -7417,19 +7569,26 @@ dbtype=mysql
             // if(indexsdb>myconfig.size()){
             //     indexsdb=0;
             // }
-            std::string port = myconfig[indexsdb].port;
+            std::string port    = myconfig[indexsdb].port;
             unsigned int myport = atol(port.c_str());
 
-            rmstag = myconfig[indexsdb].spname;
-            command = myconfig[indexsdb].dbname;
+            rmstag   = myconfig[indexsdb].spname;
+            command  = myconfig[indexsdb].dbname;
             pretable = myconfig[indexsdb].pretable;
 
-            if(!mysql_real_connect(conn.get(), myconfig[indexsdb].host.c_str(),myconfig[indexsdb].user.c_str(),myconfig[indexsdb].password.c_str(),myconfig[indexsdb].dbname.c_str(),myport,(myconfig[indexsdb].unix_socket.size()>0?myconfig[indexsdb].unix_socket.c_str():NULL),0))
+            if (!mysql_real_connect(
+                    conn.get(),
+                    myconfig[indexsdb].host.c_str(),
+                    myconfig[indexsdb].user.c_str(),
+                    myconfig[indexsdb].password.c_str(),
+                    myconfig[indexsdb].dbname.c_str(),
+                    myport,
+                    (myconfig[indexsdb].unix_socket.size() > 0 ? myconfig[indexsdb].unix_socket.c_str() : NULL),
+                    0))
             {
-                std::cout<<"mysql db link error 2!"<<std::endl;
-                std::cout<<mysql_error(conn.get())<<std::endl;
-            } 
-
+                std::cout << "mysql db link error 2!" << std::endl;
+                std::cout << mysql_error(conn.get()) << std::endl;
+            }
         }
     }
     else
@@ -7458,24 +7617,29 @@ dbtype=mysql
         std::cout << "input db user password:";
         std::cin >> password;
 
-       
         if (port.size() < 3)
         {
             port = "3306";
         }
-         unsigned int myport = atol(port.c_str());
-        //mysqlconnect = "mysqlx://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname;
+        unsigned int myport = atol(port.c_str());
+        // mysqlconnect = "mysqlx://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname;
 
-        command = dbname;
-        rmstag = "default";
+        command  = dbname;
+        rmstag   = "default";
         pretable = "";
 
-        if(!mysql_real_connect(conn.get(), host.c_str(),user.c_str(),password.c_str(),dbname.c_str(),myport,NULL,0))
-            {
-                std::cout<<"mysql db link error!"<<std::endl;
-                std::cout<<mysql_error(conn.get())<<std::endl;
-            } 
-
+        if (!mysql_real_connect(conn.get(),
+                                host.c_str(),
+                                user.c_str(),
+                                password.c_str(),
+                                dbname.c_str(),
+                                myport,
+                                NULL,
+                                0))
+        {
+            std::cout << "mysql db link error!" << std::endl;
+            std::cout << mysql_error(conn.get()) << std::endl;
+        }
     }
 
     if (rmstag != "default")
@@ -7488,20 +7652,21 @@ dbtype=mysql
         controlpath.push_back('/');
         controlrunpath = controlpath;
 
-        
         paths = controlrunpath;
         if (!fs::exists(paths))
         {
             fs::create_directories(paths);
-            fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+            fs::permissions(paths,
+                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                             fs::perm_options::add);
         }
         controlrunpath = controlpath + "include";
-        paths = controlrunpath;
+        paths          = controlrunpath;
         if (!fs::exists(paths))
         {
             fs::create_directories(paths);
-            fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+            fs::permissions(paths,
+                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                             fs::perm_options::add);
         }
 
@@ -7510,16 +7675,15 @@ dbtype=mysql
         ormnowpath.push_back('/');
         ormpath = ormnowpath;
 
-     
-
-         if (!fs::exists(ormpath))
+        if (!fs::exists(ormpath))
         {
             fs::create_directories(ormpath);
-            fs::permissions(ormpath, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+            fs::permissions(ormpath,
+                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                             fs::perm_options::add);
         }
         ormnowpath = ormnowpath + "include";
-        ormpath = ormnowpath;
+        ormpath    = ormnowpath;
 
         ormnowpath = ormfilepath;
         ormnowpath.append(rmstag);
@@ -7528,10 +7692,10 @@ dbtype=mysql
         if (!fs::exists(ormpath))
         {
             fs::create_directories(ormpath);
-            fs::permissions(ormpath, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+            fs::permissions(ormpath,
+                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                             fs::perm_options::add);
         }
-
     }
 
     std::string tablename;
@@ -7542,7 +7706,7 @@ dbtype=mysql
     std::vector<std::string> tablelist;
     std::vector<std::string> tableshow;
     unsigned int maxchar = 0;
-    int loopnumcount = 0;
+    int loopnumcount     = 0;
     while (true)
     {
 
@@ -7556,36 +7720,34 @@ dbtype=mysql
         command.clear();
         maxchar = 1;
 
-        int readnum = mysql_query(conn.get(),&sqlqueryring[0]);
-        
-        if(readnum!=0)
-        {
-            std::cout<<mysql_error(conn.get())<<std::endl;
-        }
-        MYSQL_RES *result=nullptr;
-        result = mysql_store_result(conn.get());
+        int readnum = mysql_query(conn.get(), &sqlqueryring[0]);
 
+        if (readnum != 0)
+        {
+            std::cout << mysql_error(conn.get()) << std::endl;
+        }
+        MYSQL_RES *result = nullptr;
+        result            = mysql_store_result(conn.get());
 
         tablelist.clear();
         tableshow.clear();
 
-        if(result)
+        if (result)
         {
-          int num_fields = mysql_num_fields(result);
-           MYSQL_ROW row;
+            int num_fields = mysql_num_fields(result);
+            MYSQL_ROW row;
 
             while ((row = mysql_fetch_row(result)))
             {
-                if(num_fields>0)
+                if (num_fields > 0)
                 {
                     command = std::string(row[0]);
                     std::transform(command.begin(), command.end(), command.begin(), ::tolower);
                     tablelist.push_back(command);
                 }
-                
-            }  
-          mysql_free_result(result);     
-        } 
+            }
+            mysql_free_result(result);
+        }
 
         int percolnum = 30;
         if (tablelist.size() > 60)
@@ -7595,15 +7757,15 @@ dbtype=mysql
         }
 
         int groupp = ceil((float)tablelist.size() / percolnum);
-        int pc = 0;
+        int pc     = 0;
         maxchar += 4;
-        unsigned int n = 0;
-        unsigned int  toffset = 0;
+        unsigned int n       = 0;
+        unsigned int toffset = 0;
 
         tableshow.resize(percolnum);
         for (int i = 0; i < groupp; i++)
         {
-            pc = i * percolnum;
+            pc      = i * percolnum;
             maxchar = 15;
             for (int j = 0; j < percolnum; j++)
             {
@@ -7616,7 +7778,7 @@ dbtype=mysql
             maxchar += 2;
             for (int j = 0; j < percolnum; j++)
             {
-                n = 0;
+                n       = 0;
                 toffset = pc + j;
                 // offset=tableshow[i].size();
                 if (toffset < tablelist.size() && tablelist[toffset].size() > 0)
@@ -7683,7 +7845,7 @@ dbtype=mysql
             {
                 isloop = true;
             }
-            for (unsigned  int tn = 0; tn < tablelist.size(); tn++)
+            for (unsigned int tn = 0; tn < tablelist.size(); tn++)
             {
 
                 unsigned int indexnum = 0;
@@ -7727,7 +7889,7 @@ dbtype=mysql
                     // std::string fixtablepre="web_";
                     unsigned int offsetmodel, iszimu = 0;
                     realtablename = tablelist[indexnum];
-                    offsetmodel = 0;
+                    offsetmodel   = 0;
                     for (; offsetmodel < pretable.size(); offsetmodel++)
                     {
                         if (realtablename[offsetmodel] == pretable[offsetmodel])
@@ -7763,7 +7925,7 @@ dbtype=mysql
                             }
                         }
                         offsetmodel += 1;
-                        for (unsigned  int i = offsetmodel; i < realtablename.size(); i++)
+                        for (unsigned int i = offsetmodel; i < realtablename.size(); i++)
                         {
 
                             if (realtablename[i] == '_')
@@ -7819,14 +7981,15 @@ dbtype=mysql
                         }
                         if (iszimu > 1)
                         {
-                            createtabletoorm(ormnowpath,controlpath, realtablename, tablename, rmstag, conn.get());
+                            createtabletoorm(ormnowpath, controlpath, realtablename, tablename, rmstag, conn.get());
                             addhfiletoormfile(ormfilepath, tablename, rmstag);
                         }
                         loopnumcount = 0;
                     }
                     else
                     {
-                        std::cout << " \033[1m\033[31m error! only create \033[0m\033[1m\033[32m " << pretable << " \033[0m prefix tables.\n";
+                        std::cout << " \033[1m\033[31m error! only create \033[0m\033[1m\033[32m " << pretable
+                                  << " \033[0m prefix tables.\n";
                     }
                 }
 
@@ -7861,7 +8024,7 @@ dbtype=mysql
         }
         unsigned char indexsdb = 0;
 
-        for  (unsigned int i = 0; i < command.size(); i++)
+        for (unsigned int i = 0; i < command.size(); i++)
         {
             if (command[i] == 0x20)
             {
@@ -7886,25 +8049,33 @@ dbtype=mysql
             indexsdb -= 1;
         }
         command.clear();
-        std::string port = myconfig[indexsdb].port;
+        std::string port    = myconfig[indexsdb].port;
         unsigned int myport = atol(port.c_str());
-        
+
         rmstag = myconfig[indexsdb].spname;
         // command=myconfig[indexsdb].dbname;
         pretable = myconfig[indexsdb].pretable;
 
-        conn=get_newmysqlconn();
+        conn = get_newmysqlconn();
 
-        if(!mysql_real_connect(conn.get(), myconfig[indexsdb].host.c_str(),myconfig[indexsdb].user.c_str(),myconfig[indexsdb].password.c_str(),myconfig[indexsdb].dbname.c_str(),myport,(myconfig[indexsdb].unix_socket.size()>0?myconfig[indexsdb].unix_socket.c_str():NULL),0))
+        if (!mysql_real_connect(
+                conn.get(),
+                myconfig[indexsdb].host.c_str(),
+                myconfig[indexsdb].user.c_str(),
+                myconfig[indexsdb].password.c_str(),
+                myconfig[indexsdb].dbname.c_str(),
+                myport,
+                (myconfig[indexsdb].unix_socket.size() > 0 ? myconfig[indexsdb].unix_socket.c_str() : NULL),
+                0))
         {
-            std::cout<<"mysql db link error 4!"<<std::endl;
-            std::cout<<mysql_error(conn.get())<<std::endl;
+            std::cout << "mysql db link error 4!" << std::endl;
+            std::cout << mysql_error(conn.get()) << std::endl;
             break;
-        } 
+        }
 
         if (rmstag != "default")
         {
-            controlpath=rootcontrolpath;
+            controlpath = rootcontrolpath;
             if (controlpath.back() != '/')
             {
                 controlpath.push_back('/');
@@ -7912,35 +8083,37 @@ dbtype=mysql
             controlpath.append(rmstag);
             controlpath.push_back('/');
             controlrunpath = controlpath;
-            paths = controlrunpath;
+            paths          = controlrunpath;
             if (!fs::exists(paths))
             {
                 fs::create_directories(paths);
-                fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                fs::permissions(paths,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
             }
             controlrunpath = controlpath + "include";
-            paths = controlrunpath;
+            paths          = controlrunpath;
             if (!fs::exists(paths))
             {
                 fs::create_directories(paths);
-                fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                fs::permissions(paths,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
             }
 
-    
             ormnowpath = ormfilepath;
             ormnowpath.append(rmstag);
             ormnowpath.push_back('/');
-            ormpath=ormnowpath;
+            ormpath = ormnowpath;
             if (!fs::exists(ormpath))
             {
                 fs::create_directories(ormpath);
-                fs::permissions(ormpath, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                fs::permissions(ormpath,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
             }
             ormnowpath = ormnowpath + "include";
-            ormpath = ormnowpath;
+            ormpath    = ormnowpath;
             ormnowpath = ormfilepath;
             ormnowpath.append(rmstag);
             ormnowpath.push_back('/');
@@ -7948,12 +8121,12 @@ dbtype=mysql
             if (!fs::exists(ormpath))
             {
                 fs::create_directories(ormpath);
-                fs::permissions(ormpath, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                fs::permissions(ormpath,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
             }
-
         }
     }
-    
+
     return 0;
 }

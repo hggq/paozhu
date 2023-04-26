@@ -1098,7 +1098,7 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(k);
         return *mod;
     }
-    model &whereIn(std::string k, std::string &a)
+    model &whereIn(const std::string &k, const std::string &a)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -1118,46 +1118,7 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(") ");
         return *mod;
     }
-    model &whereIn(std::string k, std::string a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
 
-        wheresql.append(k);
-        wheresql.append(" in(");
-        wheresql.append(a);
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereNotIn(std::string k, std::string a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" NOT IN(");
-        wheresql.append(a);
-        wheresql.append(") ");
-        return *mod;
-    }
     model &whereIn(std::string k, std::list<std::string> &a)
     {
         if (wheresql.empty() || ishascontent)

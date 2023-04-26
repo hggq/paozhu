@@ -164,7 +164,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                             }
                                                 
 
-                        if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                        if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                         {
                             _offset-=1;
                         }
@@ -188,7 +188,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                             }
                             
                         //直接下一个，不用处理键值
-                        if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                        if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                         {
                             _offset-=1;
                         }
@@ -226,7 +226,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                             _json_value_name.push_back(_json_data[_offset]);
                         }
                         //让前面循环退出或返回
-                        if(_json_data[_offset]=='}')
+                        if(_offset < _json_data.size() && _json_data[_offset]=='}')
                         {
                             _offset-=1;
                         }
@@ -531,14 +531,14 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                     }
                     //键名 后就是键值类型 循环去除空格
                     _offset=http::json_string_trim(_json_data,_offset);
-                    if(_json_data[_offset]!=':')
+                    if(_offset < _json_data.size() && _json_data[_offset]!=':')
                     {
                         return _offset; 
                     }
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
 
-                    if(_json_data[_offset]=='{')
+                    if(_offset < _json_data.size() && _json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                     
                             _offset++;
@@ -562,7 +562,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                                 }
                             }
                         
-                        if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                        if( _offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                         {
                             _offset-=1;
                         }  
@@ -577,7 +577,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                                  
                             }
                               
-                        if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                        if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                         {
                             _offset-=1;
                         }
@@ -614,7 +614,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                             _json_value_name.push_back(_json_data[_offset]);
                         }
                         //让前面循环退出或返回 主要与数组不同这里是大括号
-                        if(_json_data[_offset]=='}')
+                        if(_offset < _json_data.size() && _json_data[_offset]=='}')
                         {
                             _offset-=1;
                         }
@@ -640,7 +640,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                             }
                                                     
 
-                        if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                        if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                         {
                             _offset-=1;
                         }
@@ -703,7 +703,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                                 }
                             }
                           
-                    if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                    if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                     {
                         _offset-=1;
                     }
@@ -761,7 +761,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                                 }
                             }
                           
-                    if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                    if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                     {
                         _offset-=1;
                     }
@@ -794,7 +794,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                           
                     ///////////////////////////////////////////////////////
                     //直接下一个，不用处理键值
-                    if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                    if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                     {
                         _offset-=1;
                     }
@@ -832,7 +832,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                         _json_value_name.push_back(_json_data[_offset]);
                     }
                     //让前面循环退出或返回 主要与对象不同这里是中括号
-                    if(_json_data[_offset]==']')
+                    if(_offset < _json_data.size() && _json_data[_offset]==']')
                     {
                         _offset-=1;
                     }
@@ -848,7 +848,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
           
                     ///////////////////////////////////////////////////////
                     //直接下一个，不用处理键值
-                    if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                    if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                     {
                         _offset-=1;
                     }
@@ -886,7 +886,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                         _json_value_name.push_back(_json_data[_offset]);
                     }
                     //让前面循环退出或返回 主要与对象不同这里是中括号
-                    if(_json_data[_offset]==']')
+                    if(_offset < _json_data.size() && _json_data[_offset]==']')
                     {
                         _offset-=1;
                     }
@@ -902,7 +902,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                             }
                             
                         //直接下一个，不用处理键值
-                        if(_json_data[_offset]==']'||_json_data[_offset]=='}')
+                        if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
                         {
                             _offset-=1;
                         }
@@ -940,7 +940,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                             _json_value_name.push_back(_json_data[_offset]);
                         }
                         //让前面循环退出或返回
-                        if(_json_data[_offset]=='}')
+                        if(_offset < _json_data.size() && _json_data[_offset]=='}')
                         {
                             _offset-=1;
                         }

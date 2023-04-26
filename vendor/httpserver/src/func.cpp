@@ -1278,5 +1278,50 @@ std::string str2safemethold(const char *source, unsigned int str_length)
     }
     return temp;
 }
-
+std::string array_to_sql(const std::vector<std::string> a, char b)
+{
+    std::string temp;
+    for (unsigned int j = 0; j < a.size(); j++)
+    {
+        if (j > 0)
+        {
+            temp.push_back(b);
+        }
+        temp.append(str_addslash(a[j]));
+    }
+    return temp;
+}
+inline std::string str_addslash(const std::string &content)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < content.size(); i++)
+    {
+        if (content[i] == '\'')
+        {
+            temp.append("\\'");
+            continue;
+        }
+        else if (content[i] == '"')
+        {
+            temp.append("\\\"");
+            continue;
+        }
+        temp.push_back(content[i]);
+    }
+    return temp;
+}
+inline std::string json_addslash(const std::string &content)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < content.size(); i++)
+    {
+        if (content[i] == '"')
+        {
+            temp.append("\\\"");
+            continue;
+        }
+        temp.push_back(content[i]);
+    }
+    return temp;
+}
 } // namespace http
