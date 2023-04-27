@@ -660,7 +660,7 @@ template <typename model, typename base> class mysqlclientDB : public base
         return *mod;
     }
 
-    model &where(std::string wq)
+    model &where(const std::string wq)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -677,7 +677,9 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(wq);
         return *mod;
     }
-    model &where(std::string wq, long long val)
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &where(std::string wq, _SQL_Value val)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -699,12 +701,15 @@ template <typename model, typename base> class mysqlclientDB : public base
         {
             wq.push_back('=');
         }
-        wq.append(std::to_string(val));
+        std::stringstream _stream;
+        _stream << val;
+        wq.append(_stream.str());
 
         wheresql.append(wq);
         return *mod;
     }
-    model &where(std::string wq, int val)
+
+    model &where(std::string wq, char bi, http::OBJ_VALUE &obj)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -718,61 +723,7 @@ template <typename model, typename base> class mysqlclientDB : public base
             ishascontent = true;
         }
 
-        char bi = wq.back();
-        if (bi == '=' || bi == '>' || bi == '<')
-        {
-        }
-        else
-        {
-            wq.push_back('=');
-        }
-        wq.append(std::to_string(val));
-
-        wheresql.append(wq);
-        return *mod;
-    }
-    model &where(std::string wq, unsigned int val)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        char bi = wq.back();
-        if (bi == '=' || bi == '>' || bi == '<')
-        {
-        }
-        else
-        {
-            wq.push_back('=');
-        }
-        wq.append(std::to_string(val));
-
-        wheresql.append(wq);
-        return *mod;
-    }
-    model &where(std::string wq, std::string bi, http::OBJ_VALUE &obj)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wq.append(bi);
+        wq.push_back(bi);
         if (obj.is_string())
         {
             wq.push_back('\'');
@@ -826,7 +777,9 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(wq);
         return *mod;
     }
-    model &where(std::string wq, std::string bi, unsigned long long val)
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &where(std::string wq, char bi, _SQL_Value val)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -840,13 +793,15 @@ template <typename model, typename base> class mysqlclientDB : public base
             ishascontent = true;
         }
 
-        wq.append(bi);
-        wq.append(std::to_string(val));
+        wq.push_back(bi);
+        std::stringstream _stream;
+        _stream << val;
+        wq.append(_stream.str());
         wheresql.append(wq);
         return *mod;
     }
 
-    model &where(std::string wq, unsigned long long val)
+    model &where(std::string wq, char bi, std::string val)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -860,36 +815,7 @@ template <typename model, typename base> class mysqlclientDB : public base
             ishascontent = true;
         }
 
-        char bi = wq.back();
-        if (bi == '=' || bi == '>' || bi == '<')
-        {
-        }
-        else
-        {
-            wq.push_back('=');
-        }
-
-        wq.append(std::to_string(val));
-
-        wheresql.append(wq);
-        return *mod;
-    }
-
-    model &where(std::string wq, std::string bi, std::string val)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wq.append(bi);
+        wq.push_back(bi);
         wq.push_back('\'');
 
         wq.append(val);
@@ -987,14 +913,16 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(wq);
         return *mod;
     }
-    model &whereAnd(std::string wq)
+    model &whereAnd(const std::string wq)
     {
 
         wheresql.append(" AND ");
         wheresql.append(wq);
         return *mod;
     }
-    model &whereAnd(std::string wq, long long val)
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &whereAnd(std::string wq, _SQL_Value val)
     {
 
         wheresql.append(" AND ");
@@ -1007,12 +935,14 @@ template <typename model, typename base> class mysqlclientDB : public base
         {
             wq.push_back('=');
         }
-        wq.append(std::to_string(val));
+        std::stringstream _stream;
+        _stream << val;
+        wq.append(_stream.str());
 
         wheresql.append(wq);
         return *mod;
     }
-    model &whereAnd(std::string wq, std::string val)
+    model &whereAnd(std::string wq, const std::string &val)
     {
 
         wheresql.append(" AND ");
@@ -1034,14 +964,16 @@ template <typename model, typename base> class mysqlclientDB : public base
 
         return *mod;
     }
-    model &whereOr(std::string wq)
+    model &whereOr(const std::string wq)
     {
 
         wheresql.append(" OR ");
         wheresql.append(wq);
         return *mod;
     }
-    model &whereOr(std::string wq, long long val)
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &whereOr(std::string wq, _SQL_Value val)
     {
 
         wheresql.append(" OR ");
@@ -1054,7 +986,9 @@ template <typename model, typename base> class mysqlclientDB : public base
         {
             wq.push_back('=');
         }
-        wq.append(std::to_string(val));
+        std::stringstream _stream;
+        _stream << val;
+        wq.append(_stream.str());
 
         wheresql.append(wq);
         return *mod;
@@ -1081,7 +1015,7 @@ template <typename model, typename base> class mysqlclientDB : public base
 
         return *mod;
     }
-    model &whereIn(std::string k)
+    model &whereIn(const std::string k)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -1113,81 +1047,13 @@ template <typename model, typename base> class mysqlclientDB : public base
         }
 
         wheresql.append(k);
-        wheresql.append(" in(");
+        wheresql.append(" IN(");
         wheresql.append(a);
         wheresql.append(") ");
         return *mod;
     }
 
-    model &whereIn(std::string k, std::list<std::string> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" IN (");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",\'");
-            }
-            else
-            {
-                wheresql.append("\'");
-            }
-            wheresql.append(key);
-            wheresql.append("\'");
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereNotIn(std::string k, std::list<std::string> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" NOT IN (");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",\'");
-            }
-            else
-            {
-                wheresql.append("\'");
-            }
-            wheresql.append(key);
-            wheresql.append("\'");
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereIn(std::string k, std::vector<std::string> &a)
+    model &whereIn(const std::string k, const std::vector<std::string> &a)
     {
         if (!wheresql.empty())
             wheresql.append(" AND ");
@@ -1211,7 +1077,7 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(") ");
         return *mod;
     }
-    model &whereNotIn(std::string k, std::vector<std::string> &a)
+    model &whereNotIn(const std::string k, const std::vector<std::string> &a)
     {
         if (!wheresql.empty())
             wheresql.append(" AND ");
@@ -1235,7 +1101,9 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(") ");
         return *mod;
     }
-    model &whereIn(std::string k, std::list<unsigned int> &a)
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &whereIn(const std::string k, const std::list<_SQL_Value> &a)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -1252,19 +1120,59 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(k);
         wheresql.append(" in(");
         int i = 0;
+        std::stringstream _stream;
         for (auto &key : a)
         {
             if (i > 0)
             {
                 wheresql.append(",");
             }
-            wheresql.append(std::to_string(key));
+            _stream << key;
+            wheresql.append(_stream.str());
             i++;
+            _stream.str("");
         }
         wheresql.append(") ");
         return *mod;
     }
-    model &whereNotIn(std::string k, std::list<unsigned int> &a)
+
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &whereIn(const std::string k, const std::vector<_SQL_Value> &a)
+    {
+        if (wheresql.empty() || ishascontent)
+        {
+        }
+        else
+        {
+            wheresql.append(" AND ");
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+
+        wheresql.append(k);
+        wheresql.append(" IN(");
+        int i = 0;
+        std::stringstream _stream;
+        for (auto &key : a)
+        {
+            if (i > 0)
+            {
+                wheresql.append(",");
+            }
+            _stream << key;
+            wheresql.append(_stream.str());
+            i++;
+            _stream.str("");
+        }
+        wheresql.append(") ");
+        return *mod;
+    }
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &whereNotIn(std::string k, std::vector<_SQL_Value> &a)
     {
         if (wheresql.empty() || ishascontent)
         {
@@ -1281,308 +1189,22 @@ template <typename model, typename base> class mysqlclientDB : public base
         wheresql.append(k);
         wheresql.append(" NOT IN(");
         int i = 0;
+        std::stringstream _stream;
         for (auto &key : a)
         {
             if (i > 0)
             {
                 wheresql.append(",");
             }
-            wheresql.append(std::to_string(key));
+            _stream << key;
+            wheresql.append(_stream.str());
             i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereIn(std::string k, std::vector<unsigned int> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" in(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereNotIn(std::string k, std::vector<unsigned int> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" NOT IN(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereIn(std::string k, std::list<int> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" in(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereNotIn(std::string k, std::list<int> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" NOT IN(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereIn(std::string k, std::vector<int> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" in(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereNotIn(std::string k, std::vector<int> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" NOT IN(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereIn(std::string k, std::list<unsigned long long> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" in(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereIn(std::string k, std::vector<unsigned long long> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" in(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
+            _stream.str("");
         }
         wheresql.append(") ");
         return *mod;
     }
 
-    model &whereIn(std::string k, std::list<long> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-
-        wheresql.append(k);
-        wheresql.append(" in(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
-    model &whereIn(std::string k, std::vector<long> &a)
-    {
-        if (wheresql.empty() || ishascontent)
-        {
-        }
-        else
-        {
-            wheresql.append(" AND ");
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(k);
-        wheresql.append(" in(");
-        int i = 0;
-        for (auto &key : a)
-        {
-            if (i > 0)
-            {
-                wheresql.append(",");
-            }
-            wheresql.append(std::to_string(key));
-            i++;
-        }
-        wheresql.append(") ");
-        return *mod;
-    }
     model &order(std::string wq)
     {
 
