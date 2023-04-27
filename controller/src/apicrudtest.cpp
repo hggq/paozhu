@@ -182,7 +182,6 @@ std::string pxapipagesdepartlist(std::shared_ptr<httppeer> peer)
             del_id_array.push_back(dpid);
             if (deps.record.size() > 0)
             {
-                std::cout << deps.to_json() << std::endl;
                 for (unsigned int i = 0; i < deps.record.size(); i++)
                 {
                     for (unsigned int j = 0; j < del_id_array.size(); j++)

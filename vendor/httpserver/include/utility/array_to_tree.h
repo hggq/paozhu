@@ -24,8 +24,8 @@ void array_to_tree(std::vector<deps_json_type> &targetdata, std::vector<deps_jso
         {
             if (sourcedata[i].parentid == 0 && sourcedata[i]._is_use == false)
             {
-                sourcedata[i]._is_use = true;
                 targetdata.push_back(sourcedata[i]);
+                sourcedata[i]._is_use = true;
             }
         }
     }
@@ -37,8 +37,8 @@ void array_to_tree(std::vector<deps_json_type> &targetdata, std::vector<deps_jso
             {
                 if (targetdata[j].id == sourcedata[i].parentid)
                 {
-                    sourcedata[i]._is_use = true;
                     targetdata[j].children.push_back(sourcedata[i]);
+                    sourcedata[i]._is_use = true;
                     array_to_tree(targetdata[j].children, sourcedata);
                 }
             }
