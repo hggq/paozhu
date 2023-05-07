@@ -1,5 +1,3 @@
-
-
 #ifndef HTTP_ARRAY_TO_TREE_H
 #define HTTP_ARRAY_TO_TREE_H
 

@@ -385,6 +385,7 @@ namespace http
 
                 if (codein && viewcontent[i] == '<' && viewcontent[i + 1] == '%' && viewcontent[i + 2] == 'c')
                 {
+                    i+=3;
                     if (viewcontent[i] == '+')
                     {
                         i++;
@@ -397,11 +398,29 @@ namespace http
                     parsefile.append(value);
                     parsefile.append("\";\r\n");
                     codein = false;
-                    i += 2;
+                    i -= 1;
+                    value.clear();
+
+                    continue;
+                }else if (codein && viewcontent[i] == '<' && viewcontent[i + 1] == '%' && viewcontent[i + 2] == ' ')
+                {
+                    i+=3;
+                    if (viewcontent[i] == 'c'&&viewcontent[i+1] == ' ')
+                    {
+                        i+=2;
+                    }
+
+ 
+                    parsefile.append("\r\n \t\t\t echo<<\"");
+                    parsefile.append(value);
+                    parsefile.append("\";\r\n");
+                    codein = false;
+                    i -= 1;
                     value.clear();
 
                     continue;
                 }
+                
                 if (viewcontent[i] == '%' && viewcontent[i + 1] == '>' && !codein)
                 {
                     parsefile.append(value);
