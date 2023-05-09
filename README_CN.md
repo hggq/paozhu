@@ -31,7 +31,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ✅16. 插件化编程，热动态更新，使用动态库方式  
 ✅17. 框架内置通用数据缓存模块，ORM结果缓存，提高并发能力  
 ✅18. 框架controller目录注解功能，方便添加URL路由映射，降低入门心智  
-✅19. 结构和类注解JSON功能，使用json_encode json_decode操作
+✅19. 结构和类注解JSON功能，使用json_encode json_decode操作复杂C++结构体和JSON互转，可以参考Wiki
 
 
 ### 2.运行环境
