@@ -19,6 +19,7 @@ void get_filename(const std::string &filename, std::string &filename_name, std::
 std::string get_filename(const std::string &filename);
 std::vector<std::string> mb_split(const std::string, std::string &);
 std::string html_encode(std::string &);
+std::string strip_html(const std::string &);
 std::string mb_trim(std::string &);
 std::string mb_substr(std::string &, int, int length = 0);
 int mb_strlen(std::string &);
@@ -52,7 +53,7 @@ std::string array_to_sql(const std::vector<_Tp> &a, char b = ',')
     return _stream.str();
 }
 
-std::string array_to_sql(const std::vector<std::string>, char b = ',');
+std::string array_to_sql(const std::vector<std::string>, char b = ',', bool isquote = false);
 
 std::string str_addslash(const std::string &content);
 std::string json_addslash(const std::string &content);

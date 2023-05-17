@@ -197,6 +197,7 @@ std::string pxapipagesdepartlist(std::shared_ptr<httppeer> peer)
             std::string dpid_sql_str = array_to_sql(del_id_array);
             if (dpid_sql_str.size() > 0)
             {
+                deps.clear(true);
                 deps.whereIn("dpid", dpid_sql_str).remove();
             }
         }
@@ -235,4 +236,4 @@ std::string pxapipagesdepartlist(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-} // namespace http
+}// namespace http

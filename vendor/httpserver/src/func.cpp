@@ -1278,7 +1278,7 @@ std::string str2safemethold(const char *source, unsigned int str_length)
     }
     return temp;
 }
-std::string array_to_sql(const std::vector<std::string> a, char b)
+std::string array_to_sql(const std::vector<std::string> a, char b, bool isquote)
 {
     std::string temp;
     for (unsigned int j = 0; j < a.size(); j++)
@@ -1287,7 +1287,16 @@ std::string array_to_sql(const std::vector<std::string> a, char b)
         {
             temp.push_back(b);
         }
-        temp.append(str_addslash(a[j]));
+        if (isquote)
+        {
+            temp.append(a[j]);
+        }
+        else
+        {
+            temp.push_back('"');
+            temp.append(str_addslash(a[j]));
+            temp.push_back('"');
+        }
     }
     return temp;
 }
@@ -1322,6 +1331,293 @@ inline std::string json_addslash(const std::string &content)
         }
         temp.push_back(content[i]);
     }
+    return temp;
+}
+
+std::string strip_html(const std::string &content)
+{
+    std::string temp;
+    std::string tempstr;
+    unsigned int tag_count = 0;
+
+    for (unsigned int i = 0; i < content.size(); i++)
+    {
+        if (content[i] == '<')
+        {
+            if (content[i + 1] > 0x20 && content[i + 1] < 0x7F)
+            {
+                i++;
+                tempstr.clear();
+                for (; i < content.size(); i++)
+                {
+                    if (content[i] == '>' || content[i] == ' ' || content[i] == '\t' || content[i] == 0x0D ||
+                        content[i] == 0x0A)
+                    {
+                        break;
+                    }
+                    tempstr.push_back(content[i]);
+                }
+
+                if (strcasecmp(tempstr.c_str(), "style") == 0)
+                {
+                    for (; i < content.size(); i++)
+                    {
+                        if (content[i] == '>')
+                        {
+                            break;
+                        }
+                        if (content[i] == '"')
+                        {
+                            i++;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == '"' && content[i - 1] != 0x5C)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                        else if (content[i] == 0x27)
+                        {
+                            i++;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == 0x27 && content[i - 1] != 0x5C)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                    }
+                    for (; i < content.size(); i++)
+                    {
+                        if (content[i] == '<' && content[i + 1] == 0x2F)
+                        {
+                            i += 2;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == '>' || content[i] == ' ' || content[i] == '\t' ||
+                                    content[i] == 0x0D || content[i] == 0x0A)
+                                {
+                                    continue;
+                                }
+                                break;
+                            }
+                            tempstr.clear();
+                            for (; i < content.size(); i++)
+                            {
+                                if ((content[i] > 0x40 && content[i] < 0x5B) ||
+                                    (content[i] > 0x60 && content[i] < 0x7B))
+                                {
+                                    tempstr.push_back(content[i]);
+                                    continue;
+                                }
+                                break;
+                            }
+                            if (strcasecmp(tempstr.c_str(), "style") == 0)
+                            {
+                                for (; i < content.size(); i++)
+                                {
+                                    if (content[i] == ' ' || content[i] == '\t')
+                                    {
+                                        continue;
+                                    }
+                                    break;
+                                }
+                                break;
+                            }
+                        }
+                        if (content[i] == '"')
+                        {
+                            i++;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == '"' && content[i - 1] != 0x5C)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                        else if (content[i] == 0x27)
+                        {
+                            i++;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == 0x27 && content[i - 1] != 0x5C)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                    }
+                    continue;
+                }
+                else if (strcasecmp(tempstr.c_str(), "script") == 0)
+                {
+                    for (; i < content.size(); i++)
+                    {
+                        if (content[i] == '>')
+                        {
+                            i++;
+                            break;
+                        }
+                        if (content[i] == '"')
+                        {
+                            i++;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == '"' && content[i - 1] != 0x5C)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                        else if (content[i] == 0x27)
+                        {
+                            i++;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == 0x27 && content[i - 1] != 0x5C)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                    }
+
+                    for (; i < content.size(); i++)
+                    {
+                        if (content[i] == '<' && content[i + 1] == 0x2F)
+                        {
+                            i += 2;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == '>' || content[i] == ' ' || content[i] == '\t' ||
+                                    content[i] == 0x0D || content[i] == 0x0A)
+                                {
+                                    continue;
+                                }
+                                break;
+                            }
+
+                            tempstr.clear();
+                            for (; i < content.size(); i++)
+                            {
+                                if ((content[i] > 0x40 && content[i] < 0x5B) ||
+                                    (content[i] > 0x60 && content[i] < 0x7B))
+                                {
+                                    tempstr.push_back(content[i]);
+                                    continue;
+                                }
+                                break;
+                            }
+
+                            if (strcasecmp(tempstr.c_str(), "script") == 0)
+                            {
+                                for (; i < content.size(); i++)
+                                {
+                                    if (content[i] == ' ')
+                                    {
+                                        continue;
+                                    }
+                                    break;
+                                }
+
+                                break;
+                            }
+                        }
+
+                        if (content[i] == '"')
+                        {
+                            i++;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == '"' && content[i - 1] != 0x5C)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                        else if (content[i] == 0x27)
+                        {
+                            i++;
+                            for (; i < content.size(); i++)
+                            {
+                                if (content[i] == 0x27 && content[i - 1] != 0x5C)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                    }
+                    continue;
+                }
+
+                tag_count = 0;
+                //nornal tag
+                for (; i < content.size(); i++)
+                {
+                    if (content[i] == '>')
+                    {
+                        if (tag_count == 0)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            tag_count -= 1;
+                            continue;
+                        }
+                    }
+                    if (content[i] == '"')
+                    {
+                        i++;
+                        for (; i < content.size(); i++)
+                        {
+                            if (content[i] == '"' && content[i - 1] != 0x5C)
+                            {
+                                break;
+                            }
+                        }
+                        continue;
+                    }
+                    if (content[i] == 0x27)
+                    {
+                        i++;
+                        for (; i < content.size(); i++)
+                        {
+                            if (content[i] == 0x27 && content[i - 1] != 0x5C)
+                            {
+                                break;
+                            }
+                        }
+                        continue;
+                    }
+                    if (content[i] == '<')
+                    {
+                        //may be script tag in tag
+                        tag_count += 1;
+                        continue;
+                    }
+                }
+                continue;
+            }
+            else
+            {
+                continue;
+            }
+        }
+        temp.push_back(content[i]);
+    }
+
     return temp;
 }
 } // namespace http
