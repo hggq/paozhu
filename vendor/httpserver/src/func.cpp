@@ -1620,4 +1620,75 @@ std::string strip_html(const std::string &content)
 
     return temp;
 }
+std::string strip_annot(const std::string &content)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < content.size(); i++)
+    {
+        if (content[i] == '/' && ((i + 1) < content.size()) && content[i + 1] == '/')
+        {
+
+            i += 2;
+            for (; i < content.size(); i++)
+            {
+                if (content[i] == 0x0A)
+                {
+                    if (i < content.size() && content[i] == 0x0D)
+                    {
+                        i++;
+                    }
+                    break;
+                }
+            }
+            continue;
+        }
+        else if (content[i] == '/' && ((i + 1) < content.size()) && content[i + 1] == '*')
+        {
+            i += 2;
+            for (; i < content.size(); i++)
+            {
+                if (content[i] == '*')
+                {
+                    if ((i + 1) < content.size() && content[i + 1] == '/')
+                    {
+                        i += 1;
+                        break;
+                    }
+                }
+            }
+            continue;
+        }
+        else if (content[i] == '"')
+        {
+            temp.push_back(content[i]);
+            i++;
+            for (; i < content.size(); i++)
+            {
+                temp.push_back(content[i]);
+                if (content[i] == '"' && content[i - 1] != 0x5C)
+                {
+                    break;
+                }
+            }
+            continue;
+        }
+        else if (content[i] == 0x27)
+        {
+            temp.push_back(content[i]);
+            i++;
+            for (; i < content.size(); i++)
+            {
+                temp.push_back(content[i]);
+                if (content[i] == 0x27 && content[i - 1] != 0x5C)
+                {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        temp.push_back(content[i]);
+    }
+    return temp;
+}
 } // namespace http

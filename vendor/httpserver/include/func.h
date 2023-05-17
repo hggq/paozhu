@@ -20,6 +20,7 @@ std::string get_filename(const std::string &filename);
 std::vector<std::string> mb_split(const std::string, std::string &);
 std::string html_encode(std::string &);
 std::string strip_html(const std::string &);
+std::string strip_annot(const std::string &);
 std::string mb_trim(std::string &);
 std::string mb_substr(std::string &, int, int length = 0);
 int mb_strlen(std::string &);
