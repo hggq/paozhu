@@ -10,6 +10,7 @@
 
 #include "testmysqlinsert.h"
 #include "testmodelfromjson.h"
+#include "teststrip_html.h"
 #include "testrand.h"
 #include "testormcache.h"
 #include "testformpost.h"
@@ -40,6 +41,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testmodelfromjson;
 		methodcallback.emplace("mfromjson",temp);
+		temp.pre = nullptr;
+		temp.regfun = teststrip_html;
+		methodcallback.emplace("teststrip_html",temp);
 		temp.pre = nullptr;
 		temp.regfun = testrand;
 		methodcallback.emplace("testrand",temp);
