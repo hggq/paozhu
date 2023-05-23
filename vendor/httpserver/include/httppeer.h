@@ -69,7 +69,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::list<std::string> cookietoheader();
     std::string get_hosturl();
     std::string get_sitepath();
-    void goto_url(std::string url, unsigned char second = 0, std::string msg = "");
+    void goto_url(const std::string &url, unsigned char second = 0, const std::string &msg = "");
     bool isset_type();
 
     void parse_session();

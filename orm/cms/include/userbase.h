@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 26 Apr 2023 06:25:08 GMT
+*本文件为自动生成 Tue, 23 May 2023 16:44:36 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -390,7 +390,16 @@ if(data.level==0){
                   std::vector<unsigned char> keypos;
                   for(;jj<fileld.size();jj++){
                         if(fileld[jj]==','){
-                               keypos.emplace_back(findcolpos(keyname)); 
+                                unsigned char bpos_i=findcolpos(keyname);
+                               keypos.emplace_back(bpos_i); 
+#ifdef DEBUG
+                    if (bpos_i == 254)
+                    {
+                        std::cout << "\033[1m\033[31m-----------\n"
+                                  << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
+                                  << std::endl;
+                    }
+#endif                               
                                keyname.clear();
                              continue;   
                         }
@@ -402,7 +411,16 @@ if(data.level==0){
 
                   }  
                  if(keyname.size()>0){
-                                keypos.emplace_back(findcolpos(keyname)); 
+                                unsigned char bpos_i=findcolpos(keyname);
+ #ifdef DEBUG
+                    if (bpos_i == 254)
+                    {
+                        std::cout << "\033[1m\033[31m-----------\n"
+                                  << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
+                                  << std::endl;
+                    }
+#endif                                       
+                                keypos.emplace_back(bpos_i); 
                                 keyname.clear();
                  }
                  for(jj=0;jj<keypos.size();jj++){

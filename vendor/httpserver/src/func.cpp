@@ -18,7 +18,7 @@
 #include <memory>
 #include <cstdio>
 #include <sstream>
-
+#include <filesystem>
 #include <sys/fcntl.h>
 #include "datetime.h"
 #include "urlcode.h"
@@ -1691,4 +1691,59 @@ std::string strip_annot(const std::string &content)
     }
     return temp;
 }
+
+void get_directory_all_file(std::map<unsigned long long, std::string> &listobj,
+                            const std::string &file_path,
+                            const std::string &url_path,
+                            const std::string &extfile)
+{
+    std::filesystem::path tagetpath = file_path;
+    std::string extname;
+    std::string filename;
+    std::string urlname = url_path;
+    std::string temp_str;
+    if (urlname.size() > 0 && urlname.back() != '/')
+    {
+        urlname.push_back('/');
+    }
+    if (std::filesystem::exists(tagetpath) && std::filesystem::is_directory(tagetpath))
+    {
+        for (const auto &entry : std::filesystem::directory_iterator(tagetpath))
+        {
+            auto filename = entry.path().filename().string();
+            if (std::filesystem::is_regular_file(entry.status()))
+            {
+                extname = entry.path().extension().string();
+                if (extfile.size() == 1 && extfile[0] == '*')
+                {
+                    unsigned long long time_last_edit = 0;
+                    time_last_edit =
+                        std::chrono::duration_cast<std::chrono::seconds>(entry.last_write_time().time_since_epoch())
+                            .count();
+                    temp_str                = urlname + filename;
+                    listobj[time_last_edit] = temp_str;
+                }
+                else if (filename.size() > 0 && filename[0] != '.')
+                {
+                    if (extname.size() > 0 && extfile.find(extname) != std::string::npos)
+                    {
+                        unsigned long long time_last_edit = 0;
+                        time_last_edit =
+                            std::chrono::duration_cast<std::chrono::seconds>(entry.last_write_time().time_since_epoch())
+                                .count();
+                        temp_str                = urlname + filename;
+                        listobj[time_last_edit] = temp_str;
+                    }
+                }
+            }
+            else if (std::filesystem::is_directory(entry.status()))
+            {
+                std::string tempurlpath  = urlname + filename + "/";
+                std::string tempfilepath = file_path + filename + "/";
+                get_directory_all_file(listobj, tempfilepath, tempurlpath, extfile);
+            }
+        }
+    }
+}
+
 } // namespace http

@@ -58,5 +58,11 @@ std::string array_to_sql(const std::vector<std::string>, char b = ',', bool isqu
 
 std::string str_addslash(const std::string &content);
 std::string json_addslash(const std::string &content);
+
+void get_directory_all_file(std::map<unsigned long long, std::string> &listobj,
+                            const std::string &file_path,
+                            const std::string &url_path,
+                            const std::string &extfile);
+
 } // namespace http
 #endif

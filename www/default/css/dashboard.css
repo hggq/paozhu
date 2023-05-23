@@ -1,0 +1,256 @@
+body {
+  font-size: .875rem;
+}
+
+.feather {
+  width: 16px;
+  height: 16px;
+}
+
+/*
+ * Sidebar
+ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  /* rtl:raw:
+  right: 0;
+  */
+  bottom: 0;
+  /* rtl:remove */
+  left: 0;
+  z-index: 100;
+  /* Behind the navbar */
+  padding: 48px 0 0;
+  /* Height of navbar */
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+@media (max-width: 767.98px) {
+  .sidebar {
+    top: 5rem;
+  }
+}
+
+.sidebar-sticky {
+  height: calc(100vh - 48px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* Scrollable contents if viewport is shorter than content. */
+}
+
+.sidebar .nav-link {
+  font-weight: 500;
+  color: #333;
+}
+
+.sidebar .nav-link .feather {
+  margin-right: 4px;
+  color: #727272;
+}
+
+.sidebar .nav-link.active {
+  color: #2470dc;
+}
+
+.sidebar .nav-link:hover .feather,
+.sidebar .nav-link.active .feather {
+  color: inherit;
+}
+
+.sidebar-heading {
+  font-size: .75rem;
+}
+
+/*
+ * Navbar
+ */
+
+.navbar-brand {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  background-color: rgba(0, 0, 0, .25);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+}
+
+.navbar .navbar-toggler {
+  top: .25rem;
+  right: 1rem;
+}
+
+.navbar .form-control {
+  padding: .75rem 1rem;
+}
+
+.form-control-dark {
+  color: #fff;
+  background-color: rgba(255, 255, 255, .1);
+  border-color: rgba(255, 255, 255, .1);
+}
+
+.form-control-dark:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);
+}
+
+.bsa-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--bsa-sidebar-width);
+  z-index: 100;
+  transform: translateX(0);
+  background-color: var(--bs-body-bg);
+  border-right: var(--bs-border-width) solid var(--bs-border-color);
+  will-change: transform;
+  font-size: 1rem;
+}
+
+.bsa-sidebar .bsa-sidebar-header {
+  width: 100%;
+  height: var(--bsa-header-height);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 0 15px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-clip: padding-box;
+  border-bottom: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+.bsa-sidebar .bsa-sidebar-header .bsa-logo-wrapper {
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+}
+
+.bsa-sidebar .bsa-sidebar-header .bsa-logo-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  filter: drop-shadow(36px 0 0 var(--bs-body-color));
+  transform: translateX(-36px);
+}
+
+.bsa-sidebar .bsa-sidebar-header .bsa-logo-text {
+  margin-bottom: 0;
+  letter-spacing: 1px;
+  color: var(--bs-body-color);
+}
+
+.bsa-sidebar .bsa-sidebar-body {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  position: absolute;
+  inset: var(--bsa-header-height) 0 0 0;
+}
+
+.bsa-sidebar.open {
+  transform: translateX(0);
+}
+
+.bsa-menu {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  font-size: 1rem;
+}
+
+.bsa-menu li+li {
+  padding-top: 5px;
+}
+
+.bsa-menu li:first-child {
+  padding-top: 5px;
+}
+
+.bsa-menu li:last-child {
+  padding-bottom: 5px;
+}
+
+.bsa-menu li a {
+  position: relative;
+  padding-left: 16px;
+  padding-right: 24px;
+  color: var(--bs-body-color);
+  text-decoration: none;
+  height: 40px;
+  line-height: 40px;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.bsa-menu li a>i {
+  margin-right: 10px;
+}
+
+.bsa-menu li a+ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  overflow: hidden;
+  display: none;
+}
+
+.bsa-menu li a+ul a {
+  padding-left: calc(16px + 1rem + 10px);
+}
+
+.bsa-menu li a+ul a+ul a {
+  padding-left: calc(16px + 2rem + 10px);
+}
+
+.bsa-menu li a+ul a+ul a+ul a {
+  padding-left: calc(16px + 3rem + 10px);
+}
+
+.bsa-menu li a+ul a+ul a+ul a+ul a {
+  padding-left: calc(16px + 4rem + 10px);
+}
+
+.bsa-menu li a+ul a+ul a+ul a+ul a+ul a {
+  padding-left: calc(16px + 5rem + 10px);
+}
+
+.bsa-menu li a.active,
+.bsa-menu li a:active,
+.bsa-menu li a:focus,
+.bsa-menu li a:hover {
+  color: #0d6efd;
+  background-color: rgba(62, 139, 254, 0.12);
+}
+
+.bsa-menu li a.has-children::after {
+  font-family: bootstrap-icons, serif;
+  content: "\f284";
+  transition: transform 0.3s linear;
+  transform: scale(0.5) rotate(0deg);
+  position: absolute;
+  right: 24px;
+  font-size: 1.5rem;
+}
+
+.bsa-menu li a.has-children.open {
+  color: #0d6efd;
+  background-color: rgba(62, 139, 254, 0.12);
+}
+
+.bsa-menu li a.has-children.open::after {
+  transform: scale(0.5) rotate(-90deg);
+}
+
+.bsa-menu li a.has-children.open+ul {
+  display: block;
+}

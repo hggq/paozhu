@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+ 
+  <title>网站信息</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2">网站设置</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+        <form id="form" action="/admin/siteinfopost" method="post">
+          <div class="row mb-3">
+            <label for="sitename" class="col-sm-2 col-form-label text-sm-end">网站名称</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="sitename" name="sitename" value="<% echo << obj["info"]["sitename"].to_string(); %>">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="sitedomain" class="col-sm-2 col-form-label text-sm-end">网站域名</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="sitedomain" name="sitedomain" value="<% echo << obj["info"]["sitedomain"].to_string(); %>">
+            </div>
+          </div>
+
+
+          <div class="row mb-3">
+            <label for="metakeys" class="col-sm-2 col-form-label text-sm-end">META关键词</label>
+            <div class="col-sm-10">
+              <textarea class="form-control" name="metakeys" id="metakeys" rows="3" name="keywords"
+                placeholder="多个关键词用英文逗号分隔"><% echo << obj["info"]["metakeys"].to_string(); %></textarea>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="metadesc" class="col-sm-2 col-form-label text-sm-end">META描述</label>
+            <div class="col-sm-10">
+              <textarea class="form-control" name="metadesc" id="metadesc" rows="3"
+                name="descript"><% echo << obj["info"]["metadesc"].to_string(); %></textarea>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <label for="copyright" class="col-sm-2 col-form-label text-sm-end">版权信息</label>
+            <div class="col-sm-10">
+              <textarea class="form-control" name="copyright" id="copyright" rows="3"
+                name="copyright"><% echo << obj["info"]["copyright"].to_string(); %></textarea>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-sm-10 offset-sm-2">
+              <button type="submit" class="btn btn-primary">确认</button>
+              <input type="hidden" id="sid" name="sid" value="<% echo<<obj["info"]["sid"].to_string(); %>" />
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.js"></script>
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

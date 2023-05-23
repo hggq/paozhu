@@ -13,7 +13,11 @@
 #include "teststrip_html.h"
 #include "testrand.h"
 #include "testormcache.h"
+#include "admin/articles.h"
+#include "admin/topics.h"
+#include "admin/main.h"
 #include "testformpost.h"
+#include "imageapi.h"
 #include "testpzcache.h"
 #include "testcmake.h"
 #include "testjsonreflect.h"
@@ -57,6 +61,69 @@ namespace http
 		temp.regfun = testormcachec;
 		methodcallback.emplace("testormcachec",temp);
 		temp.pre = nullptr;
+		temp.regfun = admin_addarticle;
+		methodcallback.emplace("admin/addarticle",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_addarticlepost;
+		methodcallback.emplace("admin/addarticlepost",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_editarticle;
+		methodcallback.emplace("admin/editarticle",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_editarticlepost;
+		methodcallback.emplace("admin/editarticlepost",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_deletearticle;
+		methodcallback.emplace("admin/deletearticle",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_gettoparticle;
+		methodcallback.emplace("admin/gettoparticle",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_listarticle;
+		methodcallback.emplace("admin/listarticle",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_addtopic;
+		methodcallback.emplace("admin/addtopic",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_edittopic;
+		methodcallback.emplace("admin/edittopic",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_martopic;
+		methodcallback.emplace("admin/martopic",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_addtopicpost;
+		methodcallback.emplace("admin/addtopicpost",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_deletetopic;
+		methodcallback.emplace("admin/deletetopic",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_edittopicpost;
+		methodcallback.emplace("admin/edittopicpost",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_main;
+		methodcallback.emplace("admin/main",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_logout;
+		methodcallback.emplace("admin/logout",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_welcome;
+		methodcallback.emplace("admin/welcome",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_siteinfo;
+		methodcallback.emplace("admin/siteinfo",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_siteinfopost;
+		methodcallback.emplace("admin/siteinfopost",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_userinfo;
+		methodcallback.emplace("admin/userinfo",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_editpassword;
+		methodcallback.emplace("admin/editpassword",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_editpwdpost;
+		methodcallback.emplace("admin/editpwdpost",temp);
+		temp.pre = nullptr;
 		temp.regfun = testurlencoded;
 		methodcallback.emplace("tformpost",temp);
 		temp.pre = nullptr;
@@ -71,6 +138,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testuploadpostfile;
 		methodcallback.emplace("addpostfile",temp);
+		temp.pre = nullptr;
+		temp.regfun = imageapi_gateway;
+		methodcallback.emplace("imageapi/gateway",temp);
+		temp.pre = nullptr;
+		temp.regfun = imageapi_upload;
+		methodcallback.emplace("imageapi/upload",temp);
 		temp.pre = nullptr;
 		temp.regfun = testpzcache;
 		methodcallback.emplace("testcache",temp);

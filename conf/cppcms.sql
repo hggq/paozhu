@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2023-04-26 15:07:27
+-- 生成日期： 2023-05-23 16:50:35
 -- 服务器版本： 8.0.28
 -- PHP 版本： 8.2.4
 
@@ -29,9 +29,11 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `article` (
   `aid` int UNSIGNED NOT NULL,
-  `classtype` int NOT NULL,
-  `userid` int NOT NULL,
-  `topicname` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `topicid` int UNSIGNED NOT NULL COMMENT '栏目id',
+  `classtype` int UNSIGNED NOT NULL,
+  `userid` int UNSIGNED NOT NULL,
+  `sortid` int NOT NULL COMMENT '排序',
+  `topicname` varchar(140) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `title` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `keywords` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '关键字',
   `fromsource` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章来源',
@@ -43,21 +45,39 @@ CREATE TABLE `article` (
   `review` int NOT NULL,
   `icoimg` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '列表图片',
   `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `mdcontent` longtext COLLATE utf8mb4_general_ci NOT NULL COMMENT 'markdown content',
   `isopen` tinyint NOT NULL COMMENT '是否开放',
   `iscomment` tinyint NOT NULL COMMENT '是否可以评论',
   `fromlocal` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发表地址',
   `texturl` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'url用英文代替',
   `summary` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章摘要',
-  `editauthor` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章编辑'
+  `editauthor` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章编辑',
+  `relatecontent` varchar(256) COLLATE utf8mb4_general_ci NOT NULL COMMENT '相关内容'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- 转存表中的数据 `article`
 --
 
-INSERT INTO `article` (`aid`, `classtype`, `userid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`) VALUES
-(4, 0, 0, NULL, '1111', '', '', '', '', '', 0, 0, 0, '', '2222', 1, 0, '', '', '', ''),
-(5, 0, 0, NULL, '理解8888完这', '', '', '', '127.0.0.1', '2023-01-09 22:18:17', 1673273897, 0, 0, '', 'sadfafa点点滴滴ggg9999', 1, 0, '', '', '', '');
+INSERT INTO `article` (`aid`, `topicid`, `classtype`, `userid`, `sortid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `mdcontent`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`, `relatecontent`) VALUES
+(54, 33, 0, 0, 0, '', '标题标题标题标题标题rrww', '关键词关键词关键词关键词', '来源来源来源来源来源来源', '作者作者作者作者作者rrrrr', '', '', 0, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内容</p><p>文章内容v文章内容</p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ''),
+(55, 35, 0, 0, 0, '', '标题标题标题标题标题66666', '关键词关键词关键词关键词', '来源来源来源来源来源来源11', '作者作者作者作者作者22', '127.0.0.1', '2023-05-16 22:33:18', 1684247598, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内容文章内容</p><p style=\"line-height: 16px;\"><br/></p><p><br/></p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ',55');
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `catalogue`
+--
+
+CREATE TABLE `catalogue` (
+  `cid` int UNSIGNED NOT NULL,
+  `userid` int UNSIGNED NOT NULL,
+  `parentid` int UNSIGNED NOT NULL,
+  `name` varchar(64) COLLATE utf8mb4_general_ci NOT NULL COMMENT '分类名称',
+  `isview` tinyint NOT NULL COMMENT '是否显示',
+  `sortid` int NOT NULL COMMENT '排序',
+  `imgurl` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -93,6 +113,73 @@ INSERT INTO `department` (`dpid`, `userid`, `parentid`, `name`, `depart_code`, `
 (52, 0, 0, 'ccdd', '', 20, 0, 0, 1, 'cc desc', 0, 0, 0, ''),
 (53, 0, 52, 'ccddee', '', 10, 0, 0, 1, 'ccdd desc', 0, 0, 0, ''),
 (54, 0, 51, 'bbcc1122', '', 30, 0, 0, 1, 'bbcc11 desc', 0, 0, 0, '');
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `product`
+--
+
+CREATE TABLE `product` (
+  `pid` int UNSIGNED NOT NULL,
+  `userid` int UNSIGNED NOT NULL,
+  `topicid` int UNSIGNED NOT NULL COMMENT '栏目id',
+  `bigid` int UNSIGNED NOT NULL COMMENT '大类',
+  `smallid` int UNSIGNED NOT NULL COMMENT '小类',
+  `isview` tinyint NOT NULL COMMENT '是否显示',
+  `isstore` tinyint NOT NULL COMMENT '精品',
+  `sntype` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '型号',
+  `name` varchar(253) COLLATE utf8mb4_general_ci NOT NULL COMMENT '产品名称',
+  `introduce` text COLLATE utf8mb4_general_ci NOT NULL COMMENT '介绍',
+  `listimg` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '列表图片',
+  `bigimg` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '主图',
+  `maincontent` longtext COLLATE utf8mb4_general_ci NOT NULL COMMENT '产品主内容',
+  `paracontent` longtext COLLATE utf8mb4_general_ci NOT NULL COMMENT '参数',
+  `samepro` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '类似',
+  `price` int UNSIGNED NOT NULL COMMENT '价格'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='产品内容';
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `productparam`
+--
+
+CREATE TABLE `productparam` (
+  `ppid` int UNSIGNED NOT NULL,
+  `userid` int UNSIGNED NOT NULL,
+  `pid` int UNSIGNED NOT NULL COMMENT '产品id',
+  `imgurl` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片',
+  `price` decimal(10,2) NOT NULL COMMENT '价格',
+  `attachfiles` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '附件',
+  `name` varchar(128) COLLATE utf8mb4_general_ci NOT NULL COMMENT '内容',
+  `attachdate` varchar(20) COLLATE utf8mb4_general_ci NOT NULL COMMENT '时间',
+  `sortid` int NOT NULL COMMENT '排序',
+  `filesize` int UNSIGNED NOT NULL COMMENT '文件大小'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='产品参数';
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `siteinfo`
+--
+
+CREATE TABLE `siteinfo` (
+  `sid` int NOT NULL,
+  `userid` int NOT NULL,
+  `sitename` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
+  `sitedomain` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
+  `metakeys` text COLLATE utf8mb4_general_ci NOT NULL,
+  `metadesc` text COLLATE utf8mb4_general_ci NOT NULL,
+  `copyright` text COLLATE utf8mb4_general_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- 转存表中的数据 `siteinfo`
+--
+
+INSERT INTO `siteinfo` (`sid`, `userid`, `sitename`, `sitedomain`, `metakeys`, `metadesc`, `copyright`) VALUES
+(1, 0, '网站名称', '网站域名', '关键词关键词关键词', '描述描述描述', '版权信息版权信息版权信息');
 
 -- --------------------------------------------------------
 
@@ -136,6 +223,40 @@ INSERT INTO `testb` (`tid`, `name`) VALUES
 -- --------------------------------------------------------
 
 --
+-- 表的结构 `topic`
+--
+
+CREATE TABLE `topic` (
+  `topicid` int UNSIGNED NOT NULL,
+  `userid` int UNSIGNED NOT NULL,
+  `parentid` int UNSIGNED NOT NULL,
+  `cateid` int UNSIGNED NOT NULL COMMENT '类型',
+  `isview` tinyint UNSIGNED NOT NULL COMMENT '是否显示',
+  `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '标题',
+  `twotitle` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '第二标题',
+  `memo` varchar(254) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '备注',
+  `templatename` varchar(254) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '模板名称',
+  `url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '网址',
+  `urlpath` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '路径',
+  `imgurl` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片地址',
+  `topimg` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '头图',
+  `accesscode` int UNSIGNED NOT NULL COMMENT '权限代码'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='栏目表';
+
+--
+-- 转存表中的数据 `topic`
+--
+
+INSERT INTO `topic` (`topicid`, `userid`, `parentid`, `cateid`, `isview`, `title`, `twotitle`, `memo`, `templatename`, `url`, `urlpath`, `imgurl`, `topimg`, `accesscode`) VALUES
+(31, 0, 0, 0, 1, '刚刚刚刚刚', '', '啊啊啊', '', '', '啊啊啊', '', '', 0),
+(32, 0, 31, 0, 1, 'hhhhhh', '', 'qqqq', '', '', 'eeeee', '', '', 0),
+(33, 0, 0, 0, 1, 'yyyyy', '', 'qqqqqq', '', '', 'wwww', '', '', 0),
+(34, 0, 31, 0, 1, 'tttttt', '', 'yyyyy', '', '', 'qqqq', '', '', 0),
+(35, 0, 32, 0, 1, '钱钱ddddd钱钱钱', '', '让肉肉肉肉', '', '', '钱钱钱', '', '', 0);
+
+-- --------------------------------------------------------
+
+--
 -- 表的结构 `user`
 --
 
@@ -165,10 +286,34 @@ ALTER TABLE `article`
   ADD PRIMARY KEY (`aid`);
 
 --
+-- 表的索引 `catalogue`
+--
+ALTER TABLE `catalogue`
+  ADD PRIMARY KEY (`cid`);
+
+--
 -- 表的索引 `department`
 --
 ALTER TABLE `department`
   ADD PRIMARY KEY (`dpid`);
+
+--
+-- 表的索引 `product`
+--
+ALTER TABLE `product`
+  ADD PRIMARY KEY (`pid`);
+
+--
+-- 表的索引 `productparam`
+--
+ALTER TABLE `productparam`
+  ADD PRIMARY KEY (`ppid`);
+
+--
+-- 表的索引 `siteinfo`
+--
+ALTER TABLE `siteinfo`
+  ADD PRIMARY KEY (`sid`);
 
 --
 -- 表的索引 `testa`
@@ -181,6 +326,12 @@ ALTER TABLE `testa`
 --
 ALTER TABLE `testb`
   ADD PRIMARY KEY (`tid`);
+
+--
+-- 表的索引 `topic`
+--
+ALTER TABLE `topic`
+  ADD PRIMARY KEY (`topicid`);
 
 --
 -- 表的索引 `user`
@@ -196,13 +347,37 @@ ALTER TABLE `user`
 -- 使用表AUTO_INCREMENT `article`
 --
 ALTER TABLE `article`
-  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
+
+--
+-- 使用表AUTO_INCREMENT `catalogue`
+--
+ALTER TABLE `catalogue`
+  MODIFY `cid` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `department`
 --
 ALTER TABLE `department`
   MODIFY `dpid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+
+--
+-- 使用表AUTO_INCREMENT `product`
+--
+ALTER TABLE `product`
+  MODIFY `pid` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `productparam`
+--
+ALTER TABLE `productparam`
+  MODIFY `ppid` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `siteinfo`
+--
+ALTER TABLE `siteinfo`
+  MODIFY `sid` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- 使用表AUTO_INCREMENT `testa`
@@ -215,6 +390,12 @@ ALTER TABLE `testa`
 --
 ALTER TABLE `testb`
   MODIFY `tid` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- 使用表AUTO_INCREMENT `topic`
+--
+ALTER TABLE `topic`
+  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- 使用表AUTO_INCREMENT `user`

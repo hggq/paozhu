@@ -14,6 +14,21 @@
 namespace http { 
 namespace view { 
 
+namespace admin{ 
+
+	std::string addarticle(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string addtopic(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string editarticle(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string editpassword(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string edittopic(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string listarticle(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string main(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string martopic(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string siteinfo(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string userinfo(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string welcome(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+}
+
 namespace cms{ 
 
 	std::string add(const struct view_param &vinfo,http::OBJ_VALUE &obj);

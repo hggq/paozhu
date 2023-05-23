@@ -388,9 +388,13 @@ void http2parse::path_process(const std::string &header_name, const std::string 
     data_info[block_steamid].buffer_key.clear();
     if (headerstep == 6)
     {
-        if (header_value[ioffset] == 0x3F)
+        for (; ioffset < linesize; ioffset++)
         {
-            ioffset++;
+            if (header_value[ioffset] == 0x3F)
+            {
+                continue;
+            }
+            break;
         }
         headerstep = 0;
         data_info[block_steamid].buffer_key.append(&header_value[ioffset], (linesize - ioffset));
@@ -404,6 +408,18 @@ void http2parse::path_process(const std::string &header_name, const std::string 
         {
             if (header_value[ioffset] == 0x3D)
             {
+                for (; ioffset < linesize; ioffset++)
+                {
+                    if (header_value[ioffset] == 0x3D)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        ioffset -= 1;
+                        break;
+                    }
+                }
                 data_info[block_steamid].buffer_key = http::url_decode(data_info[block_steamid].buffer_value.data(),
                                                                        data_info[block_steamid].buffer_value.length());
                 data_info[block_steamid].buffer_value.clear();
@@ -412,6 +428,19 @@ void http2parse::path_process(const std::string &header_name, const std::string 
             }
             else if (header_value[ioffset] == 0x26)
             {
+                for (; ioffset < linesize; ioffset++)
+                {
+                    if (header_value[ioffset] == 0x26)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        ioffset -= 1;
+                        break;
+                    }
+                }
+
                 data_info[block_steamid].buffer_value =
                     http::url_decode(data_info[block_steamid].buffer_value.data(),
                                      data_info[block_steamid].buffer_value.length());

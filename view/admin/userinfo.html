@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>账号信息</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2">账号信息</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+   
+          <div class="row mb-3">
+            <label for="sitename" class="col-sm-2 col-form-label text-sm-end">账户名称</label>
+            <div class="col-sm-10">
+               <% echo << obj["info"]["name"].to_string(); %>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="domain" class="col-sm-2 col-form-label text-sm-end">等级</label>
+            <div class="col-sm-10">
+               <% echo << obj["info"]["level"].to_string(); %>
+            </div>
+          </div>
+
+      </div>
+    </div>
+    
+    <h5 class="card-title mt-2">登录记录</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+   
+           <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">日期</th>
+                  <th scope="col">地区</th>
+                  <th scope="col">IP</th>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <th scope="row">1</th>
+                  <td>2023-05-23</td>
+                  <td>cn</td>
+                  <td>127.0.0.1</td>
+                </tr>
+
+              </tbody>
+            </table>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.js"></script>
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

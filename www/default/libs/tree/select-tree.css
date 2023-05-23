@@ -1,0 +1,142 @@
+.select-tree-container{
+    position: relative;
+    display: inline-block;
+    outline: none;
+    width: 100%;
+}
+
+.select-tree-container .select-panel {
+    border:1px solid #e5e6e7;
+    line-height: 1.42857143;
+    padding: 6px 24px 6px 12px;
+    user-select: none;
+    overflow: hidden;
+}
+.select-tree-container:focus .select-panel {
+    border:1px solid #1ab394;
+}
+.select-tree-container.open .select-panel {
+    border:1px solid #1ab394;
+}
+
+
+.select-tree-container .select-tree-arrow {
+    width: 4px;
+    position: absolute;
+    right: 12px;
+    top:17px;
+}
+.select-tree-container .select-tree-arrow:after{
+    content: '';
+    border-color: #999 transparent transparent;
+    border-style: solid;
+    border-width: 4px 4px 0;
+    height: 0;
+    left: 0;
+    margin-left: -4px;
+    margin-top: -2px;
+    position: absolute;
+    top: 50%;
+    width: 0;
+}
+.select-tree-container.open .select-tree-arrow:after{
+    border-color: transparent transparent #999;
+    border-width: 0 4px 4px;
+}
+.select-tree-container .tree-panel {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    right: 0;
+    border: 1px solid #1ab394;
+    border-top: none;
+    z-index: 9999;
+    background: #FFFFFF;
+    display: none;
+    padding: 5px 0;
+}
+.select-tree-container.open .tree-panel{
+    display: block;
+}
+.select-tree-container .tree-panel ul{
+    list-style: none;
+    margin: 0;
+    padding: 0 ;
+}
+.select-tree-container .tree-panel ul li .tree-option{
+    padding-left:10px ;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+.select-tree-container .tree-panel ul li .tree-option:hover {
+    background: #f3f3f3;
+}
+
+.select-tree-container .tree-panel ul li .tree-option.disabled:hover {
+    background: #ffffff;
+}
+.select-tree-container .tree-panel ul li .tree-option.disabled{
+    color: #9d9d9d;
+    cursor: not-allowed;
+}
+
+.select-tree-container .tree-panel ul li .tree-option.selected {
+    position: relative;
+    background: #d8fff7;
+}
+.select-tree-container .tree-panel ul li .tree-option.selected::after {
+    content: '┛';
+    position: absolute;
+    right: 20px;
+    top: 8px;
+    color: #1ab394;
+    transform: rotate(45deg);
+}
+.select-tree-container .tree-panel .tree-option .tree-option-arrow{
+    padding: 0 10px;
+    position: relative;
+}
+.select-tree-container .tree-panel .tree-option .tree-option-arrow:before{
+    content: '';
+}
+.select-tree-container .tree-panel .tree-option .tree-option-value{
+    user-select: none;
+}
+.select-tree-container .tree-panel .tree-option .tree-option-arrow b{
+    content: '';
+    border-color:  transparent transparent transparent  #999 ;
+    border-style: solid;
+    border-width:  5px;
+    height: 0;
+    left: 0;
+    margin-left: 10px;
+    margin-top: -5px;
+    position: absolute;
+    top: 50%;
+    width: 0;
+}
+
+.select-tree-container .tree-panel .tree-option .tree-option-arrow.open b{
+    border-color: #999 transparent transparent transparent  ;
+    margin-left: 5px;
+    margin-top: -2px;
+}
+.select-panel .select-value .select-item{
+    background-color: #1ab394;
+    font-size: 13px;
+    padding: 2px 6px;
+    margin-right: 2px;
+    color: #ffffff;
+    border-radius: 2px;
+    white-space: nowrap;
+    display: inline-block;
+}
+.select-panel .select-value .select-item i{
+    margin-left: 2px;
+    font-style: normal !important;
+    color: #ddd;
+
+}
+.select-panel .select-value .select-item i:hover{
+    color: #ffffff;
+}

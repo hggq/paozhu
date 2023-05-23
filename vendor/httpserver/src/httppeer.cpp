@@ -774,7 +774,7 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
     set_http2_headers_size(http2header, (unsigned int)http2header.size() - 9);
     return http2header;
 }
-void httppeer::goto_url(std::string url, unsigned char second, std::string msg)
+void httppeer::goto_url(const std::string &url, unsigned char second, const std::string &msg)
 {
     output.append("<html><head><meta http-equiv=\"refresh\" content=\"");
     output.append(std::to_string(second));
@@ -1178,7 +1178,7 @@ void httppeer::out_json(OBJ_VALUE &a)
 void httppeer::out_json()
 {
     content_type = "application/json";
-    if (val.is_array())
+    if (output.size() < 1)
     {
         output = val.to_json();
     }

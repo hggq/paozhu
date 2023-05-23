@@ -5,3 +5,5 @@
 #include "cms/include/Testa.h"
 #include "cms/include/Testb.h"
 #include "cms/include/Department.h"
+#include "cms/include/Topic.h"
+#include "cms/include/Siteinfo.h"
