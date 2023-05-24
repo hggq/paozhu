@@ -62,14 +62,12 @@ bool upload_images::upload_img(const std::string &fieldname)
         bool is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else
@@ -86,14 +84,13 @@ bool upload_images::upload_img(const std::string &fieldname)
         is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
 
-                is_success = true;
             }
         }
         else
@@ -110,14 +107,13 @@ bool upload_images::upload_img(const std::string &fieldname)
         is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
 
-                is_success = true;
             }
         }
         else
@@ -230,14 +226,12 @@ bool upload_images::upload_video(const std::string &fieldname)
         bool is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else
@@ -254,14 +248,12 @@ bool upload_images::upload_video(const std::string &fieldname)
         is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else
@@ -278,14 +270,13 @@ bool upload_images::upload_video(const std::string &fieldname)
         is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
 
-                is_success = true;
             }
         }
         else
@@ -374,14 +365,12 @@ bool upload_images::upload_base64(const std::string &fieldname)
         bool is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else
@@ -398,14 +387,12 @@ bool upload_images::upload_base64(const std::string &fieldname)
         is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else
@@ -422,14 +409,12 @@ bool upload_images::upload_base64(const std::string &fieldname)
         is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else
@@ -489,14 +474,12 @@ bool upload_images::upload_upfile(const std::string &fieldname)
         bool is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else
@@ -513,14 +496,12 @@ bool upload_images::upload_upfile(const std::string &fieldname)
         is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else
@@ -537,14 +518,12 @@ bool upload_images::upload_upfile(const std::string &fieldname)
         is_success = false;
         if (!fs::exists(paths))
         {
-            bool is_success = fs::create_directories(paths);
+            is_success = fs::create_directories(paths);
             if (is_success)
             {
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
-                is_success = true;
             }
         }
         else

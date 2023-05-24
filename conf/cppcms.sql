@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2023-05-23 16:50:35
+-- 生成日期： 2023-05-24 11:26:29
 -- 服务器版本： 8.0.28
 -- PHP 版本： 8.2.4
 
@@ -61,7 +61,8 @@ CREATE TABLE `article` (
 
 INSERT INTO `article` (`aid`, `topicid`, `classtype`, `userid`, `sortid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `mdcontent`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`, `relatecontent`) VALUES
 (54, 33, 0, 0, 0, '', '标题标题标题标题标题rrww', '关键词关键词关键词关键词', '来源来源来源来源来源来源', '作者作者作者作者作者rrrrr', '', '', 0, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内容</p><p>文章内容v文章内容</p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ''),
-(55, 35, 0, 0, 0, '', '标题标题标题标题标题66666', '关键词关键词关键词关键词', '来源来源来源来源来源来源11', '作者作者作者作者作者22', '127.0.0.1', '2023-05-16 22:33:18', 1684247598, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内容文章内容</p><p style=\"line-height: 16px;\"><br/></p><p><br/></p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ',55');
+(55, 35, 0, 0, 0, '', '标题标题标题标题标题66666', '关键词关键词关键词关键词', '来源来源来源来源来源来源11', '作者作者作者作者作者22', '127.0.0.1', '2023-05-16 22:33:18', 1684247598, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内<font color=\"#cc0000\">容文章内容</font></p><p style=\"line-height: 16px;\"><br></p><p><br></p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ',55'),
+(58, 0, 0, 0, 0, '', '', '', '', '', '127.0.0.1', '2023-05-24 09:11:02', 1684890662, 0, 0, '', '<p><video class=\"edui-upload-video  vjs-default-skin video-js video-js\" controls=\"\" preload=\"none\" width=\"420\" height=\"280\" src=\"/upload/video/202305/20230524090920812148.mp4\"><source src=\"/upload/video/202305/20230524090920812148.mp4\" type=\"video/mp4\"/></video></p><p style=\"line-height: 16px;\"><img style=\"vertical-align: middle; margin-right: 2px;\" src=\"/ueditor/dialogs/attachment/fileTypeImages/icon_mp4.gif\"/><a style=\"font-size:12px; color:#0066cc;\" href=\"/upload/file/202305/20230524091015373_4821_16843028.mp4\" title=\"4821_1684302838.mp4\">4821_1684302838.mp4</a></p><p><video class=\"edui-upload-video  vjs-default-skin video-js video-js\" controls=\"\" preload=\"none\" width=\"420\" height=\"280\" src=\"/upload/video/202305/20230524090920812148.mp4\"><source src=\"/upload/video/202305/20230524090920812148.mp4\" type=\"video/mp4\"/></video></p><p style=\"line-height: 16px;\"><img style=\"vertical-align: middle; margin-right: 2px;\" src=\"/ueditor/dialogs/attachment/fileTypeImages/icon_mp4.gif\"/><a style=\"font-size:12px; color:#0066cc;\" href=\"/upload/file/202305/20230524091015373_4821_16843028.mp4\" title=\"20230524091015373_4821_16843028.mp4\">20230524091015373_4821_16843028.mp4</a></p><p><video class=\"edui-upload-video  vjs-default-skin video-js video-js\" controls=\"\" preload=\"none\" width=\"420\" height=\"280\" src=\"/upload/video/202305/20230524090920812148.mp4\"><source src=\"/upload/video/202305/20230524090920812148.mp4\" type=\"video/mp4\"/></video></p><p style=\"line-height: 16px;\"><img style=\"vertical-align: middle; margin-right: 2px;\" src=\"/ueditor/dialogs/attachment/fileTypeImages/icon_pdf.gif\"/><a style=\"font-size:12px; color:#0066cc;\" href=\"/upload/file/202305/20230523151338432_基本概念.pdf\" title=\"20230523151338432_基本概念.pdf\">20230523151338432_基本概念.pdf</a></p><p><br/></p>', '', 1, 0, '', '', '', '', '');
 
 -- --------------------------------------------------------
 
@@ -87,8 +88,8 @@ CREATE TABLE `catalogue` (
 
 CREATE TABLE `department` (
   `dpid` int UNSIGNED NOT NULL,
-  `userid` int NOT NULL COMMENT '用户id',
-  `parentid` int NOT NULL COMMENT '父id',
+  `userid` int UNSIGNED NOT NULL COMMENT '用户id',
+  `parentid` int UNSIGNED NOT NULL COMMENT '父id',
   `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '部门名称',
   `depart_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '部门代号',
   `bianzhi_num` int NOT NULL COMMENT '编制人数',
@@ -179,7 +180,7 @@ CREATE TABLE `siteinfo` (
 --
 
 INSERT INTO `siteinfo` (`sid`, `userid`, `sitename`, `sitedomain`, `metakeys`, `metadesc`, `copyright`) VALUES
-(1, 0, '网站名称', '网站域名', '关键词关键词关键词', '描述描述描述', '版权信息版权信息版权信息');
+(1, 0, '网站名称', '网站域名', '关键词关键词关键词', '描述描述描述qqqqq', '版权信息版权信息版权信息');
 
 -- --------------------------------------------------------
 
@@ -250,7 +251,6 @@ CREATE TABLE `topic` (
 INSERT INTO `topic` (`topicid`, `userid`, `parentid`, `cateid`, `isview`, `title`, `twotitle`, `memo`, `templatename`, `url`, `urlpath`, `imgurl`, `topimg`, `accesscode`) VALUES
 (31, 0, 0, 0, 1, '刚刚刚刚刚', '', '啊啊啊', '', '', '啊啊啊', '', '', 0),
 (32, 0, 31, 0, 1, 'hhhhhh', '', 'qqqq', '', '', 'eeeee', '', '', 0),
-(33, 0, 0, 0, 1, 'yyyyy', '', 'qqqqqq', '', '', 'wwww', '', '', 0),
 (34, 0, 31, 0, 1, 'tttttt', '', 'yyyyy', '', '', 'qqqq', '', '', 0),
 (35, 0, 32, 0, 1, '钱钱ddddd钱钱钱', '', '让肉肉肉肉', '', '', '钱钱钱', '', '', 0);
 
@@ -347,7 +347,7 @@ ALTER TABLE `user`
 -- 使用表AUTO_INCREMENT `article`
 --
 ALTER TABLE `article`
-  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
+  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
 
 --
 -- 使用表AUTO_INCREMENT `catalogue`
@@ -395,7 +395,7 @@ ALTER TABLE `testb`
 -- 使用表AUTO_INCREMENT `topic`
 --
 ALTER TABLE `topic`
-  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
 
 --
 -- 使用表AUTO_INCREMENT `user`

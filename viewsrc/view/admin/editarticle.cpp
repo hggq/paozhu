@@ -37,7 +37,7 @@ echo << obj["info"]["author"].to_string();
 echo << obj["info"]["fromsource"].to_string(); 
  			 echo<<"\">\n            </div>\n          </div>\n          <div class=\"row mb-3\">\n            <label for=\"icoimg\" class=\"col-sm-2 col-form-label text-sm-end\">文章头图</label>\n            <div class=\"col-sm-6\">\n              <div class=\"input-group mb-3\">\n              <input type=\"text\" class=\"form-control\" id=\"icoimg\" name=\"icoimg\" value=\"";
 echo << obj["info"]["icoimg"].to_string(); 
- 			 echo<<"\" placeholder=\"列表使用或头图使用\">\n              <input class=\"form-control\" type=\"file\" style=\"width:100px\" id=\"relate-icoimg\" accept=\".png,.jpg,.jpeg\">\n              </div>\n            </div>\n            <div class=\"col-sm-4\">\n              <div class=\"progress\" id=\"progress-bar-show\" style=\"display:none\" role=\"progressbar\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\">\n                  <div class=\"progress-bar\" id=\"progress-bar\" style=\"width: 0%\">0</div>\n                </div>\n              <div id=\"progress-bar-result\">";
+ 			 echo<<"\" placeholder=\"列表使用封面图或头图使用\">\n              <input class=\"form-control\" type=\"file\" style=\"width:100px\" id=\"relate-icoimg\" accept=\".png,.jpg,.jpeg\">\n              </div>\n            </div>\n            <div class=\"col-sm-4\">\n              <div class=\"progress\" id=\"progress-bar-show\" style=\"display:none\" role=\"progressbar\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\">\n                  <div class=\"progress-bar\" id=\"progress-bar\" style=\"width: 0%\">0</div>\n                </div>\n              <div id=\"progress-bar-result\">";
 
               std::string temp=obj["info"]["icoimg"].as_string();
               

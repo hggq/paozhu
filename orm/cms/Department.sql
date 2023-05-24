@@ -1,7 +1,7 @@
 CREATE TABLE `department` (
   `dpid` int unsigned NOT NULL AUTO_INCREMENT,
-  `userid` int NOT NULL COMMENT '用户id',
-  `parentid` int NOT NULL COMMENT '父id',
+  `userid` int unsigned NOT NULL COMMENT '用户id',
+  `parentid` int unsigned NOT NULL COMMENT '父id',
   `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '部门名称',
   `depart_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '部门代号',
   `bianzhi_num` int NOT NULL COMMENT '编制人数',

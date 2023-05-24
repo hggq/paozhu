@@ -20,7 +20,7 @@ std::string admin_addarticle(std::shared_ptr<httppeer> peer)
         topicm.where("userid", 0).asc("parentid").fetch();
 
         unsigned int topicid  = client.get["topicid"].to_int();
-        unsigned int page     = client.get["page"].to_int();
+        //unsigned int page     = client.get["page"].to_int();
         client.val["topicid"] = topicid;
 
         client.val["list"].set_array();

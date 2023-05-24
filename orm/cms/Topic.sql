@@ -14,4 +14,4 @@ CREATE TABLE `topic` (
   `topimg` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '头图',
   `accesscode` int unsigned NOT NULL COMMENT '权限代码',
   PRIMARY KEY (`topicid`)
-) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='栏目表'
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='栏目表'

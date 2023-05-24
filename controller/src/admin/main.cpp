@@ -12,7 +12,7 @@ std::string admin_main(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
 
-    peer->view("admin/main");
+    client.view("admin/main");
     return "";
 }
 
@@ -163,7 +163,7 @@ std::string admin_editpassword(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
 
-    peer->view("admin/editpassword");
+    client.view("admin/editpassword");
     return "";
 }
 
@@ -172,7 +172,7 @@ std::string admin_editpwdpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
     std::string msg;
-    unsigned int status = 0;
+    
     try
     {
         auto stinfo = orm::cms::User();

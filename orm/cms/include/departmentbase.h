@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 26 Apr 2023 15:08:36 GMT
+*本文件为自动生成 Wed, 24 May 2023 11:27:12 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -25,8 +25,8 @@ struct departmentbase
 {
     struct meta{
     unsigned  int dpid= 0; //
- int userid= 0; //用户id
- int parentid= 0; //父id
+unsigned  int userid= 0; //用户id
+unsigned  int parentid= 0; //父id
  std::string name=""; //部门名称
  std::string depart_code=""; //部门代号
  int bianzhi_num= 0; //编制人数
@@ -141,14 +141,14 @@ break;
 			break;
 	case 1:
 		 try{
-			metatemp.userid=std::stoi(_row[i]);
+			metatemp.userid=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.userid=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.parentid=std::stoi(_row[i]);
+			metatemp.parentid=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.parentid=0;
 			 }
@@ -259,14 +259,14 @@ break;
 			break;
 	case 1:
 		 try{
-			metatemp.userid=std::stoi(_row[i]);
+			metatemp.userid=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.userid=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.parentid=std::stoi(_row[i]);
+			metatemp.parentid=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.parentid=0;
 			 }
@@ -1547,14 +1547,14 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
 			break;
 		case 1:
 		 try{
-			data.userid=std::stoi(set_value_name);
+			data.userid=std::stoul(set_value_name);
 		}catch (...) { 
 			data.userid=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.parentid=std::stoi(set_value_name);
+			data.parentid=std::stoul(set_value_name);
 		}catch (...) { 
 			data.parentid=0;
 			 }
@@ -1767,14 +1767,14 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
 			break;
 		case 1:
 		 try{
-			data.userid=(int)set_value_name;
+			data.userid=(unsigned int)set_value_name;
 		}catch (...) { 
 			data.userid=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.parentid=(int)set_value_name;
+			data.parentid=(unsigned int)set_value_name;
 		}catch (...) { 
 			data.parentid=0;
 			 }
@@ -2165,11 +2165,11 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(record[n].linkdpid)<<"\"";
 unsigned  int  getDpid(){  return data.dpid; } 
  void setDpid(unsigned  int  val){  data.dpid=val;} 
 
- int  getUserid(){  return data.userid; } 
- void setUserid( int  val){  data.userid=val;} 
+unsigned  int  getUserid(){  return data.userid; } 
+ void setUserid(unsigned  int  val){  data.userid=val;} 
 
- int  getParentid(){  return data.parentid; } 
- void setParentid( int  val){  data.parentid=val;} 
+unsigned  int  getParentid(){  return data.parentid; } 
+ void setParentid(unsigned  int  val){  data.parentid=val;} 
 
 std::string getName(){  return data.name; } 
 std::string& getRefName(){  return std::ref(data.name); } 
