@@ -41,7 +41,7 @@ echo<<obj["info"]["urlpath"].to_string();
 echo<<obj["info"]["memo"].to_string(); 
  			 echo<<"\">\n      </div>\n\n      <div class=\"col-12\">\n        <button type=\"submit\" class=\"btn btn-primary\">编辑</button>\n        <input type=\"hidden\" id=\"topicid\" name=\"topicid\" value=\"";
 echo<<obj["info"]["topicid"].to_string(); 
- 			 echo<<"\" />\n        <a href=\"/admin/martopic\" class=\"btn btn-link rounded-pill px-3\">返回</a>\n      </div>\n    </form>\n\n  </div>\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n  <script src=\"/js/axios.min.js\"></script>\n  <script lang=\"javascript\">\n    var topicid=";
+ 			 echo<<"\" />\n        <a href=\"/admin/martopic\" class=\"btn btn-link rounded-pill px-3\">返回</a>\n      </div>\n    </form>\n\n  </div>\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n  <script lang=\"javascript\">\n    var topicid=";
 echo<<obj["info"]["parentid"].to_int(); 
  			 echo<<";\n    var topic_json = ";
 echo << obj["list"].to_json(); 
