@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2023-05-24 11:26:29
+-- 生成日期： 2023-05-24 12:03:17
 -- 服务器版本： 8.0.28
 -- PHP 版本： 8.2.4
 
@@ -61,8 +61,7 @@ CREATE TABLE `article` (
 
 INSERT INTO `article` (`aid`, `topicid`, `classtype`, `userid`, `sortid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `mdcontent`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`, `relatecontent`) VALUES
 (54, 33, 0, 0, 0, '', '标题标题标题标题标题rrww', '关键词关键词关键词关键词', '来源来源来源来源来源来源', '作者作者作者作者作者rrrrr', '', '', 0, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内容</p><p>文章内容v文章内容</p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ''),
-(55, 35, 0, 0, 0, '', '标题标题标题标题标题66666', '关键词关键词关键词关键词', '来源来源来源来源来源来源11', '作者作者作者作者作者22', '127.0.0.1', '2023-05-16 22:33:18', 1684247598, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内<font color=\"#cc0000\">容文章内容</font></p><p style=\"line-height: 16px;\"><br></p><p><br></p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ',55'),
-(58, 0, 0, 0, 0, '', '', '', '', '', '127.0.0.1', '2023-05-24 09:11:02', 1684890662, 0, 0, '', '<p><video class=\"edui-upload-video  vjs-default-skin video-js video-js\" controls=\"\" preload=\"none\" width=\"420\" height=\"280\" src=\"/upload/video/202305/20230524090920812148.mp4\"><source src=\"/upload/video/202305/20230524090920812148.mp4\" type=\"video/mp4\"/></video></p><p style=\"line-height: 16px;\"><img style=\"vertical-align: middle; margin-right: 2px;\" src=\"/ueditor/dialogs/attachment/fileTypeImages/icon_mp4.gif\"/><a style=\"font-size:12px; color:#0066cc;\" href=\"/upload/file/202305/20230524091015373_4821_16843028.mp4\" title=\"4821_1684302838.mp4\">4821_1684302838.mp4</a></p><p><video class=\"edui-upload-video  vjs-default-skin video-js video-js\" controls=\"\" preload=\"none\" width=\"420\" height=\"280\" src=\"/upload/video/202305/20230524090920812148.mp4\"><source src=\"/upload/video/202305/20230524090920812148.mp4\" type=\"video/mp4\"/></video></p><p style=\"line-height: 16px;\"><img style=\"vertical-align: middle; margin-right: 2px;\" src=\"/ueditor/dialogs/attachment/fileTypeImages/icon_mp4.gif\"/><a style=\"font-size:12px; color:#0066cc;\" href=\"/upload/file/202305/20230524091015373_4821_16843028.mp4\" title=\"20230524091015373_4821_16843028.mp4\">20230524091015373_4821_16843028.mp4</a></p><p><video class=\"edui-upload-video  vjs-default-skin video-js video-js\" controls=\"\" preload=\"none\" width=\"420\" height=\"280\" src=\"/upload/video/202305/20230524090920812148.mp4\"><source src=\"/upload/video/202305/20230524090920812148.mp4\" type=\"video/mp4\"/></video></p><p style=\"line-height: 16px;\"><img style=\"vertical-align: middle; margin-right: 2px;\" src=\"/ueditor/dialogs/attachment/fileTypeImages/icon_pdf.gif\"/><a style=\"font-size:12px; color:#0066cc;\" href=\"/upload/file/202305/20230523151338432_基本概念.pdf\" title=\"20230523151338432_基本概念.pdf\">20230523151338432_基本概念.pdf</a></p><p><br/></p>', '', 1, 0, '', '', '', '', '');
+(55, 35, 0, 0, 0, '', '标题标题标题标题标题66666', '关键词关键词关键词关键词', '来源来源来源来源来源来源11', '作者作者作者作者作者22', '127.0.0.1', '2023-05-16 22:33:18', 1684247598, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内<font color=\"#cc0000\">容文章内容</font></p><p style=\"line-height: 16px;\"><br></p><p><br></p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ',55');
 
 -- --------------------------------------------------------
 
