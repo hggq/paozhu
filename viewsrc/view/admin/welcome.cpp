@@ -33,7 +33,7 @@ namespace view {
 echo << obj["lastweektotal"].to_string(); 
  			 echo<<"</td>\n              <th scope=\"row\">文章总数</th>\n              <td>";
 echo << obj["total"].to_string(); 
- 			 echo<<"</td>\n            </tr>\n            <tr>\n              <th scope=\"row\">Paozhu版本</th>\n              <td colspan=\"2\">1.3.3</td>\n              <td>20230426</td>\n            </tr>\n          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.js\"></script>\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n</body>\n\n</html>";
+ 			 echo<<"</td>\n            </tr>\n            <tr>\n              <th scope=\"row\">Paozhu版本</th>\n              <td colspan=\"2\">1.3.3</td>\n              <td>20230426</td>\n            </tr>\n          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n</body>\n\n</html>";
 
                   return echo.str();
              }
