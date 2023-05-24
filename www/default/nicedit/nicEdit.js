@@ -1320,25 +1320,36 @@ var nicImageButton = nicEditorAdvancedButton.extend({
 		}
 		if (this.im) {
 			if (this.inputs['width'].value.length > 1) {
-				var w = parseInt(this.inputs['width'].value);
 
-				if (this.inputs['height'].value.length > 1) {
-					var h = parseInt(this.inputs['height'].value);
+				if (this.inputs['width'].value.indexOf("%") > 0) {
 					this.im.setAttributes({
 						src: this.inputs['src'].value,
 						alt: this.inputs['alt'].value,
-						width: w,
-						height: h,
 						align: this.inputs['align'].value
 					});
+					this.im.setStyle({ width: this.inputs['width'].value });
 				}
 				else {
-					this.im.setAttributes({
-						src: this.inputs['src'].value,
-						alt: this.inputs['alt'].value,
-						width: w,
-						align: this.inputs['align'].value
-					});
+					var w = parseInt(this.inputs['width'].value);
+
+					if (this.inputs['height'].value.length > 1) {
+						var h = parseInt(this.inputs['height'].value);
+						this.im.setAttributes({
+							src: this.inputs['src'].value,
+							alt: this.inputs['alt'].value,
+							width: w,
+							height: h,
+							align: this.inputs['align'].value
+						});
+					}
+					else {
+						this.im.setAttributes({
+							src: this.inputs['src'].value,
+							alt: this.inputs['alt'].value,
+							width: w,
+							align: this.inputs['align'].value
+						});
+					}
 				}
 
 			}
