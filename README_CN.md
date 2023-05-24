@@ -131,8 +131,13 @@ sudo ./bin/paozhu
 
 打开浏览器，在地址栏输入`http://localhost` 或 `http://www.869869.com`
 
+
 <div align="center">
 <img src="https://www.paozhu.org/images/home.png">
+</div>
+
+<div align="center">
+<img src="https://www.paozhu.org/images/admin.png">
 </div>
 
 
