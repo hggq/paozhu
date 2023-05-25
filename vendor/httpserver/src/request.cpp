@@ -1,7 +1,7 @@
 
 #include <stdexcept>
-#include <sstream> // ostringstream 类型
-//#include <strstream> // ostrstream 类型
+#include <sstream>// ostringstream 类型
+// #include <strstream> // ostrstream 类型
 #include <string>
 #include <cstdlib>
 #include <charconv>
@@ -499,7 +499,7 @@ std::string OBJ_VALUE::tag(const std::string &&v)
     }
     return string_v;
 }
-std::string OBJ_VALUE::getkeyname(unsigned long long temp) { return array_v.getkeyname(temp); }
+std::string OBJ_VALUE::get_keyname(unsigned long long temp) { return array_v.get_keyname(temp); }
 
 bool OBJ_VALUE::isset(unsigned long long temp) { return array_v.isset(temp); }
 bool OBJ_VALUE::isset(const std::string &key) { return array_v.isset(key); }
@@ -573,7 +573,7 @@ OBJ_VALUE OBJ_VALUE::operator-(OBJ_VALUE &v)
     temp.set_array();
     for (auto [first, second] : array_v)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
 
     for (auto [first, second] : v.as_array())
@@ -594,7 +594,7 @@ OBJ_VALUE OBJ_VALUE::operator-(OBJ_ARRAY &v)
     temp.set_array();
     for (auto [first, second] : array_v)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
 
     for (auto [first, second] : v)
@@ -615,12 +615,12 @@ OBJ_VALUE OBJ_VALUE::operator+(OBJ_ARRAY &v)
     temp.set_array();
     for (auto [first, second] : array_v)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
 
     for (auto [first, second] : v)
     {
-        temp[v.getkeyname(first)] = second;
+        temp[v.get_keyname(first)] = second;
     }
 
     return temp;
@@ -724,12 +724,12 @@ OBJ_VALUE OBJ_VALUE::operator+(OBJ_VALUE &v)
 
         for (auto [first, second] : array_v)
         {
-            temp[getkeyname(first)] = second;
+            temp[get_keyname(first)] = second;
         }
 
         for (auto [first, second] : v.as_array())
         {
-            temp[v.getkeyname(first)] = second;
+            temp[v.get_keyname(first)] = second;
         }
 
         break;
@@ -1069,7 +1069,7 @@ void OBJ_ARRAY::clear()
     _array.clear();
     std::swap(_array, empty);
 }
-std::string OBJ_ARRAY::getkeyname(unsigned long long temp) const
+std::string OBJ_ARRAY::get_keyname(unsigned long long temp) const
 {
     auto itertemp = _tag.find(temp);
     if (itertemp != _tag.end())
@@ -1110,7 +1110,7 @@ OBJ_VALUE OBJ_ARRAY::operator+(int v)
 
     for (auto [first, second] : _array)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
     OBJ_VALUE vv(std::move(v));
     temp.push(std::move(vv));
@@ -1124,7 +1124,7 @@ OBJ_VALUE OBJ_ARRAY::operator+(float v)
 
     for (auto [first, second] : _array)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
     OBJ_VALUE vv(std::move(v));
     temp.push(std::move(vv));
@@ -1139,7 +1139,7 @@ OBJ_VALUE OBJ_ARRAY::operator+(char v)
 
     for (auto [first, second] : _array)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
     OBJ_VALUE vv(std::move(v));
     temp.push(std::move(vv));
@@ -1154,7 +1154,7 @@ OBJ_VALUE OBJ_ARRAY::operator+(std::string v)
 
     for (auto [first, second] : _array)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
     OBJ_VALUE vv(std::move(v));
     temp.push(std::move(vv));
@@ -1169,12 +1169,12 @@ OBJ_VALUE OBJ_ARRAY::operator+(OBJ_VALUE &v)
 
     for (auto [first, second] : _array)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
 
     for (auto [first, second] : v.as_array())
     {
-        temp[v.getkeyname(first)] = second;
+        temp[v.get_keyname(first)] = second;
     }
     return temp;
 }
@@ -1186,12 +1186,12 @@ OBJ_VALUE OBJ_ARRAY::operator+(OBJ_ARRAY &v)
 
     for (auto [first, second] : _array)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
 
     for (auto [first, second] : v)
     {
-        temp[v.getkeyname(first)] = second;
+        temp[v.get_keyname(first)] = second;
     }
     return temp;
 }
@@ -1203,7 +1203,7 @@ OBJ_VALUE OBJ_ARRAY::operator-(OBJ_ARRAY &v)
 
     for (auto [first, second] : _array)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
 
     for (auto [first, second] : v)
@@ -1223,7 +1223,7 @@ OBJ_VALUE OBJ_ARRAY::operator-(OBJ_VALUE &v)
 
     for (auto [first, second] : _array)
     {
-        temp[getkeyname(first)] = second;
+        temp[get_keyname(first)] = second;
     }
 
     for (auto [first, second] : v.as_array())
@@ -1264,7 +1264,7 @@ bool value_write(FILE *f, const OBJ_VALUE &v)
 {
     unsigned char type;
     unsigned int objsize = 0;
-    //unsigned value_pos = ftell(f);
+    // unsigned value_pos = ftell(f);
 
     type = v.type();
     fwrite(&type, sizeof(type), 1, f);
@@ -1335,52 +1335,52 @@ std::string JSON_UTF8_TO_ASCII(const std::string &source)
         {
             switch (c)
             {
-            case 0x22: //"
+            case 0x22://"
                 ptext[j] = 0x5c;
                 j++;
                 ptext[j] = 0x22;
                 break;
-            case 0x60: //''
+            case 0x60://''
                 // ptext[j]=0x5c;
                 // j++;
                 ptext[j] = 0x60;
                 break;
-            case 0x27: //'\'
+            case 0x27://'\'
                 // ptext[j]=0x5c;
                 // j++;
                 ptext[j] = 0x27;
                 break;
-            case 0x2f: //\/
+            case 0x2f://\/
                 // ptext[j]=0x5c;
                 // j++;
                 ptext[j] = '/';
                 break;
-            case 0x08: //\b
-                       // ptext[j]=0x5c;
+            case 0x08://\b
+                      // ptext[j]=0x5c;
                 // j++;
                 // ptext[j]='b';
                 break;
-            case 0x0c: //\f
-                       // ptext[j]=0x5c;
+            case 0x0c://\f
+                      // ptext[j]=0x5c;
                 // j++;
                 // ptext[j]='f';
                 break;
-            case 0x0a: //\n
+            case 0x0a://\n
                 ptext[j] = 0x5c;
                 j++;
                 ptext[j] = 'n';
                 break;
-            case 0x0d: //\r
+            case 0x0d://\r
                 ptext[j] = 0x5c;
                 j++;
                 ptext[j] = 'r';
                 break;
-            case 0x09: //\t
+            case 0x09://\t
                 ptext[j] = 0x5c;
                 j++;
                 ptext[j] = 't';
                 break;
-            case 0x5c: //
+            case 0x5c://
                 ptext[j] = 0x5c;
                 j++;
                 ptext[j] = 0x5c;
@@ -1653,7 +1653,7 @@ std::string OBJ_ARRAY::to_json()
 
             if (_tag.find(first) != _tag.end())
             {
-                os << '"' << JSON_UTF8_TO_ASCII(getkeyname(first)) << '"' << ':';
+                os << '"' << JSON_UTF8_TO_ASCII(get_keyname(first)) << '"' << ':';
             }
             else
             {
@@ -1747,7 +1747,7 @@ std::string JSON_VALUE(std::string &jsonstr, unsigned int &offset)
     unsigned int j = 0;
     std::string temp;
     if (jsonstr[offset] == 0x3a)
-    { //:
+    {//:
         offset++;
     }
     for (j = offset; j < jsonstr.length(); j++)
@@ -1786,37 +1786,37 @@ std::string JSON_STR(std::string &jsonstr, unsigned int &offset)
     for (j = offset; j < jsonstr.length(); j++)
     {
 
-        if (jsonstr[j] == 0x5c) //'\'
+        if (jsonstr[j] == 0x5c)//'\'
         {
             // 处理有斜杠情况 not slash
             switch (jsonstr[j + 1])
             {
-            case 0x22: //"
+            case 0x22://"
                 str += 0x22;
                 j += 1;
                 break;
-            case 0x5c: //'\'
+            case 0x5c://'\'
                 str += 0x5c;
                 j += 1;
                 break;
             // case 0x2f: //\/
-            case 0x62: //\b
+            case 0x62://\b
                 str += 0x08;
                 j += 1;
                 break;
-            case 0x66: //\f
+            case 0x66://\f
                 str += 0x0c;
                 j += 1;
                 break;
-            case 0x6e: //\n
+            case 0x6e://\n
                 str += 0x0a;
                 j += 1;
                 break;
-            case 0x72: //\r
+            case 0x72://\r
                 str += 0x0d;
                 j += 1;
                 break;
-            case 0x74: //\t
+            case 0x74://\t
                 str += 0x09;
                 j += 1;
                 break;
@@ -2408,7 +2408,7 @@ OBJ_ARRAY from_json(std::string &jsonstr)
     return obj;
 }
 
-} //namespace http
+}// namespace http
 
 std::ostream &operator<<(std::ostream &os, const http::OBJ_VALUE &v)
 {
@@ -2522,7 +2522,7 @@ std::ostream &operator<<(std::ostream &os, const http::OBJ_ARRAY &a)
 
             if (a.istag(first))
             {
-                os << '"' << http::JSON_UTF8_TO_ASCII(a.getkeyname(first)) << '"' << ':';
+                os << '"' << http::JSON_UTF8_TO_ASCII(a.get_keyname(first)) << '"' << ':';
             }
             else
             {

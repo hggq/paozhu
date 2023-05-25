@@ -101,14 +101,14 @@ class OBJ_ARRAY
 
     bool isval() const { return false; }
 
-    std::string getkeyname(unsigned long long n) const;
+    std::string get_keyname(unsigned long long n) const;
     bool istag(unsigned long long n) const;
     bool is_numarray() const;
 
     std::string to_json();
     // OBJ_VALUE   fromjson(const std::string& v);
     // OBJ_VALUE   fromjson(const std::string&& v);
-    //protected:
+    // protected:
   public:
     std::map<unsigned long long, OBJ_VALUE> _array;
     std::map<unsigned long long, std::string> _tag;
@@ -213,7 +213,7 @@ class OBJ_VALUE
     bool as_bool() const { return int_v > 0 ? true : false; }
     /** Cast operator for string */
     std::string as_string() const { return string_v; }
-    std::string *ptr_string() { return &string_v; }
+    std::string *ref_string() { return &string_v; }
     std::string &ref() { return std::ref(string_v); }
     std::string to_string() const
     {
@@ -357,7 +357,7 @@ class OBJ_VALUE
     std::string tag();
     std::string tag(const std::string &v);
     std::string tag(const std::string &&v);
-    std::string getkeyname(unsigned long long n);
+    std::string get_keyname(unsigned long long n);
     std::string to_json();
 
     void from_json(std::string &v);
@@ -389,7 +389,7 @@ std::string JSON_VALUE(std::string &, unsigned int &);
 int JSON_OBJ(std::string &, OBJ_ARRAY &, unsigned int);
 int JSON_ARRAY(std::string &, OBJ_ARRAY &, unsigned int);
 
-} //namespace http
+}// namespace http
 std::ostream &operator<<(std::ostream &, const http::OBJ_VALUE &);
 std::ostream &operator<<(std::ostream &, const http::OBJ_ARRAY &);
 #endif
