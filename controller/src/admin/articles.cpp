@@ -19,7 +19,7 @@ std::string admin_addarticle(std::shared_ptr<httppeer> peer)
 
         topicm.where("userid", 0).asc("parentid").fetch();
 
-        unsigned int topicid  = client.get["topicid"].to_int();
+        unsigned int topicid = client.get["topicid"].to_int();
         //unsigned int page     = client.get["page"].to_int();
         client.val["topicid"] = topicid;
 
@@ -64,7 +64,7 @@ std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.relatecontent = client.post["relatecontent"].to_string();
         artmodel.data.userid        = 0;
         artmodel.data.isopen        = 1;
-        artmodel.data.createtime    = date("%Y-%m-%d %X");
+        artmodel.data.createtime    = dateid("%Y-%m-%d %X");
         artmodel.data.addtime       = timeid();
         artmodel.data.addip         = client.client_ip;
 

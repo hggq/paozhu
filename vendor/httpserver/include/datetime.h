@@ -15,7 +15,7 @@ std::string get_gmttime(time_t inputtime = 0);
 unsigned long timeid();
 unsigned long rand_range(unsigned int a, unsigned int b);
 std::string rand_string(unsigned int a, unsigned char b = 0);
-std::string date(const std::string &format, unsigned long inputtime = 0);
+std::string dateid(const std::string &format, unsigned long inputtime = 0);
 
 // Sat, 02 Jan 2021 00:12:45 GMT to sec
 unsigned long strgmttotime(const std::string &gmtstr);

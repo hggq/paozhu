@@ -108,7 +108,7 @@ std::string rand_string(unsigned int a, unsigned char isupper)
 
 unsigned long timeid() { return time((time_t *)NULL); }
 
-std::string date(const std::string &format, unsigned long inputtime)
+std::string dateid(const std::string &format, unsigned long inputtime)
 {
     time_t curr_time;
     if (inputtime == 0)
@@ -120,7 +120,7 @@ std::string date(const std::string &format, unsigned long inputtime)
         curr_time = inputtime;
     }
     tm *timeInfo;
-    std::string temp(30, 0x00);
+    std::string temp(36, 0x00);
     timeInfo = localtime(&curr_time);
     strftime(temp.data(), temp.length(), format.c_str(), timeInfo);
     for (unsigned int i = 0; i < temp.size(); i++)

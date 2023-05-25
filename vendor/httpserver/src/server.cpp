@@ -1806,7 +1806,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                             log_item.clear();
                             log_item.append(peer->server_ip);
                             log_item.push_back(0x20);
-                            log_item.append(date("%Y-%m-%d %X"));
+                            log_item.append(dateid("%Y-%m-%d %X"));
                             log_item.push_back(0x20);
                             log_item.append(std::to_string(peer->server_port));
                             log_item.push_back(0x20);
@@ -1993,7 +1993,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                                 log_item.clear();
                                 log_item.append(http2pre->http_data[block_steamid]->client_ip);
                                 log_item.push_back(0x20);
-                                log_item.append(date("%Y-%m-%d %X"));
+                                log_item.append(dateid("%Y-%m-%d %X"));
                                 log_item.push_back(0x20);
                                 log_item.append(std::to_string(http2pre->http_data[block_steamid]->server_port));
                                 log_item.push_back(0x20);

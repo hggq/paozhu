@@ -90,14 +90,13 @@ bool upload_images::upload_img(const std::string &fieldname)
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
             }
         }
         else
         {
             is_success = true;
         }
-        std::string tempstr = date("%Y%m");
+        std::string tempstr = dateid("%Y%m");
         if (upimgpath.back() != '/')
         {
             upimgpath.push_back('/');
@@ -113,7 +112,6 @@ bool upload_images::upload_img(const std::string &fieldname)
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
             }
         }
         else
@@ -130,7 +128,7 @@ bool upload_images::upload_img(const std::string &fieldname)
         url_path.append(tempstr);
         url_path.push_back('/');
 
-        std::string filename = date("%Y%m%d%H%M%S");
+        std::string filename = dateid("%Y%m%d%H%M%S");
         filename.append(rand_string(6, 4));
         //filename.append("_");
 
@@ -260,7 +258,7 @@ bool upload_images::upload_video(const std::string &fieldname)
         {
             is_success = true;
         }
-        std::string tempstr = date("%Y%m");
+        std::string tempstr = dateid("%Y%m");
         if (upimgpath.back() != '/')
         {
             upimgpath.push_back('/');
@@ -276,7 +274,6 @@ bool upload_images::upload_video(const std::string &fieldname)
                 fs::permissions(paths,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
-
             }
         }
         else
@@ -287,7 +284,7 @@ bool upload_images::upload_video(const std::string &fieldname)
         {
             upimgpath.push_back('/');
         }
-        std::string filename = date("%Y%m%d%H%M%S");
+        std::string filename = dateid("%Y%m%d%H%M%S");
         filename.append(rand_string(6, 4));
 
         url_path = "/";
@@ -399,7 +396,7 @@ bool upload_images::upload_base64(const std::string &fieldname)
         {
             is_success = true;
         }
-        std::string tempstr = date("%Y%m");
+        std::string tempstr = dateid("%Y%m");
         if (upimgpath.back() != '/')
         {
             upimgpath.push_back('/');
@@ -508,7 +505,7 @@ bool upload_images::upload_upfile(const std::string &fieldname)
         {
             is_success = true;
         }
-        std::string tempstr = date("%Y%m");
+        std::string tempstr = dateid("%Y%m");
         if (upimgpath.back() != '/')
         {
             upimgpath.push_back('/');
@@ -542,7 +539,7 @@ bool upload_images::upload_upfile(const std::string &fieldname)
         url_path.append(tempstr);
         url_path.push_back('/');
 
-        std::string filename = date("%Y%m%d%H%M%S");
+        std::string filename = dateid("%Y%m%d%H%M%S");
         filename.append(rand_string(3, 4));
         filename.append("_");
 
