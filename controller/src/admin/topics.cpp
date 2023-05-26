@@ -17,7 +17,7 @@ std::string admin_addtopic(std::shared_ptr<httppeer> peer)
     {
         auto topicm = orm::cms::Topic();
         // define out
-        //psy::topics_tree_outjson_t a;
+        // psy::topics_tree_outjson_t a;
 
         topicm.where("userid", 0).asc("parentid").fetch();
 
@@ -50,7 +50,7 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
     {
         auto topicm = orm::cms::Topic();
         // define out
-        //psy::topics_tree_outjson_t a;
+        // psy::topics_tree_outjson_t a;
 
         topicm.where("userid", 0).asc("parentid").fetch();
 
@@ -148,8 +148,6 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
 std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
-    client << client.post.to_json();
-
     try
     {
         auto topicm = orm::cms::Topic();
@@ -214,8 +212,6 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
 std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
-    client << client.post.to_json();
-
     try
     {
         auto topicm          = orm::cms::Topic();
@@ -224,9 +220,7 @@ std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
 
         if (topicid > 0)
         {
-
-            topicm.where("userid", 0).asc("parentid").fetch();
-
+            topicm.select("topicid,parentid").where("userid", 0).asc("parentid").fetch();
             del_id_array.push_back(topicid);
 
             if (topicm.record.size() > 0)
@@ -271,8 +265,6 @@ std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
 std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
-    client << client.post.to_json();
-
     try
     {
         auto topicm = orm::cms::Topic();
@@ -293,20 +285,21 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
 
         topicm.setMemo(client.post["memo"].as_string());
         topicm.setUrlpath(client.post["urlpath"].as_string());
+        topicm.setCateid(client.post["topictype"].to_int());
         if (topicid_parentid != topicid)
         {
-            //block set parentid as self
+            // block set parentid as self
             topicm.setParentid(topicid_parentid);
         }
 
         topicm.where("userid", 0).whereAnd("topicid", client.post["topicid"].to_int());
         if (topicid_parentid != topicid)
         {
-            topicm.update("title,isview,memo,urlpath,parentid");
+            topicm.update("cateid,title,isview,memo,urlpath,parentid");
         }
         else
         {
-            topicm.update("title,isview,memo,urlpath");
+            topicm.update("cateid,title,isview,memo,urlpath");
         }
 
         if (topicm.error_msg.size() > 0)
@@ -345,4 +338,4 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-} //namespace http
+}// namespace http

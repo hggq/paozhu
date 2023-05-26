@@ -6,24 +6,40 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(mode "CMAKE_BUILD_TYPE")
  
+set(ENABLE_BOOST OFF CACHE BOOL "choose ON to enable")
+set(ENABLE_GD OFF CACHE BOOL "choose ON to enable")
 
+set(BOOST_OPEN "  ")
+set(GD_OPEN " ")
+
+if(ENABLE_BOOST STREQUAL "ON")  
+  message("ENABLE_BOOST")
+  set(BOOST_OPEN " -DENABLE_BOOST ")
+endif()
+
+if(ENABLE_GD STREQUAL "ON")  
+    message("ENABLE_GD")
+    set(GD_OPEN " -DENABLE_GD ")
+endif()
 
 if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))  
     message("Debug mode:${CMAKE_C_FLAGS_DEBUG}")
-    set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
+    set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
 
 
 elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release")) 
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O3")
     message("Release mode:${CMAKE_CXX_FLAGS_RELEASE}")
-    set(CMAKE_CXX_FLAGS "  -pthread  -DASIO_STANDALONE -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql  " )
+    set(CMAKE_CXX_FLAGS "  -pthread  -DASIO_STANDALONE ${BOOST_OPEN} ${GD_OPEN}  -I/usr/local/include -I/usr/local/mysql/include -I/usr/include -I/usr/include/mysql  " )
     file(MAKE_DIRECTORY /usr/local/etc/paozhu)
     file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/conf/ DESTINATION /usr/local/etc/paozhu/)
 else()
     message("Debug mode")
-    set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
+    set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
   
 endif()
+
+
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/temp)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/log)
@@ -137,6 +153,9 @@ endif()
 
 endif()
 
+
+if(ENABLE_BOOST STREQUAL "ON")  
+message("---ENABLE_BOOST-----")
 find_package(Boost REQUIRED
              COMPONENTS system filesystem)
 if(Boost_FOUND)
@@ -149,6 +168,7 @@ if(Boost_FOUND)
     target_link_libraries (paozhu ${Boost_LIBRARIES})
 endif()        
 
+endif()
 
 
 find_package(OpenSSL REQUIRED)
@@ -215,12 +235,15 @@ target_include_directories(paozhu_cli PUBLIC ${MYSQL_INCLUDE_DIR})
 target_link_libraries(paozhu_cli ${MYSQL_LIBRARY})
 
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
-set(GD_ROOT_DIR "/usr/local/opt/gd/lib")
-else()
-set(GD_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
-endif()
 
+if(ENABLE_GD STREQUAL "ON")
+message("---ENABLE_GD-----")
+
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
+  set(GD_ROOT_DIR "/usr/local/opt/gd/lib")
+else()
+  set(GD_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
+endif()
 
 set(find_gdname gd)
 
@@ -230,8 +253,6 @@ find_library(GD_LIB_DIR
   NO_DEFAULT_PATH
 )
 
- 
- 
 if(NOT GD_LIB_DIR)
 message(FATAL_ERROR
 "GD Graphics Library NOT FOUND! please install . "
@@ -240,15 +261,11 @@ endif()
 
 message(STATUS "GD Graphics Library  at: ${GD_LIB_DIR}")
 
-
-
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
 set(QR_ROOT_DIR "/usr/local/opt/qrencode/lib")
 else()
 set(QR_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
 endif()
-
-
 
 set(find_qrname qrencode)
 
@@ -258,8 +275,6 @@ find_library(QR_LIB_DIR
   NO_DEFAULT_PATH
 )
 
- 
- 
 if(NOT QR_LIB_DIR)
 message(FATAL_ERROR
 "qrencode Library  NOT FOUND! please install . "
@@ -275,13 +290,11 @@ link_directories("${GD_ROOT_DIR}/lib")
 target_link_libraries(paozhu ${GD_LIB_DIR})
 target_link_libraries(paozhu ${QR_LIB_DIR})
 
- 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
 set(PNG_ROOT_DIR "/usr/local/opt/libpng/lib")
 else()
 set(PNG_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
 endif()
-
 
 find_library(PNG_LIB_DIR
   NAMES png
@@ -291,9 +304,9 @@ find_library(PNG_LIB_DIR
 target_link_libraries(paozhu ${PNG_LIB_DIR})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
-set(FREETYPE_ROOT_DIR "/usr/local/opt/freetype/lib")
+  set(FREETYPE_ROOT_DIR "/usr/local/opt/freetype/lib")
 else()
-set(FREETYPE_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
+  set(FREETYPE_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
 endif()
 
 find_library(FREETYPE_LIB_DIR
@@ -302,13 +315,16 @@ find_library(FREETYPE_LIB_DIR
   NO_DEFAULT_PATH
 )
 target_link_libraries(paozhu ${FREETYPE_LIB_DIR})
-
+#end ENABLE_GD
+endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
-set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
+  set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
 else()
-set(BROTLI_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
+  set(BROTLI_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
 endif()
+
+
 
 #find_package(Brotli COMPONENTS encoder decoder common REQUIRED)
 

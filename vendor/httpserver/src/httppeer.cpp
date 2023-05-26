@@ -43,9 +43,11 @@
 #include "http2_frame.h"
 #include "http2_huffman.h"
 #include "terminal_color.h"
+#ifdef ENABLE_BOOST
 #include "loadmodule.h"
 #include "loadviewso.h"
 #include "http_so_common_api.h"
+#endif
 #include "viewmethold_reg.h"
 #include "debug_log.h"
 #include "server_localvar.h"
@@ -934,6 +936,7 @@ void httppeer::view(const std::string &a)
             std::cerr << e.what() << '\n';
             return;
         }
+#ifdef ENABLE_BOOST
         if (isso)
         {
             if (clientapi::get().map_value.find(host) != clientapi::get().map_value.end())
@@ -959,6 +962,7 @@ void httppeer::view(const std::string &a)
         {
             output.append(loadviewso(tempp)(tempvp, val));
         }
+#endif
     }
     catch (const std::exception &e)
     {
@@ -1003,7 +1007,7 @@ void httppeer::view(const std::string &a, OBJ_VALUE &b)
             std::cerr << e.what() << '\n';
             return;
         }
-
+#ifdef ENABLE_BOOST
         if (isso)
         {
             if (clientapi::get().map_value.find(host) != clientapi::get().map_value.end())
@@ -1029,6 +1033,7 @@ void httppeer::view(const std::string &a, OBJ_VALUE &b)
         {
             output.append(loadviewso(tempp)(tempvp, b));
         }
+#endif
     }
     catch (const std::exception &e)
     {
@@ -1063,12 +1068,17 @@ std::string httppeer::fetchview(const std::string &a)
         {
             return viewreg[a](tempvp, val);
         }
+        else
+        {
+            return "";
+        }
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
+        return "";
     }
-
+#ifdef ENABLE_BOOST
     try
     {
 
@@ -1103,6 +1113,7 @@ std::string httppeer::fetchview(const std::string &a)
     {
         return "";
     }
+#endif
 }
 std::string httppeer::fetchview(const std::string &a, OBJ_VALUE &b)
 {
@@ -1132,11 +1143,17 @@ std::string httppeer::fetchview(const std::string &a, OBJ_VALUE &b)
         {
             return viewreg[a](tempvp, b);
         }
+        else
+        {
+            return "";
+        }
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
+        return "";
     }
+#ifdef ENABLE_BOOST
     try
     {
         if (isso)
@@ -1169,6 +1186,7 @@ std::string httppeer::fetchview(const std::string &a, OBJ_VALUE &b)
     {
         return "";
     }
+#endif
 }
 void httppeer::out_json(OBJ_VALUE &a)
 {
@@ -1259,4 +1277,4 @@ std::string httppeer::pop_path_method()
     path_method_names.pop();
     return tempmethod;
 }
-} // namespace http
+}// namespace http

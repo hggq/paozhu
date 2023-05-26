@@ -13,10 +13,12 @@
 #include "teststrip_html.h"
 #include "testrand.h"
 #include "testormcache.h"
+#include "testsendmail.h"
 #include "admin/articles.h"
 #include "admin/topics.h"
 #include "admin/main.h"
 #include "testformpost.h"
+#include "testqrcode.h"
 #include "imageapi.h"
 #include "testpzcache.h"
 #include "testcmake.h"
@@ -60,6 +62,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testormcachec;
 		methodcallback.emplace("testormcachec",temp);
+		temp.pre = nullptr;
+		temp.regfun = testsendmaildo;
+		methodcallback.emplace("testsendmaildo",temp);
 		temp.pre = nullptr;
 		temp.regfun = admin_addarticle;
 		methodcallback.emplace("admin/addarticle",temp);
@@ -138,6 +143,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testuploadpostfile;
 		methodcallback.emplace("addpostfile",temp);
+		temp.pre = nullptr;
+		temp.regfun = testqrcode;
+		methodcallback.emplace("testqrcode",temp);
 		temp.pre = nullptr;
 		temp.regfun = imageapi_gateway;
 		methodcallback.emplace("imageapi/gateway",temp);

@@ -1,24 +1,26 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>标题 title</title>  
-  </head>
-  <body> 
-  <p>提交表单测试 Email form test Sendmail</p>
-  <form method="post" enctype="multipart/form-data" name="form1" id="form1" action="/testsendmail/dosend?aabb=1122">
 
-	   <p>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>标题 title</title>
+</head>
+
+<body>
+  <p>发送Email测试 Email form test Sendmail</p>
+  <form method="post" enctype="multipart/form-data" name="form1" id="form1" action="/testsendmaildo?aabb=1122">
+
+    <p>
       <label for="textfield">收件人名称 to name:</label>
       <input type="text" name="toname" id="toname">
     </p>
-	   <p>
+    <p>
       <label for="textfield">收件邮箱 to email:</label>
       <input type="text" name="toemail" id="toemail">
     </p>
-	  	   <p>
+    <p>
       <label for="textfield">标题 title:</label>
       <input type="text" name="subject" id="subject">
     </p>
@@ -30,7 +32,7 @@
       <label for="fileField">File:</label>
       <input type="file" name="addfiles" id="addfiles">
     </p>
-    
+
     <p>
       <label for="textfield">回复邮箱 reply email:</label>
       <input type="text" name="replyemail" id="replyemail">
@@ -40,9 +42,10 @@
       <input type="submit" name="submit" id="submit" value="Submit">
     </p>
   </form>
-  
+
   <p>&nbsp;</p>
 
 
-  </body>
+</body>
+
 </html>

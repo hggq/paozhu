@@ -20,7 +20,8 @@ std::string testcors(std::shared_ptr<httppeer> peer)
     client.set_header("Access-Control-Max-Age", "1800");
 
     // http OPTIONS request response
-    if (client.method > 2)
+    // if (client.method > 2)
+    if (client.method == HEAD_METHOD::OPTIONS)
     {
         client.set_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         return "";
@@ -50,7 +51,7 @@ std::string testcorssimple(std::shared_ptr<httppeer> peer)
     // client.set_header("Access-Control-Max-Age", "1800");
     client.cors_domain("*");
     // http OPTIONS request response
-    if (client.method == 3)
+    if (client.method == HEAD_METHOD::OPTIONS)
     {
         // client.set_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         client.cors_method();
@@ -70,4 +71,4 @@ std::string testcorssimple(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-} // namespace http
+}// namespace http

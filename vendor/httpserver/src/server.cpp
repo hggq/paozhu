@@ -25,10 +25,14 @@
 #include "reghttpmethod.hpp"
 #include "reghttpmethod_pre.hpp"
 #include "regviewmethod.hpp"
+
+#ifdef ENABLE_BOOST
 #include "loadviewso.h"
 #include "loadmodule.h"
-#include "mysqlproxyfun.h"
 #include "http_so_common_api.h"
+#endif
+
+#include "mysqlproxyfun.h"
 #include "server_localvar.h"
 #include "debug_log.h"
 #include "websockets_callback.h"
@@ -76,6 +80,7 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
             peer->type(mime_value);
             _send_header = peer->make_http2_header(HTTP2_HEADER_END_STREAM);
             peer->socket_session->send_data(_send_header);
+            peer->socket_session->send_enddata(peer->stream_id);
             return false;
         }
 
@@ -427,6 +432,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
             _send_header = peer->make_http2_header();
             set_http2_headers_flag(_send_header, HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
             peer->socket_session->send_data(_send_header);
+            peer->socket_session->send_enddata(peer->stream_id);
             return true;
         }
 
@@ -2518,17 +2524,19 @@ void httpserver::httpwatch()
     };
     _http_regmethod_table.emplace("frametasks_timeloop", std::move(temp));
 
-    clientapi *pn = clientapi::instance();
-
+#ifdef ENABLE_BOOST
+    clientapi *pn       = clientapi::instance();
     pn->api_loadview    = loadviewso;
     pn->api_loadcontrol = loadcontrol;
 
-    pn->api_mysqlselect         = get_mysqlselectexecute;
-    pn->api_mysqledit           = get_mysqlselectexecute;
-    pn->api_mysqlcommit         = get_mysqlselectexecute;
-    pn->map_value               = sysconfigpath.map_value;
-    pn->server_global_var       = get_server_global_var;
-    pn->api_mysql_back_conn     = back_mysql_connect;
+    pn->api_mysqlselect     = get_mysqlselectexecute;
+    pn->api_mysqledit       = get_mysqlselectexecute;
+    pn->api_mysqlcommit     = get_mysqlselectexecute;
+    pn->map_value           = sysconfigpath.map_value;
+    pn->server_global_var   = get_server_global_var;
+    pn->api_mysql_back_conn = back_mysql_connect;
+#endif
+
     int catch_num               = 0;
     unsigned int updatetimetemp = 0;
     std::string currentpath;
@@ -2791,4 +2799,4 @@ void httpserver::run(const std::string &sysconfpath)
         LOG_ERROR << " httpserver Exception " << e.what() << LOG_END;
     }
 }
-} // namespace http
+}// namespace http
