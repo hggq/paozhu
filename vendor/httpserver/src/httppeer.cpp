@@ -481,6 +481,21 @@ unsigned char httppeer::get_fileinfo()
                         if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
                         {
                             n += 1;
+                            continue;
+                        }
+                        break;
+                    }
+                    continue;
+                }
+                else if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                {
+                    n += 1;
+                    for (; n < sendfilename.size();)
+                    {
+                        if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                        {
+                            n += 1;
+                            continue;
                         }
                         break;
                     }
@@ -505,6 +520,21 @@ unsigned char httppeer::get_fileinfo()
                             if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
                             {
                                 n += 1;
+                                continue;
+                            }
+                            break;
+                        }
+                        continue;
+                    }
+                    else if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                    {
+                        n += 1;
+                        for (; n < sendfilename.size();)
+                        {
+                            if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                            {
+                                n += 1;
+                                continue;
                             }
                             break;
                         }
