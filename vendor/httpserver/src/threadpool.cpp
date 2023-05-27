@@ -98,37 +98,10 @@ std::string ThreadPool::printthreads(bool is_onlineout)
 
 unsigned int ThreadPool::getpoolthreadnum() { return thread_arrays.size(); }
 
-bool ThreadPool::live_end(std::thread::id id)
-{
-
-    // auto iter = threadlist.find(id);
-    // if (iter != threadlist.end())
-    // {
-    //     std::unique_lock<std::mutex> lck(livemtx);
-    //     unsigned long long temp = time((time_t *)NULL);
-    //     threadlist[id].end      = temp;
-    //     return true;
-    // }
-    // else
-    // {
-    //     return false;
-    // }
-    return false;
-}
-bool ThreadPool::live_add(std::thread::id id)
-{
-    // unsigned long long temp = time((time_t *)NULL);
-    // std::unique_lock<std::mutex> lck(livemtx);
-    // threadlist[id].begin = temp;
-    return true;
-}
-
 void ThreadPool::threadloop(int index)
 {
-    // std::thread::id thread_id = std::this_thread::get_id();
     while (!this->stop)
     {
-
         std::unique_lock<std::mutex> lock(this->queue_mutex);
         this->condition.wait(lock,
                              [this, index]
@@ -322,7 +295,6 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
     try
     {
         std::set<std::string> method_alone;
-        // std::thread::id thread_id = std::this_thread::get_id();
         DEBUG_LOG("pool in");
         std::string regmethold_path;
 
@@ -669,7 +641,6 @@ void ThreadPool::http_websocketsrun(std::shared_ptr<httppeer> peer, unsigned int
     try
     {
         DEBUG_LOG("websockets pool");
-        // std::thread::id thread_id          = std::this_thread::get_id();
         unsigned int offsetnum             = 0;
         server_loaclvar &static_server_var = get_server_global_var();
 
@@ -728,10 +699,8 @@ void ThreadPool::timetasks_run(std::shared_ptr<httppeer> peer, unsigned int id_i
     {
         DEBUG_LOG("timetasks_run pool");
         std::string regmethold_path;
-        regmethold_path = get_filename(peer->pathinfos[0]);
-        regmethold_path = str2safepath((const char *)&regmethold_path[0], regmethold_path.size());
-
-        // std::thread::id thread_id          = std::this_thread::get_id();
+        regmethold_path                    = get_filename(peer->pathinfos[0]);
+        regmethold_path                    = str2safepath((const char *)&regmethold_path[0], regmethold_path.size());
         server_loaclvar &static_server_var = get_server_global_var();
 
         if (static_server_var.show_visit_info == true)

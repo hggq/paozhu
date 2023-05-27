@@ -74,8 +74,6 @@ class ThreadPool
     ThreadPool(size_t);
 
     void threadloop(int);
-    bool live_end(std::thread::id);
-    bool live_add(std::thread::id);
     bool addthread(size_t);
     bool addclient(std::shared_ptr<httppeer>);
     void http_clientrun(std::shared_ptr<httppeer>, unsigned int id_index);
@@ -93,19 +91,14 @@ class ThreadPool
     unsigned int getmixthreads() { return mixthreads.load(); };
 
     ~ThreadPool();
-    std::string name;// 测试共享
+    // std::string name;// 测试共享
   private:
-    // need to keep track of threads so we can join them
-    // std::vector<std::thread> workers;
-    // the task queue
-    // std::queue<std::function<void()>> tasks;
     std::queue<std::shared_ptr<httppeer>> clienttasks;
     // synchronization
     std::mutex queue_mutex, livemtx;
     std::condition_variable condition;
     bool stop;
     bool isclose_add = true;
-    // std::map<std::thread::id, struct threadinfo_t> threadlist;
     std::atomic<unsigned int> pooltotalnum, mixthreads;
     std::atomic<unsigned int> livethreadcount;
 
