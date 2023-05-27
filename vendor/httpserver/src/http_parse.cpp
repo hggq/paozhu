@@ -616,8 +616,8 @@ void httpparse::methodprocess()
     header_value.clear();
     header_key.clear();
     buffer_key.clear();
-    //pathinfo.clear();
-    // url.clear();
+    // pathinfo.clear();
+    //  url.clear();
     peer->pathinfos.clear();
     for (; ioffset < linesize; ioffset++)
     {
@@ -728,6 +728,54 @@ void httpparse::methodprocess()
     peer->url                   = http::url_decode(header_value.data(), header_value.length());
     peer->querystring           = http::url_decode(header_key.data(), header_key.length());
 
+    if (peer->pathinfos.size() > 0)
+    {
+        for (unsigned int i = 0; i < peer->pathinfos.size(); i++)
+        {
+            unsigned int j = 0;
+            unsigned int n = 0;
+            for (; n < peer->pathinfos[i].size(); n++)
+            {
+                if (peer->pathinfos[i][n] == '.')
+                {
+                    if ((n + 1) < peer->pathinfos[i].size() && peer->pathinfos[i][n + 1] == '.')
+                    {
+                        n += 1;
+                        continue;
+                    }
+                }
+                else if (peer->pathinfos[i][n] == '/')
+                {
+                    continue;
+                }
+                j++;
+            }
+            if (j < peer->pathinfos[i].size())
+            {
+                n = 0;
+                j = 0;
+                for (; n < peer->pathinfos[i].size(); n++)
+                {
+                    if (peer->pathinfos[i][n] == '.')
+                    {
+                        if ((n + 1) < peer->pathinfos[i].size() && peer->pathinfos[i][n + 1] == '.')
+                        {
+                            n += 1;
+                            continue;
+                        }
+                    }
+                    else if (peer->pathinfos[i][n] == '/')
+                    {
+                        continue;
+                    }
+                    peer->pathinfos[i][j] = peer->pathinfos[i][n];
+                    j++;
+                }
+                peer->pathinfos[i].resize(j);
+            }
+        }
+    }
+
     if (headerstep == 7)
     {
         // parameter
@@ -806,8 +854,8 @@ void httpparse::methodprocess()
     //       }
     //       break;
     // }
-    //httpversion = 0;
-    //version.clear();
+    // httpversion = 0;
+    // version.clear();
     // for (; ioffset < linesize; ioffset++)
     // {
     //       if (contentline[ioffset] >= '0' && contentline[ioffset] <= '9')
@@ -970,7 +1018,7 @@ void httpparse::getrange()
 
     if (strcasecmp(buffer_value.c_str(), "bytes") == 0)
     {
-        //state.rangebytes = true;
+        // state.rangebytes = true;
         peer->state.rangebytes = true;
     }
     buffer_value.clear();
@@ -994,7 +1042,7 @@ void httpparse::getrange()
                     tm = tm * 10 + (buffer_value[qi] - 0x30);
                 }
             }
-            //state.rangebegin = tm;
+            // state.rangebegin = tm;
             peer->state.rangebegin = tm;
             buffer_value.clear();
             continue;
@@ -1012,7 +1060,7 @@ void httpparse::getrange()
                 tm = tm * 10 + (buffer_value[qi] - 0x30);
             }
         }
-        //state.rangeend = tm;
+        // state.rangeend = tm;
         peer->state.rangeend = tm;
     }
 }
@@ -1054,7 +1102,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
         if (contentline.size() > 0)
         {
 
-            //headerrawcontent.emplace_back(contentline);
+            // headerrawcontent.emplace_back(contentline);
             if (headerstep == 0 && checkmethod())
             {
                 methodprocess();
@@ -1092,7 +1140,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                 }
                 if (header_key.size() > 0)
                 {
-                    //header[header_key] = header_value;
+                    // header[header_key] = header_value;
                     peer->header[header_key] = header_value;
                     switch (header_key.size())
                     {
@@ -1456,12 +1504,12 @@ void httpparse::getupgrade()
 
     if (strcasecmp(header_value.c_str(), "websocket") == 0)
     {
-        //state.websocket = true;
+        // state.websocket = true;
         peer->state.websocket = true;
     }
     else if (strcasecmp(header_value.c_str(), "h2c") == 0)
     {
-        //state.h2c = true;
+        // state.h2c = true;
         peer->state.h2c = true;
     }
 }
@@ -1500,21 +1548,21 @@ void httpparse::getacceptencoding()
             case 2:
                 if (buffer_value[0] == 'b')
                 {
-                    //state.br = true;
+                    // state.br = true;
                     peer->state.br = true;
                 }
                 break;
             case 4:
                 if (buffer_value[0] == 'g')
                 {
-                    //state.gzip = true;
+                    // state.gzip = true;
                     peer->state.gzip = true;
                 }
                 break;
             case 7:
                 if (buffer_value[0] == 'd')
                 {
-                    //state.deflate = true;
+                    // state.deflate = true;
                     peer->state.deflate = true;
                 }
                 break;
@@ -1537,21 +1585,21 @@ void httpparse::getacceptencoding()
         case 2:
             if (buffer_value[0] == 'b')
             {
-                //state.br = true;
+                // state.br = true;
                 peer->state.br = true;
             }
             break;
         case 4:
             if (buffer_value[0] == 'g')
             {
-                //state.gzip = true;
+                // state.gzip = true;
                 peer->state.gzip = true;
             }
             break;
         case 7:
             if (buffer_value[0] == 'd')
             {
-                //state.deflate = true;
+                // state.deflate = true;
                 peer->state.deflate = true;
             }
             break;
@@ -1577,7 +1625,7 @@ void httpparse::getcookie()
         if (header_value[i] == 0x3B)
         {
             buffer_value = http::url_decode(buffer_value.data(), buffer_value.length());
-            //cookie[buffer_key] = buffer_value;
+            // cookie[buffer_key] = buffer_value;
             peer->cookie[buffer_key] = buffer_value;
             buffer_key.clear();
             buffer_value.clear();
@@ -1592,14 +1640,14 @@ void httpparse::getcookie()
     if (buffer_value.size() > 0)
     {
         buffer_value = http::url_decode(buffer_value.data(), buffer_value.length());
-        //cookie[buffer_key] = buffer_value;
+        // cookie[buffer_key] = buffer_value;
         peer->cookie[buffer_key] = buffer_value;
     }
     else
     {
         if (buffer_key.size() > 0)
         {
-            //cookie[buffer_key] = "";
+            // cookie[buffer_key] = "";
             peer->cookie[buffer_key] = "";
         }
         buffer_key.clear();
@@ -1625,7 +1673,7 @@ void httpparse::getheaderhost()
     }
     std::transform(peer->host.begin(), peer->host.end(), peer->host.begin(), ::tolower);
     // peer_session->stream[1].host=host;
-    //peer->host = host;
+    // peer->host = host;
     if (ishasport == 1)
     {
         for (; ioffset < linesize; ioffset++)
@@ -1636,7 +1684,7 @@ void httpparse::getheaderhost()
             }
         }
     }
-    //state.port = port;
+    // state.port = port;
     peer->state.port = port;
 }
 void httpparse::readboundaryline(const unsigned char *buffer, unsigned int buffersize)
@@ -1918,12 +1966,12 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
             upfile.tempfile = localvar.temp_path;
             upfile.tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
 
-            //uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+            // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
             uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
             if (!uprawfile)
             {
                 upfile.tempfile.append("_t");
-                //uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+                // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
                 uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
                 if (!uprawfile)
                 {
@@ -2610,12 +2658,12 @@ void httpparse::readformraw(const unsigned char *buffer, unsigned int buffersize
         upfile.tempfile = localvar.temp_path;
         upfile.tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
 
-        //uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+        // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
         uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
         if (!uprawfile)
         {
             upfile.tempfile.append("_t");
-            //uprawfile = fopen(upfile.tempfile.c_str(), "wb");
+            // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
             uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
             if (!uprawfile)
             {
@@ -2635,10 +2683,10 @@ void httpparse::readformraw(const unsigned char *buffer, unsigned int buffersize
     {
         if (uprawfile)
         {
-            //fclose(uprawfile);
+            // fclose(uprawfile);
             uprawfile.reset(nullptr);
         }
-        //uprawfile = NULL;
+        // uprawfile = NULL;
         peer->files["tempraw"].set_array();
         peer->files["tempraw"]["name"]     = "tempraw";
         peer->files["tempraw"]["filename"] = "";
@@ -2744,7 +2792,7 @@ void httpparse::clear()
     peer->state.ifmodifiedsince   = 0;
     peer->state.rangebegin        = 0;
     peer->state.rangeend          = 0;
-    //headerrawcontent.clear();
+    // headerrawcontent.clear();
     peer->send_header.clear();
     peer->send_cookie.clear();
     peer->header.clear();
@@ -2783,4 +2831,4 @@ void httpparse::clear()
     peer->websocket.ext.clear();
 }
 
-} //namespace http
+}// namespace http

@@ -896,7 +896,6 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 {
     try
     {
-
         serverconfig &sysconfigpath = getserversysconfig();
         std::string _send_header;
         std::string _send_data;
@@ -905,9 +904,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         DEBUG_LOG("%s", peer->host.c_str());
         DEBUG_LOG("%s", peer->header["user-agent"].c_str());
 
-        peer->sitepath = sysconfigpath.getsitepath(peer->host);
-
+        peer->sitepath         = sysconfigpath.getsitepath(peer->host);
         unsigned char sendtype = peer->get_fileinfo();
+
+        DEBUG_LOG("http2loop:%s %d", peer->sendfilename.c_str(), sendtype);
         if (sendtype == 1)
         {
             if (peer->state.rangebytes)
@@ -1553,6 +1553,7 @@ void httpserver::http1loop(unsigned int stream_id,
     serverconfig &sysconfigpath = getserversysconfig();
     peer->sitepath              = sysconfigpath.getsitepath(peer->host);
     unsigned char sendtype      = peer->get_fileinfo();
+
     DEBUG_LOG("http1loop:%s %d", peer->sendfilename.c_str(), sendtype);
     if (sendtype == 1)
     {

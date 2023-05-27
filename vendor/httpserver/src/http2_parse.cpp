@@ -384,7 +384,55 @@ void http2parse::path_process(const std::string &header_name, const std::string 
         http_data[block_steamid]->header["urlpath"] = data_info[block_steamid].buffer_value;
         http_data[block_steamid]->urlpath           = http_data[block_steamid]->url;
     }
-
+    if (http_data[block_steamid]->pathinfos.size() > 0)
+    {
+        for (unsigned int i = 0; i < http_data[block_steamid]->pathinfos.size(); i++)
+        {
+            unsigned int j = 0;
+            unsigned int n = 0;
+            for (; n < http_data[block_steamid]->pathinfos[i].size(); n++)
+            {
+                if (http_data[block_steamid]->pathinfos[i][n] == '.')
+                {
+                    if ((n + 1) < http_data[block_steamid]->pathinfos[i].size() &&
+                        http_data[block_steamid]->pathinfos[i][n + 1] == '.')
+                    {
+                        n += 1;
+                        continue;
+                    }
+                }
+                else if (http_data[block_steamid]->pathinfos[i][n] == '/')
+                {
+                    continue;
+                }
+                j++;
+            }
+            if (j < http_data[block_steamid]->pathinfos[i].size())
+            {
+                n = 0;
+                j = 0;
+                for (; n < http_data[block_steamid]->pathinfos[i].size(); n++)
+                {
+                    if (http_data[block_steamid]->pathinfos[i][n] == '.')
+                    {
+                        if ((n + 1) < http_data[block_steamid]->pathinfos[i].size() &&
+                            http_data[block_steamid]->pathinfos[i][n + 1] == '.')
+                        {
+                            n += 1;
+                            continue;
+                        }
+                    }
+                    else if (http_data[block_steamid]->pathinfos[i][n] == '/')
+                    {
+                        continue;
+                    }
+                    http_data[block_steamid]->pathinfos[i][j] = http_data[block_steamid]->pathinfos[i][n];
+                    j++;
+                }
+                http_data[block_steamid]->pathinfos[i].resize(j);
+            }
+        }
+    }
     // if (http_data[block_steamid]->pathinfos.size() > 0)
     // {
     //     http_data[block_steamid]->urlpath.clear();
