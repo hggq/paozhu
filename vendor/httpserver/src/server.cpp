@@ -1594,7 +1594,6 @@ void httpserver::http1loop(unsigned int stream_id,
         try
         {
             clientrunpool.addclient(peer);
-
             peer->loopresults.front().get();
             peer->loopresults.pop_front();
         }

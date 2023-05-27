@@ -445,6 +445,17 @@ unsigned char httppeer::get_fileinfo()
     serverconfig &sysconfigpath = getserversysconfig();
 
     sendfilename = sitepath;
+    if (sendfilename.size() > 0)
+    {
+        if (sendfilename.back() != '/')
+        {
+            sendfilename.push_back('/');
+        }
+    }
+    else
+    {
+        sendfilename.push_back('/');
+    }
     for (unsigned int i = 0; i < pathinfos.size(); i++)
     {
         if (i > 0)
@@ -491,19 +502,14 @@ unsigned char httppeer::get_fileinfo()
         {
             sendfiletype             = 2;
             unsigned int nowpathsize = sendfilename.size();
-            if (sendfilename.back() == '/')
-            {
-                sendfilename.append(sysconfigpath.map_value["default"]["index"]);
-            }
-            else
+            if (sendfilename.size() > 0 && sendfilename.back() != '/')
             {
                 sendfilename.push_back('/');
-                sendfilename.append(sysconfigpath.map_value["default"]["index"]);
             }
+            sendfilename.append(sysconfigpath.map_value["default"]["index"]);
             memset(&fileinfo, 0, sizeof(fileinfo));
             if (stat(sendfilename.c_str(), &fileinfo) == 0)
             {
-
                 if (fileinfo.st_mode & S_IFREG)
                 {
                     sendfiletype = 1;

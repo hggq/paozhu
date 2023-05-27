@@ -385,6 +385,21 @@ void http2parse::path_process(const std::string &header_name, const std::string 
         http_data[block_steamid]->urlpath           = http_data[block_steamid]->url;
     }
 
+    // if (http_data[block_steamid]->pathinfos.size() > 0)
+    // {
+    //     http_data[block_steamid]->urlpath.clear();
+    //     for (unsigned int i = 0; i < http_data[block_steamid]->pathinfos.size(); i++)
+    //     {
+    //         http_data[block_steamid]->urlpath.push_back('/');
+    //         http_data[block_steamid]->urlpath.append(http_data[block_steamid]->pathinfos[i]);
+    //     }
+    // }
+    // else
+    // {
+    //     http_data[block_steamid]->header["urlpath"] = "/";
+    //     http_data[block_steamid]->urlpath           = "/";
+    // }
+
     data_info[block_steamid].buffer_key.clear();
     if (headerstep == 6)
     {
@@ -720,6 +735,18 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 http_data[block_steamid]->method = 2;
             }
+            else if (strcasecmp(header_value.c_str(), "head") == 0)
+            {
+                http_data[block_steamid]->method = 4;
+            }
+            else if (strcasecmp(header_value.c_str(), "put") == 0)
+            {
+                http_data[block_steamid]->method = 5;
+            }
+            else if (strcasecmp(header_value.c_str(), "delete") == 0)
+            {
+                http_data[block_steamid]->method = 6;
+            }
             http_data[block_steamid]->header["method"] = header_value;
             break;
         case 3:
@@ -734,6 +761,18 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             else if (strcasecmp(header_value.c_str(), "POST") == 0)
             {
                 http_data[block_steamid]->method = 2;
+            }
+            else if (strcasecmp(header_value.c_str(), "head") == 0)
+            {
+                http_data[block_steamid]->method = 4;
+            }
+            else if (strcasecmp(header_value.c_str(), "put") == 0)
+            {
+                http_data[block_steamid]->method = 5;
+            }
+            else if (strcasecmp(header_value.c_str(), "delete") == 0)
+            {
+                http_data[block_steamid]->method = 6;
             }
             http_data[block_steamid]->header["method"] = header_value;
             break;
@@ -800,6 +839,18 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 {
                     http_data[block_steamid]->method = 2;
                 }
+                else if (strcasecmp(header_value.c_str(), "head") == 0)
+                {
+                    http_data[block_steamid]->method = 4;
+                }
+                else if (strcasecmp(header_value.c_str(), "put") == 0)
+                {
+                    http_data[block_steamid]->method = 5;
+                }
+                else if (strcasecmp(header_value.c_str(), "delete") == 0)
+                {
+                    http_data[block_steamid]->method = 6;
+                }
                 http_data[block_steamid]->header["method"] = header_value;
             }
             break;
@@ -812,7 +863,6 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         case 12:
             if (strcasecmp(header_name.c_str(), "Content-Type") == 0)
             {
-
                 getcontenttype(header_name, header_value);
             }
             break;
@@ -3049,7 +3099,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
 
             fieldheader_temp = data_info[block_steamid].upfile.filename + std::to_string(http::timeid()) + fieldname;
 
-            data_info[block_steamid].upfile.tempfile = localvar.temp_path; // + "temp/";
+            data_info[block_steamid].upfile.tempfile = localvar.temp_path;// + "temp/";
             data_info[block_steamid].upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
 
             DEBUG_LOG("filename:%s", data_info[block_steamid].upfile.tempfile.c_str());
@@ -3145,7 +3195,7 @@ void http2parse::readrawfileformdata(const unsigned char *buffer, unsigned int b
         std::string fieldheader_temp =
             data_info[block_steamid].upfile.filename + std::to_string(http::timeid()) + "rawcontent";
 
-        data_info[block_steamid].upfile.tempfile = localvar.temp_path; // + "temp/";
+        data_info[block_steamid].upfile.tempfile = localvar.temp_path;// + "temp/";
         data_info[block_steamid].upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
         // data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
         data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
@@ -3364,4 +3414,4 @@ void http2parse::process(const unsigned char *buffer, unsigned int buffersize)
         }
     }
 }
-} // namespace http
+}// namespace http
