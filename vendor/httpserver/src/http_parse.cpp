@@ -728,54 +728,6 @@ void httpparse::methodprocess()
     peer->url                   = http::url_decode(header_value.data(), header_value.length());
     peer->querystring           = http::url_decode(header_key.data(), header_key.length());
 
-    if (peer->pathinfos.size() > 0)
-    {
-        for (unsigned int i = 0; i < peer->pathinfos.size(); i++)
-        {
-            unsigned int j = 0;
-            unsigned int n = 0;
-            for (; n < peer->pathinfos[i].size(); n++)
-            {
-                if (peer->pathinfos[i][n] == '.')
-                {
-                    if ((n + 1) < peer->pathinfos[i].size() && peer->pathinfos[i][n + 1] == '.')
-                    {
-                        n += 1;
-                        continue;
-                    }
-                }
-                else if (peer->pathinfos[i][n] == '/')
-                {
-                    continue;
-                }
-                j++;
-            }
-            if (j < peer->pathinfos[i].size())
-            {
-                n = 0;
-                j = 0;
-                for (; n < peer->pathinfos[i].size(); n++)
-                {
-                    if (peer->pathinfos[i][n] == '.')
-                    {
-                        if ((n + 1) < peer->pathinfos[i].size() && peer->pathinfos[i][n + 1] == '.')
-                        {
-                            n += 1;
-                            continue;
-                        }
-                    }
-                    else if (peer->pathinfos[i][n] == '/')
-                    {
-                        continue;
-                    }
-                    peer->pathinfos[i][j] = peer->pathinfos[i][n];
-                    j++;
-                }
-                peer->pathinfos[i].resize(j);
-            }
-        }
-    }
-
     if (headerstep == 7)
     {
         // parameter

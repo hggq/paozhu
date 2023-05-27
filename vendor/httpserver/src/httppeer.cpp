@@ -465,6 +465,59 @@ unsigned char httppeer::get_fileinfo()
         sendfilename.append(pathinfos[i]);
     }
 
+    if (sendfilename.size() > 0)
+    {
+        unsigned int j = 0;
+        unsigned int n = 0;
+        for (; n < sendfilename.size(); n++)
+        {
+            if (sendfilename[n] == '.')
+            {
+                if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '.')
+                {
+                    n += 1;
+                    for (; n < sendfilename.size();)
+                    {
+                        if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                        {
+                            n += 1;
+                        }
+                        break;
+                    }
+                    continue;
+                }
+            }
+            j++;
+        }
+        if (j < sendfilename.size())
+        {
+            n = 0;
+            j = 0;
+            for (; n < sendfilename.size(); n++)
+            {
+                if (sendfilename[n] == '.')
+                {
+                    if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '.')
+                    {
+                        n += 1;
+                        for (; n < sendfilename.size();)
+                        {
+                            if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                            {
+                                n += 1;
+                            }
+                            break;
+                        }
+                        continue;
+                    }
+                }
+                sendfilename[j] = sendfilename[n];
+                j++;
+            }
+            sendfilename.resize(j);
+        }
+    }
+
     if (pathinfos.size() > 0)
     {
         filenamebase = pathinfos.back();
@@ -483,6 +536,11 @@ unsigned char httppeer::get_fileinfo()
         {
             if (filenamebase[filenameoffset] == '.')
             {
+                break;
+            }
+            else if (filenamebase[filenameoffset] == '/')
+            {
+                filenameoffset = filebasesize - 1;
                 break;
             }
         }
