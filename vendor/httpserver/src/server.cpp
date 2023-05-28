@@ -476,7 +476,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
                         }
                         path_temp.push_back('/');
                         path_temp.append(etag);
-                        if (peer->state.br)
+                        if (peer->isssl && peer->state.br)
                         {
                             peer->compress = 2;
                             path_temp.append(".br");
@@ -496,14 +496,14 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
                             file_size = fread(&htmlcontent[0], 1, file_size, fpcompress.get());
                             htmlcontent.resize(file_size);
                             is_not_cache_content = false;
-                            if (peer->state.br)
-                            {
-                                peer->compress = 2;
-                            }
-                            else if (peer->state.gzip)
-                            {
-                                peer->compress = 1;
-                            }
+                            // if (peer->state.br)
+                            // {
+                            //     peer->compress = 2;
+                            // }
+                            // else if (peer->state.gzip)
+                            // {
+                            //     peer->compress = 1;
+                            // }
                         }
                     }
                 }
@@ -514,20 +514,20 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
                     htmlcontent.resize(file_size);
                     std::string tempcompress;
 
-                    if (peer->state.br)
+                    if (peer->compress == 2)
                     {
                         brotli_encode(htmlcontent, tempcompress);
-                        peer->compress = 2;
-                        htmlcontent    = tempcompress;
+                        // peer->compress = 2;
+                        htmlcontent = tempcompress;
                     }
-                    else if (peer->state.gzip)
+                    else if (peer->compress == 1)
                     {
 
                         if (compress(htmlcontent.data(), htmlcontent.size(), tempcompress, Z_DEFAULT_COMPRESSION) ==
                             Z_OK)
                         {
-                            htmlcontent    = tempcompress;
-                            peer->compress = 1;
+                            htmlcontent = tempcompress;
+                            // peer->compress = 1;
                         }
                     }
                 }
@@ -1186,6 +1186,7 @@ bool httpserver::http1_send_file(unsigned int streamid,
 
         unsigned int filebasesize   = peer->sendfilename.size();
         unsigned int filenameoffset = 0;
+        peer->compress              = 0;
 
         if (filebasesize > 0)
         {
@@ -1202,9 +1203,10 @@ bool httpserver::http1_send_file(unsigned int streamid,
                 fileexttype.push_back(peer->sendfilename[filenameoffset]);
             }
         }
-
+        DEBUG_LOG("http1_send_file:%s [%s|%s]", peer->sendfilename.c_str(), peer->etag.c_str(), etag.c_str());
         if (peer->etag == etag)
         {
+            DEBUG_LOG("http1_send_file:status 304");
             peer->status(304);
             peer->length(0);
             peer->set_header("date", get_gmttime());
@@ -1258,7 +1260,7 @@ bool httpserver::http1_send_file(unsigned int streamid,
                         }
                         path_temp.push_back('/');
                         path_temp.append(etag);
-                        if (peer->state.br)
+                        if (peer->isssl && peer->state.br)
                         {
                             peer->compress = 2;
                             path_temp.append(".br");
@@ -1271,6 +1273,7 @@ bool httpserver::http1_send_file(unsigned int streamid,
                         FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), &std::fclose);
                         if (fpcompress.get())
                         {
+                            DEBUG_LOG("http1_send_file:file compress %s %d", path_temp.c_str(), peer->compress);
                             fseek(fpcompress.get(), 0, SEEK_END);
                             unsigned long long file_size = ftell(fpcompress.get());
                             fseek(fpcompress.get(), 0, SEEK_SET);
@@ -1278,14 +1281,14 @@ bool httpserver::http1_send_file(unsigned int streamid,
                             file_size = fread(&htmlcontent[0], 1, file_size, fpcompress.get());
                             htmlcontent.resize(file_size);
                             is_not_cache_content = false;
-                            if (peer->state.br)
-                            {
-                                peer->compress = 2;
-                            }
-                            else if (peer->state.gzip)
-                            {
-                                peer->compress = 1;
-                            }
+                            // if (peer->state.br)
+                            // {
+                            //     peer->compress = 2;
+                            // }
+                            // else if (peer->state.gzip)
+                            // {
+                            //     peer->compress = 1;
+                            // }
                         }
                     }
                 }
@@ -1296,21 +1299,21 @@ bool httpserver::http1_send_file(unsigned int streamid,
                     htmlcontent.resize(file_size);
 
                     std::string tempcompress;
-                    if (peer->state.gzip)
+                    if (peer->compress == 1)
                     {
 
                         if (compress(htmlcontent.data(), htmlcontent.size(), tempcompress, Z_DEFAULT_COMPRESSION) ==
                             Z_OK)
                         {
-                            htmlcontent    = tempcompress;
-                            peer->compress = 1;
+                            htmlcontent = tempcompress;
+                            // peer->compress = 1;
                         }
                     }
-                    else if (peer->state.br)
+                    else if (peer->compress == 2)
                     {
                         brotli_encode(htmlcontent, tempcompress);
-                        peer->compress = 2;
-                        htmlcontent    = tempcompress;
+                        // peer->compress = 2;
+                        htmlcontent = tempcompress;
                     }
                 }
 
@@ -1358,6 +1361,7 @@ bool httpserver::http1_send_file(unsigned int streamid,
                 mime_value = "text/plain";
             }
         }
+        DEBUG_LOG("http1_send_file:file exttype %s %lld", mime_value.c_str(), file_size);
         peer->status(200);
         peer->length(file_size);
         peer->type(mime_value);
