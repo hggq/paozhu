@@ -25,7 +25,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ✅10. 框架使用asio自带的协程  
 ✅11. 框架特色是I/O 使用协程池 用户代码运行使用线程池,类似GO那种调度，只是针对http请求调度  
 ✅12. 框架支持普通文件gzip、br,并支持缓存到磁盘，下次不用cpu再压缩  
-✅13. 框架解析URL和POST,解析结果类似PHP GET POST方式获取内容  
+✅13. URL、POST和上传文件,解析结果client.get[] client.post[] client.files[]方式获取内容  
 ✅14. 自带sendmail类库  
 ✅15. 生成二维码(qrcode),需要gd、qrencode库  
 ✅16. 插件化编程，热动态更新，使用动态库方式  

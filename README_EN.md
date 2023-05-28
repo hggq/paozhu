@@ -28,8 +28,7 @@ Discussing the joy of C++ web development with community developers.
 ✅10. The framework uses asio Coroutines  
 ✅11. The framework features that I/O uses the coroutine pool to run and thread pool to run  
 ✅12. The framework supports compress gzip br out files  
-✅13. The framework parses the URL and POST. The parsing result is similar to the PHP GET POST method to obtain the
-content  
+✅13. URL POST Upload Files. use client.get[] client.post[] client.files[] get    
 ✅14. Integrated sendmail  
 ✅15. Generating QR code requires gd and qrencode libraries  
 ✅16. Plugin module,Hot Module Replacement  
