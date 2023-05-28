@@ -145,7 +145,18 @@ sudo ./bin/paozhu
 
 更多细节请查看`controller`目录下源码，包含`CRUD`示例
 
-### 7.相关教程
+
+###  7.压力测试
+
+使用 h2load 和 ab 测试
+
+![ApacheBench test](https://www.paozhu.org/images/ab_stress_test.png "ApacheBench test")  
+
+![h2load test](https://www.paozhu.org/images/h2load_stress_test.png "h2load test")  
+
+
+
+### 8.相关教程
 
 1. [Paozhu 框架原理](https://github.com/hggq/paozhu/wiki/paozhu-cpp-web-framework-%E6%A1%86%E6%9E%B6%E5%8E%9F%E7%90%86)
 
@@ -157,17 +168,17 @@ sudo ./bin/paozhu
 
 5. [Paozhu 框架CRUD教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
 
-### 8.路线图
+### 9.路线图
 
 * [x] 增强http特性
 * [x] Websocket 客户端
 * [x] 支持windows操作系统
 * [x] Postgres、sqlite ORM 支持
 
-### 9.贡献👏👋
+### 10.贡献👏👋
 
 欢迎提issue互相交流，当然也欢迎大家踊跃PR
 
-### 10.LICENSE
+### 11.LICENSE
 
 Paozhu遵循[MIT 开源协议](LICENSE)
