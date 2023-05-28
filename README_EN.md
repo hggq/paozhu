@@ -36,7 +36,8 @@ content
 ✅17. The framework supports cache Module，ORM supports Result save to cache  
 ✅18. The controller directory cpp files annotation auto pick to url mapping  
 ✅19. Struct or class annotation to JSON Object, json_encode json_decode function  
- 
+✅20. support full demo admin backend, visit url /admin/main  
+
 
 ### 2.Runtime environment
 
