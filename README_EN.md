@@ -16,7 +16,7 @@ Discussing the joy of C++ web development with community developers.
 
 ### 1.Features🔥🔥🔥🔥🔥
 
-✅ 1. support json decode encode, not use thirdparty, support json standard  
+✅ 1. Support json decode encode, not use thirdparty, support json standard  
 ✅ 2. Support multiple domain name websites  
 ✅ 3. Support multiple domain name ssl server  
 ✅ 4. Support http/1.1 and http/2 protocols  
@@ -36,7 +36,7 @@ content
 ✅17. The framework supports cache Module，ORM supports Result save to cache  
 ✅18. The controller directory cpp files annotation auto pick to url mapping  
 ✅19. Struct or class annotation to JSON Object, json_encode json_decode function  
-✅20. support full demo admin backend, visit url /admin/main  
+✅20. Support full demo admin backend, visit url /admin/main  
 
 
 ### 2.Runtime environment
