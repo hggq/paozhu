@@ -25,7 +25,7 @@ endif()
 if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))  
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
     message("Debug mode:${CMAKE_C_FLAGS_DEBUG}")
-    set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
+    set(CMAKE_CXX_FLAGS " -Wall -Wextra -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
 
 
 elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release")) 
@@ -37,7 +37,7 @@ elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
 else()
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
     message("Debug mode")
-    set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
+    set(CMAKE_CXX_FLAGS " -Wall -Wextra -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
   
 endif()
 
