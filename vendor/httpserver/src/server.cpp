@@ -1170,7 +1170,7 @@ bool httpserver::http1_send_file(unsigned int streamid,
                                  std::shared_ptr<client_session> peer_session,
                                  const std::string &filename)
 {
-    DEBUG_LOG("http1_send_file:%s %ld", filename.c_str(), streamid);
+    DEBUG_LOG("http1_send_file:%s %u", filename.c_str(), streamid);
     FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
     if (fp.get())
     {
@@ -1420,7 +1420,7 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
                                        std::shared_ptr<client_session> peer_session,
                                        const std::string &filename)
 {
-    DEBUG_LOG("http1_send_file_range %s %lld", filename.c_str(), streamid);
+    DEBUG_LOG("http1_send_file_range %s %u", filename.c_str(), streamid);
 
     FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
     if (fp.get())

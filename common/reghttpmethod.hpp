@@ -72,7 +72,7 @@ void _inithttpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
 
     temp.regfun = [](std::shared_ptr<httppeer> peer) -> std::string
     {
-        peer->output aa = "hello world!";
+        peer->output = "hello world!";
         return "";
     };
     methodcallback.emplace("helloworld", temp);

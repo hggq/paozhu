@@ -22,7 +22,7 @@ struct obj_reflect_type
     unsigned char typevalue;// 0 null 1 struct 2 class 3 func  10 float 11 double 12 char 13 unsigned char 14 long long
                             // 15 unsigned long long  16 int 17 unsigned  20 string 21 vector 22 map 23 array 30 other
     bool ispublic = true;   // 0 public 1 private
-    void display(int level = 0) { level = 1 }
+    // void display(int level = 0) { level = 1; }
 };
 
 class typejsonfiles
@@ -1092,7 +1092,7 @@ class typejsonfiles
         std::string tempobjname = "json_reflectobj.";
         unsigned int ishas      = 0;
         std::string obj_name_array_tempname;
-        levelnum    = 0;
+        levelnum++;
         tempcontent = R"(  
      unsigned int json_decode()";
         tempcontent += jsonobjtypename;
@@ -1809,7 +1809,7 @@ class typejsonfiles
         std::string tempcontent;
         std::string tempobjname = jsonobjtypename + ".";
         unsigned ishas          = 0;
-        levelnum += 1;
+        levelnum++;
         std::string obj_name_array_tempname;
         std::string ptype_tempname;
 

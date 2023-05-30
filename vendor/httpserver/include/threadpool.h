@@ -50,17 +50,17 @@ namespace http
 
 struct threadinfo_t
 {
-    unsigned int index;
+    unsigned int index = 0;
     std::thread::id id;
     std::thread thread;
-    bool stop  = false;
-    bool busy  = false;
-    bool close = false;
-    unsigned int timelimit;// 0为不限制
-    unsigned long long begin;
-    unsigned long long end;
-    char ip[65]  = {0};
-    char url[65] = {0};
+    bool stop                = false;
+    bool busy                = false;
+    bool close               = false;
+    unsigned int timelimit   = 0;// 0为不限制
+    unsigned long long begin = 0;
+    unsigned long long end   = 0;
+    char ip[65]              = {0};
+    char url[65]             = {0};
 };
 struct thread_config
 {

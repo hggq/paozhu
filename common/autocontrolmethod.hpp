@@ -21,6 +21,7 @@
 #include "testqrcode.h"
 #include "imageapi.h"
 #include "testpzcache.h"
+#include "testhello.h"
 #include "testcmake.h"
 #include "testjsonreflect.h"
 #include "testaddclienttask.h"
@@ -158,6 +159,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testshowcache;
 		methodcallback.emplace("testshowcache",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhello;
+		methodcallback.emplace("hello",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcmake;
 		methodcallback.emplace("ccmake",temp);
