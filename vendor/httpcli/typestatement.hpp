@@ -19,10 +19,10 @@ struct obj_reflect_type
     std::string varname;
     std::string namespacename;
     std::vector<obj_reflect_type> children;
-    unsigned char typevalue; // 0 null 1 struct 2 class 3 func  10 float 11 double 12 char 13 unsigned char 14 long long
-                             // 15 unsigned long long  16 int 17 unsigned  20 string 21 vector 22 map 23 array 30 other
-    bool ispublic = true;    // 0 public 1 private
-    void display(int level = 0) {}
+    unsigned char typevalue;// 0 null 1 struct 2 class 3 func  10 float 11 double 12 char 13 unsigned char 14 long long
+                            // 15 unsigned long long  16 int 17 unsigned  20 string 21 vector 22 map 23 array 30 other
+    bool ispublic = true;   // 0 public 1 private
+    void display(int level = 0) { level = 1 }
 };
 
 class typejsonfiles
@@ -1092,7 +1092,7 @@ class typejsonfiles
         std::string tempobjname = "json_reflectobj.";
         unsigned int ishas      = 0;
         std::string obj_name_array_tempname;
-
+        levelnum    = 0;
         tempcontent = R"(  
      unsigned int json_decode()";
         tempcontent += jsonobjtypename;
@@ -3169,7 +3169,7 @@ unsigned int json_decode(std::vector<)";
                                        std::string pre_name  = "",
                                        unsigned int levelnum = 0)
     {
-
+        levelnum = 0;
         std::string maincontent;
         std::string selfitem = "std::vector<" + jsonobjtypename + ">";
         if (json_reflect_data.name.size() > 0 && json_reflect_data.name[0] == '_')

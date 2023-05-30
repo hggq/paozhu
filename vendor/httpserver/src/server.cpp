@@ -1170,7 +1170,7 @@ bool httpserver::http1_send_file(unsigned int streamid,
                                  std::shared_ptr<client_session> peer_session,
                                  const std::string &filename)
 {
-
+    DEBUG_LOG("http1_send_file:%s %ld", filename.c_str(), streamid);
     FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
     if (fp.get())
     {
@@ -1420,6 +1420,8 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
                                        std::shared_ptr<client_session> peer_session,
                                        const std::string &filename)
 {
+    DEBUG_LOG("http1_send_file_range %s %lld", filename.c_str(), streamid);
+
     FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
     if (fp.get())
     {
@@ -1541,15 +1543,15 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
     }
     return true;
 }
-bool httpserver::http1_send_body(unsigned int streamid,
-                                 std::shared_ptr<httppeer> peer,
-                                 std::shared_ptr<client_session> peer_session,
-                                 const unsigned char *buffer,
-                                 unsigned int begin_end)
-{
+// bool httpserver::http1_send_body(unsigned int streamid,
+//                                  std::shared_ptr<httppeer> peer,
+//                                  std::shared_ptr<client_session> peer_session,
+//                                  const unsigned char *buffer,
+//                                  unsigned int begin_end)
+// {
 
-    return true;
-}
+//     return true;
+// }
 void httpserver::http1loop(unsigned int stream_id,
                            std::shared_ptr<httppeer> peer,
                            std::shared_ptr<client_session> peer_session)
@@ -1644,6 +1646,7 @@ void httpserver::http1_send_bad_server(unsigned int error_code,
                                        std::shared_ptr<httppeer> peer,
                                        std::shared_ptr<client_session> peer_session)
 {
+    error_code      = 0;
     std::string str = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/html; charset=utf-8\r\nConnection: "
                       "close\r\nContent-Length: ";
     std::string stfilecom = "<h3>500 Internal Server Error</h3>";
@@ -1716,7 +1719,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                 total_count--;
                 co_return;
             }
-
+            peer->httpv = httpversion;
 #ifdef DEBUG
             {
                 DEBUG_LOG("new client in");
@@ -2075,6 +2078,7 @@ void httpserver::websocket_loop(int myid)
     unsigned frame_count_per_second = 0;
     auto prev_time_in_seconds       = time_point_cast<seconds>(m_BeginFrame);
     unsigned int fps                = 0;
+    myid                            = 0;
     for (;;)
     {
         if (this->websockettasks.empty() && this->clientlooptasks.empty())

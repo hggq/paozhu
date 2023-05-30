@@ -203,7 +203,7 @@ bool ThreadPool::addthread(size_t threads)
 
     for (size_t i = 0; i < threads; ++i)
     {
-        struct threadinfo_t tinfo;
+        threadinfo_t tinfo;
 
         unsigned int index_num = 0;
         for (; index_num < thread_arrays.size(); index_num++)

@@ -71,12 +71,13 @@ namespace fs = std::filesystem;
 namespace http
 {
 
-  class httpserver
-  {
+class httpserver
+{
   public:
     httpserver() {}
     asio::awaitable<void> clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion);
-    asio::awaitable<void> sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &context_, unsigned long long temp_domain);
+    asio::awaitable<void>
+    sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &context_, unsigned long long temp_domain);
 
     void http2pool(int threadid);
     asio::awaitable<void> http2loop(std::shared_ptr<httppeer>);
@@ -94,26 +95,33 @@ namespace http
     int checkhttp2(std::shared_ptr<client_session> peer_session);
     void http1_send_bad_request(unsigned int, std::shared_ptr<client_session>);
     void http1_send_bad_server(unsigned int, std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
-    bool http1_send_body(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const unsigned char *buffer, unsigned int begin_end);
-    bool http1_send_file(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const std::string &filename);
-    bool http1_send_file_range(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, const std::string &filename);
+    /*bool http1_send_body(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session>
+     * peer_session, const unsigned char *buffer, unsigned int begin_end);*/
+    bool http1_send_file(unsigned int streamid,
+                         std::shared_ptr<httppeer> peer,
+                         std::shared_ptr<client_session> peer_session,
+                         const std::string &filename);
+    bool http1_send_file_range(unsigned int streamid,
+                               std::shared_ptr<httppeer> peer,
+                               std::shared_ptr<client_session> peer_session,
+                               const std::string &filename);
     void run(const std::string &);
 
     void add_nullptrlog(const std::string &logstrb);
     void httpwatch();
     ~httpserver()
     {
-      std::printf("~httpserver\n");
+        std::printf("~httpserver\n");
 
-      io_context.stop();
+        io_context.stop();
 
-      for (unsigned int i = 0; i < runthreads.size(); ++i)
-      {
-        if (runthreads[i].joinable())
+        for (unsigned int i = 0; i < runthreads.size(); ++i)
         {
-          runthreads[i].join();
+            if (runthreads[i].joinable())
+            {
+                runthreads[i].join();
+            }
         }
-      }
     }
 
   public:
@@ -123,9 +131,9 @@ namespace http
     std::vector<std::thread> runthreads;
     std::vector<std::thread> websocketthreads;
     std::list<std::weak_ptr<httppeer>> websockettasks;
-    std::list<std::pair<std::size_t,std::shared_ptr<httppeer>>> clientlooptasks;
+    std::list<std::pair<std::size_t, std::shared_ptr<httppeer>>> clientlooptasks;
     std::queue<httpsocket_t> tasks;
- 
+
     bool stop;
     std::atomic_uint total_count = 0;
     // httpheader end
@@ -144,9 +152,10 @@ namespace http
     std::mutex websocket_task_mutex;
     std::condition_variable websocketcondition;
 
-    const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32, 0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};
-  };
-  httpserver &get_server_app();
-  void add_server_timetask(std::shared_ptr<httppeer>);
-}
+    const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32,
+                                        0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};
+};
+httpserver &get_server_app();
+void add_server_timetask(std::shared_ptr<httppeer>);
+}// namespace http
 #endif
