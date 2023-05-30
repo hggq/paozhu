@@ -23,17 +23,19 @@ if(ENABLE_GD STREQUAL "ON")
 endif()
 
 if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))  
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -Werror")
     message("Debug mode:${CMAKE_C_FLAGS_DEBUG}")
     set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
 
 
 elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release")) 
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O3")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -O3")
     message("Release mode:${CMAKE_CXX_FLAGS_RELEASE}")
     set(CMAKE_CXX_FLAGS "  -pthread  -DASIO_STANDALONE ${BOOST_OPEN} ${GD_OPEN}  -I/usr/local/include -I/usr/local/mysql/include -I/usr/include -I/usr/include/mysql  " )
     file(MAKE_DIRECTORY /usr/local/etc/paozhu)
     file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/conf/ DESTINATION /usr/local/etc/paozhu/)
 else()
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -Werror")
     message("Debug mode")
     set(CMAKE_CXX_FLAGS "  -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
   
