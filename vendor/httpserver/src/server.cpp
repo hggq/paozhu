@@ -905,7 +905,12 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         DEBUG_LOG("%s", peer->header["user-agent"].c_str());
 
         peer->sitepath         = sysconfigpath.getsitepath(peer->host);
-        unsigned char sendtype = peer->get_fileinfo();
+        unsigned char sendtype = 0;
+        sendtype               = peer->has_urlfileext();
+        if (sendtype < 4)
+        {
+            sendtype = peer->get_fileinfo();
+        }
 
         DEBUG_LOG("http2loop:%s %d", peer->sendfilename.c_str(), sendtype);
         if (sendtype == 1)
@@ -1112,7 +1117,7 @@ void httpserver::http2send_filedata(struct http2sendblock_t &http2_ff_send)
 }
 void httpserver::http2pool(int threadid)
 {
-    long long tmp =threadid;
+    long long tmp = threadid;
     while (true)
     {
         if (this->http2send_tasks.empty())
@@ -1134,8 +1139,7 @@ void httpserver::http2pool(int threadid)
                 }
                 else
                 {
-                    tmp =
-                        std::chrono::duration_cast<std::chrono::microseconds>(start - (iter->last_time)).count();
+                    tmp = std::chrono::duration_cast<std::chrono::microseconds>(start - (iter->last_time)).count();
                     if (iter->pre_size > 10485760)
                     {
                         tmp = tmp * 3;
@@ -1153,7 +1157,7 @@ void httpserver::http2pool(int threadid)
             http2send_tasks.clear();
         }
         const auto end = std::chrono::steady_clock::now();
-        tmp  = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        tmp            = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         if (tmp < 20)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -1558,7 +1562,12 @@ void httpserver::http1loop(unsigned int stream_id,
 {
     serverconfig &sysconfigpath = getserversysconfig();
     peer->sitepath              = sysconfigpath.getsitepath(peer->host);
-    unsigned char sendtype      = peer->get_fileinfo();
+    unsigned char sendtype      = 0;
+    sendtype                    = peer->has_urlfileext();
+    if (sendtype < 4)
+    {
+        sendtype = peer->get_fileinfo();
+    }
 
     DEBUG_LOG("http1loop:%s %d", peer->sendfilename.c_str(), sendtype);
     if (sendtype == 1)
@@ -2562,7 +2571,7 @@ void httpserver::httpwatch()
     struct flock lockstr        = {};
     unsigned int mysqlpool_time = 1;
     std::size_t n_write         = 0;
-    updatetimetemp=0;
+    updatetimetemp              = 0;
     for (;;)
     {
         if (catch_num > 10)

@@ -69,6 +69,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::list<std::string> cookietoheader();
     std::string get_hosturl();
     std::string get_sitepath();
+    unsigned char has_urlfileext();
     void goto_url(const std::string &url, unsigned char second = 0, const std::string &msg = "");
     bool isset_type();
 
@@ -208,6 +209,7 @@ struct regmethold_t
 };
 // extern std::map<std::string, std::function<std::string(std::shared_ptr<httppeer>)>> _http_regmethod_table;
 extern std::map<std::string, regmethold_t> _http_regmethod_table;
+extern std::map<std::string, std::vector<std::string>> _http_regurlpath_table;
 void make_404_content(std::shared_ptr<httppeer> peer);
-} // namespace http
+}// namespace http
 #endif

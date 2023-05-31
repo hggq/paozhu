@@ -695,6 +695,10 @@ namespace http
         fwrite(&headtxt[0], 1, headtxt.size(), f);
 
         headtxt            = R"(
+                     if(vinfo.viewsopath.empty()&&obj.is_array())
+                     {
+
+                     }
                      std::ostringstream echo;
 
         )";
@@ -731,5 +735,5 @@ namespace http
     std::string custrominclude;
     bool codein = true;
 };
-} //namespace http
-#endif // PROJECT_TEMPLATEPARSE_HPP
+}// namespace http
+#endif// PROJECT_TEMPLATEPARSE_HPP

@@ -438,6 +438,130 @@ bool httppeer::isshow_directory()
     }
     return false;
 }
+unsigned char httppeer::has_urlfileext()
+{
+    unsigned char temp = 0;
+    if (pathinfos.size() > 0)
+    {
+        for (unsigned i = 0, n = pathinfos.size() - 1; i < pathinfos[n].size(); i++)
+        {
+            if (pathinfos[n][i] == '.')
+            {
+                temp = 1;
+                break;
+            }
+        }
+    }
+    if (temp == 0)
+    {
+        sendfilename.clear();
+        for (unsigned int i = 0; i < pathinfos.size(); i++)
+        {
+            if (pathinfos[i].size() > 0 && pathinfos[i][0] == '{')
+            {
+                break;
+            }
+
+            if (i > 0)
+            {
+                sendfilename.append("/");
+            }
+            sendfilename.append(pathinfos[i]);
+        }
+        if (sendfilename.size() > 0)
+        {
+            unsigned int j = 0;
+            unsigned int n = 0;
+            for (; n < sendfilename.size(); n++)
+            {
+                if (sendfilename[n] == '.')
+                {
+                    if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '.')
+                    {
+                        n += 1;
+                        for (; n < sendfilename.size();)
+                        {
+                            if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                            {
+                                n += 1;
+                                continue;
+                            }
+                            break;
+                        }
+                        continue;
+                    }
+                    else if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                    {
+                        n += 1;
+                        for (; n < sendfilename.size();)
+                        {
+                            if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                            {
+                                n += 1;
+                                continue;
+                            }
+                            break;
+                        }
+                        continue;
+                    }
+                }
+                j++;
+            }
+            if (j < sendfilename.size())
+            {
+                n = 0;
+                j = 0;
+                for (; n < sendfilename.size(); n++)
+                {
+                    if (sendfilename[n] == '.')
+                    {
+                        if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '.')
+                        {
+                            n += 1;
+                            for (; n < sendfilename.size();)
+                            {
+                                if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                                {
+                                    n += 1;
+                                    continue;
+                                }
+                                break;
+                            }
+                            continue;
+                        }
+                        else if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                        {
+                            n += 1;
+                            for (; n < sendfilename.size();)
+                            {
+                                if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
+                                {
+                                    n += 1;
+                                    continue;
+                                }
+                                break;
+                            }
+                            continue;
+                        }
+                    }
+                    sendfilename[j] = sendfilename[n];
+                    j++;
+                }
+                sendfilename.resize(j);
+            }
+
+            if (_http_regmethod_table.contains(sendfilename))
+            {
+                serverconfig &sysconfigpath = getserversysconfig();
+                if (!sysconfigpath.siteusehtmlchache || pathinfos.size() < 4)
+                {
+                    temp = 4;
+                }
+            }
+        }
+    }
+    return temp;
+}
 unsigned char httppeer::get_fileinfo()
 {
 
@@ -619,7 +743,7 @@ unsigned char httppeer::get_fileinfo()
             // long)fileinfo.st_mtime)){
             //     pathtype=3;
             // }
-            if (sysconfigpath.siteusehtmlchache && pathinfos.size() > 2 && sysconfigpath.siteusehtmlchachetime > 10 &&
+            if (sysconfigpath.siteusehtmlchache && pathinfos.size() > 3 && sysconfigpath.siteusehtmlchachetime > 10 &&
                 sysconfigpath.siteusehtmlchachetime < (timeid() - (unsigned long)fileinfo.st_mtime))
             {
                 sendfiletype = 3;
@@ -631,6 +755,9 @@ unsigned char httppeer::get_fileinfo()
 std::shared_ptr<httppeer> httppeer::get_ptr() { return shared_from_this(); }
 void httppeer::send_files(std::string filename)
 {
+    if (filename.size() > 0)
+    {
+    }
     // socket_session->send_data("hello world!");
 }
 unsigned int httppeer::get_status() { return status_code; }

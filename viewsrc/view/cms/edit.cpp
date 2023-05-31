@@ -26,6 +26,10 @@ namespace view {
  		 std::string edit(const struct view_param &vinfo,http::OBJ_VALUE &obj)
 			{
  
+                     if(vinfo.viewsopath.empty()&&obj.is_array())
+                     {
+
+                     }
                      std::ostringstream echo;
 
         
