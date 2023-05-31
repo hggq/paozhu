@@ -26,7 +26,7 @@ namespace view {
  		 std::string addarticle(const struct view_param &vinfo,http::OBJ_VALUE &obj)
 			{
  
-                     if(vinfo.viewsopath.empty()&&obj.is_array())
+                     if(sizeof(vinfo)||obj.is_array())
                      {
 
                      }

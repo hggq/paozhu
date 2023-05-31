@@ -233,7 +233,7 @@ void http2parse::headers_parse(unsigned int info_steamid)
 
     if (ispost)
     {
-        DEBUG_LOG("http2 post client: %s", http_data[block_steamid]->url.c_str());
+        DEBUG_LOG("http2 post client: %s %ud", http_data[block_steamid]->url.c_str(), info_steamid);
         window_update_recv_num = RECV_WINDOW_UPDATE_NUM;
         peer_session->send_window_update(window_update_recv_num, block_steamid);
         data_info[block_steamid].stream_id      = block_steamid;
@@ -259,9 +259,8 @@ void http2parse::headers_parse(unsigned int info_steamid)
 }
 void http2parse::cookie_process(const std::string &header_name, const std::string &header_value)
 {
-
-    unsigned int i = 0, linesize;
-    linesize       = header_value.size();
+    DEBUG_LOG("path_process:%s:%s", header_name.c_str(), header_value.c_str());
+    unsigned int i = 0, linesize = header_value.size();
     data_info[block_steamid].buffer_key.clear();
     data_info[block_steamid].buffer_value.clear();
     for (; i < linesize; i++)
@@ -306,7 +305,7 @@ void http2parse::cookie_process(const std::string &header_name, const std::strin
 }
 void http2parse::path_process(const std::string &header_name, const std::string &header_value)
 {
-
+    DEBUG_LOG("path_process:%s:%s", header_name.c_str(), header_value.c_str());
     data_info[block_steamid].buffer_key.clear();
     data_info[block_steamid].buffer_value.clear();
     unsigned char headerstep = 0;
@@ -641,9 +640,8 @@ void http2parse::procssparamter()
 }
 void http2parse::range_process(const std::string &header_name, const std::string &header_value)
 {
-
-    unsigned int j = 0, linesize;
-    linesize       = header_value.size();
+    DEBUG_LOG("range_process:%s:%s", header_name.c_str(), header_value.c_str());
+    unsigned int j = 0, linesize = header_value.size();
     data_info[block_steamid].buffer_value.clear();
     for (; j < linesize; j++)
     {
@@ -922,6 +920,9 @@ void http2parse::getacceptlanguage(const std::string &header_name, const std::st
         http_data[block_steamid]->state.language[i] = header_value[i];
         if (i > 6)
         {
+            if (sizeof(header_name))
+            {
+            }
             break;
         }
     }
@@ -932,8 +933,7 @@ void http2parse::getacceptlanguage(const std::string &header_name, const std::st
 }
 void http2parse::getacceptencoding(const std::string &header_name, const std::string &header_value)
 {
-    unsigned int i = 0, linesize;
-    linesize       = header_value.size();
+    unsigned int i = 0, linesize = header_value.size();
 
     data_info[block_steamid].buffer_value.clear();
     for (; i < linesize; i++)
@@ -959,6 +959,9 @@ void http2parse::getacceptencoding(const std::string &header_name, const std::st
                 if (data_info[block_steamid].buffer_value[0] == 'd')
                 {
                     http_data[block_steamid]->state.deflate = true;
+                    if (sizeof(header_name))
+                    {
+                    }
                 }
                 break;
             default:;
@@ -1003,6 +1006,9 @@ void http2parse::getacceptencoding(const std::string &header_name, const std::st
 void http2parse::getifnonematch(const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0;
+    if (header_name.empty())
+    {
+    }
     http_data[block_steamid]->etag.clear();
     if (header_value[i] == 'W' || header_value[i] == 'w')
     {
@@ -1087,8 +1093,7 @@ void http2parse::callposttype()
 
 void http2parse::getcontenttype(const std::string &header_name, const std::string &header_value)
 {
-    unsigned int i = 0, linesize;
-    linesize       = header_value.size();
+    unsigned int i = 0, linesize = header_value.size();
     data_info[block_steamid].buffer_value.clear();
     unsigned char statetemp           = 0;
     data_info[block_steamid].posttype = 0;
@@ -1142,6 +1147,9 @@ void http2parse::getcontenttype(const std::string &header_name, const std::strin
         if (statetemp == 1)
         {
             http_data[block_steamid]->chartset = data_info[block_steamid].buffer_value;
+            if (sizeof(header_name))
+            {
+            }
         }
         else if (statetemp == 2)
         {
@@ -1155,9 +1163,7 @@ void http2parse::getcontenttype(const std::string &header_name, const std::strin
 }
 void http2parse::getaccept(const std::string &header_name, const std::string &header_value)
 {
-    unsigned int i = 0, linesize;
-    linesize       = header_value.size();
-
+    unsigned int i = 0, linesize = header_value.size();
     data_info[block_steamid].buffer_value.clear();
 
     for (; i < linesize; i++)
@@ -1201,6 +1207,9 @@ void http2parse::getaccept(const std::string &header_name, const std::string &he
                 data_info[block_steamid].buffer_value[8] == 'i' && data_info[block_steamid].buffer_value[9] == 'f')
             {
                 http_data[block_steamid]->state.avif = true;
+                if (sizeof(header_name))
+                {
+                }
             }
             else if (data_info[block_steamid].buffer_value[6] == 'w' &&
                      data_info[block_steamid].buffer_value[7] == 'e' &&
@@ -1218,6 +1227,7 @@ void http2parse::headertype1(unsigned char c, std::string_view header_data, unsi
     unsigned char a = c & 0x7F;
     std::string name_key;
     std::string value;
+
     if (a < 62)
     {
         name_key = http2_header_static_table[a].key;
@@ -1251,6 +1261,9 @@ void http2parse::headertype1(unsigned char c, std::string_view header_data, unsi
         else
         {
             header_process(http2_header_static_table[a].key, http2_header_static_table[a].value, a);
+            if (sizeof(header_data) || begin || end)
+            {
+            }
         }
     }
     else
@@ -1886,6 +1899,7 @@ void http2parse::readsetting(const unsigned char *buffer, unsigned int buffersiz
     {
         readoffset += blocklength;
         processheader = 0;
+        DEBUG_LOG("readsetting 0x01 %ul", buffersize);
         return;
     }
 
@@ -1940,7 +1954,7 @@ void http2parse::readpriority(const unsigned char *buffer, unsigned int buffersi
 {
     unsigned int pin;
     pin = readoffset + blocklength;
-
+    DEBUG_LOG("readpriority %ul", buffersize);
     unsigned int ident_stream;
 
     for (unsigned int n = readoffset; n < pin; n += 5)
@@ -1960,9 +1974,14 @@ void http2parse::readpriority(const unsigned char *buffer, unsigned int buffersi
     readoffset += 5;
     processheader = 0;
 }
-void http2parse::readdata(const unsigned char *buffer, unsigned int buffersize) { readoffset += blocklength; }
+void http2parse::readdata(const unsigned char *buffer, unsigned int buffersize)
+{
+    DEBUG_LOG("readdata %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
+    readoffset += blocklength;
+}
 void http2parse::readgoaway(const unsigned char *buffer, unsigned int buffersize)
 {
+    DEBUG_LOG("readgoaway %ul", buffersize);
     unsigned int j = readoffset;
     unsigned int ident_stream;
     ident_stream = buffer[j];
@@ -1995,16 +2014,19 @@ void http2parse::readgoaway(const unsigned char *buffer, unsigned int buffersize
 
 void http2parse::readsubdata(const unsigned char *buffer, unsigned int buffersize)
 {
+    DEBUG_LOG("readsubdata %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
     processheader = 0;
 }
 void http2parse::readcontinuation(const unsigned char *buffer, unsigned int buffersize)
 {
+    DEBUG_LOG("readcontinuation %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
     processheader = 0;
 }
 void http2parse::readwinupdate(const unsigned char *buffer, unsigned int buffersize)
 {
+    DEBUG_LOG("readcontinuation %ul", buffersize);
     unsigned int ident_stream, j;
     j            = readoffset;
     ident_stream = buffer[j];
@@ -2055,6 +2077,7 @@ void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
 }
 void http2parse::readrst_stream(const unsigned char *buffer, unsigned int buffersize)
 {
+    DEBUG_LOG("readrst_stream %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
     processheader                     = 0;
     http_data[block_steamid]->isclose = true;
@@ -3125,6 +3148,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
 
 void http2parse::readboundaryline(const unsigned char *buffer, unsigned int &begin, unsigned int buffersize)
 {
+    DEBUG_LOG("readboundaryline:%ul\n", buffersize);
     unsigned int ni = 0, baseoffset = begin;
     if (buffer[begin] == '-' && buffer[begin + 1] == '-')
     {

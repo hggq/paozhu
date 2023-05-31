@@ -695,7 +695,7 @@ namespace http
         fwrite(&headtxt[0], 1, headtxt.size(), f);
 
         headtxt            = R"(
-                     if(sizeof(viewsopath)||obj.is_array())
+                     if(sizeof(vinfo)||obj.is_array())
                      {
 
                      }
