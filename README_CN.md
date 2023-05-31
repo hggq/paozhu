@@ -156,7 +156,35 @@ sudo ./bin/paozhu
 
 
 
-### 8.相关教程
+###  8.代码例子 Hello world
+
+在 `controller` 目录 ,testhello.cpp 文件
+
+```c++
+#include <chrono>
+#include <thread>
+#include "httppeer.h"
+#include "testhello.h"
+namespace http
+{
+//@urlpath(null,hello)
+std::string testhello(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+    client << " Hello world! 🧨 Paozhu c++ web framework ";
+
+    return "";
+}
+
+}// namespace http
+```
+浏览器打开 `http://localhost/hello`  
+
+`//@urlpath(null,hello)` 为注解功能
+
+
+
+### 9.相关教程
 
 1. [Paozhu 框架原理](https://github.com/hggq/paozhu/wiki/paozhu-cpp-web-framework-%E6%A1%86%E6%9E%B6%E5%8E%9F%E7%90%86)
 
@@ -168,17 +196,21 @@ sudo ./bin/paozhu
 
 5. [Paozhu 框架CRUD教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
 
-### 9.路线图
+### 10.路线图
 
-* [x] 增强http特性
+* [x] 增强http特性，主要进行HTTP/1 HTTP/2稳定性测试，抗各种黑客软件扫描
+* [x] 用C++代码解析JSX文件进行服务器端渲染
+* [x] 采集client框架，支持协程，多线程，协议转发
 * [x] Websocket 客户端
 * [x] 支持windows操作系统
-* [x] Postgres、sqlite ORM 支持
+* [x] Postgres、sqlite ORM 支持 
+* [x] 支持后端php-fpm，代替apache做前端
+* [x] 直接解析Mysql协议，跟ORM模块无缝集成，提高性能
 
-### 10.贡献👏👋
+### 11.贡献👏👋
 
 欢迎提issue互相交流，当然也欢迎大家踊跃PR
 
-### 11.LICENSE
+### 12.LICENSE
 
 Paozhu遵循[MIT 开源协议](LICENSE)
