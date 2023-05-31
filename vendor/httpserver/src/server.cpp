@@ -1112,7 +1112,7 @@ void httpserver::http2send_filedata(struct http2sendblock_t &http2_ff_send)
 }
 void httpserver::http2pool(int threadid)
 {
-
+    long long tmp =threadid;
     while (true)
     {
         if (this->http2send_tasks.empty())
@@ -1134,7 +1134,7 @@ void httpserver::http2pool(int threadid)
                 }
                 else
                 {
-                    long long tmp =
+                    tmp =
                         std::chrono::duration_cast<std::chrono::microseconds>(start - (iter->last_time)).count();
                     if (iter->pre_size > 10485760)
                     {
@@ -1153,7 +1153,7 @@ void httpserver::http2pool(int threadid)
             http2send_tasks.clear();
         }
         const auto end = std::chrono::steady_clock::now();
-        long long tmp  = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        tmp  = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         if (tmp < 20)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -2546,7 +2546,7 @@ void httpserver::httpwatch()
 #endif
 
     int catch_num               = 0;
-    unsigned int updatetimetemp = 0;
+    unsigned int updatetimetemp = sysconfigpath.siteusehtmlchachetime;
     std::string currentpath;
     std::string error_path;
     server_loaclvar &static_server_var = get_server_global_var();
@@ -2562,6 +2562,7 @@ void httpserver::httpwatch()
     struct flock lockstr        = {};
     unsigned int mysqlpool_time = 1;
     std::size_t n_write         = 0;
+    updatetimetemp=0;
     for (;;)
     {
         if (catch_num > 10)

@@ -59,7 +59,7 @@ class mywebsockets : public websockets_api
         }
     }
 
-    void onfiles(std::string_view filename) { DEBUG_LOG("onfiles"); }
+    void onfiles(std::string_view filename) { DEBUG_LOG("onfiles %zu",filename.size());  }
     void onmessage(std::string_view data)
     {
         std::ostringstream oss;
