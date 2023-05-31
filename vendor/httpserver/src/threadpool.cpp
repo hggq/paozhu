@@ -332,7 +332,10 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 }
             }
         }
-
+        if (_http_regurlpath_table.size() > 0)
+        {
+            // restful api
+        }
         if (peer->pathinfos.size() > 1)
         {
             if (peer->pathinfos.size() > 2)

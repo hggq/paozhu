@@ -56,6 +56,7 @@ namespace http
 {
 
 std::map<std::string, regmethold_t> _http_regmethod_table;
+std::map<std::string, std::vector<std::string>> _http_regurlpath_table;
 void make_404_content(std::shared_ptr<httppeer> peer)
 {
     peer->output = "<h3>404 Not Found</h3>";

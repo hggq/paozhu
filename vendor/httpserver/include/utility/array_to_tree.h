@@ -124,7 +124,7 @@ void tree_to_array(std::vector<deps_json_type> &targetdata,
                 deps_json_type temp = sourcedata[i];
                 temp.children.clear();
                 targetdata.push_back(temp);
-                tree_to_array(targetdata, sourcedata[i].children, sourcedata[i].id);
+                tree_to_array(targetdata, sourcedata[i].children, sourcedata[i].id, level + 1);
             }
             else
             {
@@ -149,5 +149,5 @@ template <typename deps_json_type> std::string tree_to_json(std::vector<deps_jso
     stream << "]";
     return stream.str();
 }
-} // namespace http
+}// namespace http
 #endif
