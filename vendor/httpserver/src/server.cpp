@@ -911,7 +911,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         {
             sendtype = peer->get_fileinfo();
         }
-
+        else if (sendtype == 5)
+        {
+            sendtype = 1;
+        }
         DEBUG_LOG("http2loop:%s %d", peer->sendfilename.c_str(), sendtype);
         if (sendtype == 1)
         {
@@ -1567,6 +1570,10 @@ void httpserver::http1loop(unsigned int stream_id,
     if (sendtype < 4)
     {
         sendtype = peer->get_fileinfo();
+    }
+    else if (sendtype == 5)
+    {
+        sendtype = 1;
     }
 
     DEBUG_LOG("http1loop:%s %d", peer->sendfilename.c_str(), sendtype);

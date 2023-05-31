@@ -554,9 +554,43 @@ unsigned char httppeer::has_urlfileext()
             if (_http_regmethod_table.contains(sendfilename))
             {
                 serverconfig &sysconfigpath = getserversysconfig();
-                if (!sysconfigpath.siteusehtmlchache || pathinfos.size() < 4)
+                temp                        = 4;
+                if (sysconfigpath.siteusehtmlchache && pathinfos.size() == 3)
                 {
-                    temp = 4;
+                    memset(&fileinfo, 0, sizeof(fileinfo));
+                    if (sitepath.size() > 0 && sitepath.back() == '/')
+                    {
+                        sendfilename = sitepath + "/" + sendfilename;
+                    }
+                    else
+                    {
+                        if (sysconfigpath.wwwpath.size() > 0 && sitepath.back() == '/')
+                        {
+                            sendfilename = sysconfigpath.wwwpath + sendfilename;
+                        }
+                        else
+                        {
+                            sendfilename = sysconfigpath.wwwpath + "/" + sendfilename;
+                        }
+                    }
+
+                    if (sendfilename.size() > 0 && sendfilename.back() != '/')
+                    {
+                        sendfilename.push_back('/');
+                    }
+                    sendfilename.append(sysconfigpath.map_value["default"]["index"]);
+
+                    if (stat(sendfilename.c_str(), &fileinfo) == 0)
+                    {
+                        if (fileinfo.st_mode & S_IFREG)
+                        {
+                            if (sysconfigpath.siteusehtmlchachetime > 10 &&
+                                sysconfigpath.siteusehtmlchachetime > (timeid() - (unsigned long)fileinfo.st_mtime))
+                            {
+                                temp = 5;
+                            }
+                        }
+                    }
                 }
             }
         }
