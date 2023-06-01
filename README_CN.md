@@ -161,8 +161,6 @@ sudo ./bin/paozhu
 在 `controller` 目录 ,testhello.cpp 文件
 
 ```c++
-#include <chrono>
-#include <thread>
 #include "httppeer.h"
 #include "testhello.h"
 namespace http
