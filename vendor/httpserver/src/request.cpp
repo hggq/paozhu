@@ -1312,6 +1312,9 @@ bool array_write(FILE *f, const OBJ_ARRAY &a, unsigned int &length)
         fwrite(&key, sizeof(key), 1, f);
         value_write(f, second);
     }
+    if (true || length)
+    {
+    }
     return true;
 }
 

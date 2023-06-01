@@ -1,5 +1,3 @@
-#include <chrono>
-#include <thread>
 #include "httppeer.h"
 #include "testhello.h"
 namespace http
