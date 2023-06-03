@@ -1,6 +1,10 @@
 #ifndef HTTP_PEER_H
 #define HTTP_PEER_H
 
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
+#include <asio/io_context.hpp>
+
 #include <iostream>
 #include <cstdio>
 #include <stdexcept>
@@ -194,9 +198,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     std::shared_ptr<client_session> socket_session;
 
-    std::list<std::future<int>> loopresults;
-    std::promise<int> looprunpromise;
-
+    std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
     // 等待滑动窗口
     std::atomic_bool window_update_bool = false;
     std::list<std::future<int>> window_update_results;

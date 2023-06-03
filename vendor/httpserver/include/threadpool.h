@@ -83,11 +83,7 @@ class ThreadPool
     unsigned int getpoolthreadnum();
     std::string printthreads(bool);
     unsigned int getlivenum() { return livethreadcount.load(); };
-    unsigned int gettasknum()
-    {
-        return 0;
-        clienttasks.size();
-    };
+    unsigned int gettasknum() { return clienttasks.size(); };
     unsigned int getmixthreads() { return mixthreads.load(); };
 
     ~ThreadPool();

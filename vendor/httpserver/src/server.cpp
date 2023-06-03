@@ -953,25 +953,12 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             //////////////
             peer->linktype = 0;
 
-            std::promise<int> p;
-            std::future<int> f = p.get_future();
-            peer->loopresults.emplace_back(std::move(f));
-            peer->looprunpromise = std::move(p);
             peer->status(200);
             peer->content_type.clear();
             peer->etag.clear();
-            try
-            {
-                clientrunpool.addclient(peer);
 
-                peer->loopresults.front().get();
-                peer->loopresults.pop_front();
-            }
-            catch (const std::exception &e)
-            {
-                peer->status(500);
-            }
-            ////////////////////////
+            size_t length = co_await co_user_task(peer);    
+
 
             std::string tempcompress;
             peer->compress = 0;
@@ -993,9 +980,9 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                         else if (peer->state.gzip)
                         {
                             if (compress(peer->output.data(),
-                                         peer->output.size(),
-                                         tempcompress,
-                                         Z_DEFAULT_COMPRESSION) == Z_OK)
+                                            peer->output.size(),
+                                            tempcompress,
+                                            Z_DEFAULT_COMPRESSION) == Z_OK)
                             {
                                 peer->compress = 1;
                             }
@@ -1559,7 +1546,16 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
 
 //     return true;
 // }
-void httpserver::http1loop(unsigned int stream_id,
+  asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
+  {
+    auto initiate = [&,self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler) mutable
+    {
+      peer->user_code_handler_call.push_back(std::move(handler));
+      self->clientrunpool.addclient(peer);
+    };
+    return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h);
+  }
+ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
                            std::shared_ptr<httppeer> peer,
                            std::shared_ptr<client_session> peer_session)
 {
@@ -1594,8 +1590,8 @@ void httpserver::http1loop(unsigned int stream_id,
                                                    peer->urlpath,
                                                    peer->get["sort"].as_string(),
                                                    sysconfigpath.configpath);
-        std::string str =
-            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: Keep-Alive\r\nContent-Length: ";
+        std::string str         = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: "
+                                  "Keep-Alive\r\nContent-Length: ";
         str.append(std::to_string(htmlcontent.size()));
         str.append("\r\n\r\n");
         str.append(htmlcontent);
@@ -1607,23 +1603,12 @@ void httpserver::http1loop(unsigned int stream_id,
         peer->linktype = 0;
 
         peer->parse_session();
-        std::promise<int> p;
-        std::future<int> f = p.get_future();
-        peer->loopresults.emplace_back(std::move(f));
-        peer->looprunpromise = std::move(p);
+ 
         peer->status(200);
         peer->content_type.clear();
         peer->etag.clear();
-        try
-        {
-            clientrunpool.addclient(peer);
-            peer->loopresults.front().get();
-            peer->loopresults.pop_front();
-        }
-        catch (const std::exception &e)
-        {
-            peer->status(500);
-        }
+
+        size_t length = co_await co_user_task(peer);    
 
         if (peer->get_status() < 100)
         {
@@ -1643,7 +1628,8 @@ void httpserver::http1loop(unsigned int stream_id,
                 if (peer->output.size() > 100)
                 {
                     std::string tempcompress;
-                    if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+                    if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION)
+                    == Z_OK)
                     {
                         peer->output   = tempcompress;
                         peer->compress = 1;
@@ -1676,8 +1662,8 @@ void httpserver::http1_send_bad_request(unsigned int error_code, std::shared_ptr
 {
     std::string stfilecom = "<h3>400 Bad Request</h3>";
     stfilecom.append("<hr /><p>Error Code: " + std::to_string(error_code) + "</p>");
-    std::string str =
-        "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: ";
+    std::string str = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\nConnection: "
+                      "close\r\nContent-Length: ";
     str.append(std::to_string(stfilecom.size()));
     str.append("\r\n\r\n");
     str.append(stfilecom);
@@ -1907,7 +1893,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
 
                             continue;
                         }
-                        http1loop(1, peer, peer_session);
+                        co_await http1loop(1, peer, peer_session);
 
                         // LOG_OUT << "http1loop end" << LOG_END;
                         DEBUG_LOG("http1loop end");
@@ -2589,13 +2575,15 @@ void httpserver::httpwatch()
         try
         {
             std::this_thread::sleep_for(std::chrono::seconds(5));
-            if (clientrunpool.getlivenum() > (clientrunpool.getmixthreads() - 3))
+            if (clientrunpool.gettasknum() > 3)
             {
+                DEBUG_LOG("add thread:%d", clientrunpool.gettasknum());
                 clientrunpool.addthread(3);
                 updatetimetemp = 0;
             }
-            else if (clientrunpool.getpoolthreadnum() > clientrunpool.getmixthreads())
+            else if (clientrunpool.getlivenum() < 32)
             {
+                DEBUG_LOG("fix thread:%d", clientrunpool.getlivenum());
                 updatetimetemp += 1;
                 if (updatetimetemp == 5)
                 {
@@ -2603,7 +2591,8 @@ void httpserver::httpwatch()
                     updatetimetemp = 0;
                 }
             }
-            DEBUG_LOG("pool thread:%d", clientrunpool.getpoolthreadnum());
+            DEBUG_LOG("pool thread tasknum:%d %d", clientrunpool.gettasknum(), clientrunpool.getlivenum());
+
 #ifdef DEBUG
             clientrunpool.printthreads(false);
 #endif

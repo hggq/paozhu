@@ -36,6 +36,10 @@
 #include <functional>
 #include <stdexcept>
 
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
+#include <asio/io_context.hpp>
+
 #ifdef ENABLE_BOOST
 #include <boost/dll/import.hpp>
 #include <boost/function.hpp>
@@ -147,16 +151,28 @@ void ThreadPool::threadloop(int index)
 }
 bool ThreadPool::fixthread()
 {
-    unsigned int tempcount = thread_arrays.size();
-    if (tempcount < 128)
-    {
-        return false;
-    }
-    if (tempcount < (mixthreads.load() + 10))
-    {
-        return false;
-    }
+    // unsigned int tempcount = thread_arrays.size();
+    // if (tempcount < 32)
+    // {
+    //     return false;
+    // }
+    // if (tempcount < (mixthreads.load() + 10))
+    // {
+    //     return false;
+    // }
+    unsigned int tempcount = 0;
 
+    for (unsigned int i = 0; i < thread_arrays.size(); i++)
+    {
+        if (thread_arrays[i].close == false)
+        {
+            tempcount++;
+        }
+    }
+    if (tempcount < mixthreads.load())
+    {
+        return false;
+    }
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
         for (unsigned int i = 0; i < thread_arrays.size(); i++)
@@ -196,15 +212,13 @@ bool ThreadPool::fixthread()
 bool ThreadPool::addthread(size_t threads)
 {
 
-    if (thread_arrays.size() > 1024)
+    if (thread_arrays.size() > 1023)
     {
         return false;
     }
 
     for (size_t i = 0; i < threads; ++i)
     {
-        threadinfo_t tinfo;
-
         unsigned int index_num = 0;
         for (; index_num < thread_arrays.size(); index_num++)
         {
@@ -215,6 +229,7 @@ bool ThreadPool::addthread(size_t threads)
         }
         if (index_num == thread_arrays.size())
         {
+            threadinfo_t tinfo;
             thread_arrays.push_back(std::move(tinfo));
         }
         thread_arrays[index_num].thread = std::thread(&ThreadPool::threadloop, this, index_num);
@@ -605,36 +620,33 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
             make_404_content(peer);
 #endif
         }
-        if (peer->loopresults.size() > 0)
-        {
-            try
-            {
-                peer->looprunpromise.set_value(1);
-            }
-            catch (std::exception &e)
-            {
-                return;
-            }
-        }
+
+     
+        auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+        asio::dispatch(ex, [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                 { handler(1); });
+        peer->user_code_handler_call.pop_front();
+ 
     }
     catch (std::exception &e)
     {
-        if (peer->loopresults.size() > 0)
+        if(peer->user_code_handler_call.size()>0)
         {
-            if (peer->loopresults.front().valid())
-            {
-                peer->looprunpromise.set_exception(std::current_exception());
-            }
+         auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+        asio::dispatch(ex, [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                 { handler(1); });
+        peer->user_code_handler_call.pop_front();
         }
+
     }
     catch (...)
     {
-        if (peer->loopresults.size() > 0)
+        if(peer->user_code_handler_call.size()>0)
         {
-            if (peer->loopresults.front().valid())
-            {
-                peer->looprunpromise.set_exception(std::current_exception());
-            }
+         auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+        asio::dispatch(ex, [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                 { handler(1); });
+        peer->user_code_handler_call.pop_front();
         }
     }
 }
@@ -741,4 +753,5 @@ void ThreadPool::timetasks_run(std::shared_ptr<httppeer> peer, unsigned int id_i
     {
     }
 }
+
 }// namespace http
