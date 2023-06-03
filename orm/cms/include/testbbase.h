@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 26 Apr 2023 06:25:08 GMT
+*本文件为自动生成 Sat, 03 Jun 2023 06:12:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include "mysql.h"
 namespace orm { 
+   
      namespace cms { 
 
 struct testbbase
@@ -292,7 +293,16 @@ tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
                   std::vector<unsigned char> keypos;
                   for(;jj<fileld.size();jj++){
                         if(fileld[jj]==','){
-                               keypos.emplace_back(findcolpos(keyname)); 
+                                unsigned char bpos_i=findcolpos(keyname);
+                               keypos.emplace_back(bpos_i); 
+#ifdef DEBUG
+                    if (bpos_i == 254)
+                    {
+                        std::cout << "\033[1m\033[31m-----------\n"
+                                  << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
+                                  << std::endl;
+                    }
+#endif                               
                                keyname.clear();
                              continue;   
                         }
@@ -304,7 +314,16 @@ tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
 
                   }  
                  if(keyname.size()>0){
-                                keypos.emplace_back(findcolpos(keyname)); 
+                                unsigned char bpos_i=findcolpos(keyname);
+ #ifdef DEBUG
+                    if (bpos_i == 254)
+                    {
+                        std::cout << "\033[1m\033[31m-----------\n"
+                                  << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
+                                  << std::endl;
+                    }
+#endif                                       
+                                keypos.emplace_back(bpos_i); 
                                 keyname.clear();
                  }
                  for(jj=0;jj<keypos.size();jj++){
@@ -990,7 +1009,9 @@ std::vector<testbbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
     T& ref_meta(std::string key_name)
     {
-   		return nullptr; 
+   
+ if(sizeof(key_name)){};  
+		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
@@ -1069,6 +1090,8 @@ std::vector<testbbase::meta> getRecord(){
 
     
                     }
+                   
+    
                     return 0.0;
             }  
     
@@ -1081,6 +1104,11 @@ std::vector<testbbase::meta> getRecord(){
                 {
    
                 }
+                 
+    
+ if(sizeof(iter)){};  
+
+            
                 return 0.0;
             }  
     
@@ -1117,6 +1145,9 @@ std::vector<testbbase::meta> getRecord(){
 				 break;
 
                 }
+                
+    
+                 
                 return "";
             }  
      

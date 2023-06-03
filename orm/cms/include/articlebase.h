@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 24 May 2023 11:27:05 GMT
+*本文件为自动生成 Sat, 03 Jun 2023 06:12:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include "mysql.h"
 namespace orm { 
+   
      namespace cms { 
 
 struct articlebase
@@ -3153,7 +3154,9 @@ std::vector<articlebase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
     T& ref_meta(std::string key_name)
     {
-   		return nullptr; 
+   
+ if(sizeof(key_name)){};  
+		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
@@ -3313,6 +3316,8 @@ std::vector<articlebase::meta> getRecord(){
 
     
                     }
+                   
+    
                     return 0.0;
             }  
     
@@ -3325,6 +3330,11 @@ std::vector<articlebase::meta> getRecord(){
                 {
    
                 }
+                 
+    
+ if(sizeof(iter)){};  
+
+            
                 return 0.0;
             }  
     
@@ -3445,6 +3455,9 @@ std::vector<articlebase::meta> getRecord(){
 				 break;
 
                 }
+                
+    
+                 
                 return "";
             }  
      

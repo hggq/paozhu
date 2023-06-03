@@ -206,7 +206,7 @@ int createtabletoorm(std::string basefilepath,
     }
     mysql_free_result(result);
 
-    sqlqueryring = "SHOW CREATE TABLE "; // SHOW CREATE TABLE article;
+    sqlqueryring = "SHOW CREATE TABLE ";// SHOW CREATE TABLE article;
     sqlqueryring.append(realtablename);
 
     readnum = mysql_query(conn, &sqlqueryring[0]);
@@ -241,7 +241,7 @@ int createtabletoorm(std::string basefilepath,
 
     mysql_free_result(result);
 
-    sqlqueryring = "select * from "; // SHOW CREATE TABLE article;
+    sqlqueryring = "select * from ";// SHOW CREATE TABLE article;
     sqlqueryring.append(realtablename);
     sqlqueryring.append(" WHERE 0 LIMIT 1");
 
@@ -1090,6 +1090,7 @@ int createtabletoorm(std::string basefilepath,
 #include <unistd.h>
 #include "mysql.h"
 namespace orm { 
+   
     )";
     if (rmstag != "default")
     {
@@ -3634,6 +3635,10 @@ struct )";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
+    if (stringcollist.size() == 0)
+    {
+        headtxt.append("\n if(sizeof(key_name)){}; \n");
+    }
     headtxt.append("\t\treturn nullptr; \n\t}\n");
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -3657,6 +3662,10 @@ struct )";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
+    if (numbercollist.size() == 0)
+    {
+        headtxt.append("\n if(sizeof(key_name)){};  \n");
+    }
     headtxt.append("\t\treturn nullptr; \n\t}\n");
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -3679,6 +3688,10 @@ struct )";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
+    if (floatcollist.size() == 0)
+    {
+        headtxt.append("\n if(sizeof(key_name)){};  \n");
+    }
     headtxt.append("\t\treturn nullptr; \n\t}\n");
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -3873,8 +3886,11 @@ struct )";
         fwrite(&headtxt[0], headtxt.size(), 1, f);
         headtxt.clear();
     }
-
-    headtxt = R"(
+    if (sqlqueryring.size() == 0)
+    {
+        headtxt.append("\n if(sizeof(iter)){};  \n");
+    }
+    headtxt += R"(
             return 0;
         }  
     )";
@@ -3918,6 +3934,10 @@ struct )";
 
     headtxt = R"(
                     }
+                   
+    )";
+
+    headtxt += R"(
                     return 0.0;
             }  
     )";
@@ -3953,9 +3973,16 @@ struct )";
     headtxt.append(getcollstrem.str());
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
     headtxt = R"(
                 }
+                 
+    )";
+    if (floatcollist.size() == 0)
+    {
+        headtxt.append("\n if(sizeof(iter)){};  \n");
+    }
+    headtxt += R"(
+            
                 return 0.0;
             }  
     )";
@@ -4038,9 +4065,17 @@ struct )";
     headtxt.append(getcollstrem.str());
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
     headtxt = R"(
                 }
+                
+    )";
+    if (stringcollist.size() == 0)
+    {
+        headtxt.append("\n if(sizeof(iter)){};  \n");
+    }
+
+    headtxt += R"(
+                 
                 return "";
             }  
     )";
@@ -4176,7 +4211,12 @@ struct )";
         fwrite(&headtxt[0], headtxt.size(), 1, f);
         headtxt.clear();
     }
-    headtxt = R"(
+
+    if (sqlqueryring.size() == 0)
+    {
+        headtxt.append("\n if(sizeof(isyinhao)){}; \n");
+    }
+    headtxt += R"(
                 return a.str();
         }
     )";

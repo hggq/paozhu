@@ -957,8 +957,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             peer->content_type.clear();
             peer->etag.clear();
 
-            size_t length = co_await co_user_task(peer);    
-
+            sendtype = co_await co_user_task(peer);
 
             std::string tempcompress;
             peer->compress = 0;
@@ -980,9 +979,9 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                         else if (peer->state.gzip)
                         {
                             if (compress(peer->output.data(),
-                                            peer->output.size(),
-                                            tempcompress,
-                                            Z_DEFAULT_COMPRESSION) == Z_OK)
+                                         peer->output.size(),
+                                         tempcompress,
+                                         Z_DEFAULT_COMPRESSION) == Z_OK)
                             {
                                 peer->compress = 1;
                             }
@@ -1546,18 +1545,18 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
 
 //     return true;
 // }
-  asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
-  {
-    auto initiate = [&,self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler) mutable
+asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
+{
+    auto initiate = [&, self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler) mutable
     {
-      peer->user_code_handler_call.push_back(std::move(handler));
-      self->clientrunpool.addclient(peer);
+        peer->user_code_handler_call.push_back(std::move(handler));
+        self->clientrunpool.addclient(peer);
     };
     return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h);
-  }
- asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
-                           std::shared_ptr<httppeer> peer,
-                           std::shared_ptr<client_session> peer_session)
+}
+asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
+                                            std::shared_ptr<httppeer> peer,
+                                            std::shared_ptr<client_session> peer_session)
 {
     serverconfig &sysconfigpath = getserversysconfig();
     peer->sitepath              = sysconfigpath.getsitepath(peer->host);
@@ -1603,12 +1602,12 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
         peer->linktype = 0;
 
         peer->parse_session();
- 
+
         peer->status(200);
         peer->content_type.clear();
         peer->etag.clear();
 
-        size_t length = co_await co_user_task(peer);    
+        sendtype = co_await co_user_task(peer);
 
         if (peer->get_status() < 100)
         {
@@ -1628,8 +1627,7 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
                 if (peer->output.size() > 100)
                 {
                     std::string tempcompress;
-                    if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION)
-                    == Z_OK)
+                    if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
                     {
                         peer->output   = tempcompress;
                         peer->compress = 1;

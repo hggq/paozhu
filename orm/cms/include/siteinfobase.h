@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 23 May 2023 16:44:32 GMT
+*本文件为自动生成 Sat, 03 Jun 2023 06:12:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include "mysql.h"
 namespace orm { 
+   
      namespace cms { 
 
 struct siteinfobase
@@ -1437,7 +1438,9 @@ std::vector<siteinfobase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
     T& ref_meta(std::string key_name)
     {
-   		return nullptr; 
+   
+ if(sizeof(key_name)){};  
+		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
@@ -1525,6 +1528,8 @@ std::vector<siteinfobase::meta> getRecord(){
 
     
                     }
+                   
+    
                     return 0.0;
             }  
     
@@ -1537,6 +1542,11 @@ std::vector<siteinfobase::meta> getRecord(){
                 {
    
                 }
+                 
+    
+ if(sizeof(iter)){};  
+
+            
                 return 0.0;
             }  
     
@@ -1597,6 +1607,9 @@ std::vector<siteinfobase::meta> getRecord(){
 				 break;
 
                 }
+                
+    
+                 
                 return "";
             }  
      
