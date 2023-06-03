@@ -246,7 +246,7 @@ ThreadPool::ThreadPool(size_t threads) : stop(false)
     isclose_add = true;
     pooltotalnum.store(0);
     livethreadcount.store(0);
-    mixthreads.store(32);
+    mixthreads.store(16);
     for (size_t i = 0; i < threads; ++i)
     {
         struct threadinfo_t tinfo;

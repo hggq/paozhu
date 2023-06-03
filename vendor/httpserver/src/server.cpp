@@ -2575,7 +2575,7 @@ void httpserver::httpwatch()
         try
         {
             std::this_thread::sleep_for(std::chrono::seconds(5));
-            if (clientrunpool.gettasknum() > 3)
+            if (clientrunpool.gettasknum() > 1)
             {
                 DEBUG_LOG("add thread:%d", clientrunpool.gettasknum());
                 clientrunpool.addthread(3);
