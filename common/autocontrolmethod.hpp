@@ -163,6 +163,9 @@ namespace http
 		temp.regfun = testhello;
 		methodcallback.emplace("hello",temp);
 		temp.pre = nullptr;
+		temp.regfun = testhellobusy;
+		methodcallback.emplace("hellobusy",temp);
+		temp.pre = nullptr;
 		temp.regfun = testcmake;
 		methodcallback.emplace("ccmake",temp);
 		temp.pre = nullptr;
