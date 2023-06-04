@@ -40,7 +40,7 @@ struct headstate_t
     bool avif              = false;
     bool webp              = false;
     bool h2c               = false;
-    bool keeplive          = false;
+    bool keepalive         = false;
     bool websocket         = false;
     bool upgradeconnection = false;
     bool rangebytes        = false;
@@ -125,7 +125,7 @@ struct httpinfo
     bool br                = false;
     bool avif              = false;
     bool webp              = false;
-    bool keeplive          = false;
+    bool keepalive         = false;
     bool websocket         = false;
     bool upgradeconnection = false;
 

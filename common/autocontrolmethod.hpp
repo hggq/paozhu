@@ -9,6 +9,7 @@
 #include "httppeer.h" 
 
 #include "testmysqlinsert.h"
+#include "testrestfulpath.h"
 #include "testmodelfromjson.h"
 #include "teststrip_html.h"
 #include "testrand.h"
@@ -45,6 +46,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testmysqlpagebar;
 		methodcallback.emplace("mpagebar",temp);
+		temp.pre = nullptr;
+		temp.regfun = testrestfulpath;
+		methodcallback.emplace("user/info",temp);
+		temp.pre = nullptr;
+		temp.regfun = testrestfulprofilepath;
+		methodcallback.emplace("user/profile",temp);
 		temp.pre = nullptr;
 		temp.regfun = testmodelfromjson;
 		methodcallback.emplace("mfromjson",temp);

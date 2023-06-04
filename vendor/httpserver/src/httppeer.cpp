@@ -109,6 +109,20 @@ void httppeer::send(const std::string &a)
         socket_session->send_data(a);
     }
 }
+void httppeer::flush_out()
+{
+    // current empty chunk out
+    send_header["Transfer-Encoding"] = "chunked";
+    ischunked                        = true;
+    if (httpv == 2)
+    {
+        return;
+    }
+    if (socket_session)
+    {
+        return;
+    }
+}
 void httppeer::parse_session_file(std::string &sessionfile)
 {
     std::string root_path;
@@ -943,7 +957,7 @@ std::string httppeer::make_http1_header()
         http1header.append("\r\n");
     }
 
-    if (keeplive)
+    if (keepalive)
     {
         http1header.append("Connection: Keep-Alive\r\n");
     }

@@ -61,6 +61,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void get_header(const std::string &);
     void get_cookie(const std::string &);
 
+    void flush_out();
+
     void set_cookie(std::string key,
                     std::string val,
                     long long exptime      = 0,
@@ -158,7 +160,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool issend       = false;
     bool isclose      = false;
     bool isssl        = false;
-    bool keeplive     = true;
+    bool keepalive    = true;
     bool isso         = false;
 
     unsigned char posttype;

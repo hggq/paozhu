@@ -25,6 +25,7 @@
 #include "reghttpmethod.hpp"
 #include "reghttpmethod_pre.hpp"
 #include "regviewmethod.hpp"
+#include "autorestfulpaths.hpp"
 
 #ifdef ENABLE_BOOST
 #include "loadviewso.h"
@@ -1895,9 +1896,9 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
 
                         // LOG_OUT << "http1loop end" << LOG_END;
                         DEBUG_LOG("http1loop end");
-                        if (peer->state.keeplive == false)
+                        if (peer->state.keepalive == false)
                         {
-                            DEBUG_LOG("--- keeplive false --------");
+                            DEBUG_LOG("--- keepalive false --------");
                             break;
                         }
                         http1pre->clear();
@@ -2749,6 +2750,7 @@ void httpserver::run(const std::string &sysconfpath)
         _initauto_control_httpmethodregto(_http_regmethod_table);
         _inithttpmethodregto(_http_regmethod_table);
         _inithttpmethodregto_pre(_http_regmethod_table);
+        _initauto_control_httprestful_paths(_http_regurlpath_table);
         sendqueue &send_cache = get_sendqueue();
         send_cache.inti_sendqueue(512);
         auto &link_cache = get_client_data_cache();

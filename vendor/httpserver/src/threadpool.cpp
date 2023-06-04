@@ -312,6 +312,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
         std::set<std::string> method_alone;
         DEBUG_LOG("pool in");
         std::string regmethold_path;
+        bool isfindpath = false;
 
         server_loaclvar &static_server_var = get_server_global_var();
 
@@ -347,48 +348,59 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 }
             }
         }
-        if (_http_regurlpath_table.size() > 0)
-        {
-            // restful api
-        }
+
         if (peer->pathinfos.size() > 1)
         {
-            if (peer->pathinfos.size() > 2)
+            unsigned int pathinfos_size = peer->pathinfos.size();
+            for (unsigned int i = pathinfos_size; i > 0; i--)
             {
-                regmethold_path = get_filename(peer->pathinfos[0]) + "/" + get_filename(peer->pathinfos[1]) + "/" +
-                                  get_filename(peer->pathinfos[2]);
-                if (_http_regmethod_table.find(regmethold_path) == _http_regmethod_table.end())
+                regmethold_path.clear();
+                for (unsigned int j = 0; j < i; j++)
+                {
+                    if (j > 0)
+                    {
+                        regmethold_path.push_back('/');
+                    }
+                    regmethold_path.append(get_filename(peer->pathinfos[j]));
+                }
+                if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
+                {
+                    if (pathinfos_size != i)
+                    {
+                        if (_http_regurlpath_table.find(regmethold_path) != _http_regurlpath_table.end())
+                        {
+                            for (unsigned int m = i; m < pathinfos_size; m++)
+                            {
+                                if (_http_regurlpath_table[regmethold_path].size() > m)
+                                {
+                                    if (_http_regurlpath_table[regmethold_path][m].size() > 0)
+                                    {
+                                        peer->get[_http_regurlpath_table[regmethold_path][m]] = peer->pathinfos[m];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    isfindpath = true;
+                    break;
+                }
+                else
                 {
                     regmethold_path.clear();
                 }
             }
-
-            if (regmethold_path.empty())
-            {
-                regmethold_path = get_filename(peer->pathinfos[0]) + "/" + get_filename(peer->pathinfos[1]);
-                if (_http_regmethod_table.find(regmethold_path) == _http_regmethod_table.end())
-                {
-                    regmethold_path.clear();
-                }
-            }
-
-            if (regmethold_path.empty())
-            {
-                regmethold_path = get_filename(peer->pathinfos[0]);
-            }
-        }
-
-        if (peer->pathinfos.size() == 1)
-        {
-            regmethold_path = get_filename(peer->pathinfos[0]);
         }
 
         if (regmethold_path.empty())
         {
             regmethold_path = "home";
+            if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
+            {
+                isfindpath = true;
+            }
         }
 
-        if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
+        if (isfindpath)
         {
             std::string sitecontent;
             for (int i = 0; i < 6; i++)
@@ -621,32 +633,31 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
 #endif
         }
 
-     
         auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-        asio::dispatch(ex, [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                 { handler(1); });
+        asio::dispatch(ex,
+                       [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void { handler(1); });
         peer->user_code_handler_call.pop_front();
- 
     }
     catch (std::exception &e)
     {
-        if(peer->user_code_handler_call.size()>0)
+        if (peer->user_code_handler_call.size() > 0)
         {
-         auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-        asio::dispatch(ex, [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                 { handler(1); });
-        peer->user_code_handler_call.pop_front();
+            auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+            asio::dispatch(ex,
+                           [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                           { handler(1); });
+            peer->user_code_handler_call.pop_front();
         }
-
     }
     catch (...)
     {
-        if(peer->user_code_handler_call.size()>0)
+        if (peer->user_code_handler_call.size() > 0)
         {
-         auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-        asio::dispatch(ex, [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                 { handler(1); });
-        peer->user_code_handler_call.pop_front();
+            auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+            asio::dispatch(ex,
+                           [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                           { handler(1); });
+            peer->user_code_handler_call.pop_front();
         }
     }
 }

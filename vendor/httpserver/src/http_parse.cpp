@@ -1469,7 +1469,7 @@ void httpparse::getconnection()
 {
     if (strcasecmp(header_value.c_str(), "keep-alive") == 0)
     {
-        peer->state.keeplive = true;
+        peer->state.keepalive = true;
     }
     if (strcasecmp(header_value.c_str(), "Upgrade") == 0)
     {
@@ -1479,7 +1479,7 @@ void httpparse::getconnection()
     {
         if (header_value[1] == 'l' || header_value[1] == 'L')
         {
-            peer->state.keeplive = false;
+            peer->state.keepalive = false;
         }
     }
 }
@@ -2734,7 +2734,7 @@ void httpparse::clear()
     peer->state.br                = false;
     peer->state.avif              = false;
     peer->state.webp              = false;
-    peer->state.keeplive          = false;
+    peer->state.keepalive         = false;
     peer->state.websocket         = false;
     peer->state.upgradeconnection = false;
     peer->state.rangebytes        = false;
@@ -2744,6 +2744,7 @@ void httpparse::clear()
     peer->state.ifmodifiedsince   = 0;
     peer->state.rangebegin        = 0;
     peer->state.rangeend          = 0;
+    peer->keepalive               = false;
     // headerrawcontent.clear();
     peer->send_header.clear();
     peer->send_cookie.clear();
