@@ -349,7 +349,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
             }
         }
 
-        if (peer->pathinfos.size() > 1)
+        if (peer->pathinfos.size() > 0)
         {
             unsigned int pathinfos_size = peer->pathinfos.size();
             for (unsigned int i = pathinfos_size; i > 0; i--)
