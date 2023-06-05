@@ -1751,8 +1751,15 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
                     std::string tempcompress;
                     if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
                     {
-                        peer->output   = tempcompress;
+                        // peer->output   = tempcompress;
                         peer->compress = 1;
+
+                        peer->length(tempcompress.size());
+                        std::string htmlcontent = peer->make_http1_header();
+                        htmlcontent.append("\r\n");
+                        co_await peer_session->co_send_writer(htmlcontent);
+                        co_await peer_session->co_send_writer(tempcompress);
+                        co_return;
                     }
                 }
             }
@@ -1760,9 +1767,12 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         peer->length(peer->output.size());
         std::string htmlcontent = peer->make_http1_header();
         htmlcontent.append("\r\n");
-        htmlcontent.append(&peer->output[0], peer->output.size());
-        peer_session->send_data(htmlcontent);
+        // htmlcontent.append(&peer->output[0], peer->output.size());
+        //  peer_session->send_data(htmlcontent);
+        co_await peer_session->co_send_writer(htmlcontent);
+        co_await peer_session->co_send_writer(peer->output);
     }
+    co_return;
 }
 void httpserver::http1_send_bad_server(unsigned int error_code,
                                        std::shared_ptr<httppeer> peer,
