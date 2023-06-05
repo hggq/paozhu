@@ -100,10 +100,15 @@ class httpserver
     void http1_send_bad_server(unsigned int, std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
     /*bool http1_send_body(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session>
      * peer_session, const unsigned char *buffer, unsigned int begin_end);*/
-    bool http1_send_file(unsigned int streamid,
-                         std::shared_ptr<httppeer> peer,
-                         std::shared_ptr<client_session> peer_session,
-                         const std::string &filename);
+    // bool http1_send_file(unsigned int streamid,
+    //                      std::shared_ptr<httppeer> peer,
+    //                      std::shared_ptr<client_session> peer_session,
+    //                      const std::string &filename);
+    asio::awaitable<void> http1_send_file(unsigned int streamid,
+                                          std::shared_ptr<httppeer> peer,
+                                          std::shared_ptr<client_session> peer_session,
+                                          const std::string &filename);
+
     bool http1_send_file_range(unsigned int streamid,
                                std::shared_ptr<httppeer> peer,
                                std::shared_ptr<client_session> peer_session,

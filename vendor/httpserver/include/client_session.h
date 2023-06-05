@@ -3,7 +3,7 @@
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
-#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+#endif// defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio.hpp>
 #include <asio/ssl.hpp>
@@ -68,22 +68,21 @@
 namespace http
 {
 
-  struct filesend_promise
-  {
+struct filesend_promise
+{
     std::string filename;
-    long long begin_num = 0;
-    long long end_num = 0;
+    long long begin_num    = 0;
+    long long end_num      = 0;
     unsigned int stream_id = 0;
-    bool isfinish = false;
-  };
-  struct send_file_promise
-  {
+    bool isfinish          = false;
+};
+struct send_file_promise
+{
     std::future<int> send_results;
     std::promise<int> send_promise;
-  };
-  class client_session
-      : public std::enable_shared_from_this<client_session>
-  {
+};
+class client_session : public std::enable_shared_from_this<client_session>
+{
   public:
     client_session(std::list<asio::ip::tcp::socket> sock);
 
@@ -108,23 +107,27 @@ namespace http
     void recv_window_update(unsigned int, unsigned int streamid = 0);
     void stop();
     asio::awaitable<void> loopwriter(const unsigned char *buffer, unsigned int buffersize);
+    asio::awaitable<void> send_writer(const std::string &msg);
+    asio::awaitable<void> send_writer(const unsigned char *, unsigned int);
+    asio::awaitable<void> co_send_writer(const std::string &msg);
+    asio::awaitable<void> co_send_writer(const unsigned char *, unsigned int);
 
   public:
-    //client_data_cache_back cache_back_obj;
+    // client_data_cache_back cache_back_obj;
     unsigned char *_cache_data;
-    
-    //unsigned char _cache_data[4096];
-    unsigned int _cache_size = 0;
-    unsigned int _write_size = 0;
+
+    // unsigned char _cache_data[4096];
+    unsigned int _cache_size  = 0;
+    unsigned int _write_size  = 0;
     std::atomic_bool sendtype = false;
 
-    bool isssl = false;
+    bool isssl   = false;
     bool isgoway = false;
     bool isclose = false;
 
     unsigned char error_state = 0;
 
-    unsigned char httpv = 0;
+    unsigned char httpv   = 0;
     unsigned int recvtype = 0;
     std::list<asio::ip::tcp::socket> _socket;
 
@@ -140,8 +143,8 @@ namespace http
     std::list<std::future<int>> _cache_send_results;
     std::promise<int> _cache_send_promise;
 
-    std::queue<filesend_promise> sendfile_promise_list;      // wait sendfile
-    std::map<unsigned, send_file_promise> peer_promise_list; // peer wait promise
+    std::queue<filesend_promise> sendfile_promise_list;     // wait sendfile
+    std::map<unsigned, send_file_promise> peer_promise_list;// peer wait promise
 
     std::atomic<unsigned long long> window_update_num;
 
@@ -152,7 +155,7 @@ namespace http
     std::promise<int> window_update_promise;
 
     std::mutex writemutex;
-  };
-}
+};
+}// namespace http
 
 #endif

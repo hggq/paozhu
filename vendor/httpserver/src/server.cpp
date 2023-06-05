@@ -1159,10 +1159,10 @@ void httpserver::http2pool(int threadid)
     }
 }
 
-bool httpserver::http1_send_file(unsigned int streamid,
-                                 std::shared_ptr<httppeer> peer,
-                                 std::shared_ptr<client_session> peer_session,
-                                 const std::string &filename)
+asio::awaitable<void> httpserver::http1_send_file(unsigned int streamid,
+                                                  std::shared_ptr<httppeer> peer,
+                                                  std::shared_ptr<client_session> peer_session,
+                                                  const std::string &filename)
 {
     DEBUG_LOG("http1_send_file:%s %u", filename.c_str(), streamid);
     FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
@@ -1209,8 +1209,8 @@ bool httpserver::http1_send_file(unsigned int streamid,
             peer->type(mime_value);
             etag = peer->make_http1_header();
             etag.append("\r\n");
-            peer_session->send_data(etag);
-            return true;
+            co_await peer_session->co_send_writer(etag);
+            co_return;
         }
 
         peer->compress = 0;
@@ -1374,17 +1374,21 @@ bool httpserver::http1_send_file(unsigned int streamid,
 
         if (peer->compress > 0 && htmlcontent.size() == 0)
         {
-            peer_session->send_data(etag);
-            return true;
+            // peer_session->send_data(etag);
+            // return true;
+            co_await peer_session->co_send_writer(etag);
+            co_return;
         }
         if (peer->compress > 0 && htmlcontent.size() > 0)
         {
             etag.append(&htmlcontent[0], htmlcontent.size());
-            peer_session->send_data(etag);
+            // peer_session->send_data(etag);
+            co_await peer_session->co_send_writer(etag);
         }
         else
         {
-            peer_session->send_data(etag);
+            // peer_session->send_data(etag);
+            co_await peer_session->co_send_writer(etag);
             fseek(fp.get(), 0, SEEK_SET);
             try
             {
@@ -1394,7 +1398,8 @@ bool httpserver::http1_send_file(unsigned int streamid,
                     htmlcontent.resize(4096);
                     unsigned int nread = fread(&htmlcontent[0], 1, 4096, fp.get());
                     htmlcontent.resize(nread);
-                    peer_session->send_data(htmlcontent);
+                    // peer_session->send_data(htmlcontent);
+                    co_await peer_session->co_send_writer(htmlcontent);
                     readnum += nread;
                 }
             }
@@ -1407,7 +1412,7 @@ bool httpserver::http1_send_file(unsigned int streamid,
     {
         http1_send_bad_server(500, peer, peer_session);
     }
-    return true;
+    co_return;
 }
 bool httpserver::http1_send_file_range(unsigned int streamid,
                                        std::shared_ptr<httppeer> peer,
@@ -1581,7 +1586,7 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         }
         else
         {
-            http1_send_file(stream_id, peer, peer_session, peer->sendfilename);
+            co_await http1_send_file(stream_id, peer, peer_session, peer->sendfilename);
         }
     }
     else if (sendtype == 2 && peer->isshow_directory())
