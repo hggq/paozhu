@@ -189,6 +189,35 @@ bool client_session::send_enddata(unsigned int s_stream_id)
         return false;
     }
 }
+
+asio::awaitable<void> client_session::co_send_enddata(unsigned int s_stream_id)
+{
+    try
+    {
+        unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
+        _recvack[8]              = s_stream_id & 0xFF;
+        s_stream_id              = s_stream_id >> 8;
+        _recvack[7]              = s_stream_id & 0xFF;
+        s_stream_id              = s_stream_id >> 8;
+        _recvack[6]              = s_stream_id & 0xFF;
+        s_stream_id              = s_stream_id >> 8;
+        _recvack[5]              = s_stream_id & 0x7F;
+        if (isssl)
+        {
+            co_await asio::async_write(_sslsocket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
+        }
+        else
+        {
+            co_await asio::async_write(_socket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
+        }
+        co_return;
+    }
+    catch (std::exception &)
+    {
+        co_return;
+    }
+}
+
 bool client_session::send_goway()
 {
     std::unique_lock<std::mutex> lock(writemutex);

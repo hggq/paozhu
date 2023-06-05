@@ -99,6 +99,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     unsigned int getlocalport();
 
     bool send_enddata(unsigned int);
+    asio::awaitable<void> co_send_enddata(unsigned int);
     bool send_setting();
     bool send_switch101();
     bool send_goway();
