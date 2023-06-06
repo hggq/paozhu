@@ -2026,7 +2026,7 @@ void http2parse::readcontinuation(const unsigned char *buffer, unsigned int buff
 }
 void http2parse::readwinupdate(const unsigned char *buffer, unsigned int buffersize)
 {
-    DEBUG_LOG("readcontinuation %ul", buffersize);
+    DEBUG_LOG("readwinupdate %ul", buffersize);
     unsigned int ident_stream, j;
     j            = readoffset;
     ident_stream = buffer[j];

@@ -2102,10 +2102,10 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                     }
                     linktype = 3;
                     peer_session->send_setting();
-                    if (!http2pre)
-                    {
-                        http2pre = std::make_unique<http2parse>();
-                    }
+                    // if (!http2pre)
+                    // {
+                    //     http2pre = std::make_unique<http2parse>();
+                    // }
                     http2pre->setsession(peer_session);
                 }
 
