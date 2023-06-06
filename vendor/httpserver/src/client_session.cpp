@@ -161,9 +161,35 @@ bool client_session::send_setting()
         return false;
     }
 }
+
+asio::awaitable<void> client_session::co_send_setting()
+{
+
+    try
+    {
+        unsigned char _setting[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+                                    0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
+
+        if (isssl)
+        {
+            std::unique_lock<std::mutex> lock(writemutex);
+            co_await asio::async_write(_sslsocket.front(), asio::buffer(_setting, 21), asio::use_awaitable);
+        }
+        else
+        {
+            std::unique_lock<std::mutex> lock(writemutex);
+            co_await asio::async_write(_socket.front(), asio::buffer(_setting, 21), asio::use_awaitable);
+        }
+        co_return;
+    }
+    catch (std::exception &)
+    {
+        co_return;
+    }
+}
 bool client_session::send_enddata(unsigned int s_stream_id)
 {
-    std::unique_lock<std::mutex> lock(writemutex);
+
     try
     {
         unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
@@ -176,10 +202,12 @@ bool client_session::send_enddata(unsigned int s_stream_id)
         _recvack[5]              = s_stream_id & 0x7F;
         if (isssl)
         {
+            std::unique_lock<std::mutex> lock(writemutex);
             asio::write(_sslsocket.front(), asio::buffer(_recvack, 9));
         }
         else
         {
+            std::unique_lock<std::mutex> lock(writemutex);
             asio::write(_socket.front(), asio::buffer(_recvack, 9));
         }
         return true;
@@ -204,10 +232,12 @@ asio::awaitable<void> client_session::co_send_enddata(unsigned int s_stream_id)
         _recvack[5]              = s_stream_id & 0x7F;
         if (isssl)
         {
+            std::unique_lock<std::mutex> lock(writemutex);
             co_await asio::async_write(_sslsocket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
         }
         else
         {
+            std::unique_lock<std::mutex> lock(writemutex);
             co_await asio::async_write(_socket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
         }
         co_return;

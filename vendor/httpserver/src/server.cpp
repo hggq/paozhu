@@ -359,7 +359,7 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
     }
     return true;
 }
-asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
+bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
 {
     std::string _send_header;
     std::string _send_data;
@@ -432,10 +432,9 @@ asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer
             peer->type(mime_value);
             _send_header = peer->make_http2_header();
             set_http2_headers_flag(_send_header, HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
-
-            co_await peer->socket_session->co_send_writer(_send_header);
-            co_await peer->socket_session->co_send_enddata(peer->stream_id);
-            co_return;
+            peer->socket_session->send_data(_send_header);
+            peer->socket_session->send_enddata(peer->stream_id);
+            return true;
         }
 
         if (file_size < 16877216 && fileexttype.size() > 0 && mime_compress.contains(fileexttype))
@@ -566,7 +565,7 @@ asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer
         peer->set_header("etag", etag);
 
         _send_header = peer->make_http2_header();
-        co_await peer->socket_session->co_send_writer(_send_header);
+        peer->socket_session->send_data(_send_header);
 
         unsigned int data_send_id = peer->stream_id;
         data_send_id              = 0;
@@ -588,7 +587,7 @@ asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer
 
             http2send_tasks.emplace_back(std::move(temp_send_obj));
             http2condition.notify_one();
-            co_return;
+            return true;
         }
 
         sendqueue &send_cache_list     = get_sendqueue();
@@ -599,8 +598,9 @@ asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer
 
         if (send_cache == nullptr)
         {
-            co_await peer->socket_session->co_send_enddata(peer->stream_id);
-            co_return;
+            peer->socket_session->send_enddata(peer->stream_id);
+            // peer->socket_session->send_goway();
+            return false;
         }
 
         unsigned long long totalsend_num = 0;
@@ -624,14 +624,16 @@ asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer
 
             if (peer->isclose)
             {
-                co_return;
+                return true;
             }
             if (peer->socket_session->isclose)
             {
-                co_return;
+                return true;
             }
-            co_await peer->socket_session->co_send_writer(send_cache->data, 9);
-            co_return;
+            if (peer->socket_session->send_data(send_cache->data, 9))
+            {
+            }
+            return true;
         }
         for (unsigned long long m = 0; m < file_size;)
         {
@@ -699,17 +701,17 @@ asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer
             {
                 DEBUG_LOG(" peer->socket_session->isclose exit ");
                 LOG_ERROR << "peer->socket_session->isclose exit " << LOG_END;
-                co_return;
+                return true;
             }
-            co_await peer->socket_session->co_send_writer(send_cache->data, per_size + 9);
-            // if (peer->socket_session->send_data(send_cache->data, per_size + 9))
-            // {
-            // }
-            // else
-            // {
-            //     LOG_ERROR << " range error ";
-            //     return false;
-            // }
+
+            if (peer->socket_session->send_data(send_cache->data, per_size + 9))
+            {
+            }
+            else
+            {
+                LOG_ERROR << " range error ";
+                return false;
+            }
 
             peer->socket_session->window_update_num -= per_size;
             totalsend_num += per_size;
@@ -749,7 +751,7 @@ asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer
             }
         }
         DEBUG_LOG("send files ok");
-        co_return;
+        return false;
     }
     else
     {
@@ -759,15 +761,12 @@ asio::awaitable<void> httpserver::http2_send_file(std::shared_ptr<httppeer> peer
         peer->length(stfilecom.size());
         peer->type("text/html; charset=utf-8");
         _send_header = peer->make_http2_header();
-        // peer->socket_session->send_data(_send_header);
-        co_await peer->socket_session->co_send_writer(_send_header);
-        co_await http2_send_content(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
-        co_return;
+        peer->socket_session->send_data(_send_header);
+
+        http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
+        return false;
     }
-
-    co_return;
 }
-
 asio::awaitable<void>
 httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned char *buffer, unsigned int begin_end)
 {
@@ -796,7 +795,7 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
         {
             co_return;
         }
-        co_await peer->socket_session->co_send_writer(_send_data);
+        co_await peer->socket_session->send_writer(_send_data);
         co_return;
     }
     for (unsigned long long m = 0; m < begin_end; m += PER_DATA_BLOCK_SIZE)
@@ -842,7 +841,7 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
             co_return;
         }
 
-        co_await peer->socket_session->co_send_writer(_send_data);
+        co_await peer->socket_session->send_writer(_send_data);
 
         // 结束流
         if (peer->isclose)
@@ -1127,15 +1126,15 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             }
             _send_header = peer->make_http2_header();
 
-            co_await peer->socket_session->co_send_writer(_send_header);
+            peer->socket_session->send_data(_send_header);
 
             if (peer->compress > 0)
             {
-                co_await http2_send_content(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
+                http2_send_body(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
             }
             else
             {
-                co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+                http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             }
         }
         peer->output.shrink_to_fit();
@@ -1669,12 +1668,13 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
 // }
 asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
 {
-    auto initiate = [&, self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler) mutable
+    auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
+                                  std::shared_ptr<httppeer> peer) mutable
     {
         peer->user_code_handler_call.push_back(std::move(handler));
         self->clientrunpool.addclient(peer);
     };
-    return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h);
+    return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
 }
 asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
                                             std::shared_ptr<httppeer> peer,

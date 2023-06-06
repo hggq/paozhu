@@ -635,7 +635,12 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
 
         auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
         asio::dispatch(ex,
-                       [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void { handler(1); });
+                       [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                       {
+                           /////////////
+                           handler(1);
+                           //////////
+                       });
         peer->user_code_handler_call.pop_front();
     }
     catch (std::exception &e)
