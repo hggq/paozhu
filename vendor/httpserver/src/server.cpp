@@ -959,13 +959,14 @@ bool httpserver::http2_send_body(std::shared_ptr<httppeer> peer, const unsigned 
         {
             return true;
         }
-        if (peer->socket_session->send_data(_send_data))
-        {
-        }
-        else
-        {
-            return false;
-        }
+        peer->socket_session->send_data(_send_data);
+        // if (peer->socket_session->send_data(_send_data))
+        // {
+        // }
+        // else
+        // {
+        //     return false;
+        // }
         // 结束流
         if (peer->isclose)
         {
@@ -1040,7 +1041,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             }
             else
             {
-                co_await http2_send_file(peer);
+                http2_send_file(peer);
             }
         }
         else if (sendtype == 2 && peer->isshow_directory())
@@ -2116,6 +2117,11 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                     }
                     http2pre->process(&peer_session->_cache_data[offsetnum], readnum - offsetnum);
                     offsetnum = 0;
+                    if (peer_session->isgoway)
+                    {
+                        peer_session->isclose = true;
+                        break;
+                    }
                     if (http2pre->stream_list.size() > 0)
                     {
                         for (; http2pre->stream_list.size() > 0;)
@@ -2167,11 +2173,6 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                     if (error_state > 0)
                     {
                         peer_session->send_goway();
-                        peer_session->isclose = true;
-                        break;
-                    }
-                    if (peer_session->isgoway)
-                    {
                         peer_session->isclose = true;
                         break;
                     }
