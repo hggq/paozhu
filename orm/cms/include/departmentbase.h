@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 03 Jun 2023 06:12:50 GMT
+*本文件为自动生成 Wed, 07 Jun 2023 01:10:17 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -2226,7 +2226,7 @@ std::vector<departmentbase::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta(std::string key_name)
+    T& ref_meta([[maybe_unused]] std::string key_name)
     {
    		 if(key_name=="name")
 		{
@@ -2249,7 +2249,7 @@ std::vector<departmentbase::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta(std::string key_name)
+    T& ref_meta([[maybe_unused]] std::string key_name)
     {
    		 if(key_name=="dpid")
 		{
@@ -2296,11 +2296,9 @@ std::vector<departmentbase::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta(std::string key_name)
+    T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   
- if(sizeof(key_name)){};  
-		return nullptr; 
+   		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
@@ -2405,7 +2403,7 @@ std::vector<departmentbase::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal(departmentbase::meta & iter,std::string keyname)
+        T getVal([[maybe_unused]] departmentbase::meta & iter,std::string keyname)
         {
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -2466,7 +2464,7 @@ std::vector<departmentbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal(departmentbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] departmentbase::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2476,8 +2474,6 @@ std::vector<departmentbase::meta> getRecord(){
                 }
                  
     
- if(sizeof(iter)){};  
-
             
                 return 0.0;
             }  
@@ -2510,7 +2506,7 @@ std::vector<departmentbase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal(departmentbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] departmentbase::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2569,7 +2565,7 @@ std::vector<departmentbase::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,bool isyinhao=false)
+        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
         {
             std::ostringstream a;
             unsigned char kpos;

@@ -51,12 +51,14 @@ int next_proto_cb(SSL *s, const unsigned char **data, unsigned int *len, void *a
     return SSL_TLSEXT_ERR_OK;
 }
 
-int alpn_cb(
-    SSL *ssl, const unsigned char **out, unsigned char *outlen, const unsigned char *in, unsigned int inlen, void *arg)
+int alpn_cb([[maybe_unused]] SSL *ssl,
+            const unsigned char **out,
+            unsigned char *outlen,
+            const unsigned char *in,
+            unsigned int inlen,
+            void *arg)
 {
-    if (ssl == NULL)
-    {
-    }
+
     int ret = SSL_TLSEXT_ERR_NOACK;
     *out    = NULL;
     *outlen = 0;
@@ -144,7 +146,7 @@ int alpn_cb(
 }
 
 std::string get_password() { return "sslpem123456"; }
-int serverNameCallback(SSL *ssl, int *ad, void *arg)
+int serverNameCallback(SSL *ssl, [[maybe_unused]] int *ad, [[maybe_unused]] void *arg)
 {
     // 如果是默认证书，可以直接返回，不用更改上下文
     if (ssl == NULL)
@@ -237,9 +239,6 @@ int serverNameCallback(SSL *ssl, int *ad, void *arg)
     }
     SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, &next_proto);
     SSL_CTX_set_alpn_select_cb(ctx, alpn_cb, (void *)temp_domain);
-    if (true || ad || arg)
-    {
-    }
     return SSL_TLSEXT_ERR_OK;
 }
 

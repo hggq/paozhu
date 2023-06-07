@@ -690,15 +690,12 @@ namespace http
         headtxt.append(filename_namespace);
         headtxt.append("{\n \t\t std::string ");
         headtxt.append(filename_methold);
-        headtxt.append("(const struct view_param &vinfo,http::OBJ_VALUE &obj)\n\t\t\t{\n ");
+        headtxt.append(
+            "([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)\n\t\t\t{\n ");
 
         fwrite(&headtxt[0], 1, headtxt.size(), f);
 
         headtxt            = R"(
-                     if(sizeof(vinfo)||obj.is_array())
-                     {
-
-                     }
                      std::ostringstream echo;
 
         )";

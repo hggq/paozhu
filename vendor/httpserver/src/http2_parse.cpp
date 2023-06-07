@@ -1091,7 +1091,7 @@ void http2parse::callposttype()
     }
 }
 
-void http2parse::getcontenttype(const std::string &header_name, const std::string &header_value)
+void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0, linesize = header_value.size();
     data_info[block_steamid].buffer_value.clear();
@@ -1147,9 +1147,6 @@ void http2parse::getcontenttype(const std::string &header_name, const std::strin
         if (statetemp == 1)
         {
             http_data[block_steamid]->chartset = data_info[block_steamid].buffer_value;
-            if (sizeof(header_name))
-            {
-            }
         }
         else if (statetemp == 2)
         {
@@ -1161,7 +1158,7 @@ void http2parse::getcontenttype(const std::string &header_name, const std::strin
         }
     }
 }
-void http2parse::getaccept(const std::string &header_name, const std::string &header_value)
+void http2parse::getaccept([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0, linesize = header_value.size();
     data_info[block_steamid].buffer_value.clear();
@@ -1207,9 +1204,6 @@ void http2parse::getaccept(const std::string &header_name, const std::string &he
                 data_info[block_steamid].buffer_value[8] == 'i' && data_info[block_steamid].buffer_value[9] == 'f')
             {
                 http_data[block_steamid]->state.avif = true;
-                if (sizeof(header_name))
-                {
-                }
             }
             else if (data_info[block_steamid].buffer_value[6] == 'w' &&
                      data_info[block_steamid].buffer_value[7] == 'e' &&
@@ -1222,7 +1216,10 @@ void http2parse::getaccept(const std::string &header_name, const std::string &he
         }
     }
 }
-void http2parse::headertype1(unsigned char c, std::string_view header_data, unsigned int &begin, unsigned int end)
+void http2parse::headertype1(unsigned char c,
+                             [[maybe_unused]] std::string_view header_data,
+                             [[maybe_unused]] unsigned int &begin,
+                             [[maybe_unused]] unsigned int end)
 {
     unsigned char a = c & 0x7F;
     std::string name_key;
@@ -1261,9 +1258,6 @@ void http2parse::headertype1(unsigned char c, std::string_view header_data, unsi
         else
         {
             header_process(http2_header_static_table[a].key, http2_header_static_table[a].value, a);
-            if (sizeof(header_data) || begin || end)
-            {
-            }
         }
     }
     else

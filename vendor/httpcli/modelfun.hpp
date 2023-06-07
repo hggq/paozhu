@@ -3624,7 +3624,7 @@ struct )";
     headtxt = R"(
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta(std::string key_name)
+    T& ref_meta([[maybe_unused]] std::string key_name)
     {
    )";
 
@@ -3635,10 +3635,10 @@ struct )";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
-    if (stringcollist.size() == 0)
-    {
-        headtxt.append("\n if(sizeof(key_name)){}; \n");
-    }
+    // if (stringcollist.size() == 0)
+    // {
+    //     headtxt.append("\n if(sizeof(key_name)){}; \n");
+    // }
     headtxt.append("\t\treturn nullptr; \n\t}\n");
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -3651,7 +3651,7 @@ struct )";
     headtxt = R"(
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta(std::string key_name)
+    T& ref_meta([[maybe_unused]] std::string key_name)
     {
    )";
 
@@ -3662,10 +3662,10 @@ struct )";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
-    if (numbercollist.size() == 0)
-    {
-        headtxt.append("\n if(sizeof(key_name)){};  \n");
-    }
+    // if (numbercollist.size() == 0)
+    // {
+    //     headtxt.append("\n if(sizeof(key_name)){};  \n");
+    // }
     headtxt.append("\t\treturn nullptr; \n\t}\n");
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -3677,7 +3677,7 @@ struct )";
     headtxt = R"(
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta(std::string key_name)
+    T& ref_meta([[maybe_unused]] std::string key_name)
     {
    )";
 
@@ -3688,10 +3688,10 @@ struct )";
         update2strem << "\t\t}\n";
     }
     headtxt.append(update2strem.str());
-    if (floatcollist.size() == 0)
-    {
-        headtxt.append("\n if(sizeof(key_name)){};  \n");
-    }
+    // if (floatcollist.size() == 0)
+    // {
+    //     headtxt.append("\n if(sizeof(key_name)){};  \n");
+    // }
     headtxt.append("\t\treturn nullptr; \n\t}\n");
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -3864,7 +3864,7 @@ struct )";
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal()";
+        T getVal([[maybe_unused]] )";
     headtxt += tablenamebase;
     headtxt += R"(base::meta & iter,std::string keyname)
         {
@@ -3886,10 +3886,10 @@ struct )";
         fwrite(&headtxt[0], headtxt.size(), 1, f);
         headtxt.clear();
     }
-    if (sqlqueryring.size() == 0)
-    {
-        headtxt.append("\n if(sizeof(iter)){};  \n");
-    }
+    // if (sqlqueryring.size() == 0)
+    // {
+    //     headtxt.append("\n if(sizeof(iter)){};  \n");
+    // }
     headtxt += R"(
             return 0;
         }  
@@ -3946,7 +3946,7 @@ struct )";
     //--------------------
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal()";
+            T getVal([[maybe_unused]] )";
     headtxt += tablenamebase;
     headtxt += R"(base::meta & iter,std::string keyname)
             {
@@ -3977,10 +3977,10 @@ struct )";
                 }
                  
     )";
-    if (floatcollist.size() == 0)
-    {
-        headtxt.append("\n if(sizeof(iter)){};  \n");
-    }
+    // if (floatcollist.size() == 0)
+    // {
+    //     headtxt.append("\n if(sizeof(iter)){};  \n");
+    // }
     headtxt += R"(
             
                 return 0.0;
@@ -4034,7 +4034,7 @@ struct )";
 
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal()";
+            std::string getVal([[maybe_unused]] )";
     headtxt += tablenamebase;
     headtxt += R"(base::meta & iter,std::string keyname)
             {
@@ -4069,10 +4069,10 @@ struct )";
                 }
                 
     )";
-    if (stringcollist.size() == 0)
-    {
-        headtxt.append("\n if(sizeof(iter)){};  \n");
-    }
+    // if (stringcollist.size() == 0)
+    // {
+    //     headtxt.append("\n if(sizeof(iter)){};  \n");
+    // }
 
     headtxt += R"(
                  
@@ -4163,7 +4163,7 @@ struct )";
     sqlqueryring = getcollstrem.str();
 
     headtxt = R"( 
-        std::string getstrCol(std::string keyname,bool isyinhao=false)
+        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
         {
             std::ostringstream a;
             unsigned char kpos;
@@ -4212,10 +4212,10 @@ struct )";
         headtxt.clear();
     }
 
-    if (sqlqueryring.size() == 0)
-    {
-        headtxt.append("\n if(sizeof(isyinhao)){}; \n");
-    }
+    // if (sqlqueryring.size() == 0)
+    // {
+    //     headtxt.append("\n if(sizeof(isyinhao)){}; \n");
+    // }
     headtxt += R"(
                 return a.str();
         }

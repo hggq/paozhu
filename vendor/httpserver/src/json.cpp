@@ -1606,7 +1606,7 @@ Value from_json(const std::string &jsonstr)
     return obj;
 }
 
-Value from_json(const std::string &jsonstr, bool isarray)
+Value from_json(const std::string &jsonstr, [[maybe_unused]] bool isarray)
 {
     Array obj;
     int offset          = 0;
@@ -1638,9 +1638,6 @@ Value from_json(const std::string &jsonstr, bool isarray)
         // 数组情况
 
         JSON_ARRAY(jsonstr, obj, offset);
-    }
-    if (true || isarray)
-    {
     }
     return obj;
 }

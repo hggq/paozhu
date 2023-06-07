@@ -1300,7 +1300,7 @@ bool value_write(FILE *f, const OBJ_VALUE &v)
     }
     return true;
 }
-bool array_write(FILE *f, const OBJ_ARRAY &a, unsigned int &length)
+bool array_write(FILE *f, const OBJ_ARRAY &a, [[maybe_unused]] unsigned int &length)
 {
     unsigned int objsize = a.size();
 
@@ -1312,9 +1312,7 @@ bool array_write(FILE *f, const OBJ_ARRAY &a, unsigned int &length)
         fwrite(&key, sizeof(key), 1, f);
         value_write(f, second);
     }
-    if (true || length)
-    {
-    }
+
     return true;
 }
 

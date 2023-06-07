@@ -23,13 +23,9 @@ namespace http {
 
 namespace view {
 	namespace cms{
- 		 std::string list(const struct view_param &vinfo,http::OBJ_VALUE &obj)
+ 		 std::string list([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
 			{
  
-                     if(sizeof(vinfo)||obj.is_array())
-                     {
-
-                     }
                      std::ostringstream echo;
 
         
