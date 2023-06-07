@@ -165,6 +165,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     unsigned char posttype;
     unsigned char compress;
+    unsigned int host_index           = 0;
     unsigned int stream_id            = 0;
     unsigned int status_code          = 0;
     unsigned int timeloop_num         = 0;

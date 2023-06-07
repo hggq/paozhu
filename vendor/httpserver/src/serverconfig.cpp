@@ -4,6 +4,7 @@
 #include "serverconfig.h"
 #include "server_localvar.h"
 #include <cstring>
+
 namespace http
 {
     serverconfig &getserversysconfig()
@@ -135,11 +136,97 @@ namespace http
         }
         return sys_config;
     }
+    
+    std::tuple<unsigned int,std::string> serverconfig::gethost404(const std::string &host)
+    {
+        std::string action_method;
+        unsigned int rewritetype=100;
+
+        if (host_toint.find(host) != host_toint.end())
+        {
+            unsigned int temp_index=host_toint[host];
+            if(temp_index<sitehostinfos.size())
+            {
+                rewritetype = sitehostinfos[temp_index].rewrite404;
+                action_method = sitehostinfos[temp_index].rewrite_404_action;
+            }
+            if(rewritetype!=100)
+            {
+                return std::make_tuple(rewritetype,action_method);     
+            }     
+        }
+
+        if (map_value.find(host) != map_value.end())
+        {
+            if (map_value[host].find("rewrite_404") != map_value[host].end())
+            {
+                try
+                {
+                    rewritetype = std::stoul(map_value[host]["rewrite_404"].c_str());
+                    if (map_value[host].find("rewrite_404_action") != map_value[host].end())
+                    {
+                        action_method=map_value[host]["rewrite_404_action"];
+                    }
+                }
+                catch (const std::exception &e)
+                {
+                    rewritetype = 0;
+                }
+            }
+        }
+
+        if(rewritetype==100)
+        {
+            rewritetype=0;
+            if (map_value.find("default") != map_value.end())
+            {
+                if (map_value["default"].find("rewrite_404") != map_value["default"].end())
+                {
+                    try
+                    {
+                        rewritetype = std::stoul(map_value["default"]["rewrite_404"].c_str());
+                        if (map_value["default"].find("rewrite_404_action") != map_value["default"].end())
+                        {
+                            action_method=map_value["default"]["rewrite_404_action"];
+                        }
+                    }
+                    catch (const std::exception &e)
+                    {
+                        rewritetype = 0;
+                    }
+                }
+            }
+            
+        }
+        return std::make_tuple(rewritetype,action_method);        
+    }
+    std::string serverconfig::getsitewwwpath(unsigned int host_index)
+    {       
+        if(host_index>0&&host_index<sitehostinfos.size())
+        {
+            return sitehostinfos[host_index].wwwpath;
+        }
+        return sitehostinfos[0].wwwpath;
+    }   
     std::string serverconfig::getsitepath(const std::string &host)
     {
 
         std::string sitepath;
         bool isnothost = true;
+       
+        if (host_toint.find(host) != host_toint.end())
+        {
+            unsigned int host_index=0;
+            host_index=host_toint[host];
+            if(host_index>0&&host_index<sitehostinfos.size())
+            {
+               return sitehostinfos[host_index].wwwpath;
+            }
+            else
+            {
+               return sitehostinfos[0].wwwpath;
+            }
+        }
 
         if (map_value.find(host) != map_value.end())
         {
@@ -484,8 +571,14 @@ namespace http
             static_server_var.session_type = 0;
         }
 
+        if (map_value["default"]["wwwpath"].size() == 0)
+        {
+            map_value["default"]["wwwpath"]="/usr/local/var/www/";
+        }
+
         static_server_var.map_value = map_value;
         static_server_var.www_path = map_value["default"]["wwwpath"];
+        
         static_server_var.temp_path = map_value["default"]["temppath"];
         static_server_var.log_path = map_value["default"]["logpath"];
         mainhost = map_value["default"]["mainhost"];
@@ -520,6 +613,124 @@ namespace http
         if (static_server_var.log_path.size() > 0 && static_server_var.log_path.back() != '/')
         {
             static_server_var.log_path.push_back('/');
+        }
+        struct site_host_info_t tempinfo;
+        tempinfo.mainhost=mainhost;
+        tempinfo.wwwpath=static_server_var.www_path;
+        tempinfo.http2_enable=static_server_var.http2_enable;
+        
+        if (map_value["default"]["certificate_chain_file"].size() > 0)
+        {
+            tempinfo.certificate_file=map_value["default"]["certificate_chain_file"];
+        }
+        else
+        {
+            tempinfo.certificate_file.clear();;
+        }
+
+        if (map_value["default"]["private_key_file"].size() > 0)
+        {
+            tempinfo.privateKey_file=map_value["default"]["private_key_file"];
+        }
+        else
+        {
+            tempinfo.privateKey_file.clear();;
+        }
+
+        if (map_value["default"]["rewrite_404"].size() > 0)
+        {
+            tempinfo.isrewrite=true;
+            try
+            {
+                tempinfo.rewrite404 = std::stoul(map_value["default"]["rewrite_404"].c_str());
+            }
+            catch (const std::exception &e)
+            {
+                tempinfo.rewrite404 = 0;
+            }
+        }
+        else
+        {
+            tempinfo.isrewrite=false;
+            tempinfo.rewrite404 = 0;
+        }
+
+        if (map_value["default"]["rewrite_404_action"].size() > 0)
+        {
+            tempinfo.rewrite_404_action=map_value["default"]["rewrite_404_action"];
+        }
+        else
+        {
+            tempinfo.rewrite_404_action.clear();
+        }
+        sitehostinfos.push_back(std::move(tempinfo));
+        for(auto[first,second]:map_value)
+        {
+            if(first!="default")
+            {
+                 if(first.size()>0&&first[0]!='*')
+                 {
+                    struct site_host_info_t tempinfo;
+                    tempinfo.mainhost=first;
+                    for(auto[itemname,itemval]:second)
+                    {
+                        if(itemname=="http2_enable")
+                        {
+                            if(itemval.size()>0&&(itemval[0]=='1'||itemval[0]=='T'||itemval[0]=='t'))
+                            {
+                                tempinfo.http2_enable=true; 
+                            }
+                            else
+                            {
+                                tempinfo.http2_enable=false; 
+                            }
+                        }
+                        else if(itemname=="wwwpath")
+                        {
+                            tempinfo.wwwpath=itemval;
+                            if(tempinfo.wwwpath.size()==0)
+                            {
+                                tempinfo.wwwpath=static_server_var.www_path;
+                            }
+                            if (tempinfo.wwwpath.size() > 0 && tempinfo.wwwpath.back() != '/')
+                            {
+                                tempinfo.wwwpath.push_back('/');
+                            }
+                            
+                        }
+                        else if(itemname=="rewrite_404")
+                        {
+                            tempinfo.isrewrite=true;
+                            try
+                            {
+                                tempinfo.rewrite404 = std::stoul(itemval.c_str());
+                            }
+                            catch (const std::exception &e)
+                            {
+                                tempinfo.rewrite404 = 0;
+                            }
+                        }
+                        else if(itemname=="rewrite_404_action")
+                        {
+                            tempinfo.rewrite_404_action=itemval;
+                        }
+                        else if(itemname=="certificate_chain_file")
+                        {
+                            tempinfo.certificate_file=itemval;
+                        }
+                        else if(itemname=="private_key_file")
+                        {
+                            tempinfo.privateKey_file=itemval;
+                        }
+                    }
+                    sitehostinfos.push_back(std::move(tempinfo));
+                    if(sitehostinfos.size()>0)
+                    {
+                        unsigned int tempindex=sitehostinfos.size()-1;
+                        host_toint[first]=tempindex;
+                    }
+                }   
+            }
         }
         return true;
     }

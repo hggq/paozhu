@@ -1021,7 +1021,16 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         DEBUG_LOG("%s", peer->host.c_str());
         DEBUG_LOG("%s", peer->header["user-agent"].c_str());
 
-        peer->sitepath         = sysconfigpath.getsitepath(peer->host);
+        if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
+        {
+            peer->host_index=sysconfigpath.host_toint[peer->host];
+            if(peer->host_index>=sysconfigpath.sitehostinfos.size())
+            {
+                peer->host_index=0;
+            }
+        }
+        //peer->sitepath         = sysconfigpath.getsitepath(peer->host);
+        peer->sitepath         = sysconfigpath.getsitewwwpath(peer->host_index);
         unsigned char sendtype = 0;
         sendtype               = peer->has_urlfileext();
         if (sendtype < 4)
@@ -1682,7 +1691,18 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
                                             std::shared_ptr<client_session> peer_session)
 {
     serverconfig &sysconfigpath = getserversysconfig();
-    peer->sitepath              = sysconfigpath.getsitepath(peer->host);
+
+    if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
+    {
+        peer->host_index=sysconfigpath.host_toint[peer->host];
+        if(peer->host_index>=sysconfigpath.sitehostinfos.size())
+        {
+            peer->host_index=0;
+        }
+    }
+    //peer->sitepath         = sysconfigpath.getsitepath(peer->host);
+    peer->sitepath         = sysconfigpath.getsitewwwpath(peer->host_index);
+    //peer->sitepath              = sysconfigpath.getsitepath(peer->host);
     unsigned char sendtype      = 0;
     sendtype                    = peer->has_urlfileext();
     if (sendtype < 4)

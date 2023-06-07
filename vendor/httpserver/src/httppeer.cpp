@@ -802,6 +802,47 @@ unsigned char httppeer::get_fileinfo()
             }
         }
     }
+    if(sendfiletype==0)
+    {
+        if(sysconfigpath.sitehostinfos[host_index].isrewrite)
+        {
+            if(sysconfigpath.sitehostinfos[host_index].rewrite404==1)
+            {
+                sendfilename = sitepath;
+                if(sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size()>0)
+                {
+                   sendfilename.append(sysconfigpath.sitehostinfos[host_index].rewrite_404_action);
+                    memset(&fileinfo, 0, sizeof(fileinfo));
+                    if (stat(sendfilename.c_str(), &fileinfo) == 0)
+                    {
+                        if (fileinfo.st_mode & S_IFREG)
+                        {
+                            sendfiletype = 1;
+                            fileexttype  = "html";
+                        }
+                    }
+                }
+                
+            }else if(sysconfigpath.sitehostinfos[host_index].rewrite404==2)
+            {
+                if(sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size()>0)
+                {
+                    unsigned int tempsize=pathinfos.size();
+                    if(tempsize<20)
+                    {
+                        tempsize+=1;
+                        pathinfos.resize(tempsize);
+                        for(unsigned int j=tempsize-1;j>0;j--)
+                        {
+                            pathinfos[j]=pathinfos[j-1];
+                        }
+                        pathinfos[0]=sysconfigpath.sitehostinfos[host_index].rewrite_404_action;
+                        sendfiletype = 3;
+                    }
+                }
+            }
+        }       
+    }
     return sendfiletype;
 }
 std::shared_ptr<httppeer> httppeer::get_ptr() { return shared_from_this(); }
