@@ -74,7 +74,7 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
         unsigned long long readnum = 0, mustnum = 0;
         peer->compress = 0;
 
-        if (peer->state.rangebegin >= file_size || peer->state.rangeend < 0 || peer->state.rangeend > file_size)
+        if (peer->state.rangebegin >= file_size || peer->state.rangeend > file_size)
         {
             peer->status(400);
             peer->length(0);

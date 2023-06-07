@@ -1086,13 +1086,13 @@ class typejsonfiles
     }
     std::string single_obj_fromjson(const struct obj_reflect_type &json_reflect_data,
                                     const std::string &jsonobjtypename,
-                                    unsigned int levelnum = 0)
+                                    [[maybe_unused]] unsigned int levelnum = 0)
     {
         std::string tempcontent;
         std::string tempobjname = "json_reflectobj.";
         unsigned int ishas      = 0;
         std::string obj_name_array_tempname;
-        levelnum++;
+
         tempcontent = R"(  
      unsigned int json_decode()";
         tempcontent += jsonobjtypename;
@@ -1804,12 +1804,12 @@ class typejsonfiles
 
     std::string object_item_fromjson(const struct obj_reflect_type &json_reflect_data,
                                      const std::string &jsonobjtypename,
-                                     unsigned int levelnum = 0)
+                                     [[maybe_unused]] unsigned int levelnum = 0)
     {
         std::string tempcontent;
         std::string tempobjname = jsonobjtypename + ".";
         unsigned ishas          = 0;
-        levelnum++;
+
         std::string obj_name_array_tempname;
         std::string ptype_tempname;
 
@@ -2470,13 +2470,12 @@ class typejsonfiles
 
     std::string array_item_fromjson(const struct obj_reflect_type &json_reflect_data,
                                     const std::string &jsonobjtypename,
-                                    unsigned int levelnum = 0,
-                                    unsigned int typenum  = 0)
+                                    [[maybe_unused]] unsigned int levelnum = 0,
+                                    unsigned int typenum                   = 0)
     {
         std::string tempcontent;
         std::string tempobjname = jsonobjtypename + ".";
         unsigned ishas          = 0;
-        levelnum += 1;
 
         tempcontent = R"(  
             if(_json_data[_offset]==0x5B)
@@ -3166,10 +3165,9 @@ unsigned int json_decode(std::vector<)";
     }
     std::string single_obj_itemto_json(const struct obj_reflect_type &json_reflect_data,
                                        const std::string &jsonobjtypename,
-                                       std::string pre_name  = "",
-                                       unsigned int levelnum = 0)
+                                       std::string pre_name                   = "",
+                                       [[maybe_unused]] unsigned int levelnum = 0)
     {
-        levelnum = 0;
         std::string maincontent;
         std::string selfitem = "std::vector<" + jsonobjtypename + ">";
         if (json_reflect_data.name.size() > 0 && json_reflect_data.name[0] == '_')

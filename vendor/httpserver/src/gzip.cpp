@@ -19,11 +19,11 @@ namespace http
    level is supplied, Z_VERSION_ERROR if the version of zlib.h and the
    version of the library linked do not match, or Z_ERRNO if there is
    an error reading or writing the files. */
-int compress(const char *in_str, size_t in_len, std::string &out_str, int level)
+int compress(const char *in_str, size_t in_len, std::string &out_str, [[maybe_unused]] int level)
 {
     if (!in_str)
         return Z_DATA_ERROR;
-    level = 8;
+
     int ret, flush;
     unsigned have;
     z_stream strm;
