@@ -15,6 +15,7 @@
 
 namespace http
 {
+bool str_compare(const std::string &str1, std::string &str2,unsigned int length);
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext);
 std::string get_filename(const std::string &filename);
 std::vector<std::string> mb_split(const std::string, std::string &);

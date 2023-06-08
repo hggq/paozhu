@@ -712,7 +712,39 @@ namespace http
                         }
                         else if(itemname=="rewrite_404_action")
                         {
-                            tempinfo.rewrite_404_action=itemval;
+                            std::string tempac;
+                            unsigned int m=0;
+                            for(;m<itemval.size();m++)
+                            {
+                                if(itemval[m]=='|')
+                                {
+                                    break;
+                                }
+                                tempac.push_back(itemval[m]);
+                            }
+                            tempinfo.rewrite_404_action=tempac;
+                            if(m<itemval.size()&&itemval[m]=='|')
+                            {
+                                m++;    
+                            }
+                            tempac.clear();
+                            for(;m<itemval.size();m++)
+                            {
+                                if(itemval[m]=='|')
+                                {
+                                    if(tempac.size()>0)
+                                    {
+                                        tempinfo.action_404_lists.push_back(tempac);
+                                    }
+                                    tempac.clear();
+                                    continue;
+                                }
+                                tempac.push_back(itemval[m]);
+                            }
+                            if(tempac.size()>0)
+                            {
+                                tempinfo.action_404_lists.push_back(tempac);
+                            }
                         }
                         else if(itemname=="certificate_chain_file")
                         {
@@ -732,6 +764,7 @@ namespace http
                 }   
             }
         }
+
         return true;
     }
     bool serverconfig::checkmaindomain(const char *servername)

@@ -37,6 +37,33 @@
 namespace http
 {
 namespace fs = std::filesystem;
+bool str_compare(const std::string &str1, std::string &str2,unsigned int length)
+{
+    for(unsigned int i=0;i<length;i++)
+    {
+        if(i<str1.size()&&i<str2.size())
+        {
+            if(str1[i]==str2[i])
+            {
+                continue;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        if(i==str1.size())
+        {
+            return true;
+        }
+        if(i==str2.size())
+        {
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext)
 {
 

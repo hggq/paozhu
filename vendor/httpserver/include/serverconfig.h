@@ -23,6 +23,7 @@ namespace http
         std::string rewrite_404_action;
         std::string certificate_file;
         std::string privateKey_file;
+        std::vector<std::string> action_404_lists;
         unsigned int rewrite404=0;
         bool isrewrite=false;
         bool http2_enable=false;

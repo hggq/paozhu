@@ -52,6 +52,8 @@
 #include "debug_log.h"
 #include "server_localvar.h"
 #include "pzcache.h"
+#include "func.h"
+
 namespace http
 {
 
@@ -809,6 +811,31 @@ unsigned char httppeer::get_fileinfo()
         {
             if(sysconfigpath.sitehostinfos[host_index].rewrite404==1)
             {
+                //check multi 404 rewrite
+                if(sysconfigpath.sitehostinfos[host_index].action_404_lists.size()>0)
+                {
+                    if(pathinfos.size()>0)
+                    {
+                        for(unsigned int k=0;k<sysconfigpath.sitehostinfos[host_index].action_404_lists.size();k++)
+                        {
+                            if(pathinfos[0].size()<=sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size()&&str_compare(pathinfos[0],sysconfigpath.sitehostinfos[host_index].action_404_lists[k],pathinfos[0].size()))
+                            {
+                                sendfilename = sitepath;
+                                sendfilename.append(sysconfigpath.sitehostinfos[host_index].action_404_lists[k]);
+                                memset(&fileinfo, 0, sizeof(fileinfo));
+                                if (stat(sendfilename.c_str(), &fileinfo) == 0)
+                                {
+                                    if (fileinfo.st_mode & S_IFREG)
+                                    {
+                                        sendfiletype = 1;
+                                        fileexttype  = "html";
+                                        return sendfiletype;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 sendfilename = sitepath;
                 if(sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size()>0)
                 {
@@ -826,6 +853,33 @@ unsigned char httppeer::get_fileinfo()
                 
             }else if(sysconfigpath.sitehostinfos[host_index].rewrite404==2)
             {
+                //dynamic method, use urlpath function
+                if(sysconfigpath.sitehostinfos[host_index].action_404_lists.size()>0)
+                {
+                    if(pathinfos.size()>0)
+                    {
+                        for(unsigned int k=0;k<sysconfigpath.sitehostinfos[host_index].action_404_lists.size();k++)
+                        {
+                            if(pathinfos[0].size()>2&&sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size()>2&&str_compare(pathinfos[0],sysconfigpath.sitehostinfos[host_index].action_404_lists[k],3))
+                            {
+                                unsigned int tempsize=pathinfos.size();
+                                if(tempsize<20)
+                                {
+                                    tempsize+=1;
+                                    pathinfos.resize(tempsize);
+                                    for(unsigned int j=tempsize-1;j>0;j--)
+                                    {
+                                        pathinfos[j]=pathinfos[j-1];
+                                    }
+                                    pathinfos[0]=sysconfigpath.sitehostinfos[host_index].action_404_lists[k];
+                                    sendfiletype = 3;
+                                    return sendfiletype;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if(sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size()>0)
                 {
                     unsigned int tempsize=pathinfos.size();
