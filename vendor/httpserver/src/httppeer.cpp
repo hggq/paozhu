@@ -568,7 +568,8 @@ unsigned char httppeer::has_urlfileext()
             if (_http_regmethod_table.contains(sendfilename))
             {
                 temp = 4;
-                if (pathinfos.size() == 3)
+                //maybe let urlpath functions read index.html filetime
+                if (pathinfos.size() == 5)
                 {
                     serverconfig &sysconfigpath = getserversysconfig();
                     if (sysconfigpath.siteusehtmlchache)
