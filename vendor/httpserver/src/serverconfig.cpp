@@ -657,12 +657,112 @@ namespace http
 
         if (map_value["default"]["rewrite_404_action"].size() > 0)
         {
-            tempinfo.rewrite_404_action=map_value["default"]["rewrite_404_action"];
+            std::string tempac,itemval;
+            itemval=map_value["default"]["rewrite_404_action"];
+            unsigned int m=0;
+            for(;m<itemval.size();m++)
+            {
+                if(itemval[m]=='|')
+                {
+                    break;
+                }
+                tempac.push_back(itemval[m]);
+            }
+            tempinfo.rewrite_404_action=tempac;
+            if(m<itemval.size()&&itemval[m]=='|')
+            {
+                m++;    
+            }
+            tempac.clear();
+            for(;m<itemval.size();m++)
+            {
+                if(itemval[m]=='|')
+                {
+                    if(tempac.size()>0)
+                    {
+                        tempinfo.action_404_lists.push_back(tempac);
+                    }
+                    tempac.clear();
+                    continue;
+                }
+                tempac.push_back(itemval[m]);
+            }
+            if(tempac.size()>0)
+            {
+                tempinfo.action_404_lists.push_back(tempac);
+            }
         }
         else
         {
             tempinfo.rewrite_404_action.clear();
         }
+
+        if (map_value["default"]["method_pre"].size() > 0)
+        {
+            std::string tempac,itemval;
+            itemval=map_value["default"]["method_pre"];
+            unsigned int m=0;
+            tempac.clear();
+            for(;m<itemval.size();m++)
+            {
+                if(itemval[m]=='|')
+                {
+                    if(tempac.size()>0)
+                    {
+                        tempinfo.action_pre_lists.push_back(tempac);
+                    }
+                    tempac.clear();
+                    continue;
+                }
+                tempac.push_back(itemval[m]);
+            }
+            if(tempac.size()>0)
+            {
+                tempinfo.action_pre_lists.push_back(tempac);
+            }
+            if(tempinfo.action_pre_lists.size()>0)
+            {
+                tempinfo.is_method_pre=true;
+            }
+        }
+        else
+        {
+            tempinfo.action_pre_lists.clear();
+        }
+
+        if (map_value["default"]["method_after"].size() > 0)
+        {
+            std::string tempac,itemval;
+            itemval=map_value["default"]["method_after"];
+            unsigned int m=0;
+            tempac.clear();
+            for(;m<itemval.size();m++)
+            {
+                if(itemval[m]=='|')
+                {
+                    if(tempac.size()>0)
+                    {
+                        tempinfo.action_after_lists.push_back(tempac);
+                    }
+                    tempac.clear();
+                    continue;
+                }
+                tempac.push_back(itemval[m]);
+            }
+            if(tempac.size()>0)
+            {
+                tempinfo.action_after_lists.push_back(tempac);
+            }
+            if(tempinfo.action_after_lists.size()>0)
+            {
+                tempinfo.is_method_after=true;
+            }
+        }
+        else
+        {
+            tempinfo.action_after_lists.clear();
+        }
+
         sitehostinfos.push_back(std::move(tempinfo));
         for(auto[first,second]:map_value)
         {
@@ -753,6 +853,60 @@ namespace http
                         else if(itemname=="private_key_file")
                         {
                             tempinfo.privateKey_file=itemval;
+                        }else if(itemname=="method_pre")
+                        {
+                            std::string tempac;
+                            unsigned int m=0;
+                            tempac.clear();
+                            for(;m<itemval.size();m++)
+                            {
+                                if(itemval[m]=='|')
+                                {
+                                    if(tempac.size()>0)
+                                    {
+                                        tempinfo.action_pre_lists.push_back(tempac);
+                                    }
+                                    tempac.clear();
+                                    continue;
+                                }
+                                tempac.push_back(itemval[m]);
+                            }
+                            if(tempac.size()>0)
+                            {
+                                
+                                tempinfo.action_pre_lists.push_back(tempac);
+                            }
+                            
+                            if(tempinfo.action_pre_lists.size()>0)
+                            {
+                                tempinfo.is_method_pre=true;
+                            }
+                        }else if(itemname=="method_after")
+                        {
+                            std::string tempac;
+                            unsigned int m=0;
+                            tempac.clear();
+                            for(;m<itemval.size();m++)
+                            {
+                                if(itemval[m]=='|')
+                                {
+                                    if(tempac.size()>0)
+                                    {
+                                        tempinfo.action_after_lists.push_back(tempac);
+                                    }
+                                    tempac.clear();
+                                    continue;
+                                }
+                                tempac.push_back(itemval[m]);
+                            }
+                            if(tempac.size()>0)
+                            {
+                                tempinfo.action_after_lists.push_back(tempac);
+                            }
+                            if(tempinfo.action_after_lists.size()>0)
+                            {
+                                tempinfo.is_method_after=true;
+                            }
                         }
                     }
                     sitehostinfos.push_back(std::move(tempinfo));

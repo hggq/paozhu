@@ -315,6 +315,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
         bool isfindpath = false;
 
         server_loaclvar &static_server_var = get_server_global_var();
+        serverconfig &sysconfigpath = getserversysconfig();
 
         if (static_server_var.show_visit_info == true)
         {
@@ -397,6 +398,20 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
             if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
             {
                 isfindpath = true;
+            }
+        }
+
+        if(sysconfigpath.sitehostinfos[peer->host_index].is_method_pre)
+        {
+            if(sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists.size()>0&&sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists.size()<16)
+            {
+                for(unsigned char jk=0;jk<sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists.size();jk++)
+                {
+                    if (sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk].size()>0&&_http_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk]) != _http_regmethod_table.end())
+                    {
+                        _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk]].regfun(peer);
+                    }
+                }
             }
         }
 
@@ -492,7 +507,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
         else
         {
 #ifdef ENABLE_BOOST
-            serverconfig &sysconfigpath = getserversysconfig();
+            
 
             std::string moduleso, sopath;
             if (peer->pathinfos.size() > 0)
@@ -631,6 +646,21 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
 #ifndef ENABLE_BOOST
             make_404_content(peer);
 #endif
+        }
+
+        if(sysconfigpath.sitehostinfos[peer->host_index].is_method_after)
+        {
+            if(sysconfigpath.sitehostinfos[peer->host_index].action_after_lists.size()>0&&sysconfigpath.sitehostinfos[peer->host_index].action_after_lists.size()<16)
+            {
+                for(unsigned char jk=0;jk<sysconfigpath.sitehostinfos[peer->host_index].action_after_lists.size();jk++)
+                {
+                    std::cout<<sysconfigpath.sitehostinfos[peer->host_index].action_after_lists[jk]<<std::endl;
+                    if (sysconfigpath.sitehostinfos[peer->host_index].action_after_lists[jk].size()>0&&_http_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].action_after_lists[jk]) != _http_regmethod_table.end())
+                    {
+                        _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].action_after_lists[jk]].regfun(peer);
+                    }
+                }
+            }
         }
 
         auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());

@@ -24,9 +24,13 @@ namespace http
         std::string certificate_file;
         std::string privateKey_file;
         std::vector<std::string> action_404_lists;
+        std::vector<std::string> action_pre_lists;
+        std::vector<std::string> action_after_lists;
         unsigned int rewrite404=0;
         bool isrewrite=false;
         bool http2_enable=false;
+        bool is_method_pre=false;
+        bool is_method_after=false;
     };
     class serverconfig
     {
