@@ -409,7 +409,23 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 {
                     if (sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk].size()>0&&_http_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk]) != _http_regmethod_table.end())
                     {
-                        _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk]].regfun(peer);
+                       std::string re_str = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk]].regfun(peer);
+                       if(re_str.size()>0)
+                       {
+                            if(re_str.size()>3&&re_str[0]=='e'&&re_str[1]=='x'&&re_str[2]=='i'&&re_str[3]=='t')
+                            {
+                                auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+                                asio::dispatch(ex,
+                                            [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                                            {
+                                                /////////////
+                                                handler(1);
+                                                //////////
+                                            });
+                                peer->user_code_handler_call.pop_front();
+                                return;
+                            }
+                       }
                     }
                 }
             }

@@ -32,6 +32,7 @@
 #include "testcors.h"
 #include "testsqltuple.h"
 #include "testsessionid.h"
+#include "devcors.h"
 
 
 namespace http
@@ -223,6 +224,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testshowsession;
 		methodcallback.emplace("testshowsession",temp);
+		temp.pre = nullptr;
+		temp.regfun = api_dev_hostcors;
+		methodcallback.emplace("api/dev/hostcors",temp);
 
 
     }
