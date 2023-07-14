@@ -3184,7 +3184,7 @@ unsigned int json_decode(std::vector<)";
             maincontent += R"();
                 )";
         }
-        if (json_reflect_data.type == "unsigned char")
+        else if (json_reflect_data.type == "unsigned char")
         {
             maincontent += R"(_stream << "\")";
             maincontent += json_reflect_data.name;
@@ -3195,6 +3195,16 @@ unsigned int json_decode(std::vector<)";
                 )";
         }
         else if (json_reflect_data.type == "int")
+        {
+            maincontent += R"(_stream << "\")";
+            maincontent += json_reflect_data.name;
+            maincontent += R"(\":" << std::to_string()";
+            maincontent += pre_name;
+            maincontent += json_reflect_data.name;
+            maincontent += R"();
+                )";
+        }
+        else if (json_reflect_data.type == "char")
         {
             maincontent += R"(_stream << "\")";
             maincontent += json_reflect_data.name;
