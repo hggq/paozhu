@@ -15,7 +15,7 @@
 
 namespace http
 {
-bool str_compare(const std::string &str1, std::string &str2,unsigned int length);
+bool str_compare(const std::string &str1, std::string &str2, unsigned int length);
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext);
 std::string get_filename(const std::string &filename);
 std::vector<std::string> mb_split(const std::string, std::string &);
@@ -37,6 +37,78 @@ long long str2int(const char *source, unsigned int str_length);
 std::string str2safepath(const char *source, unsigned int str_length);
 std::string str2safefile(const char *source, unsigned int str_length);
 std::string str2safemethold(const char *source, unsigned int str_length);
+
+std::string numstr_to_sql(const char *source, unsigned int str_length, char b = ',');
+
+template <typename _Tp>
+    requires std::is_integral_v<_Tp>
+std::vector<_Tp> str_to_vector(const char *source, unsigned int str_length, char b = ',')
+{
+    std::vector<_Tp> tempt;
+    std::string tempstr;
+
+    for (unsigned int i = 0; i < str_length; i++)
+    {
+        if (source[i] == '-' || (source[i] > 0x2F && source[i] < 0x3A))
+        {
+            tempstr.push_back(source[i]);
+        }
+        else if (source[i] == b)
+        {
+            if (tempstr.size() > 0)
+            {
+                try
+                {
+                    tempt.push_back(std::stoi(tempstr.c_str()));
+                }
+                catch (...)
+                {
+                }
+            }
+            tempstr.clear();
+        }
+    }
+    if (tempstr.size() > 0)
+    {
+        tempt.push_back(std::stoi(tempstr.c_str()));
+    }
+    return tempt;
+}
+
+template <typename _Tp>
+    requires std::is_floating_point_v<_Tp>
+std::vector<_Tp> str_to_vector(const char *source, unsigned int str_length, char b = ',')
+{
+    std::vector<_Tp> tempt;
+    std::string tempstr;
+
+    for (unsigned int i = 0; i < str_length; i++)
+    {
+        if (source[i] == '-' || (source[i] > 0x2F && source[i] < 0x3A))
+        {
+            tempstr.push_back(source[i]);
+        }
+        else if (source[i] == b)
+        {
+            if (tempstr.size() > 0)
+            {
+                try
+                {
+                    tempt.push_back(std::stof(tempstr.c_str()));
+                }
+                catch (...)
+                {
+                }
+            }
+            tempstr.clear();
+        }
+    }
+    if (tempstr.size() > 0)
+    {
+        tempt.push_back(std::stof(tempstr.c_str()));
+    }
+    return tempt;
+}
 
 template <typename _Tp>
     requires std::is_integral_v<_Tp> || std::is_floating_point_v<_Tp>
@@ -65,5 +137,5 @@ void get_directory_all_file(std::map<unsigned long long, std::string> &listobj,
                             const std::string &url_path,
                             const std::string &extfile);
 
-} // namespace http
+}// namespace http
 #endif

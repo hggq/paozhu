@@ -37,13 +37,13 @@
 namespace http
 {
 namespace fs = std::filesystem;
-bool str_compare(const std::string &str1, std::string &str2,unsigned int length)
+bool str_compare(const std::string &str1, std::string &str2, unsigned int length)
 {
-    for(unsigned int i=0;i<length;i++)
+    for (unsigned int i = 0; i < length; i++)
     {
-        if(i<str1.size()&&i<str2.size())
+        if (i < str1.size() && i < str2.size())
         {
-            if(str1[i]==str2[i])
+            if (str1[i] == str2[i])
             {
                 continue;
             }
@@ -52,11 +52,11 @@ bool str_compare(const std::string &str1, std::string &str2,unsigned int length)
                 return false;
             }
         }
-        if(i==str1.size())
+        if (i == str1.size())
         {
             return true;
         }
-        if(i==str2.size())
+        if (i == str2.size())
         {
             return true;
         }
@@ -1589,7 +1589,7 @@ std::string strip_html(const std::string &content)
                 }
 
                 tag_count = 0;
-                //nornal tag
+                // nornal tag
                 for (; i < content.size(); i++)
                 {
                     if (content[i] == '>')
@@ -1630,7 +1630,7 @@ std::string strip_html(const std::string &content)
                     }
                     if (content[i] == '<')
                     {
-                        //may be script tag in tag
+                        // may be script tag in tag
                         tag_count += 1;
                         continue;
                     }
@@ -1773,4 +1773,39 @@ void get_directory_all_file(std::map<unsigned long long, std::string> &listobj,
     }
 }
 
-} // namespace http
+std::string numstr_to_sql(const char *source, unsigned int str_length, char b)
+{
+    std::string tempt;
+    std::string tempstr;
+
+    for (unsigned int i = 0; i < str_length; i++)
+    {
+        if (source[i] == '-' || (source[i] > 0x2F && source[i] < 0x3A))
+        {
+            tempstr.push_back(source[i]);
+        }
+        else if (source[i] == b)
+        {
+            if (tempstr.size() > 0)
+            {
+                if (tempt.size() > 0)
+                {
+                    tempt.push_back(b);
+                }
+                tempt.append(tempstr);
+            }
+            tempstr.clear();
+        }
+    }
+    if (tempstr.size() > 0)
+    {
+        if (tempt.size() > 0)
+        {
+            tempt.push_back(b);
+        }
+        tempt.append(tempstr);
+    }
+    return tempt;
+}
+
+}// namespace http
