@@ -42,7 +42,7 @@ std::string numstr_to_sql(const char *source, unsigned int str_length, char b = 
 
 template <typename _Tp>
     requires std::is_integral_v<_Tp>
-std::vector<_Tp> str_to_vector(const char *source, unsigned int str_length, char b = ',')
+std::vector<_Tp> numstr_to_vector(const char *source, unsigned int str_length, char b = ',')
 {
     std::vector<_Tp> tempt;
     std::string tempstr;
@@ -77,7 +77,7 @@ std::vector<_Tp> str_to_vector(const char *source, unsigned int str_length, char
 
 template <typename _Tp>
     requires std::is_floating_point_v<_Tp>
-std::vector<_Tp> str_to_vector(const char *source, unsigned int str_length, char b = ',')
+std::vector<_Tp> numstr_to_vector(const char *source, unsigned int str_length, char b = ',')
 {
     std::vector<_Tp> tempt;
     std::string tempstr;
