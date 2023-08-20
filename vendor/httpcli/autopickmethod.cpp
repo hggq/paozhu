@@ -277,7 +277,7 @@ namespace http
         bool ismatch = false;
         for (unsigned int n = 0; n < reg_method_lists[j].urlpath.size(); n++)
         {
-            if (reg_method_lists[j].urlpath[n] == '{')
+            if (reg_method_lists[j].urlpath[n] == ':')
             {
                 ismatch = true;
                 break;
@@ -297,7 +297,7 @@ namespace http
             std::string temp_new_urlpath;
             for (; n < reg_method_lists[j].urlpath.size(); n++)
             {
-                if (reg_method_lists[j].urlpath[n] == '{')
+                if (reg_method_lists[j].urlpath[n] == ':')
                 {
                     ismatch = false;
                 }
@@ -316,6 +316,7 @@ namespace http
                         {
                             temp_new_urlpath.append(temp_str);
                         }
+                        
                     }
                     temp_str.clear();
                     continue;
@@ -409,19 +410,19 @@ namespace http
                     automethod_content.append("{\"");
                 }
 
-                if (paths[j].size() > 0 && paths[j][0] == '{')
+                if (paths[j].size() > 0 && paths[j][0] == ':')
                 {
                     hash_value.clear();
                     for (unsigned int jj = 0; jj < paths[j].size(); jj++)
                     {
-                        if (paths[j][jj] == '{')
+                        if (paths[j][jj] == ':')
                         {
                             continue;
                         }
-                        else if (paths[j][jj] == '}')
-                        {
-                            continue;
-                        }
+//                         else if (paths[j][jj] == '}')
+//                         {
+//                             continue;
+//                         }
                         hash_value.push_back(paths[j][jj]);
                     }
                     automethod_content.append(hash_value);
