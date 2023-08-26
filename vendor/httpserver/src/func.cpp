@@ -738,7 +738,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
         http::client a;
         // http::OBJ_VALUE parameter;
         bool isaccept = false;
-        bool isget    = false;
+        bool isget    = true;
         for (auto [hkey, vvalue] : parabody)
         {
             if (hkey == "Content-Type")
@@ -760,7 +760,10 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
             }
             else if (hkey == "method")
             {
-                isget = true;
+                if (vvalue == "POST")
+                {
+                    isget = false;
+                }
             }
             else if (hkey == "header-content")
             {
