@@ -8,6 +8,7 @@
 
 #include "httppeer.h" 
 
+#include "testhttpclient.h"
 #include "testmysqlinsert.h"
 #include "testrestfulpath.h"
 #include "testmodelfromjson.h"
@@ -41,6 +42,12 @@ namespace http
   {
     struct regmethold_t temp;
 
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient_get_body;
+		methodcallback.emplace("testhttpclient1",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient_get_file;
+		methodcallback.emplace("testhttpclient2",temp);
 		temp.pre = nullptr;
 		temp.regfun = testmysqlinsert;
 		methodcallback.emplace("minsert",temp);

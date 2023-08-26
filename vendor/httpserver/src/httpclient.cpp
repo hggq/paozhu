@@ -28,6 +28,7 @@
 #include "http_mime.h"
 #include "datetime.h"
 #include "gzip.h"
+#include "pzcache.h"
 
 namespace http
 {
@@ -210,6 +211,7 @@ client &client::send(http::OBJ_VALUE param)
 
 client &client::senddatato()
 {
+    std::string exptime_hash;
     try
     {
         response_header.clear();
@@ -256,22 +258,35 @@ client &client::senddatato()
             std::cerr << "Unable to connect:  \r\n";
             return *this;
         }
+
         if (exptime < 0 || exptime > 30)
         {
             exptime = 10;
         }
         if (exptime > 0)
         {
+            pzcache<int> &temp_cache = pzcache<int>::conn();
+            exptime_hash.append("httpclient");
+            exptime_hash.append(std::to_string(timeid()));
+            exptime_hash.append(rand_string(6, 0));
+            int isbegin = 1;
+            temp_cache.save(exptime_hash, isbegin, exptime + 2);
 
             std::thread(
-                [&, timenum = exptime]()
+                [&, timenum = exptime, client_hash = exptime_hash]()
                 {
                     std::this_thread::sleep_for(std::chrono::seconds(timenum));
-                    if (socket.is_open())
+                    pzcache<int> &temp_cache = pzcache<int>::conn();
+                    int cache_data           = temp_cache.get(client_hash);
+                    if (cache_data == 1)
                     {
-                        socket.close();
+                        if (socket.is_open())
+                        {
+                            socket.close();
+                        }
+                        clientio_context.stop();
+                        temp_cache.remove(client_hash);
                     }
-                    clientio_context.stop();
                 })
                 .detach();
         }
@@ -387,10 +402,22 @@ client &client::senddatato()
             socket.close();
         }
         clientio_context.stop();
+        if (exptime_hash.size() > 0)
+        {
+            pzcache<int> &temp_cache = pzcache<int>::conn();
+            int isbegin              = 0;
+            temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
+        }
     }
     catch (std::exception &e)
     {
         // std::printf("Exception: %s\n", e.what());
+        if (exptime_hash.size() > 0)
+        {
+            pzcache<int> &temp_cache = pzcache<int>::conn();
+            int isbegin              = 0;
+            temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
+        }
         std::cerr << "Exception:  " << e.what() << "\r\n";
     }
 
@@ -399,6 +426,7 @@ client &client::senddatato()
 client &client::sendssldatato()
 {
     // ssl请求
+    std::string exptime_hash;
     try
     {
         response_header.clear();
@@ -451,15 +479,27 @@ client &client::sendssldatato()
         }
         if (exptime > 0)
         {
+            pzcache<int> &temp_cache = pzcache<int>::conn();
+            exptime_hash.append("httpclient");
+            exptime_hash.append(std::to_string(timeid()));
+            exptime_hash.append(rand_string(6, 0));
+            int isbegin = 1;
+            temp_cache.save(exptime_hash, isbegin, exptime + 2);
             std::thread(
-                [&, timenum = exptime]()
+                [&, timenum = exptime, client_hash = exptime_hash]()
                 {
                     try
                     {
                         std::this_thread::sleep_for(std::chrono::seconds(timenum));
-                        if (socket.lowest_layer().is_open())
+                        pzcache<int> &temp_cache = pzcache<int>::conn();
+                        int cache_data           = temp_cache.get(client_hash);
+                        if (cache_data == 1)
                         {
-                            socket.shutdown();
+                            if (socket.lowest_layer().is_open())
+                            {
+                                socket.shutdown();
+                            }
+                            temp_cache.remove(client_hash);
                         }
                     }
                     catch (const std::exception &e)
@@ -580,12 +620,29 @@ client &client::sendssldatato()
         }
         finishprocess();
 
-        socket.shutdown();
+        if (socket.lowest_layer().is_open())
+        {
+            socket.shutdown();
+        }
         io_context.stop();
+        if (exptime_hash.size() > 0)
+        {
+            pzcache<int> &temp_cache = pzcache<int>::conn();
+            int isbegin              = 0;
+            temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
+        }
+
         return *this;
     }
     catch (std::exception &e)
     {
+        if (exptime_hash.size() > 0)
+        {
+            pzcache<int> &temp_cache = pzcache<int>::conn();
+            int isbegin              = 0;
+            temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
+            std::cout << "++++++++exception--data+++++++++" << std::endl;
+        }
         std::printf("Exception: %s\n", e.what());
     }
 
