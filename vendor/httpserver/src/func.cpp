@@ -716,7 +716,7 @@ std::string mb_substr(std::string &str, int begin, int length)
 
     return temp;
 }
-std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody)
+std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody, unsigned int timeoutnum)
 {
     std::string file_body;
     bool isurl = false;
@@ -785,8 +785,11 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
         {
             a.post(str);
         }
+        if (timeoutnum > 1)
+        {
+            a.timeout(timeoutnum);
+        }
 
-        a.timeout(30);
         // a.data=parameter;
         a.send();
         parabody["state"]           = std::to_string(a.getstate());
@@ -829,7 +832,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
 
     return file_body;
 }
-std::string file_get_contents(std::string str)
+std::string file_get_contents(std::string str, unsigned int timeoutnum)
 {
     std::string file_body;
     bool isurl = false;
@@ -850,7 +853,11 @@ std::string file_get_contents(std::string str)
     {
         http::client a;
         a.get(str);
-        a.timeout(30);
+        if (timeoutnum > 1)
+        {
+            a.timeout(timeoutnum);
+        }
+
         a.send();
         if (a.getstate() == 200)
         {

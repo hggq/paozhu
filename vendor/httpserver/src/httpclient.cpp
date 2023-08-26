@@ -641,7 +641,6 @@ client &client::sendssldatato()
             pzcache<int> &temp_cache = pzcache<int>::conn();
             int isbegin              = 0;
             temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
-            std::cout << "++++++++exception--data+++++++++" << std::endl;
         }
         std::printf("Exception: %s\n", e.what());
     }
