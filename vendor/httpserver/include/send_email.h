@@ -60,6 +60,7 @@ namespace http
         std::string errormsg;
         /////////////////////////////////
         std::string replyemail;
+        std::string replyname;
         std::string toemail;
         std::string toname;
         std::string subject;

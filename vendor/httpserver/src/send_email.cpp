@@ -4,10 +4,14 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
+#include <openssl/md5.h>
 #include "base64.h"
 #include "http_socket.h"
 #include "send_email.h"
-
+#include "func.h"
 namespace http
 {
 
@@ -66,9 +70,56 @@ namespace http
                 errormsg.append("ssl handshake error!");
                 return false;
             }
-
+            
             state = SEND_START;
             unsigned int n;
+          //  unsigned int ci_data=0;
+
+        //     memset(data, 0x00, 2048);
+        //     n = socket.read_some(asio::buffer(data, 1024), ec);
+        //     sendcommand.clear();
+        //     sendcommand.append("EHLO ");
+        //     sendcommand.append(smpturl);
+        //     sendcommand.append("\r\n");
+
+        //     socket.write_some(asio::buffer(sendcommand));
+        //     memset(data, 0x00, 2048);
+        //     n = socket.read_some(asio::buffer(data, 1024), ec);
+
+        //     sendcommand.clear();    
+        //     sendcommand.append("AUTH LOGIN\r\n");
+        //     //sendcommand.append("AUTH CRAM-MD5\r\n");
+        //     socket.write_some(asio::buffer(sendcommand));
+        //     memset(data, 0x00, 2048);
+        //     n = socket.read_some(asio::buffer(data, 1024), ec);
+
+            
+        //     // std::string backseret;
+        //     // for(unsigned int i=4;i<n;i++)
+        //     // {
+        //     //     backseret.push_back(data[i]);    
+        //     // }
+            
+        //     // backseret=base64_decode((const char*)&backseret[0],backseret.size());
+
+        //     // unsigned char sSHA[EVP_MAX_MD_SIZE] = {0};
+        //     // unsigned int nSHALen = EVP_MAX_MD_SIZE;
+        //     // unsigned char* ret = HMAC(EVP_md5(),(const char*)&password[0],password.size(), (const unsigned char*)&backseret[0], backseret.size(), sSHA, &nSHALen);
+            
+        //     // backseret=username+' '+char2str(&sSHA[0],nSHALen);            
+        //     // sendcommand=base64_encode((const char*)&backseret[0],backseret.size());
+        //     //sendcommand.clear();   
+        //     sendcommand.clear();
+        //     sendcommand.append(base64_encode(username.data(), username.size()));
+        //     sendcommand.append("\r\n");
+
+        //     socket.write_some(asio::buffer(sendcommand));
+        //     memset(data, 0x00, 2048);
+        //     n = socket.read_some(asio::buffer(data, 1024), ec);
+
+ 
+        memset(data, 0x00, 2048);
+        n = socket.read_some(asio::buffer(data, 1024), ec);
 
             if (state == SEND_START)
             {
@@ -129,9 +180,7 @@ namespace http
                                     {
                                         break;
                                     }
-
                                     socket.write_some(asio::buffer(sendfiles[j].predata));
-
                                     FILE *ff = fopen(sendfiles[j].filename.c_str(), "rb");
                                     if (ff)
                                     {
@@ -153,7 +202,6 @@ namespace http
                                             }
                                             sendcontent.push_back(filecontent[sendsize]);
                                         }
-
                                         asio::write(socket, asio::buffer(sendcontent.data(), sendcontent.size()));
                                         // while(sendsize<size){
                                         //         memset(data,0x00,2048);
@@ -180,13 +228,129 @@ namespace http
                         }
                         memset(data, 0x00, 2048);
                         n = socket.read_some(asio::buffer(data, 1024), ec);
+                        
                     }
 
-                    if (data[0] == '2' || data[0] == '3')
+                    if (data[0] == '2' || data[0] == '3' || data[0] == '4' || data[0] == '5')
                     {
-                        n = static_cast<int>(state);
-                        n++;
-                        state = static_cast<State>(n);
+                       unsigned int temprenum=0;
+                        if(n>2)
+                        {
+                            for(unsigned int i=0;i<3;i++)
+                            {
+                                if(data[i]<='9'&&data[i]>='0')
+                                {
+                                   temprenum=temprenum*10+(data[i]-'0');     
+                                }
+                                
+                            }
+                        }
+                        switch (state)
+                        {
+                        case SEND_EHLO:
+                            state=SEND_AUTH_LOGIN;
+                            break;
+                        case SEND_AUTH_LOGIN:
+                            if(temprenum==334||temprenum==250)
+                            {
+                                state=SEND_USER;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_USER:
+                            if(temprenum==334||temprenum==250)
+                            {
+                                state=SEND_PASSWORD;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_PASSWORD:
+                            if(temprenum==334||temprenum==235||temprenum==250)
+                            {
+                                state=SEND_MAIL_FROM;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_MAIL_FROM:
+                             if(temprenum==250)
+                            {
+                                state=SEND_RCPT_TO;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_RCPT_TO:
+                            if(temprenum==250)
+                            {
+                                state=SEND_DATA;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_DATA:
+                             if(temprenum==354)
+                            {
+                                state=SEND_EMAIL;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_EMAIL:
+                             if(temprenum==250)
+                            {
+                                state=SEND_END;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
                     }
                     else
                     {
@@ -275,6 +439,8 @@ namespace http
             }
             unsigned int n;
             state = SEND_START;
+            memset(data, 0x00, 2048);
+            n = socket.read_some(asio::buffer(data, 1024), ec);
 
             if (state == SEND_START)
             {
@@ -335,7 +501,6 @@ namespace http
                                     {
                                         break;
                                     }
-
                                     socket.write_some(asio::buffer(sendfiles[j].predata));
                                     FILE *ff = fopen(sendfiles[j].filename.c_str(), "rb");
                                     if (ff)
@@ -358,7 +523,6 @@ namespace http
                                             }
                                             sendcontent.push_back(filecontent[sendsize]);
                                         }
-
                                         asio::write(socket, asio::buffer(sendcontent.data(), sendcontent.size()));
                                         // while(sendsize<size){
                                         //         memset(data,0x00,2048);
@@ -387,11 +551,127 @@ namespace http
                         n = socket.read_some(asio::buffer(data, 1024), ec);
                     }
 
-                    if (data[0] == '2' || data[0] == '3')
+                    if (data[0] == '2' || data[0] == '3' || data[0] == '4' || data[0] == '5')
                     {
-                        n = static_cast<int>(state);
-                        n++;
-                        state = static_cast<State>(n);
+                        unsigned int temprenum=0;
+                        if(n>2)
+                        {
+                            for(unsigned int i=0;i<3;i++)
+                            {
+                                if(data[i]<='9'&&data[i]>='0')
+                                {
+                                   temprenum=temprenum*10+(data[i]-'0');     
+                                }
+                            }
+                        }
+
+                        switch (state)
+                        {
+                        case SEND_EHLO:
+                            state=SEND_AUTH_LOGIN;
+                            break;
+                        case SEND_AUTH_LOGIN:
+                            if(temprenum==334||temprenum==235||temprenum==250)
+                            {
+                                state=SEND_USER;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_USER:
+                            if(temprenum==334||temprenum==235||temprenum==250)
+                            {
+                                state=SEND_PASSWORD;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_PASSWORD:
+                            if(temprenum==334||temprenum==235||temprenum==250)
+                            {
+                                state=SEND_MAIL_FROM;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_MAIL_FROM:
+                             if(temprenum==250)
+                            {
+                                state=SEND_RCPT_TO;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_RCPT_TO:
+                            if(temprenum==250)
+                            {
+                                state=SEND_DATA;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_DATA:
+                             if(temprenum==354)
+                            {
+                                state=SEND_EMAIL;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        case SEND_EMAIL:
+                             if(temprenum==250)
+                            {
+                                state=SEND_END;
+                            }
+                            else
+                            {
+                                for(unsigned int i=0;i<n;i++)
+                                {
+                                    errormsg.push_back(data[n]);     
+                                }
+                                return false;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                
                     }
                     else
                     {
@@ -493,34 +773,38 @@ namespace http
             break;
         case SEND_DATA:
             sendcommand.append("DATA\r\n");
-
             break;
         case SEND_EMAIL:
 
             if (attachments.size() > 0)
             {
                 // attachments_content();
-
+                
+                sendcommand.clear();    
                 sendcommand.append("MIME-Version: 1.0\r\n");
-                sendcommand.append("From: ");
-                sendcommand.append(fromname);
-                sendcommand.push_back('<');
-                sendcommand.append(replyemail);
+                sendcommand.append("From: =?UTF-8?B?");
+                sendcommand.append(base64_encode(fromname.data(), fromname.size(), 0));
+                sendcommand.append("?= <");
+                sendcommand.append(username);
                 sendcommand.append(">\r\n");
 
-                sendcommand.append("To: ");
-                sendcommand.append(toname);
-                sendcommand.push_back('<');
+                sendcommand.append("To: =?UTF-8?B?");
+                sendcommand.append(base64_encode(toname.data(), toname.size(), 0));
+                sendcommand.append("?= <");
                 sendcommand.append(toemail);
                 sendcommand.append(">\r\n");
+
+                sendcommand.append("Date: ");
+                sendcommand.append(getgmttime());
+                sendcommand.append("\r\n");
 
                 sendcommand.append("Subject: ");
                 sendcommand.append(subject);
                 sendcommand.append("\r\n");
 
-                sendcommand.append("Date: ");
-                sendcommand.append(getgmttime());
-                sendcommand.append("\r\n");
+                sendcommand.append("Reply-To: <");
+                sendcommand.append(replyemail);
+                sendcommand.append(">\r\n"); 
 
                 srand(time(0));
                 // std::string boundarystsr;
@@ -528,23 +812,27 @@ namespace http
                 std::stringstream ostr;
                 unsigned int c = rand() * 10000000;
                 ostr << c;
+                c = rand() * 10000000;
+                ostr << c;
                 boundarystsr.append(ostr.str());
-                boundarystsr.append("_cpp_web_frame");
-
+                
                 sendcommand.append("Message-ID: <");
                 sendcommand.append(boundarystsr);
                 sendcommand.append(replyemail);
                 sendcommand.append(">\r\n");
 
-                sendcommand.append("Content-Type: multipart/mixed;  boundary=\"");
+                boundarystsr.append("_paozhu_");
+                
+                sendcommand.append("Content-Type: multipart/mixed; boundary=\"");
                 sendcommand.append(boundarystsr);
                 sendcommand.append("\"\r\n\r\n--");
                 sendcommand.append(boundarystsr);
                 sendcommand.append("\r\n");
-                sendcommand.append("Content-Type: text/html; charset=utf-8\r\n\r\n");
+                sendcommand.append("Content-Type: text/html; charset=UTF-8\r\n\r\n");
                 sendcommand.append(content);
 
                 // std::string buffer;
+                sendcommand.append("\r\n");
                 n = 0;
                 sendfiles.resize(attachments.size());
                 for (; n < attachments.size(); n++)
@@ -557,51 +845,62 @@ namespace http
                         continue;
                     }
                     fclose(ffile);
-
+                    unsigned int k=0;
+                    std::string filename_temp;
+                    for(k=attachments[n].size();k>0;k--)
+                    {
+                        if(attachments[n][k]=='/'||attachments[n][k]=='\\')
+                        {
+                            if(k<attachments[n].size()) 
+                            {
+                                k+=1;
+                            }   
+                            break;
+                        }
+                    }
+                    filename_temp.append(attachments[n].substr(k));
                     sendfiles[n].predata.append("\r\n--");
                     sendfiles[n].predata.append(boundarystsr);
                     // sendfiles[n].predata.append("\r\nContent-Type: application/octet-stream;\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"=?UTF-8?B?");
                     // sendcommand.append(attachments[n]);
                     sendfiles[n].predata.append("\r\nContent-Type: application/octet-stream;\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"=?UTF-8?B?");
-                    sendfiles[n].predata.append(base64_encode(attachments[n].data(), attachments[n].size()));
+                    sendfiles[n].predata.append(base64_encode(filename_temp.data(), filename_temp.size()));
                     sendfiles[n].predata.append("?=\"\r\n\r\n");
                     // sendcommand.append("?=\"\r\nContent-Transfer-Encoding: base64\r\n\r\n");
 
                     sendfiles[n].filename = attachments[n];
-                    // if(n>4){
-                    //     n++;
-                    //     break;
-                    // }
                 }
                 sendfiles.resize(n);
-                // sendcommand.append("\r\n\r\n--");
-                // sendcommand.append(boundarystsr);
-                // sendcommand.append("--\r\n");
-                // sendcommand.append("\r\n.\r\n");
             }
             else
             {
+               
+                sendcommand.clear();    
                 sendcommand.append("MIME-Version: 1.0\r\n");
                 sendcommand.append("Content-Type: text/html; charset=utf-8\r\n");
-                sendcommand.append("From: ");
-                sendcommand.append(fromname);
-                sendcommand.push_back('<');
-                sendcommand.append(replyemail);
+                sendcommand.append("From: =?UTF-8?B?");
+                sendcommand.append(base64_encode(fromname.data(), fromname.size(), 0));
+                sendcommand.append("?= <");
+                sendcommand.append(username);
                 sendcommand.append(">\r\n");
 
-                sendcommand.append("To: ");
-                sendcommand.append(toname);
-                sendcommand.push_back('<');
+                sendcommand.append("To: =?UTF-8?B?");
+                sendcommand.append(base64_encode(toname.data(), toname.size(), 0));
+                sendcommand.append("?= <");
                 sendcommand.append(toemail);
                 sendcommand.append(">\r\n");
+
+                sendcommand.append("Date: ");
+                sendcommand.append(getgmttime());
+                sendcommand.append("\r\n");
 
                 sendcommand.append("Subject: ");
                 sendcommand.append(subject);
                 sendcommand.append("\r\n");
 
-                sendcommand.append("Date: ");
-                sendcommand.append(getgmttime());
-                sendcommand.append("\r\n");
+                sendcommand.append("Reply-To: <");
+                sendcommand.append(replyemail);
+                sendcommand.append(">\r\n"); 
 
                 srand(time(0));
                 // std::string boundarystsr;
@@ -617,13 +916,13 @@ namespace http
 
                 sendcommand.append(content);
                 sendcommand.append("\r\n\r\n.\r\n");
+               
             }
 
             break;
         default:
             break;
         }
-
         return true;
     }
 
