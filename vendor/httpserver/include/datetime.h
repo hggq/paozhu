@@ -16,7 +16,7 @@ std::string get_utctime(time_t inputtime = 0);
 unsigned int timeid();
 unsigned int rand_range(unsigned int a, unsigned int b);
 std::string rand_string(unsigned int a, unsigned char b = 0);
-std::string dateid(const std::string &format, unsigned int inputtime = 0);
+std::string get_date(const std::string &format, unsigned int inputtime = 0);
 
 // Sat, 02 Jan 2021 00:12:45 GMT to sec
 unsigned int strgmttotime(const std::string &gmtstr);
