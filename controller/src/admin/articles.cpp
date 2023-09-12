@@ -64,7 +64,7 @@ std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.relatecontent = client.post["relatecontent"].to_string();
         artmodel.data.userid        = 0;
         artmodel.data.isopen        = 1;
-        artmodel.data.createtime    = dateid("%Y-%m-%d %X");
+        artmodel.data.createtime    = get_date("%Y-%m-%d %X");
         artmodel.data.addtime       = timeid();
         artmodel.data.addip         = client.client_ip;
 
@@ -232,7 +232,7 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
         unsigned int page     = client.get["page"].to_int();
         client.val["topicid"] = topicid;
 
-        std::vector<unsigned int> topic_id_array; //articles under this topic and sub topics
+        std::vector<unsigned int> topic_id_array;//articles under this topic and sub topics
 
         if (topicid > 0)
         {
@@ -317,7 +317,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         OBJ_ARRAY temp;
 
         std::map<unsigned int, std::string> topickv;
-        std::vector<unsigned int> topic_id_array; //articles under this topic and sub topics
+        std::vector<unsigned int> topic_id_array;//articles under this topic and sub topics
 
         if (topicid > 0)
         {
@@ -391,4 +391,4 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-} //namespace http
+}//namespace http

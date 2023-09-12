@@ -22,7 +22,7 @@ std::string testmysqlinsert(std::shared_ptr<httppeer> peer)
         std::string content = "<p>this insert content!</p>";
         a_data.isopen       = 1;
         a_data.title        = "aabb";
-        a_data.createtime   = dateid("%Y-%m-%d %X");
+        a_data.createtime   = get_date("%Y-%m-%d %X");
         a_data.addtime      = timeid();
         a_data.addip        = client.client_ip;
         a_data.content      = content;
@@ -58,7 +58,7 @@ std::string testmysqlpagebar(std::shared_ptr<httppeer> peer)
 
         articles.where("isopen", 1);
 
-        auto [bar_min, bar_max, current_page, total_page] = articles.page(page, 10, 5); //page,per_page_num,navbar_width
+        auto [bar_min, bar_max, current_page, total_page] = articles.page(page, 10, 5);//page,per_page_num,navbar_width
 
         client << "<p>bar_min:" << std::to_string(bar_min) << "</p>";
         client << "<p>bar_max:" << std::to_string(bar_max) << "</p>";
@@ -108,4 +108,4 @@ std::string testmysqlpagebar(std::shared_ptr<httppeer> peer)
     }
     return "";
 }
-} //namespace http
+}//namespace http

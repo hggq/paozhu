@@ -188,9 +188,9 @@ std::string articleaddpost(std::shared_ptr<httppeer> peer)
     // articles.data.title=title;
     // articles.setAid(aid);
     articles.setIsopen(1);
-    articles.setCreatetime(dateid("%Y-%m-%d %X")); // Y-m-d H:i:s
-    articles.setAddtime(timeid());                 // unix timestamp
-    articles.setAddip(client.client_ip);           // client ip
+    articles.setCreatetime(get_date("%Y-%m-%d %X"));// Y-m-d H:i:s
+    articles.setAddtime(timeid());                  // unix timestamp
+    articles.setAddip(client.client_ip);            // client ip
     articles.setTitle(title);
     // articles.setTitle("直接标题");
     articles.setContent(content);
@@ -256,4 +256,4 @@ std::string articledelete(std::shared_ptr<httppeer> peer)
 
     return "";
 }
-} //namespace http
+}//namespace http
