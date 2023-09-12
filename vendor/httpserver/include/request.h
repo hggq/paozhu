@@ -331,6 +331,7 @@ class OBJ_VALUE
     void push(unsigned long long, std::string &v);
     void push(unsigned long long, std::string &&v);
 
+    void push(const std::string &, const std::string &);
     void push(std::string &, OBJ_VALUE &v);
     void push(std::string &, OBJ_VALUE &&v);
 

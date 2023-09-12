@@ -1023,10 +1023,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
         if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
         {
-            peer->host_index=sysconfigpath.host_toint[peer->host];
-            if(peer->host_index>=sysconfigpath.sitehostinfos.size())
+            peer->host_index = sysconfigpath.host_toint[peer->host];
+            if (peer->host_index >= sysconfigpath.sitehostinfos.size())
             {
-                peer->host_index=0;
+                peer->host_index = 0;
             }
         }
         //peer->sitepath         = sysconfigpath.getsitepath(peer->host);
@@ -1238,7 +1238,8 @@ void httpserver::http2pool(int threadid)
         if (this->http2send_tasks.empty())
         {
             std::unique_lock<std::mutex> lock(this->http2_task_mutex);
-            this->http2condition.wait(lock, [this] { return this->stop || !this->http2send_tasks.empty(); });
+            this->http2condition.wait(lock, [this]
+                                      { return this->stop || !this->http2send_tasks.empty(); });
         }
 
         const std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
@@ -1694,17 +1695,17 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
 
     if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
     {
-        peer->host_index=sysconfigpath.host_toint[peer->host];
-        if(peer->host_index>=sysconfigpath.sitehostinfos.size())
+        peer->host_index = sysconfigpath.host_toint[peer->host];
+        if (peer->host_index >= sysconfigpath.sitehostinfos.size())
         {
-            peer->host_index=0;
+            peer->host_index = 0;
         }
     }
     //peer->sitepath         = sysconfigpath.getsitepath(peer->host);
-    peer->sitepath         = sysconfigpath.getsitewwwpath(peer->host_index);
+    peer->sitepath = sysconfigpath.getsitewwwpath(peer->host_index);
     //peer->sitepath              = sysconfigpath.getsitepath(peer->host);
-    unsigned char sendtype      = 0;
-    sendtype                    = peer->has_urlfileext();
+    unsigned char sendtype = 0;
+    sendtype               = peer->has_urlfileext();
     if (sendtype < 4)
     {
         sendtype = peer->get_fileinfo();
@@ -1799,9 +1800,9 @@ void httpserver::http1_send_bad_server(unsigned int error_code,
                                        std::shared_ptr<httppeer> peer,
                                        std::shared_ptr<client_session> peer_session)
 {
-    error_code      = 0;
-    std::string str = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/html; charset=utf-8\r\nConnection: "
-                      "close\r\nContent-Length: ";
+    error_code            = 0;
+    std::string str       = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/html; charset=utf-8\r\nConnection: "
+                            "close\r\nContent-Length: ";
     std::string stfilecom = "<h3>500 Internal Server Error</h3>";
     stfilecom.append("<hr /><p>File: " + peer->urlpath + " Access is denied!</p>");
     str.append(std::to_string(stfilecom.size()));
@@ -1972,7 +1973,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                             log_item.clear();
                             log_item.append(peer->server_ip);
                             log_item.push_back(0x20);
-                            log_item.append(dateid("%Y-%m-%d %X"));
+                            log_item.append(get_date("%Y-%m-%d %X"));
                             log_item.push_back(0x20);
                             log_item.append(std::to_string(peer->server_port));
                             log_item.push_back(0x20);
@@ -2164,7 +2165,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                                 log_item.clear();
                                 log_item.append(http2pre->http_data[block_steamid]->client_ip);
                                 log_item.push_back(0x20);
-                                log_item.append(dateid("%Y-%m-%d %X"));
+                                log_item.append(get_date("%Y-%m-%d %X"));
                                 log_item.push_back(0x20);
                                 log_item.append(std::to_string(http2pre->http_data[block_steamid]->server_port));
                                 log_item.push_back(0x20);
@@ -2239,7 +2240,8 @@ void httpserver::websocket_loop(int myid)
             std::unique_lock<std::mutex> lock(this->websocket_task_mutex);
             this->websocketcondition.wait(
                 lock,
-                [this] { return this->stop || !this->websockettasks.empty() || !this->clientlooptasks.empty(); });
+                [this]
+                { return this->stop || !this->websockettasks.empty() || !this->clientlooptasks.empty(); });
         }
 
         auto time_in_seconds = time_point_cast<seconds>(system_clock::now());

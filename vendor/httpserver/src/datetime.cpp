@@ -128,7 +128,7 @@ std::string rand_string(unsigned int a, unsigned char isupper)
 
 unsigned int timeid() { return time((time_t *)NULL); }
 
-std::string dateid(const std::string &format, unsigned int inputtime)
+std::string get_date(const std::string &format, unsigned int inputtime)
 {
     time_t curr_time;
     if (inputtime == 0)
