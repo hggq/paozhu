@@ -24,14 +24,34 @@ std::string get_gmttime(time_t inputtime)
     }
     tm *timeInfo;
 
-    char timestr[30] = {'\0'};
+    char timestr[30] = {};
     timeInfo         = gmtime(&curr_time);
     strftime(timestr, sizeof(timestr), "%a, %d %b %Y %H:%M:%S GMT", timeInfo);
 
     std::string temp(timestr);
     return temp;
 }
-unsigned long rand_range(unsigned int a, unsigned int b)
+std::string get_utctime(time_t inputtime)
+{
+    time_t curr_time;
+    if (inputtime == 0)
+    {
+        curr_time = time((time_t *)NULL);
+    }
+    else
+    {
+        curr_time = inputtime;
+    }
+    tm *timeInfo;
+
+    char timestr[30] = {};
+    timeInfo         = gmtime(&curr_time);
+    //std::size_t n=
+    strftime(timestr, sizeof(timestr), "%Y-%m-%dT%H:%M:%SZ", timeInfo);
+    std::string temp(timestr);
+    return temp;
+}
+unsigned int rand_range(unsigned int a, unsigned int b)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -106,9 +126,9 @@ std::string rand_string(unsigned int a, unsigned char isupper)
     return temp;
 }
 
-unsigned long timeid() { return time((time_t *)NULL); }
+unsigned int timeid() { return time((time_t *)NULL); }
 
-std::string dateid(const std::string &format, unsigned long inputtime)
+std::string dateid(const std::string &format, unsigned int inputtime)
 {
     time_t curr_time;
     if (inputtime == 0)
@@ -135,9 +155,9 @@ std::string dateid(const std::string &format, unsigned long inputtime)
 }
 
 // Sat, 02 Jan 2021 00:12:45 GMT to sec
-unsigned long strgmttotime(const std::string &gmtstr)
+unsigned int strgmttotime(const std::string &gmtstr)
 {
-    unsigned long temp = 0;
+    unsigned int temp = 0;
     tm timeInfo;
     unsigned char i = 0;
 
@@ -296,10 +316,10 @@ unsigned long strgmttotime(const std::string &gmtstr)
 }
 
 // 2022-02-09 08:12:45 to sec
-unsigned long strtotime(const std::string &str)
+unsigned int strtotime(const std::string &str)
 {
-    unsigned long temp = 0;
-    unsigned char i    = 0x00;
+    unsigned int temp = 0;
+    unsigned char i   = 0x00;
     tm datetime;
     char tc[4] = {0x00};
 
@@ -516,4 +536,4 @@ std::string get_uuid()
     }
     return res;
 }
-} // namespace http
+}// namespace http
