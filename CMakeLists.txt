@@ -22,6 +22,12 @@ if(ENABLE_GD STREQUAL "ON")
     set(GD_OPEN " -DENABLE_GD ")
 endif()
 
+set(sys_so_path "/usr/lib64")
+
+if (IS_DIRECTORY "/usr/lib/x86_64-linux-gnu") 
+  set(sys_so_path "/usr/lib/x86_64-linux-gnu")
+endif()
+
 if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))  
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
     message("Debug mode:${CMAKE_C_FLAGS_DEBUG}")
@@ -244,7 +250,7 @@ message("---ENABLE_GD-----")
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
   set(GD_ROOT_DIR "/usr/local/opt/gd/lib")
 else()
-  set(GD_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
+  set(GD_ROOT_DIR sys_so_path)
 endif()
 
 set(find_gdname gd)
@@ -266,7 +272,7 @@ message(STATUS "GD Graphics Library  at: ${GD_LIB_DIR}")
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
 set(QR_ROOT_DIR "/usr/local/opt/qrencode/lib")
 else()
-set(QR_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
+set(QR_ROOT_DIR sys_so_path)
 endif()
 
 set(find_qrname qrencode)
@@ -295,7 +301,7 @@ target_link_libraries(paozhu ${QR_LIB_DIR})
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
 set(PNG_ROOT_DIR "/usr/local/opt/libpng/lib")
 else()
-set(PNG_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
+set(PNG_ROOT_DIR sys_so_path)
 endif()
 
 find_library(PNG_LIB_DIR
@@ -308,7 +314,7 @@ target_link_libraries(paozhu ${PNG_LIB_DIR})
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
   set(FREETYPE_ROOT_DIR "/usr/local/opt/freetype/lib")
 else()
-  set(FREETYPE_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
+  set(FREETYPE_ROOT_DIR sys_so_path)
 endif()
 
 find_library(FREETYPE_LIB_DIR
@@ -323,7 +329,7 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
   set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
 else()
-  set(BROTLI_ROOT_DIR "/usr/lib/x86_64-linux-gnu")
+  set(BROTLI_ROOT_DIR sys_so_path)
 endif()
 
 
