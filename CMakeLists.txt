@@ -250,7 +250,7 @@ message("---ENABLE_GD-----")
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
   set(GD_ROOT_DIR "/usr/local/opt/gd/lib")
 else()
-  set(GD_ROOT_DIR sys_so_path)
+  set(GD_ROOT_DIR "${sys_so_path}")
 endif()
 
 set(find_gdname gd)
@@ -272,7 +272,7 @@ message(STATUS "GD Graphics Library  at: ${GD_LIB_DIR}")
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
 set(QR_ROOT_DIR "/usr/local/opt/qrencode/lib")
 else()
-set(QR_ROOT_DIR sys_so_path)
+set(QR_ROOT_DIR "${sys_so_path}")
 endif()
 
 set(find_qrname qrencode)
@@ -301,7 +301,7 @@ target_link_libraries(paozhu ${QR_LIB_DIR})
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
 set(PNG_ROOT_DIR "/usr/local/opt/libpng/lib")
 else()
-set(PNG_ROOT_DIR sys_so_path)
+set(PNG_ROOT_DIR "${sys_so_path}")
 endif()
 
 find_library(PNG_LIB_DIR
@@ -314,7 +314,7 @@ target_link_libraries(paozhu ${PNG_LIB_DIR})
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
   set(FREETYPE_ROOT_DIR "/usr/local/opt/freetype/lib")
 else()
-  set(FREETYPE_ROOT_DIR sys_so_path)
+  set(FREETYPE_ROOT_DIR "${sys_so_path}")
 endif()
 
 find_library(FREETYPE_LIB_DIR
@@ -329,12 +329,14 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
   set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
 else()
-  set(BROTLI_ROOT_DIR sys_so_path)
+  set(BROTLI_ROOT_DIR "${sys_so_path}")
 endif()
 
 
 
 #find_package(Brotli COMPONENTS encoder decoder common REQUIRED)
+
+message(STATUS "Brotli at: ${BROTLI_ROOT_DIR}")
 
 set(find_brname brotlienc)
 set(find_brdename brotlidec)
