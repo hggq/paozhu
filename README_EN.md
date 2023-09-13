@@ -47,7 +47,7 @@ asio mysql libmysqlclient-dev zlib brotli(br) [options](boost gd qrencode)
 
 ### 3.environment configuration
 
-#### 3.1MacOS
+#### 3.1 MacOS
 
 - system requirements
 
@@ -67,12 +67,12 @@ brew install brotli
 [options] brew install qrencode
 ```
 
-#### 3.2Ubuntu
+#### 3.2 Ubuntu && Fedora
 
 - system requirements
 
 ```
->= 20.04
+Ubuntu>= 20.04 , test on Fedora38, need install asan（sudo yum install libasan）
 ```
 **Notice：** Requires gcc11 support. For more installation details, please see 
 

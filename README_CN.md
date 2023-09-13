@@ -65,12 +65,12 @@ brew install brotli
 [可选安装] brew install qrencode
 ```
 
-#### 3.2Ubuntu
+#### 3.2 Ubuntu && Fedora
 
 - 系统要求：
 
 ```
->= 20.04
+Ubuntu>= 20.04 , test on Fedora38 需要按装asan（sudo yum install libasan）
 ```
 
 **注意：** 需要gcc11支持，安装详情请查看
