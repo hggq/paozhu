@@ -716,7 +716,7 @@ std::string mb_substr(std::string &str, int begin, int length)
 
     return temp;
 }
-std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody, unsigned int timeoutnum)
+std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody)
 {
     std::string file_body;
     bool isurl = false;
@@ -738,7 +738,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
         http::client a;
         // http::OBJ_VALUE parameter;
         bool isaccept = false;
-        bool isget    = true;
+        bool isget    = false;
         for (auto [hkey, vvalue] : parabody)
         {
             if (hkey == "Content-Type")
@@ -760,10 +760,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
             }
             else if (hkey == "method")
             {
-                if (vvalue == "POST")
-                {
-                    isget = false;
-                }
+                isget = true;
             }
             else if (hkey == "header-content")
             {
@@ -788,11 +785,8 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
         {
             a.post(str);
         }
-        if (timeoutnum > 1)
-        {
-            a.timeout(timeoutnum);
-        }
 
+        a.timeout(30);
         // a.data=parameter;
         a.send();
         parabody["state"]           = std::to_string(a.getstate());
@@ -835,7 +829,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
 
     return file_body;
 }
-std::string file_get_contents(std::string str, unsigned int timeoutnum)
+std::string file_get_contents(std::string str)
 {
     std::string file_body;
     bool isurl = false;
@@ -856,11 +850,7 @@ std::string file_get_contents(std::string str, unsigned int timeoutnum)
     {
         http::client a;
         a.get(str);
-        if (timeoutnum > 1)
-        {
-            a.timeout(timeoutnum);
-        }
-
+        a.timeout(30);
         a.send();
         if (a.getstate() == 200)
         {
@@ -1270,6 +1260,19 @@ long long str2int(const char *source, unsigned int str_length)
         temp = 0 - temp;
     }
     return temp;
+}
+std::string char2str(const unsigned char *source, unsigned int str_length)
+{
+    static const unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    std::string obj;
+    unsigned int qi=0;
+    for (; qi < str_length; qi++)
+    {
+        unsigned char tmc=source[qi];
+        obj.push_back(str[tmc >> 4 & 0x0F]);
+        obj.push_back(str[tmc & 0x0F]);
+    }
+    return obj;
 }
 std::string str2safepath(const char *source, unsigned int str_length)
 {

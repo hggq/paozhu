@@ -28,12 +28,13 @@ int mb_strlen(std::string &);
 std::map<std::string, std::string> filepath(std::string &);
 struct stat filestat(std::string &);
 
-std::string file_get_contents(std::string, std::map<std::string, std::string> &,unsigned int timeoutnum=0);
-std::string file_get_contents(std::string,unsigned int timeoutnum=0);
+std::string file_get_contents(std::string, std::map<std::string, std::string> &);
+std::string file_get_contents(std::string);
 bool file_put_contents(std::string, std::string &, bool append = false);
 bool file_put_contents(std::string, const char *, unsigned int, bool append = false);
 
 long long str2int(const char *source, unsigned int str_length);
+std::string char2str(const unsigned char *source, unsigned int str_length);
 std::string str2safepath(const char *source, unsigned int str_length);
 std::string str2safefile(const char *source, unsigned int str_length);
 std::string str2safemethold(const char *source, unsigned int str_length);

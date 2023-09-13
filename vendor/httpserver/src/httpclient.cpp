@@ -28,7 +28,6 @@
 #include "http_mime.h"
 #include "datetime.h"
 #include "gzip.h"
-#include "pzcache.h"
 
 namespace http
 {
@@ -211,7 +210,6 @@ client &client::send(http::OBJ_VALUE param)
 
 client &client::senddatato()
 {
-    std::string exptime_hash;
     try
     {
         response_header.clear();
@@ -258,35 +256,22 @@ client &client::senddatato()
             std::cerr << "Unable to connect:  \r\n";
             return *this;
         }
-
         if (exptime < 0 || exptime > 30)
         {
             exptime = 10;
         }
         if (exptime > 0)
         {
-            pzcache<int> &temp_cache = pzcache<int>::conn();
-            exptime_hash.append("httpclient");
-            exptime_hash.append(std::to_string(timeid()));
-            exptime_hash.append(rand_string(6, 0));
-            int isbegin = 1;
-            temp_cache.save(exptime_hash, isbegin, exptime + 2);
 
             std::thread(
-                [&, timenum = exptime, client_hash = exptime_hash]()
+                [&, timenum = exptime]()
                 {
                     std::this_thread::sleep_for(std::chrono::seconds(timenum));
-                    pzcache<int> &temp_cache = pzcache<int>::conn();
-                    int cache_data           = temp_cache.get(client_hash);
-                    if (cache_data == 1)
+                    if (socket.is_open())
                     {
-                        if (socket.is_open())
-                        {
-                            socket.close();
-                        }
-                        clientio_context.stop();
-                        temp_cache.remove(client_hash);
+                        socket.close();
                     }
+                    clientio_context.stop();
                 })
                 .detach();
         }
@@ -402,22 +387,10 @@ client &client::senddatato()
             socket.close();
         }
         clientio_context.stop();
-        if (exptime_hash.size() > 0)
-        {
-            pzcache<int> &temp_cache = pzcache<int>::conn();
-            int isbegin              = 0;
-            temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
-        }
     }
     catch (std::exception &e)
     {
         // std::printf("Exception: %s\n", e.what());
-        if (exptime_hash.size() > 0)
-        {
-            pzcache<int> &temp_cache = pzcache<int>::conn();
-            int isbegin              = 0;
-            temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
-        }
         std::cerr << "Exception:  " << e.what() << "\r\n";
     }
 
@@ -426,7 +399,6 @@ client &client::senddatato()
 client &client::sendssldatato()
 {
     // ssl请求
-    std::string exptime_hash;
     try
     {
         response_header.clear();
@@ -479,27 +451,15 @@ client &client::sendssldatato()
         }
         if (exptime > 0)
         {
-            pzcache<int> &temp_cache = pzcache<int>::conn();
-            exptime_hash.append("httpclient");
-            exptime_hash.append(std::to_string(timeid()));
-            exptime_hash.append(rand_string(6, 0));
-            int isbegin = 1;
-            temp_cache.save(exptime_hash, isbegin, exptime + 2);
             std::thread(
-                [&, timenum = exptime, client_hash = exptime_hash]()
+                [&, timenum = exptime]()
                 {
                     try
                     {
                         std::this_thread::sleep_for(std::chrono::seconds(timenum));
-                        pzcache<int> &temp_cache = pzcache<int>::conn();
-                        int cache_data           = temp_cache.get(client_hash);
-                        if (cache_data == 1)
+                        if (socket.lowest_layer().is_open())
                         {
-                            if (socket.lowest_layer().is_open())
-                            {
-                                socket.shutdown();
-                            }
-                            temp_cache.remove(client_hash);
+                            socket.shutdown();
                         }
                     }
                     catch (const std::exception &e)
@@ -620,28 +580,12 @@ client &client::sendssldatato()
         }
         finishprocess();
 
-        if (socket.lowest_layer().is_open())
-        {
-            socket.shutdown();
-        }
+        socket.shutdown();
         io_context.stop();
-        if (exptime_hash.size() > 0)
-        {
-            pzcache<int> &temp_cache = pzcache<int>::conn();
-            int isbegin              = 0;
-            temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
-        }
-
         return *this;
     }
     catch (std::exception &e)
     {
-        if (exptime_hash.size() > 0)
-        {
-            pzcache<int> &temp_cache = pzcache<int>::conn();
-            int isbegin              = 0;
-            temp_cache.save(exptime_hash, isbegin, exptime + 2, true);
-        }
         std::printf("Exception: %s\n", e.what());
     }
 
@@ -1564,6 +1508,81 @@ bool client::parse()
     transform(host.begin(), host.end(), host.begin(), ::tolower);
     return true;
 }
+
+
+client &client::build_query(const std::map<std::string,std::string> &param)
+{
+    bool isfirst = true;
+    std::string tempport;
+    for (auto [first, second] : param)
+    {
+        if (isfirst)
+        {
+            isfirst = false;
+            if(query.size()>0)
+            {
+              query.push_back('&');      
+            }
+        }
+        else
+        {
+            query.push_back('&');
+        }
+        {
+            tempport = url_encode(first.data(), first.size());
+            query.append(tempport);
+            tempport = url_encode(second.data(), second.size());
+            query.push_back('=');
+            query.append(tempport);
+        }
+    }
+    return *this;
+}
+
+client &client::build_query(http::OBJ_VALUE param)
+{
+    bool isfirst = true;
+    std::string tempport;
+    for (auto [first, second] : param.as_array())
+    {
+        if (isfirst)
+        {
+            isfirst = false;
+            if(query.size()>0)
+            {
+              query.push_back('&');      
+            }
+        }
+        else
+        {
+            query.push_back('&');
+        }
+        if (!second.is_array())
+        {
+            tempport = param.get_keyname(first);
+            tempport = url_encode(tempport.data(), tempport.size());
+            query.append(tempport);
+            tempport = second.to_string();
+            tempport = url_encode(tempport.data(), tempport.size());
+            query.push_back('=');
+
+            query.append(tempport);
+        }
+    }
+    return *this;
+}
+
+client &client::build_query(const std::string &a)
+{
+    query.append(url_encode(a.data(),a.size()));
+    return *this;
+}
+
+std::string client::get_query()
+{
+    return query;
+}
+
 void client::buildheader()
 {
     sendcontent.str("");
@@ -1673,11 +1692,13 @@ void client::buildheader()
         request.append("\r\n");
     }
 
-    if (header.isset("User-Agent"))
+    if (header.isset("User-Agent")||header.isset("user-agent"))
     {
-        request.append("User-Agent: ");
-        request.append(header["User-Agent"].as_string());
-        request.append("\r\n");
+
+            request.append("User-Agent: ");
+            request.append(header["User-Agent"].as_string());
+            request.append("\r\n");
+        
         header.unset("User-Agent");
     }
     else
@@ -1685,7 +1706,7 @@ void client::buildheader()
         request.append("User-Agent: httpclient\r\n");
     }
 
-    if (!header.isset("Accept"))
+    if (!header.isset("Accept")&&!header.isset("accept"))
     {
         header["Accept"] = "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8";
     }

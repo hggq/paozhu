@@ -55,6 +55,12 @@ namespace http
         client &senddatato();
         client &sendssldatato();
         client &save(std::string);
+        
+        client &build_query(http::OBJ_VALUE parmter);
+        client &build_query(const std::string &a);
+        client &build_query(const std::map<std::string,std::string>&);
+        std::string get_query();
+        
         void readheaderline(const char *buffer, unsigned int buffersize);
         void respreadtocontent(const char *buffer, unsigned int buffersize);
         void respreadtofile(const char *buffer, unsigned int buffersize);
