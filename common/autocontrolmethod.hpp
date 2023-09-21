@@ -221,6 +221,9 @@ namespace http
 		temp.regfun = pxapipagesdepartlist;
 		methodcallback.emplace("api/departments/deletedep",temp);
 		temp.pre = nullptr;
+		temp.regfun = testhttpclient_cowait_php;
+		methodcallback.emplace("testcowaitclient4",temp);
+		temp.pre = nullptr;
 		temp.regfun = testhttpclient_cowait_body;
 		methodcallback.emplace("testcowaitclient1",temp);
 		temp.pre = nullptr;

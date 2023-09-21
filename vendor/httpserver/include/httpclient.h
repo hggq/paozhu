@@ -154,8 +154,8 @@ class client : public std::enable_shared_from_this<client>
     std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsock = {nullptr};
     std::shared_ptr<asio::ssl::context> ssl_context                   = {nullptr};
 
-    std::function<void(const std::string &)> onload                            = nullptr;
-    std::function<void(unsigned long long, unsigned long long)> upload_process = nullptr;
+    std::function<void(const std::string &, std::shared_ptr<http::client>)> onload = nullptr;
+    std::function<void(unsigned long long, unsigned long long)> upload_process     = nullptr;
     std::string use_certificate_file;
     std::string use_private_key_file;
     std::string load_verify_file;

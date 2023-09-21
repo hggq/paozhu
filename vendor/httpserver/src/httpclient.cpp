@@ -400,6 +400,8 @@ asio::awaitable<void> client::co_senddatato()
 {
     try
     {
+        headerfinish = 0;
+        machnum      = 0;
         response_header.clear();
         state.code     = 0;
         state.length   = 0;
@@ -556,11 +558,15 @@ asio::awaitable<void> client::co_senddatato()
             }
             readoffset = 0;
             process(data, n);
+            if (state.page.size > 0 && (state.page.size == state.content.size()))
+            {
+                break;
+            }
         }
         finishprocess();
         if (onload != nullptr)
         {
-            onload(state.content);
+            onload(state.content, shared_from_this());
         }
     }
     catch (std::exception &e)
@@ -578,6 +584,8 @@ client &client::senddatato()
 {
     try
     {
+        headerfinish = 0;
+        machnum      = 0;
         response_header.clear();
         state.code     = 0;
         state.length   = 0;
@@ -752,8 +760,6 @@ client &client::senddatato()
             {
                 n = sock->read_some(asio::buffer(data, 2048), ec);
             }
-            // n = socket.read_some(asio::buffer(data, 2048), ec);
-            // read(sp, asio::buffer(data, 2048), asio::detail::transfer_at_least_t(1));
             data[2048] = 0x00;
             if (n == 0)
             {
@@ -761,6 +767,10 @@ client &client::senddatato()
             }
             readoffset = 0;
             process(data, n);
+            if (state.page.size > 0 && (state.page.size == state.content.size()))
+            {
+                break;
+            }
         }
         finishprocess();
     }
@@ -813,6 +823,8 @@ asio::awaitable<void> client::co_sendssldatato()
     // ssl请求
     try
     {
+        headerfinish = 0;
+        machnum      = 0;
         response_header.clear();
         state.code     = 0;
         state.length   = 0;
@@ -897,7 +909,7 @@ asio::awaitable<void> client::co_sendssldatato()
         }
 
         int n;
-        //n = sslsock->write_some(asio::buffer(request));
+
         n = co_await async_write(*sslsock, asio::buffer(request), asio::use_awaitable);
         char data[2051];
         if (requesttype == 1)
@@ -983,12 +995,11 @@ asio::awaitable<void> client::co_sendssldatato()
                 }
             }
         }
-        // asio::co_spawn(io_context, httpsslclientecho(std::ref(socket),std::ref(ssl_context)), asio::detached);
 
-        // unsigned long long totalsize;
-        // rawfile = NULL;
+        DEBUG_LOG("while async_read_some: %s", host.c_str());
         while (true)
         {
+            memset(data, 0x00, 2048);
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
                 n = co_await sslsock->async_read_some(asio::buffer(data, state.page.size - state.content.size()), asio::use_awaitable);
@@ -997,7 +1008,6 @@ asio::awaitable<void> client::co_sendssldatato()
             {
                 n = co_await sslsock->async_read_some(asio::buffer(data, 2048), asio::use_awaitable);
             }
-            // n = socket.read_some(asio::buffer(data, 2048), ec);
             data[2048] = 0x00;
             if (n == 0)
             {
@@ -1005,19 +1015,23 @@ asio::awaitable<void> client::co_sendssldatato()
             }
             readoffset = 0;
             process(data, n);
+            if (state.page.size > 0 && (state.page.size == state.content.size()))
+            {
+                break;
+            }
         }
         finishprocess();
         if (onload != nullptr)
         {
-            onload(state.content);
+            onload(state.content, shared_from_this());
         }
         co_return;
     }
     catch (std::exception &e)
     {
         //std::printf("Exception: %s\n", e.what());
-        DEBUG_LOG("Exception: %s", e.what());
-        error_msg = e.what();
+        DEBUG_LOG("Exception co ssl: %s", e.what());
+        error_msg = std::string(e.what());
     }
     co_return;
 }
@@ -1026,6 +1040,8 @@ client &client::sendssldatato()
     // ssl请求
     try
     {
+        headerfinish = 0;
+        machnum      = 0;
         response_header.clear();
         state.code     = 0;
         state.length   = 0;
@@ -1185,10 +1201,7 @@ client &client::sendssldatato()
                 }
             }
         }
-        // asio::co_spawn(io_context, httpsslclientecho(std::ref(socket),std::ref(ssl_context)), asio::detached);
 
-        // unsigned long long totalsize;
-        // rawfile = NULL;
         while (true)
         {
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
@@ -1199,7 +1212,7 @@ client &client::sendssldatato()
             {
                 n = sslsock->read_some(asio::buffer(data, 2048), ec);
             }
-            // n = socket.read_some(asio::buffer(data, 2048), ec);
+
             data[2048] = 0x00;
             if (n == 0)
             {
@@ -1207,6 +1220,10 @@ client &client::sendssldatato()
             }
             readoffset = 0;
             process(data, n);
+            if (state.page.size > 0 && (state.page.size == state.content.size()))
+            {
+                break;
+            }
         }
         finishprocess();
 
@@ -1215,7 +1232,7 @@ client &client::sendssldatato()
     catch (std::exception &e)
     {
         //std::printf("Exception: %s\n", e.what());
-        DEBUG_LOG("Exception: %s", e.what());
+        DEBUG_LOG("Exception ssl: %s", e.what());
         error_msg = e.what();
     }
 
@@ -1591,9 +1608,9 @@ void client::responseheader(std::string_view key, std::string_view value)
         break;
     case 17:
 
-        if (key == "Transfer-Encoding")
+        if (strcasecmp(&key[0], "Transfer-Encoding") == 0)
         {
-            if (value == "chunked")
+            if (value.size() > 0 && strcasecmp(&value[0], "chunked") == 0)
             {
                 state.chunked = true;
             }
@@ -1634,7 +1651,7 @@ void client::responseheader(std::string_view key, std::string_view value)
         }
         break;
     case 14:
-        if (key == "Content-Length")
+        if (strcasecmp(&key[0], "Content-Length") == 0)
         {
             try
             {
@@ -1755,6 +1772,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
 
             if (state.length == 0)
             {
+                state.page.size = state.content.size();
                 if (buffer[i] == 0x0D)
                 {
                     i++;
@@ -1771,7 +1789,6 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             }
             readoffset = i;
         }
-
         for (; i < buffersize && state.length > 0; i++, state.length -= 1)
         {
             state.content.push_back(buffer[i]);
