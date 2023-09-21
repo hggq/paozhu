@@ -26,7 +26,7 @@
 #include "reghttpmethod_pre.hpp"
 #include "regviewmethod.hpp"
 #include "autorestfulpaths.hpp"
-
+#include "client_context.h"
 #ifdef ENABLE_BOOST
 #include "loadviewso.h"
 #include "loadmodule.h"
@@ -2937,6 +2937,10 @@ void httpserver::run(const std::string &sysconfpath)
         std::thread https(std::bind(&httpserver::listeners, this));
         std::thread http(std::bind(&httpserver::listener, this));
         std::thread http2pool(std::bind(&httpserver::http2pool, this, 0));
+        {
+            client_context &client_context = get_client_context_obj();
+            client_context.run();
+        }
         for (int i = 0; i < 1; ++i)
         {
             websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));

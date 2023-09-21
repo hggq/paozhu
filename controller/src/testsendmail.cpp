@@ -1,6 +1,7 @@
 #include <chrono>
 #include <thread>
 #include "httppeer.h"
+#include "testsendmail.h"
 #include "send_email.h"
 namespace http
 {
@@ -20,15 +21,15 @@ std::string testsendmaildo(std::shared_ptr<httppeer> peer)
     }
 
     send_email s;
-    s.isssl   = false;                             // ssl on off   ssl port 465
+    s.isssl   = false;// ssl on off   ssl port 465
     s.smpturl = "smtp.163.com";
-    s.port    = 25;                                // port
+    s.port    = 25;// port
 
-    s.username = "XXX@163.com";                    // account
-    s.password = "XXXXXXX";                        // passworld
+    s.username = "XXX@163.com";// account
+    s.password = "XXXXXXX";    // passworld
 
-    s.replyemail = "XXX@163.com";                  // show reply email
-    s.fromname   = "web site name";                // send of name
+    s.replyemail = "XXX@163.com";  // show reply email
+    s.fromname   = "web site name";// send of name
 
     s.toemail = client.post["toemail"].to_string();// send to email
     s.toname  = client.post["toname"].to_string(); //   name of person to send to

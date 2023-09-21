@@ -18,6 +18,21 @@ std::string testhttpclient_get_body(std::shared_ptr<httppeer> peer)
     client << respbody;
     return "";
 }
+//@urlpath(null,testhttpclient3)
+std::string testhttpclient_get_timebody(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+    client << "hello world!  test file_get_contents";
+    std::string respbody;
+    respbody = "http://localhost:8080/login.php";//test timeout , sleep(20);
+    respbody = file_get_contents(respbody, 5);
+
+    client << "<hr />";
+    client << "<h1>http://localhost:8080/login.php</h1>";
+    client << "<hr />";
+    client << respbody;
+    return "";
+}
 //@urlpath(null,testhttpclient2)
 std::string testhttpclient_get_file(std::shared_ptr<httppeer> peer)
 {

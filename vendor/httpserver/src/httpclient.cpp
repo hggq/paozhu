@@ -28,9 +28,28 @@
 #include "http_mime.h"
 #include "datetime.h"
 #include "gzip.h"
-
+#include "client_context.h"
+#include "terminal_color.h"
 namespace http
 {
+
+client::~client()
+{
+    if (isssl)
+    {
+        if (sslsock)
+        {
+            sslsock->shutdown();
+        }
+    }
+    else
+    {
+        if (sock && sock->is_open())
+        {
+            sock->close();
+        }
+    }
+}
 client &client::get(std::string_view url)
 {
     requesttype = 0;
@@ -185,6 +204,52 @@ client &client::send()
     return *this;
 }
 
+asio::awaitable<void> client::co_send()
+{
+
+    if (requesttype == 1)
+    {
+        buildcontent();
+        buildheader();
+    }
+    else
+    {
+        buildheader();
+    }
+    if (scheme == "https")
+    {
+        co_await co_sendssldatato();
+    }
+    else
+    {
+        co_await co_senddatato();
+    }
+
+    co_return;
+}
+asio::awaitable<void> client::co_send(http::OBJ_VALUE param)
+{
+    data = std::move(param);
+    if (requesttype == 1)
+    {
+        buildcontent();
+        buildheader();
+    }
+    else
+    {
+        buildheader();
+    }
+    if (scheme == "https")
+    {
+        co_await co_sendssldatato();
+    }
+    else
+    {
+        co_await co_senddatato();
+    }
+    co_return;
+}
+
 client &client::send(http::OBJ_VALUE param)
 {
     data = std::move(param);
@@ -206,6 +271,307 @@ client &client::send(http::OBJ_VALUE param)
         senddatato();
     }
     return *this;
+}
+asio::awaitable<bool> client::co_init_http_sock()
+{
+    error_msg.clear();
+    auto executor = co_await asio::this_coro::executor;
+    asio::ip::tcp::resolver resolver(executor);
+    asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+    asio::ip::tcp::resolver::iterator end;
+    asio::ip::tcp::endpoint endpoint;
+    sock = std::make_shared<asio::ip::tcp::socket>(executor);
+    asio::error_code ec;
+    constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+    while (iter != end)
+    {
+        endpoint     = *iter++;
+        std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
+        if (ec)
+        {
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (iter == end)
+    {
+        error_msg = "resolver " + host + port;
+        DEBUG_LOG("%s", error_msg.c_str());
+        co_return false;
+    }
+
+    if (ec)
+    {
+        error_msg = "Unable to connect";
+        DEBUG_LOG("%s", error_msg.c_str());
+        co_return false;
+    }
+    co_return true;
+}
+asio::awaitable<bool> client::co_init_https_sock()
+{
+    error_msg.clear();
+    auto executor = co_await asio::this_coro::executor;
+    //asio::ssl::context ssl_context(asio::ssl::context::sslv23);
+
+    ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+    sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(executor, *ssl_context);
+
+    //asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
+    ssl_context->set_default_verify_paths();
+
+    asio::ip::tcp::resolver resolver(executor);
+    asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+    asio::ip::tcp::resolver::iterator end;
+    asio::ip::tcp::endpoint endpoint;
+
+    SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
+
+    // asio::connect(sslsock->lowest_layer(), endpoints);
+    asio::error_code ec;
+    constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+    while (iter != end)
+    {
+        endpoint     = *iter++;
+        std::tie(ec) = co_await sslsock->lowest_layer().async_connect(endpoint, tuple_awaitable);
+        if (ec)
+        {
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+
+    ssl_context->set_verify_mode(asio::ssl::verify_peer);
+    ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
+
+    sslsock->handshake(asio::ssl::stream_base::client, ec);
+    if (ec)
+    {
+        error_msg = host + " handshake error! ";
+        DEBUG_LOG("%s", error_msg.c_str());
+        co_return false;
+    }
+    co_return true;
+}
+
+bool client::init_http_sock()
+{
+    error_msg.clear();
+    client_context &temp_io_context = get_client_context_obj();
+    sock                            = std::make_shared<asio::ip::tcp::socket>(temp_io_context.ioc);
+    asio::ip::tcp::resolver resolver(temp_io_context.ioc);
+
+    asio::ip::tcp::resolver::query checkquery(host, port);
+    asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
+    asio::ip::tcp::resolver::iterator end;
+    asio::ip::tcp::endpoint endpoint;
+    if (iter == end)
+    {
+        error_msg = "resolver " + host + port;
+        DEBUG_LOG("%s", error_msg.c_str());
+        return false;
+    }
+    while (iter != end)
+    {
+        endpoint = *iter++;
+        // at here  maybe under code
+    }
+    // asio::error_code ec;
+    sock->connect(endpoint, ec);
+    if (ec)
+    {
+        error_msg = "Unable to connect";
+        DEBUG_LOG("%s", error_msg.c_str());
+        return false;
+    }
+    return true;
+}
+
+asio::awaitable<void> client::co_senddatato()
+{
+    try
+    {
+        response_header.clear();
+        state.code     = 0;
+        state.length   = 0;
+        state.istxt    = false;
+        state.isjson   = false;
+        state.chunked  = false;
+        state.keeplive = false;
+        state.encode   = 0x00;
+
+        state.content.clear();
+        state.codemessage.clear();
+        state.cookie.clear();
+
+        state.page.name.clear();
+        state.page.filename.clear();
+        state.page.tempfile.clear();
+        state.page.type.clear();
+        state.page.size  = 0;
+        state.page.error = 0;
+        state.json.clear();
+
+        if (!sock)
+        {
+            bool isinit = co_await co_init_http_sock();
+            if (isinit)
+            {
+                co_return;
+            }
+        }
+
+        if (exptime < 0 || exptime > 30)
+        {
+            exptime = 10;
+        }
+        if (exptime > 0)
+        {
+            timeout_end = timeid() + exptime;
+
+            client_context &temp_io_context = get_client_context_obj();
+            try
+            {
+                temp_io_context.timeout_lists.push_back(shared_from_this());
+                temp_io_context.timeout_condition.notify_one();
+            }
+            catch (const std::exception &e)
+            {
+                DEBUG_LOG("Exception: %s", e.what());
+                error_msg = e.what();
+            }
+        }
+        co_await async_write(*sock, asio::buffer(request), asio::use_awaitable);
+
+        char data[2051];
+        unsigned int n;
+        if (requesttype == 1)
+        {
+            for (auto &p : senddata)
+            {
+                switch (p.error)
+                {
+                case 0:
+                    co_await async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    break;
+                case 3:
+                    co_await async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    break;
+                case 1:
+                {
+                    unsigned int readnum = 0;
+                    co_await async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
+                                                                          &std::fclose);
+                    if (!fp)
+                    {
+                        data[0] = 0x0D;
+                        data[1] = 0x0A;
+                        co_await async_write(*sock, asio::buffer(data, 2), asio::use_awaitable);
+                        break;
+                    }
+
+                    fseek(fp.get(), 0, SEEK_END);
+                    n = ftell(fp.get());
+                    fseek(fp.get(), 0, SEEK_SET);
+
+                    data[2048] = 0x00;
+                    while (readnum < n)
+                    {
+
+                        auto nread = fread(data, 1, 2048, fp.get());
+                        readnum += nread;
+                        if (readnum >= n)
+                        {
+                            data[nread] = 0x0D;
+                            nread += 1;
+                            data[nread] = 0x0A;
+                            nread += 1;
+                        }
+                        co_await async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
+                    }
+
+                    // fclose(fp);
+                }
+                break;
+                case 2:
+                {
+                    unsigned int readnum = 0;
+                    // FILE *fp = fopen(p.filename.c_str(), "rb");
+                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
+                                                                          &std::fclose);
+                    if (!fp)
+                    {
+                        data[0] = 0x0D;
+                        data[1] = 0x0A;
+                        co_await async_write(*sock, asio::buffer(data, 2), asio::use_awaitable);
+                        break;
+                    }
+
+                    fseek(fp.get(), 0, SEEK_END);
+                    n = ftell(fp.get());
+                    fseek(fp.get(), 0, SEEK_SET);
+
+                    data[2048] = 0x00;
+                    while (readnum < n)
+                    {
+
+                        auto nread = fread(data, 1, 2048, fp.get());
+                        readnum += nread;
+                        co_await async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
+                    }
+
+                    // fclose(fp);
+                }
+                break;
+                }
+            }
+        }
+
+        // unsigned long long totalsize;
+        // rawfile = NULL;
+        while (true)
+        {
+            if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
+            {
+                n = co_await sock->async_read_some(asio::buffer(data, state.page.size - state.content.size()), asio::use_awaitable);
+            }
+            else
+            {
+                n = co_await sock->async_read_some(asio::buffer(data, 2048), asio::use_awaitable);
+            }
+            data[2048] = 0x00;
+            if (n == 0)
+            {
+                break;
+            }
+            readoffset = 0;
+            process(data, n);
+        }
+        finishprocess();
+        if (onload != nullptr)
+        {
+            onload(state.content);
+        }
+    }
+    catch (std::exception &e)
+    {
+        // std::printf("Exception: %s\n", e.what());
+        //std::cerr << "Exception:  " << e.what() << "\r\n";
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg = e.what();
+    }
+
+    co_return;
 }
 
 client &client::senddatato()
@@ -233,49 +599,64 @@ client &client::senddatato()
         state.page.error = 0;
         state.json.clear();
 
-        asio::io_context clientio_context(1);
-        asio::signal_set signals(clientio_context, SIGINT, SIGTERM);
-        signals.async_wait([&](auto, auto) { clientio_context.stop(); });
+        //asio::io_context clientio_context(1);
+        //client_context &temp_io_context = get_client_context_obj();
+        // asio::signal_set signals(temp_io_context, SIGINT, SIGTERM);
+        // signals.async_wait([&](auto, auto)
+        //                    { clientio_context.stop(); });
 
-        asio::ip::tcp::socket socket(clientio_context);
-        asio::ip::tcp::resolver resolver(clientio_context);
+        // std::shared_ptr<httpclient_t> clientpeer = std::make_shared<httpclient_t>();
 
-        asio::ip::tcp::resolver::query checkquery(host, port);
-        asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
-        asio::ip::tcp::resolver::iterator end;
-        asio::ip::tcp::endpoint endpoint;
-        while (iter != end)
+        // sock = std::make_shared<asio::ip::tcp::socket>(temp_io_context.ioc);
+
+        // //asio::ip::tcp::socket socket(temp_io_context.ioc);
+        // asio::ip::tcp::resolver resolver(temp_io_context.ioc);
+
+        // asio::ip::tcp::resolver::query checkquery(host, port);
+        // asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
+        // asio::ip::tcp::resolver::iterator end;
+        // asio::ip::tcp::endpoint endpoint;
+        // while (iter != end)
+        // {
+        //     endpoint = *iter++;
+        //     // at here  maybe under code
+        // }
+        // // asio::error_code ec;
+        // sock->connect(endpoint, ec);
+        // if (ec)
+        // {
+        //     std::cerr << "Unable to connect:  \r\n";
+        //     return *this;
+        // }
+        if (!sock)
         {
-            endpoint = *iter++;
-            // at here  maybe under code
+            if (!init_http_sock())
+            {
+                return *this;
+            }
         }
-        // asio::error_code ec;
-        socket.connect(endpoint, ec);
-        if (ec)
-        {
-            std::cerr << "Unable to connect:  \r\n";
-            return *this;
-        }
+
         if (exptime < 0 || exptime > 30)
         {
             exptime = 10;
         }
         if (exptime > 0)
         {
+            timeout_end = timeid() + exptime;
 
-            std::thread(
-                [&, timenum = exptime]()
-                {
-                    std::this_thread::sleep_for(std::chrono::seconds(timenum));
-                    if (socket.is_open())
-                    {
-                        socket.close();
-                    }
-                    clientio_context.stop();
-                })
-                .detach();
+            client_context &temp_io_context = get_client_context_obj();
+            try
+            {
+                temp_io_context.timeout_lists.push_back(shared_from_this());
+                temp_io_context.timeout_condition.notify_one();
+            }
+            catch (const std::exception &e)
+            {
+                DEBUG_LOG("Exception: %s", e.what());
+                error_msg = e.what();
+            }
         }
-        socket.write_some(asio::buffer(request));
+        sock->write_some(asio::buffer(request));
 
         char data[2051];
         unsigned int n;
@@ -285,12 +666,12 @@ client &client::senddatato()
             {
                 switch (p.error)
                 {
-                case 0: socket.write_some(asio::buffer(p.tempfile)); break;
-                case 3: socket.write_some(asio::buffer(p.tempfile)); break;
+                case 0: sock->write_some(asio::buffer(p.tempfile)); break;
+                case 3: sock->write_some(asio::buffer(p.tempfile)); break;
                 case 1:
                 {
                     unsigned int readnum = 0;
-                    socket.write_some(asio::buffer(p.tempfile));
+                    sock->write_some(asio::buffer(p.tempfile));
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
                     std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
                                                                           &std::fclose);
@@ -298,7 +679,7 @@ client &client::senddatato()
                     {
                         data[0] = 0x0D;
                         data[1] = 0x0A;
-                        asio::write(socket, asio::buffer(data, 2));
+                        asio::write(*sock, asio::buffer(data, 2));
                         break;
                     }
 
@@ -319,7 +700,7 @@ client &client::senddatato()
                             data[nread] = 0x0A;
                             nread += 1;
                         }
-                        asio::write(socket, asio::buffer(data, nread));
+                        asio::write(*sock, asio::buffer(data, nread));
                     }
 
                     // fclose(fp);
@@ -335,7 +716,7 @@ client &client::senddatato()
                     {
                         data[0] = 0x0D;
                         data[1] = 0x0A;
-                        asio::write(socket, asio::buffer(data, 2));
+                        asio::write(*sock, asio::buffer(data, 2));
                         break;
                     }
 
@@ -349,7 +730,7 @@ client &client::senddatato()
 
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
-                        asio::write(socket, asio::buffer(data, nread));
+                        asio::write(*sock, asio::buffer(data, nread));
                     }
 
                     // fclose(fp);
@@ -365,11 +746,11 @@ client &client::senddatato()
         {
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
-                n = socket.read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
+                n = sock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
             }
             else
             {
-                n = socket.read_some(asio::buffer(data, 2048), ec);
+                n = sock->read_some(asio::buffer(data, 2048), ec);
             }
             // n = socket.read_some(asio::buffer(data, 2048), ec);
             // read(sp, asio::buffer(data, 2048), asio::detail::transfer_at_least_t(1));
@@ -382,19 +763,263 @@ client &client::senddatato()
             process(data, n);
         }
         finishprocess();
-        if (socket.is_open())
-        {
-            socket.close();
-        }
-        clientio_context.stop();
     }
     catch (std::exception &e)
     {
         // std::printf("Exception: %s\n", e.what());
-        std::cerr << "Exception:  " << e.what() << "\r\n";
+        //std::cerr << "Exception:  " << e.what() << "\r\n";
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg = e.what();
     }
 
     return *this;
+}
+
+bool client::init_https_sock()
+{
+    error_msg.clear();
+    client_context &temp_io_context = get_client_context_obj();
+    asio::ssl::context ssl_context(asio::ssl::context::sslv23);
+
+    //std::shared_ptr<httpclient_t> clientpeer = std::make_shared<httpclient_t>();
+    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(temp_io_context.ioc, ssl_context);
+
+    //asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
+    ssl_context.set_default_verify_paths();
+    asio::ip::tcp::resolver resolver(temp_io_context.ioc);
+    auto endpoints = resolver.resolve(host.c_str(), port);
+
+    SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
+
+    asio::connect(sslsock->lowest_layer(), endpoints);
+    sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+
+    ssl_context.set_verify_mode(asio::ssl::verify_peer);
+    ssl_context.set_verify_callback(asio::ssl::host_name_verification(host));
+
+    sslsock->handshake(asio::ssl::stream_base::client, ec);
+
+    if (ec)
+    {
+        error_msg = host + " handshake error! ";
+        DEBUG_LOG("%s", error_msg.c_str());
+        return false;
+    }
+    return true;
+}
+
+asio::awaitable<void> client::co_sendssldatato()
+{
+    // ssl请求
+    try
+    {
+        response_header.clear();
+        state.code     = 0;
+        state.length   = 0;
+        state.istxt    = false;
+        state.isjson   = false;
+        state.chunked  = false;
+        state.keeplive = false;
+        state.encode   = 0x00;
+
+        state.content.clear();
+        state.codemessage.clear();
+        state.cookie.clear();
+
+        state.page.name.clear();
+        state.page.filename.clear();
+        state.page.tempfile.clear();
+        state.page.type.clear();
+        state.page.size  = 0;
+        state.page.error = 0;
+        state.json.clear();
+
+        if (!sslsock)
+        {
+            error_msg.clear();
+            auto executor = co_await asio::this_coro::executor;
+            ssl_context   = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+            sslsock       = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(executor, *ssl_context);
+            ssl_context->set_default_verify_paths();
+
+            asio::ip::tcp::resolver resolver(executor);
+            asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+            asio::ip::tcp::resolver::iterator end;
+            asio::ip::tcp::endpoint endpoint;
+
+            SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
+
+            constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+            while (iter != end)
+            {
+                endpoint     = *iter++;
+                std::tie(ec) = co_await sslsock->lowest_layer().async_connect(endpoint, tuple_awaitable);
+                if (ec)
+                {
+                    continue;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+            ssl_context->set_verify_mode(asio::ssl::verify_peer);
+            ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
+
+            sslsock->handshake(asio::ssl::stream_base::client, ec);
+            if (ec)
+            {
+                error_msg = host + " handshake error! ";
+                DEBUG_LOG("%s", error_msg.c_str());
+                co_return;
+            }
+        }
+        if (exptime < 0 || exptime > 30)
+        {
+            exptime = 10;
+        }
+        if (exptime > 0)
+        {
+            timeout_end = timeid() + exptime;
+
+            client_context &temp_io_context = get_client_context_obj();
+            try
+            {
+                temp_io_context.timeout_lists.push_back(shared_from_this());
+                temp_io_context.timeout_condition.notify_one();
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = e.what();
+            }
+        }
+
+        int n;
+        //n = sslsock->write_some(asio::buffer(request));
+        n = co_await async_write(*sslsock, asio::buffer(request), asio::use_awaitable);
+        char data[2051];
+        if (requesttype == 1)
+        {
+            for (auto &p : senddata)
+            {
+
+                switch (p.error)
+                {
+                case 0:
+                    co_await async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    break;
+                case 3:
+                    co_await async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    break;
+                case 1:
+                {
+                    int readnum = 0;
+                    co_await async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
+                                                                          &std::fclose);
+                    if (!fp)
+                    {
+                        data[0] = 0x0D;
+                        data[1] = 0x0A;
+                        co_await async_write(*sslsock, asio::buffer(data, 2), asio::use_awaitable);
+                        break;
+                    }
+
+                    fseek(fp.get(), 0, SEEK_END);
+                    n = ftell(fp.get());
+                    fseek(fp.get(), 0, SEEK_SET);
+
+                    data[2048] = 0x00;
+                    while (readnum < n)
+                    {
+
+                        auto nread = fread(data, 1, 2048, fp.get());
+                        readnum += nread;
+                        if (readnum >= n)
+                        {
+                            data[nread] = 0x0D;
+                            nread += 1;
+                            data[nread] = 0x0A;
+                            nread += 1;
+                        }
+                        co_await async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
+                    }
+
+                    // fclose(fp);
+                }
+                break;
+                case 2:
+                {
+                    int readnum = 0;
+                    // FILE *fp = fopen(p.filename.c_str(), "rb");
+                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
+                                                                          &std::fclose);
+                    if (!fp)
+                    {
+                        data[0] = 0x0D;
+                        data[1] = 0x0A;
+                        co_await async_write(*sslsock, asio::buffer(data, 2), asio::use_awaitable);
+                        break;
+                    }
+
+                    fseek(fp.get(), 0, SEEK_END);
+                    n = ftell(fp.get());
+                    fseek(fp.get(), 0, SEEK_SET);
+
+                    data[2048] = 0x00;
+                    while (readnum < n)
+                    {
+
+                        auto nread = fread(data, 1, 2048, fp.get());
+                        readnum += nread;
+                        co_await async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
+                    }
+
+                    // fclose(fp);
+                }
+                break;
+                }
+            }
+        }
+        // asio::co_spawn(io_context, httpsslclientecho(std::ref(socket),std::ref(ssl_context)), asio::detached);
+
+        // unsigned long long totalsize;
+        // rawfile = NULL;
+        while (true)
+        {
+            if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
+            {
+                n = co_await sslsock->async_read_some(asio::buffer(data, state.page.size - state.content.size()), asio::use_awaitable);
+            }
+            else
+            {
+                n = co_await sslsock->async_read_some(asio::buffer(data, 2048), asio::use_awaitable);
+            }
+            // n = socket.read_some(asio::buffer(data, 2048), ec);
+            data[2048] = 0x00;
+            if (n == 0)
+            {
+                break;
+            }
+            readoffset = 0;
+            process(data, n);
+        }
+        finishprocess();
+        if (onload != nullptr)
+        {
+            onload(state.content);
+        }
+        co_return;
+    }
+    catch (std::exception &e)
+    {
+        //std::printf("Exception: %s\n", e.what());
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg = e.what();
+    }
+    co_return;
 }
 client &client::sendssldatato()
 {
@@ -422,56 +1047,61 @@ client &client::sendssldatato()
         state.page.error = 0;
         state.json.clear();
 
-        asio::io_context io_context;
-        asio::ssl::context ssl_context(asio::ssl::context::sslv23);
+        //asio::io_context io_context;
+        // client_context &temp_io_context = get_client_context_obj();
+        // asio::ssl::context ssl_context(asio::ssl::context::sslv23);
 
-        asio::ssl::stream<asio::ip::tcp::socket> socket(io_context, ssl_context);
-        ssl_context.set_default_verify_paths();
-        asio::ip::tcp::resolver resolver(io_context);
-        auto endpoints = resolver.resolve(host.c_str(), port);
+        // //std::shared_ptr<httpclient_t> clientpeer = std::make_shared<httpclient_t>();
+        // sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(temp_io_context.ioc, ssl_context);
 
-        SSL_set_tlsext_host_name(socket.native_handle(), host.c_str());
+        // //asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
+        // ssl_context.set_default_verify_paths();
+        // asio::ip::tcp::resolver resolver(temp_io_context.ioc);
+        // auto endpoints = resolver.resolve(host.c_str(), port);
 
-        asio::connect(socket.lowest_layer(), endpoints);
-        socket.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+        // SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
 
-        ssl_context.set_verify_mode(asio::ssl::verify_peer);
-        ssl_context.set_verify_callback(asio::ssl::host_name_verification(host));
+        // asio::connect(sslsock->lowest_layer(), endpoints);
+        // sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
 
-        socket.handshake(asio::ssl::stream_base::client, ec);
+        // ssl_context.set_verify_mode(asio::ssl::verify_peer);
+        // ssl_context.set_verify_callback(asio::ssl::host_name_verification(host));
 
-        if (ec)
+        // sslsock->handshake(asio::ssl::stream_base::client, ec);
+
+        // if (ec)
+        // {
+        //     return *this;
+        // }
+        if (!sslsock)
         {
-            return *this;
+            if (!init_https_sock())
+            {
+                return *this;
+            }
         }
-
         if (exptime < 0 || exptime > 30)
         {
             exptime = 10;
         }
         if (exptime > 0)
         {
-            std::thread(
-                [&, timenum = exptime]()
-                {
-                    try
-                    {
-                        std::this_thread::sleep_for(std::chrono::seconds(timenum));
-                        if (socket.lowest_layer().is_open())
-                        {
-                            socket.shutdown();
-                        }
-                    }
-                    catch (const std::exception &e)
-                    {
-                        std::cerr << e.what() << '\n';
-                    }
-                })
-                .detach();
+            timeout_end = timeid() + exptime;
+
+            client_context &temp_io_context = get_client_context_obj();
+            try
+            {
+                temp_io_context.timeout_lists.push_back(shared_from_this());
+                temp_io_context.timeout_condition.notify_one();
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = e.what();
+            }
         }
 
         int n;
-        n = socket.write_some(asio::buffer(request));
+        n = sslsock->write_some(asio::buffer(request));
 
         char data[2051];
 
@@ -482,12 +1112,12 @@ client &client::sendssldatato()
 
                 switch (p.error)
                 {
-                case 0: socket.write_some(asio::buffer(p.tempfile)); break;
-                case 3: socket.write_some(asio::buffer(p.tempfile)); break;
+                case 0: sslsock->write_some(asio::buffer(p.tempfile)); break;
+                case 3: sslsock->write_some(asio::buffer(p.tempfile)); break;
                 case 1:
                 {
                     int readnum = 0;
-                    socket.write_some(asio::buffer(p.tempfile));
+                    sslsock->write_some(asio::buffer(p.tempfile));
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
                     std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
                                                                           &std::fclose);
@@ -495,7 +1125,7 @@ client &client::sendssldatato()
                     {
                         data[0] = 0x0D;
                         data[1] = 0x0A;
-                        asio::write(socket, asio::buffer(data, 2));
+                        asio::write(*sslsock, asio::buffer(data, 2));
                         break;
                     }
 
@@ -516,7 +1146,7 @@ client &client::sendssldatato()
                             data[nread] = 0x0A;
                             nread += 1;
                         }
-                        asio::write(socket, asio::buffer(data, nread));
+                        asio::write(*sslsock, asio::buffer(data, nread));
                     }
 
                     // fclose(fp);
@@ -532,7 +1162,7 @@ client &client::sendssldatato()
                     {
                         data[0] = 0x0D;
                         data[1] = 0x0A;
-                        asio::write(socket, asio::buffer(data, 2));
+                        asio::write(*sslsock, asio::buffer(data, 2));
                         break;
                     }
 
@@ -546,7 +1176,7 @@ client &client::sendssldatato()
 
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
-                        asio::write(socket, asio::buffer(data, nread));
+                        asio::write(*sslsock, asio::buffer(data, nread));
                     }
 
                     // fclose(fp);
@@ -563,11 +1193,11 @@ client &client::sendssldatato()
         {
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
-                n = socket.read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
+                n = sslsock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
             }
             else
             {
-                n = socket.read_some(asio::buffer(data, 2048), ec);
+                n = sslsock->read_some(asio::buffer(data, 2048), ec);
             }
             // n = socket.read_some(asio::buffer(data, 2048), ec);
             data[2048] = 0x00;
@@ -580,13 +1210,13 @@ client &client::sendssldatato()
         }
         finishprocess();
 
-        socket.shutdown();
-        io_context.stop();
         return *this;
     }
     catch (std::exception &e)
     {
-        std::printf("Exception: %s\n", e.what());
+        //std::printf("Exception: %s\n", e.what());
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg = e.what();
     }
 
     return *this;
@@ -1040,14 +1670,14 @@ void client::responseheader(std::string_view key, std::string_view value)
         break;
     }
 }
-unsigned int client::getlength() { return state.page.size; }
-unsigned int client::getstate() { return state.code; }
-std::string client::getstatus() { return state.codemessage; }
-std::string client::getheader() { return response_header; }
-std::string client::gettempfile() { return state.page.tempfile; }
-std::map<std::string, std::string> client::getheaders() { return state.header; }
-std::string client::gettype() { return state.page.type; }
-std::string client::getbody()
+unsigned int client::getLength() { return state.page.size; }
+unsigned int client::getStatus() { return state.code; }
+std::string client::getStatus_msg() { return state.codemessage; }
+std::string client::getHeader() { return response_header; }
+std::string client::getTempfile() { return state.page.tempfile; }
+std::map<std::string, std::string> client::getHeaders() { return state.header; }
+std::string client::getType() { return state.page.type; }
+std::string client::getBody()
 {
     if (state.istxt)
     {
@@ -1073,7 +1703,7 @@ std::string client::getbody()
     }
     return state.content;
 }
-Cookie client::getcookie() { return state.cookie; }
+Cookie client::getCookie() { return state.cookie; }
 http::OBJ_VALUE client::json() { return state.json; }
 void client::respreadtocontent(const char *buffer, unsigned int buffersize)
 {
@@ -1413,17 +2043,20 @@ bool client::parse()
     if (_url[i] == 'h' && _url[i + 1] == 't' && _url[i + 2] == 't' && _url[i + 3] == 'p' && _url[i + 4] == ':')
     {
         scheme = "http";
+        isssl  = false;
         i += 5;
     }
     if (_url[i] == 'h' && _url[i + 1] == 't' && _url[i + 2] == 't' && _url[i + 3] == 'p' && _url[i + 4] == 's' &&
         _url[i + 5] == ':')
     {
         scheme = "https";
+        isssl  = true;
         i += 6;
     }
     if (scheme.empty())
     {
         scheme = "http";
+        isssl  = false;
     }
     for (; i < _url.length(); i++)
     {
@@ -1509,8 +2142,7 @@ bool client::parse()
     return true;
 }
 
-
-client &client::build_query(const std::map<std::string,std::string> &param)
+client &client::build_query(const std::map<std::string, std::string> &param)
 {
     bool isfirst = true;
     std::string tempport;
@@ -1519,9 +2151,9 @@ client &client::build_query(const std::map<std::string,std::string> &param)
         if (isfirst)
         {
             isfirst = false;
-            if(query.size()>0)
+            if (query.size() > 0)
             {
-              query.push_back('&');      
+                query.push_back('&');
             }
         }
         else
@@ -1548,9 +2180,9 @@ client &client::build_query(http::OBJ_VALUE param)
         if (isfirst)
         {
             isfirst = false;
-            if(query.size()>0)
+            if (query.size() > 0)
             {
-              query.push_back('&');      
+                query.push_back('&');
             }
         }
         else
@@ -1574,7 +2206,7 @@ client &client::build_query(http::OBJ_VALUE param)
 
 client &client::build_query(const std::string &a)
 {
-    query.append(url_encode(a.data(),a.size()));
+    query.append(url_encode(a.data(), a.size()));
     return *this;
 }
 
@@ -1692,13 +2324,13 @@ void client::buildheader()
         request.append("\r\n");
     }
 
-    if (header.isset("User-Agent")||header.isset("user-agent"))
+    if (header.isset("User-Agent") || header.isset("user-agent"))
     {
 
-            request.append("User-Agent: ");
-            request.append(header["User-Agent"].as_string());
-            request.append("\r\n");
-        
+        request.append("User-Agent: ");
+        request.append(header["User-Agent"].as_string());
+        request.append("\r\n");
+
         header.unset("User-Agent");
     }
     else
@@ -1706,7 +2338,7 @@ void client::buildheader()
         request.append("User-Agent: httpclient\r\n");
     }
 
-    if (!header.isset("Accept")&&!header.isset("accept"))
+    if (!header.isset("Accept") && !header.isset("accept"))
     {
         header["Accept"] = "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8";
     }
@@ -1725,7 +2357,30 @@ void client::buildheader()
     {
         request.append("Connection: close\r\n");
     }
+    if (cookie.size() > 0)
+    {
+        request.append("Cookie: ");
+        unsigned ci = 0;
+        for (auto &[first, second] : cookie)
+        {
+            if (ci > 0)
+            {
+                request.append(";");
+            }
+            request.append(url_encode(first.data(), first.size()));
+            request.append("=");
+            request.append(url_encode(second.data(), second.size()));
+            ci++;
+        }
+        request.append("\r\n");
+    }
+
     request.append("\r\n");
+}
+client &client::addcookie(const std::string &k, const std::string &v)
+{
+    cookie[k] = v;
+    return *this;
 }
 client &client::addfile(std::string filename)
 {

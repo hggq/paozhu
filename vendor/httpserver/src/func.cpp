@@ -716,7 +716,7 @@ std::string mb_substr(std::string &str, int begin, int length)
 
     return temp;
 }
-std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody)
+std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody, unsigned int timeoutnum)
 {
     std::string file_body;
     bool isurl = false;
@@ -735,77 +735,83 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
 
     if (isurl)
     {
-        http::client a;
+        std::shared_ptr<client> a = std::make_shared<client>();
         // http::OBJ_VALUE parameter;
         bool isaccept = false;
-        bool isget    = false;
+        bool isget    = true;
         for (auto [hkey, vvalue] : parabody)
         {
             if (hkey == "Content-Type")
             {
-                a.setheader("Content-Type", vvalue);
+                a->setheader("Content-Type", vvalue);
             }
             else if (hkey == "Post-Type")
             {
-                a.posttype(vvalue);
+                a->posttype(vvalue);
             }
             else if (hkey == "User-Agent")
             {
-                a.setheader("User-Agent", vvalue);
+                a->setheader("User-Agent", vvalue);
             }
             else if (hkey == "Accept")
             {
-                a.setheader("Accept", vvalue);
+                a->setheader("Accept", vvalue);
                 isaccept = true;
             }
             else if (hkey == "method")
             {
-                isget = true;
+                if (vvalue == "POST")
+                {
+                    isget = false;
+                }
             }
             else if (hkey == "header-content")
             {
-                a.addheader(vvalue);
+                a->addheader(vvalue);
             }
             else
             {
-                a.data[hkey] = vvalue;
+                a->data[hkey] = vvalue;
             }
         }
 
         if (!isaccept)
         {
-            a.setheader("Accept",
-                        "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8");
+            a->setheader("Accept",
+                         "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8");
         }
         if (isget)
         {
-            a.get(str);
+            a->get(str);
         }
         else
         {
-            a.post(str);
+            a->post(str);
         }
 
-        a.timeout(30);
-        // a.data=parameter;
-        a.send();
-        parabody["state"]           = std::to_string(a.getstate());
-        parabody["response-header"] = a.getheader();
-        parabody["content-length"]  = std::to_string(a.getlength());
-        if (a.getstate() == 200)
+        if (timeoutnum > 1)
         {
-            if (a.getlength() < 33554432)
+            a->timeout(timeoutnum);
+        }
+        // a->data=parameter;
+        a->send();
+        parabody["state"]           = std::to_string(a->getStatus());
+        parabody["response-header"] = a->getHeader();
+        parabody["content-length"]  = std::to_string(a->getLength());
+        if (a->getStatus() == 200)
+        {
+            if (a->getLength() < 33554432)
             {
-                return a.getbody();
+                return a->getBody();
             }
             else
             {
-                return a.gettempfile();
+                return a->getTempfile();
             }
         }
         else
         {
-            return a.getbody();
+            return a->getBody();
         }
     }
     else
@@ -829,7 +835,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
 
     return file_body;
 }
-std::string file_get_contents(std::string str)
+std::string file_get_contents(std::string str, unsigned int timeoutnum)
 {
     std::string file_body;
     bool isurl = false;
@@ -848,24 +854,27 @@ std::string file_get_contents(std::string str)
 
     if (isurl)
     {
-        http::client a;
-        a.get(str);
-        a.timeout(30);
-        a.send();
-        if (a.getstate() == 200)
+        std::shared_ptr<client> a = std::make_shared<client>();
+        a->get(str);
+        if (timeoutnum > 1)
         {
-            if (a.getlength() < 33554432)
+            a->timeout(timeoutnum);
+        }
+        a->send();
+        if (a->getStatus() == 200)
+        {
+            if (a->getLength() < 33554432)
             {
-                return a.getbody();
+                return a->getBody();
             }
             else
             {
-                return a.gettempfile();
+                return a->getTempfile();
             }
         }
         else
         {
-            return a.getheader();
+            return a->getHeader();
         }
     }
     else
@@ -1265,10 +1274,10 @@ std::string char2str(const unsigned char *source, unsigned int str_length)
 {
     static const unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
     std::string obj;
-    unsigned int qi=0;
+    unsigned int qi = 0;
     for (; qi < str_length; qi++)
     {
-        unsigned char tmc=source[qi];
+        unsigned char tmc = source[qi];
         obj.push_back(str[tmc >> 4 & 0x0F]);
         obj.push_back(str[tmc & 0x0F]);
     }

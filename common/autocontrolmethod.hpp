@@ -30,6 +30,7 @@
 #include "testormclient.h"
 #include "testcommit.h"
 #include "apicrudtest.h"
+#include "testcowaitclient.h"
 #include "testcors.h"
 #include "testsqltuple.h"
 #include "testsessionid.h"
@@ -45,6 +46,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testhttpclient_get_body;
 		methodcallback.emplace("testhttpclient1",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient_get_timebody;
+		methodcallback.emplace("testhttpclient3",temp);
 		temp.pre = nullptr;
 		temp.regfun = testhttpclient_get_file;
 		methodcallback.emplace("testhttpclient2",temp);
@@ -216,6 +220,15 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = pxapipagesdepartlist;
 		methodcallback.emplace("api/departments/deletedep",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient_cowait_body;
+		methodcallback.emplace("testcowaitclient1",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient_cowait_urls;
+		methodcallback.emplace("testcowaitclient2",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient_cowait_spawn;
+		methodcallback.emplace("testcowaitclient3",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcors;
 		methodcallback.emplace("api/user/message",temp);
