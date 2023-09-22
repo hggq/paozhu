@@ -227,6 +227,9 @@ namespace http
 		temp.regfun = testhttpclient_cowait_body;
 		methodcallback.emplace("testcowaitclient1",temp);
 		temp.pre = nullptr;
+		temp.regfun = testhttpclient_cowait_post;
+		methodcallback.emplace("testcowaitclient5",temp);
+		temp.pre = nullptr;
 		temp.regfun = testhttpclient_cowait_urls;
 		methodcallback.emplace("testcowaitclient2",temp);
 		temp.pre = nullptr;

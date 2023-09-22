@@ -15,11 +15,20 @@ std::string testhttpclient_cowait_php(std::shared_ptr<httppeer> peer)
     std::shared_ptr<http::client> a = std::make_shared<http::client>();
 
     a->get("https://www.php.net/docs.php");
+    a->addheader("Connection", "keep-alive");
     a->send();
     client << a->getHeader();
     if (a->getStatus() == 200)
     {
-        client << a->getBody();
+        //  client << a->getBody();
+        std::cout << "https://www.php.net/manual/zh/copyright.php" << std::endl;
+        a->get("https://www.php.net/manual/zh/copyright.php");
+        a->addheader("Connection", "Close");
+        a->send();
+        if (a->getStatus() == 200)
+        {
+            client << a->getBody();
+        }
     }
     else
     {
@@ -48,6 +57,54 @@ std::string testhttpclient_cowait_body(std::shared_ptr<httppeer> peer)
     }
     return "";
 }
+
+//@urlpath(null,testcowaitclient5)
+std::string testhttpclient_cowait_post(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+    client << "hello world!  test testhttpclient_cowait_body";
+    //client_context &temp_io_context = get_client_context_obj();
+
+    std::shared_ptr<http::client> a = std::make_shared<http::client>();
+
+    a->get("http://www.xxxxxx.net/");
+    a->addheader("Connection", "keep-alive");
+    a->send();
+    if (a->getStatus() == 200)
+    {
+        //  client << a->getBody();
+        std::cout << "http://www.xxxxxx.net/login.php" << std::endl;
+        a->post("http://www.xxxxxx.net/login.php");
+        a->addheader("Connection", "keep-alive");
+        a->data["user_name"] = "admin";
+        a->data["user_pass"] = "123456";
+        a->data["action"]    = "login";
+        a->send();
+        if (a->getStatus() == 200)
+        {
+            //client << a->getBody();
+            std::cout << "http://www.xxxxxx.net/main.php" << std::endl;
+            a->get("http://www.xxxxxx.net/main.php");
+            a->requst_clear();
+            a->addcookie("PHPSESSID", a->state.cookie["PHPSESSID"]);
+            a->addheader("Connection", "Close");
+
+            a->send();
+            if (a->getStatus() == 200)
+            {
+                std::cout << a->getBody() << std::endl;
+                //client << a->getBody();
+            }
+        }
+    }
+    else
+    {
+        client << a->error_msg;
+        client << "+++++not content++++";
+    }
+    return "";
+}
+
 //@urlpath(null,testcowaitclient2)
 std::string testhttpclient_cowait_urls(std::shared_ptr<httppeer> peer)
 {

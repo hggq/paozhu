@@ -48,6 +48,7 @@ class client : public std::enable_shared_from_this<client>
     client &addheader(std::string);
 
     client &addcookie(const std::string &k, const std::string &v);
+    client &requst_clear();
 
     client &addfile(std::string);
     client &addfile(std::string, std::string);
@@ -81,7 +82,7 @@ class client : public std::enable_shared_from_this<client>
     void process(const char *buffer, unsigned int buffersize);
     void close_file(std::FILE *fp) { std::fclose(fp); }
 
-    void buildheader();
+        void buildheader();
     void buildcontent();
     void timeout(unsigned int t) { exptime = t; };
     unsigned int timeout() { return exptime; };
@@ -128,11 +129,12 @@ class client : public std::enable_shared_from_this<client>
 
     std::string temppath;
 
-    unsigned int exptime      = 0;
-    unsigned int timeout_end  = 0;
-    unsigned int linktype     = 0;
-    unsigned char requesttype = 0;
-    bool isssl                = false;
+    unsigned int exptime       = 0;
+    unsigned int timeout_end   = 0;
+    unsigned int linktype      = 0;
+    unsigned int serial_number = 0;
+    unsigned char requesttype  = 0;
+    bool isssl                 = false;
     struct state_t
     {
         unsigned int code   = 0;
@@ -173,8 +175,8 @@ class client : public std::enable_shared_from_this<client>
     unsigned char headerfinish = 0;
     unsigned char machnum      = 0;
     unsigned char islineend    = 0;
-    unsigned int readoffset    = 0;
     unsigned char error        = 0;
+    unsigned int readoffset    = 0;
     //FILE *rawfile = NULL;
     std::unique_ptr<std::FILE, decltype(&std::fclose)> rawfile;
 };

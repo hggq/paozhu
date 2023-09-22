@@ -50,9 +50,18 @@ client::~client()
         }
     }
 }
+client &client::requst_clear()
+{
+    senddata.clear();
+    header.clear();
+    data.clear();
+    return *this;
+}
 client &client::get(std::string_view url)
 {
     requesttype = 0;
+    senddata.clear();
+    header.clear();
     if (url.length() > 0)
     {
         _url = url;
@@ -67,7 +76,9 @@ client &client::get(std::string_view url)
 client &client::get(std::string_view url, http::OBJ_VALUE param)
 {
     requesttype = 0;
-    data        = std::move(param);
+    senddata.clear();
+    header.clear();
+    data = std::move(param);
     if (url.length() > 0)
     {
         _url = url;
@@ -82,7 +93,8 @@ client &client::get(std::string_view url, http::OBJ_VALUE param)
 client &client::post(std::string_view url)
 {
     requesttype = 1;
-
+    senddata.clear();
+    header.clear();
     if (url.length() > 0)
     {
         _url = url;
@@ -97,7 +109,8 @@ client &client::post(std::string_view url)
 client &client::post(std::string_view url, http::OBJ_VALUE param)
 {
     requesttype = 1;
-    parameter   = std::move(param);
+    senddata.clear();
+    parameter = std::move(param);
     if (url.length() > 0)
     {
         _url = url;
@@ -114,6 +127,8 @@ client &client::getjson(std::string_view url)
 {
     requesttype = 0;
     parsetojson = 1;
+    header.clear();
+    senddata.clear();
     if (url.length() > 0)
     {
         _url = url;
@@ -129,7 +144,9 @@ client &client::getjson(std::string_view url, http::OBJ_VALUE param)
 {
     requesttype = 0;
     parsetojson = 1;
-    data        = std::move(param);
+    header.clear();
+    senddata.clear();
+    data = std::move(param);
     if (url.length() > 0)
     {
         _url = url;
@@ -144,7 +161,8 @@ client &client::getjson(std::string_view url, http::OBJ_VALUE param)
 
 client &client::postjson(std::string_view url)
 {
-
+    header.clear();
+    senddata.clear();
     requesttype            = 1;
     parsetojson            = 1;
     header["Content-Type"] = "application/json";
@@ -161,6 +179,8 @@ client &client::postjson(std::string_view url)
 }
 client &client::postjson(std::string_view url, http::OBJ_VALUE param)
 {
+    header.clear();
+    senddata.clear();
     requesttype            = 1;
     header["Content-Type"] = "application/json";
 
@@ -543,6 +563,7 @@ asio::awaitable<void> client::co_senddatato()
         // rawfile = NULL;
         while (true)
         {
+            memset(data, 0x00, 2048);
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
                 n = co_await sock->async_read_some(asio::buffer(data, state.page.size - state.content.size()), asio::use_awaitable);
@@ -752,6 +773,7 @@ client &client::senddatato()
         // rawfile = NULL;
         while (true)
         {
+            memset(data, 0x00, 2048);
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
                 n = sock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
@@ -773,6 +795,7 @@ client &client::senddatato()
             }
         }
         finishprocess();
+        DEBUG_LOG(" http finishprocess: %lu", state.content.size());
     }
     catch (std::exception &e)
     {
@@ -789,13 +812,13 @@ bool client::init_https_sock()
 {
     error_msg.clear();
     client_context &temp_io_context = get_client_context_obj();
-    asio::ssl::context ssl_context(asio::ssl::context::sslv23);
-
+    //asio::ssl::context ssl_context(asio::ssl::context::sslv23);
+    ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
     //std::shared_ptr<httpclient_t> clientpeer = std::make_shared<httpclient_t>();
-    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(temp_io_context.ioc, ssl_context);
+    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(temp_io_context.ioc, *ssl_context);
 
     //asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
-    ssl_context.set_default_verify_paths();
+    ssl_context->set_default_verify_paths();
     asio::ip::tcp::resolver resolver(temp_io_context.ioc);
     auto endpoints = resolver.resolve(host.c_str(), port);
 
@@ -804,8 +827,8 @@ bool client::init_https_sock()
     asio::connect(sslsock->lowest_layer(), endpoints);
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
 
-    ssl_context.set_verify_mode(asio::ssl::verify_peer);
-    ssl_context.set_verify_callback(asio::ssl::host_name_verification(host));
+    ssl_context->set_verify_mode(asio::ssl::verify_peer);
+    ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
 
     sslsock->handshake(asio::ssl::stream_base::client, ec);
 
@@ -1115,7 +1138,7 @@ client &client::sendssldatato()
                 error_msg = e.what();
             }
         }
-
+        std::cout << request << std::endl;
         int n;
         n = sslsock->write_some(asio::buffer(request));
 
@@ -1201,9 +1224,10 @@ client &client::sendssldatato()
                 }
             }
         }
-
+        DEBUG_LOG("while ssl_read_some: %s", host.c_str());
         while (true)
         {
+            memset(data, 0x00, 2048);
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
                 n = sslsock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
@@ -1212,7 +1236,6 @@ client &client::sendssldatato()
             {
                 n = sslsock->read_some(asio::buffer(data, 2048), ec);
             }
-
             data[2048] = 0x00;
             if (n == 0)
             {
@@ -1226,7 +1249,7 @@ client &client::sendssldatato()
             }
         }
         finishprocess();
-
+        DEBUG_LOG("ssl_finishprocess %lu", state.content.size());
         return *this;
     }
     catch (std::exception &e)
