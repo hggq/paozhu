@@ -1,0 +1,24 @@
+{
+    "name": "paozhu",
+    "version-string": "1.4.6",
+    "dependencies": [
+        {
+            "name": "openssl"
+        },
+        {
+            "name": "brotli"
+        },
+        {
+            "name": "libgd"
+        },
+        {
+            "name": "libqrencode"
+        },
+        {
+            "name": "asio"
+        },
+        {
+            "name": "libmysql"
+        }
+    ]
+}

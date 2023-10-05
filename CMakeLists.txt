@@ -1,5 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
+set(ENV{http_proxy} http://192.168.204.1:7890)
+set(ENV{https_proxy} http://192.168.204.1:7890)
+
 PROJECT(Paozhu_web_framework)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -201,48 +204,51 @@ if(ZLIB_FOUND)
   target_link_libraries(paozhu z)
 endif()
 
-find_path(MYSQL_ROOT_DIR mysql)
-MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
-find_package_handle_standard_args(mysql REQUIRED_VARS MYSQL_ROOT_DIR)
+find_package(libmysql REQUIRED)
 
-FIND_PATH(MYSQL_INCLUDE_DIR mysql.h
-  /usr/local/include/mysql
-  /usr/include/mysql
-  /usr/local/mysql/include
-)
-SET(MYSQL_NAMES mysqlclient)
-FIND_LIBRARY(MYSQL_LIBRARY
-  NAMES ${MYSQL_NAMES}
-  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib
-  PATH_SUFFIXES mysql
-)
+# find_path(MYSQL_ROOT_DIR mysql)
+# MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
+# find_package_handle_standard_args(mysql REQUIRED_VARS MYSQL_ROOT_DIR)
+#
+# FIND_PATH(MYSQL_INCLUDE_DIR mysql.h
+#   /usr/local/include/mysql
+#   /usr/include/mysql
+#   /usr/local/mysql/include
+# )
+# SET(MYSQL_NAMES mysqlclient)
+# FIND_LIBRARY(MYSQL_LIBRARY
+#   NAMES ${MYSQL_NAMES}
+#   PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib
+#   PATH_SUFFIXES mysql
+# )
+#
+# IF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+#   SET(MYSQL_FOUND TRUE)
+#   SET( MYSQL_LIBRARIES ${MYSQL_LIBRARY} )
+# ELSE (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+#   SET(MYSQL_FOUND FALSE)
+#   SET( MYSQL_LIBRARIES )
+# ENDIF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
+#
+# IF (MYSQL_FOUND)
+#   IF (NOT MYSQL_FIND_QUIETLY)
+#     MESSAGE(STATUS "Found MySQL: ${MYSQL_LIBRARY}")
+#   ENDIF (NOT MYSQL_FIND_QUIETLY)
+# ELSE (MYSQL_FOUND)
+#   IF (MYSQL_FIND_REQUIRED)
+#     MESSAGE(STATUS "Looked for MySQL libraries named ${MYSQL_NAMES}.")
+#     MESSAGE(FATAL_ERROR "Could NOT find MySQL library")
+#   ENDIF (MYSQL_FIND_REQUIRED)
+# ENDIF (MYSQL_FOUND)
+#
+# target_include_directories(paozhu PUBLIC ${MYSQL_INCLUDE_DIR})
+# target_link_libraries(paozhu ${MYSQL_LIBRARY})
+#
+# target_include_directories(paozhu_cli PUBLIC ${MYSQL_INCLUDE_DIR})
+# target_link_libraries(paozhu_cli ${MYSQL_LIBRARY})
 
-IF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
-  SET(MYSQL_FOUND TRUE)
-  SET( MYSQL_LIBRARIES ${MYSQL_LIBRARY} )
-ELSE (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
-  SET(MYSQL_FOUND FALSE)
-  SET( MYSQL_LIBRARIES )
-ENDIF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
-
-IF (MYSQL_FOUND)
-  IF (NOT MYSQL_FIND_QUIETLY)
-    MESSAGE(STATUS "Found MySQL: ${MYSQL_LIBRARY}")
-  ENDIF (NOT MYSQL_FIND_QUIETLY)
-ELSE (MYSQL_FOUND)
-  IF (MYSQL_FIND_REQUIRED)
-    MESSAGE(STATUS "Looked for MySQL libraries named ${MYSQL_NAMES}.")
-    MESSAGE(FATAL_ERROR "Could NOT find MySQL library")
-  ENDIF (MYSQL_FIND_REQUIRED)
-ENDIF (MYSQL_FOUND)
-
-target_include_directories(paozhu PUBLIC ${MYSQL_INCLUDE_DIR})
-target_link_libraries(paozhu ${MYSQL_LIBRARY})
-
-target_include_directories(paozhu_cli PUBLIC ${MYSQL_INCLUDE_DIR})
-target_link_libraries(paozhu_cli ${MYSQL_LIBRARY})
-
-
+target_link_libraries(paozhu ${MYSQL_LIBRARIES})
+target_link_libraries(paozhu_cli ${MYSQL_LIBRARIES})
 
 if(ENABLE_GD STREQUAL "ON")
 message("---ENABLE_GD-----")
@@ -353,25 +359,32 @@ find_library(BRDEC_LIB_DIR
 INCLUDE_DIRECTORIES("${BROTLI_ROOT_DIR}/include")
 link_directories("${BROTLI_ROOT_DIR}/lib")
 
-if(NOT BR_LIB_DIR)
-message(FATAL_ERROR
-"Brotli Library  NOT FOUND! please install . "
-)
-endif()
+find_package(PkgConfig)
+pkg_check_modules(LIBGD REQUIRED IMPORTED_TARGET gdlib)
 
-message(STATUS "Brotli at: ${BR_LIB_DIR}")
-target_link_libraries(paozhu ${BR_LIB_DIR})
- 
+# if(NOT BR_LIB_DIR)
+# message(FATAL_ERROR
+# "Brotli Library  NOT FOUND! please install . "
+# )
+# endif()
+#
+# message(STATUS "Brotli at: ${BR_LIB_DIR}")
+# target_link_libraries(paozhu ${BR_LIB_DIR})
 
-if(NOT BRDEC_LIB_DIR)
-message(FATAL_ERROR
-"Brotli Library  NOT FOUND! please install . "
-)
-endif()
+target_link_libraries(paozhu PkgConfig::LIBGD)
 
-message(STATUS "Brotli at: ${BRDEC_LIB_DIR}")
-target_link_libraries(paozhu ${BRDEC_LIB_DIR})
+find_package(unofficial-brotli CONFIG REQUIRED)
 
+# if(NOT BRDEC_LIB_DIR)
+# message(FATAL_ERROR
+# "Brotli Library  NOT FOUND! please install . "
+# )
+# endif()
+#
+# message(STATUS "Brotli at: ${BRDEC_LIB_DIR}")
+# target_link_libraries(paozhu ${BRDEC_LIB_DIR})
+
+target_link_libraries(paozhu unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
 
 message("Compile framework mode")
 
