@@ -17,7 +17,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "mysql.h"
+#include "unicode.h"
 namespace orm { 
    
      namespace cms { 

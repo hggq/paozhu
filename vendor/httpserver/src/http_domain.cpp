@@ -10,6 +10,10 @@
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 
+#ifdef ENABLE_VCPKG
+#include <openssl/ssl.h>
+#endif
+
 #ifndef WIN32
 #include <unistd.h>
 #endif

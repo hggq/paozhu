@@ -1,24 +1,42 @@
 {
     "name": "paozhu",
-    "version-string": "1.4.6",
+    "version": "1.4.6",
     "dependencies": [
         {
             "name": "openssl"
         },
         {
-            "name": "brotli"
-        },
-        {
-            "name": "libgd"
-        },
-        {
             "name": "libqrencode"
+        },
+        {
+            "name": "libmysql"
+        },
+        {
+            "name": "boost-filesystem"
+        },
+        {
+            "name": "boost-dll"
+        },
+        {
+            "name": "boost-coroutine"
+        },
+        {
+            "name": "brotli"
         },
         {
             "name": "asio"
         },
         {
-            "name": "libmysql"
+            "name": "libgd"
+        },
+        {
+            "name": "zlib"
+        },
+        {
+            "name": "libpng"
+        },
+        {
+            "name": "freetype"
         }
     ]
 }
