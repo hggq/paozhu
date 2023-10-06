@@ -166,6 +166,7 @@ void httppeer::parse_session_file(std::string &sessionfile)
         return;
     }
 
+#ifndef _WIN32
     // 锁住整个文件
     struct flock lock = {};
     lock.l_type       = F_RDLCK;
@@ -179,6 +180,15 @@ void httppeer::parse_session_file(std::string &sessionfile)
     {
         return;
     }
+#else
+    // lock file by using win32 api
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        return;
+    }
+#endif
+
     int filelen = lseek(fd, 0L, SEEK_END);
     sessionfile.clear();
     sessionfile.resize(filelen);
@@ -190,12 +200,20 @@ void httppeer::parse_session_file(std::string &sessionfile)
         session.from_json(sessionfile);
     }
 
+#ifndef _WIN32
     lock.l_type = F_UNLCK;
     if (fcntl(fd, F_SETLKW, &lock) == -1)
     {
 
         return;
     }
+#else
+    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        return;
+    }
+#endif
+
     close(fd);
     sessionfile_time = tempsesstime;
 }
@@ -318,6 +336,8 @@ void httppeer::save_session_file(std::string &sessionfile)
         // perror("open");
         return;
     }
+
+#ifndef _WIN32
     // 锁住整个文件
     struct flock lock = {};
     lock.l_type       = F_WRLCK;
@@ -331,6 +351,14 @@ void httppeer::save_session_file(std::string &sessionfile)
     {
         return;
     }
+#else
+    // lock file by using win32 api
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        return;
+    }
+#endif
 
     sessionfile = session.to_json();
 
@@ -339,12 +367,21 @@ void httppeer::save_session_file(std::string &sessionfile)
     {
         n = 0;
     }
+
+#ifndef _WIN32
     lock.l_type = F_UNLCK;
     if (fcntl(fd, F_SETLKW, &lock) == -1)
     {
 
         return;
     }
+#else
+    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        return;
+    }
+#endif
+
     close(fd);
 
     sessionfile_time = timeid();

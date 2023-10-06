@@ -9,7 +9,7 @@
             "name": "libqrencode"
         },
         {
-            "name": "libmysql"
+            "name": "libmariadb"
         },
         {
             "name": "boost-filesystem"

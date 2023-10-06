@@ -217,7 +217,11 @@ std::string displaydirectory(std::string localpath, std::string urlpath,
       if (fs::is_regular_file(entry.status()))
       {
         pathfilelists.filename = filename.string();
+#ifndef _WIN32
         pathfilelists.ext      = entry.path().extension();
+#else
+        pathfilelists.ext      = entry.path().extension().string();
+#endif
 
         long long filesize = fs::file_size(entry);
         pathfilelists.size = filesize;

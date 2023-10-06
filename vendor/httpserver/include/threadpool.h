@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <cstddef>
 #include <stdio.h>
-#include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -20,7 +19,6 @@
 #include <fstream>
 #include <algorithm>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <array>
 #include <cstdio>
 #include <iostream>
@@ -37,6 +35,11 @@
 #include <map>
 #include <thread>
 #include <mutex>
+
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <sys/wait.h>
+#endif
 
 #include <condition_variable>
 #include <future>

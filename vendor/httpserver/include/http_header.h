@@ -81,6 +81,9 @@ struct uploadfile_t
     unsigned int size;
     unsigned char error;
 };
+#ifdef _WIN32
+#undef DELETE
+#endif
 enum HEAD_METHOD
 {
     UNKNOW,

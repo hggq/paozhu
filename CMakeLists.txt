@@ -33,7 +33,11 @@ endif()
 if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
     message("Debug mode:${CMAKE_C_FLAGS_DEBUG}")
-    set(CMAKE_CXX_FLAGS " -Wall -Wextra -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
+    set(CMAKE_CXX_FLAGS " -Wall -Wextra -pthread  -g  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
+
+    if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    endif ()
 
 
 elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
@@ -47,6 +51,9 @@ else()
     message("Debug mode")
     set(CMAKE_CXX_FLAGS " -Wall -Wextra -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
 
+    if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    endif ()
 endif()
 
 
@@ -160,10 +167,13 @@ if (ENABLE_VCPKG)
     find_package(ZLIB REQUIRED)
     target_link_libraries(paozhu ZLIB::ZLIB)
 
-    find_package(libmysql REQUIRED)
+    # find_package(libmysql REQUIRED)
+    find_package(unofficial-libmariadb CONFIG REQUIRED)
     find_path(MYSQL_ROOT_DIR mysql)
-    target_link_libraries(paozhu ${MYSQL_LIBRARIES})
-    target_link_libraries(paozhu_cli ${MYSQL_LIBRARIES})
+    # target_link_libraries(paozhu ${MYSQL_LIBRARIES})
+    # target_link_libraries(paozhu_cli ${MYSQL_LIBRARIES})
+    target_link_libraries(paozhu unofficial::libmariadb)
+    target_link_libraries(paozhu_cli unofficial::libmariadb)
     target_include_directories(paozhu PUBLIC ${MYSQL_ROOT_DIR}/mysql)
     target_include_directories(paozhu_cli PUBLIC ${MYSQL_ROOT_DIR}/mysql)
 
@@ -426,4 +436,9 @@ message("Compile framework mode")
 
 target_link_libraries(paozhu  m  dl)
 
+endif ()
+
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+   target_link_libraries(paozhu ws2_32)
+   target_link_libraries(paozhu_cli ws2_32)
 endif ()
