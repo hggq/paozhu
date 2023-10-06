@@ -8,7 +8,7 @@ namespace http
     {
         std::array<unsigned char, 2048> buffer;
         auto instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
-        size_t available_in = data.length(), available_out = buffer.size();
+        size_t  available_in = data.length(), available_out = buffer.size();
         const unsigned char *next_in = reinterpret_cast<const unsigned char *>(data.c_str());
         unsigned char *next_out = buffer.data();
 
