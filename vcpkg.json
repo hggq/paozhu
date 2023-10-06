@@ -6,9 +6,6 @@
             "name": "openssl"
         },
         {
-            "name": "libqrencode"
-        },
-        {
             "name": "libmariadb"
         },
         {
@@ -27,16 +24,25 @@
             "name": "asio"
         },
         {
-            "name": "libgd"
-        },
-        {
             "name": "zlib"
-        },
-        {
-            "name": "libpng"
-        },
-        {
-            "name": "freetype"
         }
-    ]
+    ],
+    "features": {
+        "boost": {
+            "description": "enable boost",
+            "dependencies": [
+                "boost"
+            ]
+        },
+        "gd": {
+            "description": "enable libgd",
+            "dependencies": [
+                "pkgconf",
+                "libgd",
+                "freetype",
+                "libpng",
+                "libqrencode"
+            ]
+        }
+    }
 }

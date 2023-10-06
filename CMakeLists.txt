@@ -1,15 +1,32 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
+cmake_policy(SET CMP0048 NEW)
+
+set(ENABLE_VCPKG OFF CACHE BOOL "choose ON to enable")
+set(ENABLE_BOOST OFF CACHE BOOL "choose ON to enable")
+set(ENABLE_GD OFF CACHE BOOL "choose ON to enable")
+
+if (ENABLE_GD STREQUAL "ON")
+    list(FIND VCPKG_MANIFEST_FEATURES "gd" index)
+    if (index EQUAL -1)
+        message(STATUS "Auto append features: gd")
+        list(APPEND VCPKG_MANIFEST_FEATURES "gd")
+    endif ()
+endif ()
+
+if (ENABLE_BOOST STREQUAL "ON")
+    list(FIND VCPKG_MANIFEST_FEATURES "boost" index)
+    if (index EQUAL -1)
+        message(STATUS "Auto append features: boost")
+        list(APPEND VCPKG_MANIFEST_FEATURES "boost")
+    endif ()
+endif ()
+
 PROJECT(Paozhu_web_framework)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(mode "CMAKE_BUILD_TYPE")
-
-set(ENABLE_VCPKG OFF CACHE BOOL "choose ON to enable")
-
-set(ENABLE_BOOST OFF CACHE BOOL "choose ON to enable")
-set(ENABLE_GD OFF CACHE BOOL "choose ON to enable")
 
 set(BOOST_OPEN "  ")
 set(GD_OPEN " ")
@@ -178,23 +195,24 @@ if (ENABLE_VCPKG)
     target_include_directories(paozhu_cli PUBLIC ${MYSQL_ROOT_DIR}/mysql)
 
     if (ENABLE_GD STREQUAL "ON")
-        find_package(PkgConfig REQUIRED)
+        find_package(PkgConfig)
         pkg_check_modules(LIBGD REQUIRED IMPORTED_TARGET gdlib)
         target_link_libraries(paozhu PkgConfig::LIBGD)
+
+        find_path(QRENCODE_INCLUDE_DIR NAMES qrencode.h)
+        find_library(QRENCODE_LIBRARY_RELEASE qrencode)
+        # find_library(QRENCODE_LIBRARY_DEBUG qrencoded)
+        # set(QRENCODE_LIBRARIES optimized ${QRENCODE_LIBRARY_RELEASE} debug ${QRENCODE_LIBRARY_DEBUG})
+        target_include_directories(paozhu PRIVATE ${QRENCODE_INCLUDE_DIR})
+        target_link_libraries(paozhu ${QRENCODE_LIBRARY_RELEASE})
+        MESSAGE(STATUS ${QRENCODE_LIBRARY_RELEASE})
+
+        find_package(PNG REQUIRED)
+        target_link_libraries(paozhu PNG::PNG)
+
+        find_package(Freetype REQUIRED)
+        target_link_libraries(paozhu Freetype::Freetype)
     endif ()
-
-    find_path(QRENCODE_INCLUDE_DIR NAMES qrencode.h)
-    find_library(QRENCODE_LIBRARY_RELEASE qrencode)
-    # find_library(QRENCODE_LIBRARY_DEBUG qrencoded)
-    # set(QRENCODE_LIBRARIES optimized ${QRENCODE_LIBRARY_RELEASE} debug ${QRENCODE_LIBRARY_DEBUG})
-    target_include_directories(paozhu PRIVATE ${QRENCODE_INCLUDE_DIR})
-    target_link_libraries(paozhu ${QRENCODE_LIBRARIES})
-
-    find_package(PNG REQUIRED)
-    target_link_libraries(paozhu PNG::PNG)
-
-    find_package(Freetype REQUIRED)
-    target_link_libraries(paozhu Freetype::Freetype)
 
     find_package(unofficial-brotli CONFIG REQUIRED)
     target_link_libraries(paozhu unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
