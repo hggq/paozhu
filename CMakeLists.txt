@@ -1,40 +1,63 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
+cmake_policy(SET CMP0048 NEW)
+
+set(ENABLE_VCPKG OFF CACHE BOOL "choose ON to enable")
+set(ENABLE_BOOST OFF CACHE BOOL "choose ON to enable")
+set(ENABLE_GD OFF CACHE BOOL "choose ON to enable")
+
+if (ENABLE_GD STREQUAL "ON")
+    list(FIND VCPKG_MANIFEST_FEATURES "gd" index)
+    if (index EQUAL -1)
+        message(STATUS "Auto append features: gd")
+        list(APPEND VCPKG_MANIFEST_FEATURES "gd")
+    endif ()
+endif ()
+
+if (ENABLE_BOOST STREQUAL "ON")
+    list(FIND VCPKG_MANIFEST_FEATURES "boost" index)
+    if (index EQUAL -1)
+        message(STATUS "Auto append features: boost")
+        list(APPEND VCPKG_MANIFEST_FEATURES "boost")
+    endif ()
+endif ()
+
 PROJECT(Paozhu_web_framework)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(mode "CMAKE_BUILD_TYPE")
- 
-set(ENABLE_BOOST OFF CACHE BOOL "choose ON to enable")
-set(ENABLE_GD OFF CACHE BOOL "choose ON to enable")
 
 set(BOOST_OPEN "  ")
 set(GD_OPEN " ")
 
-if(ENABLE_BOOST STREQUAL "ON")  
+if(ENABLE_BOOST STREQUAL "ON")
   message("ENABLE_BOOST")
   set(BOOST_OPEN " -DENABLE_BOOST ")
 endif()
 
-if(ENABLE_GD STREQUAL "ON")  
+if(ENABLE_GD STREQUAL "ON")
     message("ENABLE_GD")
     set(GD_OPEN " -DENABLE_GD ")
 endif()
 
 set(sys_so_path "/usr/lib64")
 
-if (IS_DIRECTORY "/usr/lib/x86_64-linux-gnu") 
+if (IS_DIRECTORY "/usr/lib/x86_64-linux-gnu")
   set(sys_so_path "/usr/lib/x86_64-linux-gnu")
 endif()
 
-if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))  
+if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
     message("Debug mode:${CMAKE_C_FLAGS_DEBUG}")
-    set(CMAKE_CXX_FLAGS " -Wall -Wextra -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
+    set(CMAKE_CXX_FLAGS " -Wall -Wextra -pthread  -g  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include -I/usr/include/mysql " )
+
+    if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    endif ()
 
 
-elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release")) 
+elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -O3")
     message("Release mode:${CMAKE_CXX_FLAGS_RELEASE}")
     set(CMAKE_CXX_FLAGS "  -pthread  -DASIO_STANDALONE ${BOOST_OPEN} ${GD_OPEN}  -I/usr/local/include -I/usr/local/mysql/include -I/usr/include -I/usr/include/mysql  " )
@@ -44,7 +67,10 @@ else()
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
     message("Debug mode")
     set(CMAKE_CXX_FLAGS " -Wall -Wextra -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
-  
+
+    if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    endif ()
 endif()
 
 
@@ -68,7 +94,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/websockets/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
+  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
+endif ()
 #EXECUTE_PROCESS(COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
 set(PAOZHU_PRE paozhu_pre)
 add_executable(${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopickmethod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/md5.cpp)
@@ -123,7 +151,7 @@ add_executable(paozhu_cli ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/http_cli.cp
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 
-if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release")) 
+if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
   add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/test/testdaemon.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${reflect_list} ${src_list} ${source_list} ${controller_list})
 else()
   add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/test/test.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${reflect_list} ${src_list} ${source_list} ${controller_list})
@@ -138,16 +166,65 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
     COMMAND echo "-- controls method --"
     COMMAND ${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/
-    COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty
+    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty
     )
 
+if (ENABLE_VCPKG)
+    add_compile_definitions(ENABLE_VCPKG)
+    find_package(asio CONFIG REQUIRED)
+    target_link_libraries(paozhu asio::asio)
+
+    set(Boost_NO_WARN_NEW_VERSIONS ON)
+    find_package(Boost REQUIRED COMPONENTS filesystem coroutine)
+    target_link_libraries(paozhu Boost::boost Boost::filesystem Boost::coroutine)
+
+    find_package(OpenSSL REQUIRED)
+    target_link_libraries(paozhu OpenSSL::Crypto OpenSSL::SSL)
+
+    find_package(ZLIB REQUIRED)
+    target_link_libraries(paozhu ZLIB::ZLIB)
+
+    # find_package(libmysql REQUIRED)
+    find_package(unofficial-libmariadb CONFIG REQUIRED)
+    find_path(MYSQL_ROOT_DIR mysql)
+    # target_link_libraries(paozhu ${MYSQL_LIBRARIES})
+    # target_link_libraries(paozhu_cli ${MYSQL_LIBRARIES})
+    target_link_libraries(paozhu unofficial::libmariadb)
+    target_link_libraries(paozhu_cli unofficial::libmariadb)
+    target_include_directories(paozhu PUBLIC ${MYSQL_ROOT_DIR}/mysql)
+    target_include_directories(paozhu_cli PUBLIC ${MYSQL_ROOT_DIR}/mysql)
+
+    if (ENABLE_GD STREQUAL "ON")
+        find_package(PkgConfig)
+        pkg_check_modules(LIBGD REQUIRED IMPORTED_TARGET gdlib)
+        target_link_libraries(paozhu PkgConfig::LIBGD)
+
+        find_path(QRENCODE_INCLUDE_DIR NAMES qrencode.h)
+        find_library(QRENCODE_LIBRARY_RELEASE qrencode)
+        # find_library(QRENCODE_LIBRARY_DEBUG qrencoded)
+        # set(QRENCODE_LIBRARIES optimized ${QRENCODE_LIBRARY_RELEASE} debug ${QRENCODE_LIBRARY_DEBUG})
+        target_include_directories(paozhu PRIVATE ${QRENCODE_INCLUDE_DIR})
+        target_link_libraries(paozhu ${QRENCODE_LIBRARY_RELEASE})
+        MESSAGE(STATUS ${QRENCODE_LIBRARY_RELEASE})
+
+        find_package(PNG REQUIRED)
+        target_link_libraries(paozhu PNG::PNG)
+
+        find_package(Freetype REQUIRED)
+        target_link_libraries(paozhu Freetype::Freetype)
+    endif ()
+
+    find_package(unofficial-brotli CONFIG REQUIRED)
+    target_link_libraries(paozhu unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
+else ()
+
 if(USE_STANDALONE_ASIO)
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 set(ASIO_PATH "/usr/local/opt/asio/include" "/usr/local/include")
 else()
 set(ASIO_PATH ${CMAKE_CURRENT_SOURCE_DIR}/asio "/usr/include")
 endif()
-  
+
     target_compile_definitions(paozhu INTERFACE ASIO_STANDALONE)
     find_path(ASIO_PATH asio.hpp)
     message(state " Standalone Asio found: " ${ASIO_PATH})
@@ -162,7 +239,7 @@ endif()
 endif()
 
 
-if(ENABLE_BOOST STREQUAL "ON")  
+if(ENABLE_BOOST STREQUAL "ON")
 message("---ENABLE_BOOST-----")
 find_package(Boost REQUIRED
              COMPONENTS system filesystem)
@@ -174,22 +251,22 @@ if(Boost_FOUND)
     MESSAGE( STATUS "Boost_LIB_VERSION = ${Boost_LIB_VERSION}")
     link_directories(${Boost_LIBRARY_DIRS})
     target_link_libraries (paozhu ${Boost_LIBRARIES})
-endif()        
+endif()
 
 endif()
 
 
 find_package(OpenSSL REQUIRED)
- 
+
 if(OPENSSL_FOUND)
- 
+
   message(STATUS "OPENSSL_VERSION = ${OPENSSL_VERSION}")
   message(STATUS "OPENSSL_SSL_LIBRARY = ${OPENSSL_SSL_LIBRARY}")
   message(STATUS "OPENSSL_CRYPTO_LIBRARY = ${OPENSSL_CRYPTO_LIBRARY}")
-  message(STATUS "OPENSSL_INCLUDE_DIR = ${OPENSSL_INCLUDE_DIR}")  
+  message(STATUS "OPENSSL_INCLUDE_DIR = ${OPENSSL_INCLUDE_DIR}")
   INCLUDE_DIRECTORIES("${OPENSSL_INCLUDE_DIR}")
-  target_link_libraries (paozhu ${OPENSSL_SSL_LIBRARY})  
-  target_link_libraries (paozhu ${OPENSSL_CRYPTO_LIBRARY})  
+  target_link_libraries (paozhu ${OPENSSL_SSL_LIBRARY})
+  target_link_libraries (paozhu ${OPENSSL_CRYPTO_LIBRARY})
 endif()
 
 
@@ -247,7 +324,7 @@ target_link_libraries(paozhu_cli ${MYSQL_LIBRARY})
 if(ENABLE_GD STREQUAL "ON")
 message("---ENABLE_GD-----")
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(GD_ROOT_DIR "/usr/local/opt/gd/lib")
 else()
   set(GD_ROOT_DIR "${sys_so_path}")
@@ -269,7 +346,7 @@ endif()
 
 message(STATUS "GD Graphics Library  at: ${GD_LIB_DIR}")
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 set(QR_ROOT_DIR "/usr/local/opt/qrencode/lib")
 else()
 set(QR_ROOT_DIR "${sys_so_path}")
@@ -298,7 +375,7 @@ link_directories("${GD_ROOT_DIR}/lib")
 target_link_libraries(paozhu ${GD_LIB_DIR})
 target_link_libraries(paozhu ${QR_LIB_DIR})
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 set(PNG_ROOT_DIR "/usr/local/opt/libpng/lib")
 else()
 set(PNG_ROOT_DIR "${sys_so_path}")
@@ -311,7 +388,7 @@ find_library(PNG_LIB_DIR
 )
 target_link_libraries(paozhu ${PNG_LIB_DIR})
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(FREETYPE_ROOT_DIR "/usr/local/opt/freetype/lib")
 else()
   set(FREETYPE_ROOT_DIR "${sys_so_path}")
@@ -326,7 +403,7 @@ target_link_libraries(paozhu ${FREETYPE_LIB_DIR})
 #end ENABLE_GD
 endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin") 
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
 else()
   set(BROTLI_ROOT_DIR "${sys_so_path}")
@@ -361,7 +438,7 @@ endif()
 
 message(STATUS "Brotli at: ${BR_LIB_DIR}")
 target_link_libraries(paozhu ${BR_LIB_DIR})
- 
+
 
 if(NOT BRDEC_LIB_DIR)
 message(FATAL_ERROR
@@ -377,3 +454,9 @@ message("Compile framework mode")
 
 target_link_libraries(paozhu  m  dl)
 
+endif ()
+
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+   target_link_libraries(paozhu ws2_32)
+   target_link_libraries(paozhu_cli ws2_32)
+endif ()

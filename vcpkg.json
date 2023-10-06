@@ -1,0 +1,48 @@
+{
+    "name": "paozhu",
+    "version": "1.4.6",
+    "dependencies": [
+        {
+            "name": "openssl"
+        },
+        {
+            "name": "libmariadb"
+        },
+        {
+            "name": "boost-filesystem"
+        },
+        {
+            "name": "boost-dll"
+        },
+        {
+            "name": "boost-coroutine"
+        },
+        {
+            "name": "brotli"
+        },
+        {
+            "name": "asio"
+        },
+        {
+            "name": "zlib"
+        }
+    ],
+    "features": {
+        "boost": {
+            "description": "enable boost",
+            "dependencies": [
+                "boost"
+            ]
+        },
+        "gd": {
+            "description": "enable libgd",
+            "dependencies": [
+                "pkgconf",
+                "libgd",
+                "freetype",
+                "libpng",
+                "libqrencode"
+            ]
+        }
+    }
+}

@@ -33,6 +33,10 @@
 #include "http_so_common_api.h"
 #endif
 
+#ifdef ENABLE_VCPKG
+#include <openssl/ssl.h>
+#endif
+
 #include "mysqlproxyfun.h"
 #include "server_localvar.h"
 #include "debug_log.h"
@@ -2714,10 +2718,12 @@ void httpserver::httpwatch()
     error_path = currentpath;
     currentpath.append("access.log");
     error_path.append("error.log");
-    struct flock lockstr        = {};
     unsigned int mysqlpool_time = 1;
     std::size_t n_write         = 0;
     updatetimetemp              = 0;
+#ifndef _WIN32
+    struct flock lockstr        = {};
+#endif
     for (;;)
     {
         if (catch_num > 10)
@@ -2759,6 +2765,7 @@ void httpserver::httpwatch()
                     continue;
                 }
 
+#ifndef _WIN32
                 lockstr.l_type   = F_WRLCK;
                 lockstr.l_whence = SEEK_END;
                 lockstr.l_start  = 0;
@@ -2771,6 +2778,14 @@ void httpserver::httpwatch()
                     close(fd);
                     continue;
                 }
+#else
+                auto native_handle = (HANDLE) _get_osfhandle(fd);
+                auto file_size = GetFileSize(native_handle, nullptr);
+                if (!LockFile(native_handle, file_size, 0, file_size, 0)) {
+                    close(fd);
+                    continue;
+                }
+#endif
                 std::unique_lock<std::mutex> loglock(log_mutex);
                 while (!access_loglist.empty())
                 {
@@ -2779,12 +2794,19 @@ void httpserver::httpwatch()
                 }
                 loglock.unlock();
 
+#ifndef _WIN32
                 lockstr.l_type = F_UNLCK;
                 if (fcntl(fd, F_SETLK, &lockstr) == -1)
                 {
                     close(fd);
                     continue;
                 }
+#else
+                if (!UnlockFile(native_handle, file_size, 0, file_size, 0)) {
+                    close(fd);
+                    continue;
+                }
+#endif
                 close(fd);
             }
 
@@ -2797,6 +2819,7 @@ void httpserver::httpwatch()
                     continue;
                 }
 
+#ifndef _WIN32
                 lockstr.l_type   = F_WRLCK;
                 lockstr.l_whence = SEEK_END;
                 lockstr.l_start  = 0;
@@ -2809,6 +2832,15 @@ void httpserver::httpwatch()
                     close(fd);
                     continue;
                 }
+#else
+                auto native_handle = (HANDLE) _get_osfhandle(fd);
+                auto file_size = GetFileSize(native_handle, nullptr);
+                if (!LockFile(native_handle, file_size, 0, file_size, 0)) {
+                    close(fd);
+                    continue;
+                }
+#endif
+
                 std::unique_lock<std::mutex> loglock(log_mutex);
                 while (!error_loglist.empty())
                 {
@@ -2817,12 +2849,19 @@ void httpserver::httpwatch()
                 }
                 loglock.unlock();
 
+#ifndef _WIN32
                 lockstr.l_type = F_UNLCK;
                 if (fcntl(fd, F_SETLK, &lockstr) == -1)
                 {
                     close(fd);
                     continue;
                 }
+#else
+                if (!UnlockFile(native_handle, file_size, 0, file_size, 0)) {
+                    close(fd);
+                    continue;
+                }
+#endif
                 close(fd);
             }
             if (n_write > 0)
