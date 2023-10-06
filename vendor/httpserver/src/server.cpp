@@ -2750,7 +2750,6 @@ void httpserver::httpwatch()
             clientrunpool.printthreads(false);
 #endif
 
-#if (defined(unix) || defined(__unix) || defined(__unix__) || defined(__APPLE__)) && !defined(__CYGWIN__)
             // save access.log
             if (!access_loglist.empty())
             {
@@ -2826,8 +2825,6 @@ void httpserver::httpwatch()
                 }
                 close(fd);
             }
- #endif
- 
             if (n_write > 0)
             {
                 n_write = 0;
