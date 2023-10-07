@@ -15,7 +15,7 @@ std::string testqrcode(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->getpeer();
     client << "<p>hello world!</p>";
 
-#ifdef ENABLE_BOOST
+#ifdef ENABLE_GD
 
     qrcode a("qrsting hello world !", 5);
     std::string wwwpath;
