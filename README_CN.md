@@ -19,7 +19,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ✅ 4. 支持http/1.1、http/2协议  
 ✅ 5. 支持websocket服务端  
 ✅ 6. 框架自带websocket推送，支持定时推送到webscoket客户端  
-✅ 7. 支持同步httpclient get post  
+✅ 7. 支持httpclient get post，同步异步、协程模式，数据采集  
 ✅ 8. 框架自带ORM,使用链接池方式，目前支持mysql  
 ✅ 9. 框架自带线程池，和用户代码运行的线程池  
 ✅10. 框架使用asio自带的协程  

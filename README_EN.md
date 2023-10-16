@@ -22,7 +22,7 @@ Discussing the joy of C++ web development with community developers.
 ✅ 4. Support http/1.1 and http/2 protocols  
 ✅ 5. Support WebSocket server  
 ✅ 6. The framework comes with websocket push, which supports regular push to websocket client  
-✅ 7. Support synchronization of httpclient get post  
+✅ 7. Support httpclient get or post  
 ✅ 8. The framework comes with an ORM. It uses the link pool method and currently supports MySQL  
 ✅ 9. Framework has two thread pool,framework thread pool,user program runing thread pool  
 ✅10. The framework uses asio Coroutines  
