@@ -164,10 +164,11 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
     // 数据块处理完成
     if (data_info[block_steamid].curnum == data_info[block_steamid].length)
     {
-        http_data.emplace(block_steamid, std::make_shared<httppeer>());
         if (data_info[block_steamid].endheader)
         {
+            http_data.emplace(block_steamid, std::make_shared<httppeer>());
             headers_parse(block_steamid);
+            http_data[block_steamid]->isuse_fastcgi(0);
         }
         processheader = 0;
     }
@@ -259,10 +260,20 @@ void http2parse::headers_parse(unsigned int info_steamid)
 }
 void http2parse::cookie_process(const std::string &header_name, const std::string &header_value)
 {
-    DEBUG_LOG("path_process:%s:%s", header_name.c_str(), header_value.c_str());
+    DEBUG_LOG("cookie_process:%s:%s", header_name.c_str(), header_value.c_str());
+    //http_data[block_steamid]->header[header_name] = header_value;
     unsigned int i = 0, linesize = header_value.size();
     data_info[block_steamid].buffer_key.clear();
     data_info[block_steamid].buffer_value.clear();
+
+    if (http_data[block_steamid]->header["Cookie"].empty())
+    {
+    }
+    else
+    {
+        http_data[block_steamid]->header["Cookie"].append("; ");
+    }
+    http_data[block_steamid]->header["Cookie"].append(header_value);
     for (; i < linesize; i++)
     {
         if (header_value[i] == 0x3D)
@@ -290,7 +301,7 @@ void http2parse::cookie_process(const std::string &header_name, const std::strin
     }
     if (data_info[block_steamid].buffer_value.size() > 0)
     {
-        data_info[block_steamid].buffer_value = http::url_decode(data_info[block_steamid].buffer_value.data(),
+        data_info[block_steamid].buffer_value                                 = http::url_decode(data_info[block_steamid].buffer_value.data(),
                                                                  data_info[block_steamid].buffer_value.length());
         http_data[block_steamid]->cookie[data_info[block_steamid].buffer_key] = data_info[block_steamid].buffer_value;
     }
@@ -412,7 +423,7 @@ void http2parse::path_process(const std::string &header_name, const std::string 
         }
         headerstep = 0;
         data_info[block_steamid].buffer_key.append(&header_value[ioffset], (linesize - ioffset));
-        http_data[block_steamid]->header["querystring"] = data_info[block_steamid].buffer_key;
+        //http_data[block_steamid]->header["querystring"] = data_info[block_steamid].buffer_key;
         http_data[block_steamid]->querystring =
             http::url_decode(data_info[block_steamid].buffer_key.data(), data_info[block_steamid].buffer_key.length());
 
@@ -709,16 +720,15 @@ void http2parse::range_process(const std::string &header_name, const std::string
 void http2parse::header_process(const std::string &header_name, const std::string &header_value, int table_num)
 {
     DEBUG_LOG("header:%s:%s|%d", header_name.c_str(), header_value.c_str(), table_num);
-
-    http_data[block_steamid]->header[header_name] = header_value;
     if (table_num > 0)
     {
 
         switch (table_num)
         {
         case 1:
-            http_data[block_steamid]->host           = header_value;
-            http_data[block_steamid]->header["host"] = header_value;
+            http_data[block_steamid]->host                 = header_value;
+            http_data[block_steamid]->header["Host"]       = header_value;
+            http_data[block_steamid]->header[":authority"] = header_value;
             break;
         case 2:
             if (strcasecmp(header_value.c_str(), "OPTIONS") == 0)
@@ -779,12 +789,38 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         case 16: getacceptencoding(header_name, header_value); break;
         case 17: getacceptlanguage(header_name, header_value); break;
         case 19: getaccept(header_name, header_value); break;
-
-        case 28: http_data[block_steamid]->content_length = str2int(&header_value[0], header_value.size()); break;
+        case 20:
+            http_data[block_steamid]->header["Access-Control-Allow-Origin"] = header_value;
+            break;
+        case 23:
+            http_data[block_steamid]->header["Authorization"] = header_value;
+            break;
+        case 28:
+            http_data[block_steamid]->content_length           = str2int(&header_value[0], header_value.size());
+            http_data[block_steamid]->header["Content-Length"] = header_value;
+            break;
         case 31: getcontenttype(header_name, header_value); break;
         case 32: cookie_process(header_name, header_value); break;
+        case 38:
+            http_data[block_steamid]->header["Host"] = header_value;
+            break;
         case 41: getifnonematch(header_name, header_value); break;
+        case 48:
+            http_data[block_steamid]->header["Proxy-Authenticate"] = header_value;
+            break;
+        case 49:
+            http_data[block_steamid]->header["Proxy-Authorization"] = header_value;
+            break;
         case 50: range_process(header_name, header_value); break;
+        case 51:
+            http_data[block_steamid]->header["Referer"] = header_value;
+            break;
+        case 58:
+            http_data[block_steamid]->header["User-Agent"] = header_value;
+            break;
+        case 61:
+            http_data[block_steamid]->header["WWW-Authenticate"] = header_value;
+            break;
         }
     }
     else
@@ -800,6 +836,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 range_process(header_name, header_value);
             }
+            http_data[block_steamid]->header[header_name] = header_value;
             break;
         case 6:
 
@@ -807,18 +844,34 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
             case 'c':
             case 'C':
-                if (strcasecmp(header_name.c_str(), "cookie") == 0)
+                if (strcasecmp(header_name.c_str(), "Cookie") == 0)
                 {
                     cookie_process(header_name, header_value);
+                }
+                else
+                {
+                    http_data[block_steamid]->header[header_name] = header_value;
                 }
                 break;
             case 'a':
             case 'A':
-                if (strcasecmp(header_name.c_str(), "accept") == 0)
+                if (strcasecmp(header_name.c_str(), "Accept") == 0)
                 {
                     getaccept(header_name, header_value);
                 }
+                else
+                {
+                    if (header_name[0] != ':')
+                    {
+                        http_data[block_steamid]->header[header_name] = header_value;
+                    }
+                }
                 break;
+            default:
+                if (header_name[0] != ':')
+                {
+                    http_data[block_steamid]->header[header_name] = header_value;
+                }
             }
 
             break;
@@ -849,13 +902,28 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 {
                     http_data[block_steamid]->method = 6;
                 }
-                http_data[block_steamid]->header["method"] = header_value;
+                http_data[block_steamid]->header["method"]  = header_value;
+                http_data[block_steamid]->header[":method"] = header_value;
+            }
+            else
+            {
+                http_data[block_steamid]->header[header_name] = header_value;
             }
             break;
         case 10:
             if (strcasecmp(header_name.c_str(), ":authority") == 0)
             {
-                http_data[block_steamid]->host = header_value;
+                http_data[block_steamid]->host                 = header_value;
+                http_data[block_steamid]->header["Host"]       = header_value;
+                http_data[block_steamid]->header[":authority"] = header_value;
+            }
+            else if (strcasecmp(header_name.c_str(), "User-Agent") == 0)
+            {
+                http_data[block_steamid]->header["User-Agent"] = header_value;
+            }
+            else
+            {
+                http_data[block_steamid]->header[header_name] = header_value;
             }
             break;
         case 12:
@@ -863,17 +931,31 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 getcontenttype(header_name, header_value);
             }
+            else
+            {
+                http_data[block_steamid]->header[header_name] = header_value;
+            }
             break;
         case 13:
             if (strcasecmp(header_name.c_str(), "if-none-match") == 0)
             {
                 getifnonematch(header_name, header_value);
             }
-            break;
-        case 14:
-            if (strcasecmp(header_name.c_str(), "content-length") == 0)
+            else
             {
-                http_data[block_steamid]->content_length = str2int(&header_value[0], header_value.size());
+                http_data[block_steamid]->header[header_name] = header_value;
+            }
+            break;
+
+        case 14:
+            if (strcasecmp(header_name.c_str(), "Content-Length") == 0)
+            {
+                http_data[block_steamid]->content_length           = str2int(&header_value[0], header_value.size());
+                http_data[block_steamid]->header["Content-Length"] = header_value;
+            }
+            else
+            {
+                http_data[block_steamid]->header[header_name] = header_value;
             }
             break;
         case 15:
@@ -884,6 +966,10 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                     getacceptencoding(header_name, header_value);
                     break;
                 }
+                else
+                {
+                    http_data[block_steamid]->header[header_name] = header_value;
+                }
             }
             else if (header_name[7] == 'L')
             {
@@ -892,9 +978,17 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                     getacceptlanguage(header_name, header_value);
                     break;
                 }
+                else
+                {
+                    http_data[block_steamid]->header[header_name] = header_value;
+                }
+            }
+            else
+            {
+                http_data[block_steamid]->header[header_name] = header_value;
             }
 
-            if (strcasecmp(header_name.c_str(), "accept-encoding") == 0)
+            if (strcasecmp(header_name.c_str(), "Accept-Encoding") == 0)
             {
                 getacceptencoding(header_name, header_value);
             }
@@ -904,13 +998,16 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
 
             break;
+        default:
+            http_data[block_steamid]->header[header_name] = header_value;
         }
     }
 }
 
 void http2parse::getacceptlanguage(const std::string &header_name, const std::string &header_value)
 {
-    unsigned int i = 0;
+    http_data[block_steamid]->header["Accept-Language"] = header_value;
+    unsigned int i                                      = 0;
     for (; i < header_value.size(); i++)
     {
         if (header_value[i] == 0x2C)
@@ -934,7 +1031,7 @@ void http2parse::getacceptlanguage(const std::string &header_name, const std::st
 void http2parse::getacceptencoding(const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0, linesize = header_value.size();
-
+    http_data[block_steamid]->header["Accept-Encoding"] = header_value;
     data_info[block_steamid].buffer_value.clear();
     for (; i < linesize; i++)
     {
@@ -1003,12 +1100,10 @@ void http2parse::getacceptencoding(const std::string &header_name, const std::st
     }
     data_info[block_steamid].buffer_value.clear();
 }
-void http2parse::getifnonematch(const std::string &header_name, const std::string &header_value)
+void http2parse::getifnonematch([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
-    unsigned int i = 0;
-    if (header_name.empty())
-    {
-    }
+    unsigned int i                                    = 0;
+    http_data[block_steamid]->header["If-None-Match"] = header_value;
     http_data[block_steamid]->etag.clear();
     if (header_value[i] == 'W' || header_value[i] == 'w')
     {
@@ -1094,6 +1189,7 @@ void http2parse::callposttype()
 void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0, linesize = header_value.size();
+    http_data[block_steamid]->header["Content-Type"] = header_value;
     data_info[block_steamid].buffer_value.clear();
     unsigned char statetemp           = 0;
     data_info[block_steamid].posttype = 0;
@@ -1161,6 +1257,7 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
 void http2parse::getaccept([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0, linesize = header_value.size();
+    http_data[block_steamid]->header["Accept"] = header_value;
     data_info[block_steamid].buffer_value.clear();
 
     for (; i < linesize; i++)
@@ -1245,9 +1342,10 @@ void http2parse::headertype1(unsigned char c,
         }
         else if (a == 4 || a == 5)
         {
-            http_data[block_steamid]->url            = http2_header_static_table[a].value;
-            http_data[block_steamid]->urlpath        = http2_header_static_table[a].value;
-            http_data[block_steamid]->header["path"] = http2_header_static_table[a].value;
+            http_data[block_steamid]->url             = http2_header_static_table[a].value;
+            http_data[block_steamid]->urlpath         = http2_header_static_table[a].value;
+            http_data[block_steamid]->header["path"]  = http2_header_static_table[a].value;
+            http_data[block_steamid]->header[":path"] = http2_header_static_table[a].value;
         }
         else if (a == 6 || a == 7)
         {
@@ -3257,38 +3355,51 @@ void http2parse::data_process(unsigned int data_stream_id)
         w_size -= data_info[data_stream_id].pad_length;
     }
 
-    switch (data_info[data_stream_id].posttype)
+    if (http_data[block_steamid]->compress == 10)
     {
-    case 1:
-        // x-www-form-urlencoded
-        data_info[block_steamid].buffer_value.append(&stream_data[block_steamid][j], w_size);
-        if (data_info[block_steamid].buffer_value.size() == (unsigned int)http_data[block_steamid]->content_length)
+        if (http_data[block_steamid]->content_length < 16777216)
         {
-            readformurlencoded();
-            data_info[block_steamid].buffer_value.clear();
+            if (http_data[block_steamid]->output.size() < http_data[block_steamid]->content_length)
+            {
+                http_data[block_steamid]->output.append(&stream_data[block_steamid][j], w_size);
+            }
         }
-        break;
-    case 2:
-        // multipart/form-data-
-        readmultipartformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
-        break;
-    case 3:
-        // json
-        http_data[block_steamid]->rawcontent.append(&stream_data[block_steamid][j], w_size);
-        if (http_data[block_steamid]->rawcontent.size() == (unsigned int)http_data[block_steamid]->content_length)
+    }
+    else
+    {
+        switch (data_info[data_stream_id].posttype)
         {
-            http_data[block_steamid]->json.from_json(http_data[block_steamid]->rawcontent);
+        case 1:
+            // x-www-form-urlencoded
+            data_info[block_steamid].buffer_value.append(&stream_data[block_steamid][j], w_size);
+            if (data_info[block_steamid].buffer_value.size() == (unsigned int)http_data[block_steamid]->content_length)
+            {
+                readformurlencoded();
+                data_info[block_steamid].buffer_value.clear();
+            }
+            break;
+        case 2:
+            // multipart/form-data
+            readmultipartformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
+            break;
+        case 3:
+            // json
+            http_data[block_steamid]->rawcontent.append(&stream_data[block_steamid][j], w_size);
+            if (http_data[block_steamid]->rawcontent.size() == (unsigned int)http_data[block_steamid]->content_length)
+            {
+                http_data[block_steamid]->json.from_json(http_data[block_steamid]->rawcontent);
+            }
+            break;
+        case 4:
+            // xml
+            // readrawfileformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
+            http_data[block_steamid]->rawcontent.append(&stream_data[block_steamid][j], w_size);
+            break;
+        case 5:
+            // octet-stream
+            readrawfileformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
+            break;
         }
-        break;
-    case 4:
-        // xml
-        // readrawfileformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
-        http_data[block_steamid]->rawcontent.append(&stream_data[block_steamid][j], w_size);
-        break;
-    case 5:
-        // octet-stream
-        readrawfileformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
-        break;
     }
 
     stream_data[block_steamid].clear();

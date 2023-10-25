@@ -1,3 +1,12 @@
+/**
+ *  @copyright copyright 2023, huang ziquan  All rights reserved.
+ *  @author huang ziquan
+ *  @author 黄自权
+ *  @file client_context.cpp
+ *  @date 2023-09-21
+ *
+ *
+ */
 #include <iostream>
 #include <thread>
 #include <asio.hpp>
@@ -21,6 +30,7 @@
 #include "client_context.h"
 #include "datetime.h"
 #include "httpclient.h"
+#include "fastcgi.h"
 #include "terminal_color.h"
 
 namespace http
@@ -49,6 +59,11 @@ client_context::~client_context()
 void client_context::add_http_task(std::shared_ptr<client> tempc)
 {
     clienttasks.emplace(tempc);
+    condition.notify_one();
+}
+void client_context::add_fastcgi_task(std::shared_ptr<fastcgi> tempc)
+{
+    cgitasks.emplace(tempc);
     condition.notify_one();
 }
 void client_context::time_out_loop()
@@ -163,22 +178,36 @@ void client_context::taskloop()
             std::unique_lock<std::mutex> lock(this->queue_mutex);
             this->condition.wait(lock,
                                  [this]
-                                 { return this->stop || !this->clienttasks.empty(); });
-            if (this->stop && this->clienttasks.empty())
-                break;
-            if (this->clienttasks.empty())
-                continue;
+                                 { return this->stop || !this->clienttasks.empty() || !this->cgitasks.empty(); });
 
-            auto task = std::move(this->clienttasks.front());
-            this->clienttasks.pop();
-            lock.unlock();
-            if (task->linktype == 0)
+            if (this->clienttasks.size() > 0)
             {
-                co_spawn(this->ioc, http_client_task(std::move(task)), asio::detached);
+                auto task = std::move(this->clienttasks.front());
+                this->clienttasks.pop();
+                lock.unlock();
+                if (task->linktype == 0)
+                {
+                    co_spawn(this->ioc, http_client_task(std::move(task)), asio::detached);
+                }
+                else if (task->linktype == 1)
+                {
+                    co_spawn(this->ioc, websocket_client_task(std::move(task)), asio::detached);
+                }
             }
-            else if (task->linktype == 1)
+            else if (this->cgitasks.size() > 0)
             {
-                co_spawn(this->ioc, websocket_client_task(std::move(task)), asio::detached);
+                auto task = std::move(this->cgitasks.front());
+                this->cgitasks.pop();
+                lock.unlock();
+                co_spawn(this->ioc, fastcgi_client_task(std::move(task)), asio::detached);
+            }
+            else
+            {
+                lock.unlock();
+                if (this->stop)
+                {
+                    break;
+                }
             }
         }
         catch (const std::exception &e)
@@ -187,12 +216,31 @@ void client_context::taskloop()
         }
     }
 }
+asio::awaitable<void> client_context::fastcgi_client_task(std::shared_ptr<fastcgi> clientpeer)
+{
+
+#ifdef DEBUG
+    std::ostringstream oss;
+    oss << std::this_thread::get_id();
+    std::string tempthread = oss.str();
+    DEBUG_LOG("fastcgi_client_task:%s", tempthread.c_str());
+#endif
+
+    if (clientpeer->host.size() > 0)
+    {
+        co_await clientpeer->co_send();
+    }
+    co_return;
+}
+
 asio::awaitable<void> client_context::http_client_task(std::shared_ptr<client> clientpeer)
 {
+#ifdef DEBUG
     std::ostringstream oss;
     oss << std::this_thread::get_id();
     std::string tempthread = oss.str();
     DEBUG_LOG("http_client_task:%s", tempthread.c_str());
+#endif
     if (clientpeer->host.size() > 0)
     {
         co_await clientpeer->co_send();
@@ -202,10 +250,12 @@ asio::awaitable<void> client_context::http_client_task(std::shared_ptr<client> c
 
 asio::awaitable<void> client_context::websocket_client_task(std::shared_ptr<client> clientpeer)
 {
+#ifdef DEBUG
     std::ostringstream oss;
     oss << std::this_thread::get_id();
     std::string tempthread = oss.str();
     DEBUG_LOG("websocket_client_task:%s", tempthread.c_str());
+#endif
     if (clientpeer->host.size() > 0)
     {
         co_await clientpeer->co_send();

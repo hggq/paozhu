@@ -446,7 +446,7 @@ asio::awaitable<void> client::co_senddatato()
         if (!sock)
         {
             bool isinit = co_await co_init_http_sock();
-            if (isinit)
+            if (!isinit)
             {
                 co_return;
             }

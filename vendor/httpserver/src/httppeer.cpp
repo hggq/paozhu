@@ -151,8 +151,9 @@ void httppeer::parse_session_file(std::string &sessionfile)
     if (reseetime > (vistsesstime + 5400))
     {
         sessionfile = cookie.get(COOKIE_SESSION_NAME);
-        cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
-        send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
+        // cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
+        // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
+        set_cookie(COOKIE_SESSION_NAME, sessionfile, 7200, host, "/");
     }
 
     if (tempsesstime > 0 && tempsesstime == sessionfile_time)
@@ -233,8 +234,9 @@ std::string httppeer::get_session_id()
 }
 void httppeer::set_session_id(const std::string &a)
 {
-    cookie.set(COOKIE_SESSION_NAME, a, 7200, "/", host);
-    send_cookie.set(COOKIE_SESSION_NAME, a, timeid() + 7200 * 12, "/", host);
+    // cookie.set(COOKIE_SESSION_NAME, a, 7200, "/", host);
+    // send_cookie.set(COOKIE_SESSION_NAME, a, timeid() + 7200 * 12, "/", host);
+    set_cookie(COOKIE_SESSION_NAME, a, (timeid() + 7200 * 12), host, "/");
     parse_session();
 }
 void httppeer::parse_session()
@@ -252,8 +254,9 @@ void httppeer::parse_session()
         {
             if (sessionfile[i] == '/')
             {
-                cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
-                send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
+                // cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
+                // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
+                set_cookie(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, host, "/");
                 return;
             }
         }
@@ -302,8 +305,9 @@ void httppeer::save_session()
         sessionfile =
             client_ip + std::to_string(client_port) + std::to_string(timeid()) + std::to_string(rand_range(1000, 9999));
         sessionfile = std::to_string(std::hash<std::string>{}(sessionfile));
-        cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
-        send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
+        // cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
+        // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
+        set_cookie(COOKIE_SESSION_NAME, sessionfile, 7200, host, "/");
     }
     if (localvar.session_type == 1)
     {
@@ -421,8 +425,9 @@ void httppeer::clear_session()
                 remove(root_path.c_str());
                 sessionfile_time = 0;
                 session.clear();
-                cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
-                send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
+                // cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
+                // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
+                set_cookie(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, host, "/");
             }
         }
         else
@@ -492,6 +497,222 @@ bool httppeer::isshow_directory()
     }
     return false;
 }
+bool httppeer::isuse_fastcgi(unsigned char type_temp)
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+
+    if (sysconfigpath.host_toint.find(host) != sysconfigpath.host_toint.end())
+    {
+        host_index = sysconfigpath.host_toint[host];
+        if (host_index >= sysconfigpath.sitehostinfos.size())
+        {
+            host_index = 0;
+        }
+    }
+    compress  = 0;
+    linktype  = 0;
+    type_temp = 0;
+    output.clear();
+    sendfilename.clear();
+    if (sysconfigpath.sitehostinfos[host_index].isuse_php == 1)
+    {
+        DEBUG_LOG("check php file");
+        if (pathinfos.size() > 0)
+        {
+            //sendfilename.clear();
+            for (unsigned int i = 0; i < pathinfos.size(); i++)
+            {
+                unsigned int extfilesize = pathinfos[i].size();
+                if (extfilesize > 4 && pathinfos[i][extfilesize - 1] == 'p' && pathinfos[i][extfilesize - 2] == 'h' &&
+                    pathinfos[i][extfilesize - 3] == 'p' && pathinfos[i][extfilesize - 4] == '.')
+                {
+                    if (sendfilename.size() > 0)
+                    {
+                        sendfilename.append("/");
+                    }
+                    sendfilename.append(pathinfos[i]);
+                    struct stat sessfileinfo;
+                    std::string tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename;
+                    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                    if (stat(tempac.c_str(), &sessfileinfo) == 0)
+                    {
+                        if (sessfileinfo.st_mode & S_IFREG)
+                        {
+                            compress = 10;
+                            if (i == 0)
+                            {
+                                linktype = 10;
+                            }
+                            else
+                            {
+                                linktype = 50 + i;
+                            }
+                            return true;
+                        }
+                    }
+                }
+                else
+                {
+                    if (sendfilename.size() > 0)
+                    {
+                        sendfilename.append("/");
+                    }
+                    sendfilename.append(pathinfos[i]);
+                }
+            }
+
+            if (sendfilename.size() == 0)
+            {
+                for (unsigned int i = 0; i < pathinfos.size(); i++)
+                {
+                    if (i > 0)
+                    {
+                        sendfilename.append("/");
+                    }
+                    sendfilename.append(pathinfos[i]);
+                }
+            }
+
+            if (_http_regmethod_table.contains(sendfilename))
+            {
+                return false;
+            }
+            else
+            {
+                struct stat sessfileinfo;
+                std::string tempac = sysconfigpath.sitehostinfos[host_index].wwwpath + sendfilename;
+                memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                if (stat(tempac.c_str(), &sessfileinfo) == 0)
+                {
+                    if (sessfileinfo.st_mode & S_IFREG)
+                    {
+                        compress = 0;
+                        linktype = 0;
+                        return false;
+                    }
+                }
+                tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
+                memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                if (stat(tempac.c_str(), &sessfileinfo) == 0)
+                {
+                    if (sessfileinfo.st_mode & S_IFREG)
+                    {
+                        compress = 10;
+                        linktype = 15;
+                        sendfilename.append("/index.php");
+                        return true;
+                    }
+                }
+
+                if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size() > 0)
+                {
+                    unsigned int i = 0;
+                    if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[0].first.size() == 0)
+                    {
+                        tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[0].second;
+                        memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                        if (stat(tempac.c_str(), &sessfileinfo) == 0)
+                        {
+                            if (sessfileinfo.st_mode & S_IFREG)
+                            {
+                                compress = 10;
+                                linktype = 19;
+                                return true;
+                            }
+                        }
+                        i = 1;
+                    }
+                    for (; i < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size(); i++)
+                    {
+                        unsigned int j = 0;
+
+                        for (; j < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first.size(); j++)
+                        {
+                            if (j < sendfilename.size() && sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first[j] == sendfilename[j])
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        if (j == sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first.size())
+                        {
+                            compress = 10;
+                            linktype = 20 + i;
+                            return true;
+                        }
+                    }
+                }
+
+                //output.clear();
+                // if (sysconfigpath.sitehostinfos[host_index].wwwpath.size() != sysconfigpath.sitehostinfos[host_index].php_root_document.size())
+                // {
+                //     tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename;
+                //     std::cout << " tempac size " << tempac << std::endl;
+                //     memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                //     if (stat(tempac.c_str(), &sessfileinfo) == 0)
+                //     {
+                //         if (sessfileinfo.st_mode & S_IFREG)
+                //         {
+                //             compress = 0;
+                //             linktype = 0;
+                //             return false;
+                //         }
+                //     }
+                // }
+
+                // compress = 10;
+                // linktype = 13;
+                // for (unsigned int i = 0; i < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size(); i++)
+                // {
+                //     if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first == pathinfos[0])
+                //     {
+                //         compress = 10;
+                //         linktype = 20 + i;
+                //         break;
+                //     }
+                // }
+                // if (linktype == 13)
+                // {
+                //     // struct stat sessfileinfo;
+                //     // std::string
+                //     tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
+                //     std::cout << " sessfileinfo " << tempac << std::endl;
+                //     memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                //     if (stat(tempac.c_str(), &sessfileinfo) == 0)
+                //     {
+                //         if (sessfileinfo.st_mode & S_IFREG)
+                //         {
+                //             linktype = 15;
+                //             sendfilename.append("/index.php");
+                //             std::cout << " sendfilename " << sendfilename << std::endl;
+                //         }
+                //     }
+                // }
+            }
+        }
+        else
+        {
+            if (sysconfigpath.sitehostinfos[host_index].php_root_document.size() > 0)
+            {
+                struct stat sessfileinfo;
+                std::string tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + "index.php";
+                memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                if (stat(tempac.c_str(), &sessfileinfo) == 0)
+                {
+                    if (sessfileinfo.st_mode & S_IFREG)
+                    {
+                        compress = 10;
+                        linktype = 12;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
 unsigned char httppeer::has_urlfileext()
 {
     unsigned char temp = 0;
@@ -511,10 +732,10 @@ unsigned char httppeer::has_urlfileext()
         sendfilename.clear();
         for (unsigned int i = 0; i < pathinfos.size(); i++)
         {
-            if (pathinfos[i].size() > 0 && pathinfos[i][0] == '{')
-            {
-                break;
-            }
+            // if (pathinfos[i].size() > 0 && pathinfos[i][0] == '{')
+            // {
+            //     break;
+            // }
 
             if (i > 0)
             {
@@ -842,20 +1063,20 @@ unsigned char httppeer::get_fileinfo()
             }
         }
     }
-    if(sendfiletype==0)
+    if (sendfiletype == 0)
     {
-        if(sysconfigpath.sitehostinfos[host_index].isrewrite)
+        if (sysconfigpath.sitehostinfos[host_index].isrewrite)
         {
-            if(sysconfigpath.sitehostinfos[host_index].rewrite404==1)
+            if (sysconfigpath.sitehostinfos[host_index].rewrite404 == 1)
             {
                 //check multi 404 rewrite
-                if(sysconfigpath.sitehostinfos[host_index].action_404_lists.size()>0)
+                if (sysconfigpath.sitehostinfos[host_index].action_404_lists.size() > 0)
                 {
-                    if(pathinfos.size()>0)
+                    if (pathinfos.size() > 0)
                     {
-                        for(unsigned int k=0;k<sysconfigpath.sitehostinfos[host_index].action_404_lists.size();k++)
+                        for (unsigned int k = 0; k < sysconfigpath.sitehostinfos[host_index].action_404_lists.size(); k++)
                         {
-                            if(pathinfos[0].size()<=sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size()&&str_compare(pathinfos[0],sysconfigpath.sitehostinfos[host_index].action_404_lists[k],pathinfos[0].size()))
+                            if (pathinfos[0].size() <= sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() && str_compare(pathinfos[0], sysconfigpath.sitehostinfos[host_index].action_404_lists[k], pathinfos[0].size()))
                             {
                                 sendfilename = sitepath;
                                 sendfilename.append(sysconfigpath.sitehostinfos[host_index].action_404_lists[k]);
@@ -874,9 +1095,9 @@ unsigned char httppeer::get_fileinfo()
                     }
                 }
                 sendfilename = sitepath;
-                if(sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size()>0)
+                if (sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size() > 0)
                 {
-                   sendfilename.append(sysconfigpath.sitehostinfos[host_index].rewrite_404_action);
+                    sendfilename.append(sysconfigpath.sitehostinfos[host_index].rewrite_404_action);
                     memset(&fileinfo, 0, sizeof(fileinfo));
                     if (stat(sendfilename.c_str(), &fileinfo) == 0)
                     {
@@ -887,28 +1108,28 @@ unsigned char httppeer::get_fileinfo()
                         }
                     }
                 }
-                
-            }else if(sysconfigpath.sitehostinfos[host_index].rewrite404==2)
+            }
+            else if (sysconfigpath.sitehostinfos[host_index].rewrite404 == 2)
             {
                 //dynamic method, use urlpath function
-                if(sysconfigpath.sitehostinfos[host_index].action_404_lists.size()>0)
+                if (sysconfigpath.sitehostinfos[host_index].action_404_lists.size() > 0)
                 {
-                    if(pathinfos.size()>0)
+                    if (pathinfos.size() > 0)
                     {
-                        for(unsigned int k=0;k<sysconfigpath.sitehostinfos[host_index].action_404_lists.size();k++)
+                        for (unsigned int k = 0; k < sysconfigpath.sitehostinfos[host_index].action_404_lists.size(); k++)
                         {
-                            if(pathinfos[0].size()>2&&sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size()>2&&str_compare(pathinfos[0],sysconfigpath.sitehostinfos[host_index].action_404_lists[k],3))
+                            if (pathinfos[0].size() > 2 && sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() > 2 && str_compare(pathinfos[0], sysconfigpath.sitehostinfos[host_index].action_404_lists[k], 3))
                             {
-                                unsigned int tempsize=pathinfos.size();
-                                if(tempsize<20)
+                                unsigned int tempsize = pathinfos.size();
+                                if (tempsize < 20)
                                 {
-                                    tempsize+=1;
+                                    tempsize += 1;
                                     pathinfos.resize(tempsize);
-                                    for(unsigned int j=tempsize-1;j>0;j--)
+                                    for (unsigned int j = tempsize - 1; j > 0; j--)
                                     {
-                                        pathinfos[j]=pathinfos[j-1];
+                                        pathinfos[j] = pathinfos[j - 1];
                                     }
-                                    pathinfos[0]=sysconfigpath.sitehostinfos[host_index].action_404_lists[k];
+                                    pathinfos[0] = sysconfigpath.sitehostinfos[host_index].action_404_lists[k];
                                     sendfiletype = 3;
                                     return sendfiletype;
                                 }
@@ -917,23 +1138,23 @@ unsigned char httppeer::get_fileinfo()
                     }
                 }
 
-                if(sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size()>0)
+                if (sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size() > 0)
                 {
-                    unsigned int tempsize=pathinfos.size();
-                    if(tempsize<20)
+                    unsigned int tempsize = pathinfos.size();
+                    if (tempsize < 20)
                     {
-                        tempsize+=1;
+                        tempsize += 1;
                         pathinfos.resize(tempsize);
-                        for(unsigned int j=tempsize-1;j>0;j--)
+                        for (unsigned int j = tempsize - 1; j > 0; j--)
                         {
-                            pathinfos[j]=pathinfos[j-1];
+                            pathinfos[j] = pathinfos[j - 1];
                         }
-                        pathinfos[0]=sysconfigpath.sitehostinfos[host_index].rewrite_404_action;
+                        pathinfos[0] = sysconfigpath.sitehostinfos[host_index].rewrite_404_action;
                         sendfiletype = 3;
                     }
                 }
             }
-        }       
+        }
     }
     return sendfiletype;
 }
@@ -979,76 +1200,126 @@ void httppeer::set_cookie(std::string key,
                           std::string issamesite)
 {
     cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);
-    send_cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);
+    //send_cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);
+
+    std::string temph;
+    temph.append(url_encode(key.data(), key.size()));
+    temph.push_back('=');
+    temph.append(url_encode(val.data(), val.size()));
+
+    if (exptime > 0 && exptime < 63072000)
+    {
+        exptime = timeid() + exptime;
+    }
+
+    if (exptime > 0)
+    {
+        temph.append("; Expires=");
+        temph.append(get_gmttime((unsigned long long)exptime));
+    }
+
+    if (domain.size() > 1)
+    {
+        temph.append("; Domain=");
+        temph.append(domain);
+    }
+
+    if (path.size() > 0)
+    {
+        temph.append("; Path=");
+        temph.append(path);
+    }
+
+    if (secure)
+    {
+        temph.append("; Secure");
+    }
+
+    if (httponly)
+    {
+        temph.append("; HttpOnly");
+    }
+    if (!issamesite.empty())
+    {
+        switch (issamesite[0])
+        {
+        case 'L':
+        case 'l': temph.append("; SameSite=Lax"); break;
+        case 'S':
+        case 's': temph.append("; SameSite=Strict"); break;
+        }
+    }
+
+    send_cookie_lists.emplace_back(temph);
 }
+
 std::list<std::string> httppeer::cookietoheader()
 {
-    std::list<std::string> headerlists;
-    std::string temph;
-    for (auto &iter : send_cookie)
-    {
-        temph.clear();
-        std::string key        = iter.first;
-        std::string domain     = send_cookie.getDomain(key);
-        std::string domainpath = send_cookie.getPath(key);
-        unsigned long timeexp  = send_cookie.getExpires(key);
-        unsigned char issecure = send_cookie.getSecure(key);
-        unsigned char isonly   = send_cookie.getHttponly(key);
+    // std::string temph;
+    // for (auto &iter : send_cookie)
+    // {
+    //     temph.clear();
+    //     std::string key        = iter.first;
+    //     std::string domain     = send_cookie.getDomain(key);
+    //     std::string domainpath = send_cookie.getPath(key);
+    //     unsigned long timeexp  = send_cookie.getExpires(key);
+    //     unsigned char issecure = send_cookie.getSecure(key);
+    //     unsigned char isonly   = send_cookie.getHttponly(key);
 
-        std::string samesite = send_cookie.getSamesite(key);
+    //     std::string samesite = send_cookie.getSamesite(key);
 
-        temph.append(url_encode(iter.first.data(), iter.first.size()));
-        temph.push_back('=');
-        temph.append(url_encode(iter.second.data(), iter.second.size()));
+    //     temph.append(url_encode(iter.first.data(), iter.first.size()));
+    //     temph.push_back('=');
+    //     temph.append(url_encode(iter.second.data(), iter.second.size()));
 
-        if (timeexp > 0 && timeexp < 63072000)
-        {
-            timeexp = timeid() + timeexp;
-        }
+    //     if (timeexp > 0 && timeexp < 63072000)
+    //     {
+    //         timeexp = timeid() + timeexp;
+    //     }
 
-        key.clear();
-        if (timeexp > 0)
-        {
-            key = get_gmttime((unsigned long long)timeexp);
-            temph.append("; Expires=");
-            temph.append(key);
-        }
+    //     key.clear();
+    //     if (timeexp > 0)
+    //     {
+    //         key = get_gmttime((unsigned long long)timeexp);
+    //         temph.append("; Expires=");
+    //         temph.append(key);
+    //     }
 
-        if (domain.size() > 1)
-        {
-            temph.append("; Domain=");
-            temph.append(domain);
-        }
+    //     if (domain.size() > 1)
+    //     {
+    //         temph.append("; Domain=");
+    //         temph.append(domain);
+    //     }
 
-        if (domainpath.size() > 0)
-        {
-            temph.append("; Path=");
-            temph.append(domainpath);
-        }
+    //     if (domainpath.size() > 0)
+    //     {
+    //         temph.append("; Path=");
+    //         temph.append(domainpath);
+    //     }
 
-        if (issecure > 0)
-        {
-            temph.append("; Secure");
-        }
+    //     if (issecure > 0)
+    //     {
+    //         temph.append("; Secure");
+    //     }
 
-        if (isonly > 0)
-        {
-            temph.append("; HttpOnly");
-        }
-        if (!samesite.empty())
-        {
-            switch (samesite[0])
-            {
-            case 'L':
-            case 'l': temph.append("; SameSite=Lax"); break;
-            case 'S':
-            case 's': temph.append("; SameSite=Strict"); break;
-            }
-        }
+    //     if (isonly > 0)
+    //     {
+    //         temph.append("; HttpOnly");
+    //     }
+    //     if (!samesite.empty())
+    //     {
+    //         switch (samesite[0])
+    //         {
+    //         case 'L':
+    //         case 'l': temph.append("; SameSite=Lax"); break;
+    //         case 'S':
+    //         case 's': temph.append("; SameSite=Strict"); break;
+    //         }
+    //     }
 
-        headerlists.emplace_back(temph);
-    }
-    return headerlists;
+    //     send_cookie_lists.emplace_back(temph);
+    // }
+    return send_cookie_lists;
 }
 void httppeer::scheme(unsigned char code) { isssl = (code == 1) ? 1 : 0; }
 void httppeer::length(unsigned long long num) { content_length = num; }
@@ -1273,18 +1544,21 @@ httppeer &httppeer::operator<<(double a)
     output.append(std::to_string(a));
     return *this;
 }
-template <typename T> httppeer &httppeer::operator<<(VALNUM_T auto a)
+template <typename T>
+httppeer &httppeer::operator<<(VALNUM_T auto a)
 {
     output.append(std::to_string(a));
     return *this;
 }
 
-template <typename T> httppeer &httppeer::operator<<(T a)
+template <typename T>
+httppeer &httppeer::operator<<(T a)
 {
     output.append(a.to_string());
     return *this;
 }
-template <typename T> httppeer &httppeer::operator<<(T *a)
+template <typename T>
+httppeer &httppeer::operator<<(T *a)
 {
     output.append(a->to_string());
     return *this;

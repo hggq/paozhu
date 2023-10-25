@@ -21,7 +21,7 @@
 #include <asio/spawn.hpp>
 #include <asio/ssl.hpp>
 #include "httpclient.h"
-
+#include "fastcgi.h"
 namespace http
 {
 
@@ -32,9 +32,11 @@ class client_context
     void run();
     void time_out_loop();
     void taskloop();
+    asio::awaitable<void> fastcgi_client_task(std::shared_ptr<fastcgi>);
     asio::awaitable<void> http_client_task(std::shared_ptr<client>);
     asio::awaitable<void> websocket_client_task(std::shared_ptr<client>);
     void add_http_task(std::shared_ptr<client>);
+    void add_fastcgi_task(std::shared_ptr<fastcgi>);
     ~client_context();
 
   public:
@@ -50,6 +52,7 @@ class client_context
     std::mutex queue_mutex;
     std::condition_variable condition;
     std::queue<std::shared_ptr<client>> clienttasks;
+    std::queue<std::shared_ptr<fastcgi>> cgitasks;
 
     std::mutex timeout_mutex;
     std::condition_variable timeout_condition;

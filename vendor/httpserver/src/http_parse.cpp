@@ -1201,10 +1201,10 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                             break;
                         case 'u':
                         case 'U':
-                            if (strcasecmp(header_key.c_str(), "User-Agent") == 0)
+                            //if (strcasecmp(header_key.c_str(), "User-Agent") == 0)
                             {
                                 // useragent = header_value;
-                                peer->header["user-agent"] = header_value;
+                                //peer->header["User-Agent"] = header_value;
                             }
                             break;
                         }
@@ -2669,38 +2669,59 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             }
             if (headerfinish == 1)
             {
+                peer->isuse_fastcgi(0);
                 break;
             }
         }
     }
     if (method == HEAD_METHOD::POST && headerfinish == 1 && error == 0)
     {
-        switch (poststate.posttype)
+        if (peer->compress == 10)
         {
-        case 1:
-            // x-www-form-urlencoded
-            readformurlencoded(buffer, buffersize);
-            break;
-        case 2:
-            // multipart/form-data-
-            readmultipartformdata(buffer, buffersize);
-            break;
-        case 3:
-            // json
-            readformjson(buffer, buffersize);
-            break;
-        case 4:
-            // xml
-            readformxml(buffer, buffersize);
-            break;
-        case 5:
-            // octet-stream
-            readformraw(buffer, buffersize);
-            break;
+            if (peer->content_length > 16777216)
+            {
+                error = 11;
+                return;
+            }
+            if (peer->output.size() > peer->content_length)
+            {
+                return;
+            }
+            peer->output.append((char *)&buffer[readoffset], (buffersize - readoffset));
+            if (peer->output.size() == peer->content_length)
+            {
+                headerfinish = 2;
+            }
         }
-        for (; readoffset < buffersize;)
+        else
         {
-            readoffset++;
+            switch (poststate.posttype)
+            {
+            case 1:
+                // x-www-form-urlencoded
+                readformurlencoded(buffer, buffersize);
+                break;
+            case 2:
+                // multipart/form-data-
+                readmultipartformdata(buffer, buffersize);
+                break;
+            case 3:
+                // json
+                readformjson(buffer, buffersize);
+                break;
+            case 4:
+                // xml
+                readformxml(buffer, buffersize);
+                break;
+            case 5:
+                // octet-stream
+                readformraw(buffer, buffersize);
+                break;
+            }
+        }
+        if (readoffset < buffersize)
+        {
+            readoffset = buffersize;
         }
     }
 }
@@ -2747,7 +2768,8 @@ void httpparse::clear()
     peer->keepalive               = false;
     // headerrawcontent.clear();
     peer->send_header.clear();
-    peer->send_cookie.clear();
+    //peer->send_cookie.clear();
+    peer->send_cookie_lists.clear();
     peer->header.clear();
     peer->pathinfos.clear();
     peer->querystring.clear();

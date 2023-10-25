@@ -88,14 +88,14 @@ class httpserver
     bool http2_send_file_range(std::shared_ptr<httppeer> peer);
 
     void http2send_filedata(struct http2sendblock_t &http2_ff_send);
-
+    void add_error_lists(const std::string &);
     asio::awaitable<void> http1loop(unsigned int sig, std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
     void websocket_loop(int myid);
     void listeners();
     void listener();
 
     asio::awaitable<size_t> co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
-
+    asio::awaitable<size_t> co_user_fastcgi_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
     void add_runsocketthread();
     int checkhttp2(std::shared_ptr<client_session> peer_session);
     void http1_send_bad_request(unsigned int, std::shared_ptr<client_session>);

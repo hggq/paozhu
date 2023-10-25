@@ -27,6 +27,7 @@
 #include "regviewmethod.hpp"
 #include "autorestfulpaths.hpp"
 #include "client_context.h"
+#include "fastcgi.h"
 #ifdef ENABLE_BOOST
 #include "loadviewso.h"
 #include "loadmodule.h"
@@ -1023,7 +1024,89 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
         DEBUG_LOG("%s", peer->urlpath.c_str());
         DEBUG_LOG("%s", peer->host.c_str());
-        DEBUG_LOG("%s", peer->header["user-agent"].c_str());
+        DEBUG_LOG("%s", peer->header["User-Agent"].c_str());
+
+        if (peer->compress == 10)
+        {
+            //    peer->linktype = 6;
+
+            peer->parse_session();
+
+            peer->status(200);
+            peer->content_type.clear();
+            peer->etag.clear();
+
+            co_await co_user_fastcgi_task(peer);
+
+            std::string tempcompress;
+            peer->compress = 0;
+            if (peer->state.gzip || peer->state.br)
+            {
+                if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 ||
+                    strcasecmp(peer->content_type.c_str(), "application/json") == 0 ||
+                    strcasecmp(peer->content_type.c_str(), "text/html") == 0 ||
+                    strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
+                {
+                    if (peer->output.size() > 100)
+                    {
+
+                        if (peer->state.br)
+                        {
+                            brotli_encode(peer->output, tempcompress);
+                            peer->compress = 2;
+                        }
+                        else if (peer->state.gzip)
+                        {
+                            if (compress(peer->output.data(),
+                                         peer->output.size(),
+                                         tempcompress,
+                                         Z_DEFAULT_COMPRESSION) == Z_OK)
+                            {
+                                peer->compress = 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (peer->compress > 0)
+            {
+                peer->length(tempcompress.size());
+            }
+            else
+            {
+                peer->length(peer->output.size());
+            }
+
+            if (peer->get_status() < 100)
+            {
+                peer->status(200);
+            }
+            DEBUG_LOG("htttp2 pool out");
+            if (!peer->isset_type())
+            {
+                peer->type("text/html; charset=utf-8");
+            }
+            _send_header = peer->make_http2_header();
+
+            peer->socket_session->send_data(_send_header);
+
+            if (peer->compress > 0)
+            {
+                http2_send_body(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
+            }
+            else
+            {
+                http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+            }
+
+            peer->output.shrink_to_fit();
+            peer->val.clear();
+            peer->post.clear();
+            peer->session.clear();
+            peer->issend = true;
+            co_return;
+        }
 
         if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
         {
@@ -1681,6 +1764,12 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
 
 //     return true;
 // }
+void httpserver::add_error_lists(const std::string &log_item)
+{
+    std::unique_lock<std::mutex> lock(log_mutex);
+    error_loglist.emplace_back(log_item);
+    lock.unlock();
+}
 asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
 {
     auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
@@ -1691,10 +1780,83 @@ asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer,
     };
     return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
 }
+asio::awaitable<size_t> httpserver::co_user_fastcgi_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
+{
+    auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
+                                  std::shared_ptr<httppeer> peer) mutable
+    {
+        serverconfig &sysconfigpath = getserversysconfig();
+        peer->user_code_handler_call.push_back(std::move(handler));
+        std::shared_ptr<http::fastcgi> fcgi = std::make_shared<http::fastcgi>();
+        fcgi->peer_ptr                      = peer;
+        fcgi->host                          = sysconfigpath.sitehostinfos[peer->host_index].fastcgi_host;// "127.0.0.1";
+        fcgi->port                          = sysconfigpath.sitehostinfos[peer->host_index].fastcgi_port;// 9000
+        fcgi->add_error_msg                 = std::bind(&httpserver::add_error_lists, self, std::placeholders::_1);
+        client_context &fcgi_content        = get_client_context_obj();
+        fcgi_content.add_fastcgi_task(fcgi);
+    };
+    return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
+}
+
 asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
                                             std::shared_ptr<httppeer> peer,
                                             std::shared_ptr<client_session> peer_session)
 {
+
+    if (peer->compress == 10)
+    {
+        peer->parse_session();
+
+        peer->status(200);
+        peer->content_type.clear();
+        peer->etag.clear();
+
+        co_await co_user_fastcgi_task(peer);
+
+        if (peer->get_status() < 100)
+        {
+            peer->status(200);
+        }
+        if (!peer->isset_type())
+        {
+            peer->type("text/html; charset=utf-8");
+        }
+        DEBUG_LOG("http1loop php out");
+        peer->compress = 0;
+        if (peer->state.gzip)
+        {
+            if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 ||
+                strcasecmp(peer->content_type.c_str(), "application/json") == 0 ||
+                strcasecmp(peer->content_type.c_str(), "text/html") == 0 ||
+                strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
+            {
+                if (peer->output.size() > 100)
+                {
+                    std::string tempcompress;
+                    if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+                    {
+                        // peer->output   = tempcompress;
+                        peer->compress = 1;
+
+                        peer->length(tempcompress.size());
+                        std::string htmlcontent = peer->make_http1_header();
+                        htmlcontent.append("\r\n");
+                        co_await peer_session->co_send_writer(htmlcontent);
+                        co_await peer_session->co_send_writer(tempcompress);
+                        co_return;
+                    }
+                }
+            }
+        }
+        peer->length(peer->output.size());
+        std::string htmlcontent = peer->make_http1_header();
+        htmlcontent.append("\r\n");
+        co_await peer_session->co_send_writer(htmlcontent);
+        co_await peer_session->co_send_writer(peer->output);
+
+        co_return;
+    }
+
     serverconfig &sysconfigpath = getserversysconfig();
 
     if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
@@ -1765,6 +1927,7 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         {
             peer->type("text/html; charset=utf-8");
         }
+        peer->compress = 0;
         if (peer->state.gzip)
         {
             if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 ||
@@ -1887,8 +2050,8 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                 DEBUG_LOG("\033[31mclient thread:%s\033[0m", tempthread.c_str());
             }
 #endif
-            int readnum, error_state = 0;
-            unsigned linktype = 0;
+            int error_state        = 0;
+            unsigned char linktype = 0;
             // bool isbegin = false;
 
             std::unique_ptr<http2parse> http2pre;
@@ -1896,7 +2059,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
 
             peer->isssl            = isssl ? true : false;
             peer->socket_session   = peer_session;
-            unsigned int offsetnum = 0;
+            unsigned int offsetnum = 0, readnum;
             for (;;)
             {
                 memset(peer_session->_cache_data, 0x00, 4096);
@@ -1963,7 +2126,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                         DEBUG_LOG("http1parse begin");
                         DEBUG_LOG("urlpath:%s", peer->urlpath.c_str());
                         DEBUG_LOG("host:%s", peer->host.c_str());
-                        DEBUG_LOG("user-agent:%s", peer->header["user-agent"].c_str());
+                        DEBUG_LOG("User-Agent:%s", peer->header["User-Agent"].c_str());
                         DEBUG_LOG("http1parse end");
 #endif
                         peer->isssl          = isssl ? true : false;
@@ -2159,7 +2322,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                                 error_state = 1;
                                 break;
                             }
-                            http2pre->http_data[block_steamid]->linktype    = 0;
+                            //http2pre->http_data[block_steamid]->linktype    = 0;
                             http2pre->http_data[block_steamid]->server_ip   = peer_session->getlocalip();
                             http2pre->http_data[block_steamid]->client_ip   = peer_session->getremoteip();
                             http2pre->http_data[block_steamid]->client_port = peer_session->getremoteport();
@@ -2185,8 +2348,8 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                             DEBUG_LOG("http2parse begin");
                             DEBUG_LOG("urlpath:%s", http2pre->http_data[block_steamid]->urlpath.c_str());
                             DEBUG_LOG("host:%s", http2pre->http_data[block_steamid]->host.c_str());
-                            DEBUG_LOG("user-agent:%s",
-                                      http2pre->http_data[block_steamid]->header["user-agent"].c_str());
+                            DEBUG_LOG("User-Agent:%s",
+                                      http2pre->http_data[block_steamid]->header["User-Agent"].c_str());
                             DEBUG_LOG("http2parse end");
 #endif
 
@@ -2722,7 +2885,7 @@ void httpserver::httpwatch()
     std::size_t n_write         = 0;
     updatetimetemp              = 0;
 #ifndef _WIN32
-    struct flock lockstr        = {};
+    struct flock lockstr = {};
 #endif
     for (;;)
     {
@@ -2779,9 +2942,10 @@ void httpserver::httpwatch()
                     continue;
                 }
 #else
-                auto native_handle = (HANDLE) _get_osfhandle(fd);
-                auto file_size = GetFileSize(native_handle, nullptr);
-                if (!LockFile(native_handle, file_size, 0, file_size, 0)) {
+                auto native_handle = (HANDLE)_get_osfhandle(fd);
+                auto file_size     = GetFileSize(native_handle, nullptr);
+                if (!LockFile(native_handle, file_size, 0, file_size, 0))
+                {
                     close(fd);
                     continue;
                 }
@@ -2802,7 +2966,8 @@ void httpserver::httpwatch()
                     continue;
                 }
 #else
-                if (!UnlockFile(native_handle, file_size, 0, file_size, 0)) {
+                if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
+                {
                     close(fd);
                     continue;
                 }
@@ -2833,9 +2998,10 @@ void httpserver::httpwatch()
                     continue;
                 }
 #else
-                auto native_handle = (HANDLE) _get_osfhandle(fd);
-                auto file_size = GetFileSize(native_handle, nullptr);
-                if (!LockFile(native_handle, file_size, 0, file_size, 0)) {
+                auto native_handle = (HANDLE)_get_osfhandle(fd);
+                auto file_size     = GetFileSize(native_handle, nullptr);
+                if (!LockFile(native_handle, file_size, 0, file_size, 0))
+                {
                     close(fd);
                     continue;
                 }
@@ -2857,7 +3023,8 @@ void httpserver::httpwatch()
                     continue;
                 }
 #else
-                if (!UnlockFile(native_handle, file_size, 0, file_size, 0)) {
+                if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
+                {
                     close(fd);
                     continue;
                 }

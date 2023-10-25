@@ -76,6 +76,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string get_hosturl();
     std::string get_sitepath();
     unsigned char has_urlfileext();
+    bool isuse_fastcgi(unsigned char type_temp);
     void goto_url(const std::string &url, unsigned char second = 0, const std::string &msg = "");
     bool isset_type();
 
@@ -163,8 +164,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool keepalive    = true;
     bool isso         = false;
 
-    unsigned char posttype;
-    unsigned char compress;
+    unsigned char posttype            = 0;
+    unsigned char compress            = 0;
     unsigned int host_index           = 0;
     unsigned int stream_id            = 0;
     unsigned int status_code          = 0;
@@ -180,7 +181,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     http::OBJ_VALUE session;
     unsigned long long sessionfile_time = 0;
-    Cookie send_cookie;
+    //Cookie send_cookie;
+    std::list<std::string> send_cookie_lists;
     std::map<std::string, std::string> send_header;
     std::map<unsigned char, std::string> http2_send_header;
 
