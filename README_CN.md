@@ -33,7 +33,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ✅18. 框架controller目录注解功能，方便添加URL路由映射，降低入门心智  
 ✅19. 结构和类注解JSON功能，使用json_encode json_decode操作复杂C++结构体和JSON互转，可以参考Wiki  
 ✅20. 提供一个完整admin后台管理框架（见后面图片）, 访问URL为 /admin/main  
-
+✅21. 支持PHP-FPM fastcgi运行模式，代替Apache做PHP前端，让PHP程序员平稳过渡到 C++ 开发模式 
 
 ### 2.运行环境
 

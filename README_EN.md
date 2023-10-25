@@ -36,7 +36,7 @@ Discussing the joy of C++ web development with community developers.
 ✅18. The controller directory cpp files annotation auto pick to url mapping  
 ✅19. Struct or class annotation to JSON Object, json_encode json_decode function  
 ✅20. Support full demo admin backend, visit url /admin/main  
-
+✅21. Support PHP-FPM fastcgi running, which can replace Apache, allowing PHP programmers to smoothly transition to C++development mode  
 
 ### 2.Runtime environment
 
