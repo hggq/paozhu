@@ -49,33 +49,43 @@ void fastcgi::make_BeginRequestBody(FASTCGI_BeginRequestBody &body_temp, int rol
 asio::awaitable<bool> fastcgi::co_init_http_sock()
 {
     error_msg.clear();
-    auto executor = co_await asio::this_coro::executor;
-    asio::ip::tcp::resolver resolver(executor);
-    asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-    asio::ip::tcp::resolver::iterator end;
-    asio::ip::tcp::endpoint endpoint;
-    sock = std::make_shared<asio::ip::tcp::socket>(executor);
-    asio::error_code ec;
+    auto executor                  = co_await asio::this_coro::executor;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-
-    if (iter == end)
+    asio::error_code ec;
+    //.sock
+    if (host.size() > 0 && host.back() == 'k')
     {
-        error_msg = "resolver " + host + port;
-        DEBUG_LOG("%s", error_msg.c_str());
-        co_return false;
+        issock    = true;
+        socklocal = std::make_shared<asio::local::stream_protocol::socket>(executor);
+        socklocal->connect(asio::local::stream_protocol::endpoint(host.c_str()));
     }
-
-    while (iter != end)
+    else
     {
-        endpoint     = *iter++;
-        std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
-        if (ec)
+        asio::ip::tcp::resolver resolver(executor);
+        asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+        asio::ip::tcp::resolver::iterator end;
+        asio::ip::tcp::endpoint endpoint;
+        sock = std::make_shared<asio::ip::tcp::socket>(executor);
+
+        if (iter == end)
         {
-            continue;
+            error_msg = "resolver " + host + port;
+            DEBUG_LOG("%s", error_msg.c_str());
+            co_return false;
         }
-        else
+
+        while (iter != end)
         {
-            break;
+            endpoint     = *iter++;
+            std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
+            if (ec)
+            {
+                continue;
+            }
+            else
+            {
+                break;
+            }
         }
     }
 
@@ -90,7 +100,7 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
 
 asio::awaitable<void> fastcgi::co_send()
 {
-    if (!sock)
+    if (sock == nullptr && socklocal == nullptr)
     {
         DEBUG_LOG("co_await co_init_http_sock");
         bool isinit = co_await co_init_http_sock();
@@ -305,8 +315,17 @@ asio::awaitable<void> fastcgi::co_send()
 
     paramsHeader.paddingLength = 0;
     paramsHeader.reserved      = 0;
-    ret                        = co_await async_write(*sock, asio::buffer((char *)&paramsHeader, sizeof(paramsHeader)), asio::use_awaitable);
-    ret                        = co_await async_write(*sock, asio::buffer(params_body), asio::use_awaitable);
+
+    if (issock)
+    {
+        ret = co_await async_write(*socklocal, asio::buffer((char *)&paramsHeader, sizeof(paramsHeader)), asio::use_awaitable);
+        ret = co_await async_write(*socklocal, asio::buffer(params_body), asio::use_awaitable);
+    }
+    else
+    {
+        ret = co_await async_write(*sock, asio::buffer((char *)&paramsHeader, sizeof(paramsHeader)), asio::use_awaitable);
+        ret = co_await async_write(*sock, asio::buffer(params_body), asio::use_awaitable);
+    }
 
     co_await send_endheader();
     if (peer->method == 2)
@@ -324,19 +343,96 @@ asio::awaitable<void> fastcgi::co_send()
     params_body.clear();
     try
     {
-        while ((co_await sock->async_read_some(asio::buffer(&respHeader, FASTCGI_HEADER_LENGTH), asio::use_awaitable)) > 0)
+        while (true)
         {
+            ret = 0;
+            if (issock)
+            {
+                ret = co_await socklocal->async_read_some(asio::buffer(&respHeader, FASTCGI_HEADER_LENGTH), asio::use_awaitable);
+            }
+            else
+            {
+                ret = co_await sock->async_read_some(asio::buffer(&respHeader, FASTCGI_HEADER_LENGTH), asio::use_awaitable);
+            }
+            if (ret == 0)
+            {
+                break;
+            }
             if (respHeader.type == FASTCGI_STDOUT)
             {
                 contentLen = (respHeader.contentLengthB1 << 8) + (respHeader.contentLengthB0);
                 params_body.clear();
-                params_body.resize(contentLen);
                 DEBUG_LOG("FASTCGI_STDOUT %u", contentLen);
-                ret = co_await sock->async_read_some(asio::buffer(&params_body[0], params_body.size()), asio::use_awaitable);
-                params_body.resize(ret);
+                if (issock)
+                {
+                    std::string temp_read_some;
+                    temp_read_some.resize(contentLen);
+                    //params_body.reserve(contentLen);
+                    for (unsigned int offset = 0; offset < contentLen;)
+                    {
+                        unsigned int n_read_num = contentLen - offset;
+                        ret                     = co_await socklocal->async_read_some(asio::buffer(&temp_read_some[0], n_read_num), asio::use_awaitable);
+                        temp_read_some.resize(ret);
+                        if (ret == contentLen)
+                        {
+                            params_body = std::move(temp_read_some);
+                            break;
+                        }
+                        if (offset == 0)
+                        {
+                            //may be need read multiple times
+                            params_body.reserve(contentLen);
+                        }
+                        offset = offset + ret;
+                        params_body.append(temp_read_some);
+                        if (offset >= contentLen)
+                        {
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    std::string temp_read_some;
+                    temp_read_some.resize(contentLen);
+                    //params_body.reserve(contentLen);
+                    for (unsigned int offset = 0; offset < contentLen;)
+                    {
+                        unsigned int n_read_num = contentLen - offset;
+                        ret                     = co_await sock->async_read_some(asio::buffer(&temp_read_some[0], n_read_num), asio::use_awaitable);
+                        temp_read_some.resize(ret);
+                        if (ret == contentLen)
+                        {
+                            params_body = std::move(temp_read_some);
+                            break;
+                        }
+                        if (offset == 0)
+                        {
+                            //may be need read multiple times
+                            params_body.reserve(contentLen);
+                        }
+                        offset = offset + ret;
+                        params_body.append(temp_read_some);
+                        if (offset >= contentLen)
+                        {
+                            break;
+                        }
+                    }
+                    // params_body.resize(contentLen);
+                    // ret = co_await sock->async_read_some(asio::buffer(&params_body[0], params_body.size()), asio::use_awaitable);
+                    // params_body.resize(ret);
+                }
+
                 if (respHeader.paddingLength > 0)
                 {
-                    ret = co_await sock->async_read_some(asio::buffer(paddingBuf, respHeader.paddingLength), asio::use_awaitable);
+                    if (issock)
+                    {
+                        ret = co_await socklocal->async_read_some(asio::buffer(paddingBuf, respHeader.paddingLength), asio::use_awaitable);
+                    }
+                    else
+                    {
+                        ret = co_await sock->async_read_some(asio::buffer(paddingBuf, respHeader.paddingLength), asio::use_awaitable);
+                    }
                 }
 
                 //if body content
@@ -427,11 +523,25 @@ asio::awaitable<void> fastcgi::co_send()
                 DEBUG_LOG("FASTCGI_STDERR %u", contentLen);
                 params_body.clear();
                 params_body.resize(contentLen);
-                ret = co_await sock->async_read_some(asio::buffer(&params_body[0], params_body.size()), asio::use_awaitable);
+                if (issock)
+                {
+                    ret = co_await socklocal->async_read_some(asio::buffer(&params_body[0], params_body.size()), asio::use_awaitable);
+                }
+                else
+                {
+                    ret = co_await sock->async_read_some(asio::buffer(&params_body[0], params_body.size()), asio::use_awaitable);
+                }
                 params_body.resize(ret);
                 if (respHeader.paddingLength > 0)
                 {
-                    ret = co_await sock->async_read_some(asio::buffer(paddingBuf, respHeader.paddingLength), asio::use_awaitable);
+                    if (issock)
+                    {
+                        ret = co_await socklocal->async_read_some(asio::buffer(paddingBuf, respHeader.paddingLength), asio::use_awaitable);
+                    }
+                    else
+                    {
+                        ret = co_await sock->async_read_some(asio::buffer(paddingBuf, respHeader.paddingLength), asio::use_awaitable);
+                    }
                 }
                 error_msg.append(params_body);
                 error_msg.append("\r\n");
@@ -439,7 +549,14 @@ asio::awaitable<void> fastcgi::co_send()
             else if (respHeader.type == FASTCGI_END_REQUEST)
             {
                 FASTCGI_EndRequestBody endRequestBody{};
-                ret = co_await sock->async_read_some(asio::buffer(&endRequestBody, sizeof(endRequestBody)), asio::use_awaitable);
+                if (issock)
+                {
+                    ret = co_await socklocal->async_read_some(asio::buffer(&endRequestBody, sizeof(endRequestBody)), asio::use_awaitable);
+                }
+                else
+                {
+                    ret = co_await sock->async_read_some(asio::buffer(&endRequestBody, sizeof(endRequestBody)), asio::use_awaitable);
+                }
                 break;
             }
         }
@@ -448,6 +565,7 @@ asio::awaitable<void> fastcgi::co_send()
     {
         error_msg.append(e.what());
         DEBUG_LOG("std::exception %s", e.what());
+        peer->output = params_body;
     }
     DEBUG_LOG("php fastcgi return %lu", respbody.size());
     ret = 0;
@@ -566,14 +684,27 @@ asio::awaitable<void> fastcgi::send_postbody(std::shared_ptr<httppeer> peer)
 
             FASTCGI_Header header_temp_body;
             make_Header(header_temp_body, FASTCGI_STDIN, request_id, bodylen, 0);
-            ret = co_await async_write(*sock, asio::buffer((char *)&header_temp_body, FASTCGI_HEADER_LENGTH), asio::use_awaitable);
-
+            if (issock)
+            {
+                ret = co_await async_write(*socklocal, asio::buffer((char *)&header_temp_body, FASTCGI_HEADER_LENGTH), asio::use_awaitable);
+            }
+            else
+            {
+                ret = co_await async_write(*sock, asio::buffer((char *)&header_temp_body, FASTCGI_HEADER_LENGTH), asio::use_awaitable);
+            }
             if (ret != FASTCGI_HEADER_LENGTH)
             {
                 co_return;
             }
 
-            ret = co_await async_write(*sock, asio::buffer((char *)&peer->output[bodyoffset], bodylen), asio::use_awaitable);
+            if (issock)
+            {
+                ret = co_await async_write(*socklocal, asio::buffer((char *)&peer->output[bodyoffset], bodylen), asio::use_awaitable);
+            }
+            else
+            {
+                ret = co_await async_write(*sock, asio::buffer((char *)&peer->output[bodyoffset], bodylen), asio::use_awaitable);
+            }
 
             if (ret != bodylen)
             {
@@ -586,7 +717,14 @@ asio::awaitable<void> fastcgi::send_postbody(std::shared_ptr<httppeer> peer)
 
         FASTCGI_Header header_temp_body;
         make_Header(header_temp_body, FASTCGI_STDIN, request_id, 0, 0);
-        ret = co_await async_write(*sock, asio::buffer((char *)&header_temp_body, FASTCGI_HEADER_LENGTH), asio::use_awaitable);
+        if (issock)
+        {
+            ret = co_await async_write(*socklocal, asio::buffer((char *)&header_temp_body, FASTCGI_HEADER_LENGTH), asio::use_awaitable);
+        }
+        else
+        {
+            ret = co_await async_write(*sock, asio::buffer((char *)&header_temp_body, FASTCGI_HEADER_LENGTH), asio::use_awaitable);
+        }
     }
     catch (std::exception &e)
     {
@@ -601,8 +739,14 @@ asio::awaitable<void> fastcgi::send_startheader()
         FASTCGI_BeginRequestRecord beginRequestRecord{};
         make_Header(beginRequestRecord.header, FASTCGI_BEGIN_REQUEST, request_id, sizeof(beginRequestRecord.body), 0);
         make_BeginRequestBody(beginRequestRecord.body, FASTCGI_RESPONDER, 0);
-
-        co_await async_write(*sock, asio::buffer((char *)&beginRequestRecord, sizeof(beginRequestRecord)), asio::use_awaitable);
+        if (issock)
+        {
+            co_await async_write(*socklocal, asio::buffer((char *)&beginRequestRecord, sizeof(beginRequestRecord)), asio::use_awaitable);
+        }
+        else
+        {
+            co_await async_write(*sock, asio::buffer((char *)&beginRequestRecord, sizeof(beginRequestRecord)), asio::use_awaitable);
+        }
     }
     catch (std::exception &e)
     {
@@ -616,7 +760,14 @@ asio::awaitable<void> fastcgi::send_endheader()
     {
         FASTCGI_Header endHeader{};
         make_Header(endHeader, FASTCGI_PARAMS, request_id, 0, 0);
-        co_await async_write(*sock, asio::buffer((char *)&endHeader, sizeof(endHeader)), asio::use_awaitable);
+        if (issock)
+        {
+            co_await async_write(*socklocal, asio::buffer((char *)&endHeader, sizeof(endHeader)), asio::use_awaitable);
+        }
+        else
+        {
+            co_await async_write(*sock, asio::buffer((char *)&endHeader, sizeof(endHeader)), asio::use_awaitable);
+        }
     }
     catch (std::exception &e)
     {

@@ -112,11 +112,13 @@ class fastcgi
     // FASTCGI_Header header_data;
     // FASTCGI_BeginRequestBody request_body{};
     int request_id;
+    bool issock=false;
     //unsigned char method_type = 0;
 
     std::function<void(const std::string &)> add_error_msg;
 
-    std::shared_ptr<asio::ip::tcp::socket> sock = {nullptr};
+    std::shared_ptr<asio::ip::tcp::socket> sock                     = {nullptr};
+    std::shared_ptr<asio::local::stream_protocol::socket> socklocal = {nullptr};
     std::weak_ptr<httppeer> peer_ptr;
     std::string error_msg;
     asio::error_code ec;
