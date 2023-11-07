@@ -774,9 +774,11 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
         peer->length(stfilecom.size());
         peer->type("text/html; charset=utf-8");
         _send_header = peer->make_http2_header();
-        peer->socket_session->send_data(_send_header);
+        // peer->socket_session->send_data(_send_header);
+        // http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
 
-        http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
+        co_await peer->socket_session->co_send_writer(_send_header);
+        co_await http2_send_content(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
         co_return;
     }
 }
@@ -1680,12 +1682,52 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                                                        peer->get["sort"].as_string(),
                                                        sysconfigpath.configpath);
             peer->status(200);
-            peer->length(htmlcontent.size());
             peer->type("text/html; charset=utf-8");
+
+            std::string tempcompress;
+            peer->compress = 0;
+            if (peer->state.gzip || peer->state.br)
+            {
+                if (htmlcontent.size() > 100)
+                {
+
+                    if (peer->state.br)
+                    {
+                        brotli_encode(htmlcontent, tempcompress);
+                        peer->compress = 2;
+                    }
+                    else if (peer->state.gzip)
+                    {
+                        if (compress(htmlcontent.data(),
+                                     htmlcontent.size(),
+                                     tempcompress,
+                                     Z_DEFAULT_COMPRESSION) == Z_OK)
+                        {
+                            peer->compress = 1;
+                        }
+                    }
+                }
+            }
+
+            if (peer->compress > 0)
+            {
+                peer->length(tempcompress.size());
+            }
+            else
+            {
+                peer->length(htmlcontent.size());
+            }
             _send_header = peer->make_http2_header();
 
-            peer->socket_session->send_data(_send_header);
-            http2_send_body(peer, (const unsigned char *)&htmlcontent[0], htmlcontent.size());
+            co_await peer->socket_session->co_send_writer(_send_header);
+            if (peer->compress > 0)
+            {
+                co_await http2_send_content(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
+            }
+            else
+            {
+                co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+            }
         }
         else
         {
