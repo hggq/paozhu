@@ -159,6 +159,7 @@ Use h2load and ab testing
 On `controller` directory ,testhello.cpp file
 
 ```c++
+#include "orm.h"
 #include "httppeer.h"
 #include "testhello.h"
 namespace http
@@ -168,8 +169,23 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
     client << " Hello world! 🧨 Paozhu c++ web framework ";
-
-    return "";
+	
+	auto users = orm::cms::User();
+	try
+	{
+		users.where("name","admin").limit(1).fetch();
+		if (users.getUserid() > 0)
+		{
+			client<<"<p>found:"<<users.data.name<<"</p>";
+			return "";
+		}
+	}
+	catch (std::exception &e)
+	{
+		client << "<p>" << e.what() << "</p>";
+		return "";
+	}
+	return "";
 }
 
 }// namespace http
