@@ -989,6 +989,61 @@ bool serverconfig::loadserverglobalconfig()
                     {
                         tempinfo.privateKey_file = itemval;
                     }
+                    else if (itemname == "static_pre")
+                    {
+                        std::string tempac;
+                        unsigned int m = 0;
+                        tempac.clear();
+                        tempinfo.static_pre_method.clear();
+                        for (; m < itemval.size(); m++)
+                        {
+                            if (itemval[m] == '|')
+                            {
+                                tempinfo.static_pre_method = tempac;
+                                m++;
+                                break;
+                            }
+                            if (itemval[m] == 0x20 || itemval[m] == '\t')
+                            {
+                                continue;
+                            }
+                            tempac.push_back(itemval[m]);
+                        }
+                        if (tempinfo.static_pre_method.size() > 0)
+                        {
+                            tempinfo.is_static_pre = true;
+                        }
+                        else
+                        {
+                            if (tempac.size() > 0)
+                            {
+                                tempinfo.static_pre_method = tempac;
+                                tempinfo.is_static_pre     = true;
+                            }
+                        }
+                        tempac.clear();
+                        for (; m < itemval.size(); m++)
+                        {
+                            if (itemval[m] == '|')
+                            {
+                                if (tempac.size() > 0)
+                                {
+                                    tempinfo.static_pre_lists.push_back(tempac);
+                                }
+                                tempac.clear();
+                                continue;
+                            }
+                            if (itemval[m] == 0x20 || itemval[m] == '\t')
+                            {
+                                continue;
+                            }
+                            tempac.push_back(itemval[m]);
+                        }
+                        if (tempac.size() > 0)
+                        {
+                            tempinfo.static_pre_lists.push_back(tempac);
+                        }
+                    }
                     else if (itemname == "method_pre")
                     {
                         std::string tempac;

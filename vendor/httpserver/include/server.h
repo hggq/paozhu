@@ -84,6 +84,7 @@ class httpserver
     asio::awaitable<void>
     http2_send_content(std::shared_ptr<httppeer> peer, const unsigned char *buffer, unsigned int begin_end);
     bool http2_send_body(std::shared_ptr<httppeer> peer, const unsigned char *buffer, unsigned int begin_end);
+    asio::awaitable<void> http2_co_send_file(std::shared_ptr<httppeer> peer);
     bool http2_send_file(std::shared_ptr<httppeer>);
     bool http2_send_file_range(std::shared_ptr<httppeer> peer);
 
@@ -93,6 +94,12 @@ class httpserver
     void websocket_loop(int myid);
     void listeners();
     void listener();
+
+    asio::awaitable<void> http1_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent);
+    asio::awaitable<bool> http1_static_file_authority(std::shared_ptr<httppeer> peer);
+
+    asio::awaitable<void> http2_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent);
+    asio::awaitable<bool> http2_static_file_authority(std::shared_ptr<httppeer> peer);
 
     asio::awaitable<size_t> co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
     asio::awaitable<size_t> co_user_fastcgi_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
@@ -162,8 +169,7 @@ class httpserver
     std::mutex websocket_task_mutex;
     std::condition_variable websocketcondition;
 
-    const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32,
-                                        0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};
+    const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32, 0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};
 };
 httpserver &get_server_app();
 void add_server_timetask(std::shared_ptr<httppeer>);

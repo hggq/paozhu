@@ -549,7 +549,12 @@ void client_session::stop()
     isclose = true;
     if (isssl)
     {
-        _sslsocket.front().shutdown();
+        asio::error_code ec;
+        _sslsocket.front().shutdown(ec);
+        if (_sslsocket.front().lowest_layer().is_open())
+        {
+            _sslsocket.front().lowest_layer().close();
+        }
     }
     else
     {

@@ -364,6 +364,423 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
     }
     return true;
 }
+
+asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> peer)
+{
+    std::string _send_header;
+    std::string _send_data;
+    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
+    DEBUG_LOG("%s", peer->sendfilename.c_str());
+    if (fp.get())
+    {
+        fseek(fp.get(), 0, SEEK_END);
+        unsigned long long file_size = ftell(fp.get());
+        fseek(fp.get(), 0, SEEK_SET);
+        std::string htmlcontent;
+        std::string etag;
+        std::string fileexttype;
+        std::string mime_value = "text/html; charset=utf-8";
+        peer->compress         = 0;
+
+        unsigned int filebasesize   = peer->sendfilename.size();
+        unsigned int filenameoffset = 0;
+
+        if (filebasesize > 0)
+        {
+            for (filenameoffset = filebasesize - 1; filenameoffset > 0; filenameoffset--)
+            {
+                if (peer->sendfilename[filenameoffset] == '.')
+                {
+                    break;
+                }
+            }
+            filenameoffset += 1;
+            for (; filenameoffset < filebasesize; filenameoffset++)
+            {
+                fileexttype.push_back(peer->sendfilename[filenameoffset]);
+            }
+        }
+        if (fileexttype.size() > 0)
+        {
+            mime_value = mime_map[fileexttype];
+            if (mime_value.empty())
+            {
+                if (file_size > 20480)
+                {
+                    mime_value = "application/octet-stream";
+                }
+                else
+                {
+                    mime_value = "text/html; charset=utf-8";
+                }
+            }
+        }
+        else
+        {
+            if (file_size > 20480)
+            {
+                mime_value = "application/octet-stream";
+            }
+            else
+            {
+                mime_value = "text/plain";
+            }
+        }
+
+        etag = make_header_etag(file_size, peer->fileinfo.st_mtime + peer->url.size());
+        if (peer->etag == etag)
+        {
+            peer->status(304);
+            peer->length(0);
+            peer->set_header("date", get_gmttime());
+            peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
+            peer->set_header("etag", etag);
+            peer->type(mime_value);
+            _send_header = peer->make_http2_header();
+            set_http2_headers_flag(_send_header, HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
+            // peer->socket_session->send_data(_send_header);
+            // peer->socket_session->send_enddata(peer->stream_id);
+
+            co_await peer->socket_session->co_send_writer(_send_header);
+            co_await peer->socket_session->co_send_enddata(peer->stream_id);
+            co_return;
+        }
+
+        if (file_size < 16877216 && fileexttype.size() > 0 && mime_compress.contains(fileexttype))
+        {
+
+            if (peer->state.gzip || peer->state.br)
+            {
+                // check cache compress content
+                bool is_not_cache_content = true;
+                std::string path_temp;
+                server_loaclvar &static_server_var = get_server_global_var();
+                if (etag.size() > 0)
+                {
+                    if (static_server_var.static_file_compress_cache)
+                    {
+
+                        path_temp = static_server_var.temp_path;
+                        if (path_temp.size() > 0 && path_temp.back() != '/')
+                        {
+                            path_temp.push_back('/');
+                        }
+                        path_temp.append("statichtml");
+                        fs::path paths = path_temp;
+                        if (!fs::exists(paths))
+                        {
+                            fs::create_directories(paths);
+                            fs::permissions(paths,
+                                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                            fs::perm_options::add);
+                        }
+                        path_temp.push_back('/');
+                        path_temp.push_back(etag[0]);
+                        paths = path_temp;
+                        if (!fs::exists(paths))
+                        {
+                            fs::create_directories(paths);
+                            fs::permissions(paths,
+                                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                            fs::perm_options::add);
+                        }
+                        path_temp.push_back('/');
+                        path_temp.append(etag);
+                        if (peer->isssl && peer->state.br)
+                        {
+                            peer->compress = 2;
+                            path_temp.append(".br");
+                        }
+                        else if (peer->state.gzip)
+                        {
+                            peer->compress = 1;
+                            path_temp.append(".gzip");
+                        }
+                        FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), &std::fclose);
+                        if (fpcompress.get())
+                        {
+                            fseek(fpcompress.get(), 0, SEEK_END);
+                            unsigned long long file_size = ftell(fpcompress.get());
+                            fseek(fpcompress.get(), 0, SEEK_SET);
+                            htmlcontent.resize(file_size);
+                            file_size = fread(&htmlcontent[0], 1, file_size, fpcompress.get());
+                            htmlcontent.resize(file_size);
+                            is_not_cache_content = false;
+                            // if (peer->state.br)
+                            // {
+                            //     peer->compress = 2;
+                            // }
+                            // else if (peer->state.gzip)
+                            // {
+                            //     peer->compress = 1;
+                            // }
+                        }
+                    }
+                }
+                if (is_not_cache_content)
+                {
+                    htmlcontent.resize(file_size);
+                    file_size = fread(&htmlcontent[0], 1, file_size, fp.get());
+                    htmlcontent.resize(file_size);
+                    std::string tempcompress;
+
+                    if (peer->compress == 2)
+                    {
+                        brotli_encode(htmlcontent, tempcompress);
+                        // peer->compress = 2;
+                        htmlcontent = tempcompress;
+                    }
+                    else if (peer->compress == 1)
+                    {
+
+                        if (compress(htmlcontent.data(), htmlcontent.size(), tempcompress, Z_DEFAULT_COMPRESSION) ==
+                            Z_OK)
+                        {
+                            htmlcontent = tempcompress;
+                            // peer->compress = 1;
+                        }
+                    }
+                }
+
+                file_size = htmlcontent.size();
+                if (is_not_cache_content && etag.size() > 0)
+                {
+                    if (static_server_var.static_file_compress_cache)
+                    {
+                        if (path_temp.size() > 0)
+                        {
+                            FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), &std::fclose);
+                            if (fpcompress.get())
+                            {
+                                fwrite(&htmlcontent[0], 1, htmlcontent.size(), fpcompress.get());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        peer->status(200);
+        peer->length(file_size);
+        peer->type(mime_value);
+        if (peer->compress == 0)
+        {
+            peer->set_header("accept-ranges", "bytes");
+        }
+        DEBUG_LOG("start send file");
+        peer->set_header("date", get_gmttime());
+        peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
+
+        peer->set_header("etag", etag);
+
+        _send_header = peer->make_http2_header();
+        //peer->socket_session->send_data(_send_header);
+        co_await peer->socket_session->co_send_writer(_send_header);
+
+        unsigned int data_send_id = peer->stream_id;
+        data_send_id              = 0;
+        // int jj = 0;
+        if (file_size > 16877215)
+        {
+            struct http2sendblock_t temp_send_obj;
+            temp_send_obj.filename   = peer->sendfilename;
+            temp_send_obj.isfinish   = false;
+            temp_send_obj.peer       = peer;
+            temp_send_obj.offset     = 0;
+            temp_send_obj.total_size = file_size;
+            temp_send_obj.last_time  = std::chrono::steady_clock::now();
+            temp_send_obj.last_size  = 0;
+            temp_send_obj.pre_size   = 0;
+            temp_send_obj.pre_count  = 0;
+            temp_send_obj.stream_id  = peer->stream_id;
+            temp_send_obj.fp         = std::move(fp);
+
+            http2send_tasks.emplace_back(std::move(temp_send_obj));
+            http2condition.notify_one();
+            co_return;
+        }
+
+        sendqueue &send_cache_list     = get_sendqueue();
+        struct sendqueue_t *send_cache = send_cache_list.get_cache_ptr();
+
+        sendqueue_back unsetcahceback;
+        unsetcahceback.setptr(send_cache);
+
+        if (send_cache == nullptr)
+        {
+            //peer->socket_session->send_enddata(peer->stream_id);
+            // peer->socket_session->send_goway();
+            co_await peer->socket_session->co_send_enddata(peer->stream_id);
+            co_return;
+        }
+
+        unsigned long long totalsend_num = 0;
+        unsigned int vsize_send          = 8181;
+        if (file_size == 0)
+        {
+            send_cache->data[3] = 0x00;
+            send_cache->data[4] = 0x01;
+            data_send_id        = peer->stream_id;
+            send_cache->data[8] = data_send_id & 0xFF;
+            data_send_id        = data_send_id >> 8;
+            send_cache->data[7] = data_send_id & 0xFF;
+            data_send_id        = data_send_id >> 8;
+            send_cache->data[6] = data_send_id & 0xFF;
+            data_send_id        = data_send_id >> 8;
+            send_cache->data[5] = data_send_id & 0x7F;
+
+            send_cache->data[2] = 0;
+            send_cache->data[1] = 0;
+            send_cache->data[0] = 0;
+
+            if (peer->isclose)
+            {
+                co_return;
+            }
+            if (peer->socket_session->isclose)
+            {
+                co_return;
+            }
+            // if (peer->socket_session->send_data(send_cache->data, 9))
+            // {
+            // }
+            co_await peer->socket_session->co_send_writer(send_cache->data, 9);
+            co_return;
+        }
+        for (unsigned long long m = 0; m < file_size;)
+        {
+            unsigned int per_size = 0;
+
+            send_cache->data[3] = 0x00;
+            send_cache->data[4] = 0x00;
+            data_send_id        = peer->stream_id;
+            send_cache->data[8] = data_send_id & 0xFF;
+            data_send_id        = data_send_id >> 8;
+            send_cache->data[7] = data_send_id & 0xFF;
+            data_send_id        = data_send_id >> 8;
+            send_cache->data[6] = data_send_id & 0xFF;
+            data_send_id        = data_send_id >> 8;
+            send_cache->data[5] = data_send_id & 0x7F;
+
+            if (peer->compress > 0)
+            {
+                for (; m < file_size;)
+                {
+
+                    send_cache->data[9 + per_size] = htmlcontent[m];
+                    m += 1;
+                    per_size++;
+                    if (per_size == vsize_send)
+                    {
+                        break;
+                    }
+                }
+                send_cache->data[vsize_send + 9] = 0x00;
+                if (m >= file_size)
+                {
+                    send_cache->data[4] = 0x01;
+                }
+            }
+            else
+            {
+                if (m < file_size)
+                {
+                    memset(&send_cache->data[9], 0x00, vsize_send);
+                    per_size = fread(&send_cache->data[9], 1, vsize_send, fp.get());
+                    m += per_size;
+                }
+                if (m >= file_size)
+                {
+                    send_cache->data[4] = 0x01;
+                }
+            }
+
+            data_send_id        = per_size;
+            send_cache->data[2] = data_send_id & 0xFF;
+            data_send_id        = data_send_id >> 8;
+            send_cache->data[1] = data_send_id & 0xFF;
+            data_send_id        = data_send_id >> 8;
+            send_cache->data[0] = data_send_id & 0xFF;
+
+            if (peer->isclose)
+            {
+                DEBUG_LOG(" peer->isclose  ");
+                LOG_ERROR << "peer->isclose " << LOG_END;
+                break;
+            }
+
+            if (peer->socket_session->isclose)
+            {
+                DEBUG_LOG(" peer->socket_session->isclose exit ");
+                LOG_ERROR << "peer->socket_session->isclose exit " << LOG_END;
+                co_return;
+            }
+
+            co_await peer->socket_session->co_send_writer(send_cache->data, per_size + 9);
+            // if (peer->socket_session->send_data(send_cache->data, per_size + 9))
+            // {
+            // }
+            // else
+            // {
+            //     LOG_ERROR << " range error ";
+            //     return false;
+            // }
+
+            peer->socket_session->window_update_num -= per_size;
+            totalsend_num += per_size;
+            if (peer->socket_session->window_update_num < 8192)
+            {
+                std::promise<int> p;
+                std::future<int> f{p.get_future()};
+
+                peer->window_update_results.emplace_back(std::move(f));
+                peer->window_update_promise = std::move(p);
+                peer->window_update_bool    = true;
+                peer->socket_session->promise_list.emplace_back(peer->stream_id);
+                try
+                {
+                    peer->window_update_results.front().get();
+                    peer->window_update_results.pop_front();
+                }
+                catch (const std::exception &e)
+                {
+                    break;
+                }
+            }
+
+            if (file_size > 10485760)
+            {
+                if (peer->socket_session->window_update_num < 1048576)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+            }
+            else if (file_size > 1048576)
+            {
+                if (m < 10096 && peer->socket_session->window_update_num < 1048576)
+                {
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(512));
+                }
+            }
+        }
+        DEBUG_LOG("send files ok");
+        co_return;
+    }
+    else
+    {
+        std::string stfilecom = "<h3>500 Internal Server Error</h3>";
+        stfilecom.append("<hr /><p>File: " + peer->urlpath + " Access is denied!</p>");
+        peer->status(500);
+        peer->length(stfilecom.size());
+        peer->type("text/html; charset=utf-8");
+        _send_header = peer->make_http2_header();
+        peer->socket_session->send_data(_send_header);
+
+        http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
+        co_return;
+    }
+}
+
 bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
 {
     std::string _send_header;
@@ -800,7 +1217,7 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
         {
             co_return;
         }
-        co_await peer->socket_session->send_writer(_send_data);
+        co_await peer->socket_session->co_send_writer(_send_data);
         co_return;
     }
     for (unsigned long long m = 0; m < begin_end; m += PER_DATA_BLOCK_SIZE)
@@ -846,7 +1263,7 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
             co_return;
         }
 
-        co_await peer->socket_session->send_writer(_send_data);
+        co_await peer->socket_session->co_send_writer(_send_data);
 
         // 结束流
         if (peer->isclose)
@@ -1014,6 +1431,93 @@ bool httpserver::http2_send_body(std::shared_ptr<httppeer> peer, const unsigned 
     return true;
 }
 
+asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent)
+{
+    peer->status(status_code);
+    peer->length(bodycontent.size());
+    peer->type("text/html; charset=utf-8");
+    std::string _send_header = peer->make_http2_header();
+
+    //peer->socket_session->send_data(_send_header);
+    //http2_send_body(peer, (const unsigned char *)&bodycontent[0], bodycontent.size());
+    co_await peer->socket_session->co_send_writer(_send_header);
+    co_await http2_send_content(peer, (const unsigned char *)&bodycontent[0], bodycontent.size());
+    co_return;
+}
+asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<httppeer> peer)
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    unsigned int p_s            = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size();
+    std::string htmlcontent;
+    DEBUG_LOG("static_pre_lists:%lu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
+    //all static files
+    if (_http_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].static_pre_method) != _http_regmethod_table.end())
+    {
+        DEBUG_LOG("static_pre_method:%s", sysconfigpath.sitehostinfos[peer->host_index].static_pre_method.c_str());
+        if (p_s == 0)
+        {
+            htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+            if (htmlcontent.size() == 0)
+            {
+                co_return true;
+            }
+            else
+            {
+                htmlcontent.append(peer->output);
+                co_await http2_send_status_content(peer, 403, htmlcontent);
+                co_return false;
+            }
+        }
+    }
+    else
+    {
+        htmlcontent = " static_pre_method not in regfunc! ";
+        co_await http2_send_status_content(peer, 403, htmlcontent);
+        co_return false;
+    }
+
+    unsigned int j = peer->urlpath.size();
+    DEBUG_LOG("sendfilename:%s", peer->urlpath.c_str());
+    for (unsigned int i = 0; i < p_s; i++)
+    {
+        unsigned int k = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].size();
+        if (k > j)
+        {
+            co_return true;
+        }
+        if (k > 0)
+        {
+            unsigned int n = 0;
+            for (; n < k; n++)
+            {
+                if (sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i][n] != peer->urlpath[n + 1])
+                {
+                    break;
+                }
+            }
+            DEBUG_LOG("check list %u %u", n, k);
+            if (n == k)
+            {
+                DEBUG_LOG("static_pre_lists: %u %s", i, sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].c_str());
+                //match pre urlpath
+                htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+                if (htmlcontent.size() == 0)
+                {
+                    co_return true;
+                }
+                else
+                {
+                    htmlcontent.append(peer->output);
+                    co_await http2_send_status_content(peer, 403, htmlcontent);
+                    co_return false;
+                }
+            }
+        }
+    }
+    DEBUG_LOG("not authority");
+    co_return true;
+}
+
 asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 {
     try
@@ -1089,15 +1593,25 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             }
             _send_header = peer->make_http2_header();
 
-            peer->socket_session->send_data(_send_header);
+            // peer->socket_session->send_data(_send_header);
 
+            // if (peer->compress > 0)
+            // {
+            //     http2_send_body(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
+            // }
+            // else
+            // {
+            //     http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+            // }
+
+            co_await peer->socket_session->co_send_writer(_send_header);
             if (peer->compress > 0)
             {
-                http2_send_body(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
+                co_await http2_send_content(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
             }
             else
             {
-                http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+                co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             }
 
             peer->output.shrink_to_fit();
@@ -1108,14 +1622,14 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             co_return;
         }
 
-        if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
-        {
-            peer->host_index = sysconfigpath.host_toint[peer->host];
-            if (peer->host_index >= sysconfigpath.sitehostinfos.size())
-            {
-                peer->host_index = 0;
-            }
-        }
+        // if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
+        // {
+        //     peer->host_index = sysconfigpath.host_toint[peer->host];
+        //     if (peer->host_index >= sysconfigpath.sitehostinfos.size())
+        //     {
+        //         peer->host_index = 0;
+        //     }
+        // }
         //peer->sitepath         = sysconfigpath.getsitepath(peer->host);
         peer->sitepath         = sysconfigpath.getsitewwwpath(peer->host_index);
         unsigned char sendtype = 0;
@@ -1131,13 +1645,32 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         DEBUG_LOG("http2loop:%s %d", peer->sendfilename.c_str(), sendtype);
         if (sendtype == 1)
         {
+            DEBUG_LOG("is_static_pre:%d", sysconfigpath.sitehostinfos[peer->host_index].is_static_pre);
+            if (sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
+            {
+                if ((co_await http2_static_file_authority(peer)))
+                {
+                    peer->output.clear();
+                }
+                else
+                {
+                    peer->output.shrink_to_fit();
+                    peer->val.clear();
+                    peer->post.clear();
+                    peer->session.clear();
+                    peer->issend = true;
+                    co_return;
+                }
+            }
+
             if (peer->state.rangebytes)
             {
                 http2_send_file_range(peer);
             }
             else
             {
-                http2_send_file(peer);
+                //http2_send_file(peer);
+                co_await http2_co_send_file(peer);
             }
         }
         else if (sendtype == 2 && peer->isshow_directory())
@@ -1223,15 +1756,25 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             }
             _send_header = peer->make_http2_header();
 
-            peer->socket_session->send_data(_send_header);
+            // peer->socket_session->send_data(_send_header);
 
+            // if (peer->compress > 0)
+            // {
+            //     http2_send_body(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
+            // }
+            // else
+            // {
+            //     http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+            // }
+
+            co_await peer->socket_session->co_send_writer(_send_header);
             if (peer->compress > 0)
             {
-                http2_send_body(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
+                co_await http2_send_content(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
             }
             else
             {
-                http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
+                co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             }
         }
         peer->output.shrink_to_fit();
@@ -1242,6 +1785,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
     }
     catch (std::exception &e)
     {
+        DEBUG_LOG("http2loop exception send_goway");
         peer->socket_session->send_goway();
         peer->socket_session->isclose = true;
     }
@@ -1764,6 +2308,95 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
 
 //     return true;
 // }
+asio::awaitable<void> httpserver::http1_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent)
+{
+    std::string htmlcontent;
+    peer->status(status_code);
+    peer->type("text/html; charset=utf-8");
+    peer->length(bodycontent.size());
+    htmlcontent = peer->make_http1_header();
+    htmlcontent.append("\r\n");
+    co_await peer->socket_session->co_send_writer(htmlcontent);
+    if (bodycontent.size() > 0)
+    {
+        co_await peer->socket_session->co_send_writer(bodycontent);
+    }
+    co_return;
+}
+asio::awaitable<bool> httpserver::http1_static_file_authority(std::shared_ptr<httppeer> peer)
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    unsigned int p_s            = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size();
+    std::string htmlcontent;
+    DEBUG_LOG("static_pre_lists:%lu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
+    //all static files
+    if (_http_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].static_pre_method) != _http_regmethod_table.end())
+    {
+        DEBUG_LOG("static_pre_method:%s", sysconfigpath.sitehostinfos[peer->host_index].static_pre_method.c_str());
+        if (p_s == 0)
+        {
+            htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+            if (htmlcontent.size() == 0)
+            {
+                co_return true;
+            }
+            else
+            {
+                htmlcontent.append(peer->output);
+                co_await http1_send_status_content(peer, 403, htmlcontent);
+                co_return false;
+            }
+        }
+    }
+    else
+    {
+        htmlcontent = " static_pre_method not in regfunc! ";
+        co_await http1_send_status_content(peer, 403, htmlcontent);
+        co_return false;
+    }
+
+    unsigned int j = peer->urlpath.size();
+    DEBUG_LOG("sendfilename:%s", peer->urlpath.c_str());
+    for (unsigned int i = 0; i < p_s; i++)
+    {
+        unsigned int k = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].size();
+        if (k > j)
+        {
+            co_return true;
+        }
+        if (k > 0)
+        {
+            unsigned int n = 0;
+            for (; n < k; n++)
+            {
+                if (sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i][n] != peer->urlpath[n + 1])
+                {
+                    break;
+                }
+            }
+            DEBUG_LOG("check list %u %u", n, k);
+            if (n == k)
+            {
+                DEBUG_LOG("static_pre_lists: %u %s", i, sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].c_str());
+                //match pre urlpath
+                htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+                if (htmlcontent.size() == 0)
+                {
+                    co_return true;
+                }
+                else
+                {
+                    htmlcontent.append(peer->output);
+                    co_await http1_send_status_content(peer, 403, htmlcontent);
+                    co_return false;
+                }
+            }
+        }
+    }
+    DEBUG_LOG("not authority");
+    co_return true;
+}
+
 void httpserver::add_error_lists(const std::string &log_item)
 {
     std::unique_lock<std::mutex> lock(log_mutex);
@@ -1859,14 +2492,14 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
 
     serverconfig &sysconfigpath = getserversysconfig();
 
-    if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
-    {
-        peer->host_index = sysconfigpath.host_toint[peer->host];
-        if (peer->host_index >= sysconfigpath.sitehostinfos.size())
-        {
-            peer->host_index = 0;
-        }
-    }
+    // if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
+    // {
+    //     peer->host_index = sysconfigpath.host_toint[peer->host];
+    //     if (peer->host_index >= sysconfigpath.sitehostinfos.size())
+    //     {
+    //         peer->host_index = 0;
+    //     }
+    // }
     //peer->sitepath         = sysconfigpath.getsitepath(peer->host);
     peer->sitepath = sysconfigpath.getsitewwwpath(peer->host_index);
     //peer->sitepath              = sysconfigpath.getsitepath(peer->host);
@@ -1884,6 +2517,18 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
     DEBUG_LOG("http1loop:%s %d", peer->sendfilename.c_str(), sendtype);
     if (sendtype == 1)
     {
+        if (sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
+        {
+            if ((co_await http1_static_file_authority(peer)))
+            {
+                peer->output.clear();
+            }
+            else
+            {
+                co_return;
+            }
+        }
+
         if (peer->state.rangebytes)
         {
             http1_send_file_range(stream_id, peer, peer_session, peer->sendfilename);
@@ -1988,6 +2633,7 @@ void httpserver::http1_send_bad_request(unsigned int error_code, std::shared_ptr
     str.append(stfilecom);
     peer_session->send_data(str);
 }
+
 int httpserver::checkhttp2(std::shared_ptr<client_session> peer_session)
 {
 

@@ -39,7 +39,11 @@ client::~client()
     {
         if (sslsock)
         {
-            sslsock->shutdown();
+            sslsock->shutdown(ec);
+            if (sslsock->lowest_layer().is_open())
+            {
+                sslsock->lowest_layer().close();
+            }
         }
     }
     else
@@ -326,7 +330,8 @@ asio::awaitable<bool> client::co_init_http_sock()
 
     if (ec)
     {
-        error_msg = "Unable to connect";
+        //error_msg = "Unable to connect";
+        error_msg = ec.message();
         DEBUG_LOG("%s", error_msg.c_str());
         co_return false;
     }
@@ -409,7 +414,8 @@ bool client::init_http_sock()
     sock->connect(endpoint, ec);
     if (ec)
     {
-        error_msg = "Unable to connect";
+        //error_msg = "Unable to connect";
+        error_msg = ec.message();
         DEBUG_LOG("%s", error_msg.c_str());
         return false;
     }
@@ -592,8 +598,6 @@ asio::awaitable<void> client::co_senddatato()
     }
     catch (std::exception &e)
     {
-        // std::printf("Exception: %s\n", e.what());
-        //std::cerr << "Exception:  " << e.what() << "\r\n";
         DEBUG_LOG("Exception: %s", e.what());
         error_msg = e.what();
     }
@@ -1138,12 +1142,11 @@ client &client::sendssldatato()
                 error_msg = e.what();
             }
         }
-        std::cout << request << std::endl;
+
         int n;
         n = sslsock->write_some(asio::buffer(request));
 
         char data[2051];
-
         if (requesttype == 1)
         {
             for (auto &p : senddata)
@@ -1717,6 +1720,11 @@ std::string client::getHeader() { return response_header; }
 std::string client::getTempfile() { return state.page.tempfile; }
 std::map<std::string, std::string> client::getHeaders() { return state.header; }
 std::string client::getType() { return state.page.type; }
+client &client::setBody(const std::string &a)
+{
+    state.content = a;
+    return *this;
+}
 std::string client::getBody()
 {
     if (state.istxt)
@@ -2889,6 +2897,22 @@ void client::buildcontent()
                     ptemp.filename = files.front().filename;
                     contentlength  = ptemp.size;
                 }
+                senddata.push_back(ptemp);
+            }
+            else if (state.content.size() > 0)
+            {
+                ptemp.error = 0;
+                ptemp.tempfile.clear();
+                ptemp.filename.clear();
+                ptemp.name.clear();
+                ptemp.size = 0;
+                ptemp.type.clear();
+
+                ptemp.size     = state.content.size();
+                ptemp.tempfile = state.content;
+                contentlength  = state.content.size();
+
+                state.content.clear();
                 senddata.push_back(ptemp);
             }
             header["Content-Length"] = contentlength;

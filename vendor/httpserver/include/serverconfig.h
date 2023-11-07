@@ -28,9 +28,11 @@ struct site_host_info_t
     std::string rewrite_404_action;
     std::string certificate_file;
     std::string privateKey_file;
+    std::string static_pre_method;
     std::vector<std::string> action_404_lists;
     std::vector<std::string> action_pre_lists;
     std::vector<std::string> action_after_lists;
+    std::vector<std::string> static_pre_lists;
     std::vector<std::pair<std::string, std::string>> rewrite_php_lists;
     unsigned int rewrite404 = 0;
     bool isuse_php          = false;
@@ -38,6 +40,7 @@ struct site_host_info_t
     bool http2_enable       = false;
     bool is_method_pre      = false;
     bool is_method_after    = false;
+    bool is_static_pre      = false;
 };
 class serverconfig
 {

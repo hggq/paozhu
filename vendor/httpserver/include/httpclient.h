@@ -46,6 +46,7 @@ class client : public std::enable_shared_from_this<client>
     client &setheader(std::string, std::string);
     client &addheader(std::string, std::string);
     client &addheader(std::string);
+    client &setBody(const std::string &);
 
     client &addcookie(const std::string &k, const std::string &v);
     client &requst_clear();

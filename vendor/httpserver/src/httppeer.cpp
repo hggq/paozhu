@@ -547,6 +547,7 @@ bool httppeer::isuse_fastcgi(unsigned char type_temp)
                             {
                                 linktype = 50 + i;
                             }
+                            DEBUG_LOG("is php file %s", sendfilename.c_str());
                             return true;
                         }
                     }
@@ -558,140 +559,94 @@ bool httppeer::isuse_fastcgi(unsigned char type_temp)
                         sendfilename.append("/");
                     }
                     sendfilename.append(pathinfos[i]);
-                }
-            }
-
-            if (sendfilename.size() == 0)
-            {
-                for (unsigned int i = 0; i < pathinfos.size(); i++)
-                {
-                    if (i > 0)
+                    //check url path reg points
+                    if (_http_regmethod_table.contains(sendfilename))
                     {
-                        sendfilename.append("/");
-                    }
-                    sendfilename.append(pathinfos[i]);
-                }
-            }
-
-            if (_http_regmethod_table.contains(sendfilename))
-            {
-                return false;
-            }
-            else
-            {
-                struct stat sessfileinfo;
-                std::string tempac = sysconfigpath.sitehostinfos[host_index].wwwpath + sendfilename;
-                memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                if (stat(tempac.c_str(), &sessfileinfo) == 0)
-                {
-                    if (sessfileinfo.st_mode & S_IFREG)
-                    {
-                        compress = 0;
-                        linktype = 0;
                         return false;
                     }
                 }
-                tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
-                memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                if (stat(tempac.c_str(), &sessfileinfo) == 0)
+            }
+
+            DEBUG_LOG("check urlpath reg %s", sendfilename.c_str());
+            // if (_http_regmethod_table.contains(sendfilename))
+            // {
+            //     return false;
+            // }
+            // else
+            // {
+            struct stat sessfileinfo;
+            std::string tempac = sysconfigpath.sitehostinfos[host_index].wwwpath + sendfilename;
+            memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+            if (stat(tempac.c_str(), &sessfileinfo) == 0)
+            {
+                if (sessfileinfo.st_mode & S_IFREG)
                 {
-                    if (sessfileinfo.st_mode & S_IFREG)
-                    {
-                        compress = 10;
-                        linktype = 15;
-                        sendfilename.append("/index.php");
-                        return true;
-                    }
+                    compress = 0;
+                    linktype = 0;
+                    return false;
                 }
-
-                if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size() > 0)
+                else if (sessfileinfo.st_mode & S_IFDIR)
                 {
-                    unsigned int i = 0;
-                    if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[0].first.size() == 0)
+                    compress = 0;
+                    linktype = 0;
+                    return false;
+                }
+            }
+            tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
+            memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+            if (stat(tempac.c_str(), &sessfileinfo) == 0)
+            {
+                if (sessfileinfo.st_mode & S_IFREG)
+                {
+                    compress = 10;
+                    linktype = 15;
+                    sendfilename.append("/index.php");
+                    return true;
+                }
+            }
+            DEBUG_LOG("rewrite_php_lists: %lu", sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size());
+            if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size() > 0)
+            {
+                unsigned int i = 0;
+                if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[0].first.size() == 0)
+                {
+                    tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[0].second;
+                    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                    if (stat(tempac.c_str(), &sessfileinfo) == 0)
                     {
-                        tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[0].second;
-                        memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                        if (stat(tempac.c_str(), &sessfileinfo) == 0)
-                        {
-                            if (sessfileinfo.st_mode & S_IFREG)
-                            {
-                                compress = 10;
-                                linktype = 19;
-                                return true;
-                            }
-                        }
-                        i = 1;
-                    }
-                    for (; i < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size(); i++)
-                    {
-                        unsigned int j = 0;
-
-                        for (; j < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first.size(); j++)
-                        {
-                            if (j < sendfilename.size() && sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first[j] == sendfilename[j])
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                        if (j == sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first.size())
+                        if (sessfileinfo.st_mode & S_IFREG)
                         {
                             compress = 10;
-                            linktype = 20 + i;
+                            linktype = 19;
                             return true;
                         }
                     }
+                    i = 1;
                 }
+                for (; i < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size(); i++)
+                {
+                    unsigned int j = 0;
 
-                //output.clear();
-                // if (sysconfigpath.sitehostinfos[host_index].wwwpath.size() != sysconfigpath.sitehostinfos[host_index].php_root_document.size())
-                // {
-                //     tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename;
-                //     std::cout << " tempac size " << tempac << std::endl;
-                //     memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                //     if (stat(tempac.c_str(), &sessfileinfo) == 0)
-                //     {
-                //         if (sessfileinfo.st_mode & S_IFREG)
-                //         {
-                //             compress = 0;
-                //             linktype = 0;
-                //             return false;
-                //         }
-                //     }
-                // }
-
-                // compress = 10;
-                // linktype = 13;
-                // for (unsigned int i = 0; i < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size(); i++)
-                // {
-                //     if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first == pathinfos[0])
-                //     {
-                //         compress = 10;
-                //         linktype = 20 + i;
-                //         break;
-                //     }
-                // }
-                // if (linktype == 13)
-                // {
-                //     // struct stat sessfileinfo;
-                //     // std::string
-                //     tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
-                //     std::cout << " sessfileinfo " << tempac << std::endl;
-                //     memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                //     if (stat(tempac.c_str(), &sessfileinfo) == 0)
-                //     {
-                //         if (sessfileinfo.st_mode & S_IFREG)
-                //         {
-                //             linktype = 15;
-                //             sendfilename.append("/index.php");
-                //             std::cout << " sendfilename " << sendfilename << std::endl;
-                //         }
-                //     }
-                // }
+                    for (; j < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first.size(); j++)
+                    {
+                        if (j < sendfilename.size() && sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first[j] == sendfilename[j])
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    if (j == sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first.size())
+                    {
+                        compress = 10;
+                        linktype = 20 + i;
+                        return true;
+                    }
+                }
             }
+            //}
         }
         else
         {

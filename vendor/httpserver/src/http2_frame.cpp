@@ -170,6 +170,13 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
     case 400:
         hh_data.push_back(0x8C);
         break;
+    case 403:
+        hh_data.push_back(0x48);
+        hh_data.push_back(0x03);
+        hh_data.push_back(0x34);
+        hh_data.push_back(0x30);
+        hh_data.push_back(0x33);
+        break;    
     case 404:
         hh_data.push_back(0x8D);
         break;

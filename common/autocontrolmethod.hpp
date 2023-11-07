@@ -11,6 +11,7 @@
 #include "testhttpclient.h"
 #include "testmysqlinsert.h"
 #include "testrestfulpath.h"
+#include "testdownloadauth.h"
 #include "testmodelfromjson.h"
 #include "teststrip_html.h"
 #include "testrand.h"
@@ -64,6 +65,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testrestfulprofilepath;
 		methodcallback.emplace("user/profile",temp);
+		temp.pre = nullptr;
+		temp.regfun = downloadfileauthmethod;
+		methodcallback.emplace("downloadfileauth",temp);
 		temp.pre = nullptr;
 		temp.regfun = testmodelfromjson;
 		methodcallback.emplace("mfromjson",temp);
