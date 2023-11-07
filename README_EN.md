@@ -167,25 +167,25 @@ namespace http
 //@urlpath(null,hello)
 std::string testhello(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
-    client << " Hello world! 🧨 Paozhu c++ web framework ";
+  httppeer &client = peer->getpeer();
+  client << " Hello world! 🧨 Paozhu c++ web framework ";
 	
-	auto users = orm::cms::User();
-	try
-	{
-		users.where("name","admin").limit(1).fetch();
-		if (users.getUserid() > 0)
-		{
-			client<<"<p>found:"<<users.data.name<<"</p>";
-			return "";
-		}
-	}
-	catch (std::exception &e)
-	{
-		client << "<p>" << e.what() << "</p>";
-		return "";
-	}
-	return "";
+  auto users = orm::cms::User();
+  try
+  {
+    users.where("name","admin").limit(1).fetch();
+    if (users.getUserid() > 0)
+    {
+      client<<"<p>found:"<<users.data.name<<"</p>";
+      return "";
+    }
+  }
+  catch (std::exception &e)
+  {
+    client << "<p>" << e.what() << "</p>";
+    return "";
+  }
+  return "";
 }
 
 }// namespace http
