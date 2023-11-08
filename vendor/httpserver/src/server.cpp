@@ -1453,31 +1453,20 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
     std::string htmlcontent;
     DEBUG_LOG("static_pre_lists:%lu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
     //all static files
-    if (_http_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].static_pre_method) != _http_regmethod_table.end())
+    if (p_s == 0)
     {
-        DEBUG_LOG("static_pre_method:%s", sysconfigpath.sitehostinfos[peer->host_index].static_pre_method.c_str());
-        if (p_s == 0)
+        htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+        if (htmlcontent.size() == 0)
         {
-            htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
-            if (htmlcontent.size() == 0)
-            {
-                co_return true;
-            }
-            else
-            {
-                htmlcontent.append(peer->output);
-                co_await http2_send_status_content(peer, 403, htmlcontent);
-                co_return false;
-            }
+            co_return true;
+        }
+        else
+        {
+            htmlcontent.append(peer->output);
+            co_await http2_send_status_content(peer, 403, htmlcontent);
+            co_return false;
         }
     }
-    else
-    {
-        htmlcontent = " static_pre_method not in regfunc! ";
-        co_await http2_send_status_content(peer, 403, htmlcontent);
-        co_return false;
-    }
-
     unsigned int j = peer->urlpath.size();
     DEBUG_LOG("sendfilename:%s", peer->urlpath.c_str());
     for (unsigned int i = 0; i < p_s; i++)
@@ -2372,31 +2361,20 @@ asio::awaitable<bool> httpserver::http1_static_file_authority(std::shared_ptr<ht
     std::string htmlcontent;
     DEBUG_LOG("static_pre_lists:%lu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
     //all static files
-    if (_http_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].static_pre_method) != _http_regmethod_table.end())
+    if (p_s == 0)
     {
-        DEBUG_LOG("static_pre_method:%s", sysconfigpath.sitehostinfos[peer->host_index].static_pre_method.c_str());
-        if (p_s == 0)
+        htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+        if (htmlcontent.size() == 0)
         {
-            htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
-            if (htmlcontent.size() == 0)
-            {
-                co_return true;
-            }
-            else
-            {
-                htmlcontent.append(peer->output);
-                co_await http1_send_status_content(peer, 403, htmlcontent);
-                co_return false;
-            }
+            co_return true;
+        }
+        else
+        {
+            htmlcontent.append(peer->output);
+            co_await http1_send_status_content(peer, 403, htmlcontent);
+            co_return false;
         }
     }
-    else
-    {
-        htmlcontent = " static_pre_method not in regfunc! ";
-        co_await http1_send_status_content(peer, 403, htmlcontent);
-        co_return false;
-    }
-
     unsigned int j = peer->urlpath.size();
     DEBUG_LOG("sendfilename:%s", peer->urlpath.c_str());
     for (unsigned int i = 0; i < p_s; i++)

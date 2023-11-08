@@ -650,10 +650,22 @@ bool httppeer::isuse_fastcgi(unsigned char type_temp)
         }
         else
         {
+
+            struct stat sessfileinfo;
+            std::string tempac = sysconfigpath.sitehostinfos[host_index].wwwpath + sysconfigpath.sitehostinfos[host_index].document_index;
+            memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+            if (stat(tempac.c_str(), &sessfileinfo) == 0)
+            {
+                if (sessfileinfo.st_mode & S_IFREG)
+                {
+                    return false;
+                }
+            }
+
             if (sysconfigpath.sitehostinfos[host_index].php_root_document.size() > 0)
             {
-                struct stat sessfileinfo;
-                std::string tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + "index.php";
+                //struct stat sessfileinfo;
+                tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + "index.php";
                 memset(&sessfileinfo, 0, sizeof(sessfileinfo));
                 if (stat(tempac.c_str(), &sessfileinfo) == 0)
                 {

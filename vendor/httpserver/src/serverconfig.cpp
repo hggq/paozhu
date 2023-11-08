@@ -4,6 +4,7 @@
 #include "serverconfig.h"
 #include "server_localvar.h"
 #include <cstring>
+#include "httppeer.h"
 
 namespace http
 {
@@ -614,9 +615,10 @@ bool serverconfig::loadserverglobalconfig()
         static_server_var.log_path.push_back('/');
     }
     struct site_host_info_t tempinfo;
-    tempinfo.mainhost     = mainhost;
-    tempinfo.wwwpath      = static_server_var.www_path;
-    tempinfo.http2_enable = static_server_var.http2_enable;
+    tempinfo.mainhost       = mainhost;
+    tempinfo.wwwpath        = static_server_var.www_path;
+    tempinfo.http2_enable   = static_server_var.http2_enable;
+    tempinfo.document_index = map_value["default"]["index"];
 
     if (map_value["default"]["certificate_chain_file"].size() > 0)
     {
@@ -802,6 +804,10 @@ bool serverconfig::loadserverglobalconfig()
                     {
                         tempinfo.fastcgi_host = itemval;
                     }
+                    else if (itemname == "index")
+                    {
+                        tempinfo.document_index = itemval;
+                    }
                     else if (itemname == "fastcgi_port")
                     {
                         std::string tempac;
@@ -935,7 +941,7 @@ bool serverconfig::loadserverglobalconfig()
                     }
                     else if (itemname == "rewrite_404")
                     {
-                        tempinfo.isrewrite = true;
+
                         try
                         {
                             tempinfo.rewrite404 = std::stoul(itemval.c_str());
@@ -943,6 +949,14 @@ bool serverconfig::loadserverglobalconfig()
                         catch (const std::exception &e)
                         {
                             tempinfo.rewrite404 = 0;
+                        }
+                        if (tempinfo.rewrite404 > 0)
+                        {
+                            tempinfo.isrewrite = true;
+                        }
+                        else
+                        {
+                            tempinfo.isrewrite = false;
                         }
                     }
                     else if (itemname == "rewrite_404_action")
@@ -1021,6 +1035,16 @@ bool serverconfig::loadserverglobalconfig()
                                 tempinfo.is_static_pre     = true;
                             }
                         }
+                        // pre check regfun
+                        if (tempinfo.is_static_pre && _http_regmethod_table.contains(tempinfo.static_pre_method))
+                        {
+                            tempinfo.is_static_pre = true;
+                        }
+                        else
+                        {
+                            tempinfo.is_static_pre = false;
+                        }
+
                         tempac.clear();
                         for (; m < itemval.size(); m++)
                         {
@@ -1055,7 +1079,10 @@ bool serverconfig::loadserverglobalconfig()
                             {
                                 if (tempac.size() > 0)
                                 {
-                                    tempinfo.action_pre_lists.push_back(tempac);
+                                    if (_http_regmethod_table.contains(tempac))
+                                    {
+                                        tempinfo.action_pre_lists.push_back(tempac);
+                                    }
                                 }
                                 tempac.clear();
                                 continue;
@@ -1064,8 +1091,10 @@ bool serverconfig::loadserverglobalconfig()
                         }
                         if (tempac.size() > 0)
                         {
-
-                            tempinfo.action_pre_lists.push_back(tempac);
+                            if (_http_regmethod_table.contains(tempac))
+                            {
+                                tempinfo.action_pre_lists.push_back(tempac);
+                            }
                         }
 
                         if (tempinfo.action_pre_lists.size() > 0)
@@ -1085,6 +1114,10 @@ bool serverconfig::loadserverglobalconfig()
                                 if (tempac.size() > 0)
                                 {
                                     tempinfo.action_after_lists.push_back(tempac);
+                                    if (_http_regmethod_table.contains(tempac))
+                                    {
+                                        tempinfo.action_after_lists.push_back(tempac);
+                                    }
                                 }
                                 tempac.clear();
                                 continue;
@@ -1093,13 +1126,20 @@ bool serverconfig::loadserverglobalconfig()
                         }
                         if (tempac.size() > 0)
                         {
-                            tempinfo.action_after_lists.push_back(tempac);
+                            if (_http_regmethod_table.contains(tempac))
+                            {
+                                tempinfo.action_after_lists.push_back(tempac);
+                            }
                         }
                         if (tempinfo.action_after_lists.size() > 0)
                         {
                             tempinfo.is_method_after = true;
                         }
                     }
+                }
+                if (tempinfo.document_index.empty())
+                {
+                    tempinfo.document_index = "index.html";
                 }
                 sitehostinfos.push_back(std::move(tempinfo));
                 if (sitehostinfos.size() > 0)

@@ -29,6 +29,7 @@ struct site_host_info_t
     std::string certificate_file;
     std::string privateKey_file;
     std::string static_pre_method;
+    std::string document_index;
     std::vector<std::string> action_404_lists;
     std::vector<std::string> action_pre_lists;
     std::vector<std::string> action_after_lists;
