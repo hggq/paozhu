@@ -3748,7 +3748,12 @@ void httpserver::run(const std::string &sysconfpath)
 {
     try
     {
-        stop                        = false;
+        stop = false;
+        _initauto_control_httpmethodregto(_http_regmethod_table);
+        _inithttpmethodregto(_http_regmethod_table);
+        _inithttpmethodregto_pre(_http_regmethod_table);
+        _initauto_control_httprestful_paths(_http_regurlpath_table);
+
         serverconfig &sysconfigpath = getserversysconfig();
         sysconfigpath.init_path();
         if (sysconfigpath.configfile.empty())
@@ -3773,10 +3778,6 @@ void httpserver::run(const std::string &sysconfpath)
         static_server_var.show_visit_info = true;
 #endif
 
-        _initauto_control_httpmethodregto(_http_regmethod_table);
-        _inithttpmethodregto(_http_regmethod_table);
-        _inithttpmethodregto_pre(_http_regmethod_table);
-        _initauto_control_httprestful_paths(_http_regurlpath_table);
         sendqueue &send_cache = get_sendqueue();
         send_cache.inti_sendqueue(512);
         auto &link_cache = get_client_data_cache();
