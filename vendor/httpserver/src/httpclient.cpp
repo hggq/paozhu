@@ -458,7 +458,7 @@ asio::awaitable<void> client::co_senddatato()
             }
         }
 
-        if (exptime < 0 || exptime > 30)
+        if (exptime > 30)
         {
             exptime = 10;
         }
@@ -667,7 +667,7 @@ client &client::senddatato()
             }
         }
 
-        if (exptime < 0 || exptime > 30)
+        if (exptime > 30)
         {
             exptime = 10;
         }
@@ -911,7 +911,7 @@ asio::awaitable<void> client::co_sendssldatato()
                 co_return;
             }
         }
-        if (exptime < 0 || exptime > 30)
+        if (exptime > 30)
         {
             exptime = 10;
         }
@@ -1117,7 +1117,7 @@ client &client::sendssldatato()
                 return *this;
             }
         }
-        if (exptime < 0 || exptime > 30)
+        if (exptime > 30)
         {
             exptime = 10;
         }

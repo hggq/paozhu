@@ -108,9 +108,10 @@ void client_context::time_out_loop()
                         {
                             if (peer->isssl)
                             {
+                                peer->sslsock->shutdown(peer->ec);
                                 if (peer->sslsock->lowest_layer().is_open())
                                 {
-                                    peer->sslsock->shutdown();
+                                    peer->sock->close();
                                 }
                             }
                             else

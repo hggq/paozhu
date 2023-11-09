@@ -76,7 +76,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string get_hosturl();
     std::string get_sitepath();
     unsigned char has_urlfileext();
-    bool isuse_fastcgi(unsigned char type_temp);
+    bool isuse_fastcgi();
     void goto_url(const std::string &url, unsigned char second = 0, const std::string &msg = "");
     bool isset_type();
 
@@ -114,10 +114,13 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     httppeer &operator<<(float a);
     httppeer &operator<<(double a);
 
-    template <typename T> httppeer &operator<<(VALNUM_T auto a);
+    template <typename T>
+    httppeer &operator<<(VALNUM_T auto a);
 
-    template <typename T> httppeer &operator<<(T a);
-    template <typename T> httppeer &operator<<(T *a);
+    template <typename T>
+    httppeer &operator<<(T a);
+    template <typename T>
+    httppeer &operator<<(T *a);
 
     httppeer &getpeer();
     void out_json(OBJ_VALUE &a);

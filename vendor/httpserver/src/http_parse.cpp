@@ -2669,7 +2669,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             }
             if (headerfinish == 1)
             {
-                peer->isuse_fastcgi(0);
+                peer->isuse_fastcgi();
                 break;
             }
         }

@@ -24,8 +24,10 @@ std::string testcommit(std::shared_ptr<httppeer> peer)
     commitlist.push_back({ot2.get_query(),
                           [&ot2](long long status, long long lastid) -> void
                           {
-                              status = 0;
-                              ot2.setPK(lastid);
+                              if (status == 0)
+                              {
+                                  ot2.setPK(lastid);
+                              }
                           }});
 
     ot1.data.tid  = 4;

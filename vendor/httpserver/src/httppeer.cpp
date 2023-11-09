@@ -497,7 +497,7 @@ bool httppeer::isshow_directory()
     }
     return false;
 }
-bool httppeer::isuse_fastcgi(unsigned char type_temp)
+bool httppeer::isuse_fastcgi()
 {
     serverconfig &sysconfigpath = getserversysconfig();
 
@@ -509,9 +509,8 @@ bool httppeer::isuse_fastcgi(unsigned char type_temp)
             host_index = 0;
         }
     }
-    compress  = 0;
-    linktype  = 0;
-    type_temp = 0;
+    compress = 0;
+    linktype = 0;
     output.clear();
     sendfilename.clear();
     if (sysconfigpath.sitehostinfos[host_index].isuse_php == 1)

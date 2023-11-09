@@ -168,7 +168,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
         {
             http_data.emplace(block_steamid, std::make_shared<httppeer>());
             headers_parse(block_steamid);
-            http_data[block_steamid]->isuse_fastcgi(0);
+            http_data[block_steamid]->isuse_fastcgi();
         }
         processheader = 0;
     }
