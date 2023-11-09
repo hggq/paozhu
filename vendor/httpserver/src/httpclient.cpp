@@ -498,8 +498,7 @@ asio::awaitable<void> client::co_senddatato()
                 {
                     unsigned int readnum = 0;
                     co_await async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
@@ -535,8 +534,7 @@ asio::awaitable<void> client::co_senddatato()
                 {
                     unsigned int readnum = 0;
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
@@ -706,8 +704,7 @@ client &client::senddatato()
                     unsigned int readnum = 0;
                     sock->write_some(asio::buffer(p.tempfile));
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
@@ -743,8 +740,7 @@ client &client::senddatato()
                 {
                     unsigned int readnum = 0;
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
@@ -956,8 +952,7 @@ asio::awaitable<void> client::co_sendssldatato()
                 {
                     int readnum = 0;
                     co_await async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
@@ -993,8 +988,7 @@ asio::awaitable<void> client::co_sendssldatato()
                 {
                     int readnum = 0;
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
@@ -1161,8 +1155,7 @@ client &client::sendssldatato()
                     int readnum = 0;
                     sslsock->write_some(asio::buffer(p.tempfile));
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
@@ -1198,8 +1191,7 @@ client &client::sendssldatato()
                 {
                     int readnum = 0;
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(p.filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
@@ -1734,7 +1726,7 @@ std::string client::getBody()
     else
     {
         // FILE *ffp = fopen(state.page.tempfile.c_str(), "rb");
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> ffp(fopen(state.page.tempfile.c_str(), "rb"), &std::fclose);
+        std::unique_ptr<std::FILE, int (*)(FILE *)> ffp(fopen(state.page.tempfile.c_str(), "rb"), std::fclose);
         if (!ffp)
         {
             return "";
@@ -2467,7 +2459,7 @@ void client::assign_file(std::string key, std::string filename)
     }
 
     // FILE *f = fopen(filename.c_str(), "rb");
-    std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(filename.c_str(), "rb"), &std::fclose);
+    std::unique_ptr<std::FILE, int (*)(FILE *)> f(fopen(filename.c_str(), "rb"), std::fclose);
     if (f)
     {
         fseek(f.get(), 0, SEEK_END);
@@ -2619,8 +2611,7 @@ void client::buildcontent()
                 if (ptemp.size < 32768)
                 {
                     // fp = fopen(files.front().filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(files.front().filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(files.front().filename.c_str(), "rb"), std::fclose);
                     if (fp)
                     {
                         ptemp.tempfile.resize(ptemp.size);
@@ -2795,8 +2786,7 @@ void client::buildcontent()
                         ptemp.tempfile.append(finfo.type);
                         ptemp.tempfile.append("\r\n\r\n");
                         // fp = fopen(finfo.filename.c_str(), "rb");
-                        std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(finfo.filename.c_str(), "rb"),
-                                                                              &std::fclose);
+                        std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(finfo.filename.c_str(), "rb"), std::fclose);
                         if (fp)
                         {
                             unsigned int n = ptemp.tempfile.size();
@@ -2880,8 +2870,7 @@ void client::buildcontent()
                 if (ptemp.size < 32768)
                 {
                     // fp = fopen(files.front().filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(files.front().filename.c_str(), "rb"),
-                                                                          &std::fclose);
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(files.front().filename.c_str(), "rb"), std::fclose);
                     if (fp)
                     {
                         ptemp.tempfile.resize(ptemp.size);
@@ -2934,8 +2923,7 @@ void client::buildcontent()
             if (ptemp.size < 32768)
             {
                 // fp = fopen(files.front().filename.c_str(), "rb");
-                std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(fopen(files.front().filename.c_str(), "rb"),
-                                                                      &std::fclose);
+                std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(files.front().filename.c_str(), "rb"), std::fclose);
                 if (fp)
                 {
                     ptemp.tempfile.resize(ptemp.size);

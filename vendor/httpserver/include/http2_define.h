@@ -57,7 +57,6 @@
 
 namespace http
 {
-    
 
 #define HTTP2_H2_ALPN "\x02h2"
 #define HTTP2_H2_16_ALPN "\x05h2-16"
@@ -66,23 +65,20 @@ namespace http
 #define HTTP2_H1_1_ALPN "\x08http/1.1"
 #define HTTP2_H1_1 "http/1.1"
 
-    extern std::string PZ_HTTP2_H2_ALPN;
-    extern std::string PZ_HTTP2_H2;
+extern std::string PZ_HTTP2_H2_ALPN;
+extern std::string PZ_HTTP2_H2;
 
-    extern std::string PZ_HTTP2_H2_16_ALPN;
-    extern std::string PZ_HTTP2_H2_16;
+extern std::string PZ_HTTP2_H2_16_ALPN;
+extern std::string PZ_HTTP2_H2_16;
 
-    extern std::string PZ_HTTP2_H2_14_ALPN;
-    extern std::string PZ_HTTP2_H2_14;
+extern std::string PZ_HTTP2_H2_14_ALPN;
+extern std::string PZ_HTTP2_H2_14;
 
-    extern std::string PZ_HTTP2_H1_1_ALPN;
-    extern std::string PZ_HTTP2_H1_1;
+extern std::string PZ_HTTP2_H1_1_ALPN;
+extern std::string PZ_HTTP2_H1_1;
 
-    extern void close_file(FILE *fp);
+extern void close_file(FILE *fp);
 
-    using FILE_HANDLER = std::unique_ptr<FILE, std::function<void(FILE *)>>;
-    // FILE_HANDLER fp(fopen("demo.txt", "r"), close_file);
-    using FILE_AUTO = std::unique_ptr<std::FILE, decltype(&std::fclose)>;
-    // FILE_AUTO fp(std::fopen("demo.txt", "r"),&std::fclose);
-}
+using FILE_AUTO = std::unique_ptr<std::FILE, int (*)(FILE *)>;
+}// namespace http
 #endif

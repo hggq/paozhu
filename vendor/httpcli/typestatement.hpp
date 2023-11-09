@@ -81,7 +81,7 @@ class typejsonfiles
     std::vector<struct obj_reflect_type> pickreflectfile(const std::string &methodpathfile)
     {
         std::vector<struct obj_reflect_type> temp;
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(methodpathfile.c_str(), "rb"), &std::fclose);
+        std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp(std::fopen(methodpathfile.c_str(), "rb"), std::fclose);
 
         if (!fp.get())
         {
@@ -985,7 +985,7 @@ class typejsonfiles
                      const std::vector<struct obj_reflect_type> &methodpathfile,
                      const std::string &headerfilename)
     {
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(filename.c_str(), "wb"), &std::fclose);
+        std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp(std::fopen(filename.c_str(), "wb"), std::fclose);
 
         if (!fp.get())
         {
@@ -3643,7 +3643,7 @@ unsigned int json_decode(std::vector<)";
                                  const std::string &content,
                                  const std::vector<std::string> hfiles)
     {
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(filename.c_str(), "wb"), &std::fclose);
+        std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp(std::fopen(filename.c_str(), "wb"), std::fclose);
 
         if (!fp.get())
         {

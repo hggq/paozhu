@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
     current_method_file = current_run_path + "common/autocontrolmethod.hpp";
 
-    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(current_method_file.c_str(), "wb"), &std::fclose);
+    std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp(std::fopen(current_method_file.c_str(), "wb"), std::fclose);
 
     if (!fp.get())
     {
@@ -316,7 +316,6 @@ namespace http
                         {
                             temp_new_urlpath.append(temp_str);
                         }
-                        
                     }
                     temp_str.clear();
                     continue;
@@ -419,10 +418,10 @@ namespace http
                         {
                             continue;
                         }
-//                         else if (paths[j][jj] == '}')
-//                         {
-//                             continue;
-//                         }
+                        //                         else if (paths[j][jj] == '}')
+                        //                         {
+                        //                             continue;
+                        //                         }
                         hash_value.push_back(paths[j][jj]);
                     }
                     automethod_content.append(hash_value);
@@ -453,8 +452,8 @@ namespace http
 
     current_method_file = current_run_path + "common/autorestfulpaths.hpp";
 
-    std::unique_ptr<std::FILE, decltype(&std::fclose)> fprest(std::fopen(current_method_file.c_str(), "wb"),
-                                                              &std::fclose);
+    std::unique_ptr<std::FILE, int (*)(std::FILE *)> fprest(std::fopen(current_method_file.c_str(), "wb"),
+                                                            std::fclose);
 
     fwrite(&automethod_content[0], 1, automethod_content.size(), fprest.get());
     return 0;

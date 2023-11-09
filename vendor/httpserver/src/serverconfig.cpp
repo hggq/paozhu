@@ -18,7 +18,7 @@ std::map<std::string, std::map<std::string, std::string>> loadserversconfig(std:
     std::map<std::string, std::map<std::string, std::string>> sys_config;
     std::map<std::string, std::string> itemconfig;
     // FILE *f = fopen(filename.c_str(), "rb");
-    std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(filename.c_str(), "rb"), &std::fclose);
+    std::unique_ptr<std::FILE, int (*)(FILE *)> f(fopen(filename.c_str(), "rb"), std::fclose);
     if (f == nullptr)
     {
         return sys_config;

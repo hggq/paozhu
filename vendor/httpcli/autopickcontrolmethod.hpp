@@ -47,7 +47,7 @@ class pickcontrol
     void savecacheinfo(const std::string &methodpathfile, const std::map<std::string, struct file_regitem> &info_list)
     {
 
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(methodpathfile.c_str(), "wb"), &std::fclose);
+        std::unique_ptr<std::FILE, int (*)(std::FILE *)> f(fopen(methodpathfile.c_str(), "wb"), std::fclose);
         if (f == nullptr)
         {
             return;
@@ -70,7 +70,7 @@ class pickcontrol
         std::map<std::string, struct file_regitem> reginfo_temp;
         struct file_regitem str_temp;
         std::string c_content;
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> f(fopen(methodpathfile.c_str(), "rb"), &std::fclose);
+        std::unique_ptr<std::FILE, int (*)(std::FILE *)> f(fopen(methodpathfile.c_str(), "rb"), std::fclose);
         if (f == nullptr)
         {
             return reginfo_temp;
@@ -206,7 +206,7 @@ class pickcontrol
 
         std::vector<struct reg_autoitem> temp;
 
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(methodpathfile.c_str(), "rb"), &std::fclose);
+        std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp(std::fopen(methodpathfile.c_str(), "rb"), std::fclose);
 
         if (!fp.get())
         {
@@ -395,7 +395,7 @@ class pickcontrol
     }
     void createhfile(const std::string &filename, const std::vector<struct reg_autoitem> &methodpathfile)
     {
-        std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen(filename.c_str(), "wb"), &std::fclose);
+        std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp(std::fopen(filename.c_str(), "wb"), std::fclose);
 
         if (!fp.get())
         {

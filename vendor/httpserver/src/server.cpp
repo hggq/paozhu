@@ -1,4 +1,5 @@
 #include <zlib.h>
+#include <functional>
 #include "version.h"
 #include "terminal_color.h"
 #include "sendqueue.h"
@@ -64,7 +65,7 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
 {
     std::string _send_header;
     std::string _send_data;
-    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
+    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), std::fclose);
     if (fp.get())
     {
 
@@ -369,7 +370,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
 {
     std::string _send_header;
     std::string _send_data;
-    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
+    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), std::fclose);
     DEBUG_LOG("%s", peer->sendfilename.c_str());
     if (fp.get())
     {
@@ -496,7 +497,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
                             peer->compress = 1;
                             path_temp.append(".gzip");
                         }
-                        FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), &std::fclose);
+                        FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), std::fclose);
                         if (fpcompress.get())
                         {
                             fseek(fpcompress.get(), 0, SEEK_END);
@@ -549,7 +550,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
                     {
                         if (path_temp.size() > 0)
                         {
-                            FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), &std::fclose);
+                            FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), std::fclose);
                             if (fpcompress.get())
                             {
                                 fwrite(&htmlcontent[0], 1, htmlcontent.size(), fpcompress.get());
@@ -787,7 +788,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
 {
     std::string _send_header;
     std::string _send_data;
-    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
+    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), std::fclose);
     DEBUG_LOG("%s", peer->sendfilename.c_str());
     if (fp.get())
     {
@@ -911,7 +912,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
                             peer->compress = 1;
                             path_temp.append(".gzip");
                         }
-                        FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), &std::fclose);
+                        FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), std::fclose);
                         if (fpcompress.get())
                         {
                             fseek(fpcompress.get(), 0, SEEK_END);
@@ -964,7 +965,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
                     {
                         if (path_temp.size() > 0)
                         {
-                            FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), &std::fclose);
+                            FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), std::fclose);
                             if (fpcompress.get())
                             {
                                 fwrite(&htmlcontent[0], 1, htmlcontent.size(), fpcompress.get());
@@ -1953,7 +1954,7 @@ asio::awaitable<void> httpserver::http1_send_file(unsigned int streamid,
                                                   const std::string &filename)
 {
     DEBUG_LOG("http1_send_file:%s %u", filename.c_str(), streamid);
-    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
+    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), std::fclose);
     if (fp.get())
     {
         fseek(fp.get(), 0, SEEK_END);
@@ -2052,7 +2053,7 @@ asio::awaitable<void> httpserver::http1_send_file(unsigned int streamid,
                             peer->compress = 1;
                             path_temp.append(".gzip");
                         }
-                        FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), &std::fclose);
+                        FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "rb"), std::fclose);
                         if (fpcompress.get())
                         {
                             DEBUG_LOG("http1_send_file:file compress %s %d", path_temp.c_str(), peer->compress);
@@ -2106,7 +2107,7 @@ asio::awaitable<void> httpserver::http1_send_file(unsigned int streamid,
                     {
                         if (path_temp.size() > 0)
                         {
-                            FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), &std::fclose);
+                            FILE_AUTO fpcompress(std::fopen(path_temp.c_str(), "wb"), std::fclose);
                             if (fpcompress.get())
                             {
                                 fwrite(&htmlcontent[0], 1, htmlcontent.size(), fpcompress.get());
@@ -2209,7 +2210,7 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
 {
     DEBUG_LOG("http1_send_file_range %s %u", filename.c_str(), streamid);
 
-    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), &std::fclose);
+    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), std::fclose);
     if (fp.get())
     {
         fseek(fp.get(), 0, SEEK_END);

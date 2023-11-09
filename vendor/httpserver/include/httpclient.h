@@ -9,6 +9,7 @@
 #include <list>
 #include <map>
 #include <sstream>
+#include <functional>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include "cookie.h"
@@ -30,9 +31,9 @@ class client : public std::enable_shared_from_this<client>
 {
 
   public:
-    client() : rawfile(nullptr, &std::fclose){};
+    client() : rawfile(nullptr, std::fclose){};
     ~client();
-    client(std::string_view url) : _url(url), rawfile(nullptr, &std::fclose){};
+    client(std::string_view url) : _url(url), rawfile(nullptr, std::fclose){};
     client &get(std::string_view url, http::OBJ_VALUE parmter);
     client &get(std::string_view url);
     client &post(std::string_view url, http::OBJ_VALUE parmter);
@@ -83,7 +84,7 @@ class client : public std::enable_shared_from_this<client>
     void process(const char *buffer, unsigned int buffersize);
     void close_file(std::FILE *fp) { std::fclose(fp); }
 
-        void buildheader();
+    void buildheader();
     void buildcontent();
     void timeout(unsigned int t) { exptime = t; };
     unsigned int timeout() { return exptime; };
@@ -179,7 +180,7 @@ class client : public std::enable_shared_from_this<client>
     unsigned char error        = 0;
     unsigned int readoffset    = 0;
     //FILE *rawfile = NULL;
-    std::unique_ptr<std::FILE, decltype(&std::fclose)> rawfile;
+    std::unique_ptr<std::FILE, int (*)(FILE *)> rawfile;
 };
 }// namespace http
 #endif// PROJECT_HTTPCLIENT_H
