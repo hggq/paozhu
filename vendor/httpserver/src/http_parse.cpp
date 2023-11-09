@@ -867,6 +867,7 @@ void httpparse::callposttype()
             peer->posttype     = 4;
             return;
         }
+        break;
     case 6:
         if (strcasecmp(buffer_value.c_str(), "binary") == 0)
         {
@@ -882,6 +883,10 @@ void httpparse::callposttype()
         peer->posttype     = 5;
         return;
     }
+    poststate.type     = "raw";
+    poststate.posttype = 7;
+    peer->posttype     = 5;
+    return;
 }
 void httpparse::getcontenttype()
 {
