@@ -9,11 +9,11 @@
 
 namespace http
 {
-   typedef struct
-   {
-      std::string key;
-      std::string value;
-   } http2_header_static_table_t;
+typedef struct
+{
+    std::string key;
+    std::string value;
+} http2_header_static_table_t;
 
 #define PER_DATA_BLOCK_SIZE 10240
 
@@ -32,90 +32,88 @@ namespace http
 #define HTTP2_DATA_END_STREAM 0x01
 #define HTTP2_DATA_PADDED 0x08
 
-   //
+//
 
-   struct http2_setting_t
-   {
+struct http2_setting_t
+{
 
-      unsigned int header_table_size = 4096;     // 0x01
-      unsigned int enable_push = 0;              // 0x02
-      unsigned int max_concurrent_streams = 128; // 0x03
-      unsigned int initial_window_size = 65535;  // 0x04
-      unsigned int max_frame_size = 16384;       // 0x05
-      unsigned int max_heaer_list_size = 0;      // 0x06
-      unsigned int accept_cache_digest = 0;      // 0x07
-      unsigned int enable_connect_protocol = 0;  // 0x08
-   };
+    unsigned int header_table_size       = 4096; // 0x01
+    unsigned int enable_push             = 0;    // 0x02
+    unsigned int max_concurrent_streams  = 128;  // 0x03
+    unsigned int initial_window_size     = 65535;// 0x04
+    unsigned int max_frame_size          = 16384;// 0x05
+    unsigned int max_heaer_list_size     = 0;    // 0x06
+    unsigned int accept_cache_digest     = 0;    // 0x07
+    unsigned int enable_connect_protocol = 0;    // 0x08
+};
 
-   struct http2_priority_t
-   {
+struct http2_priority_t
+{
 
-      unsigned int depend_stream_id;
-      unsigned char weight;
-   };
+    unsigned int depend_stream_id;
+    unsigned char weight;
+};
 
-   struct http2_header_t
-   {
-      unsigned int block_length;
-      unsigned int stream_id;
-      unsigned int depend_stream_id;
-      unsigned char flag;
-      unsigned char stream_e;
-      unsigned char stream_d;
-      unsigned char pad_length;
-      unsigned char weight;
+struct http2_header_t
+{
+    unsigned int block_length;
+    unsigned int stream_id;
+    unsigned int depend_stream_id;
+    unsigned char flag;
+    unsigned char stream_e;
+    unsigned char stream_d;
+    unsigned char pad_length;
+    unsigned char weight;
 
-      std::vector<unsigned char> data;
-   };
+    std::vector<unsigned char> data;
+};
 
-   // struct http2_window_update_t{
-   //      std::map<unsigned int,unsigned char> data;
-   // };
+// struct http2_window_update_t{
+//      std::map<unsigned int,unsigned char> data;
+// };
 
+struct http2_goaway_t
+{
 
+    unsigned int last_stream_id;
+    unsigned int error_code;
+    std::vector<unsigned char> data;
+};
 
-   struct http2_goaway_t
-   {
+struct http2_data_t
+{
+    http2_data_t() : uprawfile(nullptr, std::fclose){};
+    unsigned int stream_id            = 0;
+    unsigned int match_offset         = 0;
+    bool isbegin                      = false;
+    bool isend                        = false;
+    bool endstream                    = false;
+    bool endheader                    = false;
+    bool padded                       = false;
+    bool priority                     = false;
+    unsigned char posttype            = 0;
+    unsigned char postfieldtype       = 0;
+    unsigned char changetype          = 0;
+    unsigned char pad_length          = 0;
+    unsigned char weight              = 0;
+    unsigned long long length         = 0;// bloack data length;
+    unsigned long long curnum         = 0;// now block length
+    unsigned long long content_length = 0;// post length
 
-      unsigned int last_stream_id;
-      unsigned int error_code;
-      std::vector<unsigned char> data;
-   };
+    //std::FILE *uprawfile = NULL;
+    std::unique_ptr<std::FILE, int (*)(FILE *)> uprawfile;
 
-   struct http2_data_t
-   {
-      http2_data_t():uprawfile(nullptr,&std::fclose){};
-      unsigned int stream_id = 0;
-      unsigned int match_offset = 0;
-      bool isbegin = false;
-      bool isend = false;
-      bool endstream = false;
-      bool endheader = false;
-      bool padded = false;
-      bool priority = false;
-      unsigned char posttype = 0;
-      unsigned char postfieldtype = 0;
-      unsigned char changetype = 0;
-      unsigned char pad_length = 0;
-      unsigned char weight = 0;
-      unsigned long long length = 0;         // bloack data length;
-      unsigned long long curnum = 0;         // now block length
-      unsigned long long content_length = 0; // post length
+    std::string boundary;
+    std::string fieldname;
+    std::string buffer_key;
+    std::string buffer_value;
+    std::string field_value;
 
-      //std::FILE *uprawfile = NULL;
-      std::unique_ptr<std::FILE, decltype(&std::fclose)> uprawfile;
+    struct uploadfile_t upfile;
+};
 
-      std::string boundary;
-      std::string fieldname;
-      std::string buffer_key;
-      std::string buffer_value;
-      std::string field_value;
-
-      struct uploadfile_t upfile;
-   };
-
-   // header code
-   extern std::map<std::string, unsigned char> http2_header_codes_table;
+// header code
+extern std::map<std::string, unsigned char> http2_header_codes_table;
 
 #define HTTP2_CODE_authority 1
 #define HTTP2_CODE_GET 2
@@ -179,94 +177,93 @@ namespace http
 #define HTTP2_CODE_via 60
 #define HTTP2_CODE_www_authenticate 61
 
-   static http2_header_static_table_t http2_header_static_table[] = {
-       {":empty", ""},
-       {":authority", ""},
-       {":method", "GET"},
-       {":method", "POST"},
-       {":path", "/"},
-       {":path", "/index.html"},
-       {":scheme", "http"},
-       {":scheme", "https"},
-       {":status", "200"},
-       {":status", "204"},
-       {":status", "206"},
-       {":status", "304"},
-       {":status", "400"},
-       {":status", "404"},
-       {":status", "500"},
-       {"accept-charset", ""},
-       {"accept-encoding", "gzip, deflate"},
-       {"accept-language", ""},
-       {"accept-ranges", ""},
-       {"accept", ""},
-       {"access-control-allow-origin", ""},
-       {"age", ""},
-       {"allow", ""},
-       {"authorization", ""},
-       {"cache-control", ""},
-       {"content-disposition", ""},
-       {"content-encoding", ""},
-       {"content-language", ""},
-       {"content-length", ""},
-       {"content-location", ""},
-       {"content-range", ""},
-       {"content-type", ""},
-       {"cookie", ""},
-       {"date", ""},
-       {"etag", ""},
-       {"expect", ""},
-       {"expires", ""},
-       {"from", ""},
-       {"host", ""},
-       {"if-match", ""},
-       {"if-modified-since", ""},
-       {"if-none-match", ""},
-       {"if-range", ""},
-       {"if-unmodified-since", ""},
-       {"last-modified", ""},
-       {"link", ""},
-       {"location", ""},
-       {"max-forwards", ""},
-       {"proxy-authenticate", ""},
-       {"proxy-authorization", ""},
-       {"range", ""},
-       {"referer", ""},
-       {"refresh", ""},
-       {"retry-after", ""},
-       {"server", ""},
-       {"set-cookie", ""},
-       {"strict-transport-security", ""},
-       {"transfer-encoding", ""},
-       {"user-agent", ""},
-       {"vary", ""},
-       {"via", ""},
-       {"www-authenticate", ""},
-   };
-   // http2 header make item
-   bool make_http2_headers(std::string &hh_data);
-   bool set_http2_headers_static(unsigned char *hh_data, unsigned char hh_code);
-   bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code);
-   
+static http2_header_static_table_t http2_header_static_table[] = {
+    {":empty", ""},
+    {":authority", ""},
+    {":method", "GET"},
+    {":method", "POST"},
+    {":path", "/"},
+    {":path", "/index.html"},
+    {":scheme", "http"},
+    {":scheme", "https"},
+    {":status", "200"},
+    {":status", "204"},
+    {":status", "206"},
+    {":status", "304"},
+    {":status", "400"},
+    {":status", "404"},
+    {":status", "500"},
+    {"accept-charset", ""},
+    {"accept-encoding", "gzip, deflate"},
+    {"accept-language", ""},
+    {"accept-ranges", ""},
+    {"accept", ""},
+    {"access-control-allow-origin", ""},
+    {"age", ""},
+    {"allow", ""},
+    {"authorization", ""},
+    {"cache-control", ""},
+    {"content-disposition", ""},
+    {"content-encoding", ""},
+    {"content-language", ""},
+    {"content-length", ""},
+    {"content-location", ""},
+    {"content-range", ""},
+    {"content-type", ""},
+    {"cookie", ""},
+    {"date", ""},
+    {"etag", ""},
+    {"expect", ""},
+    {"expires", ""},
+    {"from", ""},
+    {"host", ""},
+    {"if-match", ""},
+    {"if-modified-since", ""},
+    {"if-none-match", ""},
+    {"if-range", ""},
+    {"if-unmodified-since", ""},
+    {"last-modified", ""},
+    {"link", ""},
+    {"location", ""},
+    {"max-forwards", ""},
+    {"proxy-authenticate", ""},
+    {"proxy-authorization", ""},
+    {"range", ""},
+    {"referer", ""},
+    {"refresh", ""},
+    {"retry-after", ""},
+    {"server", ""},
+    {"set-cookie", ""},
+    {"strict-transport-security", ""},
+    {"transfer-encoding", ""},
+    {"user-agent", ""},
+    {"vary", ""},
+    {"via", ""},
+    {"www-authenticate", ""},
+};
+// http2 header make item
+bool make_http2_headers(std::string &hh_data);
+bool set_http2_headers_static(unsigned char *hh_data, unsigned char hh_code);
+bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code);
 
-   bool make_http2_headers_item(std::string &hh_data, unsigned int num);
-   bool make_http2_headers_item(std::string &hh_data, const std::string &value);
-   bool make_http2_headers_item(std::string &hh_data, unsigned char, const std::string &value);
+bool make_http2_headers_item(std::string &hh_data, unsigned int num);
+bool make_http2_headers_item(std::string &hh_data, const std::string &value);
+bool make_http2_headers_item(std::string &hh_data, unsigned char, const std::string &value);
 
-   bool make_http2_headers_item2(std::string &hh_data, unsigned char, const std::string &value);
-   bool make_http2_headers_item2(std::string &hh_data, const std::string &key, const std::string &value);
-   bool make_http2_headers_item2(std::string &hh_data, unsigned char, unsigned long long num);
+bool make_http2_headers_item2(std::string &hh_data, unsigned char, const std::string &value);
+bool make_http2_headers_item2(std::string &hh_data, const std::string &key, const std::string &value);
+bool make_http2_headers_item2(std::string &hh_data, unsigned char, unsigned long long num);
 
-   bool make_http2_headers_item3(std::string &hh_data, const std::string &key, const std::string &value);
-   bool make_http2_headers_item3(std::string &hh_data, unsigned char, const std::string &value);
-   bool make_http2_headers_item3(std::string &hh_data, unsigned char, unsigned long long num);
+bool make_http2_headers_item3(std::string &hh_data, const std::string &key, const std::string &value);
+bool make_http2_headers_item3(std::string &hh_data, unsigned char, const std::string &value);
+bool make_http2_headers_item3(std::string &hh_data, unsigned char, unsigned long long num);
 
-   bool make_http2_headers_item4(std::string &hh_data, const std::string &key, const std::string &value);
-   bool make_http2_headers_item4(std::string &hh_data, unsigned char, const std::string &value);
-   bool make_http2_headers_item4(std::string &hh_data, unsigned char, unsigned long long num);
+bool make_http2_headers_item4(std::string &hh_data, const std::string &key, const std::string &value);
+bool make_http2_headers_item4(std::string &hh_data, unsigned char, const std::string &value);
+bool make_http2_headers_item4(std::string &hh_data, unsigned char, unsigned long long num);
 
-   bool set_http2_frame_streamid(std::string &hh_data, unsigned int streamid);
-   bool set_http2_headers_size(std::string &hh_data, unsigned int sizenum);
-   bool set_http2_headers_flag(std::string &hh_data, unsigned char flag);
-}
+bool set_http2_frame_streamid(std::string &hh_data, unsigned int streamid);
+bool set_http2_headers_size(std::string &hh_data, unsigned int sizenum);
+bool set_http2_headers_flag(std::string &hh_data, unsigned char flag);
+}// namespace http
 #endif

@@ -53,7 +53,7 @@
 namespace http
 {
 
-httpparse::httpparse() : uprawfile(nullptr, &std::fclose) { error = 0; }
+httpparse::httpparse() : uprawfile(nullptr, std::fclose) { error = 0; }
 // void httpparse::setsession(std::shared_ptr<client_session> peer)
 // {
 //       peer_session = peer->get_ptr();

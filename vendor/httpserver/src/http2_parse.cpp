@@ -1169,6 +1169,7 @@ void http2parse::callposttype()
             http_data[block_steamid]->posttype     = 4;
             return;
         }
+        break;
     case 6:
         if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "binary") == 0)
         {
@@ -1184,6 +1185,10 @@ void http2parse::callposttype()
         http_data[block_steamid]->posttype     = 5;
         return;
     }
+    http_data[block_steamid]->content_type = "raw";
+    data_info[block_steamid].posttype      = 7;
+    http_data[block_steamid]->posttype     = 5;
+    return;
 }
 
 void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name, const std::string &header_value)
