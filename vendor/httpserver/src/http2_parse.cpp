@@ -167,13 +167,13 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
         if (data_info[block_steamid].endheader)
         {
             http_data.emplace(block_steamid, std::make_shared<httppeer>());
-            headers_parse(block_steamid);
+            headers_parse();
             http_data[block_steamid]->isuse_fastcgi();
         }
         processheader = 0;
     }
 }
-void http2parse::headers_parse(unsigned int info_steamid)
+void http2parse::headers_parse()
 {
     std::string_view setting_data(stream_data[block_steamid]);
     if (setting_data.size() == 0)
@@ -258,7 +258,7 @@ void http2parse::headers_parse(unsigned int info_steamid)
     stream_data[block_steamid].clear();
     data_info[block_steamid].buffer_value.clear();
 }
-void http2parse::cookie_process(const std::string &header_name, const std::string &header_value)
+void http2parse::cookie_process([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     DEBUG_LOG("cookie_process:%s:%s", header_name.c_str(), header_value.c_str());
     //http_data[block_steamid]->header[header_name] = header_value;
@@ -314,7 +314,7 @@ void http2parse::cookie_process(const std::string &header_name, const std::strin
         data_info[block_steamid].buffer_key.clear();
     }
 }
-void http2parse::path_process(const std::string &header_name, const std::string &header_value)
+void http2parse::path_process([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     DEBUG_LOG("path_process:%s:%s", header_name.c_str(), header_value.c_str());
     data_info[block_steamid].buffer_key.clear();
@@ -649,7 +649,7 @@ void http2parse::procssparamter()
         http_data[block_steamid]->get[data_info[block_steamid].buffer_key] = data_info[block_steamid].buffer_value;
     }
 }
-void http2parse::range_process(const std::string &header_name, const std::string &header_value)
+void http2parse::range_process([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     DEBUG_LOG("range_process:%s:%s", header_name.c_str(), header_value.c_str());
     unsigned int j = 0, linesize = header_value.size();
@@ -1989,7 +1989,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
     }
 }
 
-void http2parse::readsetting(const unsigned char *buffer, unsigned int buffersize)
+void http2parse::readsetting(const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     // unsigned int j = readoffset;
     if (flag_type == 0x01)
@@ -2047,7 +2047,7 @@ void http2parse::readsetting(const unsigned char *buffer, unsigned int buffersiz
     window_update_recv_num = setting_data.initial_window_size;
     readoffset += blocklength;
 }
-void http2parse::readpriority(const unsigned char *buffer, unsigned int buffersize)
+void http2parse::readpriority(const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     unsigned int pin;
     pin = readoffset + blocklength;
@@ -2071,12 +2071,12 @@ void http2parse::readpriority(const unsigned char *buffer, unsigned int buffersi
     readoffset += 5;
     processheader = 0;
 }
-void http2parse::readdata(const unsigned char *buffer, unsigned int buffersize)
+void http2parse::readdata([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readdata %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
 }
-void http2parse::readgoaway(const unsigned char *buffer, unsigned int buffersize)
+void http2parse::readgoaway(const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readgoaway %ul", buffersize);
     unsigned int j = readoffset;
@@ -2109,19 +2109,19 @@ void http2parse::readgoaway(const unsigned char *buffer, unsigned int buffersize
     peer_session->isgoway = true;
 }
 
-void http2parse::readsubdata(const unsigned char *buffer, unsigned int buffersize)
+void http2parse::readsubdata([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readsubdata %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
     processheader = 0;
 }
-void http2parse::readcontinuation(const unsigned char *buffer, unsigned int buffersize)
+void http2parse::readcontinuation([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readcontinuation %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
     processheader = 0;
 }
-void http2parse::readwinupdate(const unsigned char *buffer, unsigned int buffersize)
+void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readwinupdate %ul", buffersize);
     unsigned int ident_stream, j;
@@ -2172,7 +2172,7 @@ void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
     readoffset += blocklength;
     peer_session->send_data(_recvack, 17);
 }
-void http2parse::readrst_stream(const unsigned char *buffer, unsigned int buffersize)
+void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readrst_stream %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
@@ -3243,7 +3243,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
     }
 }
 
-void http2parse::readboundaryline(const unsigned char *buffer, unsigned int &begin, unsigned int buffersize)
+void http2parse::readboundaryline(const unsigned char *buffer, unsigned int &begin, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readboundaryline:%ul\n", buffersize);
     unsigned int ni = 0, baseoffset = begin;

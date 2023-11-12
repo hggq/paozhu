@@ -15,7 +15,7 @@
 namespace http
 {
 std::mutex loadcontrolmtx, loadviewmtx, moudulecachemethod;
-std::string httpempty(OBJ_VALUE &a) { return "<p>--.so image not found--</p>"; }
+std::string httpempty([[maybe_unused]] OBJ_VALUE &a) { return "<p>--.so image not found--</p>"; }
 std::string httpso(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();

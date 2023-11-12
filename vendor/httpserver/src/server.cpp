@@ -2210,7 +2210,7 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
 {
     DEBUG_LOG("http1_send_file_range %s %u", filename.c_str(), streamid);
 
-    FILE_AUTO fp(std::fopen(peer->sendfilename.c_str(), "rb"), std::fclose);
+    FILE_AUTO fp(std::fopen(filename.c_str(), "rb"), std::fclose);
     if (fp.get())
     {
         fseek(fp.get(), 0, SEEK_END);
@@ -2225,14 +2225,14 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
         std::string fileexttype;
         std::string mime_value = "text/html; charset=utf-8";
 
-        unsigned int filebasesize   = peer->sendfilename.size();
+        unsigned int filebasesize   = filename.size();
         unsigned int filenameoffset = 0;
 
         if (filebasesize > 0)
         {
             for (filenameoffset = filebasesize - 1; filenameoffset > 0; filenameoffset--)
             {
-                if (peer->sendfilename[filenameoffset] == '.')
+                if (filename[filenameoffset] == '.')
                 {
                     break;
                 }
@@ -2240,12 +2240,12 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
             filenameoffset += 1;
             for (; filenameoffset < filebasesize; filenameoffset++)
             {
-                fileexttype.push_back(peer->sendfilename[filenameoffset]);
+                fileexttype.push_back(filename[filenameoffset]);
             }
         }
 
-        unsigned int statecode = 200;
-        peer->compress         = 0;
+        streamid       = 200;
+        peer->compress = 0;
 
         if (fileexttype.size() > 0)
         {
@@ -2276,20 +2276,20 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
         mustnum = file_size;
         if (peer->state.rangebegin > 0)
         {
-            readnum   = peer->state.rangebegin;
-            statecode = 206;
+            readnum  = peer->state.rangebegin;
+            streamid = 206;
         }
         if (peer->state.rangeend > 0)
         {
-            mustnum   = peer->state.rangeend + 1;
-            statecode = 206;
+            mustnum  = peer->state.rangeend + 1;
+            streamid = 206;
         }
 
-        peer->status(statecode);
+        peer->status(streamid);
         peer->length(mustnum - readnum);
         peer->type(mime_value);
 
-        if (statecode == 206)
+        if (streamid == 206)
         {
             peer->set_header("content-range",
                              "bytes " + std::to_string(readnum) + "-" + std::to_string(mustnum - 1) + "/" +

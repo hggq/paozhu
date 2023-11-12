@@ -22,7 +22,7 @@
 namespace http
 {
 std::mutex loadviewsomtx;
-std::string httpempty(struct view_param, OBJ_VALUE &a) { return "<p>--.so image not found--</p>"; }
+std::string httpempty([[maybe_unused]] struct view_param, [[maybe_unused]] OBJ_VALUE &a) { return "<p>--.so image not found--</p>"; }
 
 view_so_cachepath_t &get_viewsharedpathchache()
 {
