@@ -234,7 +234,7 @@ void http2parse::headers_parse()
 
     if (ispost)
     {
-        DEBUG_LOG("http2 post client: %s %ud", http_data[block_steamid]->url.c_str(), info_steamid);
+        DEBUG_LOG("http2 post client: %s %ud", http_data[block_steamid]->url.c_str(), block_steamid);
         window_update_recv_num = RECV_WINDOW_UPDATE_NUM;
         peer_session->send_window_update(window_update_recv_num, block_steamid);
         data_info[block_steamid].stream_id      = block_steamid;
