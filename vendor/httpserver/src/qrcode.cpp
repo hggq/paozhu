@@ -131,7 +131,7 @@ std::string qrcode::save(std::string url, std::string pathfile = "")
     im = gdImageCreate(totalwidth, totalheight);
     int black;
     // int white;
-    // white = gdImageColorAllocate(im, 255, 255, 255);
+    gdImageColorAllocate(im, 255, 255, 255);
     black = gdImageColorAllocate(im, 0, 0, 0);
     for (int i = 0; i < owidth; i++)
     {
