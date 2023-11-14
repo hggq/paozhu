@@ -32,7 +32,7 @@ std::string testqrcode(std::shared_ptr<httppeer> peer)
     }
     wwwpath.append("/test.png");
     // std::string wwwurl = client.get_hosturl();
-    client << "<img src=\"" << a.save("/upload/", wwwpath) << "\">";
+    client << "<img src=\"" << a.save("/upload/", wwwpath) << "?token=123456\">";
 
 #endif
     return "";
