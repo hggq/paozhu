@@ -2,95 +2,81 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="640"
-   height="250.00002"
-   viewBox="0 0 169.33333 66.145837"
+   width="77.68mm"
+   height="39.702999mm"
+   viewBox="0 0 77.68 39.702999"
    version="1.1"
-   id="svg941"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
+   id="svg1"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <defs
-     id="defs938">
-    <linearGradient
-       id="linearGradient863">
-      <stop
-         style="stop-color:#e8e869;stop-opacity:1;"
-         offset="0"
-         id="stop861" />
-    </linearGradient>
-    <linearGradient
-       xlink:href="#linearGradient863"
-       id="linearGradient2470"
-       gradientUnits="userSpaceOnUse"
-       x1="113.38786"
-       y1="63.53466"
-       x2="130.1201"
-       y2="63.53466" />
+     id="defs1">
+    <rect
+       x="378.3967"
+       y="152.91374"
+       width="282.50165"
+       height="114.03737"
+       id="rect1" />
   </defs>
   <g
      id="layer1"
-     transform="translate(-2.3390853,-17.635602)">
+     transform="translate(-37.63492,-34.867705)">
     <path
-       d="m 22.006264,29.558082 c -0.153576,2.165682 -0.544338,7.784788 -0.732514,14.026604 -0.04931,1.635599 -0.09675,3.689105 -0.111804,5.99663 0.01859,1.871108 -0.03675,4.9916 0.416582,7.646481 0.04614,0.406323 0.178097,0.794223 0.390192,1.137515 0.217227,0.351596 0.508268,0.640049 0.848967,0.853576 0.416121,0.308381 0.846544,0.556553 1.209886,0.751979 0.360106,0.193686 1.138464,0.580894 1.234182,0.629561 a 0.50391715,0.50391715 90 0 0 0.45677,-0.898382 c -0.123746,-0.06292 -0.865667,-0.431658 -1.213553,-0.618771 -0.349965,-0.188232 -0.738128,-0.413684 -1.102247,-0.685283 -0.01208,-0.009 -0.02455,-0.01747 -0.03739,-0.02536 -0.218037,-0.134038 -0.4022,-0.315259 -0.539224,-0.537042 -0.133314,-0.215778 -0.218534,-0.464605 -0.24736,-0.732099 -0.0011,-0.01045 -0.0026,-0.02087 -0.0044,-0.03123 -0.438515,-2.555656 -0.385494,-5.571427 -0.404653,-7.492684 0.015,-2.289443 0.06225,-4.334777 0.111382,-5.964521 0.187534,-6.2205 0.577076,-11.822875 0.730448,-13.985684 a 0.50391715,0.50391715 90 0 0 -1.00531,-0.07129 z"
-       id="path4006"
-       style="fill:#484537;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.901496" />
+       id="ellipse1"
+       style="display:inline;fill:#be002f;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
+       d="m 39.222421,42.577547 v 27.497269 0.02378 h 0.0056 a 11.626255,3.0247168 0 0 0 11.62075,3.001029 11.626255,3.0247168 0 0 0 11.620601,-3.001029 h 0.0058 v -0.02378 -27.497269 z" />
+    <ellipse
+       style="display:inline;fill:#8a0022;fill-opacity:1;stroke:#9b4400;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       id="path1"
+       cx="50.848694"
+       cy="42.443302"
+       rx="11.626254"
+       ry="3.0247169" />
     <path
-       style="fill:#ff0000;fill-opacity:1;stroke-width:0.293494"
-       id="path5570"
-       d="m 419.69696,956.06061 -42.71139,-6.97128 -29.95652,31.2325 -6.56846,-42.77519 -38.96094,-18.83897 38.65186,-19.46524 5.87732,-42.87562 30.45663,30.74501 42.59333,-7.65962 -19.82863,38.4667 z"
-       transform="matrix(0.26458333,0,0,0.26458334,-75.316028,-207.88645)" />
+       id="rect2-3"
+       style="display:inline;fill:#f2be45;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
+       d="m 39.222437,46.98068 v 2.692364 0.291999 h 0.06791 a 11.626255,3.0247168 0 0 0 11.5584,2.7328 11.626255,3.0247168 0 0 0 11.55825,-2.7328 h 0.06775 V 49.67366 a 11.626255,3.0247168 0 0 0 1.51e-4,-5.81e-4 11.626255,3.0247168 0 0 0 -1.51e-4,-0.0017 v -2.690667 h -0.06775 a 11.626255,3.0247168 0 0 1 -11.55825,2.7328 11.626255,3.0247168 0 0 1 -11.5584,-2.7328 z" />
     <path
-       style="fill:#ffff00;fill-opacity:1;stroke-width:0.293494"
-       id="path5572"
-       d="m 419.69696,956.06061 -42.71139,-6.97128 -29.95652,31.2325 -6.56846,-42.77519 -38.96094,-18.83897 38.65186,-19.46524 5.87732,-42.87562 30.45663,30.74501 42.59333,-7.65962 -19.82863,38.4667 z"
-       transform="matrix(0.22152189,0,0,0.20621635,-59.526831,-154.29495)" />
-    <path
-       style="fill:#ffcd00;fill-opacity:1;stroke-width:0.293494"
-       id="path6300"
-       d="m 419.69696,956.06061 -42.71139,-6.97128 -29.95652,31.2325 -6.56846,-42.77519 -38.96094,-18.83897 38.65186,-19.46524 5.87732,-42.87562 30.45663,30.74501 42.59333,-7.65962 -19.82863,38.4667 z"
-       transform="matrix(0.09935422,0,0,0.09608662,-15.878313,-53.970246)" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:18.0941px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#d85500;fill-opacity:1;stroke-width:1.50784"
-       x="89.432838"
-       y="52.374569"
-       id="text12202"
-       transform="scale(1.0040421,0.99597418)"><tspan
-         id="tspan12200"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:18.0941px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#d85500;fill-opacity:1;stroke-width:1.50784"
-         x="89.432838"
-         y="52.374569">Paozhu</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8.46667px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#d40000;fill-opacity:1;stroke:url(#linearGradient2470);stroke-width:0.264583;stroke-opacity:1"
-       x="113.30849"
-       y="66.768929"
-       id="text12258"><tspan
-         id="tspan12256"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8.46667px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#d40000;fill-opacity:1;stroke:url(#linearGradient2470);stroke-width:0.264583;stroke-opacity:1"
-         x="113.30849"
-         y="66.768929">炮竹</tspan></text>
+       id="path3"
+       style="display:inline;fill:#f2be45;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
+       d="m 39.222437,62.960514 v 2.692364 0.291999 h 0.06791 a 11.626255,3.0247168 0 0 0 11.5584,2.7328 11.626255,3.0247168 0 0 0 11.55825,-2.7328 h 0.06775 v -0.291383 a 11.626255,3.0247168 0 0 0 1.51e-4,-5.82e-4 11.626255,3.0247168 0 0 0 -1.51e-4,-0.0017 v -2.690666 h -0.06775 a 11.626255,3.0247168 0 0 1 -11.55825,2.7328 11.626255,3.0247168 0 0 1 -11.5584,-2.7328 z" />
     <g
-       id="g3299"
-       transform="matrix(0.99276654,0.23591498,-0.18413301,0.77486005,-14.055356,-122.50122)">
-      <g
-         id="g3297">
-        <rect
-           style="fill:#e00000;fill-opacity:1;stroke-width:0.264583"
-           id="rect3293"
-           width="54.768749"
-           height="21.960417"
-           x="79.110413"
-           y="201.6125" />
-        <rect
-           style="fill:#e9bb00;fill-opacity:1;stroke-width:0.2663"
-           id="rect3295"
-           width="5.0308094"
-           height="21.895321"
-           x="81.329445"
-           y="201.60504" />
-      </g>
+       id="g17"
+       transform="matrix(0.29865505,0,0,0.29865505,4.6740761,-19.096338)">
+      <ellipse
+         style="fill:#0aa344;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;paint-order:stroke fill markers"
+         id="path16"
+         cx="256.12851"
+         cy="19.744579"
+         rx="5.5665631"
+         ry="16.941715"
+         transform="rotate(45)" />
+      <ellipse
+         style="fill:#0aa344;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;paint-order:stroke fill markers"
+         id="ellipse16"
+         cx="-37.479038"
+         cy="238.39404"
+         rx="5.5665631"
+         ry="16.941715"
+         transform="rotate(-45)" />
     </g>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.16952874,0,0,0.16952874,7.353149,16.491468)"
+       id="text1"
+       style="font-weight:bold;font-size:68.3872px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN Bold';white-space:pre;shape-inside:url(#rect1);display:inline;fill:#ff7500;fill-opacity:1;stroke:#9b4400;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"><tspan
+         x="378.39648"
+         y="221.6432"
+         id="tspan3">Paozhu</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:6.56239px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#be002f;fill-opacity:1;stroke:#9b4400;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
+       x="86.010201"
+       y="66.795288"
+       id="text2"><tspan
+         id="tspan2"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:6.56239px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#be002f;fill-opacity:1;stroke-width:0"
+         x="86.010201"
+         y="66.795288">炮竹</tspan></text>
   </g>
 </svg>
