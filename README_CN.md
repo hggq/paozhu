@@ -1,7 +1,7 @@
 简体中文 | [English](README_EN.md)
 
 <div align="center">
-<img src="https://www.paozhu.org/images/logo.svg">
+<img src="https://hggq.github.io/paozhu/images/logo.svg">
 </div>
 
 **Paozhu**(炮竹🧨)是一个全面、快速的C++ web framework 开发框架，集成C++ ORM，开发速度跟脚本语言一样，日写1000行业务代码没有压力，框架集成了WebServer，自己原生解析HTTP/1、HTTP/2、JSON协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char
@@ -135,11 +135,11 @@ sudo ./bin/paozhu
 
 
 <div align="center">
-<img src="https://www.paozhu.org/images/home.png">
+<img src="https://hggq.github.io/paozhu/images/home.png">
 </div>
 
 <div align="center">
-<img src="https://www.paozhu.org/images/admin.png">
+<img src="https://hggq.github.io/paozhu/images/admin.png">
 </div>
 
 
@@ -150,9 +150,9 @@ sudo ./bin/paozhu
 
 使用 h2load 和 ab 测试
 
-![ApacheBench test](https://www.paozhu.org/images/ab_stress_test.png "ApacheBench test")  
+![ApacheBench test](https://hggq.github.io/paozhu/images/ab_stress_test.png "ApacheBench test")  
 
-![h2load test](https://www.paozhu.org/images/h2load_stress_test.png "h2load test")  
+![h2load test](https://hggq.github.io/paozhu/images/h2load_stress_test.png "h2load test")  
 
 
 

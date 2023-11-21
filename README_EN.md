@@ -1,6 +1,6 @@
 English | [简体中文](README_CN.md)
 <div align="center">
-<img src="https://www.paozhu.org/images/logo.svg">
+<img src="https://hggq.github.io/paozhu/images/logo.svg">
 </div>
 
 Paozhu(炮竹🧨) is a comprehensive and fast C++ web framework that integrates C++ ORM. The development speed is as
@@ -134,12 +134,12 @@ open the browser and enter `http://localhost` or `http://www.869869.com` in the 
 
 
 <div align="center">
-<img src="https://www.paozhu.org/images/home.png">
+<img src="https://hggq.github.io/paozhu/images/home.png">
 </div>
 
 
 <div align="center">
-<img src="https://www.paozhu.org/images/admin.png">
+<img src="https://hggq.github.io/paozhu/images/admin.png">
 </div>
 
 
@@ -149,9 +149,9 @@ for more details, please see the source code under the `controller` directory, w
 
 Use h2load and ab testing
 
-![ApacheBench test](https://www.paozhu.org/images/ab_stress_test.png "ApacheBench test")  
+![ApacheBench test](https://hggq.github.io/paozhu/images/ab_stress_test.png "ApacheBench test")  
 
-![h2load test](https://www.paozhu.org/images/h2load_stress_test.png "h2load test")  
+![h2load test](https://hggq.github.io/paozhu/images/h2load_stress_test.png "h2load test")  
 
 
 ###  8.Sample Hello world
