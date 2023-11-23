@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="293.59369"
-   height="150.05901"
-   viewBox="0 0 77.679997 39.703112"
+   width="300"
+   height="150"
+   viewBox="0 0 79.375 39.6875"
    version="1.1"
    id="svg1"
    xmlns="http://www.w3.org/2000/svg"
@@ -16,9 +16,9 @@
      id="text1"
      style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:11.2889px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;white-space:pre;display:inline;fill:#d2691e;fill-opacity:1;stroke:#9b4400;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
      x="-343.69901"
-     y="-203.59831"><tspan
+     y="-204.12747"><tspan
        x="34.697479"
-       y="18.044893"
+       y="17.515726"
        id="tspan3"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:11.2889px;font-family:'Source Han Sans CN';-inkscape-font-specification:'Source Han Sans CN, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Paozhu</tspan></text>
   <text
@@ -34,17 +34,17 @@
   <path
      id="ellipse1"
      style="display:inline;fill:#be002f;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
-     d="m 4.3726788,8.2131785 0.799031,27.0162625 v 0.02179 h 0.0062 c 0.04885,1.631662 4.34662,2.947807 10.6184452,2.948526 6.271761,-4.67e-4 10.508863,-1.316896 10.557989,-2.948526 h 0.0062 v -0.02179 L 27.219901,8.2131785 Z" />
+     d="M 3.8435168,7.9359799 4.6710847,35.917112 v 0.02257 h 0.00642 c 0.050595,1.689936 4.501857,3.053086 10.9976773,3.053831 6.495753,-4.84e-4 10.88418,-1.363928 10.935061,-3.053831 h 0.0064 v -0.02257 L 27.506714,7.9359799 Z" />
   <ellipse
      style="display:inline;fill:#8a0022;fill-opacity:1;stroke:#9b4400;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
      id="path1"
-     cx="15.795435"
-     cy="8.0812321"
-     rx="11.422888"
-     ry="2.9718082" />
+     cx="15.67423"
+     cy="7.7993207"
+     rx="11.83085"
+     ry="3.0779445" />
   <g
      id="g17"
-     transform="matrix(0.29343097,0,0,0.29343097,-29.571416,-52.381919)"
+     transform="matrix(0.30391068,0,0,0.30391068,-31.312871,-54.823236)"
      style="display:inline">
     <ellipse
        style="display:inline;fill:#0aa344;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;paint-order:stroke fill markers"
@@ -66,9 +66,9 @@
   <path
      id="ellipse1-1-3"
      style="display:inline;fill:#ffd700;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
-     d="m 4.5040038,13.018673 0.100184,3.390851 a 11.209993,2.829879 0 0 0 11.1649632,2.669938 11.209993,2.829879 0 0 0 11.179183,-2.702049 h 0.04293 l 0.10703,-3.35874 h -0.03953 A 11.280958,2.9244985 0 0 1 15.79237,15.880674 11.280958,2.9244985 0 0 1 4.5260088,13.018673 Z" />
+     d="m 3.979532,12.9131 0.103762,3.511953 a 11.610351,2.9309464 0 0 0 11.563713,2.765293 11.610351,2.9309464 0 0 0 11.578441,-2.798551 h 0.04446 L 27.380761,12.9131 h -0.04094 A 11.683851,3.0289452 0 0 1 15.671055,15.877315 11.683851,3.0289452 0 0 1 4.0023229,12.9131 Z" />
   <path
      id="ellipse1-0-1"
      style="display:inline;fill:#ffd700;fill-opacity:1;stroke:#000009;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke fill markers"
-     d="m 4.9254178,28.414901 0.08778,2.954532 a 10.779464,2.804413 0 0 0 10.7416012,2.658752 10.779464,2.804413 0 0 0 10.750767,-2.680939 h 0.02266 l 0.104905,-2.920891 A 10.853265,2.5864767 0 0 1 15.792773,30.96212 10.853265,2.5864767 0 0 1 4.9496438,28.414901 Z" />
+     d="m 4.4159965,28.859195 0.090915,3.060051 a 11.164446,2.9045709 0 0 0 11.1252305,2.753708 11.164446,2.9045709 0 0 0 11.134725,-2.776687 h 0.02347 l 0.108652,-3.025209 A 11.240883,2.6788512 0 0 1 15.671473,31.497386 11.240883,2.6788512 0 0 1 4.4410878,28.859195 Z" />
 </svg>
