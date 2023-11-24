@@ -213,9 +213,9 @@ Open the browser and enter `http://localhost/hello`
 * [x] 2.Use C++ parse JSX file , Server Side Rendering
 * [x] 3.Httpclient Improved,Support Protocol forwarding
 * [x] 4.Websocket client  
-* [x] 5.Support windows  
+* [v] ~~5.Support windows  ~~
 * [x] 6.Postgres,sqlite ORM
-* [x] 7.Support php-fpm  backend 
+* [v] ~~7.Support php-fpm  backend ~~
 * [x] 8.Parsing MySQL Protocol for ORM
 
 

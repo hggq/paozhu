@@ -216,9 +216,9 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 * [x] 用C++代码解析JSX文件进行服务器端渲染
 * [x] 采集client框架，支持协程，多线程，协议转发
 * [x] Websocket 客户端
-* [x] 支持windows操作系统
+* [v] ~~支持windows操作系统~~
 * [x] Postgres、sqlite ORM 支持 
-* [x] 支持后端php-fpm，代替apache做前端
+* [v] ~~支持后端php-fpm，代替apache做前端~~
 * [x] 直接解析Mysql协议，跟ORM模块无缝集成，提高性能
 
 ### 11.贡献👏👋
