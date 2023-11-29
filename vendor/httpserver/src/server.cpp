@@ -115,7 +115,7 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
             mime_value = mime_map[fileexttype];
             if (mime_value.empty())
             {
-                if (file_size > 20480)
+                if (file_size > 204800)
                 {
                     mime_value = "application/octet-stream";
                 }
@@ -127,7 +127,7 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
         }
         else
         {
-            if (file_size > 20480)
+            if (file_size > 204800)
             {
                 mime_value = "application/octet-stream";
             }
@@ -406,7 +406,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             mime_value = mime_map[fileexttype];
             if (mime_value.empty())
             {
-                if (file_size > 20480)
+                if (file_size > 204800)
                 {
                     mime_value = "application/octet-stream";
                 }
@@ -418,7 +418,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
         }
         else
         {
-            if (file_size > 20480)
+            if (file_size > 204800)
             {
                 mime_value = "application/octet-stream";
             }
@@ -824,7 +824,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
             mime_value = mime_map[fileexttype];
             if (mime_value.empty())
             {
-                if (file_size > 20480)
+                if (file_size > 204800)
                 {
                     mime_value = "application/octet-stream";
                 }
@@ -836,7 +836,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
         }
         else
         {
-            if (file_size > 20480)
+            if (file_size > 204800)
             {
                 mime_value = "application/octet-stream";
             }
@@ -2124,7 +2124,7 @@ asio::awaitable<void> httpserver::http1_send_file(unsigned int streamid,
             mime_value = mime_map[fileexttype];
             if (mime_value.empty())
             {
-                if (file_size > 20480)
+                if (file_size > 204800)
                 {
                     mime_value = "application/octet-stream";
                 }
@@ -2136,7 +2136,7 @@ asio::awaitable<void> httpserver::http1_send_file(unsigned int streamid,
         }
         else
         {
-            if (file_size > 20480)
+            if (file_size > 204800)
             {
                 mime_value = "application/octet-stream";
             }
@@ -2465,6 +2465,7 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         peer->status(200);
         peer->content_type.clear();
         peer->etag.clear();
+        peer->output.clear();
 
         co_await co_user_fastcgi_task(peer);
 
@@ -2577,12 +2578,12 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
     {
         DEBUG_LOG("---  http1 pool pre --------");
         peer->linktype = 0;
-
         peer->parse_session();
 
         peer->status(200);
         peer->content_type.clear();
         peer->etag.clear();
+        peer->output.clear();
 
         sendtype = co_await co_user_task(peer);
 
@@ -2615,7 +2616,6 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
                         htmlcontent.append("\r\n");
                         co_await peer_session->co_send_writer(htmlcontent);
                         co_await peer_session->co_send_writer(tempcompress);
-                        peer->output.clear();
                         co_return;
                     }
                 }
@@ -2628,7 +2628,6 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         //  peer_session->send_data(htmlcontent);
         co_await peer_session->co_send_writer(htmlcontent);
         co_await peer_session->co_send_writer(peer->output);
-        peer->output.clear();
     }
     co_return;
 }
