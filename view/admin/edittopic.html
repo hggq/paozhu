@@ -177,7 +177,10 @@
     }
 
     var treeselect =$("#parentid").selectTree({ expandLevel: 1 });
-
+     function gotourl()
+    {
+        window.location.href='/admin/martopic';
+    }
     $("#form").on("submit", function (event) {
       event.preventDefault();
       var data = $(this).serialize();
@@ -187,16 +190,15 @@
       $.ajax({
         url: "/admin/edittopicpost?topicid=<% echo<<obj["info"]["topicid"].to_string(); %>",
         method: 'post',
+        contentType:"application/x-www-form-urlencoded",
         data: data,
-        success: function (res) {
-          //添加成功，这里演示
-          console.log(res);
-          if(res.code==0)
+        dataType: "json"
+        }).done(function(data) {
+          if(data.code==0)
           {
-                window.location.href='/admin/martopic';
+             setTimeout("gotourl()",500 );  
           }
-        }
-      })
+        });
     });
     function additem(obj)
     {

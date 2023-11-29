@@ -317,18 +317,18 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
         topicm.where("userid", 0).whereAnd("topicid", client.post["topicid"].to_int());
         if (topicid_parentid != topicid)
         {
-            topicm.update("cateid,title,isview,memo,urlpath,parentid");
+            topicid_parentid = topicm.update("cateid,title,isview,memo,urlpath,parentid");
         }
         else
         {
-            topicm.update("cateid,title,isview,memo,urlpath");
+            topicid_parentid = topicm.update("cateid,title,isview,memo,urlpath");
         }
 
         if (topicm.error_msg.size() > 0)
         {
-            std::cout << topicm.error_msg << std::endl;
+            client.val["msg"] = topicm.error_msg;
         }
-        if (topicid > 0)
+        if (topicid_parentid > 0)
         {
             client.val["code"]    = 0;
             client.val["topicid"] = topicid;
@@ -339,18 +339,18 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
             client.val["topicid"] = 0;
         }
 
-        topicm.clear(true);
-        topicm.where("userid", 0).asc("parentid").fetch();
-        client.val["list"].set_array();
-        OBJ_ARRAY temp;
-        for (unsigned int i = 0; i < topicm.record.size(); i++)
-        {
+        // topicm.clear(true);
+        // topicm.where("userid", 0).asc("parentid").fetch();
+        // client.val["list"].set_array();
+        // OBJ_ARRAY temp;
+        // for (unsigned int i = 0; i < topicm.record.size(); i++)
+        // {
 
-            temp["id"]       = topicm.record[i].topicid;
-            temp["parentid"] = topicm.record[i].parentid;
-            temp["value"]    = topicm.record[i].title;
-            client.val["list"].push(temp);
-        }
+        //     temp["id"]       = topicm.record[i].topicid;
+        //     temp["parentid"] = topicm.record[i].parentid;
+        //     temp["value"]    = topicm.record[i].title;
+        //     client.val["list"].push(temp);
+        // }
     }
     catch (std::exception &e)
     {

@@ -1394,7 +1394,7 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
 }
 void httppeer::goto_url(const std::string &url, unsigned char second, const std::string &msg)
 {
-    output.append("<html><head><meta http-equiv=\"refresh\" content=\"");
+    output.append("<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"");
     output.append(std::to_string(second));
     output.append(";url=");
     output.append(url);
