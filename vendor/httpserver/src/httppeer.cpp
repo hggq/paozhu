@@ -467,36 +467,7 @@ std::string httppeer::get_hosturl()
     }
     return tempurl;
 }
-bool httppeer::isshow_directory()
-{
-    serverconfig &sysconfigpath = getserversysconfig();
-    if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
-    {
 
-        if (sysconfigpath.map_value[host]["directorylist"].empty())
-        {
-            if (sysconfigpath.map_value["default"]["directorylist"].size() > 0 &&
-                sysconfigpath.map_value["default"]["directorylist"][0] == '1')
-            {
-                return true;
-            }
-        }
-        else if (sysconfigpath.map_value["default"]["directorylist"].size() > 0 &&
-                 sysconfigpath.map_value[host]["directorylist"][0] == '1')
-        {
-            return true;
-        }
-    }
-    else
-    {
-        if (sysconfigpath.map_value["default"]["directorylist"].size() > 0 &&
-            sysconfigpath.map_value["default"]["directorylist"][0] == '1')
-        {
-            return true;
-        }
-    }
-    return false;
-}
 bool httppeer::isuse_fastcgi()
 {
     serverconfig &sysconfigpath = getserversysconfig();

@@ -47,7 +47,6 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 {
   public:
     unsigned char get_fileinfo();
-    bool isshow_directory();
     void send_files(std::string);
     void status(unsigned int);
     unsigned int get_status();

@@ -615,10 +615,25 @@ bool serverconfig::loadserverglobalconfig()
         static_server_var.log_path.push_back('/');
     }
     struct site_host_info_t tempinfo;
-    tempinfo.mainhost       = mainhost;
-    tempinfo.wwwpath        = static_server_var.www_path;
-    tempinfo.http2_enable   = static_server_var.http2_enable;
-    tempinfo.document_index = map_value["default"]["index"];
+    tempinfo.mainhost          = mainhost;
+    tempinfo.wwwpath           = static_server_var.www_path;
+    tempinfo.http2_enable      = static_server_var.http2_enable;
+    tempinfo.document_index    = map_value["default"]["index"];
+    tempinfo.is_show_directory = false;
+
+    if (map_value["default"]["directorylist"].size() > 0 && map_value["default"]["directorylist"][0] == '1')
+    {
+        tempinfo.is_show_directory = true;
+    }
+
+    if (map_value["default"]["directorylist"].size() > 0)
+    {
+        tempinfo.certificate_file = map_value["default"]["certificate_chain_file"];
+    }
+    else
+    {
+        tempinfo.certificate_file.clear();
+    }
 
     if (map_value["default"]["certificate_chain_file"].size() > 0)
     {
@@ -627,7 +642,6 @@ bool serverconfig::loadserverglobalconfig()
     else
     {
         tempinfo.certificate_file.clear();
-        ;
     }
 
     if (map_value["default"]["private_key_file"].size() > 0)
@@ -637,7 +651,6 @@ bool serverconfig::loadserverglobalconfig()
     else
     {
         tempinfo.privateKey_file.clear();
-        ;
     }
 
     if (map_value["default"]["rewrite_404"].size() > 0)
@@ -1134,6 +1147,17 @@ bool serverconfig::loadserverglobalconfig()
                         if (tempinfo.action_after_lists.size() > 0)
                         {
                             tempinfo.is_method_after = true;
+                        }
+                    }
+                    else if (itemname == "directorylist")
+                    {
+                        if (itemval.size() > 0 && (itemval[0] == '1' || itemval[0] == 'T' || itemval[0] == 't'))
+                        {
+                            tempinfo.is_show_directory = true;
+                        }
+                        else
+                        {
+                            tempinfo.is_show_directory = false;
                         }
                     }
                 }

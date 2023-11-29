@@ -1665,7 +1665,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 co_await http2_co_send_file(peer);
             }
         }
-        else if (sendtype == 2 && peer->isshow_directory())
+        else if (sendtype == 2 && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
         {
             std::string htmlcontent = displaydirectory(peer->sendfilename,
                                                        peer->urlpath,
@@ -2561,7 +2561,7 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
             co_await http1_send_file(stream_id, peer, peer_session, peer->sendfilename);
         }
     }
-    else if (sendtype == 2 && peer->isshow_directory())
+    else if (sendtype == 2 && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
     {
         std::string htmlcontent = displaydirectory(peer->sendfilename,
                                                    peer->urlpath,

@@ -42,6 +42,7 @@ struct site_host_info_t
     bool is_method_pre      = false;
     bool is_method_after    = false;
     bool is_static_pre      = false;
+    bool is_show_directory  = false;
 };
 class serverconfig
 {
