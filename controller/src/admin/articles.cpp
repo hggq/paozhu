@@ -61,6 +61,7 @@ std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.keywords      = client.post["keywords"].to_string();
         artmodel.data.summary       = client.post["summary"].to_string();
         artmodel.data.content       = client.post["content"].to_string();
+        artmodel.data.texturl       = client.post["texturl"].to_string();
         artmodel.data.relatecontent = client.post["relatecontent"].to_string();
         artmodel.data.userid        = 0;
         artmodel.data.isopen        = 1;
@@ -130,6 +131,7 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
         client.val["info"]["fromsource"]    = artmodel.getFromsource();
         client.val["info"]["icoimg"]        = artmodel.getIcoimg();
         client.val["info"]["relatecontent"] = artmodel.getRelatecontent();
+        client.val["info"]["texturl"]       = artmodel.getTexturl();
         client.val["info"]["content"]       = html_encode(artmodel.getRefContent());
         client.val["info"]["summary"]       = html_encode(artmodel.getRefSummary());
         client.val["info"]["keywords"]      = html_encode(artmodel.getRefKeywords());
@@ -162,11 +164,12 @@ std::string admin_editarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.keywords      = client.post["keywords"].to_string();
         artmodel.data.summary       = client.post["summary"].to_string();
         artmodel.data.content       = client.post["content"].to_string();
+        artmodel.data.texturl       = client.post["texturl"].to_string();
         artmodel.data.relatecontent = client.post["relatecontent"].to_string();
 
         artmodel.where("userid", 0).whereAnd("aid", aid).limit(1);
         int result_status =
-            artmodel.update("topicid,title,author,fromsource,icoimg,keywords,summary,content,relatecontent");
+            artmodel.update("topicid,title,author,fromsource,icoimg,keywords,summary,content,texturl,relatecontent");
 
         if (result_status > 0)
         {
@@ -310,7 +313,7 @@ std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer)
         artmodel.where("userid", 0).whereAnd("aid", client.get["id"].to_int());
         artmodel.update("sortid");
         client.val["code"] = 0;
-        client.val["msg"] = "ok";
+        client.val["msg"]  = "ok";
     }
     catch (std::exception &e)
     {
