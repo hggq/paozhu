@@ -1313,12 +1313,14 @@ std::string httppeer::make_http1_header()
         http1header.append("Content-Encoding: ");
         http1header.append("gzip");
         http1header.append("\r\n");
+        http1header.append("Vary: Accept-Encoding\r\n");
     }
     else if (compress == 2)
     {
         http1header.append("Content-Encoding: ");
         http1header.append("br");
         http1header.append("\r\n");
+        http1header.append("Vary: Accept-Encoding\r\n");
     }
     if (content_type.size() > 0)
     {

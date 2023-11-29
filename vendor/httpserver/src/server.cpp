@@ -2615,6 +2615,7 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
                         htmlcontent.append("\r\n");
                         co_await peer_session->co_send_writer(htmlcontent);
                         co_await peer_session->co_send_writer(tempcompress);
+                        peer->output.clear();
                         co_return;
                     }
                 }
@@ -2627,6 +2628,7 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         //  peer_session->send_data(htmlcontent);
         co_await peer_session->co_send_writer(htmlcontent);
         co_await peer_session->co_send_writer(peer->output);
+        peer->output.clear();
     }
     co_return;
 }
