@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2023-05-24 12:03:17
+-- 生成日期： 2023-11-29 05:18:15
 -- 服务器版本： 8.0.28
--- PHP 版本： 8.2.4
+-- PHP 版本： 8.2.7
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -60,8 +60,21 @@ CREATE TABLE `article` (
 --
 
 INSERT INTO `article` (`aid`, `topicid`, `classtype`, `userid`, `sortid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `mdcontent`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`, `relatecontent`) VALUES
-(54, 33, 0, 0, 0, '', '标题标题标题标题标题rrww', '关键词关键词关键词关键词', '来源来源来源来源来源来源', '作者作者作者作者作者rrrrr', '', '', 0, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内容</p><p>文章内容v文章内容</p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ''),
-(55, 35, 0, 0, 0, '', '标题标题标题标题标题66666', '关键词关键词关键词关键词', '来源来源来源来源来源来源11', '作者作者作者作者作者22', '127.0.0.1', '2023-05-16 22:33:18', 1684247598, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内<font color=\"#cc0000\">容文章内容</font></p><p style=\"line-height: 16px;\"><br></p><p><br></p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ',55');
+(54, 34, 0, 0, 7, '', '标题标题标题标题标题', '关键词关键词关键词关键词', '来源来源来源来源来源来源', '作者作者作者作者作者rrrrr', '', '', 0, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内容</p><p>文章内容v文章内容</p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ''),
+(55, 31, 0, 0, 6, '', '标题标题标题标题标题', '77关键词关键词关键词关键词', '来源来源来源来源来源来源11', '作者作者作者作者作者22', '127.0.0.1', '2023-05-16 22:33:18', 1684247598, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内<font color=\"#cc0000\">容文章内容</font></p><p style=\"line-height: 16px;\"><br></p><p><br></p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ',55');
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `blogcatalog`
+--
+
+CREATE TABLE `blogcatalog` (
+  `bid` int UNSIGNED NOT NULL,
+  `dateid` int UNSIGNED NOT NULL COMMENT '月份聚合',
+  `articlenum` int UNSIGNED NOT NULL COMMENT '月份文章数量聚合',
+  `languageid` int UNSIGNED NOT NULL COMMENT '语言版本'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='blog文章汇总';
 
 -- --------------------------------------------------------
 
@@ -112,7 +125,7 @@ INSERT INTO `department` (`dpid`, `userid`, `parentid`, `name`, `depart_code`, `
 (51, 0, 50, 'bbcc11', '', 66, 0, 0, 1, 'bbcc desc', 0, 0, 0, ''),
 (52, 0, 0, 'ccdd', '', 20, 0, 0, 1, 'cc desc', 0, 0, 0, ''),
 (53, 0, 52, 'ccddee', '', 10, 0, 0, 1, 'ccdd desc', 0, 0, 0, ''),
-(54, 0, 51, 'bbcc1122', '', 30, 0, 0, 1, 'bbcc11 desc', 0, 0, 0, '');
+(54, 0, 51, 'bbcc777', '', 30, 0, 0, 1, 'bbcc11 desc', 0, 0, 0, '');
 
 -- --------------------------------------------------------
 
@@ -167,6 +180,7 @@ CREATE TABLE `productparam` (
 CREATE TABLE `siteinfo` (
   `sid` int NOT NULL,
   `userid` int NOT NULL,
+  `languagetype` int UNSIGNED NOT NULL COMMENT '语言类型',
   `sitename` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
   `sitedomain` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
   `metakeys` text COLLATE utf8mb4_general_ci NOT NULL,
@@ -178,8 +192,8 @@ CREATE TABLE `siteinfo` (
 -- 转存表中的数据 `siteinfo`
 --
 
-INSERT INTO `siteinfo` (`sid`, `userid`, `sitename`, `sitedomain`, `metakeys`, `metadesc`, `copyright`) VALUES
-(1, 0, '网站名称', '网站域名', '关键词关键词关键词', '描述描述描述qqqqq', '版权信息版权信息版权信息');
+INSERT INTO `siteinfo` (`sid`, `userid`, `languagetype`, `sitename`, `sitedomain`, `metakeys`, `metadesc`, `copyright`) VALUES
+(1, 0, 0, '网站名称ww', '网站域名', '88关键词关键词关键词', '描述描述描述', '版权信息版权信息版权信息');
 
 -- --------------------------------------------------------
 
@@ -231,7 +245,9 @@ CREATE TABLE `topic` (
   `userid` int UNSIGNED NOT NULL,
   `parentid` int UNSIGNED NOT NULL,
   `cateid` int UNSIGNED NOT NULL COMMENT '类型',
+  `languagetype` int UNSIGNED NOT NULL COMMENT '语言类型',
   `isview` tinyint UNSIGNED NOT NULL COMMENT '是否显示',
+  `sortid` int UNSIGNED NOT NULL COMMENT '排序id',
   `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '标题',
   `twotitle` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '第二标题',
   `memo` varchar(254) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '备注',
@@ -239,7 +255,7 @@ CREATE TABLE `topic` (
   `url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '网址',
   `urlpath` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '路径',
   `imgurl` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片地址',
-  `topimg` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '头图',
+  `topimg` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '头图',
   `accesscode` int UNSIGNED NOT NULL COMMENT '权限代码'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='栏目表';
 
@@ -247,11 +263,11 @@ CREATE TABLE `topic` (
 -- 转存表中的数据 `topic`
 --
 
-INSERT INTO `topic` (`topicid`, `userid`, `parentid`, `cateid`, `isview`, `title`, `twotitle`, `memo`, `templatename`, `url`, `urlpath`, `imgurl`, `topimg`, `accesscode`) VALUES
-(31, 0, 0, 0, 1, '刚刚刚刚刚', '', '啊啊啊', '', '', '啊啊啊', '', '', 0),
-(32, 0, 31, 0, 1, 'hhhhhh', '', 'qqqq', '', '', 'eeeee', '', '', 0),
-(34, 0, 31, 0, 1, 'tttttt', '', 'yyyyy', '', '', 'qqqq', '', '', 0),
-(35, 0, 32, 0, 1, '钱钱ddddd钱钱钱', '', '让肉肉肉肉', '', '', '钱钱钱', '', '', 0);
+INSERT INTO `topic` (`topicid`, `userid`, `parentid`, `cateid`, `languagetype`, `isview`, `sortid`, `title`, `twotitle`, `memo`, `templatename`, `url`, `urlpath`, `imgurl`, `topimg`, `accesscode`) VALUES
+(31, 0, 0, 0, 0, 1, 0, 'aa刚刚刚刚刚', '', '啊啊啊', '', '', 'download', '', '', 0),
+(32, 0, 31, 0, 0, 1, 88, 'bbbhhhhhh', '', 'qqqq', '', '', 'eeeeeq', '', '', 0),
+(34, 0, 31, 3, 0, 1, 99, 'tttttt', '', 'yyyyy', '', '', 'qqqq', '', '', 0),
+(35, 0, 32, 10, 0, 1, 77, '钱钱yyyyy钱钱钱', '', '让肉肉肉肉', '', '', '钱钱钱', '', '[{\"header_content\":\"\\u94b1\\u94b1\\u94b1\",\"header_title\":\"\\u94b1\\u94b1\\u94b1\",\"header_urlpath\":\"/upload/image/202311/20231129110128854271.jpg\"}]', 0);
 
 -- --------------------------------------------------------
 
@@ -283,6 +299,12 @@ INSERT INTO `user` (`userid`, `name`, `password`, `isopen`, `level`) VALUES
 --
 ALTER TABLE `article`
   ADD PRIMARY KEY (`aid`);
+
+--
+-- 表的索引 `blogcatalog`
+--
+ALTER TABLE `blogcatalog`
+  ADD PRIMARY KEY (`bid`);
 
 --
 -- 表的索引 `catalogue`
@@ -346,7 +368,13 @@ ALTER TABLE `user`
 -- 使用表AUTO_INCREMENT `article`
 --
 ALTER TABLE `article`
-  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
+  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+
+--
+-- 使用表AUTO_INCREMENT `blogcatalog`
+--
+ALTER TABLE `blogcatalog`
+  MODIFY `bid` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `catalogue`
@@ -394,7 +422,7 @@ ALTER TABLE `testb`
 -- 使用表AUTO_INCREMENT `topic`
 --
 ALTER TABLE `topic`
-  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- 使用表AUTO_INCREMENT `user`
