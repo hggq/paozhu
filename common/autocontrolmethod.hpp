@@ -108,6 +108,9 @@ namespace http
 		temp.regfun = admin_gettoparticle;
 		methodcallback.emplace("admin/gettoparticle",temp);
 		temp.pre = nullptr;
+		temp.regfun = admin_updatearticlesort;
+		methodcallback.emplace("admin/updatearticlesort",temp);
+		temp.pre = nullptr;
 		temp.regfun = admin_listarticle;
 		methodcallback.emplace("admin/listarticle",temp);
 		temp.pre = nullptr;
@@ -120,6 +123,9 @@ namespace http
 		temp.regfun = admin_martopic;
 		methodcallback.emplace("admin/martopic",temp);
 		temp.pre = nullptr;
+		temp.regfun = admin_updatetopicsort;
+		methodcallback.emplace("admin/updatetopicsort",temp);
+		temp.pre = nullptr;
 		temp.regfun = admin_addtopicpost;
 		methodcallback.emplace("admin/addtopicpost",temp);
 		temp.pre = nullptr;
@@ -128,6 +134,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = admin_edittopicpost;
 		methodcallback.emplace("admin/edittopicpost",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_topicfileupload;
+		methodcallback.emplace("admin/topicfileupload",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_topicimgtextupload;
+		methodcallback.emplace("admin/topicimgtextupload",temp);
 		temp.pre = nullptr;
 		temp.regfun = admin_main;
 		methodcallback.emplace("admin/main",temp);

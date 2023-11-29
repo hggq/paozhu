@@ -61,6 +61,12 @@
             </div>
           </div>
           <div class="row mb-3">
+            <label for="title" class="col-sm-2 col-form-label text-sm-end">url网址</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="title" name="title" value="<% echo << obj["info"]["texturl"].to_string(); %>" placeholder="必须是英文数字下划线中划线">
+            </div>
+          </div>
+          <div class="row mb-3">
             <label for="author" class="col-sm-2 col-form-label text-sm-end">作者</label>
             <div class="col-sm-10">
               <input type="text" class="form-control" id="author" name="author" value="<% echo << obj["info"]["author"].to_string(); %>">

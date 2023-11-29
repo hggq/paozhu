@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 07 Jun 2023 01:10:17 GMT
+*本文件为自动生成 Wed, 29 Nov 2023 03:41:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -27,6 +27,7 @@ struct siteinfobase
     struct meta{
      int sid= 0; //
  int userid= 0; //
+unsigned  int languagetype= 0; //语言类型
  std::string sitename=""; //
  std::string sitedomain=""; //
  std::string metakeys=""; //
@@ -41,8 +42,8 @@ std::vector<siteinfobase::meta>::iterator begin(){     return record.begin(); }
 std::vector<siteinfobase::meta>::iterator end(){     return record.end(); }
 std::vector<siteinfobase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<siteinfobase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,7> colnames={"sid","userid","sitename","sitedomain","metakeys","metadesc","copyright"};
-const std::array<unsigned char,7> colnamestype= {3,3,253,253,252,252,252};
+const std::array<std::string,8> colnames={"sid","userid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright"};
+const std::array<unsigned char,8> colnamestype= {3,3,3,253,253,252,252,252};
 std::string tablename="siteinfo";
 std::string modelname="Siteinfo";
 
@@ -57,15 +58,18 @@ std::string modelname="Siteinfo";
 
 
          case 'c':
-   	 return 6;
+   	 return 7;
+break;
+case 'l':
+   	 return 2;
 break;
 case 'm':
  switch(coln.size()){  
 case 8:
   colpospppc=coln.back();
     if(colpospppc<91&&bi>64){ colpospppc+=32; }
- if(colpospppc=='c'){ return 5; }
- if(colpospppc=='s'){ return 4; }
+ if(colpospppc=='c'){ return 6; }
+ if(colpospppc=='s'){ return 5; }
    	 break;
  }
  break;
@@ -75,10 +79,10 @@ case 3:
    	 return 0;
 break;
 case 8:
-   	 return 2;
+   	 return 3;
 break;
 case 10:
-   	 return 3;
+   	 return 4;
 break;
  }
  break;
@@ -121,33 +125,40 @@ break;
 			break;
 	case 2:
 		 try{
+			metatemp.languagetype=std::stoul(_row[i]);
+		}catch (...) { 
+			metatemp.languagetype=0;
+			 }
+			break;
+	case 3:
+		 try{
 			metatemp.sitename.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.sitename.clear();
 			 }
 			break;
-	case 3:
+	case 4:
 		 try{
 			metatemp.sitedomain.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.sitedomain.clear();
 			 }
 			break;
-	case 4:
+	case 5:
 		 try{
 			metatemp.metakeys.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.metakeys.clear();
 			 }
 			break;
-	case 5:
+	case 6:
 		 try{
 			metatemp.metadesc.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.metadesc.clear();
 			 }
 			break;
-	case 6:
+	case 7:
 		 try{
 			metatemp.copyright.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
@@ -190,33 +201,40 @@ break;
 			break;
 	case 2:
 		 try{
+			metatemp.languagetype=std::stoul(_row[i]);
+		}catch (...) { 
+			metatemp.languagetype=0;
+			 }
+			break;
+	case 3:
+		 try{
 			metatemp.sitename.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.sitename.clear();
 			 }
 			break;
-	case 3:
+	case 4:
 		 try{
 			metatemp.sitedomain.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.sitedomain.clear();
 			 }
 			break;
-	case 4:
+	case 5:
 		 try{
 			metatemp.metakeys.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.metakeys.clear();
 			 }
 			break;
-	case 5:
+	case 6:
 		 try{
 			metatemp.metadesc.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.metadesc.clear();
 			 }
 			break;
-	case 6:
+	case 7:
 		 try{
 			metatemp.copyright.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
@@ -244,6 +262,9 @@ break;
             }else if(content[i]=='"'){
                 temp.append("\\\"");
                 continue;
+            }else if(content[i]=='\\'){
+                temp.append("\\\\");
+                continue;
             }
             temp.push_back(content[i]);
         }
@@ -254,6 +275,10 @@ break;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
+                continue;
+            }
+            else if(content[i]=='\\'){
+                temp.append("\\\\");
                 continue;
             }
             temp.push_back(content[i]);
@@ -289,6 +314,11 @@ if(data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.userid);
+}
+if(data.languagetype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.languagetype);
 }
 tempsql<<",'"<<stringaddslash(data.sitename)<<"'";
 tempsql<<",'"<<stringaddslash(data.sitedomain)<<"'";
@@ -329,6 +359,11 @@ if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.userid);
+}
+if(insert_data.languagetype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.languagetype);
 }
 tempsql<<",'"<<stringaddslash(insert_data.sitename)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.sitedomain)<<"'";
@@ -379,6 +414,11 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
+	if(insert_data[i].languagetype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].languagetype);
+	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].sitename)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].sitedomain)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].metakeys)<<"'";
@@ -413,6 +453,11 @@ if(data.userid==0){
 	tempsql<<",`userid`=0";
  }else{ 
 	tempsql<<",`userid`="<<std::to_string(data.userid);
+}
+if(data.languagetype==0){
+	tempsql<<",`languagetype`=0";
+ }else{ 
+	tempsql<<",`languagetype`="<<std::to_string(data.languagetype);
 }
 tempsql<<",`sitename`='"<<stringaddslash(data.sitename)<<"'";
 tempsql<<",`sitedomain`='"<<stringaddslash(data.sitedomain)<<"'";
@@ -481,21 +526,29 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`sitename`='"<<stringaddslash(data.sitename)<<"'";
+if(data.languagetype==0){
+	tempsql<<"`languagetype`=0";
+ }else{ 
+	tempsql<<"`languagetype`="<<std::to_string(data.languagetype);
+}
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`sitedomain`='"<<stringaddslash(data.sitedomain)<<"'";
+tempsql<<"`sitename`='"<<stringaddslash(data.sitename)<<"'";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`metakeys`='"<<stringaddslash(data.metakeys)<<"'";
+tempsql<<"`sitedomain`='"<<stringaddslash(data.sitedomain)<<"'";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`metadesc`='"<<stringaddslash(data.metadesc)<<"'";
+tempsql<<"`metakeys`='"<<stringaddslash(data.metakeys)<<"'";
  break;
  case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`metadesc`='"<<stringaddslash(data.metadesc)<<"'";
+ break;
+ case 7:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"`copyright`='"<<stringaddslash(data.copyright)<<"'";
  break;
@@ -557,18 +610,25 @@ if(data.userid==0){
 }
  break;
  case 2:
-	temparray.push_back(data.sitename);
+if(data.languagetype==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.languagetype));
+}
  break;
  case 3:
-	temparray.push_back(data.sitedomain);
+	temparray.push_back(data.sitename);
  break;
  case 4:
-	temparray.push_back(data.metakeys);
+	temparray.push_back(data.sitedomain);
  break;
  case 5:
-	temparray.push_back(data.metadesc);
+	temparray.push_back(data.metakeys);
  break;
  case 6:
+	temparray.push_back(data.metadesc);
+ break;
+ case 7:
 	temparray.push_back(data.copyright);
  break;
 
@@ -626,18 +686,25 @@ if(data.userid==0){
 }
  break;
  case 2:
-	tempsql.insert({"sitename",data.sitename});
+if(data.languagetype==0){
+	tempsql.insert({"languagetype","0"});
+ }else{ 
+	tempsql.insert({"languagetype",std::to_string(data.languagetype)});
+}
  break;
  case 3:
-	tempsql.insert({"sitedomain",data.sitedomain});
+	tempsql.insert({"sitename",data.sitename});
  break;
  case 4:
-	tempsql.insert({"metakeys",data.metakeys});
+	tempsql.insert({"sitedomain",data.sitedomain});
  break;
  case 5:
-	tempsql.insert({"metadesc",data.metadesc});
+	tempsql.insert({"metakeys",data.metakeys});
  break;
  case 6:
+	tempsql.insert({"metadesc",data.metadesc});
+ break;
+ case 7:
 	tempsql.insert({"copyright",data.copyright});
  break;
 
@@ -662,6 +729,11 @@ if(data.userid==0){
 	tempsql<<",\"userid\":0";
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
+}
+if(data.languagetype==0){
+	tempsql<<",\"languagetype\":0";
+ }else{ 
+	tempsql<<",\"languagetype\":"<<std::to_string(data.languagetype);
 }
 tempsql<<",\"sitename\":\""<<http::utf8_to_jsonstring(data.sitename);
 tempsql<<"\"";
@@ -728,21 +800,29 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitename\":\""<<http::utf8_to_jsonstring(data.sitename)<<"\"";
+if(data.languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(data.languagetype);
+}
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitedomain\":\""<<http::utf8_to_jsonstring(data.sitedomain)<<"\"";
+tempsql<<"\"sitename\":\""<<http::utf8_to_jsonstring(data.sitename)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"metakeys\":\""<<http::utf8_to_jsonstring(data.metakeys)<<"\"";
+tempsql<<"\"sitedomain\":\""<<http::utf8_to_jsonstring(data.sitedomain)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"metadesc\":\""<<http::utf8_to_jsonstring(data.metadesc)<<"\"";
+tempsql<<"\"metakeys\":\""<<http::utf8_to_jsonstring(data.metakeys)<<"\"";
  break;
  case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"metadesc\":\""<<http::utf8_to_jsonstring(data.metadesc)<<"\"";
+ break;
+ case 7:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(data.copyright)<<"\"";
  break;
@@ -1009,33 +1089,40 @@ tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(data.copyright)<<"\"";
 			break;
 		case 2:
 		 try{
+			data.languagetype=std::stoul(set_value_name);
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 3:
+		 try{
 			data.sitename.append(set_value_name);
 		}catch (...) { 
 			data.sitename.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.sitedomain.append(set_value_name);
 		}catch (...) { 
 			data.sitedomain.clear();
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.metakeys.append(set_value_name);
 		}catch (...) { 
 			data.metakeys.clear();
 			 }
 			break;
-		case 5:
+		case 6:
 		 try{
 			data.metadesc.append(set_value_name);
 		}catch (...) { 
 			data.metadesc.clear();
 			 }
 			break;
-		case 6:
+		case 7:
 		 try{
 			data.copyright.append(set_value_name);
 		}catch (...) { 
@@ -1070,33 +1157,40 @@ tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(data.copyright)<<"\"";
 			break;
 		case 2:
 		 try{
+			data.languagetype=set_value_name;
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 3:
+		 try{
 			data.sitename=std::to_string(set_value_name);
 		}catch (...) { 
 			data.sitename.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.sitedomain=std::to_string(set_value_name);
 		}catch (...) { 
 			data.sitedomain.clear();
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.metakeys=std::to_string(set_value_name);
 		}catch (...) { 
 			data.metakeys.clear();
 			 }
 			break;
-		case 5:
+		case 6:
 		 try{
 			data.metadesc=std::to_string(set_value_name);
 		}catch (...) { 
 			data.metadesc.clear();
 			 }
 			break;
-		case 6:
+		case 7:
 		 try{
 			data.copyright=std::to_string(set_value_name);
 		}catch (...) { 
@@ -1131,33 +1225,40 @@ tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(data.copyright)<<"\"";
 			break;
 		case 2:
 		 try{
+			data.languagetype=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 3:
+		 try{
 			data.sitename=std::to_string(set_value_name);
 		}catch (...) { 
 			data.sitename.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.sitedomain=std::to_string(set_value_name);
 		}catch (...) { 
 			data.sitedomain.clear();
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.metakeys=std::to_string(set_value_name);
 		}catch (...) { 
 			data.metakeys.clear();
 			 }
 			break;
-		case 5:
+		case 6:
 		 try{
 			data.metadesc=std::to_string(set_value_name);
 		}catch (...) { 
 			data.metadesc.clear();
 			 }
 			break;
-		case 6:
+		case 7:
 		 try{
 			data.copyright=std::to_string(set_value_name);
 		}catch (...) { 
@@ -1228,21 +1329,29 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitename\":\""<<http::utf8_to_jsonstring(record[n].sitename)<<"\"";
+if(record[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(record[n].languagetype);
+}
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitedomain\":\""<<http::utf8_to_jsonstring(record[n].sitedomain)<<"\"";
+tempsql<<"\"sitename\":\""<<http::utf8_to_jsonstring(record[n].sitename)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"metakeys\":\""<<http::utf8_to_jsonstring(record[n].metakeys)<<"\"";
+tempsql<<"\"sitedomain\":\""<<http::utf8_to_jsonstring(record[n].sitedomain)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"metadesc\":\""<<http::utf8_to_jsonstring(record[n].metadesc)<<"\"";
+tempsql<<"\"metakeys\":\""<<http::utf8_to_jsonstring(record[n].metakeys)<<"\"";
  break;
  case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"metadesc\":\""<<http::utf8_to_jsonstring(record[n].metadesc)<<"\"";
+ break;
+ case 7:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(record[n].copyright)<<"\"";
  break;
@@ -1320,21 +1429,29 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitename\":\""<<http::utf8_to_jsonstring(record[n].sitename)<<"\"";
+if(record[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(record[n].languagetype);
+}
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitedomain\":\""<<http::utf8_to_jsonstring(record[n].sitedomain)<<"\"";
+tempsql<<"\"sitename\":\""<<http::utf8_to_jsonstring(record[n].sitename)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"metakeys\":\""<<http::utf8_to_jsonstring(record[n].metakeys)<<"\"";
+tempsql<<"\"sitedomain\":\""<<http::utf8_to_jsonstring(record[n].sitedomain)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"metadesc\":\""<<http::utf8_to_jsonstring(record[n].metadesc)<<"\"";
+tempsql<<"\"metakeys\":\""<<http::utf8_to_jsonstring(record[n].metakeys)<<"\"";
  break;
  case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"metadesc\":\""<<http::utf8_to_jsonstring(record[n].metadesc)<<"\"";
+ break;
+ case 7:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(record[n].copyright)<<"\"";
  break;
@@ -1355,6 +1472,9 @@ tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(record[n].copyright)<<"\""
 
  int  getUserid(){  return data.userid; } 
  void setUserid( int  val){  data.userid=val;} 
+
+unsigned  int  getLanguagetype(){  return data.languagetype; } 
+ void setLanguagetype(unsigned  int  val){  data.languagetype=val;} 
 
 std::string getSitename(){  return data.sitename; } 
 std::string& getRefSitename(){  return std::ref(data.sitename); } 
@@ -1431,6 +1551,10 @@ std::vector<siteinfobase::meta> getRecord(){
 		{
 			return data.userid;
 		}
+		 if(key_name=="languagetype")
+		{
+			return data.languagetype;
+		}
 		return nullptr; 
 	}
 
@@ -1457,6 +1581,9 @@ std::vector<siteinfobase::meta> getRecord(){
 				 break;
 			case 1: 
  				 a.emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a.emplace_back(iter.languagetype);
 				 break;
 
                     }
@@ -1490,6 +1617,9 @@ std::vector<siteinfobase::meta> getRecord(){
 			case 1: 
  				 return data.userid;
 				 break;
+			case 2: 
+ 				 return data.languagetype;
+				 break;
 			}
                 return 0;
             }  
@@ -1507,6 +1637,9 @@ std::vector<siteinfobase::meta> getRecord(){
 				 break;
 			case 1: 
  				 return iter.userid;
+				 break;
+			case 2: 
+ 				 return iter.languagetype;
 				 break;
 
 			}
@@ -1556,19 +1689,19 @@ std::vector<siteinfobase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 return data.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 return data.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 return data.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 return data.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 return data.copyright;
 				 break;
 
@@ -1586,19 +1719,19 @@ std::vector<siteinfobase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 return iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 return iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 return iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 return iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 return iter.copyright;
 				 break;
 
@@ -1621,19 +1754,19 @@ std::vector<siteinfobase::meta> getRecord(){
                     switch(kpos)
                     {
 
-    			case 2: 
+    			case 3: 
  				 a.emplace_back(iter.sitename);
 					 break;
-			case 3: 
+			case 4: 
  				 a.emplace_back(iter.sitedomain);
 					 break;
-			case 4: 
+			case 5: 
  				 a.emplace_back(iter.metakeys);
 					 break;
-			case 5: 
+			case 6: 
  				 a.emplace_back(iter.metadesc);
 					 break;
-			case 6: 
+			case 7: 
  				 a.emplace_back(iter.copyright);
 					 break;
 					}
@@ -1674,30 +1807,33 @@ std::vector<siteinfobase::meta> getRecord(){
  				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
+ 				 a<<std::to_string(iter.languagetype);
+				 break;
+			case 3: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitename); 
 				 }else{
 				 a<<iter.sitename;
 				 }
 				 break;
-			case 3: 
+			case 4: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitedomain); 
 				 }else{
 				 a<<iter.sitedomain;
 				 }
 				 break;
-			case 4: 
+			case 5: 
  				 if(isyinhao){ a<<jsonaddslash(iter.metakeys); 
 				 }else{
 				 a<<iter.metakeys;
 				 }
 				 break;
-			case 5: 
+			case 6: 
  				 if(isyinhao){ a<<jsonaddslash(iter.metadesc); 
 				 }else{
 				 a<<iter.metadesc;
 				 }
 				 break;
-			case 6: 
+			case 7: 
  				 if(isyinhao){ a<<jsonaddslash(iter.copyright); 
 				 }else{
 				 a<<iter.copyright;
@@ -1728,36 +1864,36 @@ std::vector<siteinfobase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 				 } 
 			 switch(vpos){ 
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 
@@ -1785,19 +1921,19 @@ std::vector<siteinfobase::meta> getRecord(){
                     switch(kpos)
                     {
  
-       			case 2: 
+       			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			 } 
@@ -1831,6 +1967,9 @@ std::vector<siteinfobase::meta> getRecord(){
 case 1: 
  	 ktemp=iter.userid;
 	 break;
+case 2: 
+ 	 ktemp=iter.languagetype;
+	 break;
 	 } 
  		   switch(vpos){ 
 
@@ -1861,21 +2000,24 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
  			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 
@@ -1901,19 +2043,19 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			  }
@@ -1923,6 +2065,9 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
 				 break;
 
                 }
@@ -1953,6 +2098,9 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
  			 switch(vpos){
 			case 0: 
@@ -1960,6 +2108,9 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
 				 break;
 
                 }
@@ -1987,6 +2138,9 @@ case 1:
 			case 1: 
  				 a.emplace(iter.userid,iter);
 				 break;
+			case 2: 
+ 				 a.emplace(iter.languagetype,iter);
+				 break;
 
                 }
             }       
@@ -2006,19 +2160,19 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 a.emplace(iter.sitename,iter);
 			 break;
-			case 3: 
+			case 4: 
  				 a.emplace(iter.sitedomain,iter);
 			 break;
-			case 4: 
+			case 5: 
  				 a.emplace(iter.metakeys,iter);
 			 break;
-			case 5: 
+			case 6: 
  				 a.emplace(iter.metadesc,iter);
 			 break;
-			case 6: 
+			case 7: 
  				 a.emplace(iter.copyright,iter);
 			 break;
 
@@ -2046,19 +2200,19 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 	 		 }
@@ -2096,6 +2250,9 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 			 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+			 break;
 			  }
 			 switch(vpos){
 
@@ -2131,21 +2288,24 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
  			switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 
@@ -2174,19 +2334,19 @@ case 1:
                     switch(kpos)
                     {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			  }
@@ -2196,6 +2356,9 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
 				 break;
 
                    }
@@ -2227,6 +2390,9 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
 			 switch(vpos){
 			case 0: 
@@ -2234,6 +2400,9 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
 				 break;
 
                    }
@@ -2259,36 +2428,36 @@ case 1:
                     switch(kpos)
                     {
 
-   case 2: 
+   case 3: 
  	 ktemp=iter.sitename;
 	 break;
-case 3: 
+case 4: 
  	 ktemp=iter.sitedomain;
 	 break;
-case 4: 
+case 5: 
  	 ktemp=iter.metakeys;
 	 break;
-case 5: 
+case 6: 
  	 ktemp=iter.metadesc;
 	 break;
-case 6: 
+case 7: 
  	 ktemp=iter.copyright;
 	 break;
 	  }
  switch(vpos){
-case 2: 
+case 3: 
  	 vtemp=iter.sitename;
 	 break;
-case 3: 
+case 4: 
  	 vtemp=iter.sitedomain;
 	 break;
-case 4: 
+case 5: 
  	 vtemp=iter.metakeys;
 	 break;
-case 5: 
+case 6: 
  	 vtemp=iter.metadesc;
 	 break;
-case 6: 
+case 7: 
  	 vtemp=iter.copyright;
 	 break;
 
@@ -2318,6 +2487,9 @@ case 6:
 case 1: 
  	 a.emplace_back(iter.userid,iter);
 	 break;
+case 2: 
+ 	 a.emplace_back(iter.languagetype,iter);
+	 break;
 
                 }
             }       
@@ -2337,19 +2509,19 @@ case 1:
                 switch(kpos)
                 {
 
-   case 2: 
+   case 3: 
  	 a.emplace_back(iter.sitename,iter);
 	 break;
-case 3: 
+case 4: 
  	 a.emplace_back(iter.sitedomain,iter);
 	 break;
-case 4: 
+case 5: 
  	 a.emplace_back(iter.metakeys,iter);
 	 break;
-case 5: 
+case 6: 
  	 a.emplace_back(iter.metadesc,iter);
 	 break;
-case 6: 
+case 7: 
  	 a.emplace_back(iter.copyright,iter);
 	 break;
 
@@ -2382,6 +2554,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
 
 			 switch(vpos){
@@ -2390,6 +2565,9 @@ case 6:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			  }
 
@@ -2428,6 +2606,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
 
 			 switch(vpos){
@@ -2437,6 +2618,9 @@ case 6:
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
+				 break;
 			  }
 
 			 switch(dpos){
@@ -2445,6 +2629,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
 
                 }
@@ -2478,6 +2665,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 				  }
 
 			 switch(vpos){
@@ -2487,22 +2677,25 @@ case 6:
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
+				 break;
 			 }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.sitename);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.sitedomain);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.metakeys);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.metadesc);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.copyright);
 				 break;
 
@@ -2538,22 +2731,25 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 			  }
@@ -2592,22 +2788,25 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 			 }
@@ -2618,6 +2817,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
 
             }
@@ -2650,40 +2852,43 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.sitename);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.sitedomain);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.metakeys);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.metadesc);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.copyright);
 				 break;
 
@@ -2711,19 +2916,19 @@ case 6:
                     switch(kpos)
                     {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			 }
@@ -2734,6 +2939,9 @@ case 6:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			  }
 
@@ -2766,19 +2974,19 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			  }
@@ -2790,6 +2998,9 @@ case 6:
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
+				 break;
 			 }
 
 			 switch(dpos){
@@ -2798,6 +3009,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
 
                 }
@@ -2826,19 +3040,19 @@ case 6:
             switch(kpos)
             {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			 }
@@ -2850,22 +3064,25 @@ case 6:
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.languagetype;
+				 break;
 			 }
 
 			switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.sitename);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.sitedomain);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.metakeys);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.metadesc);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.copyright);
 				 break;
 
@@ -2894,37 +3111,37 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 			  }
@@ -2957,37 +3174,37 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 			 }
@@ -2998,6 +3215,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
 
                 }
@@ -3026,55 +3246,55 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.copyright;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.sitename);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.sitedomain);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.metakeys);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.metadesc);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.copyright);
 				 break;
 
@@ -3102,37 +3322,37 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp].emplace_back(iter.sitename);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp].emplace_back(iter.sitedomain);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp].emplace_back(iter.metakeys);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp].emplace_back(iter.metadesc);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp].emplace_back(iter.copyright);
 				 break;
 
@@ -3159,19 +3379,19 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			 }
@@ -3203,19 +3423,19 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			  }
@@ -3226,6 +3446,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.languagetype);
 				 break;
 
                 }
@@ -3258,22 +3481,25 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp].emplace_back(iter.sitename);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp].emplace_back(iter.sitedomain);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp].emplace_back(iter.metakeys);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp].emplace_back(iter.metadesc);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp].emplace_back(iter.copyright);
 				 break;
 
@@ -3309,6 +3535,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
 
 			 switch(vpos){
@@ -3343,6 +3572,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			 }
 
 			 switch(vpos){
@@ -3351,6 +3583,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.languagetype);
 				 break;
 
                 }
@@ -3381,6 +3616,9 @@ case 6:
 			case 1: 
  				 a[iter.userid].emplace_back(iter);
 				 break;
+			case 2: 
+ 				 a[iter.languagetype].emplace_back(iter);
+				 break;
 
                 }
             }       
@@ -3405,19 +3643,19 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 a[iter.sitename].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[iter.sitedomain].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[iter.metakeys].emplace_back(iter);
 				 break;
-			case 5: 
+			case 6: 
  				 a[iter.metadesc].emplace_back(iter);
 				 break;
-			case 6: 
+			case 7: 
  				 a[iter.copyright].emplace_back(iter);
 				 break;
 
@@ -3444,37 +3682,37 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][iter.sitename].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][iter.sitedomain].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][iter.metakeys].emplace_back(iter);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][iter.metadesc].emplace_back(iter);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][iter.copyright].emplace_back(iter);
 				 break;
 
@@ -3502,19 +3740,19 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.sitename;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.copyright;
 				 break;
 	  }
@@ -3525,6 +3763,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[ktemp][iter.languagetype].emplace_back(iter);
 				 break;
 
                 }
@@ -3558,6 +3799,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			 }
 
 			 switch(vpos){
@@ -3566,6 +3810,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[ktemp][iter.languagetype].emplace_back(iter);
 				 break;
 
                 }
@@ -3597,22 +3844,25 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.languagetype;
+				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][iter.sitename].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][iter.sitedomain].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][iter.metakeys].emplace_back(iter);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][iter.metadesc].emplace_back(iter);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][iter.copyright].emplace_back(iter);
 				 break;
 

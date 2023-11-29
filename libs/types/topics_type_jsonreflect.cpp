@@ -23,6 +23,8 @@ std::string json_encode(const topics_tree_outjson_t &json_reflectobj)
                 	_stream <<",";
 	_stream << "\"cateid\":" << std::to_string(json_reflectobj.cateid);
                 	_stream <<",";
+	_stream << "\"sortid\":" << std::to_string(json_reflectobj.sortid);
+                	_stream <<",";
 	_stream << "\"value\":\"" << http::utf8_to_jsonstring(json_reflectobj.value)<< "\"";
                 	_stream <<",";
 	_stream << "\"urlpath\":\"" << http::utf8_to_jsonstring(json_reflectobj.urlpath)<< "\"";
@@ -256,6 +258,16 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                                 }catch (...) 
                                 { 
                                     json_reflectobj.cateid=0;
+                                }
+                                 
+                            }
+                            else if (strcasecmp(_json_key_name.c_str(), "sortid") == 0)
+                            {
+                                try{
+                                    json_reflectobj.sortid=std::stoul(_json_value_name);
+                                }catch (...) 
+                                { 
+                                    json_reflectobj.sortid=0;
                                 }
                                  
                             }

@@ -298,6 +298,28 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
     return "";
 }
 
+//@urlpath(null,admin/updatearticlesort)
+std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+
+    try
+    {
+        auto artmodel = orm::cms::Article();
+        artmodel.setSortid(client.get["sortid"].to_int());
+        artmodel.where("userid", 0).whereAnd("aid", client.get["id"].to_int());
+        artmodel.update("sortid");
+        client.val["code"] = 0;
+        client.val["msg"] = "ok";
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 1;
+    }
+    client.out_json();
+    return "";
+}
+
 //@urlpath(null,admin/listarticle)
 std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 {
@@ -378,7 +400,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
                 tempa["aid"]       = item.aid;
                 tempa["date"]      = item.createtime.substr(0, 10);
                 tempa["topicname"] = topickv[item.topicid];
-
+                tempa["sortid"]    = item.sortid;
                 client.val["alist"].push(tempa);
             }
         }

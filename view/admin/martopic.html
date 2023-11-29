@@ -29,6 +29,7 @@
               <th scope="col">名称</th>
               <th scope="col">url</th>
               <th scope="col">类型</th>
+              <th scope="col">排序</th>
               <th scope="col">编辑</th>
             </tr>
           </thead>
@@ -46,6 +47,9 @@
                 </td>
                 <td>
                   <%c echo<<a.second["cateid"].as_string(); %>
+                </td>
+                <td>
+                  <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatetopic(<%c echo<<a.second["id"].to_string(); %>,this.value)">
                 </td>
                 <td>
                   <a href="/admin/edittopic?id=<%c echo<<a.second["id"].to_string(); %>">编辑</a>｜
@@ -81,7 +85,12 @@
       }
       return false;
     }
-  
+      function updatetopic(id,sortid)
+    {
+       $.getJSON("/admin/updatetopicsort?id="+id+"&sortid="+sortid,function(result){
+                               
+       });
+    }
   </script>
 </body>
 

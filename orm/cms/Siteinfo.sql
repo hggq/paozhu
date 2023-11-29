@@ -1,6 +1,7 @@
 CREATE TABLE `siteinfo` (
   `sid` int NOT NULL AUTO_INCREMENT,
   `userid` int NOT NULL,
+  `languagetype` int unsigned NOT NULL COMMENT '语言类型',
   `sitename` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
   `sitedomain` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
   `metakeys` text COLLATE utf8mb4_general_ci NOT NULL,

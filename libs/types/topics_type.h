@@ -15,6 +15,7 @@ struct topics_tree_outjson_t
     unsigned int id       = 0;
     unsigned int parentid = 0;
     unsigned int cateid   = 0;
+    unsigned int sortid   = 0;
     std::string value;
     std::string urlpath;
     bool isview = false;

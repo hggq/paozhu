@@ -1349,7 +1349,7 @@ std::string array_to_sql(const std::vector<std::string> a, char b, bool isquote)
     }
     return temp;
 }
-inline std::string str_addslash(const std::string &content)
+std::string str_addslash(const std::string &content)
 {
     std::string temp;
     for (unsigned int i = 0; i < content.size(); i++)
@@ -1364,11 +1364,16 @@ inline std::string str_addslash(const std::string &content)
             temp.append("\\\"");
             continue;
         }
+        else if (content[i] == '\\')
+        {
+            temp.append("\\\\");
+            continue;
+        }
         temp.push_back(content[i]);
     }
     return temp;
 }
-inline std::string json_addslash(const std::string &content)
+std::string json_addslash(const std::string &content)
 {
     std::string temp;
     for (unsigned int i = 0; i < content.size(); i++)
@@ -1376,6 +1381,11 @@ inline std::string json_addslash(const std::string &content)
         if (content[i] == '"')
         {
             temp.append("\\\"");
+            continue;
+        }
+        else if (content[i] == '\\')
+        {
+            temp.append("\\\\");
             continue;
         }
         temp.push_back(content[i]);

@@ -43,6 +43,7 @@
               <th scope="col">栏目</th>
               <th scope="col">标题</th>
               <th scope="col">日期</th>
+              <th scope="col">排序</th>
               <th scope="col">操作</th>
             </tr>
           </thead>
@@ -53,6 +54,9 @@
               <td><%c echo<<a.second["topicname"].to_string(); %></td>
               <td><%c echo<<a.second["title"].to_string(); %></td>
               <td><%c echo<<a.second["date"].to_string(); %></td>
+              <td>
+              <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatearticlesort(<%c echo<<a.second["aid"].to_string(); %>,this.value)">
+              </td>
               <td>
               <a href="/admin/editarticle?id=<%c echo<<a.second["aid"].to_string(); %>">编辑</a>｜
                   <a href="/admin/deletearticle?id=<%c echo<<a.second["aid"].to_string(); %>" onclick="return deletearticle(<%c echo<<a.second["aid"].to_string(); %>)">删除</a></td>
@@ -137,7 +141,12 @@
       }
       return false;
     }
- 
+       function updatearticlesort(id,sortid)
+    {
+       $.getJSON("/admin/updatearticlesort?id="+id+"&sortid="+sortid,function(result){
+                               
+       });
+    }
     </script>
 </body>
 

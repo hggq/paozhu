@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 07 Jun 2023 01:10:17 GMT
+*本文件为自动生成 Wed, 29 Nov 2023 03:41:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -29,7 +29,9 @@ struct topicbase
 unsigned  int userid= 0; //
 unsigned  int parentid= 0; //
 unsigned  int cateid= 0; //类型
+unsigned  int languagetype= 0; //语言类型
 unsigned  char isview=0; //是否显示
+unsigned  int sortid= 0; //排序id
  std::string title=""; //标题
  std::string twotitle=""; //第二标题
  std::string memo=""; //备注
@@ -48,8 +50,8 @@ std::vector<topicbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<topicbase::meta>::iterator end(){     return record.end(); }
 std::vector<topicbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<topicbase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,14> colnames={"topicid","userid","parentid","cateid","isview","title","twotitle","memo","templatename","url","urlpath","imgurl","topimg","accesscode"};
-const std::array<unsigned char,14> colnamestype= {3,3,3,3,1,253,253,253,253,253,253,253,253,3};
+const std::array<std::string,16> colnames={"topicid","userid","parentid","cateid","languagetype","isview","sortid","title","twotitle","memo","templatename","url","urlpath","imgurl","topimg","accesscode"};
+const std::array<unsigned char,16> colnamestype= {3,3,3,3,3,1,3,253,253,253,253,253,253,253,252,3};
 std::string tablename="topic";
 std::string modelname="Topic";
 
@@ -64,7 +66,7 @@ std::string modelname="Topic";
 
 
          case 'a':
-   	 return 13;
+   	 return 15;
 break;
 case 'c':
    	 return 3;
@@ -74,46 +76,52 @@ case 'i':
 case 6:
   colpospppc=coln.back();
     if(colpospppc<91&&bi>64){ colpospppc+=32; }
- if(colpospppc=='l'){ return 11; }
- if(colpospppc=='w'){ return 4; }
+ if(colpospppc=='l'){ return 13; }
+ if(colpospppc=='w'){ return 5; }
    	 break;
  }
  break;
+case 'l':
+   	 return 4;
+break;
 case 'm':
-   	 return 7;
+   	 return 9;
 break;
 case 'p':
    	 return 2;
 break;
+case 's':
+   	 return 6;
+break;
 case 't':
  switch(coln.size()){  
 case 5:
-   	 return 5;
+   	 return 7;
 break;
 case 6:
-   	 return 12;
+   	 return 14;
 break;
 case 7:
    	 return 0;
 break;
 case 8:
-   	 return 6;
+   	 return 8;
 break;
 case 12:
-   	 return 8;
+   	 return 10;
 break;
  }
  break;
 case 'u':
  switch(coln.size()){  
 case 3:
-   	 return 9;
+   	 return 11;
 break;
 case 6:
    	 return 1;
 break;
 case 7:
-   	 return 10;
+   	 return 12;
 break;
  }
  break;
@@ -167,68 +175,82 @@ break;
 			break;
 	case 4:
 		 try{
+			metatemp.languagetype=std::stoul(_row[i]);
+		}catch (...) { 
+			metatemp.languagetype=0;
+			 }
+			break;
+	case 5:
+		 try{
 			metatemp.isview=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.isview=0;
 			 }
 			break;
-	case 5:
+	case 6:
+		 try{
+			metatemp.sortid=std::stoul(_row[i]);
+		}catch (...) { 
+			metatemp.sortid=0;
+			 }
+			break;
+	case 7:
 		 try{
 			metatemp.title.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.title.clear();
 			 }
 			break;
-	case 6:
+	case 8:
 		 try{
 			metatemp.twotitle.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.twotitle.clear();
 			 }
 			break;
-	case 7:
+	case 9:
 		 try{
 			metatemp.memo.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.memo.clear();
 			 }
 			break;
-	case 8:
+	case 10:
 		 try{
 			metatemp.templatename.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.templatename.clear();
 			 }
 			break;
-	case 9:
+	case 11:
 		 try{
 			metatemp.url.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.url.clear();
 			 }
 			break;
-	case 10:
+	case 12:
 		 try{
 			metatemp.urlpath.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.urlpath.clear();
 			 }
 			break;
-	case 11:
+	case 13:
 		 try{
 			metatemp.imgurl.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.imgurl.clear();
 			 }
 			break;
-	case 12:
+	case 14:
 		 try{
 			metatemp.topimg.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.topimg.clear();
 			 }
 			break;
-	case 13:
+	case 15:
 		 try{
 			metatemp.accesscode=std::stoul(_row[i]);
 		}catch (...) { 
@@ -285,68 +307,82 @@ break;
 			break;
 	case 4:
 		 try{
+			metatemp.languagetype=std::stoul(_row[i]);
+		}catch (...) { 
+			metatemp.languagetype=0;
+			 }
+			break;
+	case 5:
+		 try{
 			metatemp.isview=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.isview=0;
 			 }
 			break;
-	case 5:
+	case 6:
+		 try{
+			metatemp.sortid=std::stoul(_row[i]);
+		}catch (...) { 
+			metatemp.sortid=0;
+			 }
+			break;
+	case 7:
 		 try{
 			metatemp.title.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.title.clear();
 			 }
 			break;
-	case 6:
+	case 8:
 		 try{
 			metatemp.twotitle.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.twotitle.clear();
 			 }
 			break;
-	case 7:
+	case 9:
 		 try{
 			metatemp.memo.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.memo.clear();
 			 }
 			break;
-	case 8:
+	case 10:
 		 try{
 			metatemp.templatename.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.templatename.clear();
 			 }
 			break;
-	case 9:
+	case 11:
 		 try{
 			metatemp.url.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.url.clear();
 			 }
 			break;
-	case 10:
+	case 12:
 		 try{
 			metatemp.urlpath.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.urlpath.clear();
 			 }
 			break;
-	case 11:
+	case 13:
 		 try{
 			metatemp.imgurl.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.imgurl.clear();
 			 }
 			break;
-	case 12:
+	case 14:
 		 try{
 			metatemp.topimg.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.topimg.clear();
 			 }
 			break;
-	case 13:
+	case 15:
 		 try{
 			metatemp.accesscode=std::stoul(_row[i]);
 		}catch (...) { 
@@ -374,6 +410,9 @@ break;
             }else if(content[i]=='"'){
                 temp.append("\\\"");
                 continue;
+            }else if(content[i]=='\\'){
+                temp.append("\\\\");
+                continue;
             }
             temp.push_back(content[i]);
         }
@@ -384,6 +423,10 @@ break;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
+                continue;
+            }
+            else if(content[i]=='\\'){
+                temp.append("\\\\");
                 continue;
             }
             temp.push_back(content[i]);
@@ -430,10 +473,20 @@ if(data.cateid==0){
  }else{ 
 	tempsql<<","<<std::to_string(data.cateid);
 }
+if(data.languagetype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.languagetype);
+}
 if(data.isview==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.isview);
+}
+if(data.sortid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.sortid);
 }
 tempsql<<",'"<<stringaddslash(data.title)<<"'";
 tempsql<<",'"<<stringaddslash(data.twotitle)<<"'";
@@ -493,10 +546,20 @@ if(insert_data.cateid==0){
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.cateid);
 }
+if(insert_data.languagetype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.languagetype);
+}
 if(insert_data.isview==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.isview);
+}
+if(insert_data.sortid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.sortid);
 }
 tempsql<<",'"<<stringaddslash(insert_data.title)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.twotitle)<<"'";
@@ -565,10 +628,20 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].cateid);
 	}
+	if(insert_data[i].languagetype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].languagetype);
+	}
 	if(insert_data[i].isview==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].isview);
+	}
+	if(insert_data[i].sortid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].sortid);
 	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].title)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].twotitle)<<"'";
@@ -623,10 +696,20 @@ if(data.cateid==0){
  }else{ 
 	tempsql<<",`cateid`="<<std::to_string(data.cateid);
 }
+if(data.languagetype==0){
+	tempsql<<",`languagetype`=0";
+ }else{ 
+	tempsql<<",`languagetype`="<<std::to_string(data.languagetype);
+}
 if(data.isview==0){
 	tempsql<<",`isview`=0";
  }else{ 
 	tempsql<<",`isview`="<<std::to_string(data.isview);
+}
+if(data.sortid==0){
+	tempsql<<",`sortid`=0";
+ }else{ 
+	tempsql<<",`sortid`="<<std::to_string(data.sortid);
 }
 tempsql<<",`title`='"<<stringaddslash(data.title)<<"'";
 tempsql<<",`twotitle`='"<<stringaddslash(data.twotitle)<<"'";
@@ -719,45 +802,61 @@ if(data.cateid==0){
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
+if(data.languagetype==0){
+	tempsql<<"`languagetype`=0";
+ }else{ 
+	tempsql<<"`languagetype`="<<std::to_string(data.languagetype);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
 if(data.isview==0){
 	tempsql<<"`isview`=0";
  }else{ 
 	tempsql<<"`isview`="<<std::to_string(data.isview);
 }
  break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`title`='"<<stringaddslash(data.title)<<"'";
- break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`twotitle`='"<<stringaddslash(data.twotitle)<<"'";
+if(data.sortid==0){
+	tempsql<<"`sortid`=0";
+ }else{ 
+	tempsql<<"`sortid`="<<std::to_string(data.sortid);
+}
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`memo`='"<<stringaddslash(data.memo)<<"'";
+tempsql<<"`title`='"<<stringaddslash(data.title)<<"'";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`templatename`='"<<stringaddslash(data.templatename)<<"'";
+tempsql<<"`twotitle`='"<<stringaddslash(data.twotitle)<<"'";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`url`='"<<stringaddslash(data.url)<<"'";
+tempsql<<"`memo`='"<<stringaddslash(data.memo)<<"'";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
+tempsql<<"`templatename`='"<<stringaddslash(data.templatename)<<"'";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
+tempsql<<"`url`='"<<stringaddslash(data.url)<<"'";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`topimg`='"<<stringaddslash(data.topimg)<<"'";
+tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  break;
  case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`topimg`='"<<stringaddslash(data.topimg)<<"'";
+ break;
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(data.accesscode==0){
 	tempsql<<"`accesscode`=0";
@@ -837,37 +936,51 @@ if(data.cateid==0){
 }
  break;
  case 4:
+if(data.languagetype==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.languagetype));
+}
+ break;
+ case 5:
 if(data.isview==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.isview));
 }
  break;
- case 5:
-	temparray.push_back(data.title);
- break;
  case 6:
-	temparray.push_back(data.twotitle);
+if(data.sortid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.sortid));
+}
  break;
  case 7:
-	temparray.push_back(data.memo);
+	temparray.push_back(data.title);
  break;
  case 8:
-	temparray.push_back(data.templatename);
+	temparray.push_back(data.twotitle);
  break;
  case 9:
-	temparray.push_back(data.url);
+	temparray.push_back(data.memo);
  break;
  case 10:
-	temparray.push_back(data.urlpath);
+	temparray.push_back(data.templatename);
  break;
  case 11:
-	temparray.push_back(data.imgurl);
+	temparray.push_back(data.url);
  break;
  case 12:
-	temparray.push_back(data.topimg);
+	temparray.push_back(data.urlpath);
  break;
  case 13:
+	temparray.push_back(data.imgurl);
+ break;
+ case 14:
+	temparray.push_back(data.topimg);
+ break;
+ case 15:
 if(data.accesscode==0){
 	temparray.push_back("0");
  }else{ 
@@ -943,37 +1056,51 @@ if(data.cateid==0){
 }
  break;
  case 4:
+if(data.languagetype==0){
+	tempsql.insert({"languagetype","0"});
+ }else{ 
+	tempsql.insert({"languagetype",std::to_string(data.languagetype)});
+}
+ break;
+ case 5:
 if(data.isview==0){
 	tempsql.insert({"isview","0"});
  }else{ 
 	tempsql.insert({"isview",std::to_string(data.isview)});
 }
  break;
- case 5:
-	tempsql.insert({"title",data.title});
- break;
  case 6:
-	tempsql.insert({"twotitle",data.twotitle});
+if(data.sortid==0){
+	tempsql.insert({"sortid","0"});
+ }else{ 
+	tempsql.insert({"sortid",std::to_string(data.sortid)});
+}
  break;
  case 7:
-	tempsql.insert({"memo",data.memo});
+	tempsql.insert({"title",data.title});
  break;
  case 8:
-	tempsql.insert({"templatename",data.templatename});
+	tempsql.insert({"twotitle",data.twotitle});
  break;
  case 9:
-	tempsql.insert({"url",data.url});
+	tempsql.insert({"memo",data.memo});
  break;
  case 10:
-	tempsql.insert({"urlpath",data.urlpath});
+	tempsql.insert({"templatename",data.templatename});
  break;
  case 11:
-	tempsql.insert({"imgurl",data.imgurl});
+	tempsql.insert({"url",data.url});
  break;
  case 12:
-	tempsql.insert({"topimg",data.topimg});
+	tempsql.insert({"urlpath",data.urlpath});
  break;
  case 13:
+	tempsql.insert({"imgurl",data.imgurl});
+ break;
+ case 14:
+	tempsql.insert({"topimg",data.topimg});
+ break;
+ case 15:
 if(data.accesscode==0){
 	tempsql.insert({"accesscode","0"});
  }else{ 
@@ -1013,10 +1140,20 @@ if(data.cateid==0){
  }else{ 
 	tempsql<<",\"cateid\":"<<std::to_string(data.cateid);
 }
+if(data.languagetype==0){
+	tempsql<<",\"languagetype\":0";
+ }else{ 
+	tempsql<<",\"languagetype\":"<<std::to_string(data.languagetype);
+}
 if(data.isview==0){
 	tempsql<<",\"isview\":0";
  }else{ 
 	tempsql<<",\"isview\":"<<std::to_string(data.isview);
+}
+if(data.sortid==0){
+	tempsql<<",\"sortid\":0";
+ }else{ 
+	tempsql<<",\"sortid\":"<<std::to_string(data.sortid);
 }
 tempsql<<",\"title\":\""<<http::utf8_to_jsonstring(data.title);
 tempsql<<"\"";
@@ -1110,45 +1247,61 @@ if(data.cateid==0){
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
+if(data.languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(data.languagetype);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
 if(data.isview==0){
 	tempsql<<"\"isview\":0";
  }else{ 
 	tempsql<<"\"isview\":"<<std::to_string(data.isview);
 }
  break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
- break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(data.twotitle)<<"\"";
+if(data.sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(data.sortid);
+}
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(data.memo)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(data.templatename)<<"\"";
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(data.twotitle)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(data.url)<<"\"";
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(data.memo)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(data.templatename)<<"\"";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(data.url)<<"\"";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(data.topimg)<<"\"";
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
  break;
  case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(data.topimg)<<"\"";
+ break;
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(data.accesscode==0){
 	tempsql<<"\"accesscode\":0";
@@ -1433,68 +1586,82 @@ if(data.accesscode==0){
 			break;
 		case 4:
 		 try{
+			data.languagetype=std::stoul(set_value_name);
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 5:
+		 try{
 			data.isview=std::stoi(set_value_name);
 		}catch (...) { 
 			data.isview=0;
 			 }
 			break;
-		case 5:
+		case 6:
+		 try{
+			data.sortid=std::stoul(set_value_name);
+		}catch (...) { 
+			data.sortid=0;
+			 }
+			break;
+		case 7:
 		 try{
 			data.title.append(set_value_name);
 		}catch (...) { 
 			data.title.clear();
 			 }
 			break;
-		case 6:
+		case 8:
 		 try{
 			data.twotitle.append(set_value_name);
 		}catch (...) { 
 			data.twotitle.clear();
 			 }
 			break;
-		case 7:
+		case 9:
 		 try{
 			data.memo.append(set_value_name);
 		}catch (...) { 
 			data.memo.clear();
 			 }
 			break;
-		case 8:
+		case 10:
 		 try{
 			data.templatename.append(set_value_name);
 		}catch (...) { 
 			data.templatename.clear();
 			 }
 			break;
-		case 9:
+		case 11:
 		 try{
 			data.url.append(set_value_name);
 		}catch (...) { 
 			data.url.clear();
 			 }
 			break;
-		case 10:
+		case 12:
 		 try{
 			data.urlpath.append(set_value_name);
 		}catch (...) { 
 			data.urlpath.clear();
 			 }
 			break;
-		case 11:
+		case 13:
 		 try{
 			data.imgurl.append(set_value_name);
 		}catch (...) { 
 			data.imgurl.clear();
 			 }
 			break;
-		case 12:
+		case 14:
 		 try{
 			data.topimg.append(set_value_name);
 		}catch (...) { 
 			data.topimg.clear();
 			 }
 			break;
-		case 13:
+		case 15:
 		 try{
 			data.accesscode=std::stoul(set_value_name);
 		}catch (...) { 
@@ -1543,68 +1710,82 @@ if(data.accesscode==0){
 			break;
 		case 4:
 		 try{
+			data.languagetype=set_value_name;
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 5:
+		 try{
 			data.isview=set_value_name;
 		}catch (...) { 
 			data.isview=0;
 			 }
 			break;
-		case 5:
+		case 6:
+		 try{
+			data.sortid=set_value_name;
+		}catch (...) { 
+			data.sortid=0;
+			 }
+			break;
+		case 7:
 		 try{
 			data.title=std::to_string(set_value_name);
 		}catch (...) { 
 			data.title.clear();
 			 }
 			break;
-		case 6:
+		case 8:
 		 try{
 			data.twotitle=std::to_string(set_value_name);
 		}catch (...) { 
 			data.twotitle.clear();
 			 }
 			break;
-		case 7:
+		case 9:
 		 try{
 			data.memo=std::to_string(set_value_name);
 		}catch (...) { 
 			data.memo.clear();
 			 }
 			break;
-		case 8:
+		case 10:
 		 try{
 			data.templatename=std::to_string(set_value_name);
 		}catch (...) { 
 			data.templatename.clear();
 			 }
 			break;
-		case 9:
+		case 11:
 		 try{
 			data.url=std::to_string(set_value_name);
 		}catch (...) { 
 			data.url.clear();
 			 }
 			break;
-		case 10:
+		case 12:
 		 try{
 			data.urlpath=std::to_string(set_value_name);
 		}catch (...) { 
 			data.urlpath.clear();
 			 }
 			break;
-		case 11:
+		case 13:
 		 try{
 			data.imgurl=std::to_string(set_value_name);
 		}catch (...) { 
 			data.imgurl.clear();
 			 }
 			break;
-		case 12:
+		case 14:
 		 try{
 			data.topimg=std::to_string(set_value_name);
 		}catch (...) { 
 			data.topimg.clear();
 			 }
 			break;
-		case 13:
+		case 15:
 		 try{
 			data.accesscode=set_value_name;
 		}catch (...) { 
@@ -1653,68 +1834,82 @@ if(data.accesscode==0){
 			break;
 		case 4:
 		 try{
+			data.languagetype=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 5:
+		 try{
 			data.isview=(int)set_value_name;
 		}catch (...) { 
 			data.isview=0;
 			 }
 			break;
-		case 5:
+		case 6:
+		 try{
+			data.sortid=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.sortid=0;
+			 }
+			break;
+		case 7:
 		 try{
 			data.title=std::to_string(set_value_name);
 		}catch (...) { 
 			data.title.clear();
 			 }
 			break;
-		case 6:
+		case 8:
 		 try{
 			data.twotitle=std::to_string(set_value_name);
 		}catch (...) { 
 			data.twotitle.clear();
 			 }
 			break;
-		case 7:
+		case 9:
 		 try{
 			data.memo=std::to_string(set_value_name);
 		}catch (...) { 
 			data.memo.clear();
 			 }
 			break;
-		case 8:
+		case 10:
 		 try{
 			data.templatename=std::to_string(set_value_name);
 		}catch (...) { 
 			data.templatename.clear();
 			 }
 			break;
-		case 9:
+		case 11:
 		 try{
 			data.url=std::to_string(set_value_name);
 		}catch (...) { 
 			data.url.clear();
 			 }
 			break;
-		case 10:
+		case 12:
 		 try{
 			data.urlpath=std::to_string(set_value_name);
 		}catch (...) { 
 			data.urlpath.clear();
 			 }
 			break;
-		case 11:
+		case 13:
 		 try{
 			data.imgurl=std::to_string(set_value_name);
 		}catch (...) { 
 			data.imgurl.clear();
 			 }
 			break;
-		case 12:
+		case 14:
 		 try{
 			data.topimg=std::to_string(set_value_name);
 		}catch (...) { 
 			data.topimg.clear();
 			 }
 			break;
-		case 13:
+		case 15:
 		 try{
 			data.accesscode=(unsigned int)set_value_name;
 		}catch (...) { 
@@ -1801,45 +1996,61 @@ if(record[n].cateid==0){
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
+if(record[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(record[n].languagetype);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].isview==0){
 	tempsql<<"\"isview\":0";
  }else{ 
 	tempsql<<"\"isview\":"<<std::to_string(record[n].isview);
 }
  break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
- break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(record[n].twotitle)<<"\"";
+if(record[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
+}
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(record[n].memo)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(record[n].templatename)<<"\"";
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(record[n].twotitle)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(record[n].url)<<"\"";
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(record[n].memo)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(record[n].templatename)<<"\"";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(record[n].url)<<"\"";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(record[n].topimg)<<"\"";
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  break;
  case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(record[n].topimg)<<"\"";
+ break;
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(record[n].accesscode==0){
 	tempsql<<"\"accesscode\":0";
@@ -1937,45 +2148,61 @@ if(record[n].cateid==0){
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
+if(record[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(record[n].languagetype);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].isview==0){
 	tempsql<<"\"isview\":0";
  }else{ 
 	tempsql<<"\"isview\":"<<std::to_string(record[n].isview);
 }
  break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
- break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(record[n].twotitle)<<"\"";
+if(record[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
+}
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(record[n].memo)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(record[n].templatename)<<"\"";
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(record[n].twotitle)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(record[n].url)<<"\"";
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(record[n].memo)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(record[n].templatename)<<"\"";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(record[n].url)<<"\"";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(record[n].topimg)<<"\"";
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  break;
  case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(record[n].topimg)<<"\"";
+ break;
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(record[n].accesscode==0){
 	tempsql<<"\"accesscode\":0";
@@ -2007,8 +2234,14 @@ unsigned  int  getParentid(){  return data.parentid; }
 unsigned  int  getCateid(){  return data.cateid; } 
  void setCateid(unsigned  int  val){  data.cateid=val;} 
 
+unsigned  int  getLanguagetype(){  return data.languagetype; } 
+ void setLanguagetype(unsigned  int  val){  data.languagetype=val;} 
+
 unsigned  int  getIsview(){  return data.isview; } 
  void setIsview(unsigned  int  val){  data.isview=val;} 
+
+unsigned  int  getSortid(){  return data.sortid; } 
+ void setSortid(unsigned  int  val){  data.sortid=val;} 
 
 std::string getTitle(){  return data.title; } 
 std::string& getRefTitle(){  return std::ref(data.title); } 
@@ -2123,9 +2356,17 @@ std::vector<topicbase::meta> getRecord(){
 		{
 			return data.cateid;
 		}
+		 if(key_name=="languagetype")
+		{
+			return data.languagetype;
+		}
 		 if(key_name=="isview")
 		{
 			return data.isview;
+		}
+		 if(key_name=="sortid")
+		{
+			return data.sortid;
 		}
 		 if(key_name=="accesscode")
 		{
@@ -2165,9 +2406,15 @@ std::vector<topicbase::meta> getRecord(){
  				 a.emplace_back(iter.cateid);
 				 break;
 			case 4: 
+ 				 a.emplace_back(iter.languagetype);
+				 break;
+			case 5: 
  				 a.emplace_back(iter.isview);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a.emplace_back(iter.sortid);
+				 break;
+			case 15: 
  				 a.emplace_back(iter.accesscode);
 				 break;
 
@@ -2209,9 +2456,15 @@ std::vector<topicbase::meta> getRecord(){
  				 return data.cateid;
 				 break;
 			case 4: 
+ 				 return data.languagetype;
+				 break;
+			case 5: 
  				 return data.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 return data.sortid;
+				 break;
+			case 15: 
  				 return data.accesscode;
 				 break;
 			}
@@ -2239,9 +2492,15 @@ std::vector<topicbase::meta> getRecord(){
  				 return iter.cateid;
 				 break;
 			case 4: 
+ 				 return iter.languagetype;
+				 break;
+			case 5: 
  				 return iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 return iter.sortid;
+				 break;
+			case 15: 
  				 return iter.accesscode;
 				 break;
 
@@ -2292,28 +2551,28 @@ std::vector<topicbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 return data.title;
 				 break;
-			case 6: 
+			case 8: 
  				 return data.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 return data.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 return data.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 return data.url;
 				 break;
-			case 10: 
+			case 12: 
  				 return data.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 return data.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 return data.topimg;
 				 break;
 
@@ -2331,28 +2590,28 @@ std::vector<topicbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 return iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 return iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 return iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 return iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 return iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 return iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 return iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 return iter.topimg;
 				 break;
 
@@ -2375,28 +2634,28 @@ std::vector<topicbase::meta> getRecord(){
                     switch(kpos)
                     {
 
-    			case 5: 
+    			case 7: 
  				 a.emplace_back(iter.title);
 					 break;
-			case 6: 
+			case 8: 
  				 a.emplace_back(iter.twotitle);
 					 break;
-			case 7: 
+			case 9: 
  				 a.emplace_back(iter.memo);
 					 break;
-			case 8: 
+			case 10: 
  				 a.emplace_back(iter.templatename);
 					 break;
-			case 9: 
+			case 11: 
  				 a.emplace_back(iter.url);
 					 break;
-			case 10: 
+			case 12: 
  				 a.emplace_back(iter.urlpath);
 					 break;
-			case 11: 
+			case 13: 
  				 a.emplace_back(iter.imgurl);
 					 break;
-			case 12: 
+			case 14: 
  				 a.emplace_back(iter.topimg);
 					 break;
 					}
@@ -2443,57 +2702,63 @@ std::vector<topicbase::meta> getRecord(){
  				 a<<std::to_string(iter.cateid);
 				 break;
 			case 4: 
- 				 a<<std::to_string(iter.isview);
+ 				 a<<std::to_string(iter.languagetype);
 				 break;
 			case 5: 
+ 				 a<<std::to_string(iter.isview);
+				 break;
+			case 6: 
+ 				 a<<std::to_string(iter.sortid);
+				 break;
+			case 7: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case 6: 
+			case 8: 
  				 if(isyinhao){ a<<jsonaddslash(iter.twotitle); 
 				 }else{
 				 a<<iter.twotitle;
 				 }
 				 break;
-			case 7: 
+			case 9: 
  				 if(isyinhao){ a<<jsonaddslash(iter.memo); 
 				 }else{
 				 a<<iter.memo;
 				 }
 				 break;
-			case 8: 
+			case 10: 
  				 if(isyinhao){ a<<jsonaddslash(iter.templatename); 
 				 }else{
 				 a<<iter.templatename;
 				 }
 				 break;
-			case 9: 
+			case 11: 
  				 if(isyinhao){ a<<jsonaddslash(iter.url); 
 				 }else{
 				 a<<iter.url;
 				 }
 				 break;
-			case 10: 
+			case 12: 
  				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
 				 }else{
 				 a<<iter.urlpath;
 				 }
 				 break;
-			case 11: 
+			case 13: 
  				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
 				 }else{
 				 a<<iter.imgurl;
 				 }
 				 break;
-			case 12: 
+			case 14: 
  				 if(isyinhao){ a<<jsonaddslash(iter.topimg); 
 				 }else{
 				 a<<iter.topimg;
 				 }
 				 break;
-			case 13: 
+			case 15: 
  				 a<<std::to_string(iter.accesscode);
 				 break;
 
@@ -2521,54 +2786,54 @@ std::vector<topicbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 				 } 
 			 switch(vpos){ 
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 
@@ -2596,28 +2861,28 @@ std::vector<topicbase::meta> getRecord(){
                     switch(kpos)
                     {
  
-       			case 5: 
+       			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			 } 
@@ -2658,9 +2923,15 @@ case 3:
  	 ktemp=iter.cateid;
 	 break;
 case 4: 
+ 	 ktemp=iter.languagetype;
+	 break;
+case 5: 
  	 ktemp=iter.isview;
 	 break;
-case 13: 
+case 6: 
+ 	 ktemp=iter.sortid;
+	 break;
+case 15: 
  	 ktemp=iter.accesscode;
 	 break;
 	 } 
@@ -2700,35 +2971,41 @@ case 13:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
  			 switch(vpos){
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 
@@ -2754,28 +3031,28 @@ case 13:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			  }
@@ -2793,9 +3070,15 @@ case 13:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 
@@ -2834,9 +3117,15 @@ case 13:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
@@ -2854,9 +3143,15 @@ case 13:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 
@@ -2892,9 +3187,15 @@ case 13:
  				 a.emplace(iter.cateid,iter);
 				 break;
 			case 4: 
+ 				 a.emplace(iter.languagetype,iter);
+				 break;
+			case 5: 
  				 a.emplace(iter.isview,iter);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a.emplace(iter.sortid,iter);
+				 break;
+			case 15: 
  				 a.emplace(iter.accesscode,iter);
 				 break;
 
@@ -2916,28 +3217,28 @@ case 13:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 a.emplace(iter.title,iter);
 			 break;
-			case 6: 
+			case 8: 
  				 a.emplace(iter.twotitle,iter);
 			 break;
-			case 7: 
+			case 9: 
  				 a.emplace(iter.memo,iter);
 			 break;
-			case 8: 
+			case 10: 
  				 a.emplace(iter.templatename,iter);
 			 break;
-			case 9: 
+			case 11: 
  				 a.emplace(iter.url,iter);
 			 break;
-			case 10: 
+			case 12: 
  				 a.emplace(iter.urlpath,iter);
 			 break;
-			case 11: 
+			case 13: 
  				 a.emplace(iter.imgurl,iter);
 			 break;
-			case 12: 
+			case 14: 
  				 a.emplace(iter.topimg,iter);
 			 break;
 
@@ -2965,28 +3266,28 @@ case 13:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 	 		 }
@@ -3031,9 +3332,15 @@ case 13:
  				 ktemp=iter.cateid;
 			 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+			 break;
+			case 5: 
  				 ktemp=iter.isview;
 			 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+			 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 			 break;
 			  }
@@ -3078,35 +3385,41 @@ case 13:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
  			switch(vpos){
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 
@@ -3135,28 +3448,28 @@ case 13:
                     switch(kpos)
                     {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			  }
@@ -3174,9 +3487,15 @@ case 13:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 
@@ -3216,9 +3535,15 @@ case 13:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
@@ -3236,9 +3561,15 @@ case 13:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 
@@ -3265,54 +3596,54 @@ case 13:
                     switch(kpos)
                     {
 
-   case 5: 
+   case 7: 
  	 ktemp=iter.title;
 	 break;
-case 6: 
+case 8: 
  	 ktemp=iter.twotitle;
 	 break;
-case 7: 
+case 9: 
  	 ktemp=iter.memo;
 	 break;
-case 8: 
+case 10: 
  	 ktemp=iter.templatename;
 	 break;
-case 9: 
+case 11: 
  	 ktemp=iter.url;
 	 break;
-case 10: 
+case 12: 
  	 ktemp=iter.urlpath;
 	 break;
-case 11: 
+case 13: 
  	 ktemp=iter.imgurl;
 	 break;
-case 12: 
+case 14: 
  	 ktemp=iter.topimg;
 	 break;
 	  }
  switch(vpos){
-case 5: 
+case 7: 
  	 vtemp=iter.title;
 	 break;
-case 6: 
+case 8: 
  	 vtemp=iter.twotitle;
 	 break;
-case 7: 
+case 9: 
  	 vtemp=iter.memo;
 	 break;
-case 8: 
+case 10: 
  	 vtemp=iter.templatename;
 	 break;
-case 9: 
+case 11: 
  	 vtemp=iter.url;
 	 break;
-case 10: 
+case 12: 
  	 vtemp=iter.urlpath;
 	 break;
-case 11: 
+case 13: 
  	 vtemp=iter.imgurl;
 	 break;
-case 12: 
+case 14: 
  	 vtemp=iter.topimg;
 	 break;
 
@@ -3349,9 +3680,15 @@ case 3:
  	 a.emplace_back(iter.cateid,iter);
 	 break;
 case 4: 
+ 	 a.emplace_back(iter.languagetype,iter);
+	 break;
+case 5: 
  	 a.emplace_back(iter.isview,iter);
 	 break;
-case 13: 
+case 6: 
+ 	 a.emplace_back(iter.sortid,iter);
+	 break;
+case 15: 
  	 a.emplace_back(iter.accesscode,iter);
 	 break;
 
@@ -3373,28 +3710,28 @@ case 13:
                 switch(kpos)
                 {
 
-   case 5: 
+   case 7: 
  	 a.emplace_back(iter.title,iter);
 	 break;
-case 6: 
+case 8: 
  	 a.emplace_back(iter.twotitle,iter);
 	 break;
-case 7: 
+case 9: 
  	 a.emplace_back(iter.memo,iter);
 	 break;
-case 8: 
+case 10: 
  	 a.emplace_back(iter.templatename,iter);
 	 break;
-case 9: 
+case 11: 
  	 a.emplace_back(iter.url,iter);
 	 break;
-case 10: 
+case 12: 
  	 a.emplace_back(iter.urlpath,iter);
 	 break;
-case 11: 
+case 13: 
  	 a.emplace_back(iter.imgurl,iter);
 	 break;
-case 12: 
+case 14: 
  	 a.emplace_back(iter.topimg,iter);
 	 break;
 
@@ -3434,9 +3771,15 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
@@ -3455,9 +3798,15 @@ case 12:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 			  }
@@ -3504,9 +3853,15 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
@@ -3525,9 +3880,15 @@ case 12:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 			  }
@@ -3546,9 +3907,15 @@ case 12:
  				 a[ktemp][vtemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
+				 break;
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.isview);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+				 break;
+			case 15: 
  				 a[ktemp][vtemp].emplace_back(iter.accesscode);
 				 break;
 
@@ -3590,9 +3957,15 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 				  }
@@ -3611,36 +3984,42 @@ case 12:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(dpos){
-			case 5: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
-			case 6: 
+			case 8: 
  				 a[ktemp][vtemp].emplace_back(iter.twotitle);
 				 break;
-			case 7: 
+			case 9: 
  				 a[ktemp][vtemp].emplace_back(iter.memo);
 				 break;
-			case 8: 
+			case 10: 
  				 a[ktemp][vtemp].emplace_back(iter.templatename);
 				 break;
-			case 9: 
+			case 11: 
  				 a[ktemp][vtemp].emplace_back(iter.url);
 				 break;
-			case 10: 
+			case 12: 
  				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
-			case 11: 
+			case 13: 
  				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
-			case 12: 
+			case 14: 
  				 a[ktemp][vtemp].emplace_back(iter.topimg);
 				 break;
 
@@ -3683,36 +4062,42 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 			  }
@@ -3758,36 +4143,42 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 			 }
@@ -3806,9 +4197,15 @@ case 12:
  				 a[ktemp][vtemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
+				 break;
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.isview);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+				 break;
+			case 15: 
  				 a[ktemp][vtemp].emplace_back(iter.accesscode);
 				 break;
 
@@ -3849,63 +4246,69 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 5: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
-			case 6: 
+			case 8: 
  				 a[ktemp][vtemp].emplace_back(iter.twotitle);
 				 break;
-			case 7: 
+			case 9: 
  				 a[ktemp][vtemp].emplace_back(iter.memo);
 				 break;
-			case 8: 
+			case 10: 
  				 a[ktemp][vtemp].emplace_back(iter.templatename);
 				 break;
-			case 9: 
+			case 11: 
  				 a[ktemp][vtemp].emplace_back(iter.url);
 				 break;
-			case 10: 
+			case 12: 
  				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
-			case 11: 
+			case 13: 
  				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
-			case 12: 
+			case 14: 
  				 a[ktemp][vtemp].emplace_back(iter.topimg);
 				 break;
 
@@ -3933,28 +4336,28 @@ case 12:
                     switch(kpos)
                     {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			 }
@@ -3973,9 +4376,15 @@ case 12:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 			  }
@@ -4009,28 +4418,28 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			  }
@@ -4049,9 +4458,15 @@ case 12:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 			 }
@@ -4070,9 +4485,15 @@ case 12:
  				 a[ktemp][vtemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
+				 break;
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.isview);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+				 break;
+			case 15: 
  				 a[ktemp][vtemp].emplace_back(iter.accesscode);
 				 break;
 
@@ -4102,28 +4523,28 @@ case 12:
             switch(kpos)
             {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			 }
@@ -4142,36 +4563,42 @@ case 12:
  				 vtemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 vtemp=iter.languagetype;
+				 break;
+			case 5: 
  				 vtemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 vtemp=iter.sortid;
+				 break;
+			case 15: 
  				 vtemp=iter.accesscode;
 				 break;
 			 }
 
 			switch(dpos){
-			case 5: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
-			case 6: 
+			case 8: 
  				 a[ktemp][vtemp].emplace_back(iter.twotitle);
 				 break;
-			case 7: 
+			case 9: 
  				 a[ktemp][vtemp].emplace_back(iter.memo);
 				 break;
-			case 8: 
+			case 10: 
  				 a[ktemp][vtemp].emplace_back(iter.templatename);
 				 break;
-			case 9: 
+			case 11: 
  				 a[ktemp][vtemp].emplace_back(iter.url);
 				 break;
-			case 10: 
+			case 12: 
  				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
-			case 11: 
+			case 13: 
  				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
-			case 12: 
+			case 14: 
  				 a[ktemp][vtemp].emplace_back(iter.topimg);
 				 break;
 
@@ -4200,55 +4627,55 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 			  }
@@ -4281,55 +4708,55 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 			 }
@@ -4348,9 +4775,15 @@ case 12:
  				 a[ktemp][vtemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
+				 break;
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.isview);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+				 break;
+			case 15: 
  				 a[ktemp][vtemp].emplace_back(iter.accesscode);
 				 break;
 
@@ -4380,82 +4813,82 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 vtemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 vtemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 vtemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 vtemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 vtemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 5: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
-			case 6: 
+			case 8: 
  				 a[ktemp][vtemp].emplace_back(iter.twotitle);
 				 break;
-			case 7: 
+			case 9: 
  				 a[ktemp][vtemp].emplace_back(iter.memo);
 				 break;
-			case 8: 
+			case 10: 
  				 a[ktemp][vtemp].emplace_back(iter.templatename);
 				 break;
-			case 9: 
+			case 11: 
  				 a[ktemp][vtemp].emplace_back(iter.url);
 				 break;
-			case 10: 
+			case 12: 
  				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
-			case 11: 
+			case 13: 
  				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
-			case 12: 
+			case 14: 
  				 a[ktemp][vtemp].emplace_back(iter.topimg);
 				 break;
 
@@ -4483,55 +4916,55 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 a[ktemp].emplace_back(iter.title);
 				 break;
-			case 6: 
+			case 8: 
  				 a[ktemp].emplace_back(iter.twotitle);
 				 break;
-			case 7: 
+			case 9: 
  				 a[ktemp].emplace_back(iter.memo);
 				 break;
-			case 8: 
+			case 10: 
  				 a[ktemp].emplace_back(iter.templatename);
 				 break;
-			case 9: 
+			case 11: 
  				 a[ktemp].emplace_back(iter.url);
 				 break;
-			case 10: 
+			case 12: 
  				 a[ktemp].emplace_back(iter.urlpath);
 				 break;
-			case 11: 
+			case 13: 
  				 a[ktemp].emplace_back(iter.imgurl);
 				 break;
-			case 12: 
+			case 14: 
  				 a[ktemp].emplace_back(iter.topimg);
 				 break;
 
@@ -4558,28 +4991,28 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			 }
@@ -4611,28 +5044,28 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			  }
@@ -4651,9 +5084,15 @@ case 12:
  				 a[ktemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
+ 				 a[ktemp].emplace_back(iter.languagetype);
+				 break;
+			case 5: 
  				 a[ktemp].emplace_back(iter.isview);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[ktemp].emplace_back(iter.sortid);
+				 break;
+			case 15: 
  				 a[ktemp].emplace_back(iter.accesscode);
 				 break;
 
@@ -4694,36 +5133,42 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 a[ktemp].emplace_back(iter.title);
 				 break;
-			case 6: 
+			case 8: 
  				 a[ktemp].emplace_back(iter.twotitle);
 				 break;
-			case 7: 
+			case 9: 
  				 a[ktemp].emplace_back(iter.memo);
 				 break;
-			case 8: 
+			case 10: 
  				 a[ktemp].emplace_back(iter.templatename);
 				 break;
-			case 9: 
+			case 11: 
  				 a[ktemp].emplace_back(iter.url);
 				 break;
-			case 10: 
+			case 12: 
  				 a[ktemp].emplace_back(iter.urlpath);
 				 break;
-			case 11: 
+			case 13: 
  				 a[ktemp].emplace_back(iter.imgurl);
 				 break;
-			case 12: 
+			case 14: 
  				 a[ktemp].emplace_back(iter.topimg);
 				 break;
 
@@ -4766,9 +5211,15 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
@@ -4812,9 +5263,15 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			 }
@@ -4833,9 +5290,15 @@ case 12:
  				 a[ktemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
+ 				 a[ktemp].emplace_back(iter.languagetype);
+				 break;
+			case 5: 
  				 a[ktemp].emplace_back(iter.isview);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[ktemp].emplace_back(iter.sortid);
+				 break;
+			case 15: 
  				 a[ktemp].emplace_back(iter.accesscode);
 				 break;
 
@@ -4874,9 +5337,15 @@ case 12:
  				 a[iter.cateid].emplace_back(iter);
 				 break;
 			case 4: 
+ 				 a[iter.languagetype].emplace_back(iter);
+				 break;
+			case 5: 
  				 a[iter.isview].emplace_back(iter);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[iter.sortid].emplace_back(iter);
+				 break;
+			case 15: 
  				 a[iter.accesscode].emplace_back(iter);
 				 break;
 
@@ -4903,28 +5372,28 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 a[iter.title].emplace_back(iter);
 				 break;
-			case 6: 
+			case 8: 
  				 a[iter.twotitle].emplace_back(iter);
 				 break;
-			case 7: 
+			case 9: 
  				 a[iter.memo].emplace_back(iter);
 				 break;
-			case 8: 
+			case 10: 
  				 a[iter.templatename].emplace_back(iter);
 				 break;
-			case 9: 
+			case 11: 
  				 a[iter.url].emplace_back(iter);
 				 break;
-			case 10: 
+			case 12: 
  				 a[iter.urlpath].emplace_back(iter);
 				 break;
-			case 11: 
+			case 13: 
  				 a[iter.imgurl].emplace_back(iter);
 				 break;
-			case 12: 
+			case 14: 
  				 a[iter.topimg].emplace_back(iter);
 				 break;
 
@@ -4951,55 +5420,55 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
-			case 6: 
+			case 8: 
  				 a[ktemp][iter.twotitle].emplace_back(iter);
 				 break;
-			case 7: 
+			case 9: 
  				 a[ktemp][iter.memo].emplace_back(iter);
 				 break;
-			case 8: 
+			case 10: 
  				 a[ktemp][iter.templatename].emplace_back(iter);
 				 break;
-			case 9: 
+			case 11: 
  				 a[ktemp][iter.url].emplace_back(iter);
 				 break;
-			case 10: 
+			case 12: 
  				 a[ktemp][iter.urlpath].emplace_back(iter);
 				 break;
-			case 11: 
+			case 13: 
  				 a[ktemp][iter.imgurl].emplace_back(iter);
 				 break;
-			case 12: 
+			case 14: 
  				 a[ktemp][iter.topimg].emplace_back(iter);
 				 break;
 
@@ -5027,28 +5496,28 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 7: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case 8: 
  				 ktemp=iter.twotitle;
 				 break;
-			case 7: 
+			case 9: 
  				 ktemp=iter.memo;
 				 break;
-			case 8: 
+			case 10: 
  				 ktemp=iter.templatename;
 				 break;
-			case 9: 
+			case 11: 
  				 ktemp=iter.url;
 				 break;
-			case 10: 
+			case 12: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 11: 
+			case 13: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 12: 
+			case 14: 
  				 ktemp=iter.topimg;
 				 break;
 	  }
@@ -5067,9 +5536,15 @@ case 12:
  				 a[ktemp][iter.cateid].emplace_back(iter);
 				 break;
 			case 4: 
+ 				 a[ktemp][iter.languagetype].emplace_back(iter);
+				 break;
+			case 5: 
  				 a[ktemp][iter.isview].emplace_back(iter);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[ktemp][iter.sortid].emplace_back(iter);
+				 break;
+			case 15: 
  				 a[ktemp][iter.accesscode].emplace_back(iter);
 				 break;
 
@@ -5111,9 +5586,15 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			 }
@@ -5132,9 +5613,15 @@ case 12:
  				 a[ktemp][iter.cateid].emplace_back(iter);
 				 break;
 			case 4: 
+ 				 a[ktemp][iter.languagetype].emplace_back(iter);
+				 break;
+			case 5: 
  				 a[ktemp][iter.isview].emplace_back(iter);
 				 break;
-			case 13: 
+			case 6: 
+ 				 a[ktemp][iter.sortid].emplace_back(iter);
+				 break;
+			case 15: 
  				 a[ktemp][iter.accesscode].emplace_back(iter);
 				 break;
 
@@ -5174,36 +5661,42 @@ case 12:
  				 ktemp=iter.cateid;
 				 break;
 			case 4: 
+ 				 ktemp=iter.languagetype;
+				 break;
+			case 5: 
  				 ktemp=iter.isview;
 				 break;
-			case 13: 
+			case 6: 
+ 				 ktemp=iter.sortid;
+				 break;
+			case 15: 
  				 ktemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 7: 
  				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
-			case 6: 
+			case 8: 
  				 a[ktemp][iter.twotitle].emplace_back(iter);
 				 break;
-			case 7: 
+			case 9: 
  				 a[ktemp][iter.memo].emplace_back(iter);
 				 break;
-			case 8: 
+			case 10: 
  				 a[ktemp][iter.templatename].emplace_back(iter);
 				 break;
-			case 9: 
+			case 11: 
  				 a[ktemp][iter.url].emplace_back(iter);
 				 break;
-			case 10: 
+			case 12: 
  				 a[ktemp][iter.urlpath].emplace_back(iter);
 				 break;
-			case 11: 
+			case 13: 
  				 a[ktemp][iter.imgurl].emplace_back(iter);
 				 break;
-			case 12: 
+			case 14: 
  				 a[ktemp][iter.topimg].emplace_back(iter);
 				 break;
 

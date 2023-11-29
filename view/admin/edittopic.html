@@ -38,20 +38,28 @@
           <option  value="0">图文内容</option>
           <option  value="1">单页图文</option>
           <option  value="2">多页图文</option>
-          <option  value="3">文档目录</option>
-          <option  value="4">新闻列表</option>
-          <option  value="5">新闻首页</option>
-          <option  value="6">产品展示</option>
-          <option  value="7">产品类别</option>
-          <option  value="8">视频首页</option>
-          <option  value="9">视频列表</option>
-          <option  value="10">博客类型</option>
-          <option  value="11">兴趣论坛</option>
-          <option  value="12">报名表单</option>
-          <option  value="13">数据查询</option>
-          <option  value="14">跳转地址</option>
-          <option  value="15">菜单下拉</option>
-          <option  value="16">菜单弹出层</option>
+          <option  value="3">单页倒叙</option>
+          <option  value="4">文档目录</option>
+          <option  value="5">新闻列表</option>
+          <option  value="6">新闻首页</option>
+          <option  value="7">产品展示</option>
+          <option  value="8">产品类别</option>
+          <option  value="9">商品列表</option>
+          <option  value="10">商品展示</option>
+          
+          <option  value="11">视频首页</option>
+          <option  value="12">视频列表</option>
+          <option  value="13">博客类型</option>
+          <option  value="14">兴趣论坛</option>
+          <option  value="15">报名表单</option>
+          <option  value="16">数据查询</option>
+          <option  value="17">跳转地址</option>
+          <option  value="18">菜单下拉</option>
+          <option  value="19">菜单弹出层</option>
+          <option  value="20">会员注册</option>
+          <option  value="21">会员登录</option>
+          <option  value="22">会员信息</option>
+          <option  value="23">购物车</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -67,7 +75,12 @@
         <label for="urlpath" class="form-label">栏目urlpath</label>
         <input type="text" class="form-control" id="urlpath" name="urlpath" value="<% echo<<obj["info"]["urlpath"].to_string(); %>">
       </div>
-
+      
+      <div class="col-md-12">
+        <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+          头图设置
+        </button>
+      </div>   
 
       <div class="col-12">
         <label for="memo" class="form-label">备注</label>
@@ -82,6 +95,70 @@
     </form>
 
   </div>
+  
+ <div class="modal fade" id="staticBackdrop" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">栏目头图</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+      <form id="headerimg" method="post" enctype="application/x-www-form-urlencoded">
+      <%c for(auto &a:obj["infotopimgs"].as_array()){ %>
+      <div class="row g-3 mt-1">
+            <div class="col-md-2">
+            <input type="text" class="form-control"  name="header_title[]" placeholder="头图标题" value="<% echo<<a.second["header_title"].to_string(); %>">
+          </div>
+          <div class="col-md-2">
+            <input type="text" class="form-control"  name="header_content[]"  placeholder="头图说明" value="<% echo<<a.second["header_content"].to_string(); %>">
+          </div>
+          <div class="col-md-6">
+            <div class="input-group row">
+              <input type="file" class="form-control uploadfile col-md-4"  accept=".jpg,.png,.jpeg"  aria-describedby="inputGroupFileAddon04" aria-label="Upload">
+              <input type="text" class="form-control col-md-8"  name="header_urlpath[]"  placeholder="图片地址" value="<% echo<<a.second["header_urlpath"].to_string(); %>">
+            </div>
+          </div>
+          <div class="col-md-2">
+             <button type="button" class="btn btn-outline-info" onclick="additem(this)">+</button>
+             <button type="button" class="btn btn-outline-danger" onclick="removeitem(this)">-</button>
+          </div>
+      </div>
+       <%c } %> 
+       <%c if(obj["infotopimgs"].size()==0){ %>
+      <div class="row g-3 mt-1">
+            <div class="col-md-2">
+            <input type="text" class="form-control"  name="header_title[]" placeholder="头图标题" value="">
+          </div>
+          <div class="col-md-2">
+            <input type="text" class="form-control"  name="header_content[]"  placeholder="头图说明" value="">
+          </div>
+          <div class="col-md-6">
+            <div class="input-group row">
+              <input type="file" class="form-control uploadfile col-md-4"  accept=".jpg,.png,.jpeg"  aria-describedby="inputGroupFileAddon04" aria-label="Upload">
+              <input type="text" class="form-control col-md-8"  name="header_urlpath[]"  placeholder="图片地址" value="">
+            </div>
+          </div>
+          <div class="col-md-2">
+             <button type="button" class="btn btn-outline-info" onclick="additem(this)">+</button>
+             <button type="button" class="btn btn-outline-danger" onclick="removeitem(this)">-</button>
+          </div>
+      </div>
+       <%c } %> 
+       
+       </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="typepost()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+  
+
+  
   <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
   <script lang="javascript">
     var topicid=<% echo<<obj["info"]["parentid"].to_int(); %>;
@@ -108,7 +185,7 @@
       var obj=this;  
       //得到序列化数据
       $.ajax({
-        url: "/admin/edittopicpost",
+        url: "/admin/edittopicpost?topicid=<% echo<<obj["info"]["topicid"].to_string(); %>",
         method: 'post',
         data: data,
         success: function (res) {
@@ -121,9 +198,65 @@
         }
       })
     });
+    function additem(obj)
+    {
+        jQuery(obj).parent().parent().after(jQuery(obj).parent().parent().clone()); 
+    }
+    function removeitem(obj)
+    {
+        if(jQuery(obj).parent().parent().parent().children().length>1)
+        {
+           jQuery(obj).parent().parent().remove();      
+        }
+        
+    }
+    
+   	function typepost(){
+		$.ajax({
+        url:"/admin/topicimgtextupload?topicid=<% echo<<obj["info"]["topicid"].to_string(); %>",
+        type:"POST",
+        processData: false,
+        contentType:"application/x-www-form-urlencoded",
+        data: $("#headerimg").serialize(),
+        dataType: "json",
+        success:function(data){
+                 $("#staticBackdrop").modal('hide');
+        }
+      });
+	} 
     
     $(document).ready(function(e) {
             $("#topictype").val(<% echo<<obj["info"]["topictype"].to_int(); %>);
+            
+             $(".uploadfile").change(function(){
+              var fd=new FormData();
+              if($(this).get(0).files[0].size>15728640){
+                alert("附件不能大于15M，附件为zip、rar、jpg格式！");
+                return false;
+              }
+              fd.append("upfile",$(this).get(0).files[0]);
+              var selfobj=this;
+              $.ajax({
+                url:"/admin/topicfileupload?action=uploadimage",
+                type:"POST",
+                processData: false,
+                contentType:false,
+                data: fd,
+                dataType: "json",
+                success:function(data){
+                    if(data.state=="SUCCESS"){
+                      $(selfobj).next().val(data.url);
+                    }
+                    else
+                    {
+                        alert(data.state);
+                    }
+                    //console.log(data.status);
+                }
+              });
+            });
+
+
     });
   </script>
 </body>

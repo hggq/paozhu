@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 07 Jun 2023 01:10:17 GMT
+*本文件为自动生成 Wed, 29 Nov 2023 03:41:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -17,7 +17,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "unicode.h"
+#include "mysql.h"
 namespace orm { 
    
      namespace cms { 
@@ -588,6 +588,9 @@ break;
             }else if(content[i]=='"'){
                 temp.append("\\\"");
                 continue;
+            }else if(content[i]=='\\'){
+                temp.append("\\\\");
+                continue;
             }
             temp.push_back(content[i]);
         }
@@ -598,6 +601,10 @@ break;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
+                continue;
+            }
+            else if(content[i]=='\\'){
+                temp.append("\\\\");
                 continue;
             }
             temp.push_back(content[i]);

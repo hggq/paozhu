@@ -14,5 +14,6 @@ namespace http
 	std::string admin_editarticlepost(std::shared_ptr<httppeer> peer);
 	std::string admin_deletearticle(std::shared_ptr<httppeer> peer);
 	std::string admin_gettoparticle(std::shared_ptr<httppeer> peer);
+	std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer);
 	std::string admin_listarticle(std::shared_ptr<httppeer> peer);
 }

@@ -58,7 +58,6 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
         OBJ_ARRAY temp;
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
-
             temp["id"]       = topicm.record[i].topicid;
             temp["parentid"] = topicm.record[i].parentid;
             temp["value"]    = topicm.record[i].title;
@@ -70,7 +69,6 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
         if (topicid > 0)
         {
             topicm.where("userid", 0).whereAnd("topicid", topicid).limit(1).fetch();
-            std::cout << topicm.sqlstring << std::endl;
             client.val["info"].set_array();
             client.val["info"]["topicid"]     = topicm.data.topicid;
             client.val["info"]["parentid"]    = topicm.data.parentid;
@@ -79,6 +77,9 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
             client.val["info"]["topicstatus"] = topicm.data.isview == 1 ? true : false;
             client.val["info"]["urlpath"]     = topicm.data.urlpath;
             client.val["info"]["memo"]        = topicm.data.memo;
+
+            client.val["infotopimgs"].set_array();
+            client.val["infotopimgs"].from_json(topicm.data.topimg);
         }
     }
     catch (std::exception &e)
@@ -106,11 +107,11 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
 
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
-
             topicone.id       = topicm.record[i].topicid;
             topicone.parentid = topicm.record[i].parentid;
             topicone.value    = topicm.record[i].title;
             topicone.cateid   = topicm.record[i].cateid;
+            topicone.sortid   = topicm.record[i].sortid;
             topicone.urlpath  = topicm.record[i].urlpath;
             topicone.isview   = topicm.record[i].isview > 0 ? true : false;
 
@@ -124,7 +125,6 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
         OBJ_ARRAY temp;
         for (unsigned int i = 0; i < list_data.size(); i++)
         {
-
             temp["id"]       = list_data[i].id;
             temp["parentid"] = list_data[i].parentid;
             temp["value"]    = list_data[i].value;
@@ -132,6 +132,7 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
             temp["urlpath"]  = list_data[i].urlpath;
             temp["isview"]   = list_data[i].isview;
             temp["level"]    = list_data[i]._level;
+            temp["sortid"]   = list_data[i].sortid;
             client.val["list"].push(temp);
         }
     }
@@ -144,6 +145,27 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
     return "";
 }
 
+//@urlpath(null,admin/updatetopicsort)
+std::string admin_updatetopicsort(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+
+    try
+    {
+        auto topicm = orm::cms::Topic();
+        topicm.setSortid(client.get["sortid"].to_int());
+        topicm.where("userid", 0).whereAnd("topicid", client.get["id"].to_int());
+        topicm.update("sortid");
+        client.val["code"] = 0;
+        client.val["msg"]  = "ok";
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 1;
+    }
+    client.out_json();
+    return "";
+}
 //@urlpath(null,admin/addtopicpost)
 std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
 {
@@ -334,6 +356,75 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
     {
         client.val["code"]    = 1;
         client.val["topicid"] = 0;
+    }
+    client.out_json();
+    return "";
+}
+
+//@urlpath(null,admin/topicfileupload)
+std::string admin_topicfileupload(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client      = peer->getpeer();
+    std::string action_do = client.get["action"].to_string();
+
+    auto img = std::make_unique<upload_images>(peer);
+    img->init();
+
+    if (action_do == "uploadimage")
+    {
+        bool issuccess = img->upload_img("upfile");
+        if (issuccess)
+        {
+            client << img->upload_info.to_json();
+        }
+        else
+        {
+            client << "{\"state\":\"\",\"msg\":\"" << img->upload_info.state << "upload error!\"}";
+        }
+
+        client.out_json();
+    }
+
+    return "";
+}
+
+//@urlpath(null,admin/topicimgtextupload)
+std::string admin_topicimgtextupload(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+
+    unsigned int imgnum = client.post["header_urlpath"].size();
+    OBJ_ARRAY temp;
+    OBJ_ARRAY headerimgobj;
+    std::string tstr;
+
+    //For safety reasons, do not directly client.post.to_json();
+    for (unsigned int i = 0; i < imgnum; i++)
+    {
+        tstr = client.post["header_urlpath"][i].to_string();
+        if (tstr.length() > 0)
+        {
+            temp["header_urlpath"] = tstr;
+            temp["header_content"] = client.post["header_content"][i].to_string();
+            temp["header_title"]   = client.post["header_title"][i].to_string();
+            headerimgobj.push(temp);
+        }
+    }
+    imgnum = 0;
+    imgnum = client.get["topicid"].to_int();
+    tstr   = headerimgobj.to_json();
+    try
+    {
+        auto topicm = orm::cms::Topic();
+        topicm.setTopimg(tstr);
+        topicm.where("userid", 0).whereAnd("topicid", imgnum);
+        topicm.update("topimg");
+        client.val["code"] = 0;
+        client.val["msg"]  = "ok";
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 1;
     }
     client.out_json();
     return "";

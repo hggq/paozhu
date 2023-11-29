@@ -49,7 +49,7 @@ bool upload_images::upload_img(const std::string &fieldname)
 {
     namespace fs      = std::filesystem;
     fs::path paths    = sitepath;
-    upload_info.state = "未知错误";
+    upload_info.state = "未知错误(not action)";
     if (fs::exists(paths))
     {
         std::string upimgpath = sitepath;
@@ -134,7 +134,11 @@ bool upload_images::upload_img(const std::string &fieldname)
 
         tempstr = client.files[fieldname]["filename"].to_string();
         // filename.append(mb_substr(tempstr, 0, 10));
-
+        if(tempstr.size()==0)
+        {
+            upload_info.state = "上传文件名有误(upload file name error!)";
+            return false;
+        }
         bool isshowfile          = true;
         unsigned int extfilesize = tempstr.size();
         if (extfilesize > 3)
@@ -189,12 +193,14 @@ bool upload_images::upload_img(const std::string &fieldname)
                 upload_info.title    = filename;
                 upload_info.original = tempstr;
                 upload_info.size     = client.files[fieldname]["size"].to_int();
+                return true;
             }
             else
             {
-                upload_info.state = "文件类型不允许";
+                upload_info.state = "文件类型不允许(no in filename extension)";
+                return false;
             }
-            return isshowfile;
+            
         }
         else
         {

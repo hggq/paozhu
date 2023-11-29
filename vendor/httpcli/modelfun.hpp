@@ -1466,6 +1466,9 @@ struct )";
             }else if(content[i]=='"'){
                 temp.append("\\\"");
                 continue;
+            }else if(content[i]=='\\'){
+                temp.append("\\\\");
+                continue;
             }
             temp.push_back(content[i]);
         }
@@ -1476,6 +1479,10 @@ struct )";
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
+                continue;
+            }
+            else if(content[i]=='\\'){
+                temp.append("\\\\");
                 continue;
             }
             temp.push_back(content[i]);
