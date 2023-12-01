@@ -46,7 +46,29 @@
                   <%c echo<<a.second["urlpath"].as_string(); %>
                 </td>
                 <td>
-                  <%c echo<<a.second["cateid"].as_string(); %>
+                  <%c 
+                      switch(a.second["cateid"].to_int())
+                      {
+                            case 0:
+                                 echo<<"图文内容";
+                                 break;
+                            case 1:
+                                 echo<<"单页图文";
+                                 break;
+                            case 2:
+                                 echo<<"多页图文";
+                                 break;
+                            case 3:
+                                 echo<<"单页倒叙";
+                                 break;   
+                            case 4:
+                                 echo<<"文档目录";
+                                 break;
+                            case 13:
+                                 echo<<"博客类型";
+                                 break;       
+                      }
+                  %>
                 </td>
                 <td>
                   <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatetopic(<%c echo<<a.second["id"].to_string(); %>,this.value)">

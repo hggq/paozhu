@@ -187,6 +187,7 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
         }
 
         topicm.setMemo(client.post["memo"].as_string());
+        topicm.setCateid(client.post["topictype"].to_int());
         topicm.setUrlpath(client.post["urlpath"].as_string());
         topicm.setParentid(client.post["parentid"].to_int());
         topicm.setUserid(0);
