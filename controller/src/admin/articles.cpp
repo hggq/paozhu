@@ -322,7 +322,28 @@ std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
+//@urlpath(null,admin/updatearticleview)
+std::string admin_updatearticleview(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
 
+    try
+    {
+        auto artmodel        = orm::cms::Article();
+        unsigned char isview = client.post["isview"].to_int() > 0 ? 1 : 0;
+
+        artmodel.setIsopen(isview);
+        artmodel.where("userid", 0).whereAnd("aid", client.get["id"].to_int());
+        client.val["code"] = artmodel.update("isopen");
+        client.val["msg"]  = "ok";
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 0;
+    }
+    client.out_json();
+    return "";
+}
 //@urlpath(null,admin/listarticle)
 std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 {
@@ -398,8 +419,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         client.val["pageinfo"]["current"] = current_page;
         client.val["pageinfo"]["total"]   = total_page;
 
-        artmodel.desc("aid").fetch();
-
+        artmodel.select("aid,topicid,title,createtime,sortid,isopen").desc("aid").fetch();
         client.val["alist"].set_array();
         OBJ_ARRAY tempa;
 
@@ -412,6 +432,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
                 tempa["date"]      = item.createtime.substr(0, 10);
                 tempa["topicname"] = topickv[item.topicid];
                 tempa["sortid"]    = item.sortid;
+                tempa["isopen"]    = item.isopen;
                 client.val["alist"].push(tempa);
             }
         }

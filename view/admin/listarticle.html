@@ -50,6 +50,7 @@
               <th scope="col">标题</th>
               <th scope="col">日期</th>
               <th scope="col">排序</th>
+              <th scope="col">显示</th>
               <th scope="col">操作</th>
             </tr>
           </thead>
@@ -61,8 +62,10 @@
               <td><%c echo<<a.second["title"].to_string(); %></td>
               <td><%c echo<<a.second["date"].to_string(); %></td>
               <td>
-              <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatearticlesort(<%c echo<<a.second["aid"].to_string(); %>,this.value)">
+              <input type="text" class="form-inline topicsort col-md-2" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatearticlesort(<%c echo<<a.second["aid"].to_string(); %>,this.value)">
               </td>
+              <td><input class="form-check-input" type="checkbox" value="<%c echo<<a.second["aid"].to_string(); %>" id="art_<%c echo<<a.second["aid"].to_string(); %>" onclick="artupdateview(this)" <%c if(a.second["isopen"].to_int()==1){ %>checked<%c } %> >
+</td>
               <td>
               <a href="/admin/editarticle?id=<%c echo<<a.second["aid"].to_string(); %>">编辑</a>｜
                   <a href="/admin/deletearticle?id=<%c echo<<a.second["aid"].to_string(); %>" onclick="return deletearticle(<%c echo<<a.second["aid"].to_string(); %>)">删除</a></td>
@@ -160,6 +163,17 @@
            alert("请输入关键词！");
         }
         window.location.href="/admin/listarticle?topicid="+$("#parentid").val()+"&searchword="+$("#searchkeyword").val();
+    }
+    function artupdateview(obj)
+    {
+      let isview=0;
+      if(obj.checked)
+        {
+           isview=1;
+        }
+        $.post("/admin/updatearticleview?id="+obj.value,{isview:isview},function(result){
+                               
+       });
     }
     </script>
 </body>
