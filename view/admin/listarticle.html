@@ -33,6 +33,12 @@
         </select>
    
     </div>
+    <div class="col-5">
+    <div class="input-group">
+    <input type="text" class="form-control" name="searchkeyword" id="searchkeyword" value="<%c echo<<obj["searchword"].to_string(); %>" placeholder="">
+      <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="searcharticle()">搜索</button>
+    </div> 
+    </div>  
     </div>  
     <div class="row p-3">
       <div class="col-10">
@@ -141,11 +147,19 @@
       }
       return false;
     }
-       function updatearticlesort(id,sortid)
+    function updatearticlesort(id,sortid)
     {
        $.getJSON("/admin/updatearticlesort?id="+id+"&sortid="+sortid,function(result){
                                
        });
+    }
+    function searcharticle()
+    {
+        if($("#searchkeyword").val()<1)
+        {
+           alert("请输入关键词！");
+        }
+        window.location.href="/admin/listarticle?topicid="+$("#parentid").val()+"&searchword="+$("#searchkeyword").val();
     }
     </script>
 </body>

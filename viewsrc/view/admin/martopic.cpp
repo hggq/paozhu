@@ -46,7 +46,29 @@ namespace view {
  			 echo<<"                </td>\n                <td>\n                  ";
  echo<<a.second["urlpath"].as_string(); 
  			 echo<<"                </td>\n                <td>\n                  ";
- echo<<a.second["cateid"].as_string(); 
+ 
+                      switch(a.second["cateid"].to_int())
+                      {
+                            case 0:
+                                 echo<<"图文内容";
+                                 break;
+                            case 1:
+                                 echo<<"单页图文";
+                                 break;
+                            case 2:
+                                 echo<<"多页图文";
+                                 break;
+                            case 3:
+                                 echo<<"单页倒叙";
+                                 break;   
+                            case 4:
+                                 echo<<"文档目录";
+                                 break;
+                            case 13:
+                                 echo<<"博客类型";
+                                 break;       
+                      }
+                  
  			 echo<<"                </td>\n                <td>\n                  <input type=\"text\" class=\"form-inline topicsort col-md-3\" id=\"title_";
  echo<<a.second["id"].to_string(); 
  			 echo<<"\" name=\"title_";

@@ -32,13 +32,15 @@ namespace orm
 //  using namespace http;
 typedef std::vector<std::pair<std::string, std::function<void(long long, long long)>>> commit_lists_callback;
 
-template <typename BASE_T> std::map<std::size_t, BASE_T> &get_static_model_cache()
+template <typename BASE_T>
+std::map<std::size_t, BASE_T> &get_static_model_cache()
 {
     static std::map<std::size_t, BASE_T> instance;
     return instance;
 }
 
-template <typename BASE_MODEL> class model_meta_cache
+template <typename BASE_MODEL>
+class model_meta_cache
 {
   private:
     model_meta_cache(){};
@@ -256,7 +258,7 @@ class get_orm_client
     get_orm_client(const std::string &tag)
     {
         dbhash  = std::hash<std::string>{}(tag);
-        db_type = 0; // 0 Mysql 1 MariaDB 2 PostgreSQL 3 SQLite
+        db_type = 0;// 0 Mysql 1 MariaDB 2 PostgreSQL 3 SQLite
     }
     std::tuple<std::vector<std::string>, std::vector<std::vector<std::string>>> query(const std::string &rawsql,
                                                                                       bool isedit = false)
@@ -391,7 +393,8 @@ class get_orm_client
     unsigned char db_type;
 };
 
-template <typename model, typename base> class mysqlclientDB : public base
+template <typename model, typename base>
+class mysqlclientDB : public base
 {
   public:
     mysqlclientDB(std::string tag) : dbtag(tag)
@@ -662,12 +665,22 @@ template <typename model, typename base> class mysqlclientDB : public base
 
     model &where(const std::string wq)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -681,12 +694,22 @@ template <typename model, typename base> class mysqlclientDB : public base
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
     model &where(std::string wq, _SQL_Value val)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -711,12 +734,22 @@ template <typename model, typename base> class mysqlclientDB : public base
 
     model &where(std::string wq, char bi, http::OBJ_VALUE &obj)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -741,12 +774,22 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &where(std::string wq, http::OBJ_VALUE &obj)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -781,12 +824,22 @@ template <typename model, typename base> class mysqlclientDB : public base
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
     model &where(std::string wq, char bi, _SQL_Value val)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -803,12 +856,22 @@ template <typename model, typename base> class mysqlclientDB : public base
 
     model &where(std::string wq, char bi, std::string val)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -826,12 +889,22 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &where(std::string wq, std::string val)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -855,12 +928,23 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereLike(std::string wq, std::string val)
     {
-        if (wheresql.empty() || ishascontent)
+
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -885,12 +969,23 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereOrLike(std::string wq, std::string val)
     {
-        if (wheresql.empty() || ishascontent)
+
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" OR ");
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -907,7 +1002,7 @@ template <typename model, typename base> class mysqlclientDB : public base
         {
             wq.push_back('%');
             wq.append(val);
-            wq.push_back('%');
+            wq.append("%' ");
         }
 
         wheresql.append(wq);
@@ -915,8 +1010,28 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereAnd(const std::string wq)
     {
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
 
-        wheresql.append(" AND ");
         wheresql.append(wq);
         return *mod;
     }
@@ -925,7 +1040,27 @@ template <typename model, typename base> class mysqlclientDB : public base
     model &whereAnd(std::string wq, _SQL_Value val)
     {
 
-        wheresql.append(" AND ");
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
 
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
@@ -944,8 +1079,27 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereAnd(std::string wq, const std::string &val)
     {
-
-        wheresql.append(" AND ");
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
 
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
@@ -966,8 +1120,28 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereOr(const std::string wq)
     {
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
 
-        wheresql.append(" OR ");
         wheresql.append(wq);
         return *mod;
     }
@@ -976,7 +1150,27 @@ template <typename model, typename base> class mysqlclientDB : public base
     model &whereOr(std::string wq, _SQL_Value val)
     {
 
-        wheresql.append(" OR ");
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
 
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
@@ -995,8 +1189,27 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereOr(std::string wq, std::string val)
     {
-
-        wheresql.append(" OR ");
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
 
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
@@ -1017,12 +1230,22 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereIn(const std::string k)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -1034,12 +1257,22 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereIn(const std::string &k, const std::string &a)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -1055,8 +1288,27 @@ template <typename model, typename base> class mysqlclientDB : public base
 
     model &whereIn(const std::string k, const std::vector<std::string> &a)
     {
-        if (!wheresql.empty())
-            wheresql.append(" AND ");
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
         wheresql.append(k);
         wheresql.append(" in(");
         int i = 0;
@@ -1079,8 +1331,28 @@ template <typename model, typename base> class mysqlclientDB : public base
     }
     model &whereNotIn(const std::string k, const std::vector<std::string> &a)
     {
-        if (!wheresql.empty())
-            wheresql.append(" AND ");
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+
         wheresql.append(k);
         wheresql.append(" NOT IN(");
         int i = 0;
@@ -1105,12 +1377,22 @@ template <typename model, typename base> class mysqlclientDB : public base
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
     model &whereIn(const std::string k, const std::list<_SQL_Value> &a)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -1140,12 +1422,22 @@ template <typename model, typename base> class mysqlclientDB : public base
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
     model &whereIn(const std::string k, const std::vector<_SQL_Value> &a)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -1174,12 +1466,22 @@ template <typename model, typename base> class mysqlclientDB : public base
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
     model &whereNotIn(std::string k, std::vector<_SQL_Value> &a)
     {
-        if (wheresql.empty() || ishascontent)
+        if (wheresql.empty())
         {
         }
         else
         {
-            wheresql.append(" AND ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
         if (iskuohao)
         {
@@ -2902,5 +3204,5 @@ template <typename model, typename base> class mysqlclientDB : public base
     // std::hash<std::string> hash_fn;
 };
 
-} // namespace orm
+}// namespace orm
 #endif

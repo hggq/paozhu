@@ -334,9 +334,11 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 
         topicm.where("userid", 0).asc("parentid").fetch();
 
-        unsigned int topicid  = client.get["topicid"].to_int();
-        unsigned int page     = client.get["page"].to_int();
-        client.val["topicid"] = topicid;
+        unsigned int topicid   = client.get["topicid"].to_int();
+        unsigned int page      = client.get["page"].to_int();
+        std::string searchword = client.get["searchword"].to_string();
+        searchword             = mb_substr(searchword, 0, 15);
+        client.val["topicid"]  = topicid;
 
         client.val["list"].set_array();
         OBJ_ARRAY temp;
@@ -381,6 +383,12 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
             {
                 artmodel.whereIn("topicid", topicid_sql_str);
             }
+        }
+        if (searchword.size() > 0)
+        {
+            artmodel.andsub().whereLike("title", str_addslash(searchword));
+            artmodel.whereOrLike("content", str_addslash(searchword)).andsub();
+            client.val["searchword"] = searchword;
         }
         auto [bar_min, bar_max, current_page, total_page] = artmodel.page(page, 10, 5);
 
