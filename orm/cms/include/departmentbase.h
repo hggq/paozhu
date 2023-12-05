@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 05 Dec 2023 09:09:03 GMT
+*本文件为自动生成 Tue, 05 Dec 2023 11:07:19 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -2309,12 +2309,13 @@ std::vector<departmentbase::meta> getRecord(){
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol(std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] std::string keyname)
             {
                 std::vector<T> a;
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
+                
    
+                unsigned char kpos;
+                kpos=findcolpos(keyname);               
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -2357,11 +2358,10 @@ std::vector<departmentbase::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol(std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] std::string keyname)
 			{
 				std::vector<T> a;
-				unsigned char kpos;
-				kpos = findcolpos(keyname);
+				
 
                 return a;
             }
@@ -2369,9 +2369,9 @@ std::vector<departmentbase::meta> getRecord(){
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
             T getVal(std::string keyname)
             {
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
-                      
+   
+                    unsigned char kpos;
+                    kpos=findcolpos(keyname);                   
                     switch(kpos)
                     {
 
@@ -2412,9 +2412,10 @@ std::vector<departmentbase::meta> getRecord(){
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
         T getVal([[maybe_unused]] departmentbase::meta & iter,std::string keyname)
         {
+
+          
             unsigned char kpos;
-            kpos=findcolpos(keyname);
-             
+            kpos=findcolpos(keyname);   
             switch(kpos)
             {
    			case 0: 
@@ -2456,7 +2457,6 @@ std::vector<departmentbase::meta> getRecord(){
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
             T getVal(std::string keyname)
             {
-                
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
             
@@ -2488,7 +2488,6 @@ std::vector<departmentbase::meta> getRecord(){
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
             std::string getVal(std::string keyname)
             {
-         
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
         
@@ -2546,9 +2545,10 @@ std::vector<departmentbase::meta> getRecord(){
             std::vector<std::string> getCol(std::string keyname)
             {
                 std::vector<std::string> a;
+
+           
                 unsigned char kpos;
-                kpos=findcolpos(keyname);
-                   
+                kpos=findcolpos(keyname);                    
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -2575,9 +2575,9 @@ std::vector<departmentbase::meta> getRecord(){
         std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
         {
             std::ostringstream a;
+    
             unsigned char kpos;
-            kpos=findcolpos(keyname);
-       
+            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2671,7 +2671,7 @@ std::vector<departmentbase::meta> getRecord(){
         vpos=findcolpos(valname);
             
          std::string ktemp,vtemp;
-         for(auto &iter:record)
+         for([[maybe_unused]] auto &iter:record)
          {
                 switch(kpos)
                 {
@@ -2704,7 +2704,10 @@ std::vector<departmentbase::meta> getRecord(){
 				 break;
 
                 }
-                a.emplace(ktemp,vtemp);
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
             }       
 
         
@@ -2722,7 +2725,7 @@ std::vector<departmentbase::meta> getRecord(){
                   
                 std::string ktemp;
                 U vtemp;
-                for(auto &iter:record)
+                for([[maybe_unused]] auto &iter:record)
                 {    
                     switch(kpos)
                     {
@@ -2743,7 +2746,10 @@ std::vector<departmentbase::meta> getRecord(){
  		    switch(vpos){ 
 
                     }
-                    a.emplace(ktemp,vtemp);
+                    if(ktemp.size()>0)
+                    {
+                        a.emplace(ktemp,vtemp);
+                    }
                 }       
         
             return a;
@@ -2759,7 +2765,7 @@ std::vector<departmentbase::meta> getRecord(){
                
             T ktemp;
             U vtemp;
-            for(auto &iter:record)
+            for([[maybe_unused]] auto &iter:record)
             {
                 switch(kpos)
                 {
@@ -2798,7 +2804,10 @@ case 12:
  		   switch(vpos){ 
 
                 }
-                a.emplace(ktemp,vtemp);
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
             }       
      
         return a;
@@ -2813,7 +2822,7 @@ case 12:
             
                 T ktemp;
                 std::string vtemp;
-                for(auto &iter:record)
+                for([[maybe_unused]] auto &iter:record)
                 {
                     switch(kpos)
                     {
@@ -2864,7 +2873,10 @@ case 12:
 				 break;
 
                     }
-                    a.emplace(ktemp,vtemp);
+                    if(ktemp.size()>0)
+                    {
+                        a.emplace(ktemp,vtemp);
+                    }
                 } 
          
                 return a;
@@ -2880,7 +2892,7 @@ case 12:
                
             std::string  ktemp;
             U  vtemp;
-            for(auto &iter:record)
+            for([[maybe_unused]] auto &iter:record)
             {
                 switch(kpos)
                 {
@@ -2931,7 +2943,10 @@ case 12:
 				 break;
 
                 }
-                a.emplace(ktemp,vtemp);
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
             }       
       
         return a;
@@ -2947,7 +2962,7 @@ case 12:
                 
             T ktemp;
             U vtemp;
-            for(auto &iter:record)
+            for([[maybe_unused]] auto &iter:record)
             {
                 switch(kpos)
                 {
@@ -3016,7 +3031,10 @@ case 12:
 				 break;
 
                 }
-                a.emplace(ktemp,vtemp);
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
             }       
     
             return a;
@@ -3026,9 +3044,9 @@ case 12:
         std::map<T,meta> getmapRows(std::string keyname)
         {
             std::map<T,meta> a;
+    
             unsigned char kpos;
-            kpos=findcolpos(keyname);
-                
+            kpos=findcolpos(keyname);                        
             for(auto &iter:record)
             {
                 switch(kpos)
@@ -3075,9 +3093,10 @@ case 12:
         std::map<std::string,meta> getmapRows(std::string keyname)
         {
             std::map<std::string,meta> a;
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
+
     
+            unsigned char kpos;
+            kpos=findcolpos(keyname);            
             for(auto &iter:record)
             {
                 switch(kpos)
@@ -3483,9 +3502,9 @@ case 13:
         std::vector<std::pair<T,meta>> getvecRows(std::string keyname)
         {
             std::vector<std::pair<T,meta>> a;
+     
             unsigned char kpos;
-            kpos=findcolpos(keyname);
-           
+            kpos=findcolpos(keyname);                  
             for(auto &iter:record)
             { 
                 switch(kpos)
@@ -3531,10 +3550,9 @@ case 12:
         std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname)
         {
             std::vector<std::pair<std::string,meta>> a;
-
+      
             unsigned char kpos;
-            kpos=findcolpos(keyname);
-               
+            kpos=findcolpos(keyname);                     
             for(auto &iter:record)
             {
                 switch(kpos)
@@ -5004,12 +5022,9 @@ case 13:
         std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
         {
             std::map<T,std::vector<meta>> a;
-
+   
             unsigned char kpos;
             kpos=findcolpos(keyname);
-   
-            //T ktemp;
-            //U vtemp;
 
             for(auto &iter:record)
             {
@@ -5057,12 +5072,9 @@ case 13:
         std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
         {
             std::map<T,std::vector<meta>> a;
-
+   
             unsigned char kpos;
             kpos=findcolpos(keyname);
-   
-            //T ktemp;
-            //U vtemp;
 
             for(auto &iter:record)
             {

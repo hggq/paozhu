@@ -3722,7 +3722,7 @@ struct )";
 
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol(std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] std::string keyname)
             {
                 std::vector<T> a;
                 
@@ -3775,7 +3775,7 @@ struct )";
 
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol(std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] std::string keyname)
 			{
 				std::vector<T> a;
 				
@@ -3829,7 +3829,7 @@ struct )";
 
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-            T getVal(std::string keyname)
+            T getVal([[maybe_unused]] std::string keyname)
             {
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -3875,7 +3875,7 @@ struct )";
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
         T getVal([[maybe_unused]] )";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta & iter,std::string keyname)
+    headtxt += R"(base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           )";
@@ -4107,7 +4107,7 @@ struct )";
 
     headtxt = R"( 
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol(std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
             {
                 std::vector<std::string> a;
 
@@ -4247,7 +4247,7 @@ struct )";
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t\t\t\t } \n\t\t\t switch(vpos){ \n";
+    getcollstrem << "\t\t\t\t } \n\t\t\tswitch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
@@ -4262,20 +4262,20 @@ struct )";
 
     headtxt = R"(
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols(std::string keyname,std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
     {
         std::map<std::string,std::string> a;
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
-        headtxt = R"(        
+        headtxt = R"(
+        unsigned char kpos,vpos;
+        kpos=findcolpos(keyname);
+        vpos=findcolpos(valname);        
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
@@ -4289,7 +4289,10 @@ struct )";
 
         headtxt = R"(
                 }
-                a.emplace(ktemp,vtemp);
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
             }       
 
    )";
@@ -4316,7 +4319,7 @@ struct )";
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t\t\t } \n \t\t    switch(vpos){ \n";
+    getcollstrem << "\t\t\t } \n\t\t switch(vpos){\n";
 
     for (auto &kaa : floatcollist)
     {
@@ -4332,20 +4335,20 @@ struct )";
     headtxt = R"(
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::map<std::string,U> a;
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
      )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
-        headtxt = R"(             
+        headtxt = R"( 
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);            
                 std::string ktemp;
                 U vtemp;
                 for(auto &iter:record)
@@ -4359,7 +4362,10 @@ struct )";
         headtxt.clear();
         headtxt = R"(
                     }
-                    a.emplace(ktemp,vtemp);
+                    if(ktemp.size()>0)
+                    {
+                        a.emplace(ktemp,vtemp);
+                    }
                 }       
     )";
         fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -4385,7 +4391,7 @@ struct )";
         getcollstrem << "\t break;\n";
     }
 
-    getcollstrem << "\t } \n \t\t   switch(vpos){ \n";
+    getcollstrem << "\t } \n \t\t  switch(vpos){\n";
 
     for (auto &kaa : floatcollist)
     {
@@ -4399,19 +4405,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols(std::string keyname,std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,U> a;
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
        )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
-        headtxt = R"(        
+        headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);        
             T ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -4425,7 +4431,10 @@ struct )";
         headtxt.clear();
         headtxt = R"(
                 }
-                a.emplace(ktemp,vtemp);
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
             }       
     )";
 
@@ -4451,7 +4460,7 @@ struct )";
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t\t\t  }\n \t\t\t switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n \t\t\tswitch(vpos){\n";
 
     for (auto &kaa : stringcollist)
     {
@@ -4465,20 +4474,20 @@ struct )";
 
     headtxt = R"( 
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols(std::string keyname,std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
             {
                 std::map<T,std::string> a;
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
-        headtxt = R"(         
+        headtxt = R"(
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);         
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
@@ -4493,7 +4502,10 @@ struct )";
 
         headtxt = R"(
                     }
-                    a.emplace(ktemp,vtemp);
+                    if(ktemp.size()>0)
+                    {
+                        a.emplace(ktemp,vtemp);
+                    }
                 } 
     )";
         fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -4533,20 +4545,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<std::string,U> a;
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
-        headtxt = R"(            
+        headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);            
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
@@ -4561,7 +4573,10 @@ struct )";
 
         headtxt = R"(
                 }
-                a.emplace(ktemp,vtemp);
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
             }       
     )";
 
@@ -4588,7 +4603,7 @@ struct )";
         getcollstrem << "\t\t\t\t break;\n";
     }
 
-    getcollstrem << "\t\t\t  }\n \t\t\t switch(vpos){\n";
+    getcollstrem << "\t\t\t  }\n \t\t\tswitch(vpos){\n";
 
     for (auto &kaa : numbercollist)
     {
@@ -4602,20 +4617,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols(std::string keyname,std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,U> a;
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
-        headtxt = R"(            
+        headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);            
             T ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -4630,7 +4645,10 @@ struct )";
 
         headtxt = R"(
                 }
-                a.emplace(ktemp,vtemp);
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
             }       
     )";
         fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -4659,7 +4677,7 @@ struct )";
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows(std::string keyname)
+        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
         {
             std::map<T,meta> a;
     )";
@@ -4713,7 +4731,7 @@ struct )";
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows(std::string keyname)
+        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
         {
             std::map<std::string,meta> a;
 
@@ -4779,21 +4797,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
-        std::vector<std::pair<std::string,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<std::string,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::vector<std::pair<std::string,U>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
-        headtxt = R"(       
+        headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);                   
             std::string ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -4850,21 +4867,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
         headtxt = R"(
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
                 T ktemp;
                 U vtemp;
                 for(auto &iter:record)
@@ -4921,23 +4937,23 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
 
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
         headtxt = R"(
-                    T ktemp;
-                    U vtemp;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                T ktemp;
+                U vtemp;
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -4990,23 +5006,22 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
-
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
-        headtxt = R"(                
-                    T ktemp;
-                    U vtemp;
+        headtxt = R"(
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);                
+                T ktemp;
+                U vtemp;
                 for(auto &iter:record)
                 {
                     
@@ -5059,23 +5074,22 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
-
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
 
         headtxt = R"(
-                    T ktemp;
-                    U vtemp;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                T ktemp;
+                U vtemp;
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -5128,22 +5142,21 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
-
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 30)
     {
         headtxt = R"(
-                    T ktemp;
-                    U vtemp;
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                T ktemp;
+                U vtemp;
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -5187,7 +5200,7 @@ struct )";
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows(std::string keyname)
+        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
             std::vector<std::pair<T,meta>> a;
      )";
@@ -5238,7 +5251,7 @@ struct )";
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname)
+        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
             std::vector<std::pair<std::string,meta>> a;
       )";
@@ -5314,21 +5327,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(      
+        headtxt = R"(
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);      
             T ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -5393,22 +5405,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(          
+        headtxt = R"(
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);          
             T ktemp;
             U vtemp;
             //D vtemp;
@@ -5473,21 +5483,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(       
+        headtxt = R"(
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);       
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -5554,21 +5563,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
                 std::map<T,std::map<U,std::vector<D>>> a;
-
-                unsigned char kpos,vpos,dpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                dpos=findcolpos(dataname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+                unsigned char kpos,vpos,dpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                dpos=findcolpos(dataname);
                 T ktemp;
                 U vtemp;
             // D dtemp;
@@ -5634,22 +5642,21 @@ struct )";
 
     headtxt = R"(
     template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
     {
         std::map<T,std::map<U,std::vector<D>>> a;
-
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
 
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(        
+        headtxt = R"(
+        unsigned char kpos,vpos,dpos;
+        kpos=findcolpos(keyname);
+        vpos=findcolpos(valname);
+        dpos=findcolpos(dataname);             
         T ktemp;
         U vtemp;
        // D dtemp;
@@ -5717,21 +5724,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -5800,21 +5806,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
                 std::map<T,std::map<U,std::vector<D>>> a;
-
-                unsigned char kpos,vpos,dpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                dpos=findcolpos(dataname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(               
+        headtxt = R"(
+                unsigned char kpos,vpos,dpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                dpos=findcolpos(dataname);               
                 T ktemp;
                 U vtemp;
                 //D vtemp;
@@ -5882,21 +5887,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(            
+        headtxt = R"(
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);            
             T ktemp;
             U vtemp;
             //D vtemp;
@@ -5964,21 +5968,21 @@ struct )";
 
     headtxt = R"(
     template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
     {
         std::map<T,std::map<U,std::vector<D>>> a;
 
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+        unsigned char kpos,vpos,dpos;
+        kpos=findcolpos(keyname);
+        vpos=findcolpos(valname);
+        dpos=findcolpos(dataname);
         T ktemp;
         U vtemp;
         // D dtemp;
@@ -6046,21 +6050,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(        
+        headtxt = R"(
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);        
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -6130,21 +6133,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -6215,22 +6217,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(        
+        headtxt = R"(
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);        
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -6288,21 +6288,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
 
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
             T ktemp;
             //U vtemp;
 
@@ -6359,20 +6358,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
             T ktemp;
             //U vtemp;
 
@@ -6429,20 +6427,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
             T ktemp;
             //U vtemp;
 
@@ -6499,20 +6496,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
             T ktemp;
             //U vtemp;
 
@@ -6570,21 +6566,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(            
-
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
             T ktemp;
             //U vtemp;
 
@@ -6641,20 +6635,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
             T ktemp;
             //U vtemp;
 
@@ -6702,7 +6695,7 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
             std::map<T,std::vector<meta>> a;
    )";
@@ -6756,7 +6749,7 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
             std::map<T,std::vector<meta>> a;
    )";
@@ -6824,20 +6817,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
         headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
             T ktemp;
 
             for(auto &iter:record)
@@ -6893,21 +6885,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(            
+        headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);            
             T ktemp;
             
             for(auto &iter:record)
@@ -6964,21 +6954,19 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
-
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(        
+        headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);        
         T ktemp;
         
             for(auto &iter:record)
@@ -7034,20 +7022,20 @@ struct )";
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
 
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (sqlqueryring.size() > 70)
     {
-        headtxt = R"(            
+        headtxt = R"(
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);            
             T ktemp;
             
             for(auto &iter:record)

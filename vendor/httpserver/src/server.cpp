@@ -215,8 +215,8 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
             return false;
         }
 
-        unsigned long long totalsend_num = 0;
-        unsigned int vsize_send          = 8181;
+        //unsigned long long totalsend_num = 0;
+        unsigned int vsize_send = 8181;
         if (readnum >= mustnum)
         {
             send_cache->data[3] = 0x00;
@@ -309,7 +309,7 @@ bool httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
             }
 
             peer->socket_session->window_update_num -= per_size;
-            totalsend_num += per_size;
+            //totalsend_num += per_size;
             if (peer->socket_session->window_update_num < 8192)
             {
                 DEBUG_LOG("--- wait window_update_num --------");
@@ -615,8 +615,8 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             co_return;
         }
 
-        unsigned long long totalsend_num = 0;
-        unsigned int vsize_send          = 8181;
+        //unsigned long long totalsend_num = 0;
+        unsigned int vsize_send = 8181;
         if (file_size == 0)
         {
             send_cache->data[3] = 0x00;
@@ -728,7 +728,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             // }
 
             peer->socket_session->window_update_num -= per_size;
-            totalsend_num += per_size;
+            //totalsend_num += per_size;
             if (peer->socket_session->window_update_num < 8192)
             {
                 std::promise<int> p;
@@ -1028,8 +1028,8 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
             return false;
         }
 
-        unsigned long long totalsend_num = 0;
-        unsigned int vsize_send          = 8181;
+        //unsigned long long totalsend_num = 0;
+        unsigned int vsize_send = 8181;
         if (file_size == 0)
         {
             send_cache->data[3] = 0x00;
@@ -1139,7 +1139,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
             }
 
             peer->socket_session->window_update_num -= per_size;
-            totalsend_num += per_size;
+            //totalsend_num += per_size;
             if (peer->socket_session->window_update_num < 8192)
             {
                 std::promise<int> p;
@@ -3059,13 +3059,13 @@ void httpserver::websocket_loop(int fps)
 {
 
     using namespace std::chrono;
-    using dsec                      = duration<double>;
-    auto invFpsLimit                = duration_cast<system_clock::duration>(dsec{1. / 0.5});
-    auto m_BeginFrame               = system_clock::now();
-    auto m_EndFrame                 = m_BeginFrame + invFpsLimit;
-    unsigned frame_count_per_second = 0;
-    auto prev_time_in_seconds       = time_point_cast<seconds>(m_BeginFrame);
-    fps                             = 0;
+    using dsec                = duration<double>;
+    auto invFpsLimit          = duration_cast<system_clock::duration>(dsec{1. / 0.5});
+    auto m_BeginFrame         = system_clock::now();
+    auto m_EndFrame           = m_BeginFrame + invFpsLimit;
+    auto prev_time_in_seconds = time_point_cast<seconds>(m_BeginFrame);
+    fps                       = 0;
+    //unsigned frame_count_per_second = 0;
 
     for (;;)
     {
@@ -3079,12 +3079,12 @@ void httpserver::websocket_loop(int fps)
         }
 
         auto time_in_seconds = time_point_cast<seconds>(system_clock::now());
-        ++frame_count_per_second;
+        //++frame_count_per_second;
         if (time_in_seconds > prev_time_in_seconds)
         {
 
-            frame_count_per_second = 0;
-            prev_time_in_seconds   = time_in_seconds;
+            //frame_count_per_second = 0;
+            prev_time_in_seconds = time_in_seconds;
 
             ++fps;
 
