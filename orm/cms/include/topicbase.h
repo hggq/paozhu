@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 29 Nov 2023 03:41:50 GMT
+*本文件为自动生成 Tue, 05 Dec 2023 09:09:04 GMT
 ***/
 #include <iostream>
 #include <cstdio>

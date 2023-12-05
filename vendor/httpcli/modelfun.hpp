@@ -348,8 +348,8 @@ int createtabletoorm(std::string basefilepath,
         if (temptype[0] == 'c' && temptype[1] == 'h' && temptype[2] == 'a' && temptype[3] == 'r')
         {
             // char
-            int limitnumber = strtointval(tableinfo[bb]["limitchar"]);
-            limitnumber += 1;
+            // int limitnumber = strtointval(tableinfo[bb]["limitchar"]);
+            // limitnumber += 1;
 
             outlist.append(" std::string ");
 
@@ -506,8 +506,8 @@ int createtabletoorm(std::string basefilepath,
             temptype[4] == 'h' && temptype[5] == 'a' && temptype[6] == 'r')
         {
             // varchar
-            int limitnumber = strtointval(tableinfo[bb]["limitchar"]);
-            limitnumber += 1;
+            // int limitnumber = strtointval(tableinfo[bb]["limitchar"]);
+            // limitnumber += 1;
 
             outlist.append(" std::string ");
 
@@ -3725,8 +3725,7 @@ struct )";
             std::vector<T> getCol(std::string keyname)
             {
                 std::vector<T> a;
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
+                
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -3735,6 +3734,8 @@ struct )";
     {
 
         headtxt = R"(
+                unsigned char kpos;
+                kpos=findcolpos(keyname);               
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -3777,8 +3778,7 @@ struct )";
 			std::vector<T> getCol(std::string keyname)
 			{
 				std::vector<T> a;
-				unsigned char kpos;
-				kpos = findcolpos(keyname);
+				
 )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -3786,7 +3786,9 @@ struct )";
     if (sqlqueryring.size() > 0)
     {
 
-        headtxt = R"(  
+        headtxt = R"(
+                unsigned char kpos;
+				kpos = findcolpos(keyname);  
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -3829,15 +3831,15 @@ struct )";
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
             T getVal(std::string keyname)
             {
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     if (sqlqueryring.size() > 0)
     {
-        headtxt = R"(                   
+        headtxt = R"(
+                    unsigned char kpos;
+                    kpos=findcolpos(keyname);                   
                     switch(kpos)
                     {
 
@@ -3875,15 +3877,16 @@ struct )";
     headtxt += tablenamebase;
     headtxt += R"(base::meta & iter,std::string keyname)
         {
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
+
           )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     if (sqlqueryring.size() > 0)
     {
-        headtxt = R"(   
+        headtxt = R"(
+            unsigned char kpos;
+            kpos=findcolpos(keyname);   
             switch(kpos)
             {
    )";
@@ -3911,7 +3914,6 @@ struct )";
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
             T getVal(std::string keyname)
             {
-                
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
             
@@ -4001,7 +4003,6 @@ struct )";
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
             std::string getVal(std::string keyname)
             {
-         
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
         
@@ -4109,8 +4110,7 @@ struct )";
             std::vector<std::string> getCol(std::string keyname)
             {
                 std::vector<std::string> a;
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
+
            )";
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -4119,7 +4119,9 @@ struct )";
     if (sqlqueryring.size() > 0)
     {
 
-        headtxt = R"(        
+        headtxt = R"(
+                unsigned char kpos;
+                kpos=findcolpos(keyname);                    
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -4173,8 +4175,6 @@ struct )";
         std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
         {
             std::ostringstream a;
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -4182,7 +4182,9 @@ struct )";
     if (sqlqueryring.size() > 0)
     {
 
-        headtxt = R"(   
+        headtxt = R"(
+            unsigned char kpos;
+            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -4660,8 +4662,6 @@ struct )";
         std::map<T,meta> getmapRows(std::string keyname)
         {
             std::map<T,meta> a;
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -4669,7 +4669,9 @@ struct )";
     if (sqlqueryring.size() > 0)
     {
 
-        headtxt = R"(            
+        headtxt = R"(
+            unsigned char kpos;
+            kpos=findcolpos(keyname);                        
             for(auto &iter:record)
             {
                 switch(kpos)
@@ -4714,8 +4716,7 @@ struct )";
         std::map<std::string,meta> getmapRows(std::string keyname)
         {
             std::map<std::string,meta> a;
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
+
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -4724,6 +4725,8 @@ struct )";
     {
 
         headtxt = R"(
+            unsigned char kpos;
+            kpos=findcolpos(keyname);            
             for(auto &iter:record)
             {
                 switch(kpos)
@@ -5187,15 +5190,15 @@ struct )";
         std::vector<std::pair<T,meta>> getvecRows(std::string keyname)
         {
             std::vector<std::pair<T,meta>> a;
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
      )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     if (sqlqueryring.size() > 0)
     {
-        headtxt = R"(      
+        headtxt = R"(
+            unsigned char kpos;
+            kpos=findcolpos(keyname);                  
             for(auto &iter:record)
             { 
                 switch(kpos)
@@ -5238,16 +5241,15 @@ struct )";
         std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname)
         {
             std::vector<std::pair<std::string,meta>> a;
-
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
       )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
     if (sqlqueryring.size() > 0)
     {
-        headtxt = R"(         
+        headtxt = R"(
+            unsigned char kpos;
+            kpos=findcolpos(keyname);                     
             for(auto &iter:record)
             {
                 switch(kpos)
@@ -6703,9 +6705,6 @@ struct )";
         std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
         {
             std::map<T,std::vector<meta>> a;
-
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -6713,8 +6712,8 @@ struct )";
     if (sqlqueryring.size() > 0)
     {
         headtxt = R"(
-            //T ktemp;
-            //U vtemp;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
 
             for(auto &iter:record)
             {
@@ -6760,9 +6759,6 @@ struct )";
         std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
         {
             std::map<T,std::vector<meta>> a;
-
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -6770,8 +6766,8 @@ struct )";
     if (sqlqueryring.size() > 0)
     {
         headtxt = R"(
-            //T ktemp;
-            //U vtemp;
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
 
             for(auto &iter:record)
             {

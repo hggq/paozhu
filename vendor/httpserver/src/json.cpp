@@ -359,7 +359,7 @@ Object::Object(std::initializer_list<std::list<std::pair<std::string, json::Valu
 
 Object::Object(const Object &o) : _object(o._object), _mp(o._mp) {}
 
-Object::Object(Object &&o) : _object(move(o._object)), _mp(move(o._mp)) {}
+Object::Object(Object &&o) : _object(std::move(o._object)), _mp(std::move(o._mp)) {}
 
 Object &Object::operator=(const Object &o)
 {
@@ -565,7 +565,7 @@ Array::~Array() {}
 
 Array::Array(const Array &a) : _array(a._array) {}
 
-Array::Array(Array &&a) : _array(move(a._array)) {}
+Array::Array(Array &&a) : _array(std::move(a._array)) {}
 Array::Array(std::initializer_list<Value> nsl)
 {
     for (auto v : nsl)
@@ -593,7 +593,7 @@ Array &Array::operator=(const Array &a)
 
 Array &Array::operator=(Array &&a)
 {
-    _array = move(a._array);
+    _array = std::move(a._array);
     return *this;
 }
 

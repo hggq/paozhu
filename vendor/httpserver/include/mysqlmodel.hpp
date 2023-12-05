@@ -311,7 +311,7 @@ class get_orm_client
                 table_fieldname.push_back(type_temp);
             }
 
-            int j = 0;
+            // int j = 0;
             MYSQL_ROW json_row;
             while ((json_row = mysql_fetch_row(resultall)))
             {
@@ -328,7 +328,7 @@ class get_orm_client
                     }
                 }
                 temprecord.push_back(std::move(rowtemp));
-                j++;
+                // j++;
             }
             mysql_free_result(resultall);
             try
@@ -1682,7 +1682,7 @@ class mysqlclientDB : public base
                 table_fieldname.push_back(type_temp);
             }
 
-            int j = 0;
+            //int j = 0;
             MYSQL_ROW json_row;
             while ((json_row = mysql_fetch_row(resultall)))
             {
@@ -1699,7 +1699,7 @@ class mysqlclientDB : public base
                     }
                 }
                 temprecord.push_back(std::move(rowtemp));
-                j++;
+                //j++;
             }
             mysql_free_result(resultall);
         }
@@ -1823,7 +1823,7 @@ class mysqlclientDB : public base
                 table_fieldmap.insert({type_temp, index});
             }
 
-            int j = 0;
+            //int j = 0;
             MYSQL_ROW json_row;
             while ((json_row = mysql_fetch_row(resultall)))
             {
@@ -1840,7 +1840,7 @@ class mysqlclientDB : public base
                     }
                 }
                 temprecord.push_back(std::move(rowtemp));
-                j++;
+                //j++;
             }
             mysql_free_result(resultall);
 
@@ -2986,7 +2986,7 @@ class mysqlclientDB : public base
                 table_fieldmap.insert({type_temp, index});
             }
 
-            int j = 0;
+            //int j = 0;
             MYSQL_ROW json_row;
             while ((json_row = mysql_fetch_row(resultall)))
             {
@@ -3003,7 +3003,7 @@ class mysqlclientDB : public base
                     }
                 }
                 temprecord.push_back(std::move(rowtemp));
-                j++;
+                //j++;
             }
             mysql_free_result(resultall);
             try

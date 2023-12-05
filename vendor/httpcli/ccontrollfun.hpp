@@ -22,9 +22,9 @@ int controlcli()
     fs::path current_path = fs::current_path();
 
     std::cout << "\033[36m 🍄 current path:\033[0m \033[1m\033[35m" << current_path.string() << "\033[0m" << std::endl;
-    std::string controlpath = "controller/";
+    std::string controlpath    = "controller/";
     std::string controlrunpath = "module/controller/";
-    fs::path vpath = controlpath;
+    fs::path vpath             = controlpath;
 
     if (!fs::exists(vpath))
     {
@@ -35,15 +35,14 @@ int controlcli()
     if (!fs::exists(paths))
     {
         fs::create_directories(paths);
-        fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                        fs::perm_options::add);
+        fs::permissions(paths, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read, fs::perm_options::add);
     }
 
     ctp.DisplayDirTree(controlpath, 0, true);
     ctp.DisplayDirTree(controlrunpath, 0, false);
 
     std::map<std::string, time_t> mustfile = ctp.contrasttime("module/");
-    int i = 1;
+    int i                                  = 1;
     // for(auto it=ctp.fileslist.begin();it!=ctp.fileslist.end();it++){
     //         std::cout <<i<<" \033[32m[+]\033[0m \033[1m\033[31m" << it->first << "\033[0m ";
     //         tm* lsystemTime = localtime(&it->second);
@@ -83,7 +82,7 @@ int controlcli()
                 ctp.DisplayDirTree(controlpath, 0, true);
                 ctp.DisplayDirTree(controlrunpath, 0, false);
                 mustfile = ctp.contrasttime("module/");
-                i = 1;
+                i        = 1;
                 for (auto it = mustfile.begin(); it != mustfile.end(); it++)
                 {
                     std::cout << i << " \033[32m[+]\033[0m \033[1m\033[31m" << it->first << "\033[0m ";
@@ -102,14 +101,9 @@ int controlcli()
             {
                 if (commond[0] == 'a' || commond[0] == 'A')
                 {
-
-                    int k = 1;
                     for (auto it = mustfile.begin(); it != mustfile.end(); it++)
                     {
-
                         ctp.parsetoso(it->first);
-
-                        k++;
                     }
 
                     i = 0;
@@ -146,7 +140,7 @@ int controlcli()
                         ss[1] = 0x00;
                         ss[2] = 0x00;
                         ss[3] = 0x00;
-                        jj = 0;
+                        jj    = 0;
                         continue;
                     }
                     if (commond[nn] >= '0' && commond[nn] <= '9')

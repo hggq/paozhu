@@ -111,6 +111,9 @@ namespace http
 		temp.regfun = admin_updatearticlesort;
 		methodcallback.emplace("admin/updatearticlesort",temp);
 		temp.pre = nullptr;
+		temp.regfun = admin_updatearticleview;
+		methodcallback.emplace("admin/updatearticleview",temp);
+		temp.pre = nullptr;
 		temp.regfun = admin_listarticle;
 		methodcallback.emplace("admin/listarticle",temp);
 		temp.pre = nullptr;

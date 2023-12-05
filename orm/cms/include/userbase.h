@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 07 Jun 2023 01:10:02 GMT
+*本文件为自动生成 Tue, 05 Dec 2023 09:09:04 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -200,6 +200,9 @@ break;
             }else if(content[i]=='"'){
                 temp.append("\\\"");
                 continue;
+            }else if(content[i]=='\\'){
+                temp.append("\\\\");
+                continue;
             }
             temp.push_back(content[i]);
         }
@@ -210,6 +213,10 @@ break;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
+                continue;
+            }
+            else if(content[i]=='\\'){
+                temp.append("\\\\");
                 continue;
             }
             temp.push_back(content[i]);

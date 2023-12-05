@@ -69,13 +69,12 @@ void client_context::add_fastcgi_task(std::shared_ptr<fastcgi> tempc)
 void client_context::time_out_loop()
 {
     using namespace std::chrono;
-    using dsec                      = duration<double>;
-    auto invFpsLimit                = duration_cast<system_clock::duration>(dsec{1. / 0.25});
-    auto m_BeginFrame               = system_clock::now();
-    auto m_EndFrame                 = m_BeginFrame + invFpsLimit;
-    unsigned frame_count_per_second = 0;
-    auto prev_time_in_seconds       = time_point_cast<seconds>(m_BeginFrame);
-
+    using dsec                = duration<double>;
+    auto invFpsLimit          = duration_cast<system_clock::duration>(dsec{1. / 0.25});
+    auto m_BeginFrame         = system_clock::now();
+    auto m_EndFrame           = m_BeginFrame + invFpsLimit;
+    auto prev_time_in_seconds = time_point_cast<seconds>(m_BeginFrame);
+    // unsigned frame_count_per_second = 0;
     for (;;)
     {
         if (this->timeout_lists.empty())
@@ -88,12 +87,12 @@ void client_context::time_out_loop()
         }
 
         auto time_in_seconds = time_point_cast<seconds>(system_clock::now());
-        ++frame_count_per_second;
+        //++frame_count_per_second;
         if (time_in_seconds > prev_time_in_seconds)
         {
             DEBUG_LOG("------time loop------");
-            frame_count_per_second = 0;
-            prev_time_in_seconds   = time_in_seconds;
+            //frame_count_per_second = 0;
+            prev_time_in_seconds = time_in_seconds;
 
             unsigned int nowtimeid = timeid();
             for (auto iter = timeout_lists.begin(); iter != timeout_lists.end();)
