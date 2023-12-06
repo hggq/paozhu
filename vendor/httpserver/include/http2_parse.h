@@ -1,6 +1,12 @@
 #ifndef __HTTP2_PARSE_H
 #define __HTTP2_PARSE_H
 
+#include <asio.hpp>
+#include <asio/ssl.hpp>
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
+#include <asio/io_context.hpp>
+
 #include <iostream>
 #include <cstdio>
 #include <stdexcept>
@@ -11,7 +17,7 @@
 #include <map>
 #include <list>
 #include <filesystem>
-
+#include <atomic>
 #include <string_view>
 #include <unistd.h>
 #include <vector>
@@ -154,6 +160,8 @@ class http2parse
 
     std::map<unsigned int, std::shared_ptr<httppeer>> http_data;
     std::queue<unsigned int> stream_list;
+    std::queue<std::shared_ptr<httppeer>> httppeer_lists;
+    std::atomic<bool> istaskout = false;
 };
 }// namespace http
 #endif

@@ -81,12 +81,13 @@ class httpserver
 
     void http2pool(int threadid);
     asio::awaitable<void> http2loop(std::shared_ptr<httppeer>);
+    asio::awaitable<void> http2task(std::shared_ptr<http2parse>);
     asio::awaitable<void>
     http2_send_content(std::shared_ptr<httppeer> peer, const unsigned char *buffer, unsigned int begin_end);
     bool http2_send_body(std::shared_ptr<httppeer> peer, const unsigned char *buffer, unsigned int begin_end);
     asio::awaitable<void> http2_co_send_file(std::shared_ptr<httppeer> peer);
     bool http2_send_file(std::shared_ptr<httppeer>);
-    bool http2_send_file_range(std::shared_ptr<httppeer> peer);
+    asio::awaitable<void> http2_send_file_range(std::shared_ptr<httppeer> peer);
 
     void http2send_filedata(struct http2sendblock_t &http2_ff_send);
     void add_error_lists(const std::string &);

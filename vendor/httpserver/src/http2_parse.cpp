@@ -166,7 +166,68 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
     {
         if (data_info[block_steamid].endheader)
         {
-            http_data.emplace(block_steamid, std::make_shared<httppeer>());
+            bool ishasold = true;
+            for (auto iter = http_data.begin(); iter != http_data.end();)
+            {
+                if (iter->second->issend)
+                {
+                    std::shared_ptr<httppeer> peer = iter->second;
+                    iter                           = http_data.erase(iter);
+                    peer->state.gzip               = false;
+                    peer->state.deflate            = false;
+                    peer->state.br                 = false;
+                    peer->state.avif               = false;
+                    peer->state.webp               = false;
+                    peer->state.keepalive          = false;
+                    peer->state.websocket          = false;
+                    peer->state.upgradeconnection  = false;
+                    peer->state.rangebytes         = false;
+                    peer->state.language[0]        = {0};
+                    peer->state.version            = 0;
+                    peer->state.port               = 0;
+                    peer->state.ifmodifiedsince    = 0;
+                    peer->state.rangebegin         = 0;
+                    peer->state.rangeend           = 0;
+                    peer->keepalive                = false;
+                    peer->issend                   = false;
+                    peer->send_header.clear();
+                    peer->send_cookie_lists.clear();
+                    peer->header.clear();
+                    peer->pathinfos.clear();
+                    peer->querystring.clear();
+                    peer->urlpath.clear();
+                    peer->host.clear();
+                    peer->etag.clear();
+                    peer->output.clear();
+                    peer->val.clear();
+                    peer->post.clear();
+                    peer->get.clear();
+                    peer->files.clear();
+                    peer->json.clear();
+                    peer->cookie.clear();
+                    peer->rawcontent.clear();
+                    peer->httpv                       = 2;
+                    peer->isso                        = false;
+                    peer->compress                    = 0;
+                    peer->websocket.deflate           = false;
+                    peer->websocket.permessagedeflate = false;
+                    peer->websocket.perframedeflate   = false;
+                    peer->websocket.deflateframe      = false;
+                    peer->websocket.isopen            = false;
+                    peer->websocket.version           = 0x00;
+                    peer->websocket.key.clear();
+                    peer->websocket.ext.clear();
+
+                    http_data.emplace(block_steamid, peer);
+                    ishasold = false;
+                    break;
+                }
+                ++iter;
+            }
+            if (ishasold)
+            {
+                http_data.emplace(block_steamid, std::make_shared<httppeer>());
+            }
             headers_parse();
             http_data[block_steamid]->isuse_fastcgi();
         }
@@ -2170,7 +2231,8 @@ void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
     }
     processheader = 0;
     readoffset += blocklength;
-    peer_session->send_data(_recvack, 17);
+    //peer_session->send_data(_recvack, 17);
+    peer_session->http2_send_data(_recvack, 17);
 }
 void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {

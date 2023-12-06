@@ -27,6 +27,7 @@
 #include <thread>
 #include <memory>
 #include <set>
+#include <atomic>
 
 #include <cstdlib>
 #include <fstream>
@@ -91,6 +92,11 @@ class client_session : public std::enable_shared_from_this<client_session>
     ~client_session();
     bool send_data(const std::string &msg);
     bool send_data(const unsigned char *, unsigned int);
+
+    void http2_send_data(const unsigned char *buffer, unsigned int buffersize);
+    void http2_send_data(const std::string &msg);
+    void http2_send_data_loop();
+
     bool isopensocket();
     std::shared_ptr<client_session> get_ptr();
     std::string getremoteip();
@@ -115,6 +121,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<void> send_writer(const unsigned char *, unsigned int);
     asio::awaitable<void> co_send_writer(const std::string &msg);
     asio::awaitable<void> co_send_writer(const unsigned char *, unsigned int);
+    asio::awaitable<void> http2_send_writer(const std::string &msg);
+    asio::awaitable<void> http2_send_writer(const unsigned char *, unsigned int);
+
+    asio::awaitable<void> http2_send_data_loop_co();
 
   public:
     // client_data_cache_back cache_back_obj;
@@ -158,7 +168,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::list<std::future<int>> window_update_results;
     std::promise<int> window_update_promise;
 
-    std::mutex writemutex;
+    std::queue<std::string> setting_lists;
 };
 }// namespace http
 
