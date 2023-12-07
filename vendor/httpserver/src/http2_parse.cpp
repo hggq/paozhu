@@ -96,7 +96,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
                 data_info[block_steamid].pad_length = (unsigned char)buffer[j];
             }
         }
-        data_steam_id = block_steamid;
+        //data_steam_id = block_steamid;
     }
     else if (frame_type == 0x01)
     {
@@ -137,7 +137,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
             }
         }
 
-        data_steam_id = block_steamid;
+        //data_steam_id = block_steamid;
         stream_data[block_steamid].clear();
     }
 
@@ -172,6 +172,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                 if (iter->second->issend)
                 {
                     std::shared_ptr<httppeer> peer = iter->second;
+                    unsigned int oldstream_id      = iter->first;
                     iter                           = http_data.erase(iter);
                     peer->state.gzip               = false;
                     peer->state.deflate            = false;
@@ -192,6 +193,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                     peer->issend                   = false;
                     peer->send_header.clear();
                     peer->send_cookie_lists.clear();
+                    peer->http2_send_header.clear();
                     peer->header.clear();
                     peer->pathinfos.clear();
                     peer->querystring.clear();
@@ -206,20 +208,32 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                     peer->json.clear();
                     peer->cookie.clear();
                     peer->rawcontent.clear();
-                    peer->httpv                       = 2;
-                    peer->isso                        = false;
-                    peer->compress                    = 0;
-                    peer->websocket.deflate           = false;
-                    peer->websocket.permessagedeflate = false;
-                    peer->websocket.perframedeflate   = false;
-                    peer->websocket.deflateframe      = false;
-                    peer->websocket.isopen            = false;
-                    peer->websocket.version           = 0x00;
-                    peer->websocket.key.clear();
-                    peer->websocket.ext.clear();
+                    peer->httpv    = 2;
+                    peer->isso     = false;
+                    peer->compress = 0;
+                    // peer->websocket.deflate           = false;
+                    // peer->websocket.permessagedeflate = false;
+                    // peer->websocket.perframedeflate   = false;
+                    // peer->websocket.deflateframe      = false;
+                    // peer->websocket.isopen            = false;
+                    // peer->websocket.version           = 0x00;
+                    // peer->websocket.key.clear();
+                    // peer->websocket.ext.clear();
 
                     http_data.emplace(block_steamid, peer);
                     ishasold = false;
+
+                    for (auto it = data_info.begin(); it != data_info.end();)
+                    {
+                        if (oldstream_id == it->first)
+                        {
+                            it = data_info.erase(it);
+                        }
+                        else
+                        {
+                            ++it;
+                        }
+                    }
                     break;
                 }
                 ++iter;

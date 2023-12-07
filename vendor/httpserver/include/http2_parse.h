@@ -135,12 +135,13 @@ class http2parse
     unsigned char headerfinish = 0, parse_setup = 0;
     int error                  = 0;
     unsigned int readoffset    = 0;
-    unsigned int processheader = 0;
+    unsigned int processheader = 0;//mark delete
     unsigned char frame_type   = 0;
     unsigned char flag_type    = 0;
 
-    unsigned int steam_id      = 0;
-    unsigned int data_steam_id = 0;
+    unsigned int steam_id    = 0;
+    unsigned int steam_count = 0;
+    // unsigned int data_steam_id = 0;
     // unsigned int data_length;
     // unsigned int data_readoffset = 0;
     unsigned int isfinsish = 0;

@@ -2869,7 +2869,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                     {
                         //http2pre = std::make_unique<http2parse>();
                         http2pre = std::make_shared<http2parse>();
-                        co_spawn(this->io_context, http2task(http2pre), asio::detached);
+                        //co_spawn(this->io_context, http2task(http2pre), asio::detached);
                     }
                 }
 
@@ -2935,7 +2935,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                             http2pre->setsession(peer_session);
                             http2pre->http_data[1] = peer;
                             http2pre->stream_list.emplace(1);
-                            co_spawn(this->io_context, http2task(http2pre), asio::detached);
+                            //co_spawn(this->io_context, http2task(http2pre), asio::detached);
                             continue;
                         }
 
@@ -3063,10 +3063,10 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
 
                 if (linktype == 3)
                 {
-                    if (!http2pre)
-                    {
-                        break;
-                    }
+                    // if (!http2pre)
+                    // {
+                    //     break;
+                    // }
                     http2pre->process(&peer_session->_cache_data[offsetnum], readnum - offsetnum);
                     offsetnum = 0;
                     if (peer_session->isgoway)
@@ -3125,6 +3125,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                                 co_spawn(this->io_context, http2task(http2pre), asio::detached);
                             }
                             http2pre->stream_list.pop();
+                            http2pre->steam_count += 1;
                         }
                     }
                     if (error_state > 0)
@@ -3133,6 +3134,14 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                         peer_session->isclose = true;
                         break;
                     }
+#ifndef DEBUG
+                    if (http2pre->steam_count > 360)
+                    {
+                        peer_session->send_goway();
+                        peer_session->isclose = true;
+                        break;
+                    }
+#endif
                 }
             }
         }
