@@ -3135,7 +3135,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                         break;
                     }
 #ifndef DEBUG
-                    if (http2pre->steam_count > 360)
+                    if (http2pre->steam_count > 512)
                     {
                         peer_session->send_goway();
                         peer_session->isclose = true;
