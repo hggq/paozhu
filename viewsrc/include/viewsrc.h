@@ -22,6 +22,7 @@ namespace admin{
 	std::string editpassword(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string edittopic(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string listarticle(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string login(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string main(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string martopic(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string siteinfo(const struct view_param &vinfo,http::OBJ_VALUE &obj);

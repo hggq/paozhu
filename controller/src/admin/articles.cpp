@@ -9,7 +9,7 @@
 
 namespace http
 {
-//@urlpath(null,admin/addarticle)
+//@urlpath(admin_islogin,admin/addarticle)
 std::string admin_addarticle(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -17,7 +17,7 @@ std::string admin_addarticle(std::shared_ptr<httppeer> peer)
     {
         auto topicm = orm::cms::Topic();
 
-        topicm.where("userid", 0).asc("parentid").fetch();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         unsigned int topicid = client.get["topicid"].to_int();
         //unsigned int page     = client.get["page"].to_int();
@@ -44,7 +44,7 @@ std::string admin_addarticle(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/addarticlepost)
+//@urlpath(admin_islogin,admin/addarticlepost)
 std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -92,7 +92,7 @@ std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/editarticle)
+//@urlpath(admin_islogin,admin/editarticle)
 std::string admin_editarticle(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -100,13 +100,13 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
     {
         auto topicm = orm::cms::Topic();
 
-        topicm.where("userid", 0).asc("parentid").fetch();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         unsigned int aid = client.get["id"].to_int();
 
         auto artmodel = orm::cms::Article();
 
-        artmodel.where("userid", 0).whereAnd("aid", aid).limit(1).fetch();
+        artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", aid).limit(1).fetch();
 
         unsigned int topicid = artmodel.getTopicid();
 
@@ -145,7 +145,7 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/editarticlepost)
+//@urlpath(admin_islogin,admin/editarticlepost)
 std::string admin_editarticlepost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -167,7 +167,7 @@ std::string admin_editarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.texturl       = client.post["texturl"].to_string();
         artmodel.data.relatecontent = client.post["relatecontent"].to_string();
 
-        artmodel.where("userid", 0).whereAnd("aid", aid).limit(1);
+        artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", aid).limit(1);
         int result_status =
             artmodel.update("topicid,title,author,fromsource,icoimg,keywords,summary,content,texturl,relatecontent");
 
@@ -190,7 +190,7 @@ std::string admin_editarticlepost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/deletearticle)
+//@urlpath(admin_isloginjson,admin/deletearticle)
 std::string admin_deletearticle(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -200,7 +200,7 @@ std::string admin_deletearticle(std::shared_ptr<httppeer> peer)
         unsigned int aid = client.get["id"].to_int();
 
         auto artmodel       = orm::cms::Article();
-        unsigned int tempid = artmodel.where("userid", 0).whereAnd("aid", aid).remove();
+        unsigned int tempid = artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", aid).remove();
         if (tempid > 0)
         {
             client.val["code"] = 0;
@@ -220,7 +220,7 @@ std::string admin_deletearticle(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/gettoparticle)
+//@urlpath(admin_isloginjson,admin/gettoparticle)
 std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -229,7 +229,7 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
     {
         auto topicm = orm::cms::Topic();
 
-        topicm.where("userid", 0).asc("parentid").fetch();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         unsigned int topicid  = client.get["topicid"].to_int();
         unsigned int page     = client.get["page"].to_int();
@@ -259,7 +259,7 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
 
         auto artmodel = orm::cms::Article();
 
-        artmodel.where("userid", 0);
+        artmodel.where("userid", client.session["userid"].to_int());
         if (topicid > 0)
         {
             std::string topicid_sql_str = array_to_sql(topic_id_array);
@@ -301,7 +301,7 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/updatearticlesort)
+//@urlpath(admin_isloginjson,admin/updatearticlesort)
 std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -310,7 +310,7 @@ std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer)
     {
         auto artmodel = orm::cms::Article();
         artmodel.setSortid(client.get["sortid"].to_int());
-        artmodel.where("userid", 0).whereAnd("aid", client.get["id"].to_int());
+        artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", client.get["id"].to_int());
         artmodel.update("sortid");
         client.val["code"] = 0;
         client.val["msg"]  = "ok";
@@ -322,7 +322,7 @@ std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-//@urlpath(null,admin/updatearticleview)
+//@urlpath(admin_isloginjson,admin/updatearticleview)
 std::string admin_updatearticleview(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -333,7 +333,7 @@ std::string admin_updatearticleview(std::shared_ptr<httppeer> peer)
         unsigned char isview = client.post["isview"].to_int() > 0 ? 1 : 0;
 
         artmodel.setIsopen(isview);
-        artmodel.where("userid", 0).whereAnd("aid", client.get["id"].to_int());
+        artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", client.get["id"].to_int());
         client.val["code"] = artmodel.update("isopen");
         client.val["msg"]  = "ok";
     }
@@ -344,7 +344,7 @@ std::string admin_updatearticleview(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-//@urlpath(null,admin/listarticle)
+//@urlpath(admin_islogin,admin/listarticle)
 std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -353,7 +353,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
     {
         auto topicm = orm::cms::Topic();
 
-        topicm.where("userid", 0).asc("parentid").fetch();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         unsigned int topicid   = client.get["topicid"].to_int();
         unsigned int page      = client.get["page"].to_int();
@@ -396,7 +396,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 
         auto artmodel = orm::cms::Article();
 
-        artmodel.where("userid", 0);
+        artmodel.where("userid", client.session["userid"].to_int());
         if (topicid > 0)
         {
             std::string topicid_sql_str = array_to_sql(topic_id_array);

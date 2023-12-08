@@ -8,7 +8,7 @@
 #include "array_to_tree.h"
 namespace http
 {
-//@urlpath(null,admin/addtopic)
+//@urlpath(admin_islogin,admin/addtopic)
 std::string admin_addtopic(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -19,7 +19,7 @@ std::string admin_addtopic(std::shared_ptr<httppeer> peer)
         // define out
         // psy::topics_tree_outjson_t a;
 
-        topicm.where("userid", 0).asc("parentid").fetch();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         client.val["list"].set_array();
         OBJ_ARRAY temp;
@@ -41,7 +41,7 @@ std::string admin_addtopic(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/edittopic)
+//@urlpath(admin_islogin,admin/edittopic)
 std::string admin_edittopic(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -52,7 +52,7 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
         // define out
         // psy::topics_tree_outjson_t a;
 
-        topicm.where("userid", 0).asc("parentid").fetch();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         client.val["list"].set_array();
         OBJ_ARRAY temp;
@@ -68,7 +68,7 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
         unsigned int topicid = client.get["id"].to_int();
         if (topicid > 0)
         {
-            topicm.where("userid", 0).whereAnd("topicid", topicid).limit(1).fetch();
+            topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", topicid).limit(1).fetch();
             client.val["info"].set_array();
             client.val["info"]["topicid"]     = topicm.data.topicid;
             client.val["info"]["parentid"]    = topicm.data.parentid;
@@ -91,7 +91,7 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/martopic)
+//@urlpath(admin_islogin,admin/martopic)
 std::string admin_martopic(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -103,7 +103,7 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
         psy::topics_tree_outjson_t topicone;
         std::vector<psy::topics_tree_outjson_t> topiclists;
 
-        topicm.where("userid", 0).asc("parentid").fetch();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
@@ -145,7 +145,7 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/updatetopicsort)
+//@urlpath(admin_isloginjson,admin/updatetopicsort)
 std::string admin_updatetopicsort(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -154,7 +154,7 @@ std::string admin_updatetopicsort(std::shared_ptr<httppeer> peer)
     {
         auto topicm = orm::cms::Topic();
         topicm.setSortid(client.get["sortid"].to_int());
-        topicm.where("userid", 0).whereAnd("topicid", client.get["id"].to_int());
+        topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", client.get["id"].to_int());
         topicm.update("sortid");
         client.val["code"] = 0;
         client.val["msg"]  = "ok";
@@ -166,7 +166,7 @@ std::string admin_updatetopicsort(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-//@urlpath(null,admin/addtopicpost)
+//@urlpath(admin_isloginjson,admin/addtopicpost)
 std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -190,6 +190,7 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
         topicm.setCateid(client.post["topictype"].to_int());
         topicm.setUrlpath(client.post["urlpath"].as_string());
         topicm.setParentid(client.post["parentid"].to_int());
+
         topicm.setUserid(0);
 
         topicm.save();
@@ -211,7 +212,7 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
         }
 
         topicm.clear(true);
-        topicm.where("userid", 0).asc("parentid").fetch();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
         client.val["list"].set_array();
         OBJ_ARRAY temp;
         for (unsigned int i = 0; i < topicm.record.size(); i++)
@@ -231,7 +232,7 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-//@urlpath(null,admin/deletetopic)
+//@urlpath(admin_isloginjson,admin/deletetopic)
 std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -243,7 +244,7 @@ std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
 
         if (topicid > 0)
         {
-            topicm.select("topicid,parentid").where("userid", 0).asc("parentid").fetch();
+            topicm.select("topicid,parentid").where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
             del_id_array.push_back(topicid);
 
             if (topicm.record.size() > 0)
@@ -284,7 +285,7 @@ std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-//@urlpath(null,admin/edittopicpost)
+//@urlpath(admin_isloginjson,admin/edittopicpost)
 std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -315,7 +316,7 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
             topicm.setParentid(topicid_parentid);
         }
 
-        topicm.where("userid", 0).whereAnd("topicid", client.post["topicid"].to_int());
+        topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", client.post["topicid"].to_int());
         if (topicid_parentid != topicid)
         {
             topicid_parentid = topicm.update("cateid,title,isview,memo,urlpath,parentid");
@@ -341,7 +342,7 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
         }
 
         // topicm.clear(true);
-        // topicm.where("userid", 0).asc("parentid").fetch();
+        // topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
         // client.val["list"].set_array();
         // OBJ_ARRAY temp;
         // for (unsigned int i = 0; i < topicm.record.size(); i++)
@@ -362,7 +363,7 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/topicfileupload)
+//@urlpath(admin_isloginjson,admin/topicfileupload)
 std::string admin_topicfileupload(std::shared_ptr<httppeer> peer)
 {
     httppeer &client      = peer->getpeer();
@@ -389,7 +390,7 @@ std::string admin_topicfileupload(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/topicimgtextupload)
+//@urlpath(admin_isloginjson,admin/topicimgtextupload)
 std::string admin_topicimgtextupload(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -418,7 +419,7 @@ std::string admin_topicimgtextupload(std::shared_ptr<httppeer> peer)
     {
         auto topicm = orm::cms::Topic();
         topicm.setTopimg(tstr);
-        topicm.where("userid", 0).whereAnd("topicid", imgnum);
+        topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", imgnum);
         topicm.update("topimg");
         client.val["code"] = 0;
         client.val["msg"]  = "ok";

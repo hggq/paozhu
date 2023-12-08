@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2023-11-29 05:18:15
+-- 生成日期： 2023-12-08 15:13:55
 -- 服务器版本： 8.0.28
 -- PHP 版本： 8.2.7
 
@@ -60,8 +60,13 @@ CREATE TABLE `article` (
 --
 
 INSERT INTO `article` (`aid`, `topicid`, `classtype`, `userid`, `sortid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `mdcontent`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`, `relatecontent`) VALUES
-(54, 34, 0, 0, 7, '', '标题标题标题标题标题', '关键词关键词关键词关键词', '来源来源来源来源来源来源', '作者作者作者作者作者rrrrr', '', '', 0, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内容</p><p>文章内容v文章内容</p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ''),
-(55, 31, 0, 0, 6, '', '标题标题标题标题标题', '77关键词关键词关键词关键词', '来源来源来源来源来源来源11', '作者作者作者作者作者22', '127.0.0.1', '2023-05-16 22:33:18', 1684247598, 0, 0, '', '<p>文章内容文章内容文章内容文章内容文章内容文章内<font color=\"#cc0000\">容文章内容</font></p><p style=\"line-height: 16px;\"><br></p><p><br></p>', '', 1, 0, '', '', '文章摘要文章摘要文章摘要文章摘要', '', ',55');
+(1, 1, 0, 1, 1, '', '下载说明', '', '', '', '127.0.0.1', '2023-12-01 14:06:26', 1701410786, 0, 0, '', '<div>github</div><div><br></div>', '', 1, 0, '', 'downloads', '', '', ''),
+(2, 2, 0, 1, 2, '', '文档介绍', '', '', '', '127.0.0.1', '2023-12-01 14:07:26', 1701410846, 0, 0, '', '文档介绍<br>', '', 1, 0, '', 'docs', '', '', ''),
+(3, 3, 0, 1, 3, '', '博客总结', '', '', '', '127.0.0.1', '2023-12-01 14:08:07', 1701410887, 0, 0, '', '发布，参会<br>', '', 1, 0, '', 'blogs', '', '', ''),
+(4, 4, 0, 1, 4, '', '关于我们', '', '', '', '127.0.0.1', '2023-12-01 14:09:04', 1701410944, 0, 0, '', '关于我们内容<br>', '', 1, 0, '', 'about', '', '', ''),
+(5, 6, 0, 1, 5, '', '框架简介', '', '', '', '127.0.0.1', '2023-12-02 09:10:33', 1701479433, 0, 0, '', '框架简介<br>', '', 1, 0, '', 'docs_introduce', '', '', ''),
+(6, 3, 0, 1, 6, '', '博客发布', '', '', '', '127.0.0.1', '2023-12-02 09:12:31', 1701479551, 0, 0, '', '博客发布release<br>', '', 1, 0, '', 'blog_release', '', '', ''),
+(7, 3, 0, 1, 7, '', '博客发布2', '', '', '', '127.0.0.1', '2023-12-02 09:13:46', 1701479626, 0, 0, '', '博客发布2<br>', '', 1, 0, '', 'blog_release2', '', '', '');
 
 -- --------------------------------------------------------
 
@@ -130,6 +135,22 @@ INSERT INTO `department` (`dpid`, `userid`, `parentid`, `name`, `depart_code`, `
 -- --------------------------------------------------------
 
 --
+-- 表的结构 `logininfo`
+--
+
+CREATE TABLE `logininfo` (
+  `lgid` int UNSIGNED NOT NULL,
+  `userid` int UNSIGNED NOT NULL COMMENT '会员id',
+  `username` varchar(40) COLLATE utf8mb4_general_ci NOT NULL COMMENT '会员名字',
+  `addtime` varchar(20) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录时间',
+  `addip` varchar(70) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录ip',
+  `addregion` varchar(70) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录地区',
+  `loginstate` varchar(10) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录状态'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录';
+
+-- --------------------------------------------------------
+
+--
 -- 表的结构 `product`
 --
 
@@ -193,7 +214,7 @@ CREATE TABLE `siteinfo` (
 --
 
 INSERT INTO `siteinfo` (`sid`, `userid`, `languagetype`, `sitename`, `sitedomain`, `metakeys`, `metadesc`, `copyright`) VALUES
-(1, 0, 0, '网站名称ww', '网站域名', '88关键词关键词关键词', '描述描述描述', '版权信息版权信息版权信息');
+(1, 1, 0, '网站名称ww', '网站域名', '88关键词关键词关键词', '描述描述描述', '版权信息版权信息版权信息');
 
 -- --------------------------------------------------------
 
@@ -264,10 +285,28 @@ CREATE TABLE `topic` (
 --
 
 INSERT INTO `topic` (`topicid`, `userid`, `parentid`, `cateid`, `languagetype`, `isview`, `sortid`, `title`, `twotitle`, `memo`, `templatename`, `url`, `urlpath`, `imgurl`, `topimg`, `accesscode`) VALUES
-(31, 0, 0, 0, 0, 1, 0, 'aa刚刚刚刚刚', '', '啊啊啊', '', '', 'download', '', '', 0),
-(32, 0, 31, 0, 0, 1, 88, 'bbbhhhhhh', '', 'qqqq', '', '', 'eeeeeq', '', '', 0),
-(34, 0, 31, 3, 0, 1, 99, 'tttttt', '', 'yyyyy', '', '', 'qqqq', '', '', 0),
-(35, 0, 32, 10, 0, 1, 77, '钱钱yyyyy钱钱钱', '', '让肉肉肉肉', '', '', '钱钱钱', '', '[{\"header_content\":\"\\u94b1\\u94b1\\u94b1\",\"header_title\":\"\\u94b1\\u94b1\\u94b1\",\"header_urlpath\":\"/upload/image/202311/20231129110128854271.jpg\"}]', 0);
+(1, 1, 0, 0, 0, 1, 1, 'Download', '', '下载3', '', '', 'downloads', '', '', 0),
+(2, 1, 0, 4, 0, 1, 2, 'Docs', '', '', '', '', 'docs', '', '', 0),
+(3, 1, 0, 13, 0, 1, 3, 'Blog', '', '', '', '', 'blogs', '', '', 0),
+(4, 1, 0, 1, 0, 1, 4, 'About', '', '', '', '', 'about', '', '', 0),
+(5, 1, 2, 0, 0, 1, 21, '入门概述', '', '', '', '', 'introduce', '', '', 0),
+(6, 1, 5, 0, 0, 1, 21, '框架简介', '', '', '', '', 'framework', '', '', 0),
+(7, 1, 5, 0, 0, 1, 22, 'HelloWorld', '', '', '', '', 'helloworld', '', '', 0),
+(8, 1, 5, 0, 0, 1, 23, 'Ubuntu安装', '', '', '', '', 'ubuntu_install', '', '', 0),
+(9, 1, 5, 0, 0, 1, 24, 'MacOS安装', '', '', '', '', 'macos_install', '', '', 0),
+(10, 1, 5, 0, 0, 1, 25, 'RedHat安装', '', '', '', '', 'redhat_install', '', '', 0),
+(11, 1, 5, 0, 0, 1, 26, 'Windows安装', '', '', '', '', 'windows_install', '', '', 0),
+(12, 1, 5, 0, 0, 1, 0, '框架功能详细', '', '', '', '', 'framework_fun', '', '', 0),
+(13, 1, 2, 0, 0, 1, 31, '框架功能', '', '', '', '', 'framefuns', '', '', 0),
+(14, 1, 13, 0, 0, 1, 0, '业务代码入口', '', '', '', '', 'urlenters', '', '', 0),
+(15, 1, 13, 0, 0, 1, 0, '静态文件浏览', '', '', '', '', 'staticfiles', '', '', 0),
+(16, 1, 13, 0, 0, 1, 0, '框架配置conf', '', '', '', '', 'frameconf', '', '', 0),
+(17, 1, 2, 0, 0, 1, 40, 'ORM功能', '', '', '', '', 'ormfun', '', '', 0),
+(18, 1, 2, 0, 0, 1, 50, 'HttpClient', '', '', '', '', 'httpclients', '', '', 0),
+(19, 1, 2, 0, 0, 1, 60, 'WebSocket介绍', '', '', '', '', 'websockets', '', '', 0),
+(20, 1, 19, 0, 0, 1, 0, 'WebSocket入门', '', '', '', '', 'websocket_introduce', '', '', 0),
+(21, 1, 18, 0, 0, 1, 0, 'HttpClient入门', '', '', '', '', 'httpclient_introduce', '', '', 0),
+(22, 1, 17, 0, 0, 1, 0, 'ORM入门', '', '', '', '', 'orm_introduce', '', '', 0);
 
 -- --------------------------------------------------------
 
@@ -319,6 +358,12 @@ ALTER TABLE `department`
   ADD PRIMARY KEY (`dpid`);
 
 --
+-- 表的索引 `logininfo`
+--
+ALTER TABLE `logininfo`
+  ADD PRIMARY KEY (`lgid`);
+
+--
 -- 表的索引 `product`
 --
 ALTER TABLE `product`
@@ -368,7 +413,7 @@ ALTER TABLE `user`
 -- 使用表AUTO_INCREMENT `article`
 --
 ALTER TABLE `article`
-  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- 使用表AUTO_INCREMENT `blogcatalog`
@@ -387,6 +432,12 @@ ALTER TABLE `catalogue`
 --
 ALTER TABLE `department`
   MODIFY `dpid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+
+--
+-- 使用表AUTO_INCREMENT `logininfo`
+--
+ALTER TABLE `logininfo`
+  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `product`
@@ -422,7 +473,7 @@ ALTER TABLE `testb`
 -- 使用表AUTO_INCREMENT `topic`
 --
 ALTER TABLE `topic`
-  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- 使用表AUTO_INCREMENT `user`

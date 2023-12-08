@@ -94,7 +94,7 @@ var TABSNAV = {
 		});
 		$("#menbarpop a").each(function (e) {
 
-			if ($(this).attr("href") != "#" && $(this).attr("href") != "javascript:") {
+			if ($(this).attr("href") != "#" && $(this).attr("href") != "javascript:"&&$(this).attr("id") != "barlogout") {
 
 				$(this).click(function (e) {
 					TABSNAV.addtabs($(this).attr("href"), $(this).text());

@@ -50,17 +50,19 @@
                   <th scope="col">日期</th>
                   <th scope="col">地区</th>
                   <th scope="col">IP</th>
+                  <th scope="col">状态</th>
                 </tr>
               </thead>
               <tbody>
-              
+                <%c for(auto &a:obj["loginlist"].as_array()){ %>
                 <tr>
-                  <th scope="row">1</th>
-                  <td>2023-05-23</td>
-                  <td>cn</td>
-                  <td>127.0.0.1</td>
+                  <th scope="row"><%c echo<<a.second["id"].to_string(); %></th>
+                  <td><%c echo<<a.second["addtime"].to_string(); %></td>
+                  <td><%c echo<<a.second["addregion"].to_string(); %></td>
+                  <td><%c echo<<a.second["addip"].to_string(); %></td>
+                  <td><%c echo<<a.second["loginstate"].to_string(); %></td>
                 </tr>
-
+                <%c } %>
               </tbody>
             </table>
 

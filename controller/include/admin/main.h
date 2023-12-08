@@ -8,8 +8,12 @@ namespace http
 {
 
             
-	std::string admin_main(std::shared_ptr<httppeer> peer);
+	std::string admin_login(std::shared_ptr<httppeer> peer);
+	std::string admin_loginpost(std::shared_ptr<httppeer> peer);
 	std::string admin_logout(std::shared_ptr<httppeer> peer);
+	std::string admin_islogin(std::shared_ptr<httppeer> peer);
+	std::string admin_isloginjson(std::shared_ptr<httppeer> peer);
+	std::string admin_main(std::shared_ptr<httppeer> peer);
 	std::string admin_welcome(std::shared_ptr<httppeer> peer);
 	std::string admin_siteinfo(std::shared_ptr<httppeer> peer);
 	std::string admin_siteinfopost(std::shared_ptr<httppeer> peer);

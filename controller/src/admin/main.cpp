@@ -7,15 +7,61 @@
 #include "md5.h"
 namespace http
 {
-//@urlpath(null,admin/main)
-std::string admin_main(std::shared_ptr<httppeer> peer)
+
+//@urlpath(null,admin/login)
+std::string admin_login(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
 
-    client.view("admin/main");
+    client.view("admin/login");
     return "";
 }
+//@urlpath(null,admin/loginpost)
+std::string admin_loginpost(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client     = peer->getpeer();
+    std::string username = client.post["username"].to_string();
+    std::string password = client.post["password"].to_string();
 
+    auto users = orm::cms::User();
+    std::string md5string;
+
+    try
+    {
+        md5string = md5(password);
+        users.where("name=", username).whereAnd("password=", md5string).limit(1).fetch();
+        // view orm create sql
+        // client<<"<p>"<<users.sqlstring<<"</p>";
+        auto loginfo = orm::cms::Logininfo();
+        loginfo.setUserid(users.getUserid());
+        loginfo.setAddtime(get_date("%Y-%m-%d %X"));
+        loginfo.setAddip(client.client_ip);
+
+        if (users.getPassword() == md5string && password.size() > 4)
+        {
+            // save session,other page get  int userid= client.session["userid"].to_int();
+            client.session["userid"] = users.getUserid();
+            client.save_session();
+            loginfo.setLoginstate("成功");
+            loginfo.save();
+            client.goto_url("/admin/main");
+            return "";
+        }
+        else
+        {
+            loginfo.setLoginstate("失败");
+            loginfo.save();
+            client.goto_url("admin/login", 3, "用户名或密码错误！");
+            return "";
+        }
+    }
+    catch (std::exception &e)
+    {
+        client << "<p>" << e.what() << "</p>";
+        return "";
+    }
+    return "";
+}
 //@urlpath(null,admin/logout)
 std::string admin_logout(std::shared_ptr<httppeer> peer)
 {
@@ -27,20 +73,57 @@ std::string admin_logout(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/welcome)
+//@urlpath(null,admin/islogin)
+std::string admin_islogin(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+
+    if (client.session["userid"].to_int() == 0)
+    {
+        return "admin/login";
+    }
+    return "ok";
+}
+//@urlpath(null,admin/isloginjson)
+std::string admin_isloginjson(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+
+    if (client.session["userid"].to_int() == 0)
+    {
+        client.val["code"] = 0;
+        client.val["msg"]  = "please login";
+        client.out_json();
+        return "exit";
+    }
+    return "ok";
+}
+//@urlpath(admin_islogin,admin/main)
+std::string admin_main(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+    if (client.session["userid"].to_int() == 0)
+    {
+        client.goto_url("admin/login");
+        return "";
+    }
+    client.view("admin/main");
+    return "";
+}
+//@urlpath(admin_islogin,admin/welcome)
 std::string admin_welcome(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
     try
     {
         auto artmodel       = orm::cms::Article();
-        unsigned int total  = artmodel.where("userid", 0).count();
+        unsigned int total  = artmodel.where("userid", client.session["userid"].to_int()).count();
         client.val["total"] = total;
 
-        unsigned long long lastweek_time = timeid() - 604800; //3600*24*7
+        unsigned long long lastweek_time = timeid() - 604800;//3600*24*7
 
         artmodel.clear(true);
-        total = artmodel.where("userid", 0).where("addtime", '>', lastweek_time).count();
+        total = artmodel.where("userid", client.session["userid"].to_int()).where("addtime", '>', lastweek_time).count();
 
         client.val["lastweektotal"] = total;
     }
@@ -52,14 +135,14 @@ std::string admin_welcome(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/siteinfo)
+//@urlpath(admin_islogin,admin/siteinfo)
 std::string admin_siteinfo(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
     try
     {
         auto stinfo = orm::cms::Siteinfo();
-        stinfo.where("userid", 0).fetch();
+        stinfo.where("userid", client.session["userid"].to_int()).fetch();
 
         client.val["info"].set_array();
 
@@ -78,7 +161,7 @@ std::string admin_siteinfo(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/siteinfopost)
+//@urlpath(admin_islogin,admin/siteinfopost)
 std::string admin_siteinfopost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -99,7 +182,7 @@ std::string admin_siteinfopost(std::shared_ptr<httppeer> peer)
         if (sid > 0)
         {
             stinfo.setPK(sid);
-            stinfo.where("userid", 0);
+            stinfo.where("userid", client.session["userid"].to_int());
 
             int result_status = stinfo.update("sitename,sitedomain,metakeys,metadesc,copyright");
             if (result_status > 0)
@@ -135,7 +218,7 @@ std::string admin_siteinfopost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/userinfo)
+//@urlpath(admin_islogin,admin/userinfo)
 std::string admin_userinfo(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -149,6 +232,23 @@ std::string admin_userinfo(std::shared_ptr<httppeer> peer)
         client.val["info"]["userid"] = stuser.getUserid();
         client.val["info"]["level"]  = stuser.getLevel();
         client.val["info"]["name"]   = stuser.getName();
+
+        auto loginfo = orm::cms::Logininfo();
+
+        loginfo.where("userid", stuser.getUserid()).desc("lgid").limit(10).fetch();
+
+        client.val["loginlist"].set_array();
+        OBJ_ARRAY temp;
+        for (unsigned int i = 0; i < loginfo.record.size(); i++)
+        {
+
+            temp["id"]         = i + 1;
+            temp["addtime"]    = loginfo.record[i].addtime;
+            temp["addip"]      = loginfo.record[i].addip;
+            temp["addregion"]  = loginfo.record[i].addregion;
+            temp["loginstate"] = loginfo.record[i].loginstate;
+            client.val["loginlist"].push(temp);
+        }
     }
     catch (const std::exception &e)
     {
@@ -158,7 +258,7 @@ std::string admin_userinfo(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/editpassword)
+//@urlpath(admin_islogin,admin/editpassword)
 std::string admin_editpassword(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
@@ -167,12 +267,12 @@ std::string admin_editpassword(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,admin/editpwdpost)
+//@urlpath(admin_islogin,admin/editpwdpost)
 std::string admin_editpwdpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
     std::string msg;
-    
+
     try
     {
         auto stinfo = orm::cms::User();
