@@ -705,6 +705,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                            //////////
                        });
         peer->user_code_handler_call.pop_front();
+        DEBUG_LOG("leave pool");
     }
     catch (std::exception &e)
     {
