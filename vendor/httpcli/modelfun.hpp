@@ -1208,8 +1208,8 @@ struct )";
                         backcolz[ttttp].emplace_back(ittter->second[mm]);
                     }
                     std::ostringstream backcachep;
-                    iscolpospppc = true;
-                    backcachep << "  colpospppc=coln.back();\n    if(colpospppc<91&&bi>64){ colpospppc+=32; }\n";
+
+                    backcachep << "  colpospppc=coln.back();\n    if(colpospppc<91){ colpospppc+=32; }\n";
                     bool isbackppp = false;
                     std::map<unsigned char, unsigned char> hasbackpos;
                     for (auto ipper = backcolz.begin(); ipper != backcolz.end(); ipper++)
@@ -1225,6 +1225,7 @@ struct )";
                     }
                     if (isbackppp)
                     {
+                        iscolpospppc = true;
                         filemodelstrem << backcachep.str();
                     }
                     for (unsigned int mm = 0; mm < ittter->second.size(); mm++)
