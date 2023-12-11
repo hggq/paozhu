@@ -2761,9 +2761,14 @@ asio::awaitable<void> httpserver::http2task(std::shared_ptr<http2parse> http2pee
             if (http2peer->httppeer_lists.size() > 0)
             {
                 http2peer->istaskout = true;
-                auto peer            = std::move(http2peer->httppeer_lists.front());
+                //auto peer            = std::move(http2peer->httppeer_lists.front());
+                auto peer = http2peer->httppeer_lists.front();
                 http2peer->httppeer_lists.pop();
                 co_await http2loop(peer);
+                if (http2peer->peer_session->isgoway)
+                {
+                    break;
+                }
             }
             else
             {
@@ -3162,7 +3167,9 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
     {
         DEBUG_LOG("client exit exception");
     }
-
+    catch (...)
+    {
+    }
     co_return;
 }
 
@@ -3915,7 +3922,8 @@ void httpserver::run(const std::string &sysconfpath)
                     this->io_context.run();
                 });
         }
-        total_count = 0;
+        total_count              = 0;
+        clientrunpool.io_context = &io_context;
 
         std::thread httpwatch(std::bind(&httpserver::httpwatch, this));
         std::this_thread::sleep_for(std::chrono::seconds(1));

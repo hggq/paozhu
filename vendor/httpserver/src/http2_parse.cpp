@@ -2151,32 +2151,32 @@ void http2parse::readdata([[maybe_unused]] const unsigned char *buffer, [[maybe_
     DEBUG_LOG("readdata %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
 }
-void http2parse::readgoaway(const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
+void http2parse::readgoaway([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readgoaway %ul", buffersize);
-    unsigned int j = readoffset;
-    unsigned int ident_stream;
-    ident_stream = buffer[j];
-    ident_stream = ident_stream << 8 | buffer[j + 1];
-    ident_stream = ident_stream << 8 | buffer[j + 2];
-    ident_stream = ident_stream << 8 | buffer[j + 3];
+    // unsigned int j = readoffset;
+    // unsigned int ident_stream;
+    // ident_stream = buffer[j];
+    // ident_stream = ident_stream << 8 | buffer[j + 1];
+    // ident_stream = ident_stream << 8 | buffer[j + 2];
+    // ident_stream = ident_stream << 8 | buffer[j + 3];
 
-    goaway_data.last_stream_id = ident_stream;
-    j += 4;
-    ident_stream = 0;
-    ident_stream = buffer[j];
-    ident_stream = ident_stream << 8 | buffer[j + 1];
-    ident_stream = ident_stream << 8 | buffer[j + 2];
-    ident_stream = ident_stream << 8 | buffer[j + 3];
+    // goaway_data.last_stream_id = ident_stream;
+    // j += 4;
+    // ident_stream = 0;
+    // ident_stream = buffer[j];
+    // ident_stream = ident_stream << 8 | buffer[j + 1];
+    // ident_stream = ident_stream << 8 | buffer[j + 2];
+    // ident_stream = ident_stream << 8 | buffer[j + 3];
 
-    goaway_data.error_code = ident_stream;
+    // goaway_data.error_code = ident_stream;
 
-    j += 4;
-    ident_stream = j + blocklength;
-    for (; j < ident_stream; j++)
-    {
-        goaway_data.data.push_back(buffer[j]);
-    }
+    // j += 4;
+    // ident_stream = j + blocklength;
+    // for (; j < ident_stream; j++)
+    // {
+    //     goaway_data.data.push_back(buffer[j]);
+    // }
 
     readoffset += blocklength;
     processheader = 0;

@@ -91,6 +91,9 @@ class ThreadPool
 
     ~ThreadPool();
     // std::string name;// 测试共享
+  public:
+    asio::io_context *io_context = nullptr;
+
   private:
     std::queue<std::shared_ptr<httppeer>> clienttasks;
     // synchronization

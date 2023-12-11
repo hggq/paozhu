@@ -151,7 +151,7 @@ class http2parse
 
     //std::vector<std::pair<std::string, std::string>> header_lists;
     std::list<std::pair<std::string, std::string>> dynamic_lists;
-    struct http2_goaway_t goaway_data;
+    // struct http2_goaway_t goaway_data;
     // unsigned long long content_length;
     bool ispost = false;
     std::shared_ptr<client_session> peer_session;

@@ -418,13 +418,19 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                         {
                             if (re_str.size() > 3 && re_str[0] == 'e' && re_str[1] == 'x' && re_str[2] == 'i' && re_str[3] == 't')
                             {
-                                auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-                                asio::dispatch(ex,
+                                //auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+                                // asio::dispatch(ex,
+                                //                [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                                //                {
+                                //                    /////////////
+                                //                    handler(1);
+                                //                    //////////
+                                //                });
+
+                                asio::dispatch(*io_context,
                                                [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
                                                {
-                                                   /////////////
                                                    handler(1);
-                                                   //////////
                                                });
                                 peer->user_code_handler_call.pop_front();
                                 return;
@@ -682,8 +688,16 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
             }
         }
 
-        auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-        asio::dispatch(ex,
+        // auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+        // asio::dispatch(ex,
+        //                [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+        //                {
+        //                    /////////////
+        //                    handler(1);
+        //                    //////////
+        //                });
+        // peer->user_code_handler_call.pop_front();
+        asio::dispatch(*io_context,
                        [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
                        {
                            /////////////
@@ -697,10 +711,18 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
         DEBUG_LOG("catch exception");
         if (peer->user_code_handler_call.size() > 0)
         {
-            auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-            asio::dispatch(ex,
+            // auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+            // asio::dispatch(ex,
+            //                [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+            //                { handler(1); });
+            // peer->user_code_handler_call.pop_front();
+            asio::dispatch(*io_context,
                            [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                           { handler(1); });
+                           {
+                               /////////////
+                               handler(1);
+                               //////////
+                           });
             peer->user_code_handler_call.pop_front();
         }
     }
@@ -709,10 +731,13 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
         DEBUG_LOG("catch ... ");
         if (peer->user_code_handler_call.size() > 0)
         {
-            auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-            asio::dispatch(ex,
+            asio::dispatch(*io_context,
                            [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                           { handler(1); });
+                           {
+                               /////////////
+                               handler(1);
+                               //////////
+                           });
             peer->user_code_handler_call.pop_front();
         }
     }
