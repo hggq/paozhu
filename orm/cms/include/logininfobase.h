@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 08 Dec 2023 15:03:19 GMT
+*本文件为自动生成 Tue, 12 Dec 2023 12:08:06 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -46,7 +46,11 @@ const std::array<unsigned char,7> colnamestype= {3,3,253,253,253,253,253};
 std::string tablename="logininfo";
 std::string modelname="Logininfo";
 
-	  unsigned char findcolpos(std::string coln){
+	  unsigned char findcolpos(const std::string &coln){
+            if(coln.size()==0)
+            {
+                return 255;
+            }
 		    unsigned char  bi=coln[0];
          
 
@@ -773,7 +777,7 @@ tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(data.loginstate)<<"\"";
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        std::vector<std::string> list_content;
+        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')

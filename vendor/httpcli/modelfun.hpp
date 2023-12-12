@@ -1228,15 +1228,56 @@ struct )";
                         iscolpospppc = true;
                         filemodelstrem << backcachep.str();
                     }
+                    std::vector<std::pair<unsigned char, std::string>> samesizecols;
                     for (unsigned int mm = 0; mm < ittter->second.size(); mm++)
                     {
                         auto ippter = hasbackpos.find(ittter->second[mm]);
                         if (ippter == hasbackpos.end())
                         {
-                            filemodelstrem << " if(strcasecmp(coln.c_str(), \"" << tablecollist[ittter->second[mm]]
-                                           << "\") == 0){ return " << std::to_string(ittter->second[mm]) << "; }\n";
+                            samesizecols.push_back({ittter->second[mm], tablecollist[ittter->second[mm]]});
+                            // filemodelstrem << " if(strcasecmp(coln.c_str(), \"" << tablecollist[ittter->second[mm]]
+                            //                << "\") == 0){ return " << std::to_string(ittter->second[mm]) << "; }\n";
                         }
                     }
+                    //first and last same
+                    if (samesizecols.size() > 0)
+                    {
+                        unsigned char pos_char    = 0x00;
+                        unsigned char colnamesize = samesizecols[0].second.size();
+                        std::map<unsigned char, unsigned char> butong_total;
+                        std::map<unsigned char, unsigned char> butong_pos;
+                        std::map<unsigned char, unsigned char> butong_has;
+                        for (unsigned char ii = 0; ii < samesizecols.size(); ii++)
+                        {
+                            butong_has[(unsigned char)samesizecols[ii].first] = 0;
+                        }
+                        for (unsigned char iii = 0; iii < colnamesize; iii++)
+                        {
+                            butong_total.clear();
+                            butong_pos.clear();
+                            for (unsigned char ii = 0; ii < samesizecols.size(); ii++)
+                            {
+                                if (samesizecols[ii].second.size() > iii)
+                                {
+                                    if (butong_has[(unsigned char)samesizecols[ii].first] == 0)
+                                    {
+                                        pos_char               = (unsigned char)samesizecols[ii].second[iii];
+                                        butong_total[pos_char] = butong_total[pos_char] + 1;
+                                        butong_pos[pos_char]   = (unsigned char)samesizecols[ii].first;
+                                    }
+                                }
+                            }
+                            for (auto &[indexchar, samenum] : butong_total)
+                            {
+                                if (samenum == 1 && butong_has[butong_pos[indexchar]] == 0)
+                                {
+                                    butong_has[butong_pos[indexchar]] = 1;
+                                    filemodelstrem << " if(coln.size()>" << std::to_string(iii) << "&&(coln[" << std::to_string(iii) << "]=='" << (char)indexchar << "'||coln[" << std::to_string(iii) << "]=='" << (char)(indexchar - 32) << "')){ return " << std::to_string(butong_pos[indexchar]) << "; }\n";
+                                }
+                            }
+                        }
+                    }
+
                     filemodelstrem << "   \t break;\n";
                 }
             }
@@ -1246,7 +1287,11 @@ struct )";
     }
 
     headtxt += R"(
-	  unsigned char findcolpos(std::string coln){
+	  unsigned char findcolpos(const std::string &coln){
+            if(coln.size()==0)
+            {
+                return 255;
+            }
 		    unsigned char  bi=coln[0];
          )";
     if (iscolpospppc)
@@ -2650,7 +2695,7 @@ struct )";
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        std::vector<std::string> list_content;
+        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')

@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 05 Dec 2023 11:07:19 GMT
+*本文件为自动生成 Tue, 12 Dec 2023 12:08:06 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -42,7 +42,11 @@ const std::array<unsigned char,3> colnamestype= {3,1,253};
 std::string tablename="testa";
 std::string modelname="Testa";
 
-	  unsigned char findcolpos(std::string coln){
+	  unsigned char findcolpos(const std::string &coln){
+            if(coln.size()==0)
+            {
+                return 255;
+            }
 		    unsigned char  bi=coln[0];
          
 
@@ -609,7 +613,7 @@ tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        std::vector<std::string> list_content;
+        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -1171,7 +1175,7 @@ std::vector<testabase::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-            T getVal(std::string keyname)
+            T getVal([[maybe_unused]] std::string keyname)
             {
    
                     unsigned char kpos;
@@ -1190,7 +1194,7 @@ std::vector<testabase::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] testabase::meta & iter,std::string keyname)
+        T getVal([[maybe_unused]] testabase::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1280,7 +1284,7 @@ std::vector<testabase::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol(std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
             {
                 std::vector<std::string> a;
 
@@ -1350,15 +1354,15 @@ std::vector<testabase::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols(std::string keyname,std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
     {
         std::map<std::string,std::string> a;
+    
         unsigned char kpos,vpos;
         kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-            
+        vpos=findcolpos(valname);        
          std::string ktemp,vtemp;
-         for([[maybe_unused]] auto &iter:record)
+         for(auto &iter:record)
          {
                 switch(kpos)
                 {
@@ -1367,7 +1371,7 @@ std::vector<testabase::meta> getRecord(){
  				 ktemp=iter.content;
 				 break;
 				 } 
-			 switch(vpos){ 
+			switch(vpos){
 			case 2: 
  				 vtemp=iter.content;
 				 break;
@@ -1385,16 +1389,16 @@ std::vector<testabase::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::map<std::string,U> a;
+      
                 unsigned char kpos,vpos;
                 kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                  
+                vpos=findcolpos(valname);            
                 std::string ktemp;
                 U vtemp;
-                for([[maybe_unused]] auto &iter:record)
+                for(auto &iter:record)
                 {    
                     switch(kpos)
                     {
@@ -1403,7 +1407,7 @@ std::vector<testabase::meta> getRecord(){
  				 ktemp=iter.content;
 				 break;
 			 } 
- 		    switch(vpos){ 
+		 switch(vpos){
 
                     }
                     if(ktemp.size()>0)
@@ -1416,16 +1420,16 @@ std::vector<testabase::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols(std::string keyname,std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,U> a;
+       
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-               
+            vpos=findcolpos(valname);        
             T ktemp;
             U vtemp;
-            for([[maybe_unused]] auto &iter:record)
+            for(auto &iter:record)
             {
                 switch(kpos)
                 {
@@ -1437,7 +1441,7 @@ case 1:
  	 ktemp=iter.value;
 	 break;
 	 } 
- 		   switch(vpos){ 
+ 		  switch(vpos){
 
                 }
                 if(ktemp.size()>0)
@@ -1449,16 +1453,16 @@ case 1:
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols(std::string keyname,std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
             {
                 std::map<T,std::string> a;
+   
                 unsigned char kpos,vpos;
                 kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-            
+                vpos=findcolpos(valname);         
                 T ktemp;
                 std::string vtemp;
-                for([[maybe_unused]] auto &iter:record)
+                for(auto &iter:record)
                 {
                     switch(kpos)
                     {
@@ -1470,7 +1474,7 @@ case 1:
  				 ktemp=iter.value;
 				 break;
 			  }
- 			 switch(vpos){
+ 			switch(vpos){
 			case 2: 
  				 vtemp=iter.content;
 				 break;
@@ -1486,16 +1490,16 @@ case 1:
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols(std::string keyname,std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<std::string,U> a;
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-               
+            vpos=findcolpos(valname);            
             std::string  ktemp;
             U  vtemp;
-            for([[maybe_unused]] auto &iter:record)
+            for(auto &iter:record)
             {
                 switch(kpos)
                 {
@@ -1523,16 +1527,16 @@ case 1:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols(std::string keyname,std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,U> a;
+    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-                
+            vpos=findcolpos(valname);            
             T ktemp;
             U vtemp;
-            for([[maybe_unused]] auto &iter:record)
+            for(auto &iter:record)
             {
                 switch(kpos)
                 {
@@ -1544,7 +1548,7 @@ case 1:
  				 ktemp=iter.value;
 				 break;
 			  }
- 			 switch(vpos){
+ 			switch(vpos){
 			case 0: 
  				 vtemp=iter.id;
 				 break;
@@ -1563,7 +1567,7 @@ case 1:
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows(std::string keyname)
+        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
         {
             std::map<T,meta> a;
     
@@ -1588,7 +1592,7 @@ case 1:
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows(std::string keyname)
+        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
         {
             std::map<std::string,meta> a;
 
@@ -1613,14 +1617,13 @@ case 1:
     }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
-        std::vector<std::pair<std::string,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<std::string,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::vector<std::pair<std::string,U>> a;
-
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-          
+            vpos=findcolpos(valname);                   
             std::string ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -1645,14 +1648,13 @@ case 1:
         }   
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
+   
                 unsigned char kpos,vpos;
                 kpos=findcolpos(keyname);
                 vpos=findcolpos(valname);
-
-   
                 T ktemp;
                 U vtemp;
                 for(auto &iter:record)
@@ -1680,16 +1682,16 @@ case 1:
         }   
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
+
+   
                 unsigned char kpos,vpos;
                 kpos=findcolpos(keyname);
                 vpos=findcolpos(valname);
-
-   
-                    T ktemp;
-                    U vtemp;
+                T ktemp;
+                U vtemp;
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -1716,16 +1718,15 @@ case 1:
         }  
     
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
-
+   
                 unsigned char kpos,vpos;
                 kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                   
-                    T ktemp;
-                    U vtemp;
+                vpos=findcolpos(valname);                
+                T ktemp;
+                U vtemp;
                 for(auto &iter:record)
                 {
                     
@@ -1752,16 +1753,15 @@ case 1:
         }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
-
+   
                 unsigned char kpos,vpos;
                 kpos=findcolpos(keyname);
                 vpos=findcolpos(valname);
-   
-                    T ktemp;
-                    U vtemp;
+                T ktemp;
+                U vtemp;
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -1790,16 +1790,15 @@ case 1:
         }   
     
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
-        std::vector<std::pair<T,U>> getvecCols(std::string keyname,std::string valname)
+        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::vector<std::pair<T,U>> a;
-
+   
                 unsigned char kpos,vpos;
                 kpos=findcolpos(keyname);
                 vpos=findcolpos(valname);
-   
-                    T ktemp;
-                    U vtemp;
+                T ktemp;
+                U vtemp;
                 for(auto &iter:record)
                 {
                     switch(kpos)
@@ -1823,7 +1822,7 @@ case 2:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows(std::string keyname)
+        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
             std::vector<std::pair<T,meta>> a;
      
@@ -1847,7 +1846,7 @@ case 1:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows(std::string keyname)
+        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
             std::vector<std::pair<std::string,meta>> a;
       
@@ -1869,15 +1868,14 @@ case 1:
         return a;
     }
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
+    
             unsigned char kpos,vpos,dpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-          
+            dpos=findcolpos(dataname);      
             T ktemp;
             U vtemp;
             for(auto &iter:record)
@@ -1912,16 +1910,14 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
+    
             unsigned char kpos,vpos,dpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-
-              
+            dpos=findcolpos(dataname);          
             T ktemp;
             U vtemp;
             //D vtemp;
@@ -1963,15 +1959,14 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
+   
             unsigned char kpos,vpos,dpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-          
+            dpos=findcolpos(dataname);       
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -2010,15 +2005,14 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
                 std::map<T,std::map<U,std::vector<D>>> a;
-
+   
                 unsigned char kpos,vpos,dpos;
                 kpos=findcolpos(keyname);
                 vpos=findcolpos(valname);
                 dpos=findcolpos(dataname);
-   
                 T ktemp;
                 U vtemp;
             // D dtemp;
@@ -2052,16 +2046,15 @@ case 1:
         }
     
     template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
     {
         std::map<T,std::map<U,std::vector<D>>> a;
 
+   
         unsigned char kpos,vpos,dpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-
-           
+        dpos=findcolpos(dataname);             
         T ktemp;
         U vtemp;
        // D dtemp;
@@ -2099,15 +2092,14 @@ case 1:
         return a;
     }
         template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
+   
             unsigned char kpos,vpos,dpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
             dpos=findcolpos(dataname);
-   
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -2143,15 +2135,14 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
                 std::map<T,std::map<U,std::vector<D>>> a;
-
+   
                 unsigned char kpos,vpos,dpos;
                 kpos=findcolpos(keyname);
                 vpos=findcolpos(valname);
-                dpos=findcolpos(dataname);
-                  
+                dpos=findcolpos(dataname);               
                 T ktemp;
                 U vtemp;
                 //D vtemp;
@@ -2184,15 +2175,14 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
+   
             unsigned char kpos,vpos,dpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-               
+            dpos=findcolpos(dataname);            
             T ktemp;
             U vtemp;
             //D vtemp;
@@ -2232,15 +2222,15 @@ case 1:
         }
     
     template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-    std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+    std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
     {
         std::map<T,std::map<U,std::vector<D>>> a;
 
+   
         unsigned char kpos,vpos,dpos;
         kpos=findcolpos(keyname);
         vpos=findcolpos(valname);
         dpos=findcolpos(dataname);
-   
         T ktemp;
         U vtemp;
         // D dtemp;
@@ -2277,15 +2267,14 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
+   
             unsigned char kpos,vpos,dpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-           
+            dpos=findcolpos(dataname);        
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -2315,15 +2304,14 @@ case 1:
             return a;
         }
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
+   
             unsigned char kpos,vpos,dpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
             dpos=findcolpos(dataname);
-   
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -2360,16 +2348,14 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols(std::string keyname,std::string valname,std::string dataname)
+        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
         {
             std::map<T,std::map<U,std::vector<D>>> a;
-
+   
             unsigned char kpos,vpos,dpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-
-           
+            dpos=findcolpos(dataname);        
             T ktemp;
             U vtemp;
             // D dtemp;
@@ -2402,15 +2388,14 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
 
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-
-   
             T ktemp;
             //U vtemp;
 
@@ -2436,14 +2421,13 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-   
             T ktemp;
             //U vtemp;
 
@@ -2467,14 +2451,13 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-   
             T ktemp;
             //U vtemp;
 
@@ -2504,14 +2487,13 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-   
             T ktemp;
             //U vtemp;
 
@@ -2542,15 +2524,13 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
+               
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-               
-
             T ktemp;
             //U vtemp;
 
@@ -2577,14 +2557,13 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols(std::string keyname,std::string valname)
+        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::vector<U>> a;
-
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-   
             T ktemp;
             //U vtemp;
 
@@ -2617,7 +2596,7 @@ case 1:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
             std::map<T,std::vector<meta>> a;
    
@@ -2643,7 +2622,7 @@ case 1:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows(std::string keyname)
+        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
             std::map<T,std::vector<meta>> a;
    
@@ -2667,14 +2646,13 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
-
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
             vpos=findcolpos(valname);
-   
             T ktemp;
 
             for(auto &iter:record)
@@ -2700,15 +2678,13 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
-
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-
-               
+            vpos=findcolpos(valname);            
             T ktemp;
             
             for(auto &iter:record)
@@ -2738,15 +2714,13 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
-
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-
-           
+            vpos=findcolpos(valname);        
         T ktemp;
         
             for(auto &iter:record)
@@ -2778,14 +2752,14 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows(std::string keyname,std::string valname)
+        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
 
+   
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-               
+            vpos=findcolpos(valname);            
             T ktemp;
             
             for(auto &iter:record)
