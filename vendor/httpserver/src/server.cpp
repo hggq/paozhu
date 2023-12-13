@@ -35,10 +35,7 @@
 #include "http_so_common_api.h"
 #endif
 
-#ifdef ENABLE_VCPKG
 #include <openssl/ssl.h>
-#endif
-
 #include "mysqlproxyfun.h"
 #include "server_localvar.h"
 #include "debug_log.h"

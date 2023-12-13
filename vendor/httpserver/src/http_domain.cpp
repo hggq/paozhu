@@ -7,16 +7,8 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/fcntl.h>
 
-#ifdef ENABLE_VCPKG
 #include <openssl/ssl.h>
-#endif
-
-#ifndef WIN32
-#include <unistd.h>
-#include <sys/wait.h>
-#endif
 
 #ifdef WIN32
 #define stat _stat

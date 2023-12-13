@@ -1086,9 +1086,6 @@ int createtabletoorm(std::string basefilepath,
 #include <vector>
 #include <ctime>
 #include <array>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include "mysql.h"
 namespace orm { 
    

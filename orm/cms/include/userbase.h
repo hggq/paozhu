@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 13 Dec 2023 02:20:06 GMT
+*本文件为自动生成 Wed, 13 Dec 2023 09:14:59 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,9 +14,6 @@
 #include <vector>
 #include <ctime>
 #include <array>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include "mysql.h"
 namespace orm { 
    
