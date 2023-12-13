@@ -121,7 +121,7 @@ int jsoncli()
                 path_temp.push_back(pathname[j]);
             }
         }
-        filist = tjf.readallfile(include_jsontype_path);
+        filist = tjf.readallfile(include_jsontype_path.string());
         for (unsigned int i = 0; i < filist.size(); i++)
         {
 
