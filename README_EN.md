@@ -83,7 +83,7 @@ Ubuntu>= 20.04 , test on Fedora38, need install asanï¼ˆsudo yum install libasanï
 
 - Install xmake  
 Execute at the root directory of the project  
-
+Config `conf/server.conf` replace /Users/hzq/paozhu path to your project path  
 ```
 paozhu-main> xmake
 paozhu-main> .\build\windows\x64\release\paozhu.exe

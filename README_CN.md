@@ -82,8 +82,8 @@ Ubuntu>= 20.04 , test on Fedora38 需要按装asan（sudo yum install libasan）
 
 安装xmake 
 
-在项目根目录 执行
-
+在项目根目录 执行  
+配置 `conf/server.conf` 替换 /Users/hzq/paozhu 为你的项目目录   
 ```
 paozhu-main> xmake
 paozhu-main> .\build\windows\x64\release\paozhu.exe
