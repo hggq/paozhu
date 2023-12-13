@@ -4,6 +4,7 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
 #endif// defined(_MSC_VER) && (_MSC_VER >= 1200)
+#include <cstring>
 // the following are UBUNTU/LINUX ONLY terminal color codes.
 #define RESET "\033[0m"
 #define BLACK "\033[30m"              /* Black */
