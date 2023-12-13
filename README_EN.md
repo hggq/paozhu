@@ -79,6 +79,16 @@ Ubuntu>= 20.04 , test on Fedora38, need install asanï¼ˆsudo yum install libasanï
 - Environment configuration  
 [paozhu linux environment configuration](https://github.com/hggq/paozhu/wiki/linux-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE)
 
+#### 3.3 Windows
+
+- Install xmake  
+Execute at the root directory of the project  
+
+```
+paozhu-main> xmake
+paozhu-main> .\build\windows\x64\release\paozhu.exe
+```
+
 ### 4.Install
 
 Download asio new version to project root part 
@@ -137,6 +147,9 @@ open the browser and enter `http://localhost` or `http://www.869869.com` in the 
 <img src="https://hggq.github.io/paozhu/images/home.png">
 </div>
 
+<div align="center">
+<img src="https://hggq.github.io/paozhu/images/xmake_demo.jpg">
+</div>
 
 <div align="center">
 <img src="https://hggq.github.io/paozhu/images/admin.png">

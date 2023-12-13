@@ -78,6 +78,17 @@ Ubuntu>= 20.04 , test on Fedora38 需要按装asan（sudo yum install libasan）
 - 环境配置  
   [paozhu 框架linux 环境配置](https://github.com/hggq/paozhu/wiki/linux-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE)
 
+#### 3.3 Windows
+
+安装xmake 
+
+在项目根目录 执行
+
+```
+paozhu-main> xmake
+paozhu-main> .\build\windows\x64\release\paozhu.exe
+```
+
 ### 4.安装方法
 
 下载新版asio到项目根目录
@@ -136,6 +147,10 @@ sudo ./bin/paozhu
 
 <div align="center">
 <img src="https://hggq.github.io/paozhu/images/home.png">
+</div>
+
+<div align="center">
+<img src="https://hggq.github.io/paozhu/images/xmake_demo.jpg">
 </div>
 
 <div align="center">
@@ -213,7 +228,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 ### 10.路线图
 
 * [ ] 增强http特性，主要进行HTTP/1 HTTP/2稳定性测试，抗各种黑客软件扫描
-* [ ] 用C++代码解析JSX文件进行服务器端渲染
+* [x] 用C++代码解析JSX文件进行服务器端渲染
 * [ ] 采集client框架，支持协程，多线程，协议转发
 * [ ] Websocket 客户端
 * [x] ~~支持windows操作系统~~
