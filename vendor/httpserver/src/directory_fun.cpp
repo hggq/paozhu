@@ -17,19 +17,10 @@
 #include <memory>
 #include <cstdio>
 #include <algorithm>
-#include <sys/fcntl.h>
-
 #include <filesystem>
 #include <string_view>
 #include "directory_fun.h"
 #include "func.h"
-#ifndef WIN32
-#include <unistd.h>
-#endif
-
-#ifdef WIN32
-#define stat _stat
-#endif
 
 namespace fs = std::filesystem;
 namespace http
