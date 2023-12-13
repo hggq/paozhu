@@ -33,6 +33,7 @@ int strtointval(std::string vval)
     }
     return temp;
 }
+
 std::string getgmtdatetime(time_t inputtime = 0)
 {
     time_t curr_time;
@@ -1235,8 +1236,6 @@ struct )";
                         if (ippter == hasbackpos.end())
                         {
                             samesizecols.push_back({ittter->second[mm], tablecollist[ittter->second[mm]]});
-                            // filemodelstrem << " if(strcasecmp(coln.c_str(), \"" << tablecollist[ittter->second[mm]]
-                            //                << "\") == 0){ return " << std::to_string(ittter->second[mm]) << "; }\n";
                         }
                     }
                     //first and last same
@@ -7225,7 +7224,7 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
             if (linestr.size() > 0)
             {
                 // mysqldbconfig[keyname][linestr]=strval;
-                if (strcasecmp(linestr.c_str(), "type") == 0)
+                if (stringcasecmp(linestr, "type"))
                 {
                     if (typeone.empty())
                     {
@@ -7250,40 +7249,40 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                         mysqlconf.unix_socket.clear();
                     }
                 }
-                if (strcasecmp(linestr.c_str(), "host") == 0)
+                if (stringcasecmp(linestr, "host"))
                 {
                     mysqlconf.host = strval;
                 }
-                if (strcasecmp(linestr.c_str(), "port") == 0)
+                if (stringcasecmp(linestr, "port"))
                 {
                     mysqlconf.port = strval;
                 }
-                if (strcasecmp(linestr.c_str(), "dbname") == 0)
+                if (stringcasecmp(linestr, "dbname"))
                 {
                     mysqlconf.dbname = strval;
                 }
-                if (strcasecmp(linestr.c_str(), "user") == 0)
+                if (stringcasecmp(linestr, "user"))
                 {
 
                     mysqlconf.user = strval;
                 }
-                if (strcasecmp(linestr.c_str(), "password") == 0)
+                if (stringcasecmp(linestr, "password"))
                 {
                     mysqlconf.password = strval;
                 }
-                if (strcasecmp(linestr.c_str(), "pretable") == 0)
+                if (stringcasecmp(linestr, "pretable"))
                 {
                     mysqlconf.pretable = strval;
                 }
-                if (strcasecmp(linestr.c_str(), "maxpool") == 0)
+                if (stringcasecmp(linestr, "maxpool"))
                 {
                     mysqlconf.maxpool = strval;
                 }
-                if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
+                if (stringcasecmp(linestr, "unix_socket"))
                 {
                     mysqlconf.unix_socket = strval;
                 }
-                if (strcasecmp(linestr.c_str(), "dbtype") == 0)
+                if (stringcasecmp(linestr, "dbtype"))
                 {
                     mysqlconf.dbtype = strval;
                 }
@@ -7344,39 +7343,39 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
     }
     if (mysqlconf.host.size() > 0)
     {
-        if (strcasecmp(linestr.c_str(), "host") == 0)
+        if (stringcasecmp(linestr, "host"))
         {
             mysqlconf.host = strval;
         }
-        if (strcasecmp(linestr.c_str(), "port") == 0)
+        if (stringcasecmp(linestr, "port"))
         {
             mysqlconf.port = strval;
         }
-        if (strcasecmp(linestr.c_str(), "dbname") == 0)
+        if (stringcasecmp(linestr, "dbname"))
         {
             mysqlconf.dbname = strval;
         }
-        if (strcasecmp(linestr.c_str(), "user") == 0)
+        if (stringcasecmp(linestr, "user"))
         {
             mysqlconf.user = strval;
         }
-        if (strcasecmp(linestr.c_str(), "password") == 0)
+        if (stringcasecmp(linestr, "password"))
         {
             mysqlconf.password = strval;
         }
-        if (strcasecmp(linestr.c_str(), "pretable") == 0)
+        if (stringcasecmp(linestr, "pretable"))
         {
             mysqlconf.pretable = strval;
         }
-        if (strcasecmp(linestr.c_str(), "maxpool") == 0)
+        if (stringcasecmp(linestr, "maxpool"))
         {
             mysqlconf.maxpool = strval;
         }
-        if (strcasecmp(linestr.c_str(), "unix_socket") == 0)
+        if (stringcasecmp(linestr, "unix_socket"))
         {
             mysqlconf.unix_socket = strval;
         }
-        if (strcasecmp(linestr.c_str(), "dbtype") == 0)
+        if (stringcasecmp(linestr, "dbtype"))
         {
             mysqlconf.dbtype = strval;
         }

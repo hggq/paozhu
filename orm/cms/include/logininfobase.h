@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 12 Dec 2023 12:08:06 GMT
+*本文件为自动生成 Wed, 13 Dec 2023 02:20:06 GMT
 ***/
 #include <iostream>
 #include <cstdio>

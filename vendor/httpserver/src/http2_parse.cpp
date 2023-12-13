@@ -743,7 +743,7 @@ void http2parse::range_process([[maybe_unused]] const std::string &header_name, 
         data_info[block_steamid].buffer_value.push_back(header_value[j]);
     }
 
-    if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "bytes") == 0)
+    if (str_casecmp(data_info[block_steamid].buffer_value, "bytes"))
     {
         http_data[block_steamid]->state.rangebytes = true;
     }
@@ -806,54 +806,54 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             http_data[block_steamid]->header[":authority"] = header_value;
             break;
         case 2:
-            if (strcasecmp(header_value.c_str(), "OPTIONS") == 0)
+            if (str_casecmp(header_value, "OPTIONS"))
             {
                 http_data[block_steamid]->method = 3;
             }
-            else if (strcasecmp(header_value.c_str(), "GET") == 0)
+            else if (str_casecmp(header_value, "GET"))
             {
                 http_data[block_steamid]->method = 1;
             }
-            else if (strcasecmp(header_value.c_str(), "POST") == 0)
+            else if (str_casecmp(header_value, "POST"))
             {
                 http_data[block_steamid]->method = 2;
             }
-            else if (strcasecmp(header_value.c_str(), "head") == 0)
+            else if (str_casecmp(header_value, "head"))
             {
                 http_data[block_steamid]->method = 4;
             }
-            else if (strcasecmp(header_value.c_str(), "put") == 0)
+            else if (str_casecmp(header_value, "put"))
             {
                 http_data[block_steamid]->method = 5;
             }
-            else if (strcasecmp(header_value.c_str(), "delete") == 0)
+            else if (str_casecmp(header_value, "delete"))
             {
                 http_data[block_steamid]->method = 6;
             }
             http_data[block_steamid]->header["method"] = header_value;
             break;
         case 3:
-            if (strcasecmp(header_value.c_str(), "OPTIONS") == 0)
+            if (str_casecmp(header_value, "OPTIONS"))
             {
                 http_data[block_steamid]->method = 3;
             }
-            else if (strcasecmp(header_value.c_str(), "GET") == 0)
+            else if (str_casecmp(header_value, "GET"))
             {
                 http_data[block_steamid]->method = 1;
             }
-            else if (strcasecmp(header_value.c_str(), "POST") == 0)
+            else if (str_casecmp(header_value, "POST"))
             {
                 http_data[block_steamid]->method = 2;
             }
-            else if (strcasecmp(header_value.c_str(), "head") == 0)
+            else if (str_casecmp(header_value, "head"))
             {
                 http_data[block_steamid]->method = 4;
             }
-            else if (strcasecmp(header_value.c_str(), "put") == 0)
+            else if (str_casecmp(header_value, "put"))
             {
                 http_data[block_steamid]->method = 5;
             }
-            else if (strcasecmp(header_value.c_str(), "delete") == 0)
+            else if (str_casecmp(header_value, "delete"))
             {
                 http_data[block_steamid]->method = 6;
             }
@@ -903,11 +903,11 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         switch (header_name.size())
         {
         case 5:
-            if (strcasecmp(header_name.c_str(), ":path") == 0)
+            if (str_casecmp(header_name, ":path"))
             {
                 path_process(header_name, header_value);
             }
-            else if (strcasecmp(header_name.c_str(), "range") == 0)
+            else if (str_casecmp(header_name, "range"))
             {
                 range_process(header_name, header_value);
             }
@@ -919,7 +919,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
             case 'c':
             case 'C':
-                if (strcasecmp(header_name.c_str(), "Cookie") == 0)
+                if (str_casecmp(header_name, "Cookie"))
                 {
                     cookie_process(header_name, header_value);
                 }
@@ -930,7 +930,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 break;
             case 'a':
             case 'A':
-                if (strcasecmp(header_name.c_str(), "Accept") == 0)
+                if (str_casecmp(header_name, "Accept"))
                 {
                     getaccept(header_name, header_value);
                 }
@@ -951,29 +951,29 @@ void http2parse::header_process(const std::string &header_name, const std::strin
 
             break;
         case 7:
-            if (strcasecmp(header_name.c_str(), ":method") == 0)
+            if (str_casecmp(header_name, ":method"))
             {
-                if (strcasecmp(header_value.c_str(), "OPTIONS") == 0)
+                if (str_casecmp(header_value, "OPTIONS"))
                 {
                     http_data[block_steamid]->method = 3;
                 }
-                else if (strcasecmp(header_value.c_str(), "GET") == 0)
+                else if (str_casecmp(header_value, "GET"))
                 {
                     http_data[block_steamid]->method = 1;
                 }
-                else if (strcasecmp(header_value.c_str(), "POST") == 0)
+                else if (str_casecmp(header_value, "POST"))
                 {
                     http_data[block_steamid]->method = 2;
                 }
-                else if (strcasecmp(header_value.c_str(), "head") == 0)
+                else if (str_casecmp(header_value, "head"))
                 {
                     http_data[block_steamid]->method = 4;
                 }
-                else if (strcasecmp(header_value.c_str(), "put") == 0)
+                else if (str_casecmp(header_value, "put"))
                 {
                     http_data[block_steamid]->method = 5;
                 }
-                else if (strcasecmp(header_value.c_str(), "delete") == 0)
+                else if (str_casecmp(header_value, "delete"))
                 {
                     http_data[block_steamid]->method = 6;
                 }
@@ -986,13 +986,13 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             break;
         case 10:
-            if (strcasecmp(header_name.c_str(), ":authority") == 0)
+            if (str_casecmp(header_name, ":authority"))
             {
                 http_data[block_steamid]->host                 = header_value;
                 http_data[block_steamid]->header["Host"]       = header_value;
                 http_data[block_steamid]->header[":authority"] = header_value;
             }
-            else if (strcasecmp(header_name.c_str(), "User-Agent") == 0)
+            else if (str_casecmp(header_name, "User-Agent"))
             {
                 http_data[block_steamid]->header["User-Agent"] = header_value;
             }
@@ -1002,7 +1002,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             break;
         case 12:
-            if (strcasecmp(header_name.c_str(), "Content-Type") == 0)
+            if (str_casecmp(header_name, "Content-Type"))
             {
                 getcontenttype(header_name, header_value);
             }
@@ -1012,7 +1012,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             break;
         case 13:
-            if (strcasecmp(header_name.c_str(), "if-none-match") == 0)
+            if (str_casecmp(header_name, "if-none-match"))
             {
                 getifnonematch(header_name, header_value);
             }
@@ -1023,7 +1023,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             break;
 
         case 14:
-            if (strcasecmp(header_name.c_str(), "Content-Length") == 0)
+            if (str_casecmp(header_name, "Content-Length"))
             {
                 http_data[block_steamid]->content_length           = str2int(&header_value[0], header_value.size());
                 http_data[block_steamid]->header["Content-Length"] = header_value;
@@ -1036,7 +1036,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         case 15:
             if (header_name[7] == 'e')
             {
-                if (strcasecmp(header_name.c_str(), "accept-encoding") == 0)
+                if (str_casecmp(header_name, "accept-encoding"))
                 {
                     getacceptencoding(header_name, header_value);
                     break;
@@ -1048,7 +1048,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             else if (header_name[7] == 'L')
             {
-                if (strcasecmp(header_name.c_str(), "Accept-Language") == 0)
+                if (str_casecmp(header_name, "Accept-Language"))
                 {
                     getacceptlanguage(header_name, header_value);
                     break;
@@ -1063,11 +1063,11 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 http_data[block_steamid]->header[header_name] = header_value;
             }
 
-            if (strcasecmp(header_name.c_str(), "Accept-Encoding") == 0)
+            if (str_casecmp(header_name, "Accept-Encoding"))
             {
                 getacceptencoding(header_name, header_value);
             }
-            if (strcasecmp(header_name.c_str(), "Accept-Language") == 0)
+            if (str_casecmp(header_name, "Accept-Language"))
             {
                 getacceptlanguage(header_name, header_value);
             }
@@ -1201,7 +1201,7 @@ void http2parse::callposttype()
     switch (data_info[block_steamid].buffer_value.size())
     {
     case 33:
-        if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "application/x-www-form-urlencoded") == 0)
+        if (str_casecmp(data_info[block_steamid].buffer_value, "application/x-www-form-urlencoded"))
         {
             http_data[block_steamid]->content_type = "application/x-www-form-urlencoded";
             data_info[block_steamid].posttype      = 1;
@@ -1210,7 +1210,7 @@ void http2parse::callposttype()
         }
         break;
     case 24:
-        if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "application/octet-stream") == 0)
+        if (str_casecmp(data_info[block_steamid].buffer_value, "application/octet-stream"))
         {
             http_data[block_steamid]->content_type = "application/octet-stream";
             data_info[block_steamid].posttype      = 5;
@@ -1219,7 +1219,7 @@ void http2parse::callposttype()
         }
         break;
     case 19:
-        if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "multipart/form-data") == 0)
+        if (str_casecmp(data_info[block_steamid].buffer_value, "multipart/form-data"))
         {
             http_data[block_steamid]->content_type = "multipart/form-data";
             data_info[block_steamid].posttype      = 2;
@@ -1228,7 +1228,7 @@ void http2parse::callposttype()
         }
         break;
     case 16:
-        if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "application/json") == 0)
+        if (str_casecmp(data_info[block_steamid].buffer_value, "application/json"))
         {
             http_data[block_steamid]->content_type = "application/json";
             data_info[block_steamid].posttype      = 3;
@@ -1237,7 +1237,7 @@ void http2parse::callposttype()
         }
         break;
     case 15:
-        if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "application/xml") == 0)
+        if (str_casecmp(data_info[block_steamid].buffer_value, "application/xml"))
         {
             http_data[block_steamid]->content_type = "application/xml";
             data_info[block_steamid].posttype      = 4;
@@ -1246,7 +1246,7 @@ void http2parse::callposttype()
         }
         break;
     case 6:
-        if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "binary") == 0)
+        if (str_casecmp(data_info[block_steamid].buffer_value, "binary"))
         {
             http_data[block_steamid]->content_type = "binary";
             data_info[block_steamid].posttype      = 6;
@@ -1299,13 +1299,13 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
         }
         if (header_value[i] == 0x3D)
         {
-            if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "charset") == 0)
+            if (str_casecmp(data_info[block_steamid].buffer_value, "charset"))
             {
                 data_info[block_steamid].buffer_value.clear();
                 statetemp = 1;
                 continue;
             }
-            else if (strcasecmp(data_info[block_steamid].buffer_value.c_str(), "boundary") == 0)
+            else if (str_casecmp(data_info[block_steamid].buffer_value, "boundary"))
             {
                 data_info[block_steamid].buffer_value.clear();
                 statetemp = 2;
@@ -2252,8 +2252,11 @@ void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[
 {
     DEBUG_LOG("readrst_stream %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
-    processheader                     = 0;
-    http_data[block_steamid]->isclose = true;
+    processheader = 0;
+    if (http_data.contains(block_steamid))
+    {
+        http_data[block_steamid]->isclose = true;
+    }
 }
 void http2parse::procssxformurlencoded()
 {
@@ -3042,7 +3045,7 @@ void http2parse::fieldname_process(const std::string &tfheader_name, std::string
         }
         if (tfheader_name[jj] == 0x3D)
         {
-            if (header_temp.size() == 4 && strcasecmp(header_temp.c_str(), "name") == 0)
+            if (header_temp.size() == 4 && str_casecmp(header_temp, "name"))
             {
                 unsigned int mm = jj;
                 mm += 1;
@@ -3073,7 +3076,7 @@ void http2parse::fieldname_process(const std::string &tfheader_name, std::string
                 }
                 jj = mm;
             }
-            else if (header_temp.size() == 8 && strcasecmp(header_temp.c_str(), "filename") == 0)
+            else if (header_temp.size() == 8 && str_casecmp(header_temp, "filename"))
             {
 
                 unsigned int mm = jj;
@@ -3261,11 +3264,11 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
             }
             if (data_info[block_steamid].buffer_key[jj] == ':')
             {
-                if (fieldheader_temp.size() == 19 && strcasecmp(fieldheader_temp.c_str(), "Content-Disposition") == 0)
+                if (fieldheader_temp.size() == 19 && str_casecmp(fieldheader_temp, "Content-Disposition"))
                 {
                     fieldtype = 1;
                 }
-                else if (fieldheader_temp.size() == 12 && strcasecmp(fieldheader_temp.c_str(), "Content-Type") == 0)
+                else if (fieldheader_temp.size() == 12 && str_casecmp(fieldheader_temp, "Content-Type"))
                 {
                     fieldtype = 2;
                 }

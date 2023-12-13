@@ -998,8 +998,7 @@ class typejsonfiles
             namespacename = methodpathfile[0].namespacename;
         }
 
-        std::string header_content = R"(
-#include <sstream>
+        std::string header_content = R"(#include <sstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -1008,7 +1007,7 @@ class typejsonfiles
         header_content += R"(
 #include "json_reflect_headers.h"
 #include "unicode.h"
-
+#include "func.h"
 )";
 
         if (namespacename.size() > 0)
@@ -1174,9 +1173,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].varname;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 std::string temp_obj_name_obj = tempobjname + json_reflect_data.children[i].varname;
 
@@ -1244,9 +1243,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 30);
@@ -1260,9 +1259,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 21);
@@ -1276,9 +1275,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 22);
@@ -1292,9 +1291,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 10);
@@ -1308,9 +1307,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 11);
@@ -1324,9 +1323,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 23);
@@ -1340,9 +1339,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 24);
@@ -1355,9 +1354,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 60);
@@ -1371,9 +1370,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 40);
@@ -1387,9 +1386,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 41);
@@ -1403,9 +1402,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 53);
@@ -1419,9 +1418,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 54);
@@ -1435,9 +1434,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 6);
@@ -1451,9 +1450,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 7);
@@ -1467,9 +1466,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 8);
@@ -1483,9 +1482,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 9);
@@ -1499,9 +1498,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 // tempcontent+=array_item_fromjson(json_reflect_data.children[i],jsonobjtypename,1);
@@ -1604,9 +1603,9 @@ class typejsonfiles
                 {
                     tempcontent += "else ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 // tempcontent+=array_item_fromjson(json_reflect_data.children[i],jsonobjtypename,1);
@@ -1637,9 +1636,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 // tempcontent+=array_item_fromjson(json_reflect_data.children[i],jsonobjtypename,1);
@@ -1670,9 +1669,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 // tempcontent+=array_item_fromjson(json_reflect_data.children[i],jsonobjtypename,1);
@@ -1703,9 +1702,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 // tempcontent+=array_item_fromjson(json_reflect_data.children[i],jsonobjtypename,1);
@@ -1736,9 +1735,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 // tempcontent+=array_item_fromjson(json_reflect_data.children[i],jsonobjtypename,1);
@@ -1769,9 +1768,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {
 
                                 )";
@@ -1863,9 +1862,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].varname;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 std::string temp_obj_name_obj = tempobjname + json_reflect_data.children[i].varname;
 
@@ -1926,9 +1925,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 30);
@@ -1942,9 +1941,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 21);
@@ -1958,9 +1957,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 22);
@@ -1974,9 +1973,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 10);
@@ -1990,9 +1989,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 11);
@@ -2006,9 +2005,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 23);
@@ -2022,9 +2021,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 24);
@@ -2037,9 +2036,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 60);
@@ -2053,9 +2052,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 40);
@@ -2069,9 +2068,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 41);
@@ -2085,9 +2084,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 53);
@@ -2101,9 +2100,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 54);
@@ -2117,9 +2116,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 6);
@@ -2133,9 +2132,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 7);
@@ -2149,9 +2148,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 8);
@@ -2165,9 +2164,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
                 obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
                 tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 9);
@@ -2181,9 +2180,9 @@ class typejsonfiles
             {
                 ishas = 1;
                 tempcontent += R"(
-                            if (strcasecmp(_json_key_name.c_str(), ")";
+                            if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 // tempcontent+=array_item_fromjson(json_reflect_data.children[i],jsonobjtypename,1,0);
@@ -2284,9 +2283,9 @@ class typejsonfiles
                 {
                     tempcontent += "else ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 tempcontent += R"(
@@ -2315,9 +2314,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 tempcontent += R"(
@@ -2346,9 +2345,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 tempcontent += R"(
@@ -2377,9 +2376,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 tempcontent += R"(
@@ -2408,9 +2407,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {)";
 
                 tempcontent += R"(
@@ -2439,9 +2438,9 @@ class typejsonfiles
                 {
                     tempcontent += "\t\t\telse ";
                 }
-                tempcontent += R"(if (strcasecmp(_json_key_name.c_str(), ")";
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
                 tempcontent += json_reflect_data.children[i].name;
-                tempcontent += R"(") == 0)
+                tempcontent += R"("))
                             {
 
                                 )";

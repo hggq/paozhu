@@ -1,5 +1,6 @@
 #include "httppeer.h"
 #include "func.h"
+#include "file_get_content.h"
 #include "testhttpclient.h"
 namespace http
 {

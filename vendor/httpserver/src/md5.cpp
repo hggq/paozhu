@@ -35,7 +35,7 @@ std::string MD5::encode(const std::string &src)
     temp_state[3] = 0x10325476;
 
     strlength                     = 0;
-    std::vector<unsigned int> rec = padding(&src[0], src.size());
+    std::vector<unsigned int> rec = padding((const unsigned char *)&src[0], src.size());
     for (unsigned int i = 0; i < strlength / 16; i++)
     {
         unsigned int num[16];
@@ -58,7 +58,7 @@ std::string MD5::encode(const char *src, unsigned int src_size)
     temp_state[3] = 0x10325476;
 
     strlength                     = 0;
-    std::vector<unsigned int> rec = padding(src, src_size);
+    std::vector<unsigned int> rec = padding((const unsigned char *)src, src_size);
     for (unsigned int i = 0; i < strlength / 16; i++)
     {
         unsigned int num[16];
@@ -114,8 +114,8 @@ void MD5::iterateFunc(unsigned int *X)//, unsigned int size
     temp_state[2] += c;
     temp_state[3] += d;
 }
-// 填充字符串
-std::vector<unsigned int> MD5::padding(const char *src, unsigned int src_size)
+//fill char
+std::vector<unsigned int> MD5::padding(const unsigned char *src, unsigned int src_size)
 {
     // 以512位,64个字节为一组
     unsigned int num = ((src_size + 8) / 64) + 1;

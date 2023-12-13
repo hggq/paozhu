@@ -14,6 +14,7 @@
 #include "datetime.h"
 #include "json_reflect_headers.h"
 #include "base64.h"
+#include "file_get_content.h"
 
 namespace http
 {
@@ -134,7 +135,7 @@ bool upload_images::upload_img(const std::string &fieldname)
 
         tempstr = client.files[fieldname]["filename"].to_string();
         // filename.append(mb_substr(tempstr, 0, 10));
-        if(tempstr.size()==0)
+        if (tempstr.size() == 0)
         {
             upload_info.state = "上传文件名有误(upload file name error!)";
             return false;
@@ -200,7 +201,6 @@ bool upload_images::upload_img(const std::string &fieldname)
                 upload_info.state = "文件类型不允许(no in filename extension)";
                 return false;
             }
-            
         }
         else
         {

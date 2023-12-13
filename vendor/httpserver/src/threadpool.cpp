@@ -461,7 +461,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                     }
                     sitecontent = _http_regmethod_table[regmethold_path].pre(peer);
 
-                    if (sitecontent.size() == 2 && strcasecmp(sitecontent.c_str(), "ok") == 0)
+                    if (sitecontent.size() == 2 && str_casecmp(sitecontent, "ok"))
                     {
                         method_alone.emplace(regmethold_path);
                         sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
@@ -585,7 +585,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                         regmethold_path =
                             str2safemethold((const char *)&peer->pathinfos[1][0], peer->pathinfos[1].size());
                         peer->pathinfos[1] = regmethold_path;
-                        if (regmethold_path[0] == 'i' && strcasecmp(regmethold_path.c_str(), "index") == 0)
+                        if (regmethold_path[0] == 'i' && str_casecmp(regmethold_path, "index"))
                         {
                             regmethold_path = "home";
                         }
@@ -605,7 +605,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                         if (_http_regmethod_table[sitecontent].pre != nullptr)
                         {
                             sitecontent = _http_regmethod_table[sitecontent].pre(peer);
-                            if (strcasecmp(sitecontent.c_str(), "ok") == 0)
+                            if (str_casecmp(sitecontent, "ok"))
                             {
                                 sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
                             }

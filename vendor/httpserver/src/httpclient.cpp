@@ -30,6 +30,7 @@
 #include "gzip.h"
 #include "client_context.h"
 #include "terminal_color.h"
+#include "func.h"
 namespace http
 {
 
@@ -1619,16 +1620,16 @@ void client::responseheader(std::string_view key, std::string_view value)
     {
     case 19:
 
-        if (key == "Content-Disposition")
+        if (str_casecmp(key, "Content-Disposition"))
         {
             respattachmentprocess(value);
         }
         break;
     case 17:
 
-        if (strcasecmp(&key[0], "Transfer-Encoding") == 0)
+        if (str_casecmp(key, "Transfer-Encoding"))
         {
-            if (value.size() > 0 && strcasecmp(&value[0], "chunked") == 0)
+            if (value.size() > 0 && str_casecmp(value, "chunked"))
             {
                 state.chunked = true;
             }
@@ -1636,7 +1637,7 @@ void client::responseheader(std::string_view key, std::string_view value)
         break;
     case 16:
 
-        if (key == "Content-Encoding")
+        if (str_casecmp(key, "Content-Encoding"))
         {
             switch (value.size())
             {
@@ -1669,7 +1670,7 @@ void client::responseheader(std::string_view key, std::string_view value)
         }
         break;
     case 14:
-        if (strcasecmp(&key[0], "Content-Length") == 0)
+        if (str_casecmp(key, "Content-Length"))
         {
             try
             {
@@ -1682,13 +1683,13 @@ void client::responseheader(std::string_view key, std::string_view value)
         }
         break;
     case 12:
-        if (key == "Content-Type")
+        if (str_casecmp(key, "Content-Type"))
         {
             respcontenttypeprocess(value);
         }
         break;
     case 10:
-        if (key == "Connection")
+        if (str_casecmp(key, "Connection"))
         {
             // Keep-Alive
             if (value[0] == 'K' || value[0] == 'k')

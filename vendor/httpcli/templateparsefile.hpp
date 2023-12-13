@@ -44,7 +44,7 @@ class viewtemplatefile
             fs::path paths      = iter->first;
             std::string extfile = paths.extension().string();
 
-            if (strcasecmp(extfile.c_str(), ".html") == 0)
+            if (stringcasecmp(extfile, ".html"))
             {
                 std::string tempfile;
                 tempfile.append(tagetpath);
@@ -111,7 +111,7 @@ class viewtemplatefile
             fs::path paths       = iter->first;
             std::string extfile  = paths.extension().string();
             std::string filename = iter->first;
-            if (strcasecmp(extfile.c_str(), ".html") == 0)
+            if (stringcasecmp(extfile, ".html"))
             {
 
                 filename_methold.clear();

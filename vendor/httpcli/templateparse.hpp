@@ -24,12 +24,13 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <map>
-//#include <strings.h>
+#include <strings.h>
 #include <cstring>
 
 namespace http
 {
 namespace fs = std::filesystem;
+
 class viewtemplate
 {
   public:
@@ -47,7 +48,7 @@ class viewtemplate
             fs::path paths      = iter->first;
             std::string extfile = paths.extension().string();
 
-            if (strcasecmp(extfile.c_str(), ".html") == 0)
+            if (stringcasecmp(extfile, ".html"))
             {
                 std::string tempfile;
                 tempfile.append(tagetpath);

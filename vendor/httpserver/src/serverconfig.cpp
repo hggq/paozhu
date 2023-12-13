@@ -5,7 +5,7 @@
 #include "server_localvar.h"
 #include <cstring>
 #include "httppeer.h"
-
+#include "func.h"
 namespace http
 {
 serverconfig &getserversysconfig()
@@ -1183,11 +1183,11 @@ bool serverconfig::checkmaindomain(const char *servername)
     {
         return false;
     }
-    if (strcasecmp(servername, mainhost.c_str()) == 0)
+    if (str_casecmp(servername, mainhost))
     {
         return true;
     }
-    if (strcasecmp(servername, secondhost.c_str()) == 0)
+    if (str_casecmp(servername, secondhost))
     {
         return true;
     }

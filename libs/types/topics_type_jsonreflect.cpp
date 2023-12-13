@@ -1,4 +1,3 @@
-
 #include <sstream>
 #include <string>
 #include <vector>
@@ -6,7 +5,7 @@
 #include "types/topics_type.h"
 #include "json_reflect_headers.h"
 #include "unicode.h"
-
+#include "func.h"
 
 namespace psy
 {
@@ -178,7 +177,7 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                         //递归代码     
 
                     
-                            if (strcasecmp(_json_key_name.c_str(), "children") == 0)
+                            if (http::str_casecmp(_json_key_name, "children"))
                             {
                                 _offset=json_decode(json_reflectobj.children,_json_data,_offset);
                                  
@@ -231,7 +230,7 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                     ////////////////////////////////////////////////////////
                     // level1
                     //处理对象赋值
-                    if (strcasecmp(_json_key_name.c_str(), "id") == 0)
+                    if (http::str_casecmp(_json_key_name, "id"))
                             {
                                 try{
                                     json_reflectobj.id=std::stoul(_json_value_name);
@@ -241,7 +240,7 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                                 }
                                  
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "parentid") == 0)
+                            else if (http::str_casecmp(_json_key_name, "parentid"))
                             {
                                 try{
                                     json_reflectobj.parentid=std::stoul(_json_value_name);
@@ -251,7 +250,7 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                                 }
                                  
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "cateid") == 0)
+                            else if (http::str_casecmp(_json_key_name, "cateid"))
                             {
                                 try{
                                     json_reflectobj.cateid=std::stoul(_json_value_name);
@@ -261,7 +260,7 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                                 }
                                  
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "sortid") == 0)
+                            else if (http::str_casecmp(_json_key_name, "sortid"))
                             {
                                 try{
                                     json_reflectobj.sortid=std::stoul(_json_value_name);
@@ -271,17 +270,17 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                                 }
                                  
                             }
-                            			else if (strcasecmp(_json_key_name.c_str(), "value") == 0)
+                            			else if (http::str_casecmp(_json_key_name, "value"))
                             {
 
                                 json_reflectobj.value=_json_value_name;     
                             }
-                            			else if (strcasecmp(_json_key_name.c_str(), "urlpath") == 0)
+                            			else if (http::str_casecmp(_json_key_name, "urlpath"))
                             {
 
                                 json_reflectobj.urlpath=_json_value_name;     
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "_level") == 0)
+                            else if (http::str_casecmp(_json_key_name, "_level"))
                             {
                                 try{
                                     json_reflectobj._level=std::stoul(_json_value_name);

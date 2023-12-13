@@ -1,7 +1,7 @@
 #include <cmath>
 #include <cstddef>
 #include <openssl/sha.h>//for SHA1
-#include <string.h>
+//#include <string.h>
 #include <sstream>
 #include <iostream>
 #include <cstdlib>

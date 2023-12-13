@@ -22,12 +22,11 @@
 #include <filesystem>
 
 #include <string_view>
-#include <unistd.h>
 #include <vector>
 #include <cmath>
 #include <thread>
 #include <chrono>
-#include <strings.h>
+
 #include <cstring>
 #ifndef WIN32
 #include <unistd.h>
@@ -44,12 +43,12 @@
 // #include "cookie.hpp"
 #include "urlcode.h"
 #include "request.h"
-// #include "WebSocket.h"
+
 #include "http_parse.h"
 #include "client_session.h"
 #include "httppeer.h"
 #include "server_localvar.h"
-
+#include "func.h"
 namespace http
 {
 
@@ -420,7 +419,7 @@ bool httpparse::checkmethod()
     {
     case 'c':
     case 'C':
-        if (strcasecmp(header_key.c_str(), "CONNECT") == 0)
+        if (str_casecmp(header_key, "CONNECT"))
         {
             return true;
         }
@@ -431,7 +430,7 @@ bool httpparse::checkmethod()
         break;
     case 'h':
     case 'H':
-        if (strcasecmp(header_key.c_str(), "HEAD") == 0)
+        if (str_casecmp(header_key, "HEAD"))
         {
             return true;
         }
@@ -442,7 +441,7 @@ bool httpparse::checkmethod()
         break;
     case 'g':
     case 'G':
-        if (strcasecmp(header_key.c_str(), "GET") == 0)
+        if (str_casecmp(header_key, "GET"))
         {
             return true;
         }
@@ -454,11 +453,11 @@ bool httpparse::checkmethod()
     case 'p':
     case 'P':
 
-        if (strcasecmp(header_key.c_str(), "POST") == 0)
+        if (str_casecmp(header_key, "POST"))
         {
             return true;
         }
-        else if (strcasecmp(header_key.c_str(), "PUT") == 0)
+        else if (str_casecmp(header_key, "PUT"))
         {
             return true;
         }
@@ -470,7 +469,7 @@ bool httpparse::checkmethod()
         break;
     case 'o':
     case 'O':
-        if (strcasecmp(header_key.c_str(), "OPTIONS") == 0)
+        if (str_casecmp(header_key, "OPTIONS"))
         {
             return true;
         }
@@ -481,7 +480,7 @@ bool httpparse::checkmethod()
         break;
     case 't':
     case 'T':
-        if (strcasecmp(header_key.c_str(), "TRACE") == 0)
+        if (str_casecmp(header_key, "TRACE"))
         {
             return true;
         }
@@ -527,7 +526,7 @@ void httpparse::methodprocess()
     {
     case 'c':
     case 'C':
-        if (strcasecmp(header_key.c_str(), "CONNECT") == 0)
+        if (str_casecmp(header_key, "CONNECT"))
         {
             method = HEAD_METHOD::CONNECT;
         }
@@ -538,7 +537,7 @@ void httpparse::methodprocess()
         break;
     case 'h':
     case 'H':
-        if (strcasecmp(header_key.c_str(), "HEAD") == 0)
+        if (str_casecmp(header_key, "HEAD"))
         {
             method = HEAD_METHOD::HEAD;
         }
@@ -549,7 +548,7 @@ void httpparse::methodprocess()
         break;
     case 'g':
     case 'G':
-        if (strcasecmp(header_key.c_str(), "GET") == 0)
+        if (str_casecmp(header_key, "GET"))
         {
             method = HEAD_METHOD::GET;
         }
@@ -561,11 +560,11 @@ void httpparse::methodprocess()
     case 'p':
     case 'P':
 
-        if (strcasecmp(header_key.c_str(), "POST") == 0)
+        if (str_casecmp(header_key, "POST"))
         {
             method = HEAD_METHOD::POST;
         }
-        else if (strcasecmp(header_key.c_str(), "PUT") == 0)
+        else if (str_casecmp(header_key, "PUT"))
         {
             method = HEAD_METHOD::PUT;
         }
@@ -577,7 +576,7 @@ void httpparse::methodprocess()
         break;
     case 'o':
     case 'O':
-        if (strcasecmp(header_key.c_str(), "OPTIONS") == 0)
+        if (str_casecmp(header_key, "OPTIONS"))
         {
             method = HEAD_METHOD::OPTIONS;
         }
@@ -588,7 +587,7 @@ void httpparse::methodprocess()
         break;
     case 't':
     case 'T':
-        if (strcasecmp(header_key.c_str(), "TRACE") == 0)
+        if (str_casecmp(header_key, "TRACE"))
         {
             method = HEAD_METHOD::TRACE;
         }
@@ -824,7 +823,7 @@ void httpparse::callposttype()
     switch (buffer_value.size())
     {
     case 33:
-        if (strcasecmp(buffer_value.c_str(), "application/x-www-form-urlencoded") == 0)
+        if (str_casecmp(buffer_value, "application/x-www-form-urlencoded"))
         {
             poststate.type     = "application/x-www-form-urlencoded";
             poststate.posttype = 1;
@@ -833,7 +832,7 @@ void httpparse::callposttype()
         }
         break;
     case 24:
-        if (strcasecmp(buffer_value.c_str(), "application/octet-stream") == 0)
+        if (str_casecmp(buffer_value, "application/octet-stream"))
         {
             poststate.type     = "application/octet-stream";
             poststate.posttype = 5;
@@ -842,7 +841,7 @@ void httpparse::callposttype()
         }
         break;
     case 19:
-        if (strcasecmp(buffer_value.c_str(), "multipart/form-data") == 0)
+        if (str_casecmp(buffer_value, "multipart/form-data"))
         {
             poststate.type     = "multipart/form-data";
             poststate.posttype = 2;
@@ -851,7 +850,7 @@ void httpparse::callposttype()
         }
         break;
     case 16:
-        if (strcasecmp(buffer_value.c_str(), "application/json") == 0)
+        if (str_casecmp(buffer_value, "application/json"))
         {
             poststate.type     = "application/json";
             poststate.posttype = 3;
@@ -860,7 +859,7 @@ void httpparse::callposttype()
         }
         break;
     case 15:
-        if (strcasecmp(buffer_value.c_str(), "application/xml") == 0)
+        if (str_casecmp(buffer_value, "application/xml"))
         {
             poststate.type     = "application/xml";
             poststate.posttype = 4;
@@ -869,7 +868,7 @@ void httpparse::callposttype()
         }
         break;
     case 6:
-        if (strcasecmp(buffer_value.c_str(), "binary") == 0)
+        if (str_casecmp(buffer_value, "binary"))
         {
             poststate.type     = "binary";
             poststate.posttype = 6;
@@ -922,13 +921,13 @@ void httpparse::getcontenttype()
         }
         if (header_value[i] == 0x3D)
         {
-            if (strcasecmp(buffer_value.c_str(), "charset") == 0)
+            if (str_casecmp(buffer_value, "charset"))
             {
                 buffer_value.clear();
                 statetemp = 1;
                 continue;
             }
-            else if (strcasecmp(buffer_value.c_str(), "boundary") == 0)
+            else if (str_casecmp(buffer_value, "boundary"))
             {
                 buffer_value.clear();
                 statetemp = 2;
@@ -973,7 +972,7 @@ void httpparse::getrange()
         buffer_value.push_back(header_value[j]);
     }
 
-    if (strcasecmp(buffer_value.c_str(), "bytes") == 0)
+    if (str_casecmp(buffer_value, "bytes"))
     {
         // state.rangebytes = true;
         peer->state.rangebytes = true;
@@ -1102,21 +1101,21 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                     switch (header_key.size())
                     {
                     case 24:
-                        if (strcasecmp(header_key.c_str(), "Sec-WebSocket-Extensions") == 0)
+                        if (str_casecmp(header_key, "Sec-WebSocket-Extensions"))
                         {
 
                             getwebsocketextensions();
                         }
                         break;
                     case 21:
-                        if (strcasecmp(header_key.c_str(), "Sec-WebSocket-Version") == 0)
+                        if (str_casecmp(header_key, "Sec-WebSocket-Version"))
                         {
 
                             peer->websocket.version = (unsigned char)header_valuetoint();
                         }
                         break;
                     case 19:
-                        if (strcasecmp(header_key.c_str(), "If-Unmodified-Since") == 0)
+                        if (str_casecmp(header_key, "If-Unmodified-Since"))
                         {
                             getifunmodifiedsince();
                         }
@@ -1127,7 +1126,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         {
                         case 's':
                         case 'S':
-                            if (strcasecmp(header_key.c_str(), "Sec-WebSocket-Key") == 0)
+                            if (str_casecmp(header_key, "Sec-WebSocket-Key"))
                             {
 
                                 peer->websocket.key = header_value;
@@ -1135,7 +1134,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                             break;
                         case 'i':
                         case 'I':
-                            if (strcasecmp(header_key.c_str(), "If-Modified-Since") == 0)
+                            if (str_casecmp(header_key, "If-Modified-Since"))
                             {
 
                                 getifmodifiedsince();
@@ -1147,7 +1146,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                     case 15:
                         if (header_key[7] == 'E')
                         {
-                            if (strcasecmp(header_key.c_str(), "Accept-Encoding") == 0)
+                            if (str_casecmp(header_key, "Accept-Encoding"))
                             {
                                 getacceptencoding();
                                 break;
@@ -1155,18 +1154,18 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         }
                         else if (header_key[7] == 'L')
                         {
-                            if (strcasecmp(header_key.c_str(), "Accept-Language") == 0)
+                            if (str_casecmp(header_key, "Accept-Language"))
                             {
                                 getacceptlanguage();
                                 break;
                             }
                         }
 
-                        if (strcasecmp(header_key.c_str(), "Accept-Encoding") == 0)
+                        if (str_casecmp(header_key, "Accept-Encoding"))
                         {
                             getacceptencoding();
                         }
-                        if (strcasecmp(header_key.c_str(), "Accept-Language") == 0)
+                        if (str_casecmp(header_key, "Accept-Language"))
                         {
                             getacceptlanguage();
                         }
@@ -1174,7 +1173,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
 
                         break;
                     case 14:
-                        if (strcasecmp(header_key.c_str(), "Content-Length") == 0)
+                        if (str_casecmp(header_key, "Content-Length"))
                         {
                             poststate.content_length = header_valuetoint();
                             // peer_session->stream[1].content_length=poststate.content_length;
@@ -1182,13 +1181,13 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         }
                         break;
                     case 13:
-                        if (strcasecmp(header_key.c_str(), "If-None-Match") == 0)
+                        if (str_casecmp(header_key, "If-None-Match"))
                         {
                             getifnonematch();
                         }
                         break;
                     case 12:
-                        if (strcasecmp(header_key.c_str(), "Content-Type") == 0)
+                        if (str_casecmp(header_key, "Content-Type"))
                         {
 
                             getcontenttype();
@@ -1199,14 +1198,14 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         {
                         case 'c':
                         case 'C':
-                            if (strcasecmp(header_key.c_str(), "Connection") == 0)
+                            if (str_casecmp(header_key, "Connection"))
                             {
                                 getconnection();
                             }
                             break;
                         case 'u':
                         case 'U':
-                            //if (strcasecmp(header_key.c_str(), "User-Agent") == 0)
+                            //if (str_casecmp(header_key, "User-Agent"))
                             {
                                 // useragent = header_value;
                                 //peer->header["User-Agent"] = header_value;
@@ -1215,14 +1214,14 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         }
                         break;
                     case 8:
-                        if (strcasecmp(header_key.c_str(), "If-Match") == 0)
+                        if (str_casecmp(header_key, "If-Match"))
                         {
 
                             getifnonematch();
                         }
                         break;
                     case 7:
-                        if (strcasecmp(header_key.c_str(), "Upgrade") == 0)
+                        if (str_casecmp(header_key, "Upgrade"))
                         {
 
                             getupgrade();
@@ -1234,7 +1233,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         {
                         case 'c':
                         case 'C':
-                            if (strcasecmp(header_key.c_str(), "Cookie") == 0)
+                            if (str_casecmp(header_key, "Cookie"))
                             {
 
                                 getcookie();
@@ -1242,7 +1241,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                             break;
                         case 'a':
                         case 'A':
-                            if (strcasecmp(header_key.c_str(), "Accept") == 0)
+                            if (str_casecmp(header_key, "Accept"))
                             {
 
                                 getaccept();
@@ -1251,13 +1250,13 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         }
                         break;
                     case 5:
-                        if (strcasecmp(header_key.c_str(), "Range") == 0)
+                        if (str_casecmp(header_key, "Range"))
                         {
                             getrange();
                         }
                         break;
                     case 4:
-                        if (strcasecmp(header_key.c_str(), "Host") == 0)
+                        if (str_casecmp(header_key, "Host"))
                         {
                             getheaderhost();
                         }
@@ -1402,7 +1401,7 @@ void httpparse::getwebsocketextensions()
     switch (header_value.length())
     {
     case 22:
-        if (strcasecmp(header_value.c_str(), "x-webkit-deflate-frame") == 0)
+        if (str_casecmp(header_value, "x-webkit-deflate-frame"))
         {
             peer->websocket.deflateframe = true;
             peer->websocket.deflate      = true;
@@ -1410,14 +1409,14 @@ void httpparse::getwebsocketextensions()
         break;
     case 18:
 
-        if (strcasecmp(header_value.c_str(), "permessage-deflate") == 0)
+        if (str_casecmp(header_value, "permessage-deflate"))
         {
             peer->websocket.permessagedeflate = true;
             peer->websocket.deflate           = true;
         }
         break;
     case 16:
-        if (strcasecmp(header_value.c_str(), "perframe-deflate") == 0)
+        if (str_casecmp(header_value, "perframe-deflate"))
         {
             peer->websocket.perframedeflate = true;
             peer->websocket.deflate         = true;
@@ -1459,12 +1458,12 @@ void httpparse::getupgrade()
         }
     }
 
-    if (strcasecmp(header_value.c_str(), "websocket") == 0)
+    if (str_casecmp(header_value, "websocket"))
     {
         // state.websocket = true;
         peer->state.websocket = true;
     }
-    else if (strcasecmp(header_value.c_str(), "h2c") == 0)
+    else if (str_casecmp(header_value, "h2c"))
     {
         // state.h2c = true;
         peer->state.h2c = true;
@@ -1472,11 +1471,11 @@ void httpparse::getupgrade()
 }
 void httpparse::getconnection()
 {
-    if (strcasecmp(header_value.c_str(), "keep-alive") == 0)
+    if (str_casecmp(header_value, "keep-alive"))
     {
         peer->state.keepalive = true;
     }
-    if (strcasecmp(header_value.c_str(), "Upgrade") == 0)
+    if (str_casecmp(header_value, "Upgrade"))
     {
         peer->state.upgradeconnection = true;
     }
@@ -1809,7 +1808,7 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
             }
             if (buffer_key[jj] == ':')
             {
-                if (strcasecmp(header_temp.c_str(), "Content-Type") == 0)
+                if (str_casecmp(header_temp, "Content-Type"))
                 {
                     unsigned int nmpp = jj + 1;
                     for (; nmpp < buffer_key.size(); nmpp++)

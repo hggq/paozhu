@@ -12,6 +12,7 @@
 #include <map>
 #include <list>
 #include <filesystem>
+#include "utility.hpp"
 #include "templateparse.hpp"
 #include "controllerparse.hpp"
 
@@ -30,103 +31,103 @@ namespace fs = std::filesystem;
 // -Ivendor/httpserver/include -lmysqlcppconn8 -I/usr/include/mysql-cppconn-8
 int main(int argc, char *argv[])
 {
-  std::string commandstr;
-  if (argc == 1)
-  {
-    std::cout << argv[0]
-              << " \033[1m\033[31m model ｜ view | viewtocpp | control \033[0m "
-                 " \n 🎉 Welcome to use \033[4m\033[31mcli\033[0m to manage "
-                 "your MVC files。\n";
-  }
-  if (argc > 1)
-  {
-    commandstr = argv[1];
-  }
-  // std::string commandstr{argv[1]};
-  while (1)
-  {
-    if (commandstr == "file")
+    std::string commandstr;
+    if (argc == 1)
     {
-      viewfilecli();
+        std::cout << argv[0]
+                  << " \033[1m\033[31m model ｜ view | viewtocpp | control \033[0m "
+                     " \n 🎉 Welcome to use \033[4m\033[31mcli\033[0m to manage "
+                     "your MVC files。\n";
     }
-    if (commandstr == "view")
+    if (argc > 1)
     {
-      viewcli();
+        commandstr = argv[1];
     }
-    if (commandstr == "control")
+    // std::string commandstr{argv[1]};
+    while (1)
     {
-      controlcli();
-    }
-    if (commandstr == "model")
-    {
-      modelcli();
-    }
-    if (commandstr == "json")
-    {
-      jsoncli();
-    }
-    commandstr.clear();
-    std::cout << "(m)model (v)view (f)viewtocpp or (c)control , (j)son ,x or q "
-                 "to exit[input\033[1m\033[32m m|v|f|c|j|\033[0m]:";
-    std::cin >> commandstr;
+        if (commandstr == "file")
+        {
+            viewfilecli();
+        }
+        if (commandstr == "view")
+        {
+            viewcli();
+        }
+        if (commandstr == "control")
+        {
+            controlcli();
+        }
+        if (commandstr == "model")
+        {
+            modelcli();
+        }
+        if (commandstr == "json")
+        {
+            jsoncli();
+        }
+        commandstr.clear();
+        std::cout << "(m)model (v)view (f)viewtocpp or (c)control , (j)son ,x or q "
+                     "to exit[input\033[1m\033[32m m|v|f|c|j|\033[0m]:";
+        std::cin >> commandstr;
 
-    if (commandstr.size() == 1 &&
-        (commandstr[0] == 'x' || commandstr[0] == 'q'))
-    {
-      break;
-    }
-    if (commandstr.size() == 1 &&
-        (commandstr[0] == 'v' || commandstr[0] == 'V'))
-    {
+        if (commandstr.size() == 1 &&
+            (commandstr[0] == 'x' || commandstr[0] == 'q'))
+        {
+            break;
+        }
+        if (commandstr.size() == 1 &&
+            (commandstr[0] == 'v' || commandstr[0] == 'V'))
+        {
 
-      viewcli();
-    }
-    if (commandstr.size() == 1 &&
-        (commandstr[0] == 'f' || commandstr[0] == 'F'))
-    {
+            viewcli();
+        }
+        if (commandstr.size() == 1 &&
+            (commandstr[0] == 'f' || commandstr[0] == 'F'))
+        {
 
-      viewfilecli();
-    }
-    if (commandstr.size() == 1 &&
-        (commandstr[0] == 'c' || commandstr[0] == 'C'))
-    {
+            viewfilecli();
+        }
+        if (commandstr.size() == 1 &&
+            (commandstr[0] == 'c' || commandstr[0] == 'C'))
+        {
 
-      controlcli();
-    }
-    if (commandstr.size() == 1 &&
-        (commandstr[0] == 'm' || commandstr[0] == 'M'))
-    {
+            controlcli();
+        }
+        if (commandstr.size() == 1 &&
+            (commandstr[0] == 'm' || commandstr[0] == 'M'))
+        {
 
-      modelcli();
-    }
-    if (commandstr.size() == 1 &&
-        (commandstr[0] == 'j' || commandstr[0] == 'J'))
-    {
+            modelcli();
+        }
+        if (commandstr.size() == 1 &&
+            (commandstr[0] == 'j' || commandstr[0] == 'J'))
+        {
 
-      jsoncli();
+            jsoncli();
+        }
+        if (commandstr == "view")
+        {
+            viewfilecli();
+        }
+        if (commandstr == "control")
+        {
+            controlcli();
+        }
+        if (commandstr == "model")
+        {
+            modelcli();
+        }
+        if (commandstr == "file")
+        {
+            viewcli();
+        }
+        if (commandstr == "json")
+        {
+            jsoncli();
+        }
+        commandstr.clear();
     }
-    if (commandstr == "view")
-    {
-      viewfilecli();
-    }
-    if (commandstr == "control")
-    {
-      controlcli();
-    }
-    if (commandstr == "model")
-    {
-      modelcli();
-    }
-    if (commandstr == "file")
-    {
-      viewcli();
-    }
-    if (commandstr == "json")
-    {
-      jsoncli();
-    }
-    commandstr.clear();
-  }
 
-  return 0;
+    return 0;
 }

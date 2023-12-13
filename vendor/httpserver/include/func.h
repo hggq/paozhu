@@ -12,10 +12,25 @@
 #include <memory>
 #include <sstream>
 #include <string_view>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
+#ifdef WIN32
+#define stat _stat
+#endif
 
 namespace http
 {
-bool str_compare(const std::string &str1, std::string &str2, unsigned int length);
+bool str_cmp(std::string_view str1, std::string_view str2);
+bool str_casecmp(std::string_view str1, std::string_view str2);
+bool str_compare(std::string_view str1, std::string_view str2, unsigned int length);
+bool str_casecompare(std::string_view str1, std::string_view str2, unsigned int length);
+bool str_lastcmp(std::string_view str1, std::string_view str2, unsigned int length);
+bool str_caselastcmp(std::string_view str1, std::string_view str2, unsigned int length);
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext);
 std::string get_filename(const std::string &filename);
 std::vector<std::string> mb_split(const std::string, std::string &);
@@ -27,11 +42,6 @@ std::string mb_substr(std::string &, int, int length = 0);
 int mb_strlen(std::string &);
 std::map<std::string, std::string> filepath(std::string &);
 struct stat filestat(std::string &);
-
-std::string file_get_contents(std::string, std::map<std::string, std::string> &,unsigned int timeoutnum=0);
-std::string file_get_contents(std::string,unsigned int timeoutnum=0);
-bool file_put_contents(std::string, std::string &, bool append = false);
-bool file_put_contents(std::string, const char *, unsigned int, bool append = false);
 
 long long str2int(const char *source, unsigned int str_length);
 std::string char2str(const unsigned char *source, unsigned int str_length);

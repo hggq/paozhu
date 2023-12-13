@@ -1,4 +1,3 @@
-
 #include <sstream>
 #include <string>
 #include <vector>
@@ -6,7 +5,7 @@
 #include "department/department_type.h"
 #include "json_reflect_headers.h"
 #include "unicode.h"
-
+#include "func.h"
 
 namespace psy
 {
@@ -180,7 +179,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                         //递归代码     
 
                     
-                            if (strcasecmp(_json_key_name.c_str(), "children") == 0)
+                            if (http::str_casecmp(_json_key_name, "children"))
                             {
                                 _offset=json_decode(json_reflectobj.children,_json_data,_offset);
                                  
@@ -233,7 +232,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                     ////////////////////////////////////////////////////////
                     // level1
                     //处理对象赋值
-                    if (strcasecmp(_json_key_name.c_str(), "id") == 0)
+                    if (http::str_casecmp(_json_key_name, "id"))
                             {
                                 try{
                                     json_reflectobj.id=std::stoul(_json_value_name);
@@ -243,7 +242,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                                 }
                                  
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "key") == 0)
+                            else if (http::str_casecmp(_json_key_name, "key"))
                             {
                                 try{
                                     json_reflectobj.key=std::stoul(_json_value_name);
@@ -253,7 +252,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                                 }
                                  
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "value") == 0)
+                            else if (http::str_casecmp(_json_key_name, "value"))
                             {
                                 try{
                                     json_reflectobj.value=std::stoul(_json_value_name);
@@ -263,7 +262,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                                 }
                                  
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "parentid") == 0)
+                            else if (http::str_casecmp(_json_key_name, "parentid"))
                             {
                                 try{
                                     json_reflectobj.parentid=std::stoul(_json_value_name);
@@ -273,7 +272,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                                 }
                                  
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "bianzhi_num") == 0)
+                            else if (http::str_casecmp(_json_key_name, "bianzhi_num"))
                             {
                                 try{
                                     json_reflectobj.bianzhi_num=std::stoul(_json_value_name);
@@ -283,12 +282,12 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                                 }
                                  
                             }
-                            			else if (strcasecmp(_json_key_name.c_str(), "title") == 0)
+                            			else if (http::str_casecmp(_json_key_name, "title"))
                             {
 
                                 json_reflectobj.title=_json_value_name;     
                             }
-                            			else if (strcasecmp(_json_key_name.c_str(), "desc") == 0)
+                            			else if (http::str_casecmp(_json_key_name, "desc"))
                             {
 
                                 json_reflectobj.desc=_json_value_name;     
@@ -495,7 +494,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                         //1 内置 struct map<std::string,*>
                         //递归代码
                     
-                            if (strcasecmp(_json_key_name.c_str(), "data") == 0)
+                            if (http::str_casecmp(_json_key_name, "data"))
                             {  
 
             for(;_offset<_json_data.size();_offset++)
@@ -568,7 +567,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                     else if(_json_data[_offset]=='[')
                     {   //表示有数组 
                     
-                            if (strcasecmp(_json_key_name.c_str(), "list") == 0)
+                            if (http::str_casecmp(_json_key_name, "list"))
                             {
                                 _offset=json_decode(json_reflectobj.data.list,_json_data,_offset);
                                  
@@ -616,7 +615,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                             _offset-=1;
                         }
                     }
-                    if (strcasecmp(_json_key_name.c_str(), "total") == 0)
+                    if (http::str_casecmp(_json_key_name, "total"))
                             {
                                 try{
                                     json_reflectobj.data.total=std::stoul(_json_value_name);
@@ -654,7 +653,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                         //递归代码     
 
                     
-                            if (strcasecmp(_json_key_name.c_str(), "names") == 0)
+                            if (http::str_casecmp(_json_key_name, "names"))
                             {  
             if(_json_data[_offset]==0x5B)
             {
@@ -945,7 +944,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                     ////////////////////////////////////////////////////////
                     // level1
                     //处理对象赋值
-                    if (strcasecmp(_json_key_name.c_str(), "code") == 0)
+                    if (http::str_casecmp(_json_key_name, "code"))
                             {
                                 try{
                                     json_reflectobj.code=std::stoul(_json_value_name);

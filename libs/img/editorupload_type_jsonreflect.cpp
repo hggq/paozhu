@@ -1,4 +1,3 @@
-
 #include <sstream>
 #include <string>
 #include <vector>
@@ -6,7 +5,7 @@
 #include "img/editorupload_type.h"
 #include "json_reflect_headers.h"
 #include "unicode.h"
-
+#include "func.h"
 
 namespace http
 {
@@ -225,12 +224,12 @@ std::string json_encode(const std::vector<img_upload_list_t> &json_reflectobj)
                     ////////////////////////////////////////////////////////
                     // level1
                     //处理对象赋值
-                    if (strcasecmp(_json_key_name.c_str(), "url") == 0)
+                    if (http::str_casecmp(_json_key_name, "url"))
                             {
 
                                 json_reflectobj.url=_json_value_name;     
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "mtime") == 0)
+                            else if (http::str_casecmp(_json_key_name, "mtime"))
                             {
                                 try{
                                     json_reflectobj.mtime=std::stoul(_json_value_name);
@@ -459,7 +458,7 @@ std::string json_encode(const std::vector<img_upload_outjson_t> &json_reflectobj
                         //递归代码     
 
                     
-                            if (strcasecmp(_json_key_name.c_str(), "list") == 0)
+                            if (http::str_casecmp(_json_key_name, "list"))
                             {
                                 _offset=json_decode(json_reflectobj.list,_json_data,_offset);
                                  
@@ -512,12 +511,12 @@ std::string json_encode(const std::vector<img_upload_outjson_t> &json_reflectobj
                     ////////////////////////////////////////////////////////
                     // level1
                     //处理对象赋值
-                    if (strcasecmp(_json_key_name.c_str(), "state") == 0)
+                    if (http::str_casecmp(_json_key_name, "state"))
                             {
 
                                 json_reflectobj.state=_json_value_name;     
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "total") == 0)
+                            else if (http::str_casecmp(_json_key_name, "total"))
                             {
                                 try{
                                     json_reflectobj.total=std::stoul(_json_value_name);
@@ -527,7 +526,7 @@ std::string json_encode(const std::vector<img_upload_outjson_t> &json_reflectobj
                                 }
                                  
                             }
-                            else if (strcasecmp(_json_key_name.c_str(), "start") == 0)
+                            else if (http::str_casecmp(_json_key_name, "start"))
                             {
                                 try{
                                     json_reflectobj.start=std::stoul(_json_value_name);

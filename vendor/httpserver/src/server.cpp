@@ -1596,10 +1596,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             peer->compress = 0;
             if (peer->state.gzip || peer->state.br)
             {
-                if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 ||
-                    strcasecmp(peer->content_type.c_str(), "application/json") == 0 ||
-                    strcasecmp(peer->content_type.c_str(), "text/html") == 0 ||
-                    strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
+                if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+                    str_casecmp(peer->content_type, "application/json") ||
+                    str_casecmp(peer->content_type, "text/html") ||
+                    str_casecmp(peer->content_type, "application/json; charset=utf-8"))
                 {
                     if (peer->output.size() > 100)
                     {
@@ -1804,10 +1804,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             peer->compress = 0;
             if (peer->state.gzip || peer->state.br)
             {
-                if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 ||
-                    strcasecmp(peer->content_type.c_str(), "application/json") == 0 ||
-                    strcasecmp(peer->content_type.c_str(), "text/html") == 0 ||
-                    strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
+                if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+                    str_casecmp(peer->content_type, "application/json") ||
+                    str_casecmp(peer->content_type, "text/html") ||
+                    str_casecmp(peer->content_type, "application/json; charset=utf-8"))
                 {
                     if (peer->output.size() > 100)
                     {
@@ -2551,10 +2551,10 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         peer->compress = 0;
         if (peer->state.gzip)
         {
-            if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 ||
-                strcasecmp(peer->content_type.c_str(), "application/json") == 0 ||
-                strcasecmp(peer->content_type.c_str(), "text/html") == 0 ||
-                strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
+            if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+                str_casecmp(peer->content_type, "application/json") ||
+                str_casecmp(peer->content_type, "text/html") ||
+                str_casecmp(peer->content_type, "application/json; charset=utf-8"))
             {
                 if (peer->output.size() > 100)
                 {
@@ -2668,10 +2668,10 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         peer->compress = 0;
         if (peer->state.gzip)
         {
-            if (strcasecmp(peer->content_type.c_str(), "text/html; charset=utf-8") == 0 ||
-                strcasecmp(peer->content_type.c_str(), "application/json") == 0 ||
-                strcasecmp(peer->content_type.c_str(), "text/html") == 0 ||
-                strcasecmp(peer->content_type.c_str(), "application/json; charset=utf-8") == 0)
+            if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+                str_casecmp(peer->content_type, "application/json") ||
+                str_casecmp(peer->content_type, "text/html") ||
+                str_casecmp(peer->content_type, "application/json; charset=utf-8"))
             {
                 if (peer->output.size() > 100)
                 {

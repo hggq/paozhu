@@ -1,12 +1,4 @@
 #include <algorithm>
-#include <asio.hpp>
-// #include <asio/ssl.hpp>
-// #include <asio/co_spawn.hpp>
-// #include <asio/detached.hpp>
-// #include <asio/io_context.hpp>
-// #include <asio/ip/tcp.hpp>
-// #include <asio/signal_set.hpp>
-// #include <asio/write.hpp>
 #include <cstdio>
 #include <list>
 #include <map>
@@ -19,7 +11,11 @@
 #include <cstdio>
 #include <sstream>
 #include <filesystem>
+#include <string_view>
 #include <sys/fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "datetime.h"
 #include "urlcode.h"
 
@@ -31,13 +27,56 @@
 #define stat _stat
 #endif
 
-#include "httpclient.h"
 #include "func.h"
 
 namespace http
 {
 namespace fs = std::filesystem;
-bool str_compare(const std::string &str1, std::string &str2, unsigned int length)
+bool str_cmp(std::string_view str1, std::string_view str2)
+{
+    if (str1.size() != str2.size())
+    {
+        return false;
+    }
+    for (unsigned int i = 0; i < str1.size(); i++)
+    {
+        if (str1[i] != str2[i])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+bool str_casecmp(std::string_view str1, std::string_view str2)
+{
+    if (str1.size() != str2.size())
+    {
+        return false;
+    }
+    for (unsigned int i = 0; i < str1.size(); i++)
+    {
+        if (str1[i] != str2[i])
+        {
+            if (str1[i] < 91 && str1[i] > 64)
+            {
+                if ((str1[i] + 32) == str2[i])
+                {
+                    continue;
+                }
+            }
+            else if (str2[i] < 91 && str2[i] > 64)
+            {
+                if (str1[i] == (str2[i] + 32))
+                {
+                    continue;
+                }
+            }
+            return false;
+        }
+    }
+    return true;
+}
+bool str_compare(std::string_view str1, std::string_view str2, unsigned int length)
 {
     for (unsigned int i = 0; i < length; i++)
     {
@@ -61,6 +100,137 @@ bool str_compare(const std::string &str1, std::string &str2, unsigned int length
             return true;
         }
         return false;
+    }
+    return true;
+}
+bool str_casecompare(std::string_view str1, std::string_view str2, unsigned int length)
+{
+    for (unsigned int i = 0; i < length; i++)
+    {
+        if (i < str1.size() && i < str2.size())
+        {
+            if (str1[i] == str2[i])
+            {
+                continue;
+            }
+            else
+            {
+                if (str1[i] < 91 && str1[i] > 64)
+                {
+                    if ((str1[i] + 32) == str2[i])
+                    {
+                        continue;
+                    }
+                }
+                else if (str2[i] < 91 && str2[i] > 64)
+                {
+                    if (str1[i] == (str2[i] + 32))
+                    {
+                        continue;
+                    }
+                }
+                return false;
+            }
+        }
+        if (i == str1.size())
+        {
+            return true;
+        }
+        if (i == str2.size())
+        {
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+bool str_lastcmp(std::string_view str1, std::string_view str2, unsigned int length)
+{
+    int a = (int)str1.size();
+    int b = (int)str2.size();
+    if (a == 0)
+    {
+        return false;
+    }
+    else if (b == 0)
+    {
+        return false;
+    }
+    a = a - 1;
+    b = b - 1;
+
+    for (unsigned int i = 0; i < length; i++)
+    {
+        a -= i;
+        b -= i;
+        if (a < 0)
+        {
+            return true;
+        }
+        if (b < 0)
+        {
+            return true;
+        }
+        if (str1[a] == str2[b])
+        {
+            continue;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    return true;
+}
+bool str_caselastcmp(std::string_view str1, std::string_view str2, unsigned int length)
+{
+    int a = (int)str1.size();
+    int b = (int)str2.size();
+    if (a == 0)
+    {
+        return false;
+    }
+    else if (b == 0)
+    {
+        return false;
+    }
+    a = a - 1;
+    b = b - 1;
+
+    for (unsigned int i = 0; i < length; i++)
+    {
+        a -= i;
+        b -= i;
+        if (a < 0)
+        {
+            return true;
+        }
+        if (b < 0)
+        {
+            return true;
+        }
+        if (str1[a] == str2[b])
+        {
+            continue;
+        }
+        else
+        {
+            if (str1[a] < 91 && str1[a] > 64)
+            {
+                if ((str1[a] + 32) == str2[b])
+                {
+                    continue;
+                }
+            }
+            else if (str2[b] < 91 && str2[b] > 64)
+            {
+                if (str1[a] == (str2[b] + 32))
+                {
+                    continue;
+                }
+            }
+            return false;
+        }
     }
     return true;
 }
@@ -716,240 +886,7 @@ std::string mb_substr(std::string &str, int begin, int length)
 
     return temp;
 }
-std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody, unsigned int timeoutnum)
-{
-    std::string file_body;
-    bool isurl = false;
-    unsigned i = 0;
-    if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' &&
-        str[i + 5] == '/' && str[i + 6] == '/')
-    {
 
-        isurl = true;
-    }
-    else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' &&
-             str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
-    {
-        isurl = true;
-    }
-
-    if (isurl)
-    {
-        std::shared_ptr<client> a = std::make_shared<client>();
-        // http::OBJ_VALUE parameter;
-        bool isaccept = false;
-        bool isget    = true;
-        for (auto [hkey, vvalue] : parabody)
-        {
-            if (hkey == "Content-Type")
-            {
-                a->setheader("Content-Type", vvalue);
-            }
-            else if (hkey == "Post-Type")
-            {
-                a->posttype(vvalue);
-            }
-            else if (hkey == "User-Agent")
-            {
-                a->setheader("User-Agent", vvalue);
-            }
-            else if (hkey == "Accept")
-            {
-                a->setheader("Accept", vvalue);
-                isaccept = true;
-            }
-            else if (hkey == "method")
-            {
-                if (vvalue == "POST")
-                {
-                    isget = false;
-                }
-            }
-            else if (hkey == "header-content")
-            {
-                a->addheader(vvalue);
-            }
-            else
-            {
-                a->data[hkey] = vvalue;
-            }
-        }
-
-        if (!isaccept)
-        {
-            a->setheader("Accept",
-                         "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8");
-        }
-        if (isget)
-        {
-            a->get(str);
-        }
-        else
-        {
-            a->post(str);
-        }
-
-        if (timeoutnum > 1)
-        {
-            a->timeout(timeoutnum);
-        }
-        // a->data=parameter;
-        a->send();
-        parabody["state"]           = std::to_string(a->getStatus());
-        parabody["response-header"] = a->getHeader();
-        parabody["content-length"]  = std::to_string(a->getLength());
-        if (a->getStatus() == 200)
-        {
-            if (a->getLength() < 33554432)
-            {
-                return a->getBody();
-            }
-            else
-            {
-                return a->getTempfile();
-            }
-        }
-        else
-        {
-            return a->getBody();
-        }
-    }
-    else
-    {
-
-        FILE *ffp = fopen(str.c_str(), "rb");
-        if (!ffp)
-        {
-            return file_body;
-        }
-        fseek(ffp, 0, SEEK_END);
-        unsigned int nsize = ftell(ffp);
-        fseek(ffp, 0, SEEK_SET);
-
-        file_body.resize(nsize);
-
-        unsigned int nread = fread(&file_body[0], 1, nsize, ffp);
-        file_body.resize(nread);
-        fclose(ffp);
-    }
-
-    return file_body;
-}
-std::string file_get_contents(std::string str, unsigned int timeoutnum)
-{
-    std::string file_body;
-    bool isurl = false;
-    unsigned i = 0;
-    if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' &&
-        str[i + 5] == '/' && str[i + 6] == '/')
-    {
-
-        isurl = true;
-    }
-    else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' &&
-             str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
-    {
-        isurl = true;
-    }
-
-    if (isurl)
-    {
-        std::shared_ptr<client> a = std::make_shared<client>();
-        a->get(str);
-        if (timeoutnum > 1)
-        {
-            a->timeout(timeoutnum);
-        }
-        a->send();
-        if (a->getStatus() == 200)
-        {
-            if (a->getLength() < 33554432)
-            {
-                return a->getBody();
-            }
-            else
-            {
-                return a->getTempfile();
-            }
-        }
-        else
-        {
-            return a->getHeader();
-        }
-    }
-    else
-    {
-
-        FILE *ffp = fopen(str.c_str(), "rb");
-        if (!ffp)
-        {
-            return file_body;
-        }
-        fseek(ffp, 0, SEEK_END);
-        unsigned int nsize = ftell(ffp);
-        fseek(ffp, 0, SEEK_SET);
-
-        file_body.resize(nsize);
-
-        unsigned int nread = fread(&file_body[0], 1, nsize, ffp);
-        file_body.resize(nread);
-        fclose(ffp);
-    }
-
-    return file_body;
-}
-bool file_put_contents(std::string str, std::string &body, bool append)
-{
-    bool issuccess = false;
-    FILE *ffp;
-    if (append)
-    {
-        ffp = fopen(str.c_str(), "ab");
-    }
-    else
-    {
-        ffp = fopen(str.c_str(), "wb");
-    }
-
-    if (!ffp)
-    {
-        return issuccess;
-    }
-
-    auto nsize = fwrite(&body[0], body.size(), 1, ffp);
-    fclose(ffp);
-    if (nsize > 0)
-    {
-        issuccess = true;
-    }
-    return issuccess;
-}
-bool file_put_contents(std::string str, const char *body, unsigned int length, bool append)
-{
-    bool issuccess = false;
-    FILE *ffp;
-    if (append)
-    {
-        ffp = fopen(str.c_str(), "ab");
-    }
-    else
-    {
-        ffp = fopen(str.c_str(), "wb");
-    }
-
-    if (!ffp)
-    {
-        return issuccess;
-    }
-
-    auto nsize = fwrite(body, length, 1, ffp);
-    fclose(ffp);
-    if (nsize > 0)
-    {
-        issuccess = true;
-    }
-    return issuccess;
-}
 struct stat filestat(std::string &file_name)
 {
     struct stat finfo;
@@ -1417,7 +1354,7 @@ std::string strip_html(const std::string &content)
                     tempstr.push_back(content[i]);
                 }
 
-                if (strcasecmp(tempstr.c_str(), "style") == 0)
+                if (str_casecmp(tempstr, "style"))
                 {
                     for (; i < content.size(); i++)
                     {
@@ -1475,7 +1412,7 @@ std::string strip_html(const std::string &content)
                                 }
                                 break;
                             }
-                            if (strcasecmp(tempstr.c_str(), "style") == 0)
+                            if (str_casecmp(tempstr, "style"))
                             {
                                 for (; i < content.size(); i++)
                                 {
@@ -1515,7 +1452,7 @@ std::string strip_html(const std::string &content)
                     }
                     continue;
                 }
-                else if (strcasecmp(tempstr.c_str(), "script") == 0)
+                else if (str_casecmp(tempstr, "script"))
                 {
                     for (; i < content.size(); i++)
                     {
@@ -1577,7 +1514,7 @@ std::string strip_html(const std::string &content)
                                 break;
                             }
 
-                            if (strcasecmp(tempstr.c_str(), "script") == 0)
+                            if (str_casecmp(tempstr, "script"))
                             {
                                 for (; i < content.size(); i++)
                                 {

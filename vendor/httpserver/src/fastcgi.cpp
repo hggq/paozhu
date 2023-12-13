@@ -578,15 +578,15 @@ asio::awaitable<void> fastcgi::co_send()
         {
             ret += 4;
             DEBUG_LOG("%s:s%s", line_name.c_str(), line_header.c_str());
-            if (line_name.size() == 12 && strcasecmp(line_name.c_str(), "Content-type") == 0)
+            if (line_name.size() == 12 && str_casecmp(line_name, "Content-type"))
             {
                 peer->type(line_header);
             }
-            else if (line_name.size() == 6 && strcasecmp(line_name.c_str(), "Status") == 0)
+            else if (line_name.size() == 6 && str_casecmp(line_name, "Status"))
             {
                 peer->status(str2int(&line_header[0], line_header.size()));
             }
-            else if (line_name.size() == 10 && strcasecmp(line_name.c_str(), "Set-Cookie") == 0)
+            else if (line_name.size() == 10 && str_casecmp(line_name, "Set-Cookie"))
             {
                 peer->send_cookie_lists.emplace_back(line_header);
             }
@@ -603,15 +603,15 @@ asio::awaitable<void> fastcgi::co_send()
         {
             ret += 1;
             DEBUG_LOG("%s:s%s", line_name.c_str(), line_header.c_str());
-            if (line_name.size() == 12 && strcasecmp(line_name.c_str(), "Content-type") == 0)
+            if (line_name.size() == 12 && str_casecmp(line_name, "Content-type"))
             {
                 peer->type(line_header);
             }
-            else if (line_name.size() == 6 && strcasecmp(line_name.c_str(), "Status") == 0)
+            else if (line_name.size() == 6 && str_casecmp(line_name, "Status"))
             {
                 peer->status(str2int(&line_header[0], line_header.size()));
             }
-            else if (line_name.size() == 10 && strcasecmp(line_name.c_str(), "Set-Cookie") == 0)
+            else if (line_name.size() == 10 && str_casecmp(line_name, "Set-Cookie"))
             {
                 peer->send_cookie_lists.emplace_back(line_header);
             }

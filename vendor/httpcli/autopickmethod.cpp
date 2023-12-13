@@ -28,7 +28,35 @@
 #include "md5.h"
 
 namespace fs = std::filesystem;
-
+bool stringcasecmp(std::string_view str1, std::string_view str2)
+{
+    if (str1.size() != str2.size())
+    {
+        return false;
+    }
+    for (unsigned int i = 0; i < str1.size(); i++)
+    {
+        if (str1[i] != str2[i])
+        {
+            if (str1[i] < 91 && str1[i] > 64)
+            {
+                if ((str1[i] + 32) == str2[i])
+                {
+                    continue;
+                }
+            }
+            else if (str2[i] < 91 && str2[i] > 64)
+            {
+                if (str1[i] == (str2[i] + 32))
+                {
+                    continue;
+                }
+            }
+            return false;
+        }
+    }
+    return true;
+}
 std::string get_filename(const std::string &filename)
 {
     std::string filename_name;
@@ -258,8 +286,8 @@ namespace http
 
     for (unsigned int j = 0; j < reg_method_lists.size(); j++)
     {
-        if (strcasecmp(reg_method_lists[j].pre.c_str(), "null") == 0 ||
-            strcasecmp(reg_method_lists[j].pre.c_str(), "nullptr") == 0)
+        if (stringcasecmp(reg_method_lists[j].pre, "null") ||
+            stringcasecmp(reg_method_lists[j].pre, "nullptr"))
         {
             automethod_content.append("\t\ttemp.pre = nullptr;\r\n");
         }
