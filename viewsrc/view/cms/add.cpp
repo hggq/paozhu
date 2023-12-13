@@ -6,9 +6,7 @@
 #include <vector>
 #include <ctime>
 #include <array>
-#include <sys/time.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <cstdlib>
 #include "request.h"
 #include "datetime.h"

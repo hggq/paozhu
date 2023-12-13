@@ -4,9 +4,8 @@
 #include <cstdio>
 #include <cstddef>
 #include <stdio.h>
-#include <unistd.h>
+
 #include <errno.h>
-#include <stdlib.h>
 #include <signal.h>
 #include <setjmp.h>
 #include <ctime>
@@ -28,7 +27,7 @@
 #include <ctime>
 #include <map>
 #include <string>
-#include <sys/time.h>
+
 #include <atomic>
 #include <queue>
 #include <memory>
@@ -36,10 +35,10 @@
 #include <thread>
 #include <mutex>
 
-#ifndef _WIN32
-#include <sys/socket.h>
-#include <sys/wait.h>
-#endif
+// #ifndef _WIN32
+// #include <sys/socket.h>
+// #include <sys/wait.h>
+// #endif
 
 #include <condition_variable>
 #include <future>
