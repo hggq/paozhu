@@ -2,52 +2,11 @@
 #ifndef HTTP2_DEFINE_H
 #define HTTP2_DEFINE_H
 
-#include <asio.hpp>
-#include <asio/ssl.hpp>
-// #include <asio/co_spawn.hpp>
-// #include <asio/detached.hpp>
-// #include <asio/io_context.hpp>
-// #include <asio/ip/tcp.hpp>
-// #include <asio/signal_set.hpp>
-// #include <asio/write.hpp>
-#include <atomic>
-#include <chrono>
-#include <condition_variable>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
-#include <list>
-#include <map>
-#include <mutex>
-#include <queue>
 #include <string>
-#include <thread>
 #include <memory>
-#include <set>
-
-#include <cstdlib>
-#include <fstream>
-#include <algorithm>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#ifdef WIN32
-#define stat _stat
-#endif
-
-#include <array>
-#include <iostream>
-#include <ctime>
-#include <map>
-#include <sys/time.h>
-#include <map>
-#include <thread>
-#include <mutex>
-#include <filesystem>
-#include <future>
-#include <functional>
-#include <stdexcept>
-#include <zlib.h>
 
 namespace http
 {
