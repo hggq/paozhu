@@ -30,15 +30,11 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
 
 #ifndef _MSC_VER
 #include <sys/fcntl.h>
 #include <unistd.h>
-#endif
-
-#ifndef WIN32
-
+#include <sys/wait.h>
 #endif
 
 #ifdef WIN32
@@ -49,7 +45,6 @@
 #include <iostream>
 #include <ctime>
 #include <map>
-#include <sys/time.h>
 #include <map>
 #include <thread>
 #include <mutex>
@@ -58,8 +53,7 @@
 #include <functional>
 #include <stdexcept>
 
-#include <zlib.h>
-
+#include "zlib.h"
 #include "terminal_color.h"
 #include "http_socket.h"
 #include "client_session.h"
