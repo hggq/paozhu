@@ -19,20 +19,16 @@
 #include <filesystem>
 #include <atomic>
 #include <string_view>
-#include <unistd.h>
+
 #include <vector>
 #include <cmath>
 #include <thread>
 #include <chrono>
-#include <strings.h>
 #include <cstring>
 
 #include "http2_frame.h"
 #include "client_session.h"
 #include "httppeer.h"
-#ifndef WIN32
-#include <unistd.h>
-#endif
 
 #ifdef WIN32
 #define stat _stat

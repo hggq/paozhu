@@ -5,9 +5,10 @@
 #include <ctime>
 #include <array>
 #include <string>
+#ifndef _MSC_VER
 #include <sys/time.h>
 #include <unistd.h>
-
+#endif
 namespace http
 {
 

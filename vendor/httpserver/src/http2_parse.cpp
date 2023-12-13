@@ -21,12 +21,10 @@
 #include <filesystem>
 
 #include <string_view>
-#include <unistd.h>
 #include <vector>
 #include <cmath>
 #include <thread>
 #include <chrono>
-#include <strings.h>
 #include <cstring>
 
 #include "http2_frame.h"

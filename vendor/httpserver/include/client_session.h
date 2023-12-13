@@ -32,13 +32,15 @@
 #include <cstdlib>
 #include <fstream>
 #include <algorithm>
-#include <sys/types.h>
-
 #include <sys/stat.h>
+
+#ifndef _MSC_VER
+#include <sys/types.h>
 #include <sys/fcntl.h>
+#include <unistd.h>
+#endif
 
 #ifndef WIN32
-#include <unistd.h>
 #include <sys/wait.h>
 #endif
 
@@ -50,7 +52,6 @@
 #include <iostream>
 #include <ctime>
 #include <map>
-#include <sys/time.h>
 #include <map>
 #include <thread>
 #include <mutex>

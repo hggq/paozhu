@@ -3708,6 +3708,7 @@ void httpserver::httpwatch()
             // save access.log
             if (!access_loglist.empty())
             {
+#ifndef _MSC_VER
                 int fd = open(currentpath.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
                 if (fd == -1)
                 {
@@ -3759,11 +3760,13 @@ void httpserver::httpwatch()
                 }
 #endif
                 close(fd);
+#endif
             }
 
             // save error.log
             if (!error_loglist.empty())
             {
+#ifndef _MSC_VER
                 int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
                 if (fd == -1)
                 {
@@ -3816,6 +3819,7 @@ void httpserver::httpwatch()
                 }
 #endif
                 close(fd);
+#endif
             }
             if (n_write > 0)
             {

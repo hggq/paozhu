@@ -29,12 +29,6 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/fcntl.h>
-
-#ifndef WIN32
-#include <unistd.h>
-#include <sys/wait.h>
-#endif
 
 #ifdef WIN32
 #define stat _stat
@@ -44,7 +38,6 @@
 #include <iostream>
 #include <ctime>
 #include <map>
-#include <sys/time.h>
 #include <map>
 #include <thread>
 #include <mutex>
@@ -58,21 +51,21 @@ namespace fs = std::filesystem;
 
 #if defined(ASIO_ENABLE_HANDLER_TRACKING)
 #define use_awaitable \
-  asio::use_awaitable_t(__FILE__, __LINE__, __PRETTY_FUNCTION__)
+    asio::use_awaitable_t(__FILE__, __LINE__, __PRETTY_FUNCTION__)
 #endif
-
 
 struct httpsocket_t
 {
-  httpsocket_t(asio::ip::tcp::socket sock){
+    httpsocket_t(asio::ip::tcp::socket sock)
+    {
         _socket.emplace_back(std::move(sock));
-  }
-  httpsocket_t(asio::ssl::stream<asio::ip::tcp::socket> sslsock){
+    }
+    httpsocket_t(asio::ssl::stream<asio::ip::tcp::socket> sslsock)
+    {
         _sslsocket.emplace_back(std::move(sslsock));
-  }
-  std::list<asio::ip::tcp::socket> _socket;
-  std::list<asio::ssl::stream<asio::ip::tcp::socket>> _sslsocket;
+    }
+    std::list<asio::ip::tcp::socket> _socket;
+    std::list<asio::ssl::stream<asio::ip::tcp::socket>> _sslsocket;
 };
-
 
 #endif

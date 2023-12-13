@@ -17,10 +17,8 @@
 #include <mutex>
 #include <array>
 #include <condition_variable>
-#include <sys/time.h>
 #include <sys/stat.h>
 #include "mysql.h"
-#include <unistd.h>
 #include <cstdlib>
 #include "request.h"
 #include "md5.h"
@@ -29,35 +27,35 @@
 
 namespace http
 {
-  unsigned int get_controlversion()
-  {
+unsigned int get_controlversion()
+{
     return 0x01000000;
-  }
+}
 
-  std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqlselectexecute(size_t dbhash)
-  {
+std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqlselectexecute(size_t dbhash)
+{
     return clientapi::get().api_mysqlselect(dbhash);
-  }
-  std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqleditexecute(size_t dbhash)
-  {
+}
+std::unique_ptr<MYSQL, decltype(&mysql_close)> get_mysqleditexecute(size_t dbhash)
+{
     return clientapi::get().api_mysqledit(dbhash);
-  }
-  bool back_mysql_connect(size_t dbhash, std::unique_ptr<MYSQL, decltype(&mysql_close)> conn)
-  {
+}
+bool back_mysql_connect(size_t dbhash, std::unique_ptr<MYSQL, decltype(&mysql_close)> conn)
+{
     return clientapi::get().api_mysql_back_conn(dbhash, std::move(conn));
-  }
-  server_loaclvar &get_server_global_var()
-  {
+}
+server_loaclvar &get_server_global_var()
+{
     return clientapi::get().server_global_var();
-  }
+}
 #ifndef _CONTROL_DESTROY
-  void _destroy()
-  {
-  }
+void _destroy()
+{
+}
 #endif
 
-  BOOST_DLL_ALIAS(http::clientapi::setclientapi, _setclientapi)
+BOOST_DLL_ALIAS(http::clientapi::setclientapi, _setclientapi)
 #define _SHOW(A) BOOST_DLL_ALIAS(http::A, A)
 #define _SHOWS(A, B) BOOST_DLL_ALIAS(http::A, B)
-}
+}// namespace http
 #endif

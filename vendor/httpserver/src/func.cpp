@@ -12,16 +12,11 @@
 #include <sstream>
 #include <filesystem>
 #include <string_view>
-#include <sys/fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include "datetime.h"
 #include "urlcode.h"
-
-#ifndef WIN32
-#include <unistd.h>
-#endif
 
 #ifdef WIN32
 #define stat _stat

@@ -2,11 +2,11 @@
 #include <cstddef>
 #include <stdio.h>
 
-#include <unistd.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <setjmp.h>
+// #include <unistd.h>
+// #include <errno.h>
+// #include <stdlib.h>
+// #include <signal.h>
+// #include <setjmp.h>
 #include <ctime>
 #include <iostream>
 #include <string>
@@ -18,15 +18,9 @@
 #include <array>
 #include <set>
 #include <memory>
-
-#ifndef _WIN32
-#include <sys/wait.h>
-#endif
-
 #include <ctime>
 #include <map>
 #include <string>
-#include <sys/time.h>
 #include <atomic>
 #include <queue>
 #include <memory>

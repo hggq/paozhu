@@ -30,11 +30,15 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+
+#ifndef _MSC_VER
 #include <sys/fcntl.h>
+#include <unistd.h>
+#endif
 
 #ifndef WIN32
-#include <unistd.h>
-#include <sys/wait.h>
+
 #endif
 
 #ifdef WIN32

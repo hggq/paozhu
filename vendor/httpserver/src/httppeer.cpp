@@ -26,7 +26,9 @@
 #include <cmath>
 #include <thread>
 #include <chrono>
-#ifndef WIN32
+
+#ifndef _MSC_VER
+#include <sys/fcntl.h>
 #include <unistd.h>
 #endif
 
@@ -160,6 +162,7 @@ void httppeer::parse_session_file(std::string &sessionfile)
     {
         return;
     }
+#ifndef _MSC_VER
     int fd = open(root_path.c_str(), O_RDONLY);
     if (fd == -1)
     {
@@ -216,6 +219,8 @@ void httppeer::parse_session_file(std::string &sessionfile)
 #endif
 
     close(fd);
+#endif
+
     sessionfile_time = tempsesstime;
 }
 void httppeer::parse_session_memory(std::string &sessionfile_id)
@@ -333,7 +338,7 @@ void httppeer::save_session_file(std::string &sessionfile)
 
     sessionfile.append("_sess");
     root_path.append(sessionfile);
-
+#ifndef _MSC_VER
     int fd = open(root_path.c_str(), O_RDWR | O_CREAT, 0666);
     if (fd == -1)
     {
@@ -387,7 +392,7 @@ void httppeer::save_session_file(std::string &sessionfile)
 #endif
 
     close(fd);
-
+#endif
     sessionfile_time = timeid();
 }
 void httppeer::clear_session()

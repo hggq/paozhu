@@ -30,12 +30,6 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/fcntl.h>
-
-#ifndef WIN32
-#include <unistd.h>
-#include <sys/wait.h>
-#endif
 
 #ifdef WIN32
 #define stat _stat

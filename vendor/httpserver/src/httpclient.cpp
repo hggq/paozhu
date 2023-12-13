@@ -15,9 +15,7 @@
 #include <array>
 #include <string>
 #include <string_view>
-#include <sys/time.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <cstdlib>
 #include "http_socket.h"
 #include "request.h"

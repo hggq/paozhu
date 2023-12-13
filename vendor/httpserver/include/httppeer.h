@@ -24,13 +24,6 @@
 #include <thread>
 #include <chrono>
 #include <stack>
-#ifndef WIN32
-#include <unistd.h>
-#endif
-
-#ifdef WIN32
-#define stat _stat
-#endif
 
 #include "request.h"
 #include "client_session.h"

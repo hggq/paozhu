@@ -20,7 +20,6 @@
 #include <map>
 #include <list>
 #include <filesystem>
-
 #include <string_view>
 #include <vector>
 #include <cmath>
@@ -28,13 +27,6 @@
 #include <chrono>
 
 #include <cstring>
-#ifndef WIN32
-#include <unistd.h>
-#endif
-
-#ifdef WIN32
-#define stat _stat
-#endif
 
 #include "datetime.h"
 // #include "md5.hpp"

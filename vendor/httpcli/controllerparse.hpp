@@ -21,10 +21,7 @@
 #include <filesystem>
 #include <ctime>
 #include <array>
-#include <sys/time.h>
-#include <sys/stat.h>
 #include <map>
-#include <strings.h>
 #include <cstring>
 namespace http
 {
