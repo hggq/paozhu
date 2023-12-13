@@ -34,9 +34,8 @@ int main(int argc, char *argv[])
     std::string commandstr;
     if (argc == 1)
     {
-        std::cout << argv[0]
-                  << " \033[1m\033[31m model ｜ view | viewtocpp | control \033[0m "
-                     " \n 🎉 Welcome to use \033[4m\033[31mcli\033[0m to manage "
+        std::cout << " \033[1m\033[31m model ｜ view | viewtocpp | control \033[0m "
+                     " \n Welcome to use \033[4m\033[31mcli\033[0m to manage "
                      "your MVC files。\n";
     }
     if (argc > 1)
