@@ -2,8 +2,8 @@
 #include <ctime>
 #include <array>
 #include <string>
-#include <sys/time.h>
-#include <unistd.h>
+//#include <sys/time.h>
+//#include <unistd.h>
 #include <cstdlib>
 #include <random>
 #include "datetime.h"
@@ -266,7 +266,7 @@ unsigned int strgmttotime(const std::string &gmtstr)
     i++;
 
     i++;
-    timeInfo.tm_hour = tc[0] * 10 + tc[1];
+    timeInfo.tm_hour = tc[0] * 10 + tc[1] + 1;
 
     if (gmtstr[i] >= '0' && gmtstr[i] <= '9')
     {
@@ -293,24 +293,17 @@ unsigned int strgmttotime(const std::string &gmtstr)
 
     timeInfo.tm_sec = tc[0] * 10 + tc[1];
 
-    temp = mktime(&timeInfo);
     i++;
     if (gmtstr[i] == 'G' && gmtstr[i + 1] == 'M' && gmtstr[i + 2] == 'T')
     {
-        struct timeval val;
-        struct timezone tz;
-        int ret = gettimeofday(&val, &tz);
-        if (ret != -1)
-        {
-            if (tz.tz_minuteswest < 0)
-            {
-                temp -= tz.tz_minuteswest * 60;
-            }
-            else
-            {
-                temp += tz.tz_minuteswest * 60;
-            }
-        }
+        std::time_t rt = std::mktime(&timeInfo);
+        std::tm *tm    = std::gmtime((const time_t *)&rt);
+        std::time_t gt = std::mktime(tm);
+        temp           = rt + (rt - gt);
+    }
+    else
+    {
+        temp = std::mktime(&timeInfo);
     }
     return temp;
 }
