@@ -9,6 +9,10 @@ if is_plat("windows") then
     add_defines("WIN32_LEAN_AND_MEAN")
 end
 
+if is_plat("mingw") then 
+    add_defines("WIN32_LEAN_AND_MEAN")
+end
+
 add_defines("DEBUG")
 
 add_includedirs("common")
