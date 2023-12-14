@@ -34,6 +34,9 @@
 #ifndef _MSC_VER
 #include <sys/fcntl.h>
 #include <unistd.h>
+#endif
+
+#ifndef _WIN32
 #include <sys/wait.h>
 #endif
 
