@@ -235,7 +235,7 @@ asio::awaitable<void> fastcgi::co_send()
         params.push_back({"REQUEST_METHOD", "POST"});
         params.push_back({"CONTENT_LENGTH", std::to_string(peer->output.size())});
         params.push_back({"CONTENT_TYPE", peer->header["Content-Type"]});
-        DEBUG_LOG("POST size: %lu", peer->output.size());
+        DEBUG_LOG("POST size: %zu", peer->output.size());
     }
     else if (peer->method == 3)
     {
@@ -567,7 +567,7 @@ asio::awaitable<void> fastcgi::co_send()
         DEBUG_LOG("std::exception %s", e.what());
         peer->output = params_body;
     }
-    DEBUG_LOG("php fastcgi return %lu", respbody.size());
+    DEBUG_LOG("php fastcgi return %zu", respbody.size());
     ret = 0;
     std::string line_header;
     std::string line_name;
@@ -665,7 +665,7 @@ asio::awaitable<void> fastcgi::send_exit(std::shared_ptr<httppeer> peer)
 }
 asio::awaitable<void> fastcgi::send_postbody(std::shared_ptr<httppeer> peer)
 {
-    DEBUG_LOG("bodypost size: %lu", peer->output.size());
+    DEBUG_LOG("bodypost size: %zu", peer->output.size());
     unsigned int bodylen = 0;
     unsigned int len = peer->output.size(), bodyoffset = 0;
     size_t ret;

@@ -1507,7 +1507,7 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
     serverconfig &sysconfigpath = getserversysconfig();
     unsigned int p_s            = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size();
     std::string htmlcontent;
-    DEBUG_LOG("static_pre_lists:%lu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
+    DEBUG_LOG("static_pre_lists:%zu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
     //all static files
     if (p_s == 0)
     {
@@ -2428,7 +2428,7 @@ asio::awaitable<bool> httpserver::http1_static_file_authority(std::shared_ptr<ht
     serverconfig &sysconfigpath = getserversysconfig();
     unsigned int p_s            = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size();
     std::string htmlcontent;
-    DEBUG_LOG("static_pre_lists:%lu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
+    DEBUG_LOG("static_pre_lists:%zu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
     //all static files
     if (p_s == 0)
     {

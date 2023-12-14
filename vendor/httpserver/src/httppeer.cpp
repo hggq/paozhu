@@ -579,7 +579,7 @@ bool httppeer::isuse_fastcgi()
                     return true;
                 }
             }
-            DEBUG_LOG("rewrite_php_lists: %lu", sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size());
+            DEBUG_LOG("rewrite_php_lists: %zu", sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size());
             if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size() > 0)
             {
                 unsigned int i = 0;
