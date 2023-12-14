@@ -1,5 +1,6 @@
 
 #include <string>
+#include "terminal_color.h"
 #include "mysql.h"
 #include "mysqlconfig.h"
 #include "mysqlpool.h"
@@ -266,6 +267,11 @@ void mysqlconfig_init_link()
         }
         rmstag.append("orm.conf");
         std::vector<mysqlconnect_t> myconfig = getmysqlconfig(rmstag);
+        if (myconfig.empty())
+        {
+            DEBUG_LOG("Not found orm.conf!");
+            return;
+        }
         std::map<std::string, std::vector<struct mysql_connect_link_info>> mysqldblinkgroupjion;
         std::map<size_t, mysqllinkpool> &mysql_pool_map = get_mysqlpool();
         std::map<std::string, std::string> poolmax;
