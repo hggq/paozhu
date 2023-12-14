@@ -794,7 +794,7 @@ client &client::senddatato()
             }
         }
         finishprocess();
-        DEBUG_LOG(" http finishprocess: %lu", state.content.size());
+        DEBUG_LOG(" http finishprocess: %zu", state.content.size());
     }
     catch (std::exception &e)
     {
@@ -1243,7 +1243,7 @@ client &client::sendssldatato()
             }
         }
         finishprocess();
-        DEBUG_LOG("ssl_finishprocess %lu", state.content.size());
+        DEBUG_LOG("ssl_finishprocess %zu", state.content.size());
         return *this;
     }
     catch (std::exception &e)
