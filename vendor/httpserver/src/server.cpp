@@ -3362,18 +3362,25 @@ void httpserver::listeners()
     context_.set_options(asio::ssl::context::default_workarounds | asio::ssl::context::no_sslv2 |
                          asio::ssl::context::single_dh_use);
     context_.set_password_callback(std::bind(get_password));
-    context_.use_certificate_chain_file(sysconfigpath.ssl_chain_file());
 
     SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_AUTO_RETRY);
-    context_.use_private_key_file(sysconfigpath.ssl_key_file(), asio::ssl::context::pem);
-    context_.use_tmp_dh_file(sysconfigpath.ssl_dh_file());
+    try
+    {
+        context_.use_certificate_chain_file(sysconfigpath.ssl_chain_file());
+        context_.use_private_key_file(sysconfigpath.ssl_key_file(), asio::ssl::context::pem);
+        context_.use_tmp_dh_file(sysconfigpath.ssl_dh_file());
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Chain file error:%s", e.what());
+    }
     SSL_CTX_set_tlsext_servername_callback(context_.native_handle(), serverNameCallback);
 
     auto ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
                     SSL_OP_NO_COMPRESSION | SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION | SSL_OP_SINGLE_ECDH_USE |
                     SSL_OP_NO_TICKET | SSL_OP_CIPHER_SERVER_PREFERENCE;
     SSL_CTX_set_options(context_.native_handle(), ssl_opts);
-    SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_AUTO_RETRY);
+    //SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_AUTO_RETRY);
     SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_RELEASE_BUFFERS);
 
     constexpr char DEFAULT_CIPHER_LIST[] = "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-"
