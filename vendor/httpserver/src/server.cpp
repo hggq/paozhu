@@ -3497,7 +3497,7 @@ void httpserver::listener()
         lock.unlock();
         exit(1);
     }
-
+    DEBUG_LOG("http accept");
     for (;;)
     {
         try
@@ -3670,6 +3670,7 @@ void httpserver::httpwatch()
 #ifndef _WIN32
     struct flock lockstr = {};
 #endif
+    DEBUG_LOG("httpwatch run");
     for (;;)
     {
         if (catch_num > 10)
@@ -3965,5 +3966,6 @@ void httpserver::run(const std::string &sysconfpath)
     {
         LOG_ERROR << " httpserver Exception " << e.what() << LOG_END;
     }
+    DEBUG_LOG("httpserver exit!");
 }
 }// namespace http
