@@ -3354,6 +3354,7 @@ void httpserver::listeners()
         std::unique_lock<std::mutex> lock(log_mutex);
         error_loglist.emplace_back(" acceptor listen https error ");
         lock.unlock();
+        DEBUG_LOG("Acceptor listen https error ");
         exit(1);
     }
 
@@ -3495,6 +3496,7 @@ void httpserver::listener()
         std::unique_lock<std::mutex> lock(log_mutex);
         error_loglist.emplace_back("  acceptor listen http error  ");
         lock.unlock();
+        DEBUG_LOG("Acceptor listen http error ");
         exit(1);
     }
     DEBUG_LOG("http accept");
