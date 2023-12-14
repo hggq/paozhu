@@ -84,9 +84,12 @@ elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
     message("Release mode:${CMAKE_CXX_FLAGS_RELEASE}")
 
 else()
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
     message("Debug mode")
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pthread  -g -fsanitize=address  -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/local/mysql/include   -I/usr/include  -I/usr/include/mysql  " )
+
+    if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
     endif ()
 endif()
 
