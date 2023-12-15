@@ -16,7 +16,7 @@ namespace http
 std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
 {
     std::vector<mysqlconnect_t> myconfig;
-    FILE *f = fopen(filename.c_str(), "rb");
+    FILE *f = fopen(filename.c_str(), "rt");
     if (f == NULL)
     {
         return myconfig;
