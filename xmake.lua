@@ -7,6 +7,10 @@ set_encodings("utf-8")
 if is_plat("windows") then 
     add_defines("WIN32")
     add_defines("WIN32_LEAN_AND_MEAN")
+    if is_mode("debug") then
+        add_defines("_DISABLE_VECTOR_ANNOTATION")
+        add_defines("_DISABLE_STRING_ANNOTATION")
+    end
 end
 
 if is_plat("mingw") then 
@@ -38,6 +42,9 @@ target("paozhu_pre")
     add_files("vendor/httpserver/src/md5.cpp")
 
 target("paozhu")
+    if is_mode("debug") then
+        set_policy("build.sanitizer.address", true)
+    end
     set_kind("binary")
     add_deps("paozhu_pre")
     add_packages("boost")
