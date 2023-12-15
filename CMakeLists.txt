@@ -229,15 +229,19 @@ if (ENABLE_VCPKG)
 
         # warning: Fixed an issue where ports/libqrencode would not automatically
         #          copy dll files to the bin directory
-        if (CMAKE_SYSTEM_NAME MATCHES "Windows" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-            string(LENGTH ${QRENCODE_LIBRARY_RELEASE} len)
-            math(EXPR len "${len} - 2")
-            string(SUBSTRING ${QRENCODE_LIBRARY_RELEASE} 0 ${len} qrencode_dll)
-            message(STATUS ${qrencode_dll})
+        if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+            set(PATH_TO_QRENCODE_DLL "")
+            if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+                set(PATH_TO_QRENCODE_DLL "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/qrencode.dll")
+            elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+                set(PATH_TO_QRENCODE_DLL "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/libqrencode.dll")
+            endif ()
+            message(STATUS "Selected libqrencode.dll: ${PATH_TO_QRENCODE_DLL}")
+
             add_custom_command(
                     TARGET paozhu POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    ${qrencode_dll} ${CMAKE_CURRENT_SOURCE_DIR}/bin/
+                    ${PATH_TO_QRENCODE_DLL} ${CMAKE_CURRENT_SOURCE_DIR}/bin/
             )
         endif ()
 
