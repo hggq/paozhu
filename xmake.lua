@@ -73,6 +73,10 @@ target("paozhu")
         end
     end)
 
+    after_build(function (target)
+        cprint("${red}enable asan also need copy dll from VS install dir. \nsuch as from \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\Hostx64\\x64\\clang_rt.asan_dynamic-x86_64.dll\"")
+    end)
+
 target("paozhu_empty")
     set_kind("binary")
     add_files("vendor/httpcli/autoemptymethod.cpp")
