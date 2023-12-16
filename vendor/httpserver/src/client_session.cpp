@@ -393,13 +393,6 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    // std::string msg;
-    // msg.resize(13);
-    // for (int i = 0; i < 13; i++)
-    // {
-    //     msg[i] = _recvack[i];
-    // }
-
     _recvack[8] = stmid & 0xFF;
     stmid       = stmid >> 8;
     _recvack[7] = stmid & 0xFF;
@@ -478,10 +471,7 @@ bool client_session::send_data(const unsigned char *buffer, unsigned int buffers
 // }
 void client_session::http2_send_data(std::string_view msg)
 {
-    // std::unique_lock<std::mutex> lock(queue_mutex);
     setting_lists.push(msg);
-    // lock.unlock();
-
     if (!sendtype)
     {
         http2_send_data_loop();
@@ -538,9 +528,6 @@ asio::awaitable<void> client_session::http2_send_data_loop_co()
 
                 if (sendtype)
                 {
-                    // std::unique_lock<std::mutex> lock(queue_mutex);
-                    // setting_lists.push(std::move(buffer));
-                    // lock.unlock();
                     co_return;
                 }
                 else

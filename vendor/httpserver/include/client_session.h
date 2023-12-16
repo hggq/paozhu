@@ -179,8 +179,6 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     std::queue<std::string_view> setting_lists;
     std::string other_msg;
-
-    //std::mutex queue_mutex;
 };
 }// namespace http
 
