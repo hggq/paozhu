@@ -26,7 +26,7 @@
 #include <string>
 #include <thread>
 #include <memory>
-#include <set>
+#include <string_view>
 #include <atomic>
 
 #include <cstdlib>
@@ -94,8 +94,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     bool send_data(const std::string &msg);
     bool send_data(const unsigned char *, unsigned int);
 
-    void http2_send_data(const unsigned char *buffer, unsigned int buffersize);
-    void http2_send_data(const std::string &msg);
+    // void http2_send_data(const unsigned char *buffer, unsigned int buffersize);
+    // void http2_send_data(const std::string &msg);
+    void http2_send_data(std::string_view msg);
+
     void http2_send_data_loop();
 
     bool isopensocket();
@@ -122,8 +124,14 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<void> send_writer(const unsigned char *, unsigned int);
     asio::awaitable<void> co_send_writer(const std::string &msg);
     asio::awaitable<void> co_send_writer(const unsigned char *, unsigned int);
-    asio::awaitable<void> http2_send_writer(const std::string &msg);
-    asio::awaitable<void> http2_send_writer(const unsigned char *, unsigned int);
+
+    // asio::awaitable<void> http2_send_writer(const std::string &msg);
+    // asio::awaitable<void> http2_send_writer(const unsigned char *, unsigned int);
+    // void http2_pool_send_data(const unsigned char *, unsigned int);
+    // void http2_pool_send_data(const std::string &msg);
+
+    asio::awaitable<void> http2_send_writer(std::string_view msg);
+    void http2_pool_send_data(std::string_view msg);
 
     asio::awaitable<void> http2_send_data_loop_co();
 
@@ -136,10 +144,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     unsigned int _write_size  = 0;
     std::atomic_bool sendtype = false;
 
-    bool isssl   = false;
-    bool isgoway = false;
-    bool isclose = false;
-
+    bool isssl                = false;
+    bool isgoway              = false;
+    bool isclose              = false;
+    bool sendother            = false;
     unsigned char error_state = 0;
 
     unsigned char httpv   = 0;
@@ -153,13 +161,13 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::string client_ip;
     unsigned int client_port;
     unsigned int server_port;
-    std::string error_value;
+    // std::string error_value;
 
     std::list<std::future<int>> _cache_send_results;
     std::promise<int> _cache_send_promise;
 
-    std::queue<filesend_promise> sendfile_promise_list;     // wait sendfile
-    std::map<unsigned, send_file_promise> peer_promise_list;// peer wait promise
+    // std::queue<filesend_promise> sendfile_promise_list;     // wait sendfile
+    // std::map<unsigned, send_file_promise> peer_promise_list;// peer wait promise
 
     std::atomic<unsigned long long> window_update_num;
 
@@ -169,7 +177,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::list<std::future<int>> window_update_results;
     std::promise<int> window_update_promise;
 
-    std::queue<std::string> setting_lists;
+    std::queue<std::string_view> setting_lists;
+    std::string other_msg;
+
+    //std::mutex queue_mutex;
 };
 }// namespace http
 

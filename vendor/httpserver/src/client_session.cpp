@@ -137,22 +137,24 @@ bool client_session::send_setting()
     try
     {
         unsigned char _setting[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
-
-        // if (isssl)
-        // {
-        //     asio::write(_sslsocket.front(), asio::buffer(_setting, 21));
-        // }
-        // else
-        // {
-        //     asio::write(_socket.front(), asio::buffer(_setting, 21));
-        // }
-        std::string msg((char *)_setting, 21);//= {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
-        //msg.append((char *)_setting, 21);
-        setting_lists.push(std::move(msg));
         if (!sendtype)
         {
-            http2_send_data_loop();
+            if (isssl)
+            {
+                asio::write(_sslsocket.front(), asio::buffer(_setting, 21));
+            }
+            else
+            {
+                asio::write(_socket.front(), asio::buffer(_setting, 21));
+            }
         }
+        else
+        {
+            other_msg.append((char *)_setting, 21);
+            sendother = true;
+        }
+        //setting_lists.append((char *)_setting, 21);
+
         return true;
     }
     catch (std::exception &)
@@ -196,14 +198,25 @@ bool client_session::send_enddata(unsigned int s_stream_id)
         _recvack[6]              = s_stream_id & 0xFF;
         s_stream_id              = s_stream_id >> 8;
         _recvack[5]              = s_stream_id & 0x7F;
-        if (isssl)
+
+        if (!sendtype)
         {
-            asio::write(_sslsocket.front(), asio::buffer(_recvack, 9));
+            if (isssl)
+            {
+                asio::write(_sslsocket.front(), asio::buffer(_recvack, 9));
+            }
+            else
+            {
+                asio::write(_socket.front(), asio::buffer(_recvack, 9));
+            }
         }
         else
         {
-            asio::write(_socket.front(), asio::buffer(_recvack, 9));
+            other_msg.append((char *)_recvack, 9);
+            sendother = true;
         }
+        //setting_lists.append((char *)_recvack, 9);
+
         return true;
     }
     catch (std::exception &)
@@ -224,23 +237,25 @@ asio::awaitable<void> client_session::co_send_enddata(unsigned int s_stream_id)
         _recvack[6]              = s_stream_id & 0xFF;
         s_stream_id              = s_stream_id >> 8;
         _recvack[5]              = s_stream_id & 0x7F;
-        // if (isssl)
-        // {
 
-        //     co_await asio::async_write(_sslsocket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
-        // }
-        // else
-        // {
-
-        //     co_await asio::async_write(_socket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
-        // }
-        std::string msg((char *)_recvack, 9);// = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
-        //msg.append((char *)_recvack, 9);
-        setting_lists.push(std::move(msg));
         if (!sendtype)
         {
-            co_await http2_send_data_loop_co();
+            if (isssl)
+            {
+                co_await asio::async_write(_sslsocket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
+            }
+            else
+            {
+
+                co_await asio::async_write(_socket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
+            }
         }
+        else
+        {
+            other_msg.append((char *)_recvack, 9);
+            sendother = true;
+        }
+        //setting_lists.append((char *)_recvack, 9);
         co_return;
     }
     catch (std::exception &)
@@ -256,21 +271,23 @@ bool client_session::send_goway()
     {
         unsigned char _recvack[] =
             {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-        // if (isssl)
-        // {
-        //     asio::write(_sslsocket.front(), asio::buffer(_recvack, 17));
-        // }
-        // else
-        // {
-        //     asio::write(_socket.front(), asio::buffer(_recvack, 17));
-        // }
-        std::string msg((char *)_recvack, 17);
-        //msg.append((char *)_recvack, 17);
-        setting_lists.push(std::move(msg));
         if (!sendtype)
         {
-            http2_send_data_loop();
+            if (isssl)
+            {
+                asio::write(_sslsocket.front(), asio::buffer(_recvack, 17));
+            }
+            else
+            {
+                asio::write(_socket.front(), asio::buffer(_recvack, 17));
+            }
         }
+        else
+        {
+            other_msg.append((char *)_recvack, 17);
+            sendother = true;
+        }
+        //setting_lists.append((char *)_recvack, 17);
         return true;
     }
     catch (std::exception &)
@@ -284,13 +301,22 @@ bool client_session::send_recv_setting()
     try
     {
         unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
-        if (isssl)
+
+        if (!sendtype)
         {
-            asio::write(_sslsocket.front(), asio::buffer(_recvack, 9));
+            if (isssl)
+            {
+                asio::write(_sslsocket.front(), asio::buffer(_recvack, 9));
+            }
+            else
+            {
+                asio::write(_socket.front(), asio::buffer(_recvack, 9));
+            }
         }
         else
         {
-            asio::write(_socket.front(), asio::buffer(_recvack, 9));
+            other_msg.append((char *)_recvack, 9);
+            sendother = true;
         }
         return true;
     }
@@ -311,14 +337,23 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    std::string msg;
-    msg.resize(13);
-    for (int i = 0; i < 13; i++)
+    if (!sendtype)
     {
-        msg[i] = _recvack[i];
+        if (isssl)
+        {
+            asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+        }
+        else
+        {
+            asio::write(_socket.front(), asio::buffer(_recvack, 13));
+        }
     }
-    //send_data(msg);
-    setting_lists.push(msg);
+    else
+    {
+        other_msg.append((char *)_recvack, 13);
+        sendother = true;
+    }
+    //setting_lists.append((char *)_recvack, 13);
 
     _recvack[8] = stmid & 0xFF;
     stmid       = stmid >> 8;
@@ -328,16 +363,22 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
     stmid       = stmid >> 8;
     _recvack[5] = stmid & 0xFF;
 
-    msg.clear();
-    for (int i = 0; i < 13; i++)
-    {
-        msg[i] = _recvack[i];
-    }
-    //send_data(msg);
-    setting_lists.push(msg);
+    //setting_lists.append((char *)_recvack, 13);
     if (!sendtype)
     {
-        http2_send_data_loop();
+        if (isssl)
+        {
+            asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+        }
+        else
+        {
+            asio::write(_socket.front(), asio::buffer(_recvack, 13));
+        }
+    }
+    else
+    {
+        other_msg.append((char *)_recvack, 13);
+        sendother = true;
     }
 }
 void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
@@ -352,12 +393,12 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    std::string msg;
-    msg.resize(13);
-    for (int i = 0; i < 13; i++)
-    {
-        msg[i] = _recvack[i];
-    }
+    // std::string msg;
+    // msg.resize(13);
+    // for (int i = 0; i < 13; i++)
+    // {
+    //     msg[i] = _recvack[i];
+    // }
 
     _recvack[8] = stmid & 0xFF;
     stmid       = stmid >> 8;
@@ -366,18 +407,21 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
     _recvack[6] = stmid & 0xFF;
     stmid       = stmid >> 8;
     _recvack[5] = stmid & 0xFF;
-
-    // msg.resize(13);
-    for (int i = 0; i < 13; i++)
-    {
-        msg.push_back(_recvack[i]);
-    }
-
-    //send_data(msg);
-    setting_lists.push(msg);
     if (!sendtype)
     {
-        http2_send_data_loop();
+        if (isssl)
+        {
+            asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+        }
+        else
+        {
+            asio::write(_socket.front(), asio::buffer(_recvack, 13));
+        }
+    }
+    else
+    {
+        other_msg.append((char *)_recvack, 13);
+        sendother = true;
     }
 }
 
@@ -419,19 +463,25 @@ bool client_session::send_data(const unsigned char *buffer, unsigned int buffers
         return false;
     }
 }
-void client_session::http2_send_data(const unsigned char *buffer, unsigned int buffersize)
+// void client_session::http2_send_data(const unsigned char *buffer, unsigned int buffersize)
+// {
+//     // std::string msg;
+//     // msg.append((char *)buffer, buffersize);
+//     // std::unique_lock<std::mutex> lock(queue_mutex);
+//     // setting_lists.push(std::move(msg));
+//     // lock.unlock();
+
+//     if (!sendtype)
+//     {
+//         http2_send_data_loop();
+//     }
+// }
+void client_session::http2_send_data(std::string_view msg)
 {
-    std::string msg;
-    msg.append((char *)buffer, buffersize);
-    setting_lists.push(std::move(msg));
-    if (!sendtype)
-    {
-        http2_send_data_loop();
-    }
-}
-void client_session::http2_send_data(const std::string &msg)
-{
+    // std::unique_lock<std::mutex> lock(queue_mutex);
     setting_lists.push(msg);
+    // lock.unlock();
+
     if (!sendtype)
     {
         http2_send_data_loop();
@@ -445,31 +495,25 @@ void client_session::http2_send_data_loop()
         {
             if (setting_lists.size() > 0)
             {
-                sendtype    = true;
+                if (sendtype)
+                {
+                    return;
+                }
+                else
+                {
+                    sendtype = true;
+                }
                 auto buffer = std::move(setting_lists.front());
                 setting_lists.pop();
                 if (isssl)
                 {
-                    if (_sslsocket.front().lowest_layer().is_open())
-                    {
-                        asio::write(_sslsocket.front(), asio::buffer(buffer));
-                    }
-                    else
-                    {
-                        return;
-                    }
+                    asio::write(_sslsocket.front(), asio::buffer(buffer));
                 }
                 else
                 {
-                    if (_socket.front().is_open())
-                    {
-                        asio::write(_socket.front(), asio::buffer(buffer));
-                    }
-                    else
-                    {
-                        return;
-                    }
+                    asio::write(_socket.front(), asio::buffer(buffer));
                 }
+                sendtype = false;
             }
             else
             {
@@ -480,6 +524,7 @@ void client_session::http2_send_data_loop()
     }
     catch (const std::exception &e)
     {
+        stop();
     }
 }
 asio::awaitable<void> client_session::http2_send_data_loop_co()
@@ -490,31 +535,29 @@ asio::awaitable<void> client_session::http2_send_data_loop_co()
         {
             if (setting_lists.size() > 0)
             {
-                sendtype    = true;
+
+                if (sendtype)
+                {
+                    // std::unique_lock<std::mutex> lock(queue_mutex);
+                    // setting_lists.push(std::move(buffer));
+                    // lock.unlock();
+                    co_return;
+                }
+                else
+                {
+                    sendtype = true;
+                }
                 auto buffer = std::move(setting_lists.front());
                 setting_lists.pop();
                 if (isssl)
                 {
-                    if (_sslsocket.front().lowest_layer().is_open())
-                    {
-                        asio::write(_sslsocket.front(), asio::buffer(buffer));
-                    }
-                    else
-                    {
-                        co_return;
-                    }
+                    co_await asio::async_write(_sslsocket.front(), asio::buffer(buffer), asio::use_awaitable);
                 }
                 else
                 {
-                    if (_socket.front().is_open())
-                    {
-                        asio::write(_socket.front(), asio::buffer(buffer));
-                    }
-                    else
-                    {
-                        co_return;
-                    }
+                    co_await asio::async_write(_socket.front(), asio::buffer(buffer), asio::use_awaitable);
                 }
+                sendtype = false;
             }
             else
             {
@@ -525,6 +568,7 @@ asio::awaitable<void> client_session::http2_send_data_loop_co()
     }
     catch (const std::exception &e)
     {
+        stop();
     }
     co_return;
 }
@@ -552,60 +596,71 @@ asio::awaitable<void> client_session::loopwriter(const unsigned char *buffer, un
     }
 }
 
-asio::awaitable<void> client_session::http2_send_writer(const unsigned char *buffer, unsigned int buffersize)
-{
-    if (isclose)
-    {
-        co_return;
-    }
-    try
-    {
-        if (buffersize == 0)
-        {
-            co_return;
-        }
-        if (sendtype)
-        {
-            std::string msg((char *)buffer, buffersize);
-            //msg.append(buffer, buffersize);
-            setting_lists.push(std::move(msg));
-            if (!sendtype)
-            {
-                co_await http2_send_data_loop_co();
-            }
-            co_return;
-        }
-        if (isssl)
-        {
-            sendtype = true;
-            co_await asio::async_write(_sslsocket.front(), asio::buffer(buffer, buffersize), asio::use_awaitable);
-            sendtype = false;
-            if (!setting_lists.empty())
-            {
-                co_await http2_send_data_loop_co();
-            }
-            co_return;
-        }
-        else
-        {
-            sendtype = true;
-            co_await asio::async_write(_socket.front(), asio::buffer(buffer, buffersize), asio::use_awaitable);
-            sendtype = false;
-            if (!setting_lists.empty())
-            {
-                co_await http2_send_data_loop_co();
-            }
-            co_return;
-        }
-    }
-    catch (...)
-    {
-        stop();
-    }
-    co_return;
-}
+// asio::awaitable<void> client_session::http2_send_writer(const unsigned char *buffer, unsigned int buffersize)
+// {
+//     if (isclose)
+//     {
+//         co_return;
+//     }
+//     try
+//     {
+//         if (buffersize == 0)
+//         {
+//             co_return;
+//         }
+//         if (sendtype)
+//         {
+//             //setting_lists.append((char *)buffer, buffersize);
+//             if (sendbuffer1)
+//             {
+//                 lists2.append((char *)buffer, buffersize);
+//             }
+//             else
+//             {
+//                 lists1.append((char *)buffer, buffersize);
+//             }
+//             // std::string msg((char *)buffer, buffersize);
+//             // //msg.append(buffer, buffersize);
+//             // std::unique_lock<std::mutex> lock(queue_mutex);
+//             // setting_lists.push(std::move(msg));
+//             // lock.unlock();
+//             // if (!sendtype)
+//             // {
+//             //     co_await http2_send_data_loop_co();
+//             // }
+//             co_return;
+//         }
+//         if (isssl)
+//         {
+//             sendtype = true;
+//             co_await asio::async_write(_sslsocket.front(), asio::buffer(buffer, buffersize), asio::use_awaitable);
+//             sendtype = false;
+//             if (lists1.size() > 0 || lists2.size() > 0)
+//             {
+//                 co_await http2_send_data_loop_co();
+//             }
+//             co_return;
+//         }
+//         else
+//         {
+//             sendtype = true;
+//             co_await asio::async_write(_socket.front(), asio::buffer(buffer, buffersize), asio::use_awaitable);
+//             sendtype = false;
+//             if (lists1.size() > 0 || lists2.size() > 0)
+//             {
+//                 co_await http2_send_data_loop_co();
+//             }
+//             co_return;
+//         }
+//     }
+//     catch (...)
+//     {
+//         stop();
+//     }
+//     co_return;
+// }
 
-asio::awaitable<void> client_session::http2_send_writer(const std::string &msg)
+asio::awaitable<void> client_session::http2_send_writer(std::string_view msg)
 {
     if (isclose)
     {
@@ -621,10 +676,6 @@ asio::awaitable<void> client_session::http2_send_writer(const std::string &msg)
         if (sendtype)
         {
             setting_lists.push(msg);
-            if (!sendtype)
-            {
-                co_await http2_send_data_loop_co();
-            }
             co_return;
         }
 
@@ -632,8 +683,14 @@ asio::awaitable<void> client_session::http2_send_writer(const std::string &msg)
         {
             sendtype = true;
             co_await asio::async_write(_sslsocket.front(), asio::buffer(msg), asio::use_awaitable);
+            if (sendother)
+            {
+                co_await asio::async_write(_sslsocket.front(), asio::buffer(other_msg), asio::use_awaitable);
+                other_msg.clear();
+                sendother = false;
+            }
             sendtype = false;
-            if (!setting_lists.empty())
+            if (setting_lists.size() > 0)
             {
                 co_await http2_send_data_loop_co();
             }
@@ -643,8 +700,14 @@ asio::awaitable<void> client_session::http2_send_writer(const std::string &msg)
         {
             sendtype = true;
             co_await asio::async_write(_socket.front(), asio::buffer(msg), asio::use_awaitable);
+            if (sendother)
+            {
+                co_await asio::async_write(_socket.front(), asio::buffer(other_msg), asio::use_awaitable);
+                other_msg.clear();
+                sendother = false;
+            }
             sendtype = false;
-            if (!setting_lists.empty())
+            if (setting_lists.size() > 0)
             {
                 co_await http2_send_data_loop_co();
             }
@@ -656,6 +719,131 @@ asio::awaitable<void> client_session::http2_send_writer(const std::string &msg)
         stop();
     }
     co_return;
+}
+
+// void client_session::http2_pool_send_data(const unsigned char *buffer, unsigned int buffersize)
+// {
+//     if (isclose)
+//     {
+//         return;
+//     }
+//     try
+//     {
+//         if (buffersize == 0)
+//         {
+//             return;
+//         }
+//         if (sendtype)
+//         {
+//             // std::string msg((char *)buffer, buffersize);
+//             // //msg.append(buffer, buffersize);
+//             // std::unique_lock<std::mutex> lock(queue_mutex);
+//             // setting_lists.push(std::move(msg));
+//             // lock.unlock();
+//             //setting_lists.append((char *)buffer, buffersize);
+//             if (sendbuffer1)
+//             {
+//                 lists2.append((char *)buffer, buffersize);
+//             }
+//             else
+//             {
+//                 lists1.append((char *)buffer, buffersize);
+//             }
+//             // if (!sendtype)
+//             // {
+//             //     http2_send_data_loop();
+//             // }
+//             return;
+//         }
+//         if (isssl)
+//         {
+//             sendtype = true;
+//             asio::write(_sslsocket.front(), asio::buffer(buffer, buffersize));
+//             sendtype = false;
+//             if (lists1.size() > 0 || lists2.size() > 0)
+//             {
+//                 http2_send_data_loop();
+//             }
+//             return;
+//         }
+//         else
+//         {
+//             sendtype = true;
+//             asio::write(_socket.front(), asio::buffer(buffer, buffersize));
+//             sendtype = false;
+//             if (lists1.size() > 0 || lists2.size() > 0)
+//             {
+//                 http2_send_data_loop();
+//             }
+//             return;
+//         }
+//     }
+//     catch (...)
+//     {
+//         stop();
+//     }
+//     return;
+// }
+
+void client_session::http2_pool_send_data(std::string_view msg)
+{
+    if (isclose)
+    {
+        return;
+    }
+    try
+    {
+        if (msg.size() == 0)
+        {
+            return;
+        }
+
+        if (sendtype)
+        {
+            setting_lists.push(msg);
+            return;
+        }
+
+        if (isssl)
+        {
+            sendtype = true;
+            asio::write(_sslsocket.front(), asio::buffer(msg));
+            if (sendother)
+            {
+                asio::write(_sslsocket.front(), asio::buffer(other_msg));
+                other_msg.clear();
+                sendother = false;
+            }
+            sendtype = false;
+            if (setting_lists.size() > 0)
+            {
+                http2_send_data_loop();
+            }
+            return;
+        }
+        else
+        {
+            sendtype = true;
+            asio::write(_socket.front(), asio::buffer(msg));
+            if (sendother)
+            {
+                asio::write(_socket.front(), asio::buffer(other_msg));
+                other_msg.clear();
+                sendother = false;
+            }
+            sendtype = false;
+            if (setting_lists.size() > 0)
+            {
+                http2_send_data_loop();
+            }
+            return;
+        }
+    }
+    catch (...)
+    {
+        stop();
+    }
+    return;
 }
 
 asio::awaitable<void> client_session::send_writer(const unsigned char *buffer, unsigned int buffersize)

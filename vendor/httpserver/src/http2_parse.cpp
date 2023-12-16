@@ -2244,7 +2244,7 @@ void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
     processheader = 0;
     readoffset += blocklength;
     //peer_session->send_data(_recvack, 17);
-    peer_session->http2_send_data(_recvack, 17);
+    peer_session->http2_send_data(std::string_view((char *)_recvack, 17));
 }
 void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
