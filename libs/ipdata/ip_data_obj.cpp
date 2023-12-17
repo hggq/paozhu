@@ -156,8 +156,12 @@ unsigned int ip_data_obj::ip2long(const std::string &ipsearch)
     if(ipsearch.size()>0)
     {   
         unsigned char tempip=0;
-        ip=0;
-        for(unsigned int i=0;i<ipsearch.size();i++)
+        unsigned char p_num=ipsearch.size();
+        if(p_num>17)
+        { 
+            p_num=18;
+        }
+        for(unsigned int i=0;i<p_num;i++)
         {
             if(ipsearch[i]=='.')
             {
@@ -165,13 +169,9 @@ unsigned int ip_data_obj::ip2long(const std::string &ipsearch)
                 tempip=0;
                 continue;
             }
-            if (ipsearch[i]< 0x3A && ipsearch[i] > 0x2F)
+            if(ipsearch[i]< 0x3A && ipsearch[i] > 0x2F)
             {
                 tempip=tempip*10+(ipsearch[i]-'0');
-            }
-            if(i>17)
-            { 
-                break;
             }
         }
         ip=ip<<8|tempip;
@@ -182,6 +182,7 @@ unsigned int ip_data_obj::ip2long(const std::string &ipsearch)
  
 std::string ip_data_obj::search(const std::string &ipsearch,bool iscity)
 {
+    ip=0;
     std::string temptext;
     if(ip2long(ipsearch)==0)
     {
