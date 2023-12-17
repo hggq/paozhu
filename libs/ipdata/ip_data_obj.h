@@ -2,6 +2,7 @@
 #include<string>
 #include<vector>
 #include<map>
+#include<memory>
 #include<utility>
 
 namespace http
@@ -22,11 +23,12 @@ class ip_data_obj
         void dichotomy_search(unsigned int a,unsigned int b);
     public:
     unsigned int ip;
+    unsigned int ipdatasize=0;
     unsigned short result;
     std::vector<std::string> citylists;
     std::vector<std::string> provincelists;
     std::vector<std::string> countrylists;
-    std::vector<ipdata_area_t> ipdatalist;
+    std::unique_ptr<ipdata_area_t[]> ipdatalist;
 };
 
 ip_data_obj &get_ip_data_obj();

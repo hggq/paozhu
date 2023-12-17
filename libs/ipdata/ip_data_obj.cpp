@@ -41,16 +41,15 @@ void ip_data_obj::init()
     fread(&htmlcontent[0], 1, 8, fp.get());
 
     unsigned int header_size; 
-    unsigned int body_size; 
     header_size=(unsigned char)htmlcontent[0]<<24;
     header_size=header_size|(unsigned char)htmlcontent[1]<<16;
     header_size=header_size|(unsigned char)htmlcontent[2]<<8;
     header_size=header_size|(unsigned char)htmlcontent[3];
 
-    body_size=(unsigned char)htmlcontent[4]<<24;
-    body_size=body_size|(unsigned char)htmlcontent[5]<<16;
-    body_size=body_size|(unsigned char)htmlcontent[6]<<8;
-    body_size=body_size|(unsigned char)htmlcontent[7];
+    ipdatasize=(unsigned char)htmlcontent[4]<<24;
+    ipdatasize=ipdatasize|(unsigned char)htmlcontent[5]<<16;
+    ipdatasize=ipdatasize|(unsigned char)htmlcontent[6]<<8;
+    ipdatasize=ipdatasize|(unsigned char)htmlcontent[7];
 
     if(file_size<header_size)
     {
@@ -124,15 +123,13 @@ void ip_data_obj::init()
     htmlcontent.clear();
     htmlcontent.resize(10);
 
-    if(file_size<(header_size+body_size*10))
+    if(file_size<(header_size+ipdatasize*10))
     {
+        ipdatasize=0;
         return;
     }
-
-    ipdatalist.resize(body_size);
-
-    
-    for(unsigned int kj=0;kj<body_size;kj++)
+    ipdatalist =std::make_unique<ipdata_area_t[]>(ipdatasize);
+    for(unsigned int kj=0;kj<ipdatasize;kj++)
     {
         fread(&htmlcontent[0], 1, 10, fp.get());
         unsigned a;
@@ -190,16 +187,16 @@ std::string ip_data_obj::search(const std::string &ipsearch,bool iscity)
     {
         return temptext;
     }
-    if(ipdatalist.size()==0)
+    if(ipdatasize==0)
     {
         init();
-        if(ipdatalist.size()==0)
+        if(ipdatasize==0)
         {
             return temptext;
         }
     }
     result=0xFFFF;
-    dichotomy_search(0,ipdatalist.size());
+    dichotomy_search(0,ipdatasize);
     if(result!=0xFFFF)
     {
         if(result>=0x8000)
