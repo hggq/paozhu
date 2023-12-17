@@ -31,6 +31,7 @@
 #include "testormclient.h"
 #include "testcommit.h"
 #include "apicrudtest.h"
+#include "testipsearch.h"
 #include "testcowaitclient.h"
 #include "testcors.h"
 #include "testsqltuple.h"
@@ -251,6 +252,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = pxapipagesdepartlist;
 		methodcallback.emplace("api/departments/deletedep",temp);
+		temp.pre = nullptr;
+		temp.regfun = testipsearch;
+		methodcallback.emplace("testipsearch",temp);
+		temp.pre = nullptr;
+		temp.regfun = testipsearchget;
+		methodcallback.emplace("ipsearchget",temp);
 		temp.pre = nullptr;
 		temp.regfun = testhttpclient_cowait_php;
 		methodcallback.emplace("testcowaitclient4",temp);
