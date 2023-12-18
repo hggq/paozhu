@@ -178,7 +178,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     // std::list<std::future<int>> window_update_results;
     // std::promise<int> window_update_promise;
 
-    std::queue<std::string_view> setting_lists;
+    std::queue<std::string> setting_lists;
     std::string other_msg;
 };
 }// namespace http

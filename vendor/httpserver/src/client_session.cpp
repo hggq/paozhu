@@ -154,6 +154,10 @@ bool client_session::send_setting()
                 asio::write(_socket.front(), asio::buffer(_setting, 21));
             }
             sendtype = false;
+            if (setting_lists.size() > 0)
+            {
+                http2_send_data_loop();
+            }
         }
         //setting_lists.append((char *)_setting, 21);
 
@@ -183,7 +187,10 @@ asio::awaitable<void> client_session::co_send_setting()
             co_await asio::async_write(_socket.front(), asio::buffer(_setting, 21), asio::use_awaitable);
         }
         sendtype = false;
-
+        if (setting_lists.size() > 0)
+        {
+            co_await http2_send_data_loop_co();
+        }
         co_return;
     }
     catch (std::exception &)
@@ -222,6 +229,10 @@ bool client_session::send_enddata(unsigned int s_stream_id)
                 asio::write(_socket.front(), asio::buffer(_recvack, 9));
             }
             sendtype = false;
+            if (setting_lists.size() > 0)
+            {
+                http2_send_data_loop();
+            }
         }
         //setting_lists.append((char *)_recvack, 9);
 
@@ -265,6 +276,10 @@ asio::awaitable<void> client_session::co_send_enddata(unsigned int s_stream_id)
                 co_await asio::async_write(_socket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
             }
             sendtype = false;
+            if (setting_lists.size() > 0)
+            {
+                co_await http2_send_data_loop_co();
+            }
         }
         //setting_lists.append((char *)_recvack, 9);
         co_return;
@@ -300,6 +315,10 @@ bool client_session::send_goway()
                 asio::write(_socket.front(), asio::buffer(_recvack, 17));
             }
             sendtype = false;
+            if (setting_lists.size() > 0)
+            {
+                http2_send_data_loop();
+            }
         }
         //setting_lists.append((char *)_recvack, 17);
         return true;
@@ -334,6 +353,10 @@ bool client_session::send_recv_setting()
                 asio::write(_socket.front(), asio::buffer(_recvack, 9));
             }
             sendtype = false;
+            if (setting_lists.size() > 0)
+            {
+                http2_send_data_loop();
+            }
         }
         return true;
     }
@@ -372,6 +395,10 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
             asio::write(_socket.front(), asio::buffer(_recvack, 13));
         }
         sendtype = false;
+        if (setting_lists.size() > 0)
+        {
+            http2_send_data_loop();
+        }
     }
     //setting_lists.append((char *)_recvack, 13);
 
@@ -401,6 +428,10 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
             asio::write(_socket.front(), asio::buffer(_recvack, 13));
         }
         sendtype = false;
+        if (setting_lists.size() > 0)
+        {
+            http2_send_data_loop();
+        }
     }
 }
 void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
@@ -439,6 +470,10 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
             asio::write(_socket.front(), asio::buffer(_recvack, 13));
         }
         sendtype = false;
+        if (setting_lists.size() > 0)
+        {
+            http2_send_data_loop();
+        }
     }
 }
 
@@ -495,7 +530,7 @@ bool client_session::send_data(const unsigned char *buffer, unsigned int buffers
 // }
 void client_session::http2_send_data(std::string_view msg)
 {
-    setting_lists.push(msg);
+    setting_lists.push(std::string{msg});
     if (!sendtype)
     {
         http2_send_data_loop();
@@ -686,7 +721,7 @@ asio::awaitable<void> client_session::http2_send_writer(std::string_view msg)
 
         if (sendtype)
         {
-            setting_lists.push(msg);
+            setting_lists.push(std::string{msg});
             co_return;
         }
 
@@ -811,7 +846,7 @@ void client_session::http2_pool_send_data(std::string_view msg)
 
         if (sendtype)
         {
-            setting_lists.push(msg);
+            setting_lists.push(std::string{msg});
             return;
         }
 
