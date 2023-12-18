@@ -58,6 +58,17 @@ void add_server_timetask(std::size_t keyname, std::shared_ptr<httppeer> peer)
 {
     get_server_app().clientlooptasks.push_back({keyname, peer});
 }
+
+asio::awaitable<size_t> httpserver::co_http2_wait_window_update(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
+{
+    auto initiate = [](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
+                       std::shared_ptr<httppeer> peer) mutable
+    {
+        peer->socket_session->user_code_handler_call.push_back(std::move(handler));
+    };
+    return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
+}
+
 asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
 {
     std::string _send_header;
@@ -328,26 +339,11 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
             co_await peer->socket_session->http2_send_writer(std::string_view((char *)send_cache->data, per_size + 9));
             peer->socket_session->window_update_num -= per_size;
             //totalsend_num += per_size;
-            if (peer->socket_session->window_update_num < 8192)
+            if (peer->socket_session->window_update_num < 10)
             {
                 DEBUG_LOG("--- wait window_update_num --------");
-                std::promise<int> p;
-                std::future<int> f{p.get_future()};
-
-                peer->window_update_results.emplace_back(std::move(f));
-                peer->window_update_promise = std::move(p);
-                peer->window_update_bool    = true;
-                peer->socket_session->promise_list.emplace_back(peer->stream_id);
-                try
-                {
-                    peer->window_update_results.front().get();
-                    peer->window_update_results.pop_front();
-                    DEBUG_LOG("--- from window_update_num --------");
-                }
-                catch (const std::exception &e)
-                {
-                    // peer->window_update_results.clear();
-                }
+                peer->socket_session->atomic_bool = true;
+                co_await co_http2_wait_window_update(peer);
             }
 
             if (file_size > 10485760)
@@ -774,24 +770,11 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
 
             peer->socket_session->window_update_num -= per_size;
             //totalsend_num += per_size;
-            if (peer->socket_session->window_update_num < 8192)
+            if (peer->socket_session->window_update_num < 10)
             {
-                std::promise<int> p;
-                std::future<int> f{p.get_future()};
-
-                peer->window_update_results.emplace_back(std::move(f));
-                peer->window_update_promise = std::move(p);
-                peer->window_update_bool    = true;
-                peer->socket_session->promise_list.emplace_back(peer->stream_id);
-                try
-                {
-                    peer->window_update_results.front().get();
-                    peer->window_update_results.pop_front();
-                }
-                catch (const std::exception &e)
-                {
-                    break;
-                }
+                DEBUG_LOG("--- wait window_update_num --------");
+                peer->socket_session->atomic_bool = true;
+                co_await co_http2_wait_window_update(peer);
             }
 
             if (file_size > 10485760)
@@ -1195,24 +1178,12 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
 
             peer->socket_session->window_update_num -= per_size;
             //totalsend_num += per_size;
-            if (peer->socket_session->window_update_num < 8192)
+            if (peer->socket_session->window_update_num < 10)
             {
-                std::promise<int> p;
-                std::future<int> f{p.get_future()};
-
-                peer->window_update_results.emplace_back(std::move(f));
-                peer->window_update_promise = std::move(p);
-                peer->window_update_bool    = true;
-                peer->socket_session->promise_list.emplace_back(peer->stream_id);
-                try
-                {
-                    peer->window_update_results.front().get();
-                    peer->window_update_results.pop_front();
-                }
-                catch (const std::exception &e)
-                {
-                    break;
-                }
+                DEBUG_LOG("--- wait window_update_num --------");
+                // peer->socket_session->atomic_bool = true;
+                // co_await co_http2_wait_window_update(peer);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
 
             if (file_size > 10485760)
@@ -1329,24 +1300,11 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
             co_return;
         }
 
-        if (peer->socket_session->window_update_num < 8192)
+        if (peer->socket_session->window_update_num < 10)
         {
-
-            std::promise<int> p;
-            std::future<int> f{p.get_future()};
-
-            peer->window_update_results.emplace_back(std::move(f));
-            peer->window_update_promise = std::move(p);
-            peer->window_update_bool    = true;
-            peer->socket_session->promise_list.emplace_back(peer->stream_id);
-            try
-            {
-                peer->window_update_results.front().get();
-                peer->window_update_results.clear();
-            }
-            catch (const std::exception &e)
-            {
-            }
+            DEBUG_LOG("--- wait window_update_num --------");
+            peer->socket_session->atomic_bool = true;
+            co_await co_http2_wait_window_update(peer);
         }
 
         // peer_session->window_update_num -= ii;
@@ -1453,24 +1411,12 @@ bool httpserver::http2_send_body(std::shared_ptr<httppeer> peer, const unsigned 
             return true;
         }
 
-        if (peer->socket_session->window_update_num < 8192)
+        if (peer->socket_session->window_update_num < 10)
         {
-
-            std::promise<int> p;
-            std::future<int> f{p.get_future()};
-
-            peer->window_update_results.emplace_back(std::move(f));
-            peer->window_update_promise = std::move(p);
-            peer->window_update_bool    = true;
-            peer->socket_session->promise_list.emplace_back(peer->stream_id);
-            try
-            {
-                peer->window_update_results.front().get();
-                peer->window_update_results.clear();
-            }
-            catch (const std::exception &e)
-            {
-            }
+            // DEBUG_LOG("--- wait window_update_num --------");
+            // peer->socket_session->atomic_bool = true;
+            // co_await co_http2_wait_window_update(peer);
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
         // peer_session->window_update_num -= ii;
@@ -1897,7 +1843,7 @@ void httpserver::http2send_filedata(struct http2sendblock_t &http2_ff_send)
         http2_ff_send.isfinish = true;
         return;
     }
-    if (http2_ff_send.peer->socket_session->window_update_num == 0)
+    if (http2_ff_send.peer->socket_session->window_update_num < 10)
     {
         return;
     }

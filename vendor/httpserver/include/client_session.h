@@ -71,19 +71,19 @@
 namespace http
 {
 
-struct filesend_promise
-{
-    std::string filename;
-    long long begin_num    = 0;
-    long long end_num      = 0;
-    unsigned int stream_id = 0;
-    bool isfinish          = false;
-};
-struct send_file_promise
-{
-    std::future<int> send_results;
-    std::promise<int> send_promise;
-};
+// struct filesend_promise
+// {
+//     std::string filename;
+//     long long begin_num    = 0;
+//     long long end_num      = 0;
+//     unsigned int stream_id = 0;
+//     bool isfinish          = false;
+// };
+// struct send_file_promise
+// {
+//     std::future<int> send_results;
+//     std::promise<int> send_promise;
+// };
 class client_session : public std::enable_shared_from_this<client_session>
 {
   public:
@@ -163,19 +163,20 @@ class client_session : public std::enable_shared_from_this<client_session>
     unsigned int server_port;
     // std::string error_value;
 
-    std::list<std::future<int>> _cache_send_results;
-    std::promise<int> _cache_send_promise;
+    // std::list<std::future<int>> _cache_send_results;
+    // std::promise<int> _cache_send_promise;
 
     // std::queue<filesend_promise> sendfile_promise_list;     // wait sendfile
     // std::map<unsigned, send_file_promise> peer_promise_list;// peer wait promise
 
     std::atomic<unsigned long long> window_update_num;
-
-    std::list<int> promise_list;
-    // 等待划动窗口 atomic_uchar
     std::atomic_bool atomic_bool = false;
-    std::list<std::future<int>> window_update_results;
-    std::promise<int> window_update_promise;
+    std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
+    //std::list<int> promise_list;
+    // 等待划动窗口 atomic_uchar
+    // std::atomic_bool atomic_bool = false;
+    // std::list<std::future<int>> window_update_results;
+    // std::promise<int> window_update_promise;
 
     std::queue<std::string_view> setting_lists;
     std::string other_msg;

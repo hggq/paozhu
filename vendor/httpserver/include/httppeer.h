@@ -200,9 +200,9 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
     // 等待滑动窗口
-    std::atomic_bool window_update_bool = false;
-    std::list<std::future<int>> window_update_results;
-    std::promise<int> window_update_promise;
+    // std::atomic_bool window_update_bool = false;
+    // std::list<std::future<int>> window_update_results;
+    // std::promise<int> window_update_promise;
 };
 struct regmethold_t
 {

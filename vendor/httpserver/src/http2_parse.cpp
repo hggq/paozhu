@@ -256,11 +256,11 @@ void http2parse::headers_parse()
     }
     unsigned int begin = 0, header_end = setting_data.size();
     // peer_session->stream[block_steamid].content_length = 0;
-    http_data[block_steamid]->content_length     = 0;
-    http_data[block_steamid]->stream_id          = block_steamid;
-    http_data[block_steamid]->httpv              = 2;
-    http_data[block_steamid]->socket_session     = peer_session;
-    http_data[block_steamid]->window_update_bool = false;
+    http_data[block_steamid]->content_length = 0;
+    http_data[block_steamid]->stream_id      = block_steamid;
+    http_data[block_steamid]->httpv          = 2;
+    http_data[block_steamid]->socket_session = peer_session;
+    //http_data[block_steamid]->window_update_bool = false;
 
     ispost = false;
     HTTP2_HEADER_FLAG header_flags;
@@ -2214,7 +2214,19 @@ void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] uns
         try
         {
             peer_session->atomic_bool = false;
-            peer_session->window_update_promise.set_value(1);
+            //peer_session->window_update_promise.set_value(1);
+            if (peer_session->user_code_handler_call.size() > 0)
+            {
+                auto ex = asio::get_associated_executor(peer_session->user_code_handler_call.front());
+                asio::dispatch(ex,
+                               [handler = std::move(peer_session->user_code_handler_call.front())]() mutable -> void
+                               {
+                                   /////////////
+                                   handler(1);
+                                   //////////
+                               });
+                peer_session->user_code_handler_call.pop_front();
+            }
         }
         catch (const std::exception &e)
         {
