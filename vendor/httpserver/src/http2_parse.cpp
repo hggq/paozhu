@@ -2266,7 +2266,6 @@ void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[
     processheader = 0;
     if (http_data.contains(block_steamid))
     {
-
         http_data[block_steamid]->isclose = true;
     }
 }

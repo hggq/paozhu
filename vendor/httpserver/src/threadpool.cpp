@@ -392,7 +392,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
         if (regmethold_path.empty())
         {
             regmethold_path = "home";
-            if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
+            if (_http_regmethod_table.contains(regmethold_path))// != _http_regmethod_table.end()
             {
                 isfindpath = true;
             }
@@ -441,7 +441,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
             std::string sitecontent;
             for (int i = 0; i < 6; i++)
             {
-                if (i > 0 && _http_regmethod_table.find(regmethold_path) == _http_regmethod_table.end())
+                if (i > 0 && !_http_regmethod_table.contains(regmethold_path))// == _http_regmethod_table.end()
                 {
                     break;
                 }
@@ -462,7 +462,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                         if (sitecontent.size() == 1 && sitecontent[0] == 'T')
                         {
                             sitecontent = "frametasks_timeloop";
-                            if (_http_regmethod_table.find(sitecontent) != _http_regmethod_table.end())
+                            if (_http_regmethod_table.contains(sitecontent))// != _http_regmethod_table.end()
                             {
                                 sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
                             }
@@ -475,7 +475,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                         {
                             break;
                         }
-                        if (regmethold_path != sitecontent)
+                        if (regmethold_path.size() != sitecontent.size() || regmethold_path != sitecontent)
                         {
                             peer->push_path_method(regmethold_path);// record not execute method
                             if (method_alone.contains(sitecontent))
