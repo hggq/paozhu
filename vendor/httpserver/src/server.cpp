@@ -200,6 +200,7 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
 
         if ((mustnum - readnum) > 16877215)
         {
+            DEBUG_LOG("start thread to send ");
             struct http2sendblock_t temp_send_obj;
             temp_send_obj.filename   = peer->sendfilename;
             temp_send_obj.isfinish   = false;
@@ -1835,16 +1836,19 @@ void httpserver::http2send_filedata(struct http2sendblock_t &http2_ff_send)
     http2_ff_send.last_time = std::chrono::steady_clock::now();
     if (http2_ff_send.peer->isclose)
     {
+        DEBUG_LOG("http2send_filedata peer isclose");
         http2_ff_send.isfinish = true;
         return;
     }
     if (http2_ff_send.peer->socket_session->isclose)
     {
+        DEBUG_LOG("http2send_filedata socket_session isclose true");
         http2_ff_send.isfinish = true;
         return;
     }
     if (http2_ff_send.peer->socket_session->window_update_num < 10)
     {
+        DEBUG_LOG("http2send_filedata window_update_num less 10");
         return;
     }
     sendqueue &send_cache_list     = get_sendqueue();
@@ -1854,6 +1858,7 @@ void httpserver::http2send_filedata(struct http2sendblock_t &http2_ff_send)
         http2_ff_send.peer->socket_session->send_enddata(http2_ff_send.peer->stream_id);
         // http2_ff_send.peer->socket_session->send_goway();
         http2_ff_send.isfinish = true;
+        DEBUG_LOG("http2send_filedata send_enddata");
         return;
     }
     sendqueue_back unsetcahceback;

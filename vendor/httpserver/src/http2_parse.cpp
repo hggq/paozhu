@@ -189,6 +189,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                     peer->state.rangeend           = 0;
                     peer->keepalive                = false;
                     peer->issend                   = false;
+                    peer->isclose                  = false;
                     peer->send_header.clear();
                     peer->send_cookie_lists.clear();
                     peer->http2_send_header.clear();
@@ -2265,6 +2266,7 @@ void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[
     processheader = 0;
     if (http_data.contains(block_steamid))
     {
+
         http_data[block_steamid]->isclose = true;
     }
 }
