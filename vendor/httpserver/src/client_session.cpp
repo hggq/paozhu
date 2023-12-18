@@ -137,8 +137,14 @@ bool client_session::send_setting()
     try
     {
         unsigned char _setting[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
-        if (!sendtype)
+        if (sendtype)
         {
+            other_msg.append((char *)_setting, 21);
+            sendother = true;
+        }
+        else
+        {
+            sendtype = true;
             if (isssl)
             {
                 asio::write(_sslsocket.front(), asio::buffer(_setting, 21));
@@ -147,11 +153,7 @@ bool client_session::send_setting()
             {
                 asio::write(_socket.front(), asio::buffer(_setting, 21));
             }
-        }
-        else
-        {
-            other_msg.append((char *)_setting, 21);
-            sendother = true;
+            sendtype = false;
         }
         //setting_lists.append((char *)_setting, 21);
 
@@ -159,6 +161,7 @@ bool client_session::send_setting()
     }
     catch (std::exception &)
     {
+        sendtype = false;
         return false;
     }
 }
@@ -170,6 +173,7 @@ asio::awaitable<void> client_session::co_send_setting()
     {
         unsigned char _setting[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
 
+        sendtype = true;
         if (isssl)
         {
             co_await asio::async_write(_sslsocket.front(), asio::buffer(_setting, 21), asio::use_awaitable);
@@ -178,6 +182,8 @@ asio::awaitable<void> client_session::co_send_setting()
         {
             co_await asio::async_write(_socket.front(), asio::buffer(_setting, 21), asio::use_awaitable);
         }
+        sendtype = false;
+
         co_return;
     }
     catch (std::exception &)
@@ -199,8 +205,14 @@ bool client_session::send_enddata(unsigned int s_stream_id)
         s_stream_id              = s_stream_id >> 8;
         _recvack[5]              = s_stream_id & 0x7F;
 
-        if (!sendtype)
+        if (sendtype)
         {
+            other_msg.append((char *)_recvack, 9);
+            sendother = true;
+        }
+        else
+        {
+            sendtype = true;
             if (isssl)
             {
                 asio::write(_sslsocket.front(), asio::buffer(_recvack, 9));
@@ -209,11 +221,7 @@ bool client_session::send_enddata(unsigned int s_stream_id)
             {
                 asio::write(_socket.front(), asio::buffer(_recvack, 9));
             }
-        }
-        else
-        {
-            other_msg.append((char *)_recvack, 9);
-            sendother = true;
+            sendtype = false;
         }
         //setting_lists.append((char *)_recvack, 9);
 
@@ -221,6 +229,7 @@ bool client_session::send_enddata(unsigned int s_stream_id)
     }
     catch (std::exception &)
     {
+        sendtype = false;
         return false;
     }
 }
@@ -238,8 +247,14 @@ asio::awaitable<void> client_session::co_send_enddata(unsigned int s_stream_id)
         s_stream_id              = s_stream_id >> 8;
         _recvack[5]              = s_stream_id & 0x7F;
 
-        if (!sendtype)
+        if (sendtype)
         {
+            other_msg.append((char *)_recvack, 9);
+            sendother = true;
+        }
+        else
+        {
+            sendtype = true;
             if (isssl)
             {
                 co_await asio::async_write(_sslsocket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
@@ -249,17 +264,14 @@ asio::awaitable<void> client_session::co_send_enddata(unsigned int s_stream_id)
 
                 co_await asio::async_write(_socket.front(), asio::buffer(_recvack, 9), asio::use_awaitable);
             }
-        }
-        else
-        {
-            other_msg.append((char *)_recvack, 9);
-            sendother = true;
+            sendtype = false;
         }
         //setting_lists.append((char *)_recvack, 9);
         co_return;
     }
     catch (std::exception &)
     {
+        sendtype = false;
         co_return;
     }
 }
@@ -271,8 +283,14 @@ bool client_session::send_goway()
     {
         unsigned char _recvack[] =
             {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-        if (!sendtype)
+        if (sendtype)
         {
+            other_msg.append((char *)_recvack, 17);
+            sendother = true;
+        }
+        else
+        {
+            sendtype = true;
             if (isssl)
             {
                 asio::write(_sslsocket.front(), asio::buffer(_recvack, 17));
@@ -281,17 +299,14 @@ bool client_session::send_goway()
             {
                 asio::write(_socket.front(), asio::buffer(_recvack, 17));
             }
-        }
-        else
-        {
-            other_msg.append((char *)_recvack, 17);
-            sendother = true;
+            sendtype = false;
         }
         //setting_lists.append((char *)_recvack, 17);
         return true;
     }
     catch (std::exception &)
     {
+        sendtype = false;
         return false;
     }
 }
@@ -302,8 +317,14 @@ bool client_session::send_recv_setting()
     {
         unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
 
-        if (!sendtype)
+        if (sendtype)
         {
+            other_msg.append((char *)_recvack, 9);
+            sendother = true;
+        }
+        else
+        {
+            sendtype = true;
             if (isssl)
             {
                 asio::write(_sslsocket.front(), asio::buffer(_recvack, 9));
@@ -312,16 +333,13 @@ bool client_session::send_recv_setting()
             {
                 asio::write(_socket.front(), asio::buffer(_recvack, 9));
             }
-        }
-        else
-        {
-            other_msg.append((char *)_recvack, 9);
-            sendother = true;
+            sendtype = false;
         }
         return true;
     }
     catch (std::exception &)
     {
+        sendtype = false;
         return false;
     }
 }
@@ -337,8 +355,14 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    if (!sendtype)
+    if (sendtype)
     {
+        other_msg.append((char *)_recvack, 13);
+        sendother = true;
+    }
+    else
+    {
+        sendtype = true;
         if (isssl)
         {
             asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
@@ -347,11 +371,7 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
         {
             asio::write(_socket.front(), asio::buffer(_recvack, 13));
         }
-    }
-    else
-    {
-        other_msg.append((char *)_recvack, 13);
-        sendother = true;
+        sendtype = false;
     }
     //setting_lists.append((char *)_recvack, 13);
 
@@ -364,8 +384,14 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
     _recvack[5] = stmid & 0xFF;
 
     //setting_lists.append((char *)_recvack, 13);
-    if (!sendtype)
+    if (sendtype)
     {
+        other_msg.append((char *)_recvack, 13);
+        sendother = true;
+    }
+    else
+    {
+        sendtype = true;
         if (isssl)
         {
             asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
@@ -374,11 +400,7 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
         {
             asio::write(_socket.front(), asio::buffer(_recvack, 13));
         }
-    }
-    else
-    {
-        other_msg.append((char *)_recvack, 13);
-        sendother = true;
+        sendtype = false;
     }
 }
 void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
@@ -400,8 +422,14 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
     _recvack[6] = stmid & 0xFF;
     stmid       = stmid >> 8;
     _recvack[5] = stmid & 0xFF;
-    if (!sendtype)
+    if (sendtype)
     {
+        other_msg.append((char *)_recvack, 13);
+        sendother = true;
+    }
+    else
+    {
+        sendtype = true;
         if (isssl)
         {
             asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
@@ -410,11 +438,7 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
         {
             asio::write(_socket.front(), asio::buffer(_recvack, 13));
         }
-    }
-    else
-    {
-        other_msg.append((char *)_recvack, 13);
-        sendother = true;
+        sendtype = false;
     }
 }
 

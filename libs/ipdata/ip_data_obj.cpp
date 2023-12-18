@@ -19,7 +19,7 @@ void ip_data_obj::init()
 {
     serverconfig &sysconfigpath = getserversysconfig();
     std::string htmlcontent=sysconfigpath.configpath;
-    htmlcontent.append("ip.data");
+    htmlcontent.append("ip.data");//data from ip2region
     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(std::fopen(htmlcontent.c_str(), "rb"), std::fclose);
 
     if (!fp.get())
