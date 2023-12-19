@@ -1520,14 +1520,13 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         std::string _send_header;
         std::string _send_data;
 
-        DEBUG_LOG("%s", peer->urlpath.c_str());
-        DEBUG_LOG("%s", peer->host.c_str());
-        DEBUG_LOG("%s", peer->header["User-Agent"].c_str());
+        // DEBUG_LOG("%s", peer->urlpath.c_str());
+        // DEBUG_LOG("%s", peer->host.c_str());
+        // DEBUG_LOG("%s", peer->header["User-Agent"].c_str());
 
         if (peer->compress == 10)
         {
-            //    peer->linktype = 6;
-
+            DEBUG_LOG("http2loop fastcgi_task");
             peer->parse_session();
 
             peer->status(200);
@@ -1599,6 +1598,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             // }
 
             co_await peer->socket_session->http2_send_writer(_send_header);
+            DEBUG_LOG("fastcgi send content");
             if (peer->compress > 0)
             {
                 co_await http2_send_content(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
@@ -1615,7 +1615,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             peer->issend = true;
             co_return;
         }
-
+        DEBUG_LOG("http2 host_index");
         // if (sysconfigpath.host_toint.find(peer->host) != sysconfigpath.host_toint.end())
         // {
         //     peer->host_index = sysconfigpath.host_toint[peer->host];
@@ -1729,7 +1729,6 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         else
         {
             DEBUG_LOG("htttp2 pool in");
-
             peer->parse_session();
             peer->status(200);
 
@@ -1805,7 +1804,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             // {
             //     http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             // }
-
+            DEBUG_LOG("_send_header");
             co_await peer->socket_session->http2_send_writer(_send_header);
             DEBUG_LOG("http2_send_content");
             if (peer->compress > 0)

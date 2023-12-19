@@ -385,16 +385,24 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
     }
     else
     {
-        sendtype = true;
-        if (isssl)
+        try
         {
-            asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+            sendtype = true;
+            if (isssl)
+            {
+                asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+            }
+            else
+            {
+                asio::write(_socket.front(), asio::buffer(_recvack, 13));
+            }
+            sendtype = false;
         }
-        else
+        catch (std::exception &)
         {
-            asio::write(_socket.front(), asio::buffer(_recvack, 13));
+            sendtype = false;
+            return;
         }
-        sendtype = false;
         if (setting_lists.size() > 0)
         {
             http2_send_data_loop();
@@ -418,16 +426,24 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
     }
     else
     {
-        sendtype = true;
-        if (isssl)
+        try
         {
-            asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+            sendtype = true;
+            if (isssl)
+            {
+                asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+            }
+            else
+            {
+                asio::write(_socket.front(), asio::buffer(_recvack, 13));
+            }
+            sendtype = false;
         }
-        else
+        catch (std::exception &)
         {
-            asio::write(_socket.front(), asio::buffer(_recvack, 13));
+            sendtype = false;
+            return;
         }
-        sendtype = false;
         if (setting_lists.size() > 0)
         {
             http2_send_data_loop();
@@ -460,16 +476,25 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
     }
     else
     {
-        sendtype = true;
-        if (isssl)
+        try
         {
-            asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+
+            sendtype = true;
+            if (isssl)
+            {
+                asio::write(_sslsocket.front(), asio::buffer(_recvack, 13));
+            }
+            else
+            {
+                asio::write(_socket.front(), asio::buffer(_recvack, 13));
+            }
+            sendtype = false;
         }
-        else
+        catch (std::exception &)
         {
-            asio::write(_socket.front(), asio::buffer(_recvack, 13));
+            sendtype = false;
+            return;
         }
-        sendtype = false;
         if (setting_lists.size() > 0)
         {
             http2_send_data_loop();

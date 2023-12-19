@@ -144,11 +144,11 @@ class client_session : public std::enable_shared_from_this<client_session>
     unsigned int _write_size  = 0;
     std::atomic_bool sendtype = false;
 
-    bool isssl                = false;
-    bool isgoway              = false;
-    bool isclose              = false;
-    bool sendother            = false;
-    unsigned char error_state = 0;
+    bool isssl     = false;
+    bool isgoway   = false;
+    bool isclose   = false;
+    bool sendother = false;
+    //asio::error_code ec;
 
     unsigned char httpv   = 0;
     unsigned int recvtype = 0;
