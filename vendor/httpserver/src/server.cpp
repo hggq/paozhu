@@ -3891,7 +3891,7 @@ void httpserver::run(const std::string &sysconfpath)
         clientrunpool.io_context = &io_context;
 
         std::thread httpwatch(std::bind(&httpserver::httpwatch, this));
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         std::thread https(std::bind(&httpserver::listeners, this));
         std::thread http(std::bind(&httpserver::listener, this));
         std::thread http2pool(std::bind(&httpserver::http2pool, this, 0));
