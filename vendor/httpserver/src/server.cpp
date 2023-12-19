@@ -1807,7 +1807,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             // {
             //     http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             // }
-            DEBUG_LOG("_send_header");
+            DEBUG_LOG("send http2_send_writer");
             co_await peer->socket_session->http2_send_writer(_send_header);
             DEBUG_LOG("http2_send_content");
             if (peer->compress > 0)

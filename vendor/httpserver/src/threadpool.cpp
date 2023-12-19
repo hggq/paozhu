@@ -306,7 +306,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
 {
     try
     {
-        std::set<std::string> method_alone;
+        //std::set<std::string> method_alone;
         DEBUG_LOG("pool in");
         std::string regmethold_path;
         bool isfindpath = false;
@@ -447,17 +447,17 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 }
                 if (_http_regmethod_table[regmethold_path].pre != nullptr)
                 {
-                    sitecontent = regmethold_path;
-                    sitecontent.append("pre");
-                    if (method_alone.contains(sitecontent))
-                    {
-                        break;
-                    }
+                    // sitecontent = regmethold_path;
+                    // sitecontent.append("pre");
+                    // if (method_alone.contains(sitecontent))
+                    // {
+                    //     break;
+                    // }
                     sitecontent = _http_regmethod_table[regmethold_path].pre(peer);
 
                     if (sitecontent.size() == 2 && str_casecmp(sitecontent, "ok"))
                     {
-                        method_alone.emplace(regmethold_path);
+                        //method_alone.emplace(regmethold_path);
                         sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
                         if (sitecontent.size() == 1 && sitecontent[0] == 'T')
                         {
@@ -478,13 +478,13 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                         if (regmethold_path.size() != sitecontent.size() || regmethold_path != sitecontent)
                         {
                             peer->push_path_method(regmethold_path);// record not execute method
-                            if (method_alone.contains(sitecontent))
+                            // if (method_alone.contains(sitecontent))
+                            // {
+                            //     break;
+                            // }
+                            if (i > 0 && !_http_regmethod_table.contains(sitecontent))//_http_regmethod_table.find(sitecontent) == _http_regmethod_table.end()
                             {
-                                break;
-                            }
-                            if (i > 0 && _http_regmethod_table.find(sitecontent) == _http_regmethod_table.end())
-                            {
-                                method_alone.emplace(sitecontent);
+                                //method_alone.emplace(sitecontent);
                                 sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
 
                                 // again check same in regmethold_path
@@ -493,7 +493,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                                 //
                                 if (regmethold_path == sitecontent)
                                 {
-                                    method_alone.emplace(regmethold_path);
+                                    //method_alone.emplace(regmethold_path);
                                     sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
                                 }
                             }
@@ -504,12 +504,12 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                             sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
                         }
                     }
-                    regmethold_path.append("pre");
-                    method_alone.emplace(regmethold_path);
+                    // regmethold_path.append("pre");
+                    // method_alone.emplace(regmethold_path);
                 }
                 else
                 {
-                    method_alone.emplace(regmethold_path);
+                    //method_alone.emplace(regmethold_path);
                     sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
                 }
 
@@ -519,10 +519,10 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 }
 
                 regmethold_path = sitecontent;
-                if (method_alone.contains(regmethold_path))
-                {
-                    break;
-                }
+                // if (method_alone.contains(regmethold_path))
+                // {
+                //     break;
+                // }
             }
         }
         else
