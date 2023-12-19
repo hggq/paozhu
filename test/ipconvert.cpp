@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     unsigned int file_size = ftell(fp.get());
     fseek(fp.get(), 0, SEEK_SET);
 
-    std::cout << file_size << std::endl;
+    std::cout << "filesize:" << file_size << std::endl;
     std::string htmlcontent;
     htmlcontent.resize(file_size);
     file_size = fread(&htmlcontent[0], 1, file_size, fp.get());
@@ -229,12 +229,14 @@ int main(int argc, char *argv[])
                 guomap[bb].emplace_back(std::pair(a, b));
                 // ipaddressmap[bb] = "";
             }
+            pre_a++;
             temp.clear();
             continue;
         }
         temp.push_back(htmlcontent[i]);
     }
-
+    std::cout << "ip origin:" << pre_a << std::endl;
+    pre_a = 0;
     std::vector<std::string> citylists;
     std::vector<std::string> provincelists;
     std::vector<std::string> countrylists;
@@ -608,7 +610,7 @@ int main(int argc, char *argv[])
     }
 
     header_size = iplists.size();
-    std::cout << " ip clear " << header_size << std::endl;
+    std::cout << "ip num: " << header_size << std::endl;
     a = (header_size & 0xFF000000) >> 24;
     b = (header_size & 0xFF0000) >> 16;
     c = (header_size & 0xFF00) >> 8;
