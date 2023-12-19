@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     // download ip.merge.txt from https://github.com/lionsoul2014/ip2region
     // ./a.out 无参数 带省市 生成ip.data 6.8M
     // ./a.out 1 加多一个参数 不要市，只要省，ip合并只有1.7M ip.data,监管要求显示地区，国内到省可以了
-    // 拷贝 ip.data 到 conf 目录 conf
+    // 拷贝 ip.data 到 conf 目录
     // 测试文件 controller/src/testipsearch.cpp
     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(std::fopen("ip.merge.txt", "rb"), std::fclose);
 
