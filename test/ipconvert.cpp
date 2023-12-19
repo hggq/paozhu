@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
         unsigned int b;
         unsigned short c;
     } ipdata;
+    std::cout << "struct size:" << sizeof(iparea) << std::endl;
     std::vector<iparea> iplists;
     std::string presheng;
     std::string preguojia;
