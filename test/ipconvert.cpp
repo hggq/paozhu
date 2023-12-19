@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[])
 {
-
+    //g++ ipconvert.hpp -std=c++20
     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(std::fopen("ip.merge.txt", "rb"), std::fclose);
 
     if (!fp.get())
