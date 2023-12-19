@@ -202,6 +202,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                     peer->output.clear();
                     peer->val.clear();
                     peer->post.clear();
+                    peer->session.clear();
                     peer->get.clear();
                     peer->files.clear();
                     peer->json.clear();

@@ -99,10 +99,10 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
 
             co_await peer->socket_session->http2_send_writer(_send_header);
             co_await peer->socket_session->co_send_enddata(peer->stream_id);
-            peer->output.clear();
-            peer->val.clear();
-            peer->post.clear();
-            peer->session.clear();
+            // peer->output.clear();
+            // peer->val.clear();
+            // peer->post.clear();
+            // peer->session.clear();
             peer->issend = true;
             co_return;
         }
@@ -231,10 +231,10 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
             //peer->socket_session->send_enddata(peer->stream_id);
             co_await peer->socket_session->co_send_enddata(peer->stream_id);
             // peer->socket_session->send_goway();
-            peer->output.clear();
-            peer->val.clear();
-            peer->post.clear();
-            peer->session.clear();
+            // peer->output.clear();
+            // peer->val.clear();
+            // peer->post.clear();
+            // peer->session.clear();
             peer->issend = true;
             co_return;
         }
@@ -271,10 +271,10 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
             // {
             // }
             co_await peer->socket_session->http2_send_writer(std::string_view((char *)send_cache->data, 9));
-            peer->output.clear();
-            peer->val.clear();
-            peer->post.clear();
-            peer->session.clear();
+            // peer->output.clear();
+            // peer->val.clear();
+            // peer->post.clear();
+            // peer->session.clear();
             peer->issend = true;
             co_return;
         }
@@ -363,10 +363,10 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
             }
         }
         DEBUG_LOG("send file ok!");
-        peer->output.clear();
-        peer->val.clear();
-        peer->post.clear();
-        peer->session.clear();
+        // peer->output.clear();
+        // peer->val.clear();
+        // peer->post.clear();
+        // peer->session.clear();
         peer->issend = true;
         co_return;
     }
@@ -382,10 +382,10 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
         co_await peer->socket_session->http2_send_writer(_send_header);
         co_await http2_send_content(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
         //http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
-        peer->output.clear();
-        peer->val.clear();
-        peer->post.clear();
-        peer->session.clear();
+        // peer->output.clear();
+        // peer->val.clear();
+        // peer->post.clear();
+        // peer->session.clear();
         peer->issend = true;
         co_return;
     }
@@ -470,10 +470,10 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
 
             co_await peer->socket_session->http2_send_writer(_send_header);
             co_await peer->socket_session->co_send_enddata(peer->stream_id);
-            peer->output.clear();
-            peer->val.clear();
-            peer->post.clear();
-            peer->session.clear();
+            // peer->output.clear();
+            // peer->val.clear();
+            // peer->post.clear();
+            // peer->session.clear();
             peer->issend = true;
             co_return;
         }
@@ -643,10 +643,10 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             //peer->socket_session->send_enddata(peer->stream_id);
             // peer->socket_session->send_goway();
             co_await peer->socket_session->co_send_enddata(peer->stream_id);
-            peer->output.clear();
-            peer->val.clear();
-            peer->post.clear();
-            peer->session.clear();
+            // peer->output.clear();
+            // peer->val.clear();
+            // peer->post.clear();
+            // peer->session.clear();
             peer->issend = true;
             co_return;
         }
@@ -683,10 +683,10 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             // }
             co_await peer->socket_session->http2_send_writer(std::string_view((char *)send_cache->data, 9));
 
-            peer->output.clear();
-            peer->val.clear();
-            peer->post.clear();
-            peer->session.clear();
+            // peer->output.clear();
+            // peer->val.clear();
+            // peer->post.clear();
+            // peer->session.clear();
             peer->issend = true;
             co_return;
         }
@@ -794,10 +794,10 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             }
         }
         DEBUG_LOG("send files ok");
-        peer->output.clear();
-        peer->val.clear();
-        peer->post.clear();
-        peer->session.clear();
+        // peer->output.clear();
+        // peer->val.clear();
+        // peer->post.clear();
+        // peer->session.clear();
         peer->issend = true;
         co_return;
     }
@@ -814,10 +814,10 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
 
         co_await peer->socket_session->http2_send_writer(_send_header);
         co_await http2_send_content(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
-        peer->output.clear();
-        peer->val.clear();
-        peer->post.clear();
-        peer->session.clear();
+        // peer->output.clear();
+        // peer->val.clear();
+        // peer->post.clear();
+        // peer->session.clear();
         peer->issend = true;
         co_return;
     }
@@ -1248,8 +1248,10 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
             co_return;
         }
         co_await peer->socket_session->http2_send_writer(_send_data);
+        DEBUG_LOG("http2_send_content data end");
         co_return;
     }
+    DEBUG_LOG("http2_send_content");
     for (unsigned long long m = 0; m < begin_end; m += PER_DATA_BLOCK_SIZE)
     {
         unsigned int offset = PER_DATA_BLOCK_SIZE;
@@ -1270,6 +1272,7 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
         // 还剩多少窗口
         if (peer->socket_session->window_update_num - offset <= 0)
         {
+            DEBUG_LOG("window_update_num =0 ");
             offset                                  = peer->socket_session->window_update_num;
             peer->socket_session->window_update_num = 0;
             m                                       = m - PER_DATA_BLOCK_SIZE + offset;
@@ -1608,10 +1611,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             }
 
-            peer->output.clear();
-            peer->val.clear();
-            peer->post.clear();
-            peer->session.clear();
+            // peer->output.clear();
+            // peer->val.clear();
+            // peer->post.clear();
+            // peer->session.clear();
             peer->issend = true;
             co_return;
         }
@@ -1648,10 +1651,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 }
                 else
                 {
-                    peer->output.clear();
-                    peer->val.clear();
-                    peer->post.clear();
-                    peer->session.clear();
+                    // peer->output.clear();
+                    // peer->val.clear();
+                    // peer->post.clear();
+                    // peer->session.clear();
                     peer->issend = true;
                     co_return;
                 }
@@ -1720,10 +1723,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             {
                 co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             }
-            peer->output.clear();
-            peer->val.clear();
-            peer->post.clear();
-            peer->session.clear();
+            // peer->output.clear();
+            // peer->val.clear();
+            // peer->post.clear();
+            // peer->session.clear();
             peer->issend = true;
         }
         else
@@ -1816,10 +1819,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             }
         }
-        peer->output.clear();
-        peer->val.clear();
-        peer->post.clear();
-        peer->session.clear();
+        // peer->output.clear();
+        // peer->val.clear();
+        // peer->post.clear();
+        // peer->session.clear();
         peer->issend = true;
     }
     catch (std::exception &e)
@@ -1925,10 +1928,10 @@ void httpserver::http2pool(int threadid)
                 if (iter->isfinish == true)
                 {
                     DEBUG_LOG("big file end");
-                    iter->peer->output.clear();
-                    iter->peer->val.clear();
-                    iter->peer->post.clear();
-                    iter->peer->session.clear();
+                    // iter->peer->output.clear();
+                    // iter->peer->val.clear();
+                    // iter->peer->post.clear();
+                    // iter->peer->session.clear();
                     iter->peer->issend = true;
 
                     iter = http2send_tasks.erase(iter);

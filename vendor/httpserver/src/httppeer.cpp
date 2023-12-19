@@ -1324,16 +1324,15 @@ std::string httppeer::make_http1_header()
             http1header.append("\r\n");
         }
     }
-    std::list<std::string> cookielist = cookietoheader();
+    //std::list<std::string> cookielist = cookietoheader();
 
-    if (cookielist.size() > 0)
+    if (send_cookie_lists.size() > 0)
     {
-        for (; cookielist.size() > 0;)
+        for (auto iter = send_cookie_lists.begin(); iter != send_cookie_lists.end(); iter++)
         {
             http1header.append("Set-Cookie: ");
-            http1header.append(cookielist.front());
+            http1header.append(*iter);
             http1header.append("\r\n");
-            cookielist.pop_front();
         }
     }
     return http1header;
@@ -1356,7 +1355,6 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
     make_http2_headers_static(http2header, status_code);
     set_http2_headers_flag(http2header, HTTP2_HEADER_END_HEADERS | flag_code);
     make_http2_headers_item3(http2header, HTTP2_CODE_content_length, content_length);
-
     make_http2_headers_item3(http2header, HTTP2_CODE_content_type, content_type);
 
     if (compress == 1)
@@ -1367,7 +1365,6 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
     {
         make_http2_headers_item3(http2header, HTTP2_CODE_content_encoding, "br");
     }
-
     if (http2_send_header.size() > 0)
     {
         for (auto [first, second] : http2_send_header)
@@ -1375,7 +1372,6 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
             make_http2_headers_item3(http2header, (unsigned char)first, second);
         }
     }
-
     if (send_header.size() > 0)
     {
         for (auto [first, second] : send_header)
@@ -1383,18 +1379,18 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
             make_http2_headers_item3(http2header, first, second);
         }
     }
-    std::list<std::string> cookielist = cookietoheader();
-
-    if (cookielist.size() > 0)
+    //std::list<std::string> cookielist = cookietoheader();
+    if (send_cookie_lists.size() > 0)
     {
-        for (; cookielist.size() > 0;)
+        for (auto iter = send_cookie_lists.begin(); iter != send_cookie_lists.end(); iter++)
         {
-            make_http2_headers_item3(http2header, HTTP2_CODE_set_cookie, cookielist.front());
-            cookielist.pop_front();
+            make_http2_headers_item3(http2header, HTTP2_CODE_set_cookie, *iter);
+            //cookielist.pop_front();
         }
     }
 
     set_http2_headers_size(http2header, (unsigned int)http2header.size() - 9);
+    DEBUG_LOG("make_http2_header end");
     return http2header;
 }
 void httppeer::goto_url(const std::string &url, unsigned char second, const std::string &msg)
