@@ -41,7 +41,7 @@ void client_session::clsoesend(asio::io_context &ioc)
 {
     try
     {
-        atomic_bool = false;
+        std::unique_lock<std::mutex> lock(pop_user_handleer_mutex);
         if (user_code_handler_call.size() > 0)
         {
             //auto ex = asio::get_associated_executor(user_code_handler_call.front());

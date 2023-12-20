@@ -343,8 +343,12 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
             if (peer->socket_session->window_update_num < 10)
             {
                 DEBUG_LOG("--- wait window_update_num --------");
-                peer->socket_session->atomic_bool = true;
                 co_await co_http2_wait_window_update(peer);
+                if (peer->socket_session->isclose)
+                {
+                    peer->issend = true;
+                    co_return;
+                }
             }
 
             if (file_size > 10485760)
@@ -774,7 +778,6 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             if (peer->socket_session->window_update_num < 10)
             {
                 DEBUG_LOG("--- wait window_update_num --------");
-                peer->socket_session->atomic_bool = true;
                 co_await co_http2_wait_window_update(peer);
                 if (peer->socket_session->isclose)
                 {
@@ -1312,7 +1315,6 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
         if (peer->socket_session->window_update_num < 10)
         {
             DEBUG_LOG("--- wait window_update_num --------");
-            peer->socket_session->atomic_bool = true;
             co_await co_http2_wait_window_update(peer);
             if (peer->socket_session->isclose)
             {

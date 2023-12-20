@@ -2230,12 +2230,11 @@ void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] uns
     peer_session->window_update_num = ident_stream + peer_session->window_update_num;
     window_update_recv_num          = ident_stream;
 
-    if (peer_session->atomic_bool)
+    if (peer_session->user_code_handler_call.size() > 0)
     {
         try
         {
-            peer_session->atomic_bool = false;
-            //peer_session->window_update_promise.set_value(1);
+            std::unique_lock<std::mutex> lock(peer_session->pop_user_handleer_mutex);
             if (peer_session->user_code_handler_call.size() > 0)
             {
                 auto ex = asio::get_associated_executor(peer_session->user_code_handler_call.front());

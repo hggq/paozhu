@@ -172,7 +172,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     // std::map<unsigned, send_file_promise> peer_promise_list;// peer wait promise
 
     std::atomic<unsigned long long> window_update_num;
-    std::atomic_bool atomic_bool = false;
+    std::mutex pop_user_handleer_mutex;
     std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
     //std::list<int> promise_list;
     // 等待划动窗口 atomic_uchar
