@@ -1912,8 +1912,8 @@ void httppeer::clsoesend()
                                //////////
                            });
             user_code_handler_call.pop_front();
+            DEBUG_LOG("httppeer user_code_handler_call return");
         }
-        DEBUG_LOG("httppeer user_code_handler_call return");
     }
     catch (const std::exception &e)
     {

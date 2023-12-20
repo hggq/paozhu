@@ -152,7 +152,6 @@ void http2parse::clsoesend()
             {
                 iter->second->isclose = true;
                 iter->second->clsoesend();
-                DEBUG_LOG("http2parse user_code_handler_call return");
             }
             catch (const std::exception &e)
             {
