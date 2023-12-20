@@ -37,6 +37,30 @@ client_session::~client_session()
         cc.back_data_ptr(_cache_data);
     }
 }
+void client_session::clsoesend()
+{
+    try
+    {
+        atomic_bool = false;
+        if (user_code_handler_call.size() > 0)
+        {
+            auto ex = asio::get_associated_executor(user_code_handler_call.front());
+            asio::dispatch(ex,
+                           [handler = std::move(user_code_handler_call.front())]() mutable -> void
+                           {
+                               /////////////
+                               handler(1);
+                               //////////
+                           });
+            user_code_handler_call.pop_front();
+        }
+        DEBUG_LOG("peer_session user_code_handler_call return");
+    }
+    catch (const std::exception &e)
+    {
+        DEBUG_LOG("peer_session user_code_handler_call error");
+    }
+}
 std::shared_ptr<client_session> client_session::get_ptr() { return shared_from_this(); }
 
 bool client_session::send_data(const std::string &msg)

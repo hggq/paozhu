@@ -134,6 +134,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     void http2_pool_send_data(std::string_view msg);
 
     asio::awaitable<void> http2_send_data_loop_co();
+    void clsoesend();
 
   public:
     // client_data_cache_back cache_back_obj;

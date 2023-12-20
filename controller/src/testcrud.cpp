@@ -56,43 +56,50 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
 std::string articlelist(std::shared_ptr<httppeer> peer)
 {
     // step3 content list
-    httppeer &client = peer->getpeer();
-    int userid       = client.session["userid"].to_int();
-    if (userid == 0)
+    try
     {
-        // client.goto_url("/cms/login");
-        client.val["msg"] = "<a href=\"/cms/login\">Please login </a>";
-    }
-
-    auto articles = orm::cms::Article();
-
-    int page = client.get["page"].to_int();
-    if (page < 0)
-    {
-        page = 0;
-    }
-    page = page * 20;
-    articles.where("isopen=1").order(" aid desc ").limit(page, 20).fetch();
-    // 也可以直接返回OBJ_VALUE 对象; 不过正常业务会要处理下结果集
-    // You can also return the OBJ_VALUE object directly; but normal business process will need to process the result
-    // set
-    client.val["list"].set_array();
-    if (articles.size() > 0)
-    {
-        for (auto &bb : articles)
+        httppeer &client = peer->getpeer();
+        int userid       = client.session["userid"].to_int();
+        if (userid == 0)
         {
-
-            OBJ_ARRAY item;
-            item["aid"]        = bb.aid;
-            item["title"]      = bb.title;
-            item["createtime"] = bb.createtime;
-            item["summary"]    = bb.summary;
-            // client<<"<p><a href=\"/cms/show?id="<<bb.aid<<"\">"<<bb.title<<"</a>  "<<bb.createtime<<" </p>";
-            client.val["list"].push(std::move(item));
+            // client.goto_url("/cms/login");
+            client.val["msg"] = "<a href=\"/cms/login\">Please login </a>";
         }
+        auto articles = orm::cms::Article();
+        int page      = client.get["page"].to_int();
+        if (page < 0)
+        {
+            page = 0;
+        }
+        page = page * 20;
+        articles.where("isopen=1").order(" aid desc ").limit(page, 20).fetch();
+        // 也可以直接返回OBJ_VALUE 对象; 不过正常业务会要处理下结果集
+        // You can also return the OBJ_VALUE object directly; but normal business process will need to process the result
+        // set
+        if (articles.error_msg.size() > 0)
+        {
+            client.val["msg"] = client.val["msg"].to_string() + articles.error_msg;
+        }
+        client.val["list"].set_array();
+        if (articles.size() > 0)
+        {
+            for (auto &bb : articles)
+            {
+                OBJ_ARRAY item;
+                item["aid"]        = bb.aid;
+                item["title"]      = bb.title;
+                item["createtime"] = bb.createtime;
+                item["summary"]    = bb.summary;
+                // client<<"<p><a href=\"/cms/show?id="<<bb.aid<<"\">"<<bb.title<<"</a>  "<<bb.createtime<<" </p>";
+                client.val["list"].push(std::move(item));
+            }
+        }
+        peer->view("cms/list");
     }
-
-    peer->view("cms/list");
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+    }
     return "";
 }
 std::string articleshow(std::shared_ptr<httppeer> peer)

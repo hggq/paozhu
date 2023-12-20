@@ -188,7 +188,7 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
 
         peer->set_header("etag", etag);
 
-        _send_header = peer->make_http2_header();
+        _send_header = peer->make_http2_header(0);
 
         //peer->socket_session->send_data(_send_header);
         co_await peer->socket_session->http2_send_writer(_send_header);
@@ -377,7 +377,7 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
         peer->status(500);
         peer->length(stfilecom.size());
         peer->type("text/html; charset=utf-8");
-        _send_header = peer->make_http2_header();
+        _send_header = peer->make_http2_header(0);
         //peer->socket_session->send_data(_send_header);
         co_await peer->socket_session->http2_send_writer(_send_header);
         co_await http2_send_content(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
@@ -463,7 +463,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
             peer->set_header("etag", etag);
             peer->type(mime_value);
-            _send_header = peer->make_http2_header();
+            _send_header = peer->make_http2_header(0);
             set_http2_headers_flag(_send_header, HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
             // peer->socket_session->send_data(_send_header);
             // peer->socket_session->send_enddata(peer->stream_id);
@@ -605,7 +605,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
 
         peer->set_header("etag", etag);
 
-        _send_header = peer->make_http2_header();
+        _send_header = peer->make_http2_header(0);
         //peer->socket_session->send_data(_send_header);
         co_await peer->socket_session->http2_send_writer(_send_header);
 
@@ -776,6 +776,11 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
                 DEBUG_LOG("--- wait window_update_num --------");
                 peer->socket_session->atomic_bool = true;
                 co_await co_http2_wait_window_update(peer);
+                if (peer->socket_session->isclose)
+                {
+                    peer->issend = true;
+                    co_return;
+                }
             }
 
             if (file_size > 10485760)
@@ -808,7 +813,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
         peer->status(500);
         peer->length(stfilecom.size());
         peer->type("text/html; charset=utf-8");
-        _send_header = peer->make_http2_header();
+        _send_header = peer->make_http2_header(0);
         // peer->socket_session->send_data(_send_header);
         // http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
 
@@ -894,7 +899,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
             peer->set_header("last-modified", get_gmttime((unsigned long long)peer->fileinfo.st_mtime));
             peer->set_header("etag", etag);
             peer->type(mime_value);
-            _send_header = peer->make_http2_header();
+            _send_header = peer->make_http2_header(0);
             set_http2_headers_flag(_send_header, HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
             peer->socket_session->send_data(_send_header);
             peer->socket_session->send_enddata(peer->stream_id);
@@ -1028,7 +1033,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
 
         peer->set_header("etag", etag);
 
-        _send_header = peer->make_http2_header();
+        _send_header = peer->make_http2_header(0);
         peer->socket_session->send_data(_send_header);
 
         unsigned int data_send_id = peer->stream_id;
@@ -1212,7 +1217,7 @@ bool httpserver::http2_send_file(std::shared_ptr<httppeer> peer)
         peer->status(500);
         peer->length(stfilecom.size());
         peer->type("text/html; charset=utf-8");
-        _send_header = peer->make_http2_header();
+        _send_header = peer->make_http2_header(0);
         peer->socket_session->send_data(_send_header);
 
         http2_send_body(peer, (const unsigned char *)&stfilecom[0], stfilecom.size());
@@ -1309,6 +1314,11 @@ httpserver::http2_send_content(std::shared_ptr<httppeer> peer, const unsigned ch
             DEBUG_LOG("--- wait window_update_num --------");
             peer->socket_session->atomic_bool = true;
             co_await co_http2_wait_window_update(peer);
+            if (peer->socket_session->isclose)
+            {
+                peer->issend = true;
+                co_return;
+            }
         }
 
         // peer_session->window_update_num -= ii;
@@ -1421,6 +1431,7 @@ bool httpserver::http2_send_body(std::shared_ptr<httppeer> peer, const unsigned 
             // peer->socket_session->atomic_bool = true;
             // co_await co_http2_wait_window_update(peer);
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            return true;
         }
 
         // peer_session->window_update_num -= ii;
@@ -1444,7 +1455,7 @@ asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<http
     peer->status(status_code);
     peer->length(bodycontent.size());
     peer->type("text/html; charset=utf-8");
-    std::string _send_header = peer->make_http2_header();
+    std::string _send_header = peer->make_http2_header(0);
 
     //peer->socket_session->send_data(_send_header);
     //http2_send_body(peer, (const unsigned char *)&bodycontent[0], bodycontent.size());
@@ -1587,7 +1598,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             {
                 peer->type("text/html; charset=utf-8");
             }
-            _send_header = peer->make_http2_header();
+            _send_header = peer->make_http2_header(0);
 
             // peer->socket_session->send_data(_send_header);
 
@@ -1712,7 +1723,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             {
                 peer->length(htmlcontent.size());
             }
-            _send_header = peer->make_http2_header();
+            _send_header = peer->make_http2_header(0);
 
             co_await peer->socket_session->http2_send_writer(_send_header);
             if (peer->compress > 0)
@@ -1795,7 +1806,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             {
                 peer->type("text/html; charset=utf-8");
             }
-            _send_header = peer->make_http2_header();
+            _send_header = peer->make_http2_header(0);
 
             // peer->socket_session->send_data(_send_header);
 
@@ -1824,6 +1835,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         // peer->post.clear();
         // peer->session.clear();
         peer->issend = true;
+        co_return;
     }
     catch (std::exception &e)
     {
@@ -2743,10 +2755,12 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
         std::string log_item;
         std::shared_ptr<http2parse> http2pre;
         std::unique_ptr<httpparse> http1pre;
+        int error_state                = 0;
+        unsigned char linktype         = 0;
+        std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
         try
         {
             // serverconfig &sysconfigpath = getserversysconfig();
-            std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
 
             peer->client_ip = peer_session->getremoteip();
             if (peer_session->_cache_data == nullptr)
@@ -2770,8 +2784,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                 DEBUG_LOG("\033[31mclient thread:%s\033[0m", tempthread.c_str());
             }
 #endif
-            int error_state        = 0;
-            unsigned char linktype = 0;
+
             // bool isbegin = false;
 
             peer->isssl            = isssl ? true : false;
@@ -3111,6 +3124,15 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
             lock.unlock();
         }
         peer_session->isclose = true;
+        if (linktype == 3)
+        {
+            peer_session->clsoesend();
+            http2pre->clsoesend();
+        }
+        else
+        {
+            peer->clsoesend();
+        }
         total_count--;
         DEBUG_LOG("client run exit:%d", total_count.load());
     }

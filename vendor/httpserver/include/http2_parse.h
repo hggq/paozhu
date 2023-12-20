@@ -114,7 +114,7 @@ class http2parse
     void getifnonematch(const std::string &, const std::string &);
 
     void callposttype();
-
+    void clsoesend();
     void procssparamter();
 
   public:

@@ -346,7 +346,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 }
             }
         }
-
+        DEBUG_LOG("begin method");
         if (peer->pathinfos.size() > 0)
         {
             unsigned int pathinfos_size = peer->pathinfos.size();
@@ -361,11 +361,11 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                     }
                     regmethold_path.append(get_filename(peer->pathinfos[j]));
                 }
-                if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())
+                if (_http_regmethod_table.contains(regmethold_path))//!= _http_regmethod_table.end()
                 {
                     if (pathinfos_size != i)
                     {
-                        if (_http_regurlpath_table.find(regmethold_path) != _http_regurlpath_table.end())
+                        if (_http_regurlpath_table.contains(regmethold_path))//!= _http_regurlpath_table.end()
                         {
                             for (unsigned int m = i; m < pathinfos_size; m++)
                             {
@@ -420,13 +420,15 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                                 //                    handler(1);
                                 //                    //////////
                                 //                });
-
-                                asio::dispatch(*io_context,
-                                               [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                                               {
-                                                   handler(1);
-                                               });
-                                peer->user_code_handler_call.pop_front();
+                                if (peer->user_code_handler_call.size() > 0)
+                                {
+                                    asio::dispatch(*io_context,
+                                                   [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                                                   {
+                                                       handler(1);
+                                                   });
+                                    peer->user_code_handler_call.pop_front();
+                                }
                                 return;
                             }
                         }
@@ -501,6 +503,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                         else
                         {
                             // or self
+                            DEBUG_LOG("pre in method %s", regmethold_path.c_str());
                             sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
                         }
                     }
@@ -510,6 +513,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 else
                 {
                     //method_alone.emplace(regmethold_path);
+                    DEBUG_LOG("in method %s", regmethold_path.c_str());
                     sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
                 }
 
@@ -667,7 +671,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
             make_404_content(peer);
 #endif
         }
-
+        DEBUG_LOG("action method after");
         if (sysconfigpath.sitehostinfos[peer->host_index].is_method_after)
         {
             if (sysconfigpath.sitehostinfos[peer->host_index].action_after_lists.size() > 0 && sysconfigpath.sitehostinfos[peer->host_index].action_after_lists.size() < 16)
@@ -681,14 +685,17 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 }
             }
         }
-        asio::dispatch(*io_context,
-                       [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                       {
-                           /////////////
-                           handler(1);
-                           //////////
-                       });
-        peer->user_code_handler_call.pop_front();
+        if (peer->user_code_handler_call.size() > 0)
+        {
+            asio::dispatch(*io_context,
+                           [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                           {
+                               /////////////
+                               handler(1);
+                               //////////
+                           });
+            peer->user_code_handler_call.pop_front();
+        }
         DEBUG_LOG("leave pool");
     }
     catch (std::exception &e)

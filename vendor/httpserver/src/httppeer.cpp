@@ -1897,4 +1897,28 @@ std::string httppeer::pop_path_method()
     path_method_names.pop();
     return tempmethod;
 }
+void httppeer::clsoesend()
+{
+    try
+    {
+        if (user_code_handler_call.size() > 0)
+        {
+            auto ex = asio::get_associated_executor(user_code_handler_call.front());
+            asio::dispatch(ex,
+                           [handler = std::move(user_code_handler_call.front())]() mutable -> void
+                           {
+                               /////////////
+                               handler(1);
+                               //////////
+                           });
+            user_code_handler_call.pop_front();
+        }
+        DEBUG_LOG("httppeer user_code_handler_call return");
+    }
+    catch (const std::exception &e)
+    {
+        DEBUG_LOG("httppeer user_code_handler_call error");
+    }
+}
+
 }// namespace http

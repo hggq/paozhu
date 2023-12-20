@@ -142,6 +142,26 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
     readoffset    = readoffset + 9;
     processheader = 1;
 }
+void http2parse::clsoesend()
+{
+    for (auto iter = http_data.begin(); iter != http_data.end();)
+    {
+        if (iter->second->issend)
+        {
+            try
+            {
+                iter->second->isclose = true;
+                iter->second->clsoesend();
+                DEBUG_LOG("http2parse user_code_handler_call return");
+            }
+            catch (const std::exception &e)
+            {
+                DEBUG_LOG("http2parse user_code_handler_call error");
+            }
+        }
+        iter++;
+    }
+}
 void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersize)
 {
     unsigned int buffer_short_length;
