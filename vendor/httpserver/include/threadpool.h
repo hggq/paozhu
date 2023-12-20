@@ -96,7 +96,7 @@ class ThreadPool
   private:
     std::queue<std::shared_ptr<httppeer>> clienttasks;
     // synchronization
-    std::mutex queue_mutex, livemtx;
+    std::mutex queue_mutex;
     std::condition_variable condition;
     bool stop;
     bool isclose_add = true;

@@ -420,6 +420,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                                 //                    handler(1);
                                 //                    //////////
                                 //                });
+                                std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
                                 if (peer->user_code_handler_call.size() > 0)
                                 {
                                     asio::dispatch(*io_context,
@@ -685,6 +686,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 }
             }
         }
+        std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
         if (peer->user_code_handler_call.size() > 0)
         {
             asio::dispatch(*io_context,

@@ -1901,9 +1901,9 @@ void httppeer::clsoesend(asio::io_context &ioc)
 {
     try
     {
+        std::unique_lock<std::mutex> lock(pop_user_handleer_mutex);
         if (user_code_handler_call.size() > 0)
         {
-            // auto ex = asio::get_associated_executor(user_code_handler_call.front());
             asio::dispatch(ioc,
                            [handler = std::move(user_code_handler_call.front())]() mutable -> void
                            {
