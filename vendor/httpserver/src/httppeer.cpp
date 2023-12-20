@@ -1897,14 +1897,14 @@ std::string httppeer::pop_path_method()
     path_method_names.pop();
     return tempmethod;
 }
-void httppeer::clsoesend()
+void httppeer::clsoesend(asio::io_context &ioc)
 {
     try
     {
         if (user_code_handler_call.size() > 0)
         {
-            auto ex = asio::get_associated_executor(user_code_handler_call.front());
-            asio::dispatch(ex,
+            // auto ex = asio::get_associated_executor(user_code_handler_call.front());
+            asio::dispatch(ioc,
                            [handler = std::move(user_code_handler_call.front())]() mutable -> void
                            {
                                /////////////

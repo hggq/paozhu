@@ -127,7 +127,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void clear_timeloop_task();
     unsigned int get_timeloop_count();
     void add_timeloop_count(unsigned int a = 1);
-    void clsoesend();
+    void clsoesend(asio::io_context &);
 
   public:
     std::string host;

@@ -1,6 +1,9 @@
 #ifndef FRAME_FASTCGI_H
 #define FRAME_FASTCGI_H
 
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
+#include <asio/io_context.hpp>
 #include <cstdarg>
 #include <cstring>
 #include <stdexcept>
@@ -112,7 +115,7 @@ class fastcgi
     // FASTCGI_Header header_data;
     // FASTCGI_BeginRequestBody request_body{};
     int request_id;
-    bool issock=false;
+    bool issock = false;
     //unsigned char method_type = 0;
 
     std::function<void(const std::string &)> add_error_msg;
@@ -122,6 +125,7 @@ class fastcgi
     std::weak_ptr<httppeer> peer_ptr;
     std::string error_msg;
     asio::error_code ec;
+    asio::io_context *server_ioc;
 };
 }// namespace http
 #endif

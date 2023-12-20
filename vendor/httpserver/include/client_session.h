@@ -7,6 +7,7 @@
 
 #include <asio.hpp>
 #include <asio/ssl.hpp>
+#include <asio/io_context.hpp>
 // #include <asio/co_spawn.hpp>
 // #include <asio/detached.hpp>
 // #include <asio/io_context.hpp>
@@ -134,7 +135,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     void http2_pool_send_data(std::string_view msg);
 
     asio::awaitable<void> http2_send_data_loop_co();
-    void clsoesend();
+    void clsoesend(asio::io_context &);
 
   public:
     // client_data_cache_back cache_back_obj;

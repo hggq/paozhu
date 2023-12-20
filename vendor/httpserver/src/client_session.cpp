@@ -37,15 +37,15 @@ client_session::~client_session()
         cc.back_data_ptr(_cache_data);
     }
 }
-void client_session::clsoesend()
+void client_session::clsoesend(asio::io_context &ioc)
 {
     try
     {
         atomic_bool = false;
         if (user_code_handler_call.size() > 0)
         {
-            auto ex = asio::get_associated_executor(user_code_handler_call.front());
-            asio::dispatch(ex,
+            //auto ex = asio::get_associated_executor(user_code_handler_call.front());
+            asio::dispatch(ioc,
                            [handler = std::move(user_code_handler_call.front())]() mutable -> void
                            {
                                /////////////

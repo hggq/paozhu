@@ -2479,7 +2479,9 @@ asio::awaitable<size_t> httpserver::co_user_fastcgi_task(std::shared_ptr<httppee
         fcgi->host                          = sysconfigpath.sitehostinfos[peer->host_index].fastcgi_host;// "127.0.0.1";
         fcgi->port                          = sysconfigpath.sitehostinfos[peer->host_index].fastcgi_port;// 9000
         fcgi->add_error_msg                 = std::bind(&httpserver::add_error_lists, self, std::placeholders::_1);
+        fcgi->server_ioc                    = &self->io_context;
         client_context &fcgi_content        = get_client_context_obj();
+
         fcgi_content.add_fastcgi_task(fcgi);
     };
     return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
@@ -2861,12 +2863,15 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                         DEBUG_LOG("User-Agent:%s", peer->header["User-Agent"].c_str());
                         DEBUG_LOG("http1parse end");
 #endif
-                        peer->isssl          = isssl ? true : false;
-                        peer->socket_session = peer_session;
-                        peer->server_ip      = peer_session->getlocalip();
-                        peer->client_ip      = peer_session->getremoteip();
-                        peer->client_port    = peer_session->getremoteport();
-                        peer->server_port    = peer_session->getlocalport();
+                        peer->isssl = isssl ? true : false;
+                        if (peer->server_port == 0)
+                        {
+                            peer->socket_session = peer_session;
+                            peer->server_ip      = peer_session->getlocalip();
+                            peer->client_ip      = peer_session->getremoteip();
+                            peer->client_port    = peer_session->getremoteport();
+                            peer->server_port    = peer_session->getlocalport();
+                        }
 
                         {
                             log_item.clear();
@@ -3056,10 +3061,13 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                                 break;
                             }
                             //http2pre->http_data[block_steamid]->linktype    = 0;
-                            http2pre->http_data[block_steamid]->server_ip   = peer_session->getlocalip();
-                            http2pre->http_data[block_steamid]->client_ip   = peer_session->getremoteip();
-                            http2pre->http_data[block_steamid]->client_port = peer_session->getremoteport();
-                            http2pre->http_data[block_steamid]->server_port = peer_session->getlocalport();
+                            if (http2pre->http_data[block_steamid]->server_port == 0)
+                            {
+                                http2pre->http_data[block_steamid]->server_ip   = peer_session->getlocalip();
+                                http2pre->http_data[block_steamid]->client_ip   = peer_session->getremoteip();
+                                http2pre->http_data[block_steamid]->client_port = peer_session->getremoteport();
+                                http2pre->http_data[block_steamid]->server_port = peer_session->getlocalport();
+                            }
 
                             {
                                 log_item.clear();
@@ -3100,14 +3108,12 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                     if (error_state > 0)
                     {
                         peer_session->send_goway();
-                        peer_session->isclose = true;
                         break;
                     }
 #ifndef DEBUG
                     if (http2pre->steam_count > 512)
                     {
                         peer_session->send_goway();
-                        peer_session->isclose = true;
                         break;
                     }
 #endif
@@ -3124,14 +3130,15 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
             lock.unlock();
         }
         peer_session->isclose = true;
+        peer->isclose         = true;
         if (linktype == 3)
         {
-            peer_session->clsoesend();
-            http2pre->clsoesend();
+            peer_session->clsoesend(this->io_context);
+            http2pre->clsoesend(this->io_context);
         }
         else
         {
-            peer->clsoesend();
+            peer->clsoesend(this->io_context);
         }
         total_count--;
         DEBUG_LOG("client run exit:%d", total_count.load());

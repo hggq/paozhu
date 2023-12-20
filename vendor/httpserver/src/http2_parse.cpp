@@ -142,7 +142,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
     readoffset    = readoffset + 9;
     processheader = 1;
 }
-void http2parse::clsoesend()
+void http2parse::clsoesend(asio::io_context &ioc)
 {
     for (auto iter = http_data.begin(); iter != http_data.end();)
     {
@@ -151,7 +151,7 @@ void http2parse::clsoesend()
             try
             {
                 iter->second->isclose = true;
-                iter->second->clsoesend();
+                iter->second->clsoesend(ioc);
             }
             catch (const std::exception &e)
             {

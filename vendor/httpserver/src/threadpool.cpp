@@ -129,15 +129,15 @@ void ThreadPool::threadloop(int index)
 
         if (task->linktype == 0)
         {
-            this->http_clientrun(task, index);
+            this->http_clientrun(std::move(task), index);
         }
         else if (task->linktype == 3)
         {
-            this->http_websocketsrun(task, index);
+            this->http_websocketsrun(std::move(task), index);
         }
         else if (task->linktype == 7)
         {
-            this->timetasks_run(task, index);
+            this->timetasks_run(std::move(task), index);
         }
         livethreadcount -= 1;
         this->thread_arrays[index].busy = false;

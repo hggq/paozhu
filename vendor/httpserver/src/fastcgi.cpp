@@ -650,8 +650,8 @@ asio::awaitable<void> fastcgi::co_send()
 }
 asio::awaitable<void> fastcgi::send_exit(std::shared_ptr<httppeer> peer)
 {
-    auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-    asio::dispatch(ex,
+    //auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+    asio::dispatch(*server_ioc,
                    [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
                    {
                        /////////////
