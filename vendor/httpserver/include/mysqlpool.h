@@ -1,4 +1,3 @@
-
 #ifndef HTTP_MYSQLPOOL_H
 #define HTTP_MYSQLPOOL_H
 

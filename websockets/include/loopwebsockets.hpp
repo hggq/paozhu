@@ -1,6 +1,5 @@
 #include <iostream>
 #include <memory>
-
 #include <string_view>
 
 #include "orm.h"

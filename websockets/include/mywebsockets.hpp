@@ -1,16 +1,5 @@
 #include <iostream>
 #include <memory>
-
-#ifdef ENABLE_BOOST
-#include <boost/make_shared.hpp>
-
-// MinGW related workaround
-#define BOOST_DLL_FORCE_ALIAS_INSTANTIATION
-
-//[plugcpp_my_plugin_aggregator
-#include <boost/dll/alias.hpp>// for BOOST_DLL_ALIAS
-#endif
-
 #include <string_view>
 
 #include "orm.h"
@@ -81,10 +70,4 @@ class mywebsockets : public websockets_api
     }
 };
 
-#ifdef ENABLE_BOOST
-BOOST_DLL_ALIAS(http::mywebsockets::create,// <-- this function is exported with...
-                create_plugin              // <-- ...this alias name
-)
-#endif
 }// namespace http
-//]
