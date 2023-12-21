@@ -4,9 +4,11 @@
 #include <memory>
 #include "request.h"
 #include "httppeer.h"
-#include "http_so_common_api.h" 
- namespace http { 
- 
- clientapi* clientapi::singleton =clientapi::instance();
+#include "http_so_common_api.h"
+namespace http
+{
+#ifdef ENABLE_BOOST
+clientapi *clientapi::singleton = clientapi::instance();
+#endif
 
- }
+}// namespace http

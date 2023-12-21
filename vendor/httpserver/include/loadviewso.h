@@ -1,6 +1,7 @@
 #ifndef __FRAME_LOADVEWSO_H__
 #define __FRAME_LOADVEWSO_H__
 
+#ifdef ENABLE_BOOST
 #include <iostream>
 #include <string>
 #include <list>
@@ -14,14 +15,14 @@
 
 namespace http
 {
-   
-    typedef boost::function<boost::function<std::string( struct view_param ,OBJ_VALUE &)>(std::string)> view_modulemethod_callback_t;
-    typedef boost::function<std::string( struct view_param ,OBJ_VALUE &)> view_method_callback_t;
-    typedef std::map<std::size_t, view_method_callback_t> view_so_cachepath_t;
 
-    view_method_callback_t viewsomodulecreate(std::string module, std::string name);
-    view_method_callback_t loadviewso(std::string modulemethod);
- 
-    
-}
+typedef boost::function<boost::function<std::string(struct view_param, OBJ_VALUE &)>(std::string)> view_modulemethod_callback_t;
+typedef boost::function<std::string(struct view_param, OBJ_VALUE &)> view_method_callback_t;
+typedef std::map<std::size_t, view_method_callback_t> view_so_cachepath_t;
+
+view_method_callback_t viewsomodulecreate(std::string module, std::string name);
+view_method_callback_t loadviewso(std::string modulemethod);
+
+}// namespace http
+#endif
 #endif

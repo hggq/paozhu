@@ -1,5 +1,7 @@
 #ifndef HTTP_CONTROL_HPP
 #define HTTP_CONTROL_HPP
+
+#ifdef ENABLE_BOOST
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -58,4 +60,5 @@ BOOST_DLL_ALIAS(http::clientapi::setclientapi, _setclientapi)
 #define _SHOW(A) BOOST_DLL_ALIAS(http::A, A)
 #define _SHOWS(A, B) BOOST_DLL_ALIAS(http::A, B)
 }// namespace http
+#endif
 #endif
