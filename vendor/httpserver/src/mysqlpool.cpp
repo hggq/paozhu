@@ -24,8 +24,8 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
         mysql_init(conn.get());
-        bool rebool = true;
-        mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
+        // bool rebool = true;
+        // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
         if (!mysql_real_connect(conn.get(), (select_link.host.size() > 0 ? select_link.host.c_str() : NULL), select_link.username.c_str(), select_link.password.c_str(), select_link.db.c_str(), select_link.port, (select_link.unix_socket.size() > 0 ? select_link.unix_socket.c_str() : NULL), 0))
         {
             throw mysql_error(conn.get());
@@ -39,8 +39,8 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
         mysql_init(conn.get());
-        bool rebool = true;
-        mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
+        // bool rebool = true;
+        // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
         if (!mysql_real_connect(conn.get(), (edit_link.host.size() > 0 ? edit_link.host.c_str() : NULL), edit_link.username.c_str(), edit_link.password.c_str(), edit_link.db.c_str(), edit_link.port, (edit_link.unix_socket.size() > 0 ? edit_link.unix_socket.c_str() : NULL), 0))
         {
             throw mysql_error(conn.get());
@@ -56,8 +56,8 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
         mysql_init(conn.get());
-        bool rebool = true;
-        mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
+        // bool rebool = true;
+        // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
         if (!mysql_real_connect(conn.get(), (select_link.host.size() > 0 ? select_link.host.c_str() : NULL), select_link.username.c_str(), select_link.password.c_str(), select_link.db.c_str(), select_link.port, (select_link.unix_socket.size() > 0 ? select_link.unix_socket.c_str() : NULL), 0))
         {
             throw mysql_error(conn.get());
@@ -71,8 +71,8 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
         mysql_init(conn.get());
-        bool rebool = true;
-        mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
+        // bool rebool = true;
+        // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
         if (!mysql_real_connect(conn.get(), (edit_link.host.size() > 0 ? edit_link.host.c_str() : NULL), edit_link.username.c_str(), edit_link.password.c_str(), edit_link.db.c_str(), edit_link.port, (edit_link.unix_socket.size() > 0 ? edit_link.unix_socket.c_str() : NULL), 0))
         {
             throw mysql_error(conn.get());
@@ -120,8 +120,8 @@ MYSQL_CONN_PTR mysqllinkpool::add_select_connect()
     MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
     mysql_init(conn.get());
-    bool rebool = true;
-    mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
+    // bool rebool = true;
+    // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
     if (!mysql_real_connect(conn.get(), (select_link.host.size() > 0 ? select_link.host.c_str() : NULL), select_link.username.c_str(), select_link.password.c_str(), select_link.db.c_str(), select_link.port, (select_link.unix_socket.size() > 0 ? select_link.unix_socket.c_str() : NULL), 0))
     {
         throw mysql_error(conn.get());
@@ -133,8 +133,8 @@ MYSQL_CONN_PTR mysqllinkpool::add_edit_connect()
     MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
     mysql_init(conn.get());
-    bool rebool = true;
-    mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
+    // bool rebool = true;
+    // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
     if (!mysql_real_connect(conn.get(), (edit_link.host.size() > 0 ? edit_link.host.c_str() : NULL), edit_link.username.c_str(), edit_link.password.c_str(), edit_link.db.c_str(), edit_link.port, (edit_link.unix_socket.size() > 0 ? edit_link.unix_socket.c_str() : NULL), 0))
     {
         throw mysql_error(conn.get());
