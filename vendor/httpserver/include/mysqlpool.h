@@ -1,3 +1,7 @@
+
+#ifndef HTTP_MYSQLPOOL_H
+#define HTTP_MYSQLPOOL_H
+
 #include <iostream>
 #include <map>
 #include <string>
@@ -8,6 +12,8 @@
 #include <list>
 #include "mysql.h"
 
+namespace http
+{
 using MYSQL_CONN_PTR = std::unique_ptr<MYSQL, decltype(&mysql_close)>;
 
 struct mysql_connect_link_info
@@ -47,3 +53,5 @@ public:
     struct mysql_connect_link_info edit_link;
 };
 std::map<std::size_t, mysqllinkpool> &get_mysqlpool();
+}
+#endif

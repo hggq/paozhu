@@ -23,13 +23,12 @@
 #include <cmath>
 #include <condition_variable>
 #include <sstream>
-#include "mysqlproxyfun.h"
-
+#include "mysqlpool.h"
 namespace orm
 {
-// 通用操作 类 mysql 方法 在这里接上getSession(); 这里可以操作 data sql count
+// mysql 操作数据中间件
 // page
-//  using namespace http;
+// using namespace http;
 typedef std::vector<std::pair<std::string, std::function<void(long long, long long)>>> commit_lists_callback;
 
 template <typename BASE_T>
@@ -269,13 +268,20 @@ class get_orm_client
         try
         {
             std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return std::make_tuple(table_fieldname, temprecord);
+            }        
             if (isedit)
             {
-                conn = http::get_mysqleditexecute(dbhash);
+                conn =  iter->second.get_edit_connect();
             }
             else
             {
-                conn = http::get_mysqlselectexecute(dbhash);
+                conn = iter->second.get_select_connect();
             }
             MYSQL_RES *resultall = nullptr;
             mysql_ping(conn.get());
@@ -286,7 +292,15 @@ class get_orm_client
                 error_msg = std::string(mysql_error(conn.get()));
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    if (isedit)
+                    {
+                        iter->second.back_edit_connect(std::move(conn));
+                    }
+                    else
+                    {
+                        iter->second.back_select_connect(std::move(conn));
+                    }
+                   
                 }
                 catch (...)
                 {
@@ -333,7 +347,14 @@ class get_orm_client
             mysql_free_result(resultall);
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                 if (isedit)
+                {
+                    iter->second.back_edit_connect(std::move(conn));
+                }
+                else
+                {
+                    iter->second.back_select_connect(std::move(conn));
+                }
             }
             catch (...)
             {
@@ -356,7 +377,15 @@ class get_orm_client
     {
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+             std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return 0;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &rawsql[0], rawsql.size());
             readnum           = mysql_affected_rows(conn.get());
@@ -366,7 +395,7 @@ class get_orm_client
             }
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+               iter->second.back_select_connect(std::move(conn));
             }
             catch (...)
             {
@@ -455,7 +484,15 @@ class mysqlclientDB : public base
         try
         {
 
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return 0;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_select_connect();
             MYSQL_RES *resultone                                = nullptr;
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &countsql[0], countsql.size());
@@ -465,7 +502,7 @@ class mysqlclientDB : public base
                 error_msg = std::string(mysql_error(conn.get()));
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                   iter->second.back_select_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -476,7 +513,7 @@ class mysqlclientDB : public base
             resultone = mysql_store_result(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+               iter->second.back_select_connect(std::move(conn));
             }
             catch (...)
             {
@@ -628,13 +665,22 @@ class mysqlclientDB : public base
         }
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return 0;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
+
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &countsql[0], countsql.size());
             readnum           = mysql_affected_rows(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -1641,7 +1687,15 @@ class mysqlclientDB : public base
         std::vector<std::map<std::string, std::string>> temprecord;
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return temprecord;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_select_connect();
             MYSQL_RES *resultall                                = nullptr;
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
@@ -1651,7 +1705,7 @@ class mysqlclientDB : public base
                 error_msg = std::string(mysql_error(conn.get()));
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_select_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -1662,7 +1716,7 @@ class mysqlclientDB : public base
             resultall = mysql_store_result(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_select_connect(std::move(conn));
             }
             catch (...)
             {
@@ -1781,7 +1835,16 @@ class mysqlclientDB : public base
         }
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_select_connect();
+
             MYSQL_RES *resultall                                = nullptr;
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
@@ -1791,7 +1854,7 @@ class mysqlclientDB : public base
                 error_msg = std::string(mysql_error(conn.get()));
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                   iter->second.back_select_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -1802,7 +1865,7 @@ class mysqlclientDB : public base
             resultall = mysql_store_result(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_select_connect(std::move(conn));
             }
             catch (...)
             {
@@ -1933,17 +1996,24 @@ class mysqlclientDB : public base
         try
         {
             base::metadata_reset();
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return *mod;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_select_connect();
+            // std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
             MYSQL_RES *resultall                                = nullptr;
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
-
             if (readnum != 0)
             {
                 error_msg = std::string(mysql_error(conn.get()));
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_select_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -1954,7 +2024,7 @@ class mysqlclientDB : public base
             resultall = mysql_store_result(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_select_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2178,7 +2248,15 @@ class mysqlclientDB : public base
         valuetemp.set_array();
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return valuetemp;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_select_connect();
             MYSQL_RES *resultall                                = nullptr;
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
@@ -2188,7 +2266,7 @@ class mysqlclientDB : public base
                 error_msg = std::string(mysql_error(conn.get()));
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_select_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -2199,7 +2277,7 @@ class mysqlclientDB : public base
             resultall = mysql_store_result(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_select_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2277,7 +2355,15 @@ class mysqlclientDB : public base
         try
         {
             base::metadata_reset();
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return *mod;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_select_connect();
             MYSQL_RES *resultone                                = nullptr;
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
@@ -2287,7 +2373,7 @@ class mysqlclientDB : public base
                 error_msg = std::string(mysql_error(conn.get()));
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_select_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -2298,7 +2384,7 @@ class mysqlclientDB : public base
             resultone = mysql_store_result(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_select_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2400,13 +2486,21 @@ class mysqlclientDB : public base
 
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return 0;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             readnum           = mysql_affected_rows(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2479,13 +2573,21 @@ class mysqlclientDB : public base
 
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return 0;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             readnum           = mysql_affected_rows(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2561,13 +2663,21 @@ class mysqlclientDB : public base
 
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return 0;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             readnum           = mysql_affected_rows(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2607,13 +2717,21 @@ class mysqlclientDB : public base
         }
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return 0;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             readnum           = mysql_affected_rows(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2645,7 +2763,15 @@ class mysqlclientDB : public base
                 iscommit = false;
                 return std::make_tuple(0, 0);
             }
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return std::make_tuple(0, 0);
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             if (isclear)
@@ -2658,7 +2784,7 @@ class mysqlclientDB : public base
                 base::setPK(0);
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_edit_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -2669,7 +2795,7 @@ class mysqlclientDB : public base
             long long insertid = mysql_insert_id(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2699,7 +2825,15 @@ class mysqlclientDB : public base
                 iscommit = false;
                 return std::make_tuple(0, 0);
             }
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return std::make_tuple(0, 0);
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             if (isclear)
@@ -2712,7 +2846,7 @@ class mysqlclientDB : public base
                 base::setPK(0);
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_edit_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -2723,7 +2857,7 @@ class mysqlclientDB : public base
             long long insertid = mysql_insert_id(conn.get());
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2753,7 +2887,15 @@ class mysqlclientDB : public base
                 iscommit = false;
                 return std::make_tuple(0, 0);
             }
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return std::make_tuple(0, 0);
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             if (readnum != 0)
@@ -2762,7 +2904,7 @@ class mysqlclientDB : public base
                 base::setPK(0);
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_edit_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -2774,7 +2916,7 @@ class mysqlclientDB : public base
             base::setPK(insertid);
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -2838,7 +2980,15 @@ class mysqlclientDB : public base
             }
             try
             {
-                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+                auto iter                                    = myconn.find(dbhash);
+                if (iter == myconn.end())
+                {
+                    error_msg = "not find orm link tag in pool";
+                    return 0;
+                }
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
                 mysql_ping(conn.get());
                 long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 if (readnum != 0)
@@ -2846,7 +2996,7 @@ class mysqlclientDB : public base
                     error_msg = std::string(mysql_error(conn.get()));
                     try
                     {
-                        http::back_mysql_connect(dbhash, std::move(conn));
+                        iter->second.back_edit_connect(std::move(conn));
                     }
                     catch (...)
                     {
@@ -2857,7 +3007,7 @@ class mysqlclientDB : public base
 
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_edit_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -2889,7 +3039,15 @@ class mysqlclientDB : public base
             }
             try
             {
-                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+                std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+                auto iter                                    = myconn.find(dbhash);
+                if (iter == myconn.end())
+                {
+                    error_msg = "not find orm link tag in pool";
+                    return 0;
+                }
+                std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
                 mysql_ping(conn.get());
                 long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 if (readnum != 0)
@@ -2898,7 +3056,7 @@ class mysqlclientDB : public base
                     base::setPK(0);
                     try
                     {
-                        http::back_mysql_connect(dbhash, std::move(conn));
+                        iter->second.back_edit_connect(std::move(conn));
                     }
                     catch (...)
                     {
@@ -2910,7 +3068,7 @@ class mysqlclientDB : public base
                 base::setPK(tempid);
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    iter->second.back_edit_connect(std::move(conn));
                 }
                 catch (...)
                 {
@@ -2943,13 +3101,21 @@ class mysqlclientDB : public base
         try
         {
             std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+            }
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             if (isedit)
             {
-                conn = http::get_mysqleditexecute(dbhash);
+                conn = iter->second.get_edit_connect();
             }
             else
             {
-                conn = http::get_mysqlselectexecute(dbhash);
+                conn = iter->second.get_select_connect();
             }
             MYSQL_RES *resultall = nullptr;
             mysql_ping(conn.get());
@@ -2960,7 +3126,15 @@ class mysqlclientDB : public base
                 error_msg = std::string(mysql_error(conn.get()));
                 try
                 {
-                    http::back_mysql_connect(dbhash, std::move(conn));
+                    if (isedit)
+                    {
+                        iter->second.back_edit_connect(std::move(conn));
+                    }
+                    else
+                    {
+                        iter->second.back_select_connect(std::move(conn));
+                    }
+                    
                 }
                 catch (...)
                 {
@@ -3008,7 +3182,14 @@ class mysqlclientDB : public base
             mysql_free_result(resultall);
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                if (isedit)
+                {
+                    iter->second.back_edit_connect(std::move(conn));
+                }
+                else
+                {
+                    iter->second.back_select_connect(std::move(conn));
+                }
             }
             catch (...)
             {
@@ -3031,7 +3212,15 @@ class mysqlclientDB : public base
     {
         try
         {
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return 0;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &rawsql[0], rawsql.size());
             readnum           = mysql_affected_rows(conn.get());
@@ -3041,7 +3230,7 @@ class mysqlclientDB : public base
             }
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                 iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {
@@ -3105,7 +3294,15 @@ class mysqlclientDB : public base
         try
         {
             int turn_state                                      = 0;
-            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
+            std::map<std::size_t, http::mysqllinkpool> &myconn = http::get_mysqlpool();
+            auto iter                                    = myconn.find(dbhash);
+            if (iter == myconn.end())
+            {
+                error_msg = "not find orm link tag in pool";
+                return -1;
+            }
+            std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second.get_edit_connect();
             mysql_ping(conn.get());
 
             mysql_autocommit(conn.get(), turn_state);
@@ -3145,7 +3342,7 @@ class mysqlclientDB : public base
 
             try
             {
-                http::back_mysql_connect(dbhash, std::move(conn));
+                iter->second.back_edit_connect(std::move(conn));
             }
             catch (...)
             {

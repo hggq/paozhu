@@ -36,7 +36,6 @@
 #endif
 
 #include <openssl/ssl.h>
-#include "mysqlproxyfun.h"
 #include "server_localvar.h"
 #include "debug_log.h"
 #include "websockets_callback.h"

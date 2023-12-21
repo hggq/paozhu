@@ -8,6 +8,8 @@
 #include "mysql.h"
 #include "mysqlpool.h"
 
+namespace http
+{
 std::map<std::size_t, mysqllinkpool> &get_mysqlpool()
 {
     static std::map<std::size_t, mysqllinkpool> instance;
@@ -194,4 +196,5 @@ unsigned int mysqllinkpool::clearpool()
     }
 
     return 0;
+}
 }
