@@ -227,7 +227,9 @@ bool ThreadPool::addthread(size_t threads)
         if (index_num == thread_arrays.size())
         {
             threadinfo_t tinfo;
+            std::unique_lock<std::mutex> lock(addthread_queue);
             thread_arrays.push_back(std::move(tinfo));
+            index_num = thread_arrays.size() - 1;
         }
         thread_arrays[index_num].thread = std::thread(&ThreadPool::threadloop, this, index_num);
         thread_arrays[index_num].id     = thread_arrays[index_num].thread.get_id();
@@ -412,14 +414,6 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                         {
                             if (re_str.size() > 3 && re_str[0] == 'e' && re_str[1] == 'x' && re_str[2] == 'i' && re_str[3] == 't')
                             {
-                                //auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-                                // asio::dispatch(ex,
-                                //                [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                                //                {
-                                //                    /////////////
-                                //                    handler(1);
-                                //                    //////////
-                                //                });
                                 std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
                                 if (peer->user_code_handler_call.size() > 0)
                                 {
@@ -430,6 +424,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                                                    });
                                     peer->user_code_handler_call.pop_front();
                                 }
+                                lock.unlock();
                                 return;
                             }
                         }
@@ -450,14 +445,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 }
                 if (_http_regmethod_table[regmethold_path].pre != nullptr)
                 {
-                    // sitecontent = regmethold_path;
-                    // sitecontent.append("pre");
-                    // if (method_alone.contains(sitecontent))
-                    // {
-                    //     break;
-                    // }
                     sitecontent = _http_regmethod_table[regmethold_path].pre(peer);
-
                     if (sitecontent.size() == 2 && str_casecmp(sitecontent, "ok"))
                     {
                         //method_alone.emplace(regmethold_path);
@@ -522,12 +510,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                 {
                     break;
                 }
-
                 regmethold_path = sitecontent;
-                // if (method_alone.contains(regmethold_path))
-                // {
-                //     break;
-                // }
             }
         }
         else
@@ -698,6 +681,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
                            });
             peer->user_code_handler_call.pop_front();
         }
+        lock.unlock();
         DEBUG_LOG("leave pool");
     }
     catch (std::exception &e)

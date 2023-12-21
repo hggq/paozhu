@@ -104,6 +104,7 @@ class ThreadPool
     std::atomic<unsigned int> livethreadcount;
 
     std::vector<threadinfo_t> thread_arrays;
+    std::mutex addthread_queue;
 };
 
 }// namespace http

@@ -28,7 +28,7 @@ class mywebsockets : public websockets_api
         if (peer)
         {
             DEBUG_LOG(" timeloop ");
-            std::string aa = "777888asdafa";
+            std::string aa = "This server push msg or subscribe msg";
             std::string outhello;
             peer->ws->makeWSText(aa.data(), aa.length(), outhello);
             peer->send(outhello);
