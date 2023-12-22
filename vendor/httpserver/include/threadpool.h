@@ -70,12 +70,12 @@ class ThreadPool
   public:
     ThreadPool(size_t);
 
-    void threadloop(unsigned int);
+    void threadloop(std::shared_ptr<threadinfo_t>);
     bool addthread(size_t);
     bool addclient(std::shared_ptr<httppeer>);
-    void http_clientrun(std::shared_ptr<httppeer>, unsigned int id_index);
-    void timetasks_run(std::shared_ptr<httppeer>, unsigned int id_index);
-    void http_websocketsrun(std::shared_ptr<httppeer>, unsigned int id_index);
+    void http_clientrun(std::shared_ptr<httppeer>, std::shared_ptr<threadinfo_t> mythread_info);
+    void timetasks_run(std::shared_ptr<httppeer>, std::shared_ptr<threadinfo_t> mythread_info);
+    void http_websocketsrun(std::shared_ptr<httppeer>, std::shared_ptr<threadinfo_t> mythread_info);
     bool fixthread();
     unsigned int getpoolthreadnum();
     std::string printthreads(bool);
@@ -97,7 +97,7 @@ class ThreadPool
     std::atomic<unsigned int> pooltotalnum, mixthreads;
     std::atomic<unsigned int> livethreadcount;
 
-    std::map<unsigned int, std::unique_ptr<threadinfo_t>> thread_arrays;
+    std::map<unsigned int, std::shared_ptr<threadinfo_t>> thread_arrays;
 };
 
 }// namespace http
