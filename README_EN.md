@@ -166,6 +166,7 @@ Use h2load and ab testing
 
 ![h2load test](https://hggq.github.io/paozhu/images/h2load_stress_test.png "h2load test")  
 
+![h2load test](https://hggq.github.io/paozhu/images/webbench_stress.png "webbench test")  
 
 ###  8.Sample Hello world
 

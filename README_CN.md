@@ -169,7 +169,7 @@ sudo ./bin/paozhu
 
 ![h2load test](https://hggq.github.io/paozhu/images/h2load_stress_test.png "h2load test")  
 
-
+![webbench test](https://hggq.github.io/paozhu/images/webbench_stress.png "webbench test")  
 
 ###  8.代码例子 Hello world
 
@@ -228,7 +228,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 ### 10.路线图
 
 * [ ] 增强http特性，主要进行HTTP/1 HTTP/2稳定性测试，抗各种黑客软件扫描
-* [x] 用C++代码解析JSX文件进行服务器端渲染
+* [ ] 用C++代码解析JSX文件进行服务器端渲染
 * [ ] 采集client框架，支持协程，多线程，协议转发
 * [ ] Websocket 客户端
 * [x] ~~支持windows操作系统~~
