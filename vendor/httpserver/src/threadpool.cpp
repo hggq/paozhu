@@ -75,7 +75,7 @@ std::string ThreadPool::printthreads(bool is_onlineout)
     {
         return temp_str;
     }
-
+    std::unique_lock<std::mutex> lock(this->queue_mutex);
     for (auto iter = thread_arrays.begin(); iter != thread_arrays.end(); iter++)
     {
         oss.str("");
@@ -94,6 +94,7 @@ std::string ThreadPool::printthreads(bool is_onlineout)
 #ifdef DEBUG
     INFO("-------------");
 #endif
+    lock.unlock();
     return temp_str;
 }
 
