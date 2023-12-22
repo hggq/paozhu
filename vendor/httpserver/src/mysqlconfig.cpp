@@ -256,7 +256,7 @@ void mysqlconfig_init_link()
         std::string mysqlconnectselect;// = "mysqlx://root:123456@127.0.0.1/mysql";
         std::string rmstag;
         std::hash<std::string> hash_fn;
-        size_t dcon;
+        std::size_t dcon;
         serverconfig &sysconfigpath = getserversysconfig();
 
         rmstag = sysconfigpath.configpath;
@@ -273,7 +273,7 @@ void mysqlconfig_init_link()
             return;
         }
         std::map<std::string, std::vector<struct mysql_connect_link_info>> mysqldblinkgroupjion;
-        std::map<size_t, mysqllinkpool> &mysql_pool_map = get_mysqlpool();
+        std::map<std::size_t, std::shared_ptr<mysqllinkpool>> &mysql_pool_map = get_mysqlpool();
         std::map<std::string, std::string> poolmax;
         rmstag.clear();
         // 转为rmstag分组
@@ -281,7 +281,6 @@ void mysqlconfig_init_link()
         {
             for (std::size_t li = 0; li < myconfig.size(); li++)
             {
-
                 if (myconfig[li].dbtype != "mysql")
                 {
                     continue;
@@ -319,20 +318,19 @@ void mysqlconfig_init_link()
             dcon = hash_fn(iterl->first);
             if (iterl->second.size() == 1)
             {
-                mysqllinkpool db(iterl->second[0], iterl->second[0]);
-
+                std::shared_ptr<http::mysqllinkpool> db = std::make_shared<http::mysqllinkpool>(iterl->second[0], iterl->second[0]);
                 try
                 {
-                    db.select_max_pool_num = std::atoi(poolmax[rmstag].c_str());
-                    db.edit_max_pool_num   = std::atoi(poolmax[rmstag].c_str());
+                    db->select_max_pool_num = std::atoi(poolmax[rmstag].c_str());
+                    db->edit_max_pool_num   = std::atoi(poolmax[rmstag].c_str());
 
-                    if (db.select_max_pool_num < 10)
+                    if (db->select_max_pool_num < 10)
                     {
-                        db.select_max_pool_num = 10;
+                        db->select_max_pool_num = 10;
                     }
-                    if (db.edit_max_pool_num < 10)
+                    if (db->edit_max_pool_num < 10)
                     {
-                        db.edit_max_pool_num = 10;
+                        db->edit_max_pool_num = 10;
                     }
                 }
                 catch (const std::exception &e)
@@ -342,19 +340,19 @@ void mysqlconfig_init_link()
             }
             else if (iterl->second.size() > 1)
             {
-                mysqllinkpool db(iterl->second[0], iterl->second[1]);
+                std::shared_ptr<http::mysqllinkpool> db = std::make_shared<http::mysqllinkpool>(iterl->second[0], iterl->second[1]);
                 try
                 {
-                    db.select_max_pool_num = std::atoi(poolmax[rmstag].c_str());
-                    db.edit_max_pool_num   = std::atoi(poolmax[rmstag].c_str());
+                    db->select_max_pool_num = std::atoi(poolmax[rmstag].c_str());
+                    db->edit_max_pool_num   = std::atoi(poolmax[rmstag].c_str());
 
-                    if (db.select_max_pool_num < 10)
+                    if (db->select_max_pool_num < 10)
                     {
-                        db.select_max_pool_num = 10;
+                        db->select_max_pool_num = 10;
                     }
-                    if (db.edit_max_pool_num < 10)
+                    if (db->edit_max_pool_num < 10)
                     {
-                        db.edit_max_pool_num = 10;
+                        db->edit_max_pool_num = 10;
                     }
                 }
                 catch (const std::exception &e)

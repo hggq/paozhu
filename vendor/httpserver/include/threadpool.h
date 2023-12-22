@@ -64,18 +64,13 @@ struct threadinfo_t
     char ip[65]              = {0};
     char url[65]             = {0};
 };
-struct thread_config
-{
-    int timeout = 60;
-    std::thread::id id;
-};
 
 class ThreadPool
 {
   public:
     ThreadPool(size_t);
 
-    void threadloop(int);
+    void threadloop(unsigned int);
     bool addthread(size_t);
     bool addclient(std::shared_ptr<httppeer>);
     void http_clientrun(std::shared_ptr<httppeer>, unsigned int id_index);
@@ -89,13 +84,12 @@ class ThreadPool
     unsigned int getmixthreads() { return mixthreads.load(); };
 
     ~ThreadPool();
-    // std::string name;// 测试共享
+
   public:
     asio::io_context *io_context = nullptr;
 
   private:
     std::queue<std::shared_ptr<httppeer>> clienttasks;
-    // synchronization
     std::mutex queue_mutex;
     std::condition_variable condition;
     bool stop;
@@ -103,8 +97,7 @@ class ThreadPool
     std::atomic<unsigned int> pooltotalnum, mixthreads;
     std::atomic<unsigned int> livethreadcount;
 
-    std::vector<threadinfo_t> thread_arrays;
-    std::mutex addthread_queue;
+    std::map<unsigned int, std::unique_ptr<threadinfo_t>> thread_arrays;
 };
 
 }// namespace http

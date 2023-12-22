@@ -1809,16 +1809,6 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             }
             _send_header = peer->make_http2_header(0);
 
-            // peer->socket_session->send_data(_send_header);
-
-            // if (peer->compress > 0)
-            // {
-            //     http2_send_body(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
-            // }
-            // else
-            // {
-            //     http2_send_body(peer, (const unsigned char *)&peer->output[0], peer->output.size());
-            // }
             DEBUG_LOG("send http2_send_writer");
             co_await peer->socket_session->http2_send_writer(_send_header);
             DEBUG_LOG("http2_send_content");
@@ -1831,10 +1821,6 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
             }
         }
-        // peer->output.clear();
-        // peer->val.clear();
-        // peer->post.clear();
-        // peer->session.clear();
         peer->issend = true;
         co_return;
     }
@@ -1941,10 +1927,6 @@ void httpserver::http2pool(int threadid)
                 if (iter->isfinish == true)
                 {
                     DEBUG_LOG("big file end");
-                    // iter->peer->output.clear();
-                    // iter->peer->val.clear();
-                    // iter->peer->post.clear();
-                    // iter->peer->session.clear();
                     iter->peer->issend = true;
 
                     iter = http2send_tasks.erase(iter);
@@ -2957,7 +2939,6 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                         DEBUG_LOG("http1loop end");
                         if (peer->state.keepalive == false)
                         {
-                            DEBUG_LOG("--- keepalive false --------");
                             break;
                         }
                         http1pre->clear();
@@ -3565,13 +3546,13 @@ void httpserver::httpwatch()
                 client << " ";
                 try
                 {
-                    std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
-                    isshow                                             = 0;
+                    std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                    isshow                                                                         = 0;
                     for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                     {
-                        client << " [db:" << iter->second.select_link.db
-                               << " select:" << std::to_string(iter->second.select_current_num);
-                        client << " edit:" << std::to_string(iter->second.edit_current_num);
+                        client << " [db:" << iter->second->select_link.db
+                               << " select:" << std::to_string(iter->second->select_current_num);
+                        client << " edit:" << std::to_string(iter->second->edit_current_num);
                         ++isshow;
                     }
                     client << "]</p>";
@@ -3820,10 +3801,10 @@ void httpserver::httpwatch()
             {
                 if (total_count.load() == 0)
                 {
-                    std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
+                    std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
                     for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                     {
-                        iter->second.clearpool();
+                        iter->second->clearpool();
 
                         DEBUG_LOG("mysql pool clearpoool ");
                     }
@@ -3836,10 +3817,10 @@ void httpserver::httpwatch()
 
             if (now->tm_hour < 3 && mysqlpool_time > 82800)
             {
-                std::map<size_t, mysqllinkpool> &mysqldbpoolglobal = get_mysqlpool();
+                std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
                 for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                 {
-                    iter->second.clearpool();
+                    iter->second->clearpool();
                 }
                 mysqlpool_time = 1;
             }

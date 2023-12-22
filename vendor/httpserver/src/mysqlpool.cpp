@@ -10,13 +10,11 @@
 
 namespace http
 {
-std::map<std::size_t, mysqllinkpool> &get_mysqlpool()
+std::map<std::size_t, std::shared_ptr<mysqllinkpool>> &get_mysqlpool()
 {
-    static std::map<std::size_t, mysqllinkpool> instance;
+    static std::map<std::size_t, std::shared_ptr<mysqllinkpool>> instance;
     return instance;
 }
-std::mutex lock_select_list;
-std::mutex lock_edit_list;
 mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql_connect_link_info e_info, unsigned int num, unsigned int editnum) : select_link(std::move(s_info)), edit_link(std::move(e_info))
 {
     for (unsigned int i = 0; i < num; i++)
@@ -24,8 +22,6 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
         mysql_init(conn.get());
-        // bool rebool = true;
-        // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
         if (!mysql_real_connect(conn.get(), (select_link.host.size() > 0 ? select_link.host.c_str() : NULL), select_link.username.c_str(), select_link.password.c_str(), select_link.db.c_str(), select_link.port, (select_link.unix_socket.size() > 0 ? select_link.unix_socket.c_str() : NULL), 0))
         {
             throw mysql_error(conn.get());
@@ -39,8 +35,6 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
         mysql_init(conn.get());
-        // bool rebool = true;
-        // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
         if (!mysql_real_connect(conn.get(), (edit_link.host.size() > 0 ? edit_link.host.c_str() : NULL), edit_link.username.c_str(), edit_link.password.c_str(), edit_link.db.c_str(), edit_link.port, (edit_link.unix_socket.size() > 0 ? edit_link.unix_socket.c_str() : NULL), 0))
         {
             throw mysql_error(conn.get());
@@ -56,8 +50,6 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
         mysql_init(conn.get());
-        // bool rebool = true;
-        // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
         if (!mysql_real_connect(conn.get(), (select_link.host.size() > 0 ? select_link.host.c_str() : NULL), select_link.username.c_str(), select_link.password.c_str(), select_link.db.c_str(), select_link.port, (select_link.unix_socket.size() > 0 ? select_link.unix_socket.c_str() : NULL), 0))
         {
             throw mysql_error(conn.get());
@@ -71,8 +63,6 @@ mysqllinkpool::mysqllinkpool(struct mysql_connect_link_info s_info, struct mysql
         MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
 
         mysql_init(conn.get());
-        // bool rebool = true;
-        // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
         if (!mysql_real_connect(conn.get(), (edit_link.host.size() > 0 ? edit_link.host.c_str() : NULL), edit_link.username.c_str(), edit_link.password.c_str(), edit_link.db.c_str(), edit_link.port, (edit_link.unix_socket.size() > 0 ? edit_link.unix_socket.c_str() : NULL), 0))
         {
             throw mysql_error(conn.get());
@@ -88,7 +78,14 @@ MYSQL_CONN_PTR mysqllinkpool::get_select_connect()
     if (mysql_select_pool_list.empty())
     {
         lock.unlock();
-        return add_select_connect();
+        try
+        {
+            return add_select_connect();
+        }
+        catch (const char *e)
+        {
+            throw e;
+        }
     }
     auto temp = std::move(mysql_select_pool_list.front());
     mysql_select_pool_list.pop_front();
@@ -104,7 +101,14 @@ MYSQL_CONN_PTR mysqllinkpool::get_edit_connect()
     if (mysql_edit_pool_list.empty())
     {
         lock.unlock();
-        return add_edit_connect();
+        try
+        {
+            return add_edit_connect();
+        }
+        catch (const char *e)
+        {
+            throw e;
+        }
     };
 
     auto temp = std::move(mysql_edit_pool_list.front());
@@ -118,10 +122,7 @@ MYSQL_CONN_PTR mysqllinkpool::get_edit_connect()
 MYSQL_CONN_PTR mysqllinkpool::add_select_connect()
 {
     MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
-
     mysql_init(conn.get());
-    // bool rebool = true;
-    // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
     if (!mysql_real_connect(conn.get(), (select_link.host.size() > 0 ? select_link.host.c_str() : NULL), select_link.username.c_str(), select_link.password.c_str(), select_link.db.c_str(), select_link.port, (select_link.unix_socket.size() > 0 ? select_link.unix_socket.c_str() : NULL), 0))
     {
         throw mysql_error(conn.get());
@@ -131,10 +132,7 @@ MYSQL_CONN_PTR mysqllinkpool::add_select_connect()
 MYSQL_CONN_PTR mysqllinkpool::add_edit_connect()
 {
     MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
-
     mysql_init(conn.get());
-    // bool rebool = true;
-    // mysql_options(conn.get(), MYSQL_OPT_RECONNECT, &rebool);
     if (!mysql_real_connect(conn.get(), (edit_link.host.size() > 0 ? edit_link.host.c_str() : NULL), edit_link.username.c_str(), edit_link.password.c_str(), edit_link.db.c_str(), edit_link.port, (edit_link.unix_socket.size() > 0 ? edit_link.unix_socket.c_str() : NULL), 0))
     {
         throw mysql_error(conn.get());
@@ -197,4 +195,4 @@ unsigned int mysqllinkpool::clearpool()
 
     return 0;
 }
-}
+}// namespace http

@@ -26,7 +26,7 @@ struct mysql_connect_link_info
 };
 class mysqllinkpool
 {
-public:
+  public:
     mysqllinkpool() = delete;
     mysqllinkpool(struct mysql_connect_link_info, struct mysql_connect_link_info);
     mysqllinkpool(struct mysql_connect_link_info, struct mysql_connect_link_info, unsigned int num, unsigned int editnum);
@@ -40,17 +40,20 @@ public:
     void back_edit_connect(MYSQL_CONN_PTR);
     unsigned int clearpool();
 
-public:
+  public:
     std::list<MYSQL_CONN_PTR> mysql_select_pool_list;
     std::list<MYSQL_CONN_PTR> mysql_edit_pool_list;
-    unsigned int select_current_num = 0;
+    unsigned int select_current_num  = 0;
     unsigned int select_max_pool_num = 350;
-    unsigned int edit_current_num = 0;
-    unsigned int edit_max_pool_num = 350;
+    unsigned int edit_current_num    = 0;
+    unsigned int edit_max_pool_num   = 350;
 
     struct mysql_connect_link_info select_link;
     struct mysql_connect_link_info edit_link;
+
+    std::mutex lock_select_list;
+    std::mutex lock_edit_list;
 };
-std::map<std::size_t, mysqllinkpool> &get_mysqlpool();
-}
+std::map<std::size_t, std::shared_ptr<mysqllinkpool>> &get_mysqlpool();
+}// namespace http
 #endif

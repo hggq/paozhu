@@ -76,11 +76,11 @@ std::string ThreadPool::printthreads(bool is_onlineout)
         return temp_str;
     }
 
-    for (unsigned int i = 0; i < thread_arrays.size(); i++)
+    for (auto iter = thread_arrays.begin(); iter != thread_arrays.end(); iter++)
     {
         oss.str("");
-        oss << thread_arrays[i].id << " isbusy:" << thread_arrays[i].busy << " ip:" << (thread_arrays[i].ip)
-            << " url:" << thread_arrays[i].url;
+        oss << iter->second->id << " isbusy:" << iter->second->busy << " ip:" << (iter->second->ip)
+            << " url:" << iter->second->url;
         temp_thread = oss.str();
 #ifdef DEBUG
         INFO("[INFO  ] %s", temp_thread.c_str());
@@ -99,19 +99,19 @@ std::string ThreadPool::printthreads(bool is_onlineout)
 
 unsigned int ThreadPool::getpoolthreadnum() { return thread_arrays.size(); }
 
-void ThreadPool::threadloop(int index)
+void ThreadPool::threadloop(unsigned int loop_id)
 {
     while (!this->stop)
     {
         std::unique_lock<std::mutex> lock(this->queue_mutex);
         this->condition.wait(lock,
-                             [this, index]
-                             { return this->stop || this->thread_arrays[index].stop || !this->clienttasks.empty(); });
+                             [this, loop_id]
+                             { return this->stop || this->thread_arrays[loop_id]->stop || !this->clienttasks.empty(); });
 
         if (this->stop && this->clienttasks.empty())
             break;
 
-        if (this->thread_arrays[index].stop)
+        if (this->thread_arrays[loop_id]->stop)
         {
             break;
         }
@@ -123,84 +123,79 @@ void ThreadPool::threadloop(int index)
         this->clienttasks.pop();
         lock.unlock();
 
-        this->thread_arrays[index].begin = time((time_t *)NULL);
+        this->thread_arrays[loop_id]->begin = time((time_t *)NULL);
         livethreadcount += 1;
-        this->thread_arrays[index].busy = true;
+        this->thread_arrays[loop_id]->busy = true;
 
         if (task->linktype == 0)
         {
-            this->http_clientrun(std::move(task), index);
+            this->http_clientrun(std::move(task), loop_id);
         }
         else if (task->linktype == 3)
         {
-            this->http_websocketsrun(std::move(task), index);
+            this->http_websocketsrun(std::move(task), loop_id);
         }
         else if (task->linktype == 7)
         {
-            this->timetasks_run(std::move(task), index);
+            this->timetasks_run(std::move(task), loop_id);
         }
         livethreadcount -= 1;
-        this->thread_arrays[index].busy = false;
-        this->thread_arrays[index].end  = time((time_t *)NULL);
+        this->thread_arrays[loop_id]->busy = false;
+        this->thread_arrays[loop_id]->end  = time((time_t *)NULL);
     }
 
-    this->thread_arrays[index].close = true;
+    this->thread_arrays[loop_id]->close = true;
 }
 bool ThreadPool::fixthread()
 {
-    // unsigned int tempcount = thread_arrays.size();
-    // if (tempcount < 32)
-    // {
-    //     return false;
-    // }
-    // if (tempcount < (mixthreads.load() + 10))
-    // {
-    //     return false;
-    // }
     unsigned int tempcount = 0;
-
-    for (unsigned int i = 0; i < thread_arrays.size(); i++)
+    for (auto iter = thread_arrays.begin(); iter != thread_arrays.end();)
     {
-        if (thread_arrays[i].close == false)
+        if (iter->second->close == false)
         {
             tempcount++;
         }
+        iter++;
     }
+
     if (tempcount < mixthreads.load())
     {
         return false;
     }
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
-        for (unsigned int i = 0; i < thread_arrays.size(); i++)
+        for (auto iter = thread_arrays.begin(); iter != thread_arrays.end();)
         {
-            if (thread_arrays[i].busy == false)
+            if (iter->second->busy == false)
             {
-                thread_arrays[i].stop = true;
+                iter->second->stop = true;
                 tempcount--;
             }
             if (tempcount <= mixthreads.load())
             {
                 break;
             }
+            iter++;
         }
         lock.unlock();
     }
-
     condition.notify_all();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     std::unique_lock<std::mutex> lock(queue_mutex);
-    for (unsigned int i = 0; i < thread_arrays.size(); i++)
+    for (auto iter = thread_arrays.begin(); iter != thread_arrays.end();)
     {
-        if (thread_arrays[i].close)
+        if (iter->second->close)
         {
-            if (thread_arrays[i].thread.joinable())
+            if (iter->second->thread.joinable())
             {
-                thread_arrays[i].thread.join();
-                thread_arrays[i].close = true;
-                pooltotalnum -= 1;
+                iter->second->thread.join();
+                iter->second->close = true;
+                iter                = thread_arrays.erase(iter);
+                continue;
             }
         }
+        ++iter;
     }
     lock.unlock();
     return true;
@@ -208,34 +203,39 @@ bool ThreadPool::fixthread()
 
 bool ThreadPool::addthread(size_t threads)
 {
-
-    if (thread_arrays.size() > 1023)
+    unsigned int index_num = thread_arrays.size();
+    if (index_num > 1023)
     {
         return false;
     }
-
+    index_num = pooltotalnum.load();
+    if (index_num > 4294967294)
+    {
+        index_num = 100;
+    }
     for (size_t i = 0; i < threads; ++i)
     {
-        unsigned int index_num = 0;
-        for (; index_num < thread_arrays.size(); index_num++)
+
+        if (thread_arrays.contains(index_num))
         {
-            if (thread_arrays[index_num].close == true)
+            for (; index_num < 4294967294; index_num++)
             {
-                break;
+                if (!thread_arrays.contains(index_num))
+                {
+                    break;
+                }
             }
         }
-        if (index_num == thread_arrays.size())
-        {
-            threadinfo_t tinfo;
-            std::unique_lock<std::mutex> lock(addthread_queue);
-            thread_arrays.push_back(std::move(tinfo));
-            index_num = thread_arrays.size() - 1;
-        }
-        thread_arrays[index_num].thread = std::thread(&ThreadPool::threadloop, this, index_num);
-        thread_arrays[index_num].id     = thread_arrays[index_num].thread.get_id();
-        thread_arrays[index_num].close  = false;
-        pooltotalnum++;
+        std::unique_lock<std::mutex> lock(this->queue_mutex);
+        std::unique_ptr<threadinfo_t> tinfo = std::make_unique<threadinfo_t>();
+        tinfo->thread                       = std::thread(&ThreadPool::threadloop, this, index_num);
+        tinfo->id                           = tinfo->thread.get_id();
+        tinfo->close                        = false;
+        thread_arrays.insert({index_num, std::move(tinfo)});
+        lock.unlock();
+        index_num++;
     }
+    pooltotalnum = index_num;
     return true;
 }
 
@@ -248,22 +248,13 @@ ThreadPool::ThreadPool(size_t threads) : stop(false)
     mixthreads.store(16);
     for (size_t i = 0; i < threads; ++i)
     {
-        struct threadinfo_t tinfo;
-        unsigned int index_num = 0;
-        for (; index_num < thread_arrays.size(); index_num++)
-        {
-            if (thread_arrays[index_num].close == true)
-            {
-                break;
-            }
-        }
-        if (index_num == thread_arrays.size())
-        {
-            thread_arrays.push_back(std::move(tinfo));
-        }
-        thread_arrays[index_num].thread = std::thread(&ThreadPool::threadloop, this, index_num);
-        thread_arrays[index_num].id     = thread_arrays[index_num].thread.get_id();
-        thread_arrays[index_num].close  = false;
+        std::unique_lock<std::mutex> lock(this->queue_mutex);
+        std::unique_ptr<threadinfo_t> tinfo = std::make_unique<threadinfo_t>();
+        tinfo->thread                       = std::thread(&ThreadPool::threadloop, this, pooltotalnum.load());
+        tinfo->id                           = tinfo->thread.get_id();
+        tinfo->close                        = false;
+        thread_arrays.insert({pooltotalnum.load(), std::move(tinfo)});
+        lock.unlock();
         pooltotalnum++;
     }
     isclose_add = false;
@@ -277,12 +268,12 @@ ThreadPool::~ThreadPool()
         stop = true;
     }
     condition.notify_all();
-
-    for (unsigned int i = 0; i < thread_arrays.size(); i++)
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    for (auto iter = thread_arrays.begin(); iter != thread_arrays.end();)
     {
-        if (thread_arrays[i].thread.joinable())
+        if (iter->second->thread.joinable())
         {
-            thread_arrays[i].thread.join();
+            iter->second->thread.join();
         }
     }
 }
@@ -322,7 +313,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
             unsigned int offsetnum = 0;
             for (; offsetnum < peer->host.size(); offsetnum++)
             {
-                thread_arrays[id_index].url[offsetnum] = peer->host[offsetnum];
+                thread_arrays[id_index]->url[offsetnum] = peer->host[offsetnum];
                 if (offsetnum > 60)
                 {
                     break;
@@ -330,21 +321,21 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
             }
             for (unsigned int j = 0; j < peer->url.size(); j++)
             {
-                thread_arrays[id_index].url[offsetnum] = peer->url[j];
+                thread_arrays[id_index]->url[offsetnum] = peer->url[j];
                 offsetnum++;
                 if (offsetnum > 63)
                 {
                     break;
                 }
             }
-            thread_arrays[id_index].url[offsetnum] = 0x00;
+            thread_arrays[id_index]->url[offsetnum] = 0x00;
 
             {
                 unsigned int offsetnum = peer->client_ip.size();
                 if (offsetnum < 61)
                 {
-                    memcpy(thread_arrays[id_index].ip, peer->client_ip.data(), offsetnum);
-                    thread_arrays[id_index].ip[offsetnum] = 0x00;
+                    memcpy(thread_arrays[id_index]->ip, peer->client_ip.data(), offsetnum);
+                    thread_arrays[id_index]->ip[offsetnum] = 0x00;
                 }
             }
         }
@@ -733,7 +724,7 @@ void ThreadPool::http_websocketsrun(std::shared_ptr<httppeer> peer, unsigned int
         {
             for (; offsetnum < peer->host.size(); offsetnum++)
             {
-                thread_arrays[id_index].url[offsetnum] = peer->host[offsetnum];
+                thread_arrays[id_index]->url[offsetnum] = peer->host[offsetnum];
                 if (offsetnum > 60)
                 {
                     break;
@@ -741,21 +732,21 @@ void ThreadPool::http_websocketsrun(std::shared_ptr<httppeer> peer, unsigned int
             }
             for (unsigned int j = 0; j < peer->url.size(); j++)
             {
-                thread_arrays[id_index].url[offsetnum] = peer->url[j];
+                thread_arrays[id_index]->url[offsetnum] = peer->url[j];
                 offsetnum++;
                 if (offsetnum > 63)
                 {
                     break;
                 }
             }
-            thread_arrays[id_index].url[offsetnum] = 0x00;
+            thread_arrays[id_index]->url[offsetnum] = 0x00;
 
             {
                 unsigned int offsetnum = peer->client_ip.size();
                 if (offsetnum < 61)
                 {
-                    memcpy(thread_arrays[id_index].ip, peer->client_ip.data(), offsetnum);
-                    thread_arrays[id_index].ip[offsetnum] = 0x00;
+                    memcpy(thread_arrays[id_index]->ip, peer->client_ip.data(), offsetnum);
+                    thread_arrays[id_index]->ip[offsetnum] = 0x00;
                 }
             }
         }
@@ -793,7 +784,7 @@ void ThreadPool::timetasks_run(std::shared_ptr<httppeer> peer, unsigned int id_i
             unsigned int offsetnum = 0;
             for (unsigned int j = 0; j < regmethold_path.size(); j++)
             {
-                thread_arrays[id_index].url[offsetnum] = regmethold_path[j];
+                thread_arrays[id_index]->url[offsetnum] = regmethold_path[j];
                 offsetnum++;
                 if (offsetnum > 63)
                 {
@@ -802,7 +793,7 @@ void ThreadPool::timetasks_run(std::shared_ptr<httppeer> peer, unsigned int id_i
             }
             for (unsigned int j = 0; j < peer->url.size(); j++)
             {
-                thread_arrays[id_index].url[offsetnum] = peer->url[j];
+                thread_arrays[id_index]->url[offsetnum] = peer->url[j];
                 offsetnum++;
                 if (offsetnum > 63)
                 {
