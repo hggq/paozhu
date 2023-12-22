@@ -38,9 +38,13 @@ void ip_data_obj::init()
 
     htmlcontent.clear();
     htmlcontent.resize(8);
-    fread(&htmlcontent[0], 1, 8, fp.get());
-
     unsigned int header_size;
+    header_size = fread((unsigned char *)&htmlcontent[0], 1, 8, fp.get());
+    if (header_size != 8)
+    {
+        return;
+    }
+
     header_size = (unsigned char)htmlcontent[0] << 24;
     header_size = header_size | (unsigned char)htmlcontent[1] << 16;
     header_size = header_size | (unsigned char)htmlcontent[2] << 8;
@@ -59,9 +63,13 @@ void ip_data_obj::init()
 
     htmlcontent.clear();
     htmlcontent.resize(header_size);
-    fread(&htmlcontent[0], 1, header_size, fp.get());
-
     unsigned int offsetsize = 0;
+    offsetsize = header_size = fread((unsigned char *)&htmlcontent[0], 1, header_size, fp.get());
+    if (offsetsize != header_size)
+    {
+        return;
+    }
+    offsetsize = 0;
     std::string testr;
     for (; offsetsize < header_size; offsetsize++)
     {
@@ -130,7 +138,11 @@ void ip_data_obj::init()
     ipdatalist = std::make_unique<ipdata_area_t[]>(ipdatasize);
     for (unsigned int kj = 0; kj < ipdatasize; kj++)
     {
-        fread(&htmlcontent[0], 1, 10, fp.get());
+        header_size = fread((unsigned char *)&htmlcontent[0], 1, 10, fp.get());
+        if (header_size != 10)
+        {
+            break;
+        }
         unsigned a;
         a                = (unsigned char)htmlcontent[0] << 24;
         a                = a | (unsigned char)htmlcontent[1] << 16;
