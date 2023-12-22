@@ -19,7 +19,7 @@ struct server_loaclvar
     bool http2_enable        = true;
     bool debug_enable        = false;
     bool deamon_enable       = true;
-    bool show_visit_info     = false;
+    bool show_visitinfo      = false;
     bool is_alias_uploadpath = false;
     bool is_alias_urlpath    = false;
 
@@ -34,5 +34,5 @@ struct server_loaclvar
 server_loaclvar &get_server_global_var();
 unsigned int get_server_siteinfo_index(const std::string &);
 std::vector<server_loaclvar> &get_server_siteinfo_var();
-} //namespace http
+}//namespace http
 #endif

@@ -539,11 +539,11 @@ bool serverconfig::loadserverglobalconfig()
 
     if (map_value["default"]["show_visitinfo"].size() > 0 && map_value["default"]["show_visitinfo"][0] == '1')
     {
-        static_server_var.show_visit_info = true;
+        static_server_var.show_visitinfo = true;
     }
     else
     {
-        static_server_var.show_visit_info = false;
+        static_server_var.show_visitinfo = false;
     }
 
     if (map_value["default"]["static_file_compress_cache"].size() > 0 && map_value["default"]["static_file_compress_cache"][0] == '1')

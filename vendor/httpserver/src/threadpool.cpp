@@ -308,29 +308,19 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, unsigned int id_
         server_loaclvar &static_server_var = get_server_global_var();
         serverconfig &sysconfigpath        = getserversysconfig();
 
-        if (static_server_var.show_visit_info == true)
+        if (static_server_var.show_visitinfo == true)
         {
-
             unsigned int offsetnum = 0;
-            for (; offsetnum < peer->host.size(); offsetnum++)
+            if (peer->url.size() > 0)
             {
-                thread_arrays[id_index]->url[offsetnum] = peer->host[offsetnum];
-                if (offsetnum > 60)
-                {
-                    break;
-                }
-            }
-            for (unsigned int j = 0; j < peer->url.size(); j++)
-            {
-                thread_arrays[id_index]->url[offsetnum] = peer->url[j];
-                offsetnum++;
+                offsetnum = peer->url.size();
                 if (offsetnum > 63)
                 {
-                    break;
+                    offsetnum = 63;
                 }
+                memcpy(thread_arrays[id_index]->url, peer->url.data(), offsetnum);
             }
-            thread_arrays[id_index]->url[offsetnum] = 0x00;
-
+            thread_arrays[id_index]->url[offsetnum + 1] = 0x00;
             {
                 unsigned int offsetnum = peer->client_ip.size();
                 if (offsetnum < 61)
@@ -718,27 +708,19 @@ void ThreadPool::http_websocketsrun(std::shared_ptr<httppeer> peer, unsigned int
     try
     {
         DEBUG_LOG("websockets pool");
-        unsigned int offsetnum             = 0;
         server_loaclvar &static_server_var = get_server_global_var();
 
-        if (static_server_var.show_visit_info == true)
+        if (static_server_var.show_visitinfo == true)
         {
-            for (; offsetnum < peer->host.size(); offsetnum++)
+            unsigned int offsetnum = 0;
+            if (peer->url.size() > 0)
             {
-                thread_arrays[id_index]->url[offsetnum] = peer->host[offsetnum];
-                if (offsetnum > 60)
-                {
-                    break;
-                }
-            }
-            for (unsigned int j = 0; j < peer->url.size(); j++)
-            {
-                thread_arrays[id_index]->url[offsetnum] = peer->url[j];
-                offsetnum++;
+                offsetnum = peer->url.size();
                 if (offsetnum > 63)
                 {
-                    break;
+                    offsetnum = 63;
                 }
+                memcpy(thread_arrays[id_index]->url, peer->url.data(), offsetnum);
             }
             thread_arrays[id_index]->url[offsetnum] = 0x00;
 
@@ -780,27 +762,19 @@ void ThreadPool::timetasks_run(std::shared_ptr<httppeer> peer, unsigned int id_i
         regmethold_path                    = str2safepath((const char *)&regmethold_path[0], regmethold_path.size());
         server_loaclvar &static_server_var = get_server_global_var();
 
-        if (static_server_var.show_visit_info == true)
+        if (static_server_var.show_visitinfo == true)
         {
             unsigned int offsetnum = 0;
-            for (unsigned int j = 0; j < regmethold_path.size(); j++)
+            if (peer->url.size() > 0)
             {
-                thread_arrays[id_index]->url[offsetnum] = regmethold_path[j];
-                offsetnum++;
+                offsetnum = peer->url.size();
                 if (offsetnum > 63)
                 {
-                    break;
+                    offsetnum = 63;
                 }
+                memcpy(thread_arrays[id_index]->url, peer->url.data(), offsetnum);
             }
-            for (unsigned int j = 0; j < peer->url.size(); j++)
-            {
-                thread_arrays[id_index]->url[offsetnum] = peer->url[j];
-                offsetnum++;
-                if (offsetnum > 63)
-                {
-                    break;
-                }
-            }
+            thread_arrays[id_index]->url[offsetnum] = 0x00;
         }
 
         if (_http_regmethod_table.find(regmethold_path) != _http_regmethod_table.end())

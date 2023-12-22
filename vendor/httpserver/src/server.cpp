@@ -3540,7 +3540,7 @@ void httpserver::httpwatch()
             server_loaclvar &static_server_var = get_server_global_var();
             if (isshow == 1 && static_server_var.debug_enable)
             {
-                static_server_var.show_visit_info = true;
+                static_server_var.show_visitinfo = true;
                 client << "<p>";
                 client << "online:" << self->total_count.load();
                 client << " ";
@@ -3565,7 +3565,7 @@ void httpserver::httpwatch()
             }
             else
             {
-                static_server_var.show_visit_info = false;
+                static_server_var.show_visitinfo = false;
             }
         }
 
@@ -3870,7 +3870,7 @@ void httpserver::run(const std::string &sysconfpath)
         debug_log::instance().setLogfile(static_server_var.log_path);
 
 #ifdef DEBUG
-        static_server_var.show_visit_info = true;
+        static_server_var.show_visitinfo = true;
 #endif
 
         sendqueue &send_cache = get_sendqueue();
