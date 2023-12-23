@@ -196,9 +196,12 @@ if (ENABLE_VCPKG)
     find_package(asio CONFIG REQUIRED)
     target_link_libraries(paozhu asio::asio)
 
-    set(Boost_NO_WARN_NEW_VERSIONS ON)
-    find_package(Boost REQUIRED COMPONENTS filesystem coroutine)
-    target_link_libraries(paozhu Boost::boost Boost::filesystem Boost::coroutine)
+    if (ENABLE_BOOST)
+        add_compile_definitions(ENABLE_BOOST)
+        set(Boost_NO_WARN_NEW_VERSIONS ON)
+        find_package(Boost REQUIRED COMPONENTS filesystem coroutine)
+        target_link_libraries(paozhu Boost::boost Boost::filesystem Boost::coroutine)
+    endif ()
 
     find_package(OpenSSL REQUIRED)
     target_link_libraries(paozhu OpenSSL::Crypto OpenSSL::SSL)
@@ -284,6 +287,7 @@ message("---ENABLE_BOOST-----")
 find_package(Boost REQUIRED
              COMPONENTS system filesystem)
 if(Boost_FOUND)
+    add_compile_definitions(ENABLE_BOOST)
     include_directories("${Boost_INCLUDE_DIRS}/boost")
 
     MESSAGE( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")

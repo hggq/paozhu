@@ -1,21 +1,12 @@
 {
     "name": "paozhu",
-    "version": "1.4.6",
+    "version": "1.5.3",
     "dependencies": [
         {
             "name": "openssl"
         },
         {
             "name": "libmariadb"
-        },
-        {
-            "name": "boost-filesystem"
-        },
-        {
-            "name": "boost-dll"
-        },
-        {
-            "name": "boost-coroutine"
         },
         {
             "name": "brotli"
@@ -31,7 +22,10 @@
         "boost": {
             "description": "enable boost",
             "dependencies": [
-                "boost"
+                "boost",
+                "boost-coroutine",
+                "boost-dll",
+                "boost-filesystem"
             ]
         },
         "gd": {
