@@ -1518,45 +1518,49 @@ httppeer &httppeer::out(const std::string &a)
 
 void httppeer::view(const std::string &a)
 {
-    try
+    struct view_param tempvp(get, post, cookie, session);
+    if (!isso)
     {
-        struct view_param tempvp(get, post, cookie, session);
-
-        serverconfig &sysconfigpath = getserversysconfig();
-        if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
-        {
-            if (sysconfigpath.map_value[host].find("viewsopath") != sysconfigpath.map_value[host].end())
-            {
-                tempvp.viewsopath = sysconfigpath.map_value[host]["viewsopath"];
-            }
-        }
-        if (tempvp.viewsopath.empty())
-        {
-            tempvp.viewsopath = sysconfigpath.map_value["default"]["viewsopath"];
-        }
-        if (tempvp.viewsopath.size() > 0 && tempvp.viewsopath.back() != '/')
-        {
-            tempvp.viewsopath.push_back('/');
-        }
-
-        std::string tempp = tempvp.viewsopath;
-        tempp.append(a);
-
         try
         {
             VIEW_REG &viewreg = get_viewmetholdreg();
-            if (viewreg.find(a) != viewreg.end())
+            auto viter        = viewreg.find(a);
+            if (viter != viewreg.end())
             {
-                output.append(viewreg[a](tempvp, val));
+                output.append(viter->second(tempvp, val));
                 return;
             }
+            output.append("Not Found View ");
+            output.append(a);
         }
         catch (const std::exception &e)
         {
-            std::cerr << e.what() << '\n';
+            output.append(std::string(e.what()));
             return;
         }
+    }
 #ifdef ENABLE_BOOST
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
+    {
+        if (sysconfigpath.map_value[host].find("viewsopath") != sysconfigpath.map_value[host].end())
+        {
+            tempvp.viewsopath = sysconfigpath.map_value[host]["viewsopath"];
+        }
+    }
+    if (tempvp.viewsopath.empty())
+    {
+        tempvp.viewsopath = sysconfigpath.map_value["default"]["viewsopath"];
+    }
+    if (tempvp.viewsopath.size() > 0 && tempvp.viewsopath.back() != '/')
+    {
+        tempvp.viewsopath.push_back('/');
+    }
+
+    std::string tempp = tempvp.viewsopath;
+    tempp.append(a);
+    try
+    {
         if (isso)
         {
             if (clientapi::get().map_value.find(host) != clientapi::get().map_value.end())
@@ -1582,52 +1586,58 @@ void httppeer::view(const std::string &a)
         {
             output.append(loadviewso(tempp)(tempvp, val));
         }
-#endif
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
     }
+#endif
+    return;
 }
 void httppeer::view(const std::string &a, OBJ_VALUE &b)
 {
-    try
+    struct view_param tempvp(get, post, cookie, session);
+    if (!isso)
     {
-        struct view_param tempvp(get, post, cookie, session);
-
-        serverconfig &sysconfigpath = getserversysconfig();
-        if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
-        {
-            if (sysconfigpath.map_value[host].find("viewsopath") != sysconfigpath.map_value[host].end())
-            {
-                tempvp.viewsopath = sysconfigpath.map_value[host]["viewsopath"];
-            }
-        }
-        if (tempvp.viewsopath.empty())
-        {
-            tempvp.viewsopath = sysconfigpath.map_value["default"]["viewsopath"];
-        }
-        if (tempvp.viewsopath.size() > 0 && tempvp.viewsopath.back() != '/')
-        {
-            tempvp.viewsopath.push_back('/');
-        }
-        std::string tempp = tempvp.viewsopath;
-        tempp.append(a);
         try
         {
             VIEW_REG &viewreg = get_viewmetholdreg();
-            if (viewreg.find(a) != viewreg.end())
+            auto viter        = viewreg.find(a);
+            if (viter != viewreg.end())
             {
-                output.append(viewreg[a](tempvp, b));
+                output.append(viter->second(tempvp, b));
                 return;
             }
+            output.append("Not Found View ");
+            output.append(a);
         }
         catch (const std::exception &e)
         {
-            std::cerr << e.what() << '\n';
+            output.append(std::string(e.what()));
             return;
         }
+    }
 #ifdef ENABLE_BOOST
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
+    {
+        if (sysconfigpath.map_value[host].find("viewsopath") != sysconfigpath.map_value[host].end())
+        {
+            tempvp.viewsopath = sysconfigpath.map_value[host]["viewsopath"];
+        }
+    }
+    if (tempvp.viewsopath.empty())
+    {
+        tempvp.viewsopath = sysconfigpath.map_value["default"]["viewsopath"];
+    }
+    if (tempvp.viewsopath.size() > 0 && tempvp.viewsopath.back() != '/')
+    {
+        tempvp.viewsopath.push_back('/');
+    }
+    std::string tempp = tempvp.viewsopath;
+    tempp.append(a);
+    try
+    {
         if (isso)
         {
             if (clientapi::get().map_value.find(host) != clientapi::get().map_value.end())
@@ -1653,16 +1663,37 @@ void httppeer::view(const std::string &a, OBJ_VALUE &b)
         {
             output.append(loadviewso(tempp)(tempvp, b));
         }
-#endif
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
     }
+#endif
+    return;
 }
 std::string httppeer::fetchview(const std::string &a)
 {
     struct view_param tempvp(get, post, cookie, session);
+    if (!isso)
+    {
+        try
+        {
+            VIEW_REG &viewreg = get_viewmetholdreg();
+            auto viter        = viewreg.find(a);
+            if (viter != viewreg.end())
+            {
+                return viter->second(tempvp, val);
+            }
+            output.append("Not Found View ");
+            output.append(a);
+        }
+        catch (const std::exception &e)
+        {
+            output.append(std::string(e.what()));
+            return "";
+        }
+    }
+#ifdef ENABLE_BOOST
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
     {
@@ -1681,24 +1712,6 @@ std::string httppeer::fetchview(const std::string &a)
     }
     std::string tempp = tempvp.viewsopath;
     tempp.append(a);
-    try
-    {
-        VIEW_REG &viewreg = get_viewmetholdreg();
-        if (viewreg.find(a) != viewreg.end())
-        {
-            return viewreg[a](tempvp, val);
-        }
-        else
-        {
-            return "";
-        }
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << e.what() << '\n';
-        return "";
-    }
-#ifdef ENABLE_BOOST
     try
     {
 
@@ -1734,10 +1747,31 @@ std::string httppeer::fetchview(const std::string &a)
         return "";
     }
 #endif
+    return "";
 }
 std::string httppeer::fetchview(const std::string &a, OBJ_VALUE &b)
 {
     struct view_param tempvp(get, post, cookie, session);
+    if (!isso)
+    {
+        try
+        {
+            VIEW_REG &viewreg = get_viewmetholdreg();
+            auto viter        = viewreg.find(a);
+            if (viter != viewreg.end())
+            {
+                return viter->second(tempvp, b);
+            }
+            output.append("Not Found View ");
+            output.append(a);
+        }
+        catch (const std::exception &e)
+        {
+            output.append(std::string(e.what()));
+            return "";
+        }
+    }
+#ifdef ENABLE_BOOST
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
     {
@@ -1756,24 +1790,6 @@ std::string httppeer::fetchview(const std::string &a, OBJ_VALUE &b)
     }
     std::string tempp = tempvp.viewsopath;
     tempp.append(a);
-    try
-    {
-        VIEW_REG &viewreg = get_viewmetholdreg();
-        if (viewreg.find(a) != viewreg.end())
-        {
-            return viewreg[a](tempvp, b);
-        }
-        else
-        {
-            return "";
-        }
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << e.what() << '\n';
-        return "";
-    }
-#ifdef ENABLE_BOOST
     try
     {
         if (isso)
@@ -1807,6 +1823,7 @@ std::string httppeer::fetchview(const std::string &a, OBJ_VALUE &b)
         return "";
     }
 #endif
+    return "";
 }
 void httppeer::out_json(OBJ_VALUE &a)
 {
@@ -1826,7 +1843,6 @@ void httppeer::cors_domain(const std::string &name, const std::string &header_v)
 {
     if (httpv == 2)
     {
-
         if (http2_header_codes_table["access-control-allow-origin"] > 0)
         {
             http2_send_header[http2_header_codes_table["access-control-allow-origin"]] = name;
