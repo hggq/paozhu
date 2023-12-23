@@ -303,7 +303,8 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         //std::set<std::string> method_alone;
         DEBUG_LOG("pool in");
         std::string regmethold_path;
-        bool isfindpath = false;
+        std::string sitecontent;
+        // bool isfindpath = false;
 
         server_loaclvar &static_server_var = get_server_global_var();
         serverconfig &sysconfigpath        = getserversysconfig();
@@ -363,7 +364,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                             }
                         }
                     }
-                    isfindpath = true;
+                    // isfindpath = true;
                     break;
                 }
                 else
@@ -376,10 +377,10 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         if (regmethold_path.empty())
         {
             regmethold_path = "home";
-            if (_http_regmethod_table.contains(regmethold_path))// != _http_regmethod_table.end()
-            {
-                isfindpath = true;
-            }
+            // if (_http_regmethod_table.contains(regmethold_path))// != _http_regmethod_table.end()
+            // {
+            //     isfindpath = true;
+            // }
         }
         DEBUG_LOG("http_regmethod pre in");
 
@@ -391,53 +392,50 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                 {
                     if (sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk].size() > 0 && _http_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk]) != _http_regmethod_table.end())
                     {
-                        std::string re_str = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk]].regfun(peer);
-                        if (re_str.size() > 0)
+                        sitecontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].action_pre_lists[jk]].regfun(peer);
+                        if (sitecontent.size() == 4 && str_casecmp(sitecontent, "exit"))
                         {
-                            if (re_str.size() > 3 && re_str[0] == 'e' && re_str[1] == 'x' && re_str[2] == 'i' && re_str[3] == 't')
+                            std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
+                            if (peer->user_code_handler_call.size() > 0)
                             {
-                                std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
-                                if (peer->user_code_handler_call.size() > 0)
-                                {
-                                    asio::dispatch(*io_context,
-                                                   [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                                                   {
-                                                       handler(1);
-                                                   });
-                                    peer->user_code_handler_call.pop_front();
-                                }
-                                lock.unlock();
-                                return;
+                                asio::dispatch(*io_context,
+                                               [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                                               {
+                                                   handler(1);
+                                               });
+                                peer->user_code_handler_call.pop_front();
                             }
+                            lock.unlock();
+                            return;
                         }
                     }
                 }
             }
         }
 
-        if (isfindpath)
+        sitecontent.clear();
+        auto method_iter = _http_regmethod_table.find(regmethold_path);
+        if (method_iter != _http_regmethod_table.end())
         {
             DEBUG_LOG("http_regmethod main in");
-            std::string sitecontent;
             for (int i = 0; i < 30; i++)
             {
-                if (i > 0 && !_http_regmethod_table.contains(regmethold_path))// == _http_regmethod_table.end()
+                // if (method_iter == _http_regmethod_table.end())// == _http_regmethod_table.end()
+                // {
+                //     break;
+                // }
+                if (method_iter->second.pre != nullptr)
                 {
-                    break;
-                }
-                if (_http_regmethod_table[regmethold_path].pre != nullptr)
-                {
-                    sitecontent = _http_regmethod_table[regmethold_path].pre(peer);
+                    sitecontent = method_iter->second.pre(peer);
                     if (sitecontent.size() == 2 && str_casecmp(sitecontent, "ok"))
                     {
-                        //method_alone.emplace(regmethold_path);
-                        sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
+                        sitecontent = method_iter->second.regfun(peer);
                         if (sitecontent.size() == 1 && sitecontent[0] == 'T')
                         {
-                            sitecontent = "frametasks_timeloop";
-                            if (_http_regmethod_table.contains(sitecontent))// != _http_regmethod_table.end()
+                            auto method_loop_iter = _http_regmethod_table.find("frametasks_timeloop");
+                            if (method_loop_iter != _http_regmethod_table.end())// != _http_regmethod_table.end()
                             {
-                                sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
+                                sitecontent = method_loop_iter->second.regfun(peer);
                             }
                             sitecontent.clear();
                         }
@@ -448,47 +446,43 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                         {
                             break;
                         }
-                        if (regmethold_path.size() != sitecontent.size() || regmethold_path != sitecontent)
+                        if (str_casecmp(regmethold_path, sitecontent))
                         {
-                            peer->push_path_method(regmethold_path);// record not execute method
-                            // if (method_alone.contains(sitecontent))
-                            // {
-                            //     break;
-                            // }
-                            if (i > 0 && !_http_regmethod_table.contains(sitecontent))//_http_regmethod_table.find(sitecontent) == _http_regmethod_table.end()
-                            {
-                                //method_alone.emplace(sitecontent);
-                                sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
-
-                                // again check same in regmethold_path
-                                //
-                                //    a -> b -> a
-                                //
-                                if (regmethold_path == sitecontent)
-                                {
-                                    //method_alone.emplace(regmethold_path);
-                                    sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
-                                }
-                            }
+                            sitecontent = method_iter->second.regfun(peer);
                         }
                         else
                         {
-                            // or self
-                            DEBUG_LOG("pre in method %s", regmethold_path.c_str());
-                            sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
+                            peer->push_path_method(regmethold_path);// record not execute method
+                            auto method_loop_iter = _http_regmethod_table.find(sitecontent);
+                            if (method_loop_iter != _http_regmethod_table.end())//_http_regmethod_table.find(sitecontent) == _http_regmethod_table.end()
+                            {
+                                sitecontent = method_loop_iter->second.regfun(peer);
+                            }
+                            else
+                            {
+                                sitecontent.clear();
+                            }
                         }
                     }
-                    // regmethold_path.append("pre");
-                    // method_alone.emplace(regmethold_path);
                 }
                 else
                 {
-                    //method_alone.emplace(regmethold_path);
                     DEBUG_LOG("in method %s", regmethold_path.c_str());
-                    sitecontent = _http_regmethod_table[regmethold_path].regfun(peer);
+                    sitecontent = method_iter->second.regfun(peer);
                 }
 
                 if (sitecontent.empty())
+                {
+                    break;
+                }
+                if (sitecontent.size() == 4 && str_casecmp(sitecontent, "exit"))
+                {
+                    sitecontent.clear();
+                    break;
+                }
+
+                method_iter = _http_regmethod_table.find(sitecontent);
+                if (method_iter == _http_regmethod_table.end())// == _http_regmethod_table.end()
                 {
                     break;
                 }
