@@ -67,12 +67,12 @@ void markdown2html::process_blockquote()
         if (mdcontent[read_offset] == '>')
         {
             htmlcontent.append("<blockquote");
-            if (tags_classname.size() > 0)
+            if (tags_class.size() > 0)
             {
-                auto tagiter = tags_classname.find("blockquote");
-                if (tagiter != tags_classname.end())
+                auto tagiter = tags_class.find("blockquote");
+                if (tagiter != tags_class.end())
                 {
-                    htmlcontent.append(" classname=\"");
+                    htmlcontent.append(" class=\"");
                     htmlcontent.append(tagiter->second);
                     htmlcontent.append("\" ");
                 }
@@ -250,12 +250,12 @@ void markdown2html::process_href()
 
             htmlcontent.append(hreftemp);
             htmlcontent.append("\" ");
-            if (tags_classname.size() > 0)
+            if (tags_class.size() > 0)
             {
-                auto tagiter = tags_classname.find("a");
-                if (tagiter != tags_classname.end())
+                auto tagiter = tags_class.find("a");
+                if (tagiter != tags_class.end())
                 {
-                    htmlcontent.append(" classname=\"");
+                    htmlcontent.append(" class=\"");
                     htmlcontent.append(tagiter->second);
                     htmlcontent.append("\" ");
                 }
@@ -332,12 +332,12 @@ void markdown2html::process_dan()
 void markdown2html::process_codeblock()
 {
     htmlcontent.append("<pre");
-    if (tags_classname.size() > 0)
+    if (tags_class.size() > 0)
     {
-        auto tagiter = tags_classname.find("code");
-        if (tagiter != tags_classname.end())
+        auto tagiter = tags_class.find("code");
+        if (tagiter != tags_class.end())
         {
-            htmlcontent.append(" classname=\"");
+            htmlcontent.append(" class=\"");
             htmlcontent.append(tagiter->second);
             htmlcontent.append("\" ");
         }
@@ -440,12 +440,12 @@ void markdown2html::process_h()
         read_offset += 1;
         typefront = 1;
     }
-    if (tags_classname.size() > 0)
+    if (tags_class.size() > 0)
     {
-        auto tagiter = tags_classname.find("h");
-        if (tagiter != tags_classname.end())
+        auto tagiter = tags_class.find("h");
+        if (tagiter != tags_class.end())
         {
-            htmlcontent.append(" classname=\"");
+            htmlcontent.append(" class=\"");
             htmlcontent.append(tagiter->second);
             htmlcontent.append("\" ");
         }
@@ -534,12 +534,12 @@ void markdown2html::process_hr()
 void markdown2html::process_p()
 {
     htmlcontent.append("<p");
-    if (tags_classname.size() > 0)
+    if (tags_class.size() > 0)
     {
-        auto tagiter = tags_classname.find("p");
-        if (tagiter != tags_classname.end())
+        auto tagiter = tags_class.find("p");
+        if (tagiter != tags_class.end())
         {
-            htmlcontent.append(" classname=\"");
+            htmlcontent.append(" class=\"");
             htmlcontent.append(tagiter->second);
             htmlcontent.append("\" ");
         }
@@ -908,12 +908,12 @@ void markdown2html::process_listul()
 {
     unsigned char levelnum = 0;
     htmlcontent.append("<ul");
-    if (tags_classname.size() > 0)
+    if (tags_class.size() > 0)
     {
-        auto tagiter = tags_classname.find("ul");
-        if (tagiter != tags_classname.end())
+        auto tagiter = tags_class.find("ul");
+        if (tagiter != tags_class.end())
         {
-            htmlcontent.append(" classname=\"");
+            htmlcontent.append(" class=\"");
             htmlcontent.append(tagiter->second);
             htmlcontent.append("\" ");
         }
@@ -1025,12 +1025,12 @@ void markdown2html::process_listuldot()
 {
     unsigned char levelnum = 0;
     htmlcontent.append("<ul");
-    if (tags_classname.size() > 0)
+    if (tags_class.size() > 0)
     {
-        auto tagiter = tags_classname.find("ul*");
-        if (tagiter != tags_classname.end())
+        auto tagiter = tags_class.find("ul*");
+        if (tagiter != tags_class.end())
         {
-            htmlcontent.append(" classname=\"");
+            htmlcontent.append(" class=\"");
             htmlcontent.append(tagiter->second);
             htmlcontent.append("\" ");
         }
@@ -1142,12 +1142,12 @@ void markdown2html::process_listulnum()
 {
     unsigned char levelnum = 0;
     htmlcontent.append("<ol");
-    if (tags_classname.size() > 0)
+    if (tags_class.size() > 0)
     {
-        auto tagiter = tags_classname.find("ol");
-        if (tagiter != tags_classname.end())
+        auto tagiter = tags_class.find("ol");
+        if (tagiter != tags_class.end())
         {
-            htmlcontent.append(" classname=\"");
+            htmlcontent.append(" class=\"");
             htmlcontent.append(tagiter->second);
             htmlcontent.append("\" ");
         }
@@ -1449,12 +1449,12 @@ void markdown2html::process_table()
         headers_temp.push_back(mdcontent[read_offset]);
     }
     htmlcontent.append("<table");
-    if (tags_classname.size() > 0)
+    if (tags_class.size() > 0)
     {
-        auto tagiter = tags_classname.find("table");
-        if (tagiter != tags_classname.end())
+        auto tagiter = tags_class.find("table");
+        if (tagiter != tags_class.end())
         {
-            htmlcontent.append(" classname=\"");
+            htmlcontent.append(" class=\"");
             htmlcontent.append(tagiter->second);
             htmlcontent.append("\" ");
         }
@@ -1482,7 +1482,7 @@ void markdown2html::process_table()
         htmlcontent.append(headers[i]);
         htmlcontent.append("</th>");
     }
-    htmlcontent.append("\n</tr>\n<thead>\n<tbody>");
+    htmlcontent.append("\n</tr>\n</thead>\n<tbody>");
     for (unsigned int i = 0; i < tables_value.size(); i++)
     {
         htmlcontent.append("<tr>\n");
@@ -1567,12 +1567,12 @@ void markdown2html::process_img()
         htmlcontent.append("<img src=\"");
         htmlcontent.append(tempstrurl);
         htmlcontent.append("\" ");
-        if (tags_classname.size() > 0)
+        if (tags_class.size() > 0)
         {
-            auto tagiter = tags_classname.find("img");
-            if (tagiter != tags_classname.end())
+            auto tagiter = tags_class.find("img");
+            if (tagiter != tags_class.end())
             {
-                htmlcontent.append(" classname=\"");
+                htmlcontent.append(" class=\"");
                 htmlcontent.append(tagiter->second);
                 htmlcontent.append("\" ");
             }
@@ -1586,12 +1586,12 @@ void markdown2html::process_img()
         htmlcontent.append("<video src=\"");
         htmlcontent.append(tempstrurl);
         htmlcontent.append("\" ");
-        if (tags_classname.size() > 0)
+        if (tags_class.size() > 0)
         {
-            auto tagiter = tags_classname.find("video");
-            if (tagiter != tags_classname.end())
+            auto tagiter = tags_class.find("video");
+            if (tagiter != tags_class.end())
             {
-                htmlcontent.append(" classname=\"");
+                htmlcontent.append(" class=\"");
                 htmlcontent.append(tagiter->second);
                 htmlcontent.append("\" ");
             }
@@ -1700,8 +1700,8 @@ void markdown2html::process()
     }
 }
 
-void markdown2html::set_tags_classname(const std::string &k, const std::string &v)
+void markdown2html::set_tags_class(const std::string &k, const std::string &v)
 {
-    tags_classname[k] = v;
+    tags_class[k] = v;
 }
 }// namespace http

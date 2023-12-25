@@ -31,7 +31,7 @@ class markdown2html
     void process();
     void backslash_transfer();
 
-    void set_tags_classname(const std::string &, const std::string &);
+    void set_tags_class(const std::string &, const std::string &);
     std::string get_htmlcontent();
 
   public:
@@ -42,7 +42,7 @@ class markdown2html
     std::vector<std::pair<std::string, std::string>> ref_list;
     unsigned int md_size;
     unsigned int read_offset;
-    std::map<std::string, std::string> tags_classname;
+    std::map<std::string, std::string> tags_class;
 };
 }// namespace http
 #endif
