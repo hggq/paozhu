@@ -1,3 +1,5 @@
+#ifndef LIBS_IP_DATA_OBJ_H
+#define LIBS_IP_DATA_OBJ_H
 #include <iostream>
 #include <string>
 #include <vector>
@@ -34,3 +36,4 @@ class ip_data_obj
 
 ip_data_obj &get_ip_data_obj();
 }// namespace http
+#endif

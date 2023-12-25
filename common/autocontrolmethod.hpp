@@ -29,6 +29,7 @@
 #include "testjsonreflect.h"
 #include "testaddclienttask.h"
 #include "testormclient.h"
+#include "testmarkdown.h"
 #include "testcommit.h"
 #include "apicrudtest.h"
 #include "testipsearch.h"
@@ -237,6 +238,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testormclient;
 		methodcallback.emplace("testormclient",temp);
+		temp.pre = nullptr;
+		temp.regfun = testmarkdown2html;
+		methodcallback.emplace("testmarkdown2html",temp);
 		temp.pre = nullptr;
 		temp.regfun = testcommit;
 		methodcallback.emplace("testcommit",temp);
