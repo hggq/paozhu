@@ -2236,19 +2236,17 @@ void http2parse::readpriority(const unsigned char *buffer, [[maybe_unused]] unsi
     pin = readoffset + blocklength;
     DEBUG_LOG("readpriority %ul", buffersize);
     unsigned int ident_stream;
-
+    struct http2_priority_t temp;
     for (unsigned int n = readoffset; n < pin; n += 5)
     {
-        struct http2_priority_t temp;
-
         ident_stream          = buffer[n];
         ident_stream          = ident_stream << 8 | buffer[n + 1];
         ident_stream          = ident_stream << 8 | buffer[n + 2];
         ident_stream          = ident_stream << 8 | buffer[n + 3];
         temp.weight           = buffer[n + 4];
         temp.depend_stream_id = ident_stream;
-
-        priority_data[block_steamid] = temp;
+        //current not use priority data
+        //priority_data[block_steamid] = temp;
     }
 
     readoffset += 5;
