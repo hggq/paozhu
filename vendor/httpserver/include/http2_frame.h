@@ -108,7 +108,7 @@ struct http2_data_t
     std::string buffer_key;
     std::string buffer_value;
     std::string field_value;
-
+    std::list<unsigned int> priority_lists;
     struct uploadfile_t upfile;
 };
 

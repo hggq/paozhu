@@ -146,11 +146,11 @@ class http2parse
     // unsigned long long content_length;
     bool ispost = false;
     std::shared_ptr<client_session> peer_session;
-    const char *hextostr = "0123456789ABCDEF";
+    // const char *hextostr = "0123456789ABCDEF";
     std::atomic<unsigned int> window_update_recv_num;
     std::map<unsigned int, std::shared_ptr<http2_data_t>> data_info;
     std::map<unsigned int, std::shared_ptr<httppeer>> http_data;
-    std::map<unsigned int, struct http2_priority_t> priority_data;
+    // std::map<unsigned int, struct http2_priority_t> priority_data;
     std::map<unsigned int, std::shared_ptr<std::string>> stream_data;
 
     std::queue<unsigned int> stream_list;

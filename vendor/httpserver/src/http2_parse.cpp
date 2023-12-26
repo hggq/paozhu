@@ -316,7 +316,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                         block_data_info_ptr->buffer_key.clear();
                         block_data_info_ptr->buffer_value.clear();
                         block_data_info_ptr->field_value.clear();
-
+                        block_data_info_ptr->priority_lists.clear();
                         block_data_info_ptr->upfile.name.clear();
                         block_data_info_ptr->upfile.filename.clear();
                         block_data_info_ptr->upfile.tempfile.clear();
@@ -325,17 +325,6 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                         block_data_info_ptr->upfile.error = 0;
                         data_info.emplace(block_steamid, block_data_info_ptr);
                     }
-                    // for (auto it = data_info.begin(); it != data_info.end();)
-                    // {
-                    //     if (oldstream_id == it->first)
-                    //     {
-                    //         it = data_info.erase(it);
-                    //     }
-                    //     else
-                    //     {
-                    //         ++it;
-                    //     }
-                    // }
                     break;
                 }
                 ++iter;
@@ -346,7 +335,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                 http_data.emplace(block_steamid, block_steam_httppeer);
             }
             headers_parse();
-            if (block_steam_httppeer->isfinish == false)
+            if (ispost)
             {
                 error = block_steam_httppeer->check_upload_limit();
             }
@@ -2236,17 +2225,18 @@ void http2parse::readpriority(const unsigned char *buffer, [[maybe_unused]] unsi
     pin = readoffset + blocklength;
     DEBUG_LOG("readpriority %ul", buffersize);
     unsigned int ident_stream;
-    struct http2_priority_t temp;
+    // struct http2_priority_t temp;
     for (unsigned int n = readoffset; n < pin; n += 5)
     {
-        ident_stream          = buffer[n];
-        ident_stream          = ident_stream << 8 | buffer[n + 1];
-        ident_stream          = ident_stream << 8 | buffer[n + 2];
-        ident_stream          = ident_stream << 8 | buffer[n + 3];
-        temp.weight           = buffer[n + 4];
-        temp.depend_stream_id = ident_stream;
+        ident_stream = buffer[n + 4];//buffer[n];
+        ident_stream = ident_stream << 8 | buffer[n + 1];
+        ident_stream = ident_stream << 8 | buffer[n + 2];
+        ident_stream = ident_stream << 8 | buffer[n + 3];
+        // temp.weight           = buffer[n + 4];
+        // temp.depend_stream_id = ident_stream;
         //current not use priority data
         //priority_data[block_steamid] = temp;
+        block_data_info_ptr->priority_lists.push_back(ident_stream);
     }
 
     readoffset += 5;
