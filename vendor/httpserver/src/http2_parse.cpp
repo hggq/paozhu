@@ -2239,7 +2239,7 @@ void http2parse::readpriority(const unsigned char *buffer, [[maybe_unused]] unsi
         block_data_info_ptr->priority_lists.push_back(ident_stream);
     }
 
-    readoffset += 5;
+    readoffset += blocklength;
     processheader = 0;
 }
 void http2parse::readdata([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
@@ -3403,7 +3403,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
             block_data_info_ptr->upfile.filename = filesname;
             block_data_info_ptr->upfile.name     = fieldname;
 
-            fieldheader_temp = block_data_info_ptr->upfile.filename + std::to_string(http::timeid()) + fieldname;
+            fieldheader_temp = block_data_info_ptr->upfile.filename + std::to_string(http::timeid()) + rand_string(6, 0);
 
             block_data_info_ptr->upfile.tempfile = localvar.temp_path;// + "temp/";
             block_data_info_ptr->upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
@@ -3500,7 +3500,7 @@ void http2parse::readrawfileformdata(const unsigned char *buffer, unsigned int b
         block_data_info_ptr->upfile.name     = "rawcontent";
 
         std::string fieldheader_temp =
-            block_data_info_ptr->upfile.filename + std::to_string(http::timeid()) + "rawcontent";
+            block_data_info_ptr->upfile.filename + std::to_string(http::timeid()) + rand_string(6, 0);
 
         block_data_info_ptr->upfile.tempfile = localvar.temp_path;// + "temp/";
         block_data_info_ptr->upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
