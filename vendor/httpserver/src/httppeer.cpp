@@ -472,21 +472,36 @@ std::string httppeer::get_hosturl()
     }
     return tempurl;
 }
-
-bool httppeer::isuse_fastcgi()
+unsigned int httppeer::check_upload_limit()
 {
     serverconfig &sysconfigpath = getserversysconfig();
-
-    if (sysconfigpath.host_toint.find(host) != sysconfigpath.host_toint.end())
+    if (sysconfigpath.sitehostinfos[host_index].is_limit_upload && content_length > sysconfigpath.sitehostinfos[host_index].upload_max_size)
     {
-        host_index = sysconfigpath.host_toint[host];
+        return 403;
+    }
+    return 0;
+}
+bool httppeer::find_host_index()
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    auto hiter                  = sysconfigpath.host_toint.find(host);
+    if (hiter != sysconfigpath.host_toint.end())
+    {
+        host_index = hiter->second;
         if (host_index >= sysconfigpath.sitehostinfos.size())
         {
             host_index = 0;
+            return false;
         }
+        return true;
     }
-    compress = 0;
-    linktype = 0;
+    return false;
+}
+bool httppeer::isuse_fastcgi()
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    compress                    = 0;
+    linktype                    = 0;
     output.clear();
     sendfilename.clear();
     if (sysconfigpath.sitehostinfos[host_index].isuse_php == 1)

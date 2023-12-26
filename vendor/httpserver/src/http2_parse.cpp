@@ -82,6 +82,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
 
     if (frame_type == 0x00)
     {
+        DEBUG_LOG(" data new begin");
         data_info[block_steamid].length    = blocklength;
         data_info[block_steamid].curnum    = 0;
         data_info[block_steamid].endstream = ((flag_type & 0x01) == 0x01) ? true : false;
@@ -262,6 +263,10 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                 http_data.emplace(block_steamid, std::make_shared<httppeer>());
             }
             headers_parse();
+            if (http_data[block_steamid]->isfinish == false)
+            {
+                error = http_data[block_steamid]->check_upload_limit();
+            }
             http_data[block_steamid]->isuse_fastcgi();
         }
         processheader = 0;
@@ -823,6 +828,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             http_data[block_steamid]->host                 = header_value;
             http_data[block_steamid]->header["Host"]       = header_value;
             http_data[block_steamid]->header[":authority"] = header_value;
+            http_data[block_steamid]->find_host_index();
             break;
         case 2:
             if (str_casecmp(header_value, "OPTIONS"))
@@ -1010,6 +1016,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 http_data[block_steamid]->host                 = header_value;
                 http_data[block_steamid]->header["Host"]       = header_value;
                 http_data[block_steamid]->header[":authority"] = header_value;
+                http_data[block_steamid]->find_host_index();
             }
             else if (str_casecmp(header_name, "User-Agent"))
             {
@@ -2135,8 +2142,6 @@ void http2parse::readsetting(const unsigned char *buffer, [[maybe_unused]] unsig
     }
 
     processheader = 0;
-    parse_setup   = 2;
-
     peer_session->send_recv_setting();
     window_update_recv_num = setting_data.initial_window_size;
     readoffset += blocklength;
@@ -3478,9 +3483,18 @@ void http2parse::data_process(unsigned int data_stream_id)
                 http_data[block_steamid]->output.append(&stream_data[block_steamid][j], w_size);
             }
         }
+        else
+        {
+            error = 403;
+        }
     }
     else
     {
+        http_data[block_steamid]->upload_length = http_data[block_steamid]->upload_length + w_size;
+        if (http_data[block_steamid]->upload_length > http_data[block_steamid]->content_length)
+        {
+            error = 403;//now ruturn?
+        }
         switch (data_info[data_stream_id].posttype)
         {
         case 1:

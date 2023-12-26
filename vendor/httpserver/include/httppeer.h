@@ -129,6 +129,9 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void add_timeloop_count(unsigned int a = 1);
     void clsoesend(asio::io_context &);
 
+    bool find_host_index();
+    unsigned int check_upload_limit();
+
   public:
     std::string host;
     std::string url;
@@ -160,15 +163,16 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool keepalive    = true;
     bool isso         = false;
 
-    unsigned char posttype            = 0;
-    unsigned char compress            = 0;
-    unsigned int host_index           = 0;
-    unsigned int stream_id            = 0;
-    unsigned int status_code          = 0;
-    unsigned int timeloop_num         = 0;
-    unsigned int timecount_num        = 0;
-    unsigned long long content_length = 0;
-
+    unsigned char posttype              = 0;
+    unsigned char compress              = 0;
+    unsigned int host_index             = 0;
+    unsigned int stream_id              = 0;
+    unsigned int status_code            = 0;
+    unsigned int timeloop_num           = 0;
+    unsigned int timecount_num          = 0;
+    unsigned long long content_length   = 0;
+    unsigned long long sessionfile_time = 0;
+    unsigned long long upload_length    = 0;
     struct headstate_t state;
     struct websocket_t websocket;
 
@@ -176,7 +180,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::shared_ptr<websockets_api> websockets;
 
     http::OBJ_VALUE session;
-    unsigned long long sessionfile_time = 0;
+
     //Cookie send_cookie;
     std::list<std::string> send_cookie_lists;
     std::map<std::string, std::string> send_header;

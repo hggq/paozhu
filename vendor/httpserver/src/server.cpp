@@ -2835,6 +2835,14 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                         break;
                     }
                     http1pre->process(peer_session->_cache_data, readnum);
+                    if (http1pre->error > 0)
+                    {
+                        http1_send_bad_request(http1pre->error, peer_session);
+#ifdef DEBUG
+                        DEBUG_LOG("http1 client request error!");
+#endif
+                        break;
+                    }
                     if (readnum == 0 || http1pre->getfinish())
                     {
 
@@ -2943,11 +2951,6 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                         }
                         http1pre->clear();
                     }
-                    if (http1pre->error > 0)
-                    {
-                        http1_send_bad_request(http1pre->error, peer_session);
-                        break;
-                    }
                 }
 
                 // websocket
@@ -3028,6 +3031,15 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                     if (peer_session->isgoway)
                     {
                         peer_session->isclose = true;
+                        break;
+                    }
+                    if (http2pre->error > 0)
+                    {
+                        co_await http2_send_status_content(peer, 403, "client request error!");
+#ifdef DEBUG
+                        DEBUG_LOG("http2 client request error!");
+#endif
+                        peer_session->send_goway();
                         break;
                     }
                     if (http2pre->stream_list.size() > 0)

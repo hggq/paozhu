@@ -128,19 +128,16 @@ class http2parse
     std::string header;
     unsigned int blocklength   = 0;
     unsigned int block_steamid = 0;
-    unsigned char headerfinish = 0, parse_setup = 0;
-    int error                  = 0;
+    unsigned char headerfinish = 0;
+    unsigned int error         = 0;
     unsigned int readoffset    = 0;
-    unsigned int processheader = 0;//mark delete
+    unsigned int processheader = 0;
     unsigned char frame_type   = 0;
     unsigned char flag_type    = 0;
 
     unsigned int steam_id    = 0;
     unsigned int steam_count = 0;
-    // unsigned int data_steam_id = 0;
-    // unsigned int data_length;
-    // unsigned int data_readoffset = 0;
-    unsigned int isfinsish = 0;
+    unsigned int isfinsish   = 0;
     struct http2_setting_t setting_data;
     std::map<unsigned int, struct http2_priority_t> priority_data;
     std::map<unsigned int, std::string> stream_data;

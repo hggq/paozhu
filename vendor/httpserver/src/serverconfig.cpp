@@ -511,6 +511,7 @@ bool serverconfig::loadserverglobalconfig()
     }
     server_loaclvar &static_server_var = get_server_global_var();
     static_server_var.http2_enable     = isallnothttp2;
+    struct site_host_info_t tempinfo;
 
     if (map_value["default"]["controlsopath"].size() > 0)
     {
@@ -544,6 +545,29 @@ bool serverconfig::loadserverglobalconfig()
     else
     {
         static_server_var.show_visitinfo = false;
+    }
+
+    if (map_value["default"]["upload_max_size"].size() > 0)
+    {
+        unsigned int tempupmax = 0;
+        for (unsigned int i = 0; i < map_value["default"]["upload_max_size"].size(); i++)
+        {
+            if (map_value["default"]["upload_max_size"][i] > 0x2F && map_value["default"]["upload_max_size"][i] < 0x3A)
+            {
+                tempupmax = tempupmax * 10 + (map_value["default"]["upload_max_size"][i] - '0');
+            }
+        }
+        tempinfo.upload_max_size = tempupmax;
+        tempinfo.is_limit_upload = false;
+        if (tempupmax > 1024)
+        {
+            tempinfo.is_limit_upload = true;
+        }
+    }
+    else
+    {
+        tempinfo.is_limit_upload = false;
+        tempinfo.upload_max_size = 0;
     }
 
     if (map_value["default"]["static_file_compress_cache"].size() > 0 && map_value["default"]["static_file_compress_cache"][0] == '1')
@@ -614,7 +638,7 @@ bool serverconfig::loadserverglobalconfig()
     {
         static_server_var.log_path.push_back('/');
     }
-    struct site_host_info_t tempinfo;
+
     tempinfo.mainhost          = mainhost;
     tempinfo.wwwpath           = static_server_var.www_path;
     tempinfo.http2_enable      = static_server_var.http2_enable;
@@ -1158,6 +1182,30 @@ bool serverconfig::loadserverglobalconfig()
                         else
                         {
                             tempinfo.is_show_directory = false;
+                        }
+                    }
+                    else if (itemname == "upload_max_size")
+                    {
+                        tempinfo.is_limit_upload = false;
+                        if (itemval.size() > 0)
+                        {
+                            unsigned int tempupmax = 0;
+                            for (unsigned int i = 0; i < itemval.size(); i++)
+                            {
+                                if (itemval[i] > 0x2F && itemval[i] < 0x3A)
+                                {
+                                    tempupmax = tempupmax * 10 + (itemval[i] - '0');
+                                }
+                            }
+                            tempinfo.upload_max_size = tempupmax;
+                            if (tempupmax > 1024)
+                            {
+                                tempinfo.is_limit_upload = true;
+                            }
+                        }
+                        else
+                        {
+                            tempinfo.upload_max_size = 0;
                         }
                     }
                 }

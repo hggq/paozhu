@@ -40,6 +40,7 @@
 #include "client_session.h"
 #include "httppeer.h"
 #include "server_localvar.h"
+
 #include "func.h"
 namespace http
 {
@@ -1622,6 +1623,7 @@ void httpparse::getheaderhost()
     std::transform(peer->host.begin(), peer->host.end(), peer->host.begin(), ::tolower);
     // peer_session->stream[1].host=host;
     // peer->host = host;
+    peer->find_host_index();
     if (ishasport == 1)
     {
         for (; ioffset < linesize; ioffset++)
@@ -2665,6 +2667,10 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             }
             if (headerfinish == 1)
             {
+                if (method == HEAD_METHOD::POST)
+                {
+                    error = peer->check_upload_limit();
+                }
                 peer->isuse_fastcgi();
                 break;
             }
@@ -2676,11 +2682,12 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
         {
             if (peer->content_length > 16777216)
             {
-                error = 11;
+                error = 403;
                 return;
             }
             if (peer->output.size() > peer->content_length)
             {
+                error = 403;
                 return;
             }
             peer->output.append((char *)&buffer[readoffset], (buffersize - readoffset));
@@ -2691,6 +2698,12 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
         }
         else
         {
+            peer->upload_length = peer->upload_length + buffersize - readoffset;
+            if (peer->upload_length > peer->content_length)
+            {
+                error = 403;
+                return;
+            }
             switch (poststate.posttype)
             {
             case 1:
@@ -2770,10 +2783,12 @@ void httpparse::clear()
     peer->pathinfos.clear();
     peer->querystring.clear();
     peer->urlpath.clear();
-    readoffset    = 0;
-    headendhitnum = 0;
-    postfieldtype = 0;
-    headerstep    = 0;
+    readoffset               = 0;
+    headendhitnum            = 0;
+    postfieldtype            = 0;
+    headerstep               = 0;
+    post_content_num         = 0;
+    poststate.content_length = 0;
 
     peer->host.clear();
     peer->etag.clear();
