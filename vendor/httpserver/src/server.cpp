@@ -3095,6 +3095,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                             {
                                 co_spawn(this->io_context, http2task(http2pre), asio::detached);
                             }
+                            http2pre->block_steam_httppeer = nullptr;
                             http2pre->stream_list.pop();
                             http2pre->steam_count += 1;
                         }

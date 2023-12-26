@@ -102,7 +102,7 @@ class http2parse
   public:
     void headers_parse();
     void process(const unsigned char *buffer, unsigned int buffersize);
-    void data_process(unsigned int);
+    void data_process();
     void getacceptencoding(const std::string &, const std::string &);
     void header_process(const std::string &, const std::string &, int);
     void cookie_process(const std::string &, const std::string &);
@@ -139,8 +139,6 @@ class http2parse
     unsigned int steam_count = 0;
     unsigned int isfinsish   = 0;
     struct http2_setting_t setting_data;
-    std::map<unsigned int, struct http2_priority_t> priority_data;
-    std::map<unsigned int, std::string> stream_data;
 
     //std::vector<std::pair<std::string, std::string>> header_lists;
     std::list<std::pair<std::string, std::string>> dynamic_lists;
@@ -150,12 +148,18 @@ class http2parse
     std::shared_ptr<client_session> peer_session;
     const char *hextostr = "0123456789ABCDEF";
     std::atomic<unsigned int> window_update_recv_num;
-    std::map<unsigned int, struct http2_data_t> data_info;
-
+    std::map<unsigned int, std::shared_ptr<http2_data_t>> data_info;
     std::map<unsigned int, std::shared_ptr<httppeer>> http_data;
+    std::map<unsigned int, struct http2_priority_t> priority_data;
+    std::map<unsigned int, std::shared_ptr<std::string>> stream_data;
+
     std::queue<unsigned int> stream_list;
     std::queue<std::shared_ptr<httppeer>> httppeer_lists;
     std::atomic<bool> istaskout = false;
+
+    std::shared_ptr<httppeer> block_steam_httppeer;
+    std::shared_ptr<http2_data_t> block_data_info_ptr;
+    std::shared_ptr<std::string> stream_data_ptr;
 };
 }// namespace http
 #endif

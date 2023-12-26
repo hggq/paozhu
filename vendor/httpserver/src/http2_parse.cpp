@@ -80,42 +80,62 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
     block_steamid = block_steamid << 8 | (unsigned char)buffer[j];
     j++;
 
+    auto dataiter = data_info.find(block_steamid);
+    if (dataiter == data_info.end())
+    {
+        block_data_info_ptr = std::make_shared<http2_data_t>();
+        data_info.emplace(block_steamid, block_data_info_ptr);
+    }
+    else
+    {
+        if (block_data_info_ptr->stream_id != block_steamid)
+        {
+            block_data_info_ptr = dataiter->second;
+        }
+    }
+
     if (frame_type == 0x00)
     {
-        DEBUG_LOG(" data new begin");
-        data_info[block_steamid].length    = blocklength;
-        data_info[block_steamid].curnum    = 0;
-        data_info[block_steamid].endstream = ((flag_type & 0x01) == 0x01) ? true : false;
-        data_info[block_steamid].padded    = ((flag_type & 0x08) == 0x08) ? true : false;
+        block_data_info_ptr->length    = blocklength;
+        block_data_info_ptr->curnum    = 0;
+        block_data_info_ptr->endstream = ((flag_type & 0x01) == 0x01) ? true : false;
+        block_data_info_ptr->padded    = ((flag_type & 0x08) == 0x08) ? true : false;
         // padded_length;
-        if (data_info[block_steamid].padded)
+        if (block_data_info_ptr->padded)
         {
             if (j < buffersize)
             {
-                data_info[block_steamid].pad_length = (unsigned char)buffer[j];
+                block_data_info_ptr->pad_length = (unsigned char)buffer[j];
             }
         }
         //data_steam_id = block_steamid;
+        auto peeriter = http_data.find(block_steamid);
+        if (peeriter == http_data.end())
+        {
+            error = 403;
+            return;
+        }
+        block_steam_httppeer = peeriter->second;
     }
     else if (frame_type == 0x01)
     {
-        data_info[block_steamid].length    = blocklength;
-        data_info[block_steamid].curnum    = 0;
-        data_info[block_steamid].endstream = ((flag_type & 0x01) == 0x01) ? true : false;
-        data_info[block_steamid].padded    = ((flag_type & 0x08) == 0x08) ? true : false;
+        block_data_info_ptr->length    = blocklength;
+        block_data_info_ptr->curnum    = 0;
+        block_data_info_ptr->endstream = ((flag_type & 0x01) == 0x01) ? true : false;
+        block_data_info_ptr->padded    = ((flag_type & 0x08) == 0x08) ? true : false;
 
-        data_info[block_steamid].endheader = ((flag_type & 0x04) == 0x04) ? true : false;
-        data_info[block_steamid].priority  = ((flag_type & 0x20) == 0x20) ? true : false;
+        block_data_info_ptr->endheader = ((flag_type & 0x04) == 0x04) ? true : false;
+        block_data_info_ptr->priority  = ((flag_type & 0x20) == 0x20) ? true : false;
 
-        if (data_info[block_steamid].padded)
+        if (block_data_info_ptr->padded)
         {
             if (j < buffersize)
             {
-                data_info[block_steamid].pad_length = (unsigned char)buffer[j];
+                block_data_info_ptr->pad_length = (unsigned char)buffer[j];
             }
             j += 1;
         }
-        if (data_info[block_steamid].priority)
+        if (block_data_info_ptr->priority)
         {
             if ((j + 5) < buffersize)
             {
@@ -129,15 +149,26 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
                 j++;
                 bsteamid = bsteamid << 8 | (unsigned char)buffer[j];
                 j++;
-                data_info[block_steamid].stream_id = bsteamid;
+                block_data_info_ptr->stream_id = bsteamid;
 
-                data_info[block_steamid].weight = (unsigned char)buffer[j];
+                block_data_info_ptr->weight = (unsigned char)buffer[j];
                 j++;
             }
         }
 
         //data_steam_id = block_steamid;
-        stream_data[block_steamid].clear();
+        //stream_data[block_steamid].clear();
+        auto streamdataiter = stream_data.find(block_steamid);
+        if (streamdataiter == stream_data.end())
+        {
+            stream_data_ptr = std::make_shared<std::string>();
+            stream_data.emplace(block_steamid, stream_data_ptr);
+        }
+        else
+        {
+            stream_data_ptr = streamdataiter->second;
+        }
+        stream_data_ptr->clear();
     }
 
     readoffset    = readoffset + 9;
@@ -168,73 +199,76 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
     unsigned int block_short_length;
 
     buffer_short_length = buffersize - readoffset;
-    block_short_length  = data_info[block_steamid].length - data_info[block_steamid].curnum;
+    block_short_length  = block_data_info_ptr->length - block_data_info_ptr->curnum;
 
     if (buffer_short_length <= block_short_length)
     {
         block_short_length = buffer_short_length;
     }
 
-    stream_data[block_steamid].append((const char *)&buffer[readoffset], block_short_length);
-    data_info[block_steamid].curnum += block_short_length;
+    //stream_data[block_steamid].append((const char *)&buffer[readoffset], block_short_length);
+    stream_data_ptr->append((const char *)&buffer[readoffset], block_short_length);
+    block_data_info_ptr->curnum += block_short_length;
 
     readoffset = readoffset + block_short_length;
-    if (data_info[block_steamid].curnum > 8192)
+    if (block_data_info_ptr->curnum > 8192)
     {
         error = 403;
     }
     // 数据块处理完成
-    if (data_info[block_steamid].curnum == data_info[block_steamid].length)
+    if (block_data_info_ptr->curnum == block_data_info_ptr->length)
     {
-        if (data_info[block_steamid].endheader)
+        if (block_data_info_ptr->endheader)
         {
             bool ishasold = true;
             for (auto iter = http_data.begin(); iter != http_data.end();)
             {
                 if (iter->second->issend)
                 {
-                    std::shared_ptr<httppeer> peer = iter->second;
-                    unsigned int oldstream_id      = iter->first;
-                    iter                           = http_data.erase(iter);
-                    peer->state.gzip               = false;
-                    peer->state.deflate            = false;
-                    peer->state.br                 = false;
-                    peer->state.avif               = false;
-                    peer->state.webp               = false;
-                    peer->state.keepalive          = false;
-                    peer->state.websocket          = false;
-                    peer->state.upgradeconnection  = false;
-                    peer->state.rangebytes         = false;
-                    peer->state.language[0]        = {0};
-                    peer->state.version            = 0;
-                    peer->state.port               = 0;
-                    peer->state.ifmodifiedsince    = 0;
-                    peer->state.rangebegin         = 0;
-                    peer->state.rangeend           = 0;
-                    peer->keepalive                = false;
-                    peer->issend                   = false;
-                    peer->isclose                  = false;
-                    peer->send_header.clear();
-                    peer->send_cookie_lists.clear();
-                    peer->http2_send_header.clear();
-                    peer->header.clear();
-                    peer->pathinfos.clear();
-                    peer->querystring.clear();
-                    peer->urlpath.clear();
-                    peer->host.clear();
-                    peer->etag.clear();
-                    peer->output.clear();
-                    peer->val.clear();
-                    peer->post.clear();
-                    peer->session.clear();
-                    peer->get.clear();
-                    peer->files.clear();
-                    peer->json.clear();
-                    peer->cookie.clear();
-                    peer->rawcontent.clear();
-                    peer->httpv    = 2;
-                    peer->isso     = false;
-                    peer->compress = 0;
+                    block_steam_httppeer                          = iter->second;
+                    unsigned int oldstream_id                     = iter->first;
+                    iter                                          = http_data.erase(iter);
+                    block_steam_httppeer->state.gzip              = false;
+                    block_steam_httppeer->state.deflate           = false;
+                    block_steam_httppeer->state.br                = false;
+                    block_steam_httppeer->state.avif              = false;
+                    block_steam_httppeer->state.webp              = false;
+                    block_steam_httppeer->state.keepalive         = false;
+                    block_steam_httppeer->state.websocket         = false;
+                    block_steam_httppeer->state.upgradeconnection = false;
+                    block_steam_httppeer->state.rangebytes        = false;
+                    block_steam_httppeer->state.language[0]       = {0};
+                    block_steam_httppeer->state.version           = 0;
+                    block_steam_httppeer->state.port              = 0;
+                    block_steam_httppeer->state.ifmodifiedsince   = 0;
+                    block_steam_httppeer->state.rangebegin        = 0;
+                    block_steam_httppeer->state.rangeend          = 0;
+                    block_steam_httppeer->upload_length           = 0;
+                    block_steam_httppeer->content_length          = 0;
+                    block_steam_httppeer->keepalive               = false;
+                    block_steam_httppeer->issend                  = false;
+                    block_steam_httppeer->isclose                 = false;
+                    block_steam_httppeer->send_header.clear();
+                    block_steam_httppeer->send_cookie_lists.clear();
+                    block_steam_httppeer->http2_send_header.clear();
+                    block_steam_httppeer->header.clear();
+                    block_steam_httppeer->pathinfos.clear();
+                    block_steam_httppeer->querystring.clear();
+                    block_steam_httppeer->urlpath.clear();
+                    block_steam_httppeer->host.clear();
+                    block_steam_httppeer->etag.clear();
+                    block_steam_httppeer->output.clear();
+                    block_steam_httppeer->val.clear();
+                    block_steam_httppeer->post.clear();
+                    block_steam_httppeer->session.clear();
+                    block_steam_httppeer->get.clear();
+                    block_steam_httppeer->files.clear();
+                    block_steam_httppeer->json.clear();
+                    block_steam_httppeer->cookie.clear();
+                    block_steam_httppeer->rawcontent.clear();
+                    block_steam_httppeer->httpv    = 2;
+                    block_steam_httppeer->isso     = false;
+                    block_steam_httppeer->compress = 0;
                     // peer->websocket.deflate           = false;
                     // peer->websocket.permessagedeflate = false;
                     // peer->websocket.perframedeflate   = false;
@@ -244,41 +278,87 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                     // peer->websocket.key.clear();
                     // peer->websocket.ext.clear();
 
-                    http_data.emplace(block_steamid, peer);
+                    http_data.emplace(block_steamid, block_steam_httppeer);
                     ishasold = false;
 
-                    for (auto it = data_info.begin(); it != data_info.end();)
+                    auto dataiter = data_info.find(oldstream_id);
+                    if (dataiter == data_info.end())
                     {
-                        if (oldstream_id == it->first)
-                        {
-                            it = data_info.erase(it);
-                        }
-                        else
-                        {
-                            ++it;
-                        }
+                        block_data_info_ptr = std::make_shared<http2_data_t>();
+                        data_info.emplace(block_steamid, block_data_info_ptr);
                     }
+                    else
+                    {
+                        block_data_info_ptr                 = dataiter->second;
+                        dataiter                            = data_info.erase(dataiter);
+                        block_data_info_ptr->stream_id      = block_steamid;
+                        block_data_info_ptr->match_offset   = 0;
+                        block_data_info_ptr->isbegin        = false;
+                        block_data_info_ptr->isend          = false;
+                        block_data_info_ptr->endstream      = false;
+                        block_data_info_ptr->endheader      = false;
+                        block_data_info_ptr->padded         = false;
+                        block_data_info_ptr->priority       = false;
+                        block_data_info_ptr->posttype       = 0;
+                        block_data_info_ptr->postfieldtype  = 0;
+                        block_data_info_ptr->changetype     = 0;
+                        block_data_info_ptr->pad_length     = 0;
+                        block_data_info_ptr->weight         = 0;
+                        block_data_info_ptr->length         = 0;// bloack data length;
+                        block_data_info_ptr->curnum         = 0;// now block length
+                        block_data_info_ptr->content_length = 0;// post length
+
+                        //std::FILE *uprawfile = NULL;
+                        block_data_info_ptr->uprawfile = nullptr;
+
+                        block_data_info_ptr->boundary.clear();
+                        block_data_info_ptr->fieldname.clear();
+                        block_data_info_ptr->buffer_key.clear();
+                        block_data_info_ptr->buffer_value.clear();
+                        block_data_info_ptr->field_value.clear();
+
+                        block_data_info_ptr->upfile.name.clear();
+                        block_data_info_ptr->upfile.filename.clear();
+                        block_data_info_ptr->upfile.tempfile.clear();
+                        block_data_info_ptr->upfile.type.clear();
+                        block_data_info_ptr->upfile.size  = 0;
+                        block_data_info_ptr->upfile.error = 0;
+                        data_info.emplace(block_steamid, block_data_info_ptr);
+                    }
+                    // for (auto it = data_info.begin(); it != data_info.end();)
+                    // {
+                    //     if (oldstream_id == it->first)
+                    //     {
+                    //         it = data_info.erase(it);
+                    //     }
+                    //     else
+                    //     {
+                    //         ++it;
+                    //     }
+                    // }
                     break;
                 }
                 ++iter;
             }
             if (ishasold)
             {
-                http_data.emplace(block_steamid, std::make_shared<httppeer>());
+                block_steam_httppeer = std::make_shared<httppeer>();
+                http_data.emplace(block_steamid, block_steam_httppeer);
             }
             headers_parse();
-            if (http_data[block_steamid]->isfinish == false)
+            if (block_steam_httppeer->isfinish == false)
             {
-                error = http_data[block_steamid]->check_upload_limit();
+                error = block_steam_httppeer->check_upload_limit();
             }
-            http_data[block_steamid]->isuse_fastcgi();
+            block_steam_httppeer->isuse_fastcgi();
         }
         processheader = 0;
     }
 }
 void http2parse::headers_parse()
 {
-    std::string_view setting_data(stream_data[block_steamid]);
+    //std::string_view setting_data(stream_data[block_steamid]);
+    std::string_view setting_data(stream_data_ptr->data(), stream_data_ptr->size());
     if (setting_data.size() == 0)
     {
         error = 101;
@@ -286,10 +366,10 @@ void http2parse::headers_parse()
     }
     unsigned int begin = 0, header_end = setting_data.size();
     // peer_session->stream[block_steamid].content_length = 0;
-    http_data[block_steamid]->content_length = 0;
-    http_data[block_steamid]->stream_id      = block_steamid;
-    http_data[block_steamid]->httpv          = 2;
-    http_data[block_steamid]->socket_session = peer_session;
+    block_steam_httppeer->content_length = 0;
+    block_steam_httppeer->stream_id      = block_steamid;
+    block_steam_httppeer->httpv          = 2;
+    block_steam_httppeer->socket_session = peer_session;
     //http_data[block_steamid]->window_update_bool = false;
 
     ispost = false;
@@ -337,95 +417,95 @@ void http2parse::headers_parse()
 
     if (ispost)
     {
-        DEBUG_LOG("http2 post client: %s %ud", http_data[block_steamid]->url.c_str(), block_steamid);
+        DEBUG_LOG("http2 post client: %s %ud", block_steam_httppeer->url.c_str(), block_steamid);
         window_update_recv_num = RECV_WINDOW_UPDATE_NUM;
         peer_session->send_window_update(window_update_recv_num, block_steamid);
-        data_info[block_steamid].stream_id      = block_steamid;
-        data_info[block_steamid].curnum         = 0;
-        data_info[block_steamid].length         = 0;
-        data_info[block_steamid].content_length = http_data[block_steamid]->content_length;
+        block_data_info_ptr->stream_id      = block_steamid;
+        block_data_info_ptr->curnum         = 0;
+        block_data_info_ptr->length         = 0;
+        block_data_info_ptr->content_length = block_steam_httppeer->content_length;
 
-        data_info[block_steamid].isbegin       = false;
-        data_info[block_steamid].isend         = false;
-        data_info[block_steamid].postfieldtype = 0;
-        data_info[block_steamid].match_offset  = 0;
-
-        http_data[block_steamid]->isfinish = false;
+        block_data_info_ptr->isbegin       = false;
+        block_data_info_ptr->isend         = false;
+        block_data_info_ptr->postfieldtype = 0;
+        block_data_info_ptr->match_offset  = 0;
+        block_steam_httppeer->isfinish     = false;
     }
     else
     {
-        DEBUG_LOG("http2 get client: %s", http_data[block_steamid]->url.c_str());
-        http_data[block_steamid]->isfinish = true;
+        DEBUG_LOG("http2 get client: %s", block_steam_httppeer->url.c_str());
+        block_steam_httppeer->isfinish = true;
         stream_list.emplace(block_steamid);
     }
-    stream_data[block_steamid].clear();
-    data_info[block_steamid].buffer_value.clear();
+    //stream_data[block_steamid].clear();
+    stream_data_ptr->clear();
+    block_data_info_ptr->buffer_value.clear();
 }
 void http2parse::cookie_process([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     DEBUG_LOG("cookie_process:%s:%s", header_name.c_str(), header_value.c_str());
     //http_data[block_steamid]->header[header_name] = header_value;
     unsigned int i = 0, linesize = header_value.size();
-    data_info[block_steamid].buffer_key.clear();
-    data_info[block_steamid].buffer_value.clear();
+    block_data_info_ptr->buffer_key.clear();
+    block_data_info_ptr->buffer_value.clear();
 
-    if (http_data[block_steamid]->header["Cookie"].empty())
+    if (block_steam_httppeer->header["Cookie"].empty())
     {
     }
     else
     {
-        http_data[block_steamid]->header["Cookie"].append("; ");
+        block_steam_httppeer->header["Cookie"].append("; ");
     }
-    http_data[block_steamid]->header["Cookie"].append(header_value);
+    block_steam_httppeer->header["Cookie"].append(header_value);
     for (; i < linesize; i++)
     {
         if (header_value[i] == 0x3D)
         {
-            data_info[block_steamid].buffer_key = http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                                                   data_info[block_steamid].buffer_value.length());
-            data_info[block_steamid].buffer_value.clear();
+            block_data_info_ptr->buffer_key = http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                                               block_data_info_ptr->buffer_value.length());
+            block_data_info_ptr->buffer_value.clear();
             continue;
         }
         if (header_value[i] == 0x3B)
         {
-            data_info[block_steamid].buffer_value = http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                                                     data_info[block_steamid].buffer_value.length());
-            http_data[block_steamid]->cookie[data_info[block_steamid].buffer_key] =
-                data_info[block_steamid].buffer_value;
-            data_info[block_steamid].buffer_key.clear();
-            data_info[block_steamid].buffer_value.clear();
+            block_data_info_ptr->buffer_value = http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                                                 block_data_info_ptr->buffer_value.length());
+            block_steam_httppeer->cookie[block_data_info_ptr->buffer_key] =
+                block_data_info_ptr->buffer_value;
+            block_data_info_ptr->buffer_key.clear();
+            block_data_info_ptr->buffer_value.clear();
             continue;
         }
         if (header_value[i] == 0x20)
         {
             continue;
         }
-        data_info[block_steamid].buffer_value.push_back(header_value[i]);
+        block_data_info_ptr->buffer_value.push_back(header_value[i]);
     }
-    if (data_info[block_steamid].buffer_value.size() > 0)
+    if (block_data_info_ptr->buffer_value.size() > 0)
     {
-        data_info[block_steamid].buffer_value                                 = http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                                                 data_info[block_steamid].buffer_value.length());
-        http_data[block_steamid]->cookie[data_info[block_steamid].buffer_key] = data_info[block_steamid].buffer_value;
+        block_data_info_ptr->buffer_value                             = http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                                             block_data_info_ptr->buffer_value.length());
+        block_steam_httppeer->cookie[block_data_info_ptr->buffer_key] = block_data_info_ptr->buffer_value;
     }
     else
     {
-        if (data_info[block_steamid].buffer_key.size() > 0)
+        if (block_data_info_ptr->buffer_key.size() > 0)
         {
-            http_data[block_steamid]->cookie[data_info[block_steamid].buffer_key] = "";
+            block_steam_httppeer->cookie[block_data_info_ptr->buffer_key] = "";
         }
-        data_info[block_steamid].buffer_key.clear();
+        block_data_info_ptr->buffer_key.clear();
     }
 }
 void http2parse::path_process([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     DEBUG_LOG("path_process:%s:%s", header_name.c_str(), header_value.c_str());
-    data_info[block_steamid].buffer_key.clear();
-    data_info[block_steamid].buffer_value.clear();
+    block_data_info_ptr->buffer_key.clear();
+    block_data_info_ptr->buffer_value.clear();
     unsigned char headerstep = 0;
-    http_data[block_steamid]->pathinfos.clear();
+    block_steam_httppeer->pathinfos.clear();
     unsigned int ioffset = 0, linesize = header_value.size();
-    http_data[block_steamid]->url = http::url_decode(header_value.data(), header_value.length());
+    block_steam_httppeer->url = http::url_decode(header_value.data(), header_value.length());
     for (; ioffset < linesize; ioffset++)
     {
         if (header_value[ioffset] == 0x3F)
@@ -435,67 +515,67 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
         }
         if (header_value[ioffset] == 0x2F)
         {
-            if (data_info[block_steamid].buffer_key.size() > 0)
+            if (block_data_info_ptr->buffer_key.size() > 0)
             {
-                if (data_info[block_steamid].buffer_key.size() == 2 && data_info[block_steamid].buffer_key[0] == '.' &&
-                    data_info[block_steamid].buffer_key[1] == '.')
+                if (block_data_info_ptr->buffer_key.size() == 2 && block_data_info_ptr->buffer_key[0] == '.' &&
+                    block_data_info_ptr->buffer_key[1] == '.')
                 {
-                    if (http_data[block_steamid]->pathinfos.size() > 0)
+                    if (block_steam_httppeer->pathinfos.size() > 0)
                     {
-                        http_data[block_steamid]->pathinfos.pop_back();
+                        block_steam_httppeer->pathinfos.pop_back();
                     }
                 }
-                else if (data_info[block_steamid].buffer_key.size() == 1 &&
-                         data_info[block_steamid].buffer_key[0] == '.')
+                else if (block_data_info_ptr->buffer_key.size() == 1 &&
+                         block_data_info_ptr->buffer_key[0] == '.')
                 {
                 }
                 else
                 {
-                    http_data[block_steamid]->pathinfos.emplace_back(
-                        http::url_decode(data_info[block_steamid].buffer_key.data(),
-                                         data_info[block_steamid].buffer_key.length()));
+                    block_steam_httppeer->pathinfos.emplace_back(
+                        http::url_decode(block_data_info_ptr->buffer_key.data(),
+                                         block_data_info_ptr->buffer_key.length()));
                 }
-                data_info[block_steamid].buffer_key.clear();
+                block_data_info_ptr->buffer_key.clear();
             }
         }
         else
         {
-            data_info[block_steamid].buffer_key.push_back(header_value[ioffset]);
+            block_data_info_ptr->buffer_key.push_back(header_value[ioffset]);
         }
-        data_info[block_steamid].buffer_value.push_back(header_value[ioffset]);
+        block_data_info_ptr->buffer_value.push_back(header_value[ioffset]);
     }
 
-    if (data_info[block_steamid].buffer_key.size() > 0)
+    if (block_data_info_ptr->buffer_key.size() > 0)
     {
-        if (data_info[block_steamid].buffer_key.size() == 2 && data_info[block_steamid].buffer_key[0] == '.' &&
-            data_info[block_steamid].buffer_key[1] == '.')
+        if (block_data_info_ptr->buffer_key.size() == 2 && block_data_info_ptr->buffer_key[0] == '.' &&
+            block_data_info_ptr->buffer_key[1] == '.')
         {
-            if (http_data[block_steamid]->pathinfos.size() > 0)
+            if (block_steam_httppeer->pathinfos.size() > 0)
             {
-                http_data[block_steamid]->pathinfos.pop_back();
+                block_steam_httppeer->pathinfos.pop_back();
             }
         }
-        else if (data_info[block_steamid].buffer_key.size() == 1 && data_info[block_steamid].buffer_key[0] == '.')
+        else if (block_data_info_ptr->buffer_key.size() == 1 && block_data_info_ptr->buffer_key[0] == '.')
         {
         }
         else
         {
-            http_data[block_steamid]->pathinfos.emplace_back(
-                http::url_decode(data_info[block_steamid].buffer_key.data(),
-                                 data_info[block_steamid].buffer_key.length()));
+            block_steam_httppeer->pathinfos.emplace_back(
+                http::url_decode(block_data_info_ptr->buffer_key.data(),
+                                 block_data_info_ptr->buffer_key.length()));
         }
     }
 
     if (headerstep == 6)
     {
-        http_data[block_steamid]->header["urlpath"] = data_info[block_steamid].buffer_value;
-        http_data[block_steamid]->urlpath           = http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                                             data_info[block_steamid].buffer_value.length());
+        block_steam_httppeer->header["urlpath"] = block_data_info_ptr->buffer_value;
+        block_steam_httppeer->urlpath           = http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                                         block_data_info_ptr->buffer_value.length());
     }
     else
     {
-        http_data[block_steamid]->header["urlpath"] = data_info[block_steamid].buffer_value;
-        http_data[block_steamid]->urlpath           = http_data[block_steamid]->url;
+        block_steam_httppeer->header["urlpath"] = block_data_info_ptr->buffer_value;
+        block_steam_httppeer->urlpath           = block_steam_httppeer->url;
     }
 
     // if (http_data[block_steamid]->pathinfos.size() > 0)
@@ -513,7 +593,7 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
     //     http_data[block_steamid]->urlpath           = "/";
     // }
 
-    data_info[block_steamid].buffer_key.clear();
+    block_data_info_ptr->buffer_key.clear();
     if (headerstep == 6)
     {
         for (; ioffset < linesize; ioffset++)
@@ -525,13 +605,13 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
             break;
         }
         headerstep = 0;
-        data_info[block_steamid].buffer_key.append(&header_value[ioffset], (linesize - ioffset));
+        block_data_info_ptr->buffer_key.append(&header_value[ioffset], (linesize - ioffset));
         //http_data[block_steamid]->header["querystring"] = data_info[block_steamid].buffer_key;
-        http_data[block_steamid]->querystring =
-            http::url_decode(data_info[block_steamid].buffer_key.data(), data_info[block_steamid].buffer_key.length());
+        block_steam_httppeer->querystring =
+            http::url_decode(block_data_info_ptr->buffer_key.data(), block_data_info_ptr->buffer_key.length());
 
-        data_info[block_steamid].buffer_key.clear();
-        data_info[block_steamid].buffer_value.clear();
+        block_data_info_ptr->buffer_key.clear();
+        block_data_info_ptr->buffer_value.clear();
         for (; ioffset < linesize; ioffset++)
         {
             if (header_value[ioffset] == 0x3D)
@@ -548,9 +628,9 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
                         break;
                     }
                 }
-                data_info[block_steamid].buffer_key = http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                                                       data_info[block_steamid].buffer_value.length());
-                data_info[block_steamid].buffer_value.clear();
+                block_data_info_ptr->buffer_key = http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                                                   block_data_info_ptr->buffer_value.length());
+                block_data_info_ptr->buffer_value.clear();
                 headerstep = 1;
                 continue;
             }
@@ -569,39 +649,39 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
                     }
                 }
 
-                data_info[block_steamid].buffer_value =
-                    http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                     data_info[block_steamid].buffer_value.length());
+                block_data_info_ptr->buffer_value =
+                    http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                     block_data_info_ptr->buffer_value.length());
                 procssparamter();
-                data_info[block_steamid].buffer_key.clear();
-                data_info[block_steamid].buffer_value.clear();
+                block_data_info_ptr->buffer_key.clear();
+                block_data_info_ptr->buffer_value.clear();
                 headerstep = 2;
                 continue;
             }
-            data_info[block_steamid].buffer_value.push_back(header_value[ioffset]);
+            block_data_info_ptr->buffer_value.push_back(header_value[ioffset]);
         }
 
         if (headerstep == 1)
         {
             // full kv
-            data_info[block_steamid].buffer_value = http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                                                     data_info[block_steamid].buffer_value.length());
+            block_data_info_ptr->buffer_value = http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                                                 block_data_info_ptr->buffer_value.length());
             procssparamter();
         }
         else if (headerstep == 2)
         {
             // half k
-            data_info[block_steamid].buffer_key = http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                                                   data_info[block_steamid].buffer_value.length());
-            data_info[block_steamid].buffer_value.clear();
+            block_data_info_ptr->buffer_key = http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                                               block_data_info_ptr->buffer_value.length());
+            block_data_info_ptr->buffer_value.clear();
             procssparamter();
         }
-        else if (data_info[block_steamid].buffer_value.size() > 0)
+        else if (block_data_info_ptr->buffer_value.size() > 0)
         {
             // only one k
-            data_info[block_steamid].buffer_key = http::url_decode(data_info[block_steamid].buffer_value.data(),
-                                                                   data_info[block_steamid].buffer_value.length());
-            data_info[block_steamid].buffer_value.clear();
+            block_data_info_ptr->buffer_key = http::url_decode(block_data_info_ptr->buffer_value.data(),
+                                                               block_data_info_ptr->buffer_value.length());
+            block_data_info_ptr->buffer_value.clear();
             procssparamter();
         }
     }
@@ -610,31 +690,31 @@ void http2parse::procssparamter()
 {
     std::string objname;
     bool isgroup = true;
-    for (unsigned int j = 0; j < data_info[block_steamid].buffer_key.length(); j++)
+    for (unsigned int j = 0; j < block_data_info_ptr->buffer_key.length(); j++)
     {
-        if (data_info[block_steamid].buffer_key[j] == '[')
+        if (block_data_info_ptr->buffer_key[j] == '[')
         {
             std::string key1name;
             unsigned int n = j;
             n++;
             bool ishaskey  = false;
             bool ishaskey2 = false;
-            for (; n < data_info[block_steamid].buffer_key.length(); n++)
+            for (; n < block_data_info_ptr->buffer_key.length(); n++)
             {
-                if (data_info[block_steamid].buffer_key[n] == ']')
+                if (block_data_info_ptr->buffer_key[n] == ']')
                 {
                     ishaskey = true;
                     n++;
                     break;
                 }
-                else if (data_info[block_steamid].buffer_key[n] == '[')
+                else if (block_data_info_ptr->buffer_key[n] == '[')
                 {
 
                     break;
                 }
-                if (data_info[block_steamid].buffer_key[n] != 0x22)
+                if (block_data_info_ptr->buffer_key[n] != 0x22)
                 {
-                    key1name.push_back(data_info[block_steamid].buffer_key[n]);
+                    key1name.push_back(block_data_info_ptr->buffer_key[n]);
                 }
             }
 
@@ -643,31 +723,31 @@ void http2parse::procssparamter()
             {
 
                 unsigned int m = n;
-                if (n < data_info[block_steamid].buffer_key.length())
+                if (n < block_data_info_ptr->buffer_key.length())
                 {
-                    if (data_info[block_steamid].buffer_key[m] == '[')
+                    if (block_data_info_ptr->buffer_key[m] == '[')
                     {
                         m += 1;
-                        for (; m < data_info[block_steamid].buffer_key.length(); m++)
+                        for (; m < block_data_info_ptr->buffer_key.length(); m++)
                         {
-                            if (data_info[block_steamid].buffer_key[m] == ']')
+                            if (block_data_info_ptr->buffer_key[m] == ']')
                             {
                                 ishaskey2 = true;
                                 m++;
                                 break;
                             }
-                            else if (data_info[block_steamid].buffer_key[m] == '[')
+                            else if (block_data_info_ptr->buffer_key[m] == '[')
                             {
 
                                 break;
                             }
-                            if (data_info[block_steamid].buffer_key[m] != 0x22)
+                            if (block_data_info_ptr->buffer_key[m] != 0x22)
                             {
-                                key2name.push_back(data_info[block_steamid].buffer_key[m]);
+                                key2name.push_back(block_data_info_ptr->buffer_key[m]);
                             }
                         }
 
-                        if (ishaskey2 && m == data_info[block_steamid].buffer_key.length())
+                        if (ishaskey2 && m == block_data_info_ptr->buffer_key.length())
                         {
                         }
                         else
@@ -685,48 +765,48 @@ void http2parse::procssparamter()
                         if (key2name.empty())
                         {
                             http::OBJ_ARRAY objtemp;
-                            objtemp.push(data_info[block_steamid].buffer_value);
+                            objtemp.push(block_data_info_ptr->buffer_value);
                             http::OBJ_ARRAY objtemp1;
                             objtemp1.push(std::move(objtemp));
-                            http_data[block_steamid]->get[objname].push(std::move(objtemp1));
+                            block_steam_httppeer->get[objname].push(std::move(objtemp1));
                         }
                         else
                         {
                             http::OBJ_VALUE objtemp;
-                            objtemp[key2name] = data_info[block_steamid].buffer_value;
+                            objtemp[key2name] = block_data_info_ptr->buffer_value;
                             http::OBJ_ARRAY objtemp1;
                             objtemp1.push(std::move(objtemp));
-                            http_data[block_steamid]->get[objname].push(std::move(objtemp1));
+                            block_steam_httppeer->get[objname].push(std::move(objtemp1));
                         }
                     }
                     else
                     {
                         if (key2name.empty())
                         {
-                            http_data[block_steamid]->get[objname][key1name].set_array();
-                            http_data[block_steamid]->get[objname][key1name] = data_info[block_steamid].buffer_value;
+                            block_steam_httppeer->get[objname][key1name].set_array();
+                            block_steam_httppeer->get[objname][key1name] = block_data_info_ptr->buffer_value;
                         }
                         else
                         {
 
-                            http_data[block_steamid]->get[objname][key1name][key2name] =
-                                data_info[block_steamid].buffer_value;
+                            block_steam_httppeer->get[objname][key1name][key2name] =
+                                block_data_info_ptr->buffer_value;
                         }
                     }
                     j       = m;
                     isgroup = false;
                 }
-                else if (n == data_info[block_steamid].buffer_key.length())
+                else if (n == block_data_info_ptr->buffer_key.length())
                 {
                     // 只有一个
                     if (key1name.empty())
                     {
-                        http_data[block_steamid]->get[objname].set_array();
-                        http_data[block_steamid]->get[objname].push(data_info[block_steamid].buffer_value);
+                        block_steam_httppeer->get[objname].set_array();
+                        block_steam_httppeer->get[objname].push(block_data_info_ptr->buffer_value);
                     }
                     else
                     {
-                        http_data[block_steamid]->get[objname].push(key1name, data_info[block_steamid].buffer_value);
+                        block_steam_httppeer->get[objname].push(key1name, block_data_info_ptr->buffer_value);
                     }
                     j       = n;
                     isgroup = false;
@@ -739,24 +819,24 @@ void http2parse::procssparamter()
             }
             if (isgroup)
             {
-                objname.push_back(data_info[block_steamid].buffer_key[j]);
+                objname.push_back(block_data_info_ptr->buffer_key[j]);
             }
         }
         else
         {
-            objname.push_back(data_info[block_steamid].buffer_key[j]);
+            objname.push_back(block_data_info_ptr->buffer_key[j]);
         }
     }
     if (isgroup)
     {
-        http_data[block_steamid]->get[data_info[block_steamid].buffer_key] = data_info[block_steamid].buffer_value;
+        block_steam_httppeer->get[block_data_info_ptr->buffer_key] = block_data_info_ptr->buffer_value;
     }
 }
 void http2parse::range_process([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     DEBUG_LOG("range_process:%s:%s", header_name.c_str(), header_value.c_str());
     unsigned int j = 0, linesize = header_value.size();
-    data_info[block_steamid].buffer_value.clear();
+    block_data_info_ptr->buffer_value.clear();
     for (; j < linesize; j++)
     {
         if (header_value[j] == 0x20)
@@ -768,16 +848,16 @@ void http2parse::range_process([[maybe_unused]] const std::string &header_name, 
             j++;
             break;
         }
-        data_info[block_steamid].buffer_value.push_back(header_value[j]);
+        block_data_info_ptr->buffer_value.push_back(header_value[j]);
     }
 
-    if (str_casecmp(data_info[block_steamid].buffer_value, "bytes"))
+    if (str_casecmp(block_data_info_ptr->buffer_value, "bytes"))
     {
-        http_data[block_steamid]->state.rangebytes = true;
+        block_steam_httppeer->state.rangebytes = true;
     }
-    http_data[block_steamid]->state.rangebegin = 0;
-    http_data[block_steamid]->state.rangeend   = 0;
-    data_info[block_steamid].buffer_value.clear();
+    block_steam_httppeer->state.rangebegin = 0;
+    block_steam_httppeer->state.rangeend   = 0;
+    block_data_info_ptr->buffer_value.clear();
     // bool ismuilt = false;
     for (; j < linesize; j++)
     {
@@ -791,32 +871,32 @@ void http2parse::range_process([[maybe_unused]] const std::string &header_name, 
         {
 
             long long tm = 0;
-            for (unsigned int qi = 0; qi < data_info[block_steamid].buffer_value.size(); qi++)
+            for (unsigned int qi = 0; qi < block_data_info_ptr->buffer_value.size(); qi++)
             {
-                if (data_info[block_steamid].buffer_value[qi] < 0x3A &&
-                    data_info[block_steamid].buffer_value[qi] > 0x2F)
+                if (block_data_info_ptr->buffer_value[qi] < 0x3A &&
+                    block_data_info_ptr->buffer_value[qi] > 0x2F)
                 {
-                    tm = tm * 10 + (data_info[block_steamid].buffer_value[qi] - 0x30);
+                    tm = tm * 10 + (block_data_info_ptr->buffer_value[qi] - 0x30);
                 }
             }
-            http_data[block_steamid]->state.rangebegin = tm;
-            data_info[block_steamid].buffer_value.clear();
+            block_steam_httppeer->state.rangebegin = tm;
+            block_data_info_ptr->buffer_value.clear();
             continue;
         }
-        data_info[block_steamid].buffer_value.push_back(header_value[j]);
+        block_data_info_ptr->buffer_value.push_back(header_value[j]);
     }
 
-    if (data_info[block_steamid].buffer_value.size() > 0)
+    if (block_data_info_ptr->buffer_value.size() > 0)
     {
         long long tm = 0;
-        for (unsigned int qi = 0; qi < data_info[block_steamid].buffer_value.size(); qi++)
+        for (unsigned int qi = 0; qi < block_data_info_ptr->buffer_value.size(); qi++)
         {
-            if (data_info[block_steamid].buffer_value[qi] < 0x3A && data_info[block_steamid].buffer_value[qi] > 0x2F)
+            if (block_data_info_ptr->buffer_value[qi] < 0x3A && block_data_info_ptr->buffer_value[qi] > 0x2F)
             {
-                tm = tm * 10 + (data_info[block_steamid].buffer_value[qi] - 0x30);
+                tm = tm * 10 + (block_data_info_ptr->buffer_value[qi] - 0x30);
             }
         }
-        http_data[block_steamid]->state.rangeend = tm;
+        block_steam_httppeer->state.rangeend = tm;
     }
 }
 
@@ -829,64 +909,64 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         switch (table_num)
         {
         case 1:
-            http_data[block_steamid]->host                 = header_value;
-            http_data[block_steamid]->header["Host"]       = header_value;
-            http_data[block_steamid]->header[":authority"] = header_value;
-            http_data[block_steamid]->find_host_index();
+            block_steam_httppeer->host                 = header_value;
+            block_steam_httppeer->header["Host"]       = header_value;
+            block_steam_httppeer->header[":authority"] = header_value;
+            block_steam_httppeer->find_host_index();
             break;
         case 2:
             if (str_casecmp(header_value, "OPTIONS"))
             {
-                http_data[block_steamid]->method = 3;
+                block_steam_httppeer->method = 3;
             }
             else if (str_casecmp(header_value, "GET"))
             {
-                http_data[block_steamid]->method = 1;
+                block_steam_httppeer->method = 1;
             }
             else if (str_casecmp(header_value, "POST"))
             {
-                http_data[block_steamid]->method = 2;
+                block_steam_httppeer->method = 2;
             }
             else if (str_casecmp(header_value, "head"))
             {
-                http_data[block_steamid]->method = 4;
+                block_steam_httppeer->method = 4;
             }
             else if (str_casecmp(header_value, "put"))
             {
-                http_data[block_steamid]->method = 5;
+                block_steam_httppeer->method = 5;
             }
             else if (str_casecmp(header_value, "delete"))
             {
-                http_data[block_steamid]->method = 6;
+                block_steam_httppeer->method = 6;
             }
-            http_data[block_steamid]->header["method"] = header_value;
+            block_steam_httppeer->header["method"] = header_value;
             break;
         case 3:
             if (str_casecmp(header_value, "OPTIONS"))
             {
-                http_data[block_steamid]->method = 3;
+                block_steam_httppeer->method = 3;
             }
             else if (str_casecmp(header_value, "GET"))
             {
-                http_data[block_steamid]->method = 1;
+                block_steam_httppeer->method = 1;
             }
             else if (str_casecmp(header_value, "POST"))
             {
-                http_data[block_steamid]->method = 2;
+                block_steam_httppeer->method = 2;
             }
             else if (str_casecmp(header_value, "head"))
             {
-                http_data[block_steamid]->method = 4;
+                block_steam_httppeer->method = 4;
             }
             else if (str_casecmp(header_value, "put"))
             {
-                http_data[block_steamid]->method = 5;
+                block_steam_httppeer->method = 5;
             }
             else if (str_casecmp(header_value, "delete"))
             {
-                http_data[block_steamid]->method = 6;
+                block_steam_httppeer->method = 6;
             }
-            http_data[block_steamid]->header["method"] = header_value;
+            block_steam_httppeer->header["method"] = header_value;
             break;
         case 4:
         case 5: path_process(header_name, header_value); break;
@@ -894,36 +974,36 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         case 17: getacceptlanguage(header_name, header_value); break;
         case 19: getaccept(header_name, header_value); break;
         case 20:
-            http_data[block_steamid]->header["Access-Control-Allow-Origin"] = header_value;
+            block_steam_httppeer->header["Access-Control-Allow-Origin"] = header_value;
             break;
         case 23:
-            http_data[block_steamid]->header["Authorization"] = header_value;
+            block_steam_httppeer->header["Authorization"] = header_value;
             break;
         case 28:
-            http_data[block_steamid]->content_length           = str2int(&header_value[0], header_value.size());
-            http_data[block_steamid]->header["Content-Length"] = header_value;
+            block_steam_httppeer->content_length           = str2int(&header_value[0], header_value.size());
+            block_steam_httppeer->header["Content-Length"] = header_value;
             break;
         case 31: getcontenttype(header_name, header_value); break;
         case 32: cookie_process(header_name, header_value); break;
         case 38:
-            http_data[block_steamid]->header["Host"] = header_value;
+            block_steam_httppeer->header["Host"] = header_value;
             break;
         case 41: getifnonematch(header_name, header_value); break;
         case 48:
-            http_data[block_steamid]->header["Proxy-Authenticate"] = header_value;
+            block_steam_httppeer->header["Proxy-Authenticate"] = header_value;
             break;
         case 49:
-            http_data[block_steamid]->header["Proxy-Authorization"] = header_value;
+            block_steam_httppeer->header["Proxy-Authorization"] = header_value;
             break;
         case 50: range_process(header_name, header_value); break;
         case 51:
-            http_data[block_steamid]->header["Referer"] = header_value;
+            block_steam_httppeer->header["Referer"] = header_value;
             break;
         case 58:
-            http_data[block_steamid]->header["User-Agent"] = header_value;
+            block_steam_httppeer->header["User-Agent"] = header_value;
             break;
         case 61:
-            http_data[block_steamid]->header["WWW-Authenticate"] = header_value;
+            block_steam_httppeer->header["WWW-Authenticate"] = header_value;
             break;
         }
     }
@@ -940,7 +1020,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 range_process(header_name, header_value);
             }
-            http_data[block_steamid]->header[header_name] = header_value;
+            block_steam_httppeer->header[header_name] = header_value;
             break;
         case 6:
 
@@ -954,7 +1034,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 }
                 else
                 {
-                    http_data[block_steamid]->header[header_name] = header_value;
+                    block_steam_httppeer->header[header_name] = header_value;
                 }
                 break;
             case 'a':
@@ -967,14 +1047,14 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 {
                     if (header_name[0] != ':')
                     {
-                        http_data[block_steamid]->header[header_name] = header_value;
+                        block_steam_httppeer->header[header_name] = header_value;
                     }
                 }
                 break;
             default:
                 if (header_name[0] != ':')
                 {
-                    http_data[block_steamid]->header[header_name] = header_value;
+                    block_steam_httppeer->header[header_name] = header_value;
                 }
             }
 
@@ -984,51 +1064,51 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 if (str_casecmp(header_value, "OPTIONS"))
                 {
-                    http_data[block_steamid]->method = 3;
+                    block_steam_httppeer->method = 3;
                 }
                 else if (str_casecmp(header_value, "GET"))
                 {
-                    http_data[block_steamid]->method = 1;
+                    block_steam_httppeer->method = 1;
                 }
                 else if (str_casecmp(header_value, "POST"))
                 {
-                    http_data[block_steamid]->method = 2;
+                    block_steam_httppeer->method = 2;
                 }
                 else if (str_casecmp(header_value, "head"))
                 {
-                    http_data[block_steamid]->method = 4;
+                    block_steam_httppeer->method = 4;
                 }
                 else if (str_casecmp(header_value, "put"))
                 {
-                    http_data[block_steamid]->method = 5;
+                    block_steam_httppeer->method = 5;
                 }
                 else if (str_casecmp(header_value, "delete"))
                 {
-                    http_data[block_steamid]->method = 6;
+                    block_steam_httppeer->method = 6;
                 }
-                http_data[block_steamid]->header["method"]  = header_value;
-                http_data[block_steamid]->header[":method"] = header_value;
+                block_steam_httppeer->header["method"]  = header_value;
+                block_steam_httppeer->header[":method"] = header_value;
             }
             else
             {
-                http_data[block_steamid]->header[header_name] = header_value;
+                block_steam_httppeer->header[header_name] = header_value;
             }
             break;
         case 10:
             if (str_casecmp(header_name, ":authority"))
             {
-                http_data[block_steamid]->host                 = header_value;
-                http_data[block_steamid]->header["Host"]       = header_value;
-                http_data[block_steamid]->header[":authority"] = header_value;
-                http_data[block_steamid]->find_host_index();
+                block_steam_httppeer->host                 = header_value;
+                block_steam_httppeer->header["Host"]       = header_value;
+                block_steam_httppeer->header[":authority"] = header_value;
+                block_steam_httppeer->find_host_index();
             }
             else if (str_casecmp(header_name, "User-Agent"))
             {
-                http_data[block_steamid]->header["User-Agent"] = header_value;
+                block_steam_httppeer->header["User-Agent"] = header_value;
             }
             else
             {
-                http_data[block_steamid]->header[header_name] = header_value;
+                block_steam_httppeer->header[header_name] = header_value;
             }
             break;
         case 12:
@@ -1038,7 +1118,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             else
             {
-                http_data[block_steamid]->header[header_name] = header_value;
+                block_steam_httppeer->header[header_name] = header_value;
             }
             break;
         case 13:
@@ -1048,19 +1128,19 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             else
             {
-                http_data[block_steamid]->header[header_name] = header_value;
+                block_steam_httppeer->header[header_name] = header_value;
             }
             break;
 
         case 14:
             if (str_casecmp(header_name, "Content-Length"))
             {
-                http_data[block_steamid]->content_length           = str2int(&header_value[0], header_value.size());
-                http_data[block_steamid]->header["Content-Length"] = header_value;
+                block_steam_httppeer->content_length           = str2int(&header_value[0], header_value.size());
+                block_steam_httppeer->header["Content-Length"] = header_value;
             }
             else
             {
-                http_data[block_steamid]->header[header_name] = header_value;
+                block_steam_httppeer->header[header_name] = header_value;
             }
             break;
         case 15:
@@ -1073,7 +1153,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 }
                 else
                 {
-                    http_data[block_steamid]->header[header_name] = header_value;
+                    block_steam_httppeer->header[header_name] = header_value;
                 }
             }
             else if (header_name[7] == 'L')
@@ -1085,12 +1165,12 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 }
                 else
                 {
-                    http_data[block_steamid]->header[header_name] = header_value;
+                    block_steam_httppeer->header[header_name] = header_value;
                 }
             }
             else
             {
-                http_data[block_steamid]->header[header_name] = header_value;
+                block_steam_httppeer->header[header_name] = header_value;
             }
 
             if (str_casecmp(header_name, "Accept-Encoding"))
@@ -1104,22 +1184,22 @@ void http2parse::header_process(const std::string &header_name, const std::strin
 
             break;
         default:
-            http_data[block_steamid]->header[header_name] = header_value;
+            block_steam_httppeer->header[header_name] = header_value;
         }
     }
 }
 
 void http2parse::getacceptlanguage(const std::string &header_name, const std::string &header_value)
 {
-    http_data[block_steamid]->header["Accept-Language"] = header_value;
-    unsigned int i                                      = 0;
+    block_steam_httppeer->header["Accept-Language"] = header_value;
+    unsigned int i                                  = 0;
     for (; i < header_value.size(); i++)
     {
         if (header_value[i] == 0x2C)
         {
             break;
         }
-        http_data[block_steamid]->state.language[i] = header_value[i];
+        block_steam_httppeer->state.language[i] = header_value[i];
         if (i > 6)
         {
             if (sizeof(header_name))
@@ -1130,37 +1210,37 @@ void http2parse::getacceptlanguage(const std::string &header_name, const std::st
     }
     for (; i < 8; i++)
     {
-        http_data[block_steamid]->state.language[i] = 0x00;
+        block_steam_httppeer->state.language[i] = 0x00;
     }
 }
 void http2parse::getacceptencoding(const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0, linesize = header_value.size();
-    http_data[block_steamid]->header["Accept-Encoding"] = header_value;
-    data_info[block_steamid].buffer_value.clear();
+    block_steam_httppeer->header["Accept-Encoding"] = header_value;
+    block_data_info_ptr->buffer_value.clear();
     for (; i < linesize; i++)
     {
         if (header_value[i] == 0x2C)
         {
 
-            switch (data_info[block_steamid].buffer_value.size())
+            switch (block_data_info_ptr->buffer_value.size())
             {
             case 2:
-                if (data_info[block_steamid].buffer_value[0] == 'b')
+                if (block_data_info_ptr->buffer_value[0] == 'b')
                 {
-                    http_data[block_steamid]->state.br = true;
+                    block_steam_httppeer->state.br = true;
                 }
                 break;
             case 4:
-                if (data_info[block_steamid].buffer_value[0] == 'g')
+                if (block_data_info_ptr->buffer_value[0] == 'g')
                 {
-                    http_data[block_steamid]->state.gzip = true;
+                    block_steam_httppeer->state.gzip = true;
                 }
                 break;
             case 7:
-                if (data_info[block_steamid].buffer_value[0] == 'd')
+                if (block_data_info_ptr->buffer_value[0] == 'd')
                 {
-                    http_data[block_steamid]->state.deflate = true;
+                    block_steam_httppeer->state.deflate = true;
                     if (sizeof(header_name))
                     {
                     }
@@ -1168,48 +1248,48 @@ void http2parse::getacceptencoding(const std::string &header_name, const std::st
                 break;
             default:;
             }
-            data_info[block_steamid].buffer_value.clear();
+            block_data_info_ptr->buffer_value.clear();
             continue;
         }
         if (header_value[i] == 0x20)
         {
             continue;
         }
-        data_info[block_steamid].buffer_value.push_back(header_value[i]);
+        block_data_info_ptr->buffer_value.push_back(header_value[i]);
     }
-    if (data_info[block_steamid].buffer_value.size() > 0)
+    if (block_data_info_ptr->buffer_value.size() > 0)
     {
 
-        switch (data_info[block_steamid].buffer_value.size())
+        switch (block_data_info_ptr->buffer_value.size())
         {
         case 2:
-            if (data_info[block_steamid].buffer_value[0] == 'b')
+            if (block_data_info_ptr->buffer_value[0] == 'b')
             {
-                http_data[block_steamid]->state.br = true;
+                block_steam_httppeer->state.br = true;
             }
             break;
         case 4:
-            if (data_info[block_steamid].buffer_value[0] == 'g')
+            if (block_data_info_ptr->buffer_value[0] == 'g')
             {
-                http_data[block_steamid]->state.gzip = true;
+                block_steam_httppeer->state.gzip = true;
             }
             break;
         case 7:
-            if (data_info[block_steamid].buffer_value[0] == 'd')
+            if (block_data_info_ptr->buffer_value[0] == 'd')
             {
-                http_data[block_steamid]->state.deflate = true;
+                block_steam_httppeer->state.deflate = true;
             }
             break;
         default:;
         }
     }
-    data_info[block_steamid].buffer_value.clear();
+    block_data_info_ptr->buffer_value.clear();
 }
 void http2parse::getifnonematch([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
-    unsigned int i                                    = 0;
-    http_data[block_steamid]->header["If-None-Match"] = header_value;
-    http_data[block_steamid]->etag.clear();
+    unsigned int i                                = 0;
+    block_steam_httppeer->header["If-None-Match"] = header_value;
+    block_steam_httppeer->etag.clear();
     if (header_value[i] == 'W' || header_value[i] == 'w')
     {
         if (header_value[i + 1] == 0x2F)
@@ -1221,88 +1301,88 @@ void http2parse::getifnonematch([[maybe_unused]] const std::string &header_name,
     {
         if (header_value[i] != 0x22)
         {
-            http_data[block_steamid]->etag.push_back(header_value[i]);
+            block_steam_httppeer->etag.push_back(header_value[i]);
         }
     }
 }
 
 void http2parse::callposttype()
 {
-    switch (data_info[block_steamid].buffer_value.size())
+    switch (block_data_info_ptr->buffer_value.size())
     {
     case 33:
-        if (str_casecmp(data_info[block_steamid].buffer_value, "application/x-www-form-urlencoded"))
+        if (str_casecmp(block_data_info_ptr->buffer_value, "application/x-www-form-urlencoded"))
         {
-            http_data[block_steamid]->content_type = "application/x-www-form-urlencoded";
-            data_info[block_steamid].posttype      = 1;
-            http_data[block_steamid]->posttype     = 1;
+            block_steam_httppeer->content_type = "application/x-www-form-urlencoded";
+            block_data_info_ptr->posttype      = 1;
+            block_steam_httppeer->posttype     = 1;
             return;
         }
         break;
     case 24:
-        if (str_casecmp(data_info[block_steamid].buffer_value, "application/octet-stream"))
+        if (str_casecmp(block_data_info_ptr->buffer_value, "application/octet-stream"))
         {
-            http_data[block_steamid]->content_type = "application/octet-stream";
-            data_info[block_steamid].posttype      = 5;
-            http_data[block_steamid]->posttype     = 5;
+            block_steam_httppeer->content_type = "application/octet-stream";
+            block_data_info_ptr->posttype      = 5;
+            block_steam_httppeer->posttype     = 5;
             return;
         }
         break;
     case 19:
-        if (str_casecmp(data_info[block_steamid].buffer_value, "multipart/form-data"))
+        if (str_casecmp(block_data_info_ptr->buffer_value, "multipart/form-data"))
         {
-            http_data[block_steamid]->content_type = "multipart/form-data";
-            data_info[block_steamid].posttype      = 2;
-            http_data[block_steamid]->posttype     = 2;
+            block_steam_httppeer->content_type = "multipart/form-data";
+            block_data_info_ptr->posttype      = 2;
+            block_steam_httppeer->posttype     = 2;
             return;
         }
         break;
     case 16:
-        if (str_casecmp(data_info[block_steamid].buffer_value, "application/json"))
+        if (str_casecmp(block_data_info_ptr->buffer_value, "application/json"))
         {
-            http_data[block_steamid]->content_type = "application/json";
-            data_info[block_steamid].posttype      = 3;
-            http_data[block_steamid]->posttype     = 3;
+            block_steam_httppeer->content_type = "application/json";
+            block_data_info_ptr->posttype      = 3;
+            block_steam_httppeer->posttype     = 3;
             return;
         }
         break;
     case 15:
-        if (str_casecmp(data_info[block_steamid].buffer_value, "application/xml"))
+        if (str_casecmp(block_data_info_ptr->buffer_value, "application/xml"))
         {
-            http_data[block_steamid]->content_type = "application/xml";
-            data_info[block_steamid].posttype      = 4;
-            http_data[block_steamid]->posttype     = 4;
+            block_steam_httppeer->content_type = "application/xml";
+            block_data_info_ptr->posttype      = 4;
+            block_steam_httppeer->posttype     = 4;
             return;
         }
         break;
     case 6:
-        if (str_casecmp(data_info[block_steamid].buffer_value, "binary"))
+        if (str_casecmp(block_data_info_ptr->buffer_value, "binary"))
         {
-            http_data[block_steamid]->content_type = "binary";
-            data_info[block_steamid].posttype      = 6;
-            http_data[block_steamid]->posttype     = 5;
+            block_steam_httppeer->content_type = "binary";
+            block_data_info_ptr->posttype      = 6;
+            block_steam_httppeer->posttype     = 5;
             return;
         }
         break;
     default:
-        http_data[block_steamid]->content_type = "raw";
-        data_info[block_steamid].posttype      = 7;
-        http_data[block_steamid]->posttype     = 5;
+        block_steam_httppeer->content_type = "raw";
+        block_data_info_ptr->posttype      = 7;
+        block_steam_httppeer->posttype     = 5;
         return;
     }
-    http_data[block_steamid]->content_type = "raw";
-    data_info[block_steamid].posttype      = 7;
-    http_data[block_steamid]->posttype     = 5;
+    block_steam_httppeer->content_type = "raw";
+    block_data_info_ptr->posttype      = 7;
+    block_steam_httppeer->posttype     = 5;
     return;
 }
 
 void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0, linesize = header_value.size();
-    http_data[block_steamid]->header["Content-Type"] = header_value;
-    data_info[block_steamid].buffer_value.clear();
-    unsigned char statetemp           = 0;
-    data_info[block_steamid].posttype = 0;
+    block_steam_httppeer->header["Content-Type"] = header_value;
+    block_data_info_ptr->buffer_value.clear();
+    unsigned char statetemp       = 0;
+    block_data_info_ptr->posttype = 0;
     for (; i < linesize; i++)
     {
 
@@ -1315,29 +1395,29 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
             }
             else if (statetemp == 1)
             {
-                http_data[block_steamid]->chartset = data_info[block_steamid].buffer_value;
-                statetemp                          = 0;
+                block_steam_httppeer->chartset = block_data_info_ptr->buffer_value;
+                statetemp                      = 0;
             }
             else if (statetemp == 2)
             {
-                data_info[block_steamid].boundary = data_info[block_steamid].buffer_value;
-                statetemp                         = 0;
+                block_data_info_ptr->boundary = block_data_info_ptr->buffer_value;
+                statetemp                     = 0;
             }
             /////////////////////
-            data_info[block_steamid].buffer_value.clear();
+            block_data_info_ptr->buffer_value.clear();
             continue;
         }
         if (header_value[i] == 0x3D)
         {
-            if (str_casecmp(data_info[block_steamid].buffer_value, "charset"))
+            if (str_casecmp(block_data_info_ptr->buffer_value, "charset"))
             {
-                data_info[block_steamid].buffer_value.clear();
+                block_data_info_ptr->buffer_value.clear();
                 statetemp = 1;
                 continue;
             }
-            else if (str_casecmp(data_info[block_steamid].buffer_value, "boundary"))
+            else if (str_casecmp(block_data_info_ptr->buffer_value, "boundary"))
             {
-                data_info[block_steamid].buffer_value.clear();
+                block_data_info_ptr->buffer_value.clear();
                 statetemp = 2;
                 continue;
             }
@@ -1346,17 +1426,17 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
         {
             continue;
         }
-        data_info[block_steamid].buffer_value.push_back(header_value[i]);
+        block_data_info_ptr->buffer_value.push_back(header_value[i]);
     }
-    if (data_info[block_steamid].buffer_value.size() > 0)
+    if (block_data_info_ptr->buffer_value.size() > 0)
     {
         if (statetemp == 1)
         {
-            http_data[block_steamid]->chartset = data_info[block_steamid].buffer_value;
+            block_steam_httppeer->chartset = block_data_info_ptr->buffer_value;
         }
         else if (statetemp == 2)
         {
-            data_info[block_steamid].boundary = data_info[block_steamid].buffer_value;
+            block_data_info_ptr->boundary = block_data_info_ptr->buffer_value;
         }
         else
         {
@@ -1367,56 +1447,56 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
 void http2parse::getaccept([[maybe_unused]] const std::string &header_name, const std::string &header_value)
 {
     unsigned int i = 0, linesize = header_value.size();
-    http_data[block_steamid]->header["Accept"] = header_value;
-    data_info[block_steamid].buffer_value.clear();
+    block_steam_httppeer->header["Accept"] = header_value;
+    block_data_info_ptr->buffer_value.clear();
 
     for (; i < linesize; i++)
     {
         if (header_value[i] == 0x2C || header_value[i] == 0x3B)
         {
-            switch (data_info[block_steamid].buffer_value.length())
+            switch (block_data_info_ptr->buffer_value.length())
             {
             case 10:
-                if (data_info[block_steamid].buffer_value[6] == 'a' &&
-                    data_info[block_steamid].buffer_value[7] == 'v' &&
-                    data_info[block_steamid].buffer_value[8] == 'i' && data_info[block_steamid].buffer_value[9] == 'f')
+                if (block_data_info_ptr->buffer_value[6] == 'a' &&
+                    block_data_info_ptr->buffer_value[7] == 'v' &&
+                    block_data_info_ptr->buffer_value[8] == 'i' && block_data_info_ptr->buffer_value[9] == 'f')
                 {
-                    http_data[block_steamid]->state.avif = true;
+                    block_steam_httppeer->state.avif = true;
                 }
-                else if (data_info[block_steamid].buffer_value[6] == 'w' &&
-                         data_info[block_steamid].buffer_value[7] == 'e' &&
-                         data_info[block_steamid].buffer_value[8] == 'b' &&
-                         data_info[block_steamid].buffer_value[9] == 'p')
+                else if (block_data_info_ptr->buffer_value[6] == 'w' &&
+                         block_data_info_ptr->buffer_value[7] == 'e' &&
+                         block_data_info_ptr->buffer_value[8] == 'b' &&
+                         block_data_info_ptr->buffer_value[9] == 'p')
                 {
-                    http_data[block_steamid]->state.webp = true;
+                    block_steam_httppeer->state.webp = true;
                 }
                 break;
             default:;
             }
-            data_info[block_steamid].buffer_value.clear();
+            block_data_info_ptr->buffer_value.clear();
             continue;
         }
         if (header_value[i] == 0x20)
         {
             continue;
         }
-        data_info[block_steamid].buffer_value.push_back(header_value[i]);
+        block_data_info_ptr->buffer_value.push_back(header_value[i]);
     }
-    if (data_info[block_steamid].buffer_value.size() > 0)
+    if (block_data_info_ptr->buffer_value.size() > 0)
     {
-        switch (data_info[block_steamid].buffer_value.length())
+        switch (block_data_info_ptr->buffer_value.length())
         {
         case 10:
-            if (data_info[block_steamid].buffer_value[6] == 'a' && data_info[block_steamid].buffer_value[7] == 'v' &&
-                data_info[block_steamid].buffer_value[8] == 'i' && data_info[block_steamid].buffer_value[9] == 'f')
+            if (block_data_info_ptr->buffer_value[6] == 'a' && block_data_info_ptr->buffer_value[7] == 'v' &&
+                block_data_info_ptr->buffer_value[8] == 'i' && block_data_info_ptr->buffer_value[9] == 'f')
             {
-                http_data[block_steamid]->state.avif = true;
+                block_steam_httppeer->state.avif = true;
             }
-            else if (data_info[block_steamid].buffer_value[6] == 'w' &&
-                     data_info[block_steamid].buffer_value[7] == 'e' &&
-                     data_info[block_steamid].buffer_value[8] == 'b' && data_info[block_steamid].buffer_value[9] == 'p')
+            else if (block_data_info_ptr->buffer_value[6] == 'w' &&
+                     block_data_info_ptr->buffer_value[7] == 'e' &&
+                     block_data_info_ptr->buffer_value[8] == 'b' && block_data_info_ptr->buffer_value[9] == 'p')
             {
-                http_data[block_steamid]->state.webp = true;
+                block_steam_httppeer->state.webp = true;
             }
             break;
         default:;
@@ -1438,30 +1518,30 @@ void http2parse::headertype1(unsigned char c,
         value    = http2_header_static_table[a].value;
         if (a == 2 || a == 3)
         {
-            http_data[block_steamid]->header[":method"] = http2_header_static_table[a].value;
+            block_steam_httppeer->header[":method"] = http2_header_static_table[a].value;
             if (a == 3)
             {
-                http_data[block_steamid]->method = 2;
-                ispost                           = true;
+                block_steam_httppeer->method = 2;
+                ispost                       = true;
             }
             else
             {
-                http_data[block_steamid]->method = 1;
-                ispost                           = false;
+                block_steam_httppeer->method = 1;
+                ispost                       = false;
             }
         }
         else if (a == 4 || a == 5)
         {
-            http_data[block_steamid]->url             = http2_header_static_table[a].value;
-            http_data[block_steamid]->urlpath         = http2_header_static_table[a].value;
-            http_data[block_steamid]->header["path"]  = http2_header_static_table[a].value;
-            http_data[block_steamid]->header[":path"] = http2_header_static_table[a].value;
+            block_steam_httppeer->url             = http2_header_static_table[a].value;
+            block_steam_httppeer->urlpath         = http2_header_static_table[a].value;
+            block_steam_httppeer->header["path"]  = http2_header_static_table[a].value;
+            block_steam_httppeer->header[":path"] = http2_header_static_table[a].value;
         }
         else if (a == 6 || a == 7)
         {
 
-            http_data[block_steamid]->isssl             = (a == 7) ? true : false;
-            http_data[block_steamid]->header[":scheme"] = http2_header_static_table[a].value;
+            block_steam_httppeer->isssl             = (a == 7) ? true : false;
+            block_steam_httppeer->header[":scheme"] = http2_header_static_table[a].value;
         }
         else
         {
@@ -2302,31 +2382,31 @@ void http2parse::procssxformurlencoded()
     std::string objname;
     bool isgroup = true;
 
-    for (unsigned int j = 0; j < data_info[block_steamid].buffer_key.length(); j++)
+    for (unsigned int j = 0; j < block_data_info_ptr->buffer_key.length(); j++)
     {
-        if (data_info[block_steamid].buffer_key[j] == '[')
+        if (block_data_info_ptr->buffer_key[j] == '[')
         {
             std::string key1name;
             unsigned int n = j;
             n++;
             bool ishaskey  = false;
             bool ishaskey2 = false;
-            for (; n < data_info[block_steamid].buffer_key.length(); n++)
+            for (; n < block_data_info_ptr->buffer_key.length(); n++)
             {
-                if (data_info[block_steamid].buffer_key[n] == ']')
+                if (block_data_info_ptr->buffer_key[n] == ']')
                 {
                     ishaskey = true;
                     n++;
                     break;
                 }
-                else if (data_info[block_steamid].buffer_key[n] == '[')
+                else if (block_data_info_ptr->buffer_key[n] == '[')
                 {
 
                     break;
                 }
-                if (data_info[block_steamid].buffer_key[n] != 0x22)
+                if (block_data_info_ptr->buffer_key[n] != 0x22)
                 {
-                    key1name.push_back(data_info[block_steamid].buffer_key[n]);
+                    key1name.push_back(block_data_info_ptr->buffer_key[n]);
                 }
             }
 
@@ -2335,31 +2415,31 @@ void http2parse::procssxformurlencoded()
             {
 
                 unsigned int m = n;
-                if (n < data_info[block_steamid].buffer_key.length())
+                if (n < block_data_info_ptr->buffer_key.length())
                 {
-                    if (data_info[block_steamid].buffer_key[m] == '[')
+                    if (block_data_info_ptr->buffer_key[m] == '[')
                     {
                         m += 1;
-                        for (; m < data_info[block_steamid].buffer_key.length(); m++)
+                        for (; m < block_data_info_ptr->buffer_key.length(); m++)
                         {
-                            if (data_info[block_steamid].buffer_key[m] == ']')
+                            if (block_data_info_ptr->buffer_key[m] == ']')
                             {
                                 ishaskey2 = true;
                                 m++;
                                 break;
                             }
-                            else if (data_info[block_steamid].buffer_key[m] == '[')
+                            else if (block_data_info_ptr->buffer_key[m] == '[')
                             {
 
                                 break;
                             }
-                            if (data_info[block_steamid].buffer_key[m] != 0x22)
+                            if (block_data_info_ptr->buffer_key[m] != 0x22)
                             {
-                                key2name.push_back(data_info[block_steamid].buffer_key[m]);
+                                key2name.push_back(block_data_info_ptr->buffer_key[m]);
                             }
                         }
 
-                        if (ishaskey2 && m == data_info[block_steamid].buffer_key.length())
+                        if (ishaskey2 && m == block_data_info_ptr->buffer_key.length())
                         {
                         }
                         else
@@ -2377,48 +2457,48 @@ void http2parse::procssxformurlencoded()
                         if (key2name.empty())
                         {
                             http::OBJ_ARRAY objtemp;
-                            objtemp.push(data_info[block_steamid].field_value);
+                            objtemp.push(block_data_info_ptr->field_value);
                             http::OBJ_ARRAY objtemp1;
                             objtemp1.push(std::move(objtemp));
-                            http_data[block_steamid]->post[objname].push(std::move(objtemp1));
+                            block_steam_httppeer->post[objname].push(std::move(objtemp1));
                         }
                         else
                         {
                             http::OBJ_VALUE objtemp;
-                            objtemp[key2name] = data_info[block_steamid].field_value;
+                            objtemp[key2name] = block_data_info_ptr->field_value;
                             http::OBJ_ARRAY objtemp1;
                             objtemp1.push(std::move(objtemp));
-                            http_data[block_steamid]->post[objname].push(std::move(objtemp1));
+                            block_steam_httppeer->post[objname].push(std::move(objtemp1));
                         }
                     }
                     else
                     {
                         if (key2name.empty())
                         {
-                            http_data[block_steamid]->post[objname][key1name].set_array();
-                            http_data[block_steamid]->post[objname][key1name] = data_info[block_steamid].field_value;
+                            block_steam_httppeer->post[objname][key1name].set_array();
+                            block_steam_httppeer->post[objname][key1name] = block_data_info_ptr->field_value;
                         }
                         else
                         {
 
-                            http_data[block_steamid]->post[objname][key1name][key2name] =
-                                data_info[block_steamid].field_value;
+                            block_steam_httppeer->post[objname][key1name][key2name] =
+                                block_data_info_ptr->field_value;
                         }
                     }
                     j       = m;
                     isgroup = false;
                 }
-                else if (n == data_info[block_steamid].buffer_key.length())
+                else if (n == block_data_info_ptr->buffer_key.length())
                 {
                     // 只有一个
                     if (key1name.empty())
                     {
-                        http_data[block_steamid]->post[objname].set_array();
-                        http_data[block_steamid]->post[objname].push(data_info[block_steamid].field_value);
+                        block_steam_httppeer->post[objname].set_array();
+                        block_steam_httppeer->post[objname].push(block_data_info_ptr->field_value);
                     }
                     else
                     {
-                        http_data[block_steamid]->post[objname].push(key1name, data_info[block_steamid].field_value);
+                        block_steam_httppeer->post[objname].push(key1name, block_data_info_ptr->field_value);
                     }
                     j       = n;
                     isgroup = false;
@@ -2431,62 +2511,62 @@ void http2parse::procssxformurlencoded()
             }
             if (isgroup)
             {
-                objname.push_back(data_info[block_steamid].buffer_key[j]);
+                objname.push_back(block_data_info_ptr->buffer_key[j]);
             }
         }
         else
         {
-            objname.push_back(data_info[block_steamid].buffer_key[j]);
+            objname.push_back(block_data_info_ptr->buffer_key[j]);
         }
     }
     if (isgroup)
     {
-        http_data[block_steamid]->post[data_info[block_steamid].buffer_key] = data_info[block_steamid].field_value;
+        block_steam_httppeer->post[block_data_info_ptr->buffer_key] = block_data_info_ptr->field_value;
     }
 }
 void http2parse::readformurlencoded()
 {
     std::string temp_value;
-    data_info[block_steamid].buffer_key.clear();
-    data_info[block_steamid].field_value.clear();
-    unsigned int qsize    = data_info[block_steamid].buffer_value.size();
+    block_data_info_ptr->buffer_key.clear();
+    block_data_info_ptr->field_value.clear();
+    unsigned int qsize    = block_data_info_ptr->buffer_value.size();
     unsigned char partype = 0;
     unsigned int j        = 0;
     for (j = 0; j < qsize; j++)
     {
-        if (data_info[block_steamid].buffer_value[j] == 0x3D)
+        if (block_data_info_ptr->buffer_value[j] == 0x3D)
         {
-            data_info[block_steamid].buffer_key = http::url_decode(temp_value.data(), temp_value.length());
+            block_data_info_ptr->buffer_key = http::url_decode(temp_value.data(), temp_value.length());
             temp_value.clear();
             partype = 1;
             continue;
         }
-        else if (data_info[block_steamid].buffer_value[j] == 0x26)
+        else if (block_data_info_ptr->buffer_value[j] == 0x26)
         {
-            data_info[block_steamid].field_value = http::url_decode(temp_value.data(), temp_value.length());
+            block_data_info_ptr->field_value = http::url_decode(temp_value.data(), temp_value.length());
             procssxformurlencoded();
             temp_value.clear();
-            data_info[block_steamid].field_value.clear();
+            block_data_info_ptr->field_value.clear();
             partype = 2;
             continue;
         }
-        temp_value.push_back(data_info[block_steamid].buffer_value[j]);
+        temp_value.push_back(block_data_info_ptr->buffer_value[j]);
     }
     if (partype == 1)
     {
-        data_info[block_steamid].field_value = http::url_decode(temp_value.data(), temp_value.length());
+        block_data_info_ptr->field_value = http::url_decode(temp_value.data(), temp_value.length());
         procssxformurlencoded();
     }
     else if (partype == 2)
     {
-        data_info[block_steamid].buffer_key = http::url_decode(temp_value.data(), temp_value.length());
-        data_info[block_steamid].field_value.clear();
+        block_data_info_ptr->buffer_key = http::url_decode(temp_value.data(), temp_value.length());
+        block_data_info_ptr->field_value.clear();
         procssxformurlencoded();
     }
     else if (temp_value.size() > 0)
     {
-        data_info[block_steamid].buffer_key = http::url_decode(temp_value.data(), temp_value.length());
-        data_info[block_steamid].field_value.clear();
+        block_data_info_ptr->buffer_key = http::url_decode(temp_value.data(), temp_value.length());
+        block_data_info_ptr->field_value.clear();
         procssxformurlencoded();
     }
 }
@@ -2495,31 +2575,31 @@ void http2parse::procssformfile()
 {
     std::string objname;
     bool isgroup = true;
-    for (unsigned int j = 0; j < data_info[block_steamid].upfile.name.length(); j++)
+    for (unsigned int j = 0; j < block_data_info_ptr->upfile.name.length(); j++)
     {
-        if (data_info[block_steamid].upfile.name[j] == '[')
+        if (block_data_info_ptr->upfile.name[j] == '[')
         {
             std::string key1name;
             unsigned int n = j;
             n++;
             bool ishaskey  = false;
             bool ishaskey2 = false;
-            for (; n < data_info[block_steamid].upfile.name.length(); n++)
+            for (; n < block_data_info_ptr->upfile.name.length(); n++)
             {
-                if (data_info[block_steamid].upfile.name[n] == ']')
+                if (block_data_info_ptr->upfile.name[n] == ']')
                 {
                     ishaskey = true;
                     n++;
                     break;
                 }
-                else if (data_info[block_steamid].upfile.name[n] == '[')
+                else if (block_data_info_ptr->upfile.name[n] == '[')
                 {
 
                     break;
                 }
-                if (data_info[block_steamid].upfile.name[n] != 0x22)
+                if (block_data_info_ptr->upfile.name[n] != 0x22)
                 {
-                    key1name.push_back(data_info[block_steamid].upfile.name[n]);
+                    key1name.push_back(block_data_info_ptr->upfile.name[n]);
                 }
             }
 
@@ -2528,31 +2608,31 @@ void http2parse::procssformfile()
             {
 
                 unsigned int m = n;
-                if (n < data_info[block_steamid].upfile.name.length())
+                if (n < block_data_info_ptr->upfile.name.length())
                 {
-                    if (data_info[block_steamid].upfile.name[m] == '[')
+                    if (block_data_info_ptr->upfile.name[m] == '[')
                     {
                         m += 1;
-                        for (; m < data_info[block_steamid].upfile.name.length(); m++)
+                        for (; m < block_data_info_ptr->upfile.name.length(); m++)
                         {
-                            if (data_info[block_steamid].upfile.name[m] == ']')
+                            if (block_data_info_ptr->upfile.name[m] == ']')
                             {
                                 ishaskey2 = true;
                                 m++;
                                 break;
                             }
-                            else if (data_info[block_steamid].upfile.name[m] == '[')
+                            else if (block_data_info_ptr->upfile.name[m] == '[')
                             {
 
                                 break;
                             }
-                            if (data_info[block_steamid].upfile.name[m] != 0x22)
+                            if (block_data_info_ptr->upfile.name[m] != 0x22)
                             {
-                                key2name.push_back(data_info[block_steamid].upfile.name[m]);
+                                key2name.push_back(block_data_info_ptr->upfile.name[m]);
                             }
                         }
 
-                        if (ishaskey2 && m == data_info[block_steamid].upfile.name.length())
+                        if (ishaskey2 && m == block_data_info_ptr->upfile.name.length())
                         {
                         }
                         else
@@ -2572,30 +2652,30 @@ void http2parse::procssformfile()
 
                             http::OBJ_VALUE objtemp;
                             objtemp.set_array();
-                            objtemp["filename"] = data_info[block_steamid].upfile.filename;
-                            objtemp["name"]     = data_info[block_steamid].upfile.name;
-                            objtemp["tempfile"] = data_info[block_steamid].upfile.tempfile;
-                            objtemp["type"]     = data_info[block_steamid].upfile.type;
-                            objtemp["size"]     = data_info[block_steamid].upfile.size;
-                            objtemp["error"]    = data_info[block_steamid].upfile.error;
+                            objtemp["filename"] = block_data_info_ptr->upfile.filename;
+                            objtemp["name"]     = block_data_info_ptr->upfile.name;
+                            objtemp["tempfile"] = block_data_info_ptr->upfile.tempfile;
+                            objtemp["type"]     = block_data_info_ptr->upfile.type;
+                            objtemp["size"]     = block_data_info_ptr->upfile.size;
+                            objtemp["error"]    = block_data_info_ptr->upfile.error;
 
                             http::OBJ_ARRAY objtemp1;
                             objtemp1.push(std::move(objtemp));
-                            http_data[block_steamid]->files[objname].push(std::move(objtemp1));
+                            block_steam_httppeer->files[objname].push(std::move(objtemp1));
                         }
                         else
                         {
 
                             http::OBJ_VALUE objtemp;
                             objtemp[key2name].set_array();
-                            objtemp[key2name]["filename"] = data_info[block_steamid].upfile.filename;
-                            objtemp[key2name]["name"]     = data_info[block_steamid].upfile.name;
-                            objtemp[key2name]["tempfile"] = data_info[block_steamid].upfile.tempfile;
-                            objtemp[key2name]["type"]     = data_info[block_steamid].upfile.type;
-                            objtemp[key2name]["size"]     = data_info[block_steamid].upfile.size;
-                            objtemp[key2name]["error"]    = data_info[block_steamid].upfile.error;
-                            http_data[block_steamid]->files[objname].set_array();
-                            http_data[block_steamid]->files[objname].push(std::move(objtemp));
+                            objtemp[key2name]["filename"] = block_data_info_ptr->upfile.filename;
+                            objtemp[key2name]["name"]     = block_data_info_ptr->upfile.name;
+                            objtemp[key2name]["tempfile"] = block_data_info_ptr->upfile.tempfile;
+                            objtemp[key2name]["type"]     = block_data_info_ptr->upfile.type;
+                            objtemp[key2name]["size"]     = block_data_info_ptr->upfile.size;
+                            objtemp[key2name]["error"]    = block_data_info_ptr->upfile.error;
+                            block_steam_httppeer->files[objname].set_array();
+                            block_steam_httppeer->files[objname].push(std::move(objtemp));
                         }
                     }
                     else
@@ -2603,71 +2683,71 @@ void http2parse::procssformfile()
                         if (key2name.empty())
                         {
 
-                            http_data[block_steamid]->files[objname][key1name].set_array();
+                            block_steam_httppeer->files[objname][key1name].set_array();
                             http::OBJ_VALUE objtemp;
                             objtemp.set_array();
-                            objtemp["filename"] = data_info[block_steamid].upfile.filename;
-                            objtemp["name"]     = data_info[block_steamid].upfile.name;
-                            objtemp["tempfile"] = data_info[block_steamid].upfile.tempfile;
-                            objtemp["type"]     = data_info[block_steamid].upfile.type;
-                            objtemp["size"]     = data_info[block_steamid].upfile.size;
-                            objtemp["error"]    = data_info[block_steamid].upfile.error;
+                            objtemp["filename"] = block_data_info_ptr->upfile.filename;
+                            objtemp["name"]     = block_data_info_ptr->upfile.name;
+                            objtemp["tempfile"] = block_data_info_ptr->upfile.tempfile;
+                            objtemp["type"]     = block_data_info_ptr->upfile.type;
+                            objtemp["size"]     = block_data_info_ptr->upfile.size;
+                            objtemp["error"]    = block_data_info_ptr->upfile.error;
 
-                            http_data[block_steamid]->files[objname][key1name] = objtemp;
+                            block_steam_httppeer->files[objname][key1name] = objtemp;
                         }
                         else
                         {
 
-                            http_data[block_steamid]->files[objname][key1name][key2name].set_array();
-                            http_data[block_steamid]->files[objname][key1name][key2name]["filename"] =
-                                data_info[block_steamid].upfile.filename;
-                            http_data[block_steamid]->files[objname][key1name][key2name]["name"] =
-                                data_info[block_steamid].upfile.name;
-                            http_data[block_steamid]->files[objname][key1name][key2name]["tempfile"] =
-                                data_info[block_steamid].upfile.tempfile;
-                            http_data[block_steamid]->files[objname][key1name][key2name]["type"] =
-                                data_info[block_steamid].upfile.type;
-                            http_data[block_steamid]->files[objname][key1name][key2name]["size"] =
-                                data_info[block_steamid].upfile.size;
-                            http_data[block_steamid]->files[objname][key1name][key2name]["error"] =
-                                data_info[block_steamid].upfile.error;
+                            block_steam_httppeer->files[objname][key1name][key2name].set_array();
+                            block_steam_httppeer->files[objname][key1name][key2name]["filename"] =
+                                block_data_info_ptr->upfile.filename;
+                            block_steam_httppeer->files[objname][key1name][key2name]["name"] =
+                                block_data_info_ptr->upfile.name;
+                            block_steam_httppeer->files[objname][key1name][key2name]["tempfile"] =
+                                block_data_info_ptr->upfile.tempfile;
+                            block_steam_httppeer->files[objname][key1name][key2name]["type"] =
+                                block_data_info_ptr->upfile.type;
+                            block_steam_httppeer->files[objname][key1name][key2name]["size"] =
+                                block_data_info_ptr->upfile.size;
+                            block_steam_httppeer->files[objname][key1name][key2name]["error"] =
+                                block_data_info_ptr->upfile.error;
                         }
                     }
                     j       = m;
                     isgroup = false;
                 }
-                else if (n == data_info[block_steamid].upfile.name.length())
+                else if (n == block_data_info_ptr->upfile.name.length())
                 {
                     // 只有一个
                     if (key1name.empty())
                     {
-                        http_data[block_steamid]->files[objname].set_array();
+                        block_steam_httppeer->files[objname].set_array();
                         http::OBJ_VALUE objtemp;
                         objtemp.set_array();
-                        objtemp["filename"]                      = data_info[block_steamid].upfile.filename;
-                        objtemp["name"]                          = data_info[block_steamid].upfile.name;
-                        objtemp["tempfile"]                      = data_info[block_steamid].upfile.tempfile;
-                        objtemp["type"]                          = data_info[block_steamid].upfile.type;
-                        objtemp["size"]                          = data_info[block_steamid].upfile.size;
-                        objtemp["error"]                         = data_info[block_steamid].upfile.error;
-                        http_data[block_steamid]->files[objname] = objtemp;
+                        objtemp["filename"]                  = block_data_info_ptr->upfile.filename;
+                        objtemp["name"]                      = block_data_info_ptr->upfile.name;
+                        objtemp["tempfile"]                  = block_data_info_ptr->upfile.tempfile;
+                        objtemp["type"]                      = block_data_info_ptr->upfile.type;
+                        objtemp["size"]                      = block_data_info_ptr->upfile.size;
+                        objtemp["error"]                     = block_data_info_ptr->upfile.error;
+                        block_steam_httppeer->files[objname] = objtemp;
                     }
                     else
                     {
                         // files[objname].push(key1name,"");
-                        http_data[block_steamid]->files[objname][key1name].set_array();
-                        http_data[block_steamid]->files[objname][key1name]["filename"] =
-                            data_info[block_steamid].upfile.filename;
-                        http_data[block_steamid]->files[objname][key1name]["name"] =
-                            data_info[block_steamid].upfile.name;
-                        http_data[block_steamid]->files[objname][key1name]["tempfile"] =
-                            data_info[block_steamid].upfile.tempfile;
-                        http_data[block_steamid]->files[objname][key1name]["type"] =
-                            data_info[block_steamid].upfile.type;
-                        http_data[block_steamid]->files[objname][key1name]["size"] =
-                            data_info[block_steamid].upfile.size;
-                        http_data[block_steamid]->files[objname][key1name]["error"] =
-                            data_info[block_steamid].upfile.error;
+                        block_steam_httppeer->files[objname][key1name].set_array();
+                        block_steam_httppeer->files[objname][key1name]["filename"] =
+                            block_data_info_ptr->upfile.filename;
+                        block_steam_httppeer->files[objname][key1name]["name"] =
+                            block_data_info_ptr->upfile.name;
+                        block_steam_httppeer->files[objname][key1name]["tempfile"] =
+                            block_data_info_ptr->upfile.tempfile;
+                        block_steam_httppeer->files[objname][key1name]["type"] =
+                            block_data_info_ptr->upfile.type;
+                        block_steam_httppeer->files[objname][key1name]["size"] =
+                            block_data_info_ptr->upfile.size;
+                        block_steam_httppeer->files[objname][key1name]["error"] =
+                            block_data_info_ptr->upfile.error;
                     }
                     j       = n;
                     isgroup = false;
@@ -2680,74 +2760,74 @@ void http2parse::procssformfile()
             }
             if (isgroup)
             {
-                objname.push_back(data_info[block_steamid].upfile.name[j]);
+                objname.push_back(block_data_info_ptr->upfile.name[j]);
             }
         }
         else
         {
-            objname.push_back(data_info[block_steamid].upfile.name[j]);
+            objname.push_back(block_data_info_ptr->upfile.name[j]);
         }
     }
     if (isgroup)
     {
-        // files[upfile.name]=data_info[block_steamid].buffer_value;
-        http_data[block_steamid]->files[data_info[block_steamid].upfile.name].set_array();
-        http_data[block_steamid]->files[data_info[block_steamid].upfile.name]["filename"] =
-            data_info[block_steamid].upfile.filename;
-        http_data[block_steamid]->files[data_info[block_steamid].upfile.name]["name"] =
-            data_info[block_steamid].upfile.name;
-        http_data[block_steamid]->files[data_info[block_steamid].upfile.name]["tempfile"] =
-            data_info[block_steamid].upfile.tempfile;
-        http_data[block_steamid]->files[data_info[block_steamid].upfile.name]["type"] =
-            data_info[block_steamid].upfile.type;
-        http_data[block_steamid]->files[data_info[block_steamid].upfile.name]["size"] =
-            data_info[block_steamid].upfile.size;
-        http_data[block_steamid]->files[data_info[block_steamid].upfile.name]["error"] =
-            data_info[block_steamid].upfile.error;
+        // files[upfile.name]=block_data_info_ptr->buffer_value;
+        block_steam_httppeer->files[block_data_info_ptr->upfile.name].set_array();
+        block_steam_httppeer->files[block_data_info_ptr->upfile.name]["filename"] =
+            block_data_info_ptr->upfile.filename;
+        block_steam_httppeer->files[block_data_info_ptr->upfile.name]["name"] =
+            block_data_info_ptr->upfile.name;
+        block_steam_httppeer->files[block_data_info_ptr->upfile.name]["tempfile"] =
+            block_data_info_ptr->upfile.tempfile;
+        block_steam_httppeer->files[block_data_info_ptr->upfile.name]["type"] =
+            block_data_info_ptr->upfile.type;
+        block_steam_httppeer->files[block_data_info_ptr->upfile.name]["size"] =
+            block_data_info_ptr->upfile.size;
+        block_steam_httppeer->files[block_data_info_ptr->upfile.name]["error"] =
+            block_data_info_ptr->upfile.error;
     }
-    data_info[block_steamid].upfile.filename.clear();
-    data_info[block_steamid].upfile.name.clear();
-    data_info[block_steamid].upfile.tempfile.clear();
-    data_info[block_steamid].upfile.type.clear();
-    data_info[block_steamid].upfile.size  = 0;
-    data_info[block_steamid].upfile.error = 0;
+    block_data_info_ptr->upfile.filename.clear();
+    block_data_info_ptr->upfile.name.clear();
+    block_data_info_ptr->upfile.tempfile.clear();
+    block_data_info_ptr->upfile.type.clear();
+    block_data_info_ptr->upfile.size  = 0;
+    block_data_info_ptr->upfile.error = 0;
 }
 
 void http2parse::readformfieldfilecontent(const unsigned char *buffer, unsigned int &begin, unsigned int buffersize)
 {
     unsigned int pmi = 0, ib = 0, isbound = 0;
-    if (data_info[block_steamid].match_offset > 0 || data_info[block_steamid].buffer_key.size() > 0)
+    if (block_data_info_ptr->match_offset > 0 || block_data_info_ptr->buffer_key.size() > 0)
     {
-        pmi = begin, ib = data_info[block_steamid].match_offset;
-        if (data_info[block_steamid].buffer_key.size() < 5)
+        pmi = begin, ib = block_data_info_ptr->match_offset;
+        if (block_data_info_ptr->buffer_key.size() < 5)
         {
-            pmi = pmi + (4 - data_info[block_steamid].buffer_key.size());
+            pmi = pmi + (4 - block_data_info_ptr->buffer_key.size());
             ib  = 0;
         }
-        data_info[block_steamid].match_offset = 0;
-        for (; ib < data_info[block_steamid].boundary.size(); ib++)
+        block_data_info_ptr->match_offset = 0;
+        for (; ib < block_data_info_ptr->boundary.size(); ib++)
         {
-            if (buffer[pmi] != data_info[block_steamid].boundary[ib])
+            if (buffer[pmi] != block_data_info_ptr->boundary[ib])
             {
                 break;
             }
             pmi++;
         }
-        if (ib == data_info[block_steamid].boundary.size())
+        if (ib == block_data_info_ptr->boundary.size())
         {
 
-            if (data_info[block_steamid].uprawfile)
+            if (block_data_info_ptr->uprawfile)
             {
                 // fclose(data_info[block_steamid].uprawfile);
-                data_info[block_steamid].uprawfile.reset(nullptr);
+                block_data_info_ptr->uprawfile.reset(nullptr);
             }
             procssformfile();
-            data_info[block_steamid].buffer_key.clear();
-            data_info[block_steamid].buffer_value.clear();
+            block_data_info_ptr->buffer_key.clear();
+            block_data_info_ptr->buffer_value.clear();
             if (buffer[pmi] == '-' && buffer[pmi + 1] == '-')
             {
                 pmi += 2;
-                http_data[block_steamid]->isfinish = true;
+                block_steam_httppeer->isfinish = true;
 
                 if (buffer[pmi] == 0x0D)
                 {
@@ -2757,8 +2837,8 @@ void http2parse::readformfieldfilecontent(const unsigned char *buffer, unsigned 
                 {
                     pmi++;
                 }
-                begin                                  = pmi;
-                data_info[block_steamid].postfieldtype = 2;
+                begin                              = pmi;
+                block_data_info_ptr->postfieldtype = 2;
                 stream_list.emplace(block_steamid);
                 return;
             }
@@ -2770,32 +2850,32 @@ void http2parse::readformfieldfilecontent(const unsigned char *buffer, unsigned 
             {
                 pmi++;
             }
-            begin                                  = pmi;
-            data_info[block_steamid].postfieldtype = 2;
+            begin                              = pmi;
+            block_data_info_ptr->postfieldtype = 2;
 
             return;
         }
-        if (data_info[block_steamid].uprawfile)
+        if (block_data_info_ptr->uprawfile)
         {
-            data_info[block_steamid].upfile.size += data_info[block_steamid].buffer_key.size();
-            fwrite(&data_info[block_steamid].buffer_key[0],
+            block_data_info_ptr->upfile.size += block_data_info_ptr->buffer_key.size();
+            fwrite(&block_data_info_ptr->buffer_key[0],
                    1,
-                   data_info[block_steamid].buffer_key.size(),
-                   data_info[block_steamid].uprawfile.get());
+                   block_data_info_ptr->buffer_key.size(),
+                   block_data_info_ptr->uprawfile.get());
         }
-        data_info[block_steamid].buffer_key.clear();
+        block_data_info_ptr->buffer_key.clear();
     }
     unsigned int baseoffset = begin;
     pmi = 0, ib = 0;
-    data_info[block_steamid].match_offset = 0;
+    block_data_info_ptr->match_offset = 0;
 
     for (; begin < buffersize; begin++)
     {
         if (buffer[begin] == 0x0D)
         {
 
-            data_info[block_steamid].buffer_key.clear();
-            data_info[block_steamid].buffer_key.push_back(0x0D);
+            block_data_info_ptr->buffer_key.clear();
+            block_data_info_ptr->buffer_key.push_back(0x0D);
             unsigned int j = begin + 1;
             isbound        = 0;
             if (j < buffersize && buffer[j] == 0x0A)
@@ -2803,57 +2883,57 @@ void http2parse::readformfieldfilecontent(const unsigned char *buffer, unsigned 
 
                 j++;
 
-                data_info[block_steamid].buffer_key.push_back(0x0A);
+                block_data_info_ptr->buffer_key.push_back(0x0A);
                 if (j < buffersize && buffer[j] == 0x2D)
                 {
                     j++;
 
-                    data_info[block_steamid].buffer_key.push_back(0x2D);
+                    block_data_info_ptr->buffer_key.push_back(0x2D);
                     if (j < buffersize && buffer[j] == 0x2D)
                     {
                         j++;
 
-                        data_info[block_steamid].buffer_key.push_back(0x2D);
-                        for (unsigned int nnn = 0; nnn < data_info[block_steamid].boundary.size(); nnn++)
+                        block_data_info_ptr->buffer_key.push_back(0x2D);
+                        for (unsigned int nnn = 0; nnn < block_data_info_ptr->boundary.size(); nnn++)
                         {
-                            if (buffer[j] != data_info[block_steamid].boundary[nnn])
+                            if (buffer[j] != block_data_info_ptr->boundary[nnn])
                             {
                                 isbound = 2;
                                 break;
                             }
                             j += 1;
-                            data_info[block_steamid].buffer_key.push_back(buffer[j]);
+                            block_data_info_ptr->buffer_key.push_back(buffer[j]);
                             if (j >= buffersize)
                             {
-                                data_info[block_steamid].match_offset = nnn + 1;
-                                isbound                               = 1;
+                                block_data_info_ptr->match_offset = nnn + 1;
+                                isbound                           = 1;
                                 break;
                             }
                         }
                         if (isbound == 0)
                         {
 
-                            data_info[block_steamid].match_offset  = 0;
-                            data_info[block_steamid].postfieldtype = 2;
+                            block_data_info_ptr->match_offset  = 0;
+                            block_data_info_ptr->postfieldtype = 2;
 
-                            if (data_info[block_steamid].uprawfile)
+                            if (block_data_info_ptr->uprawfile)
                             {
-                                data_info[block_steamid].upfile.size += (begin - baseoffset);
+                                block_data_info_ptr->upfile.size += (begin - baseoffset);
                                 fwrite(&buffer[baseoffset],
                                        1,
                                        (begin - baseoffset),
-                                       data_info[block_steamid].uprawfile.get());
+                                       block_data_info_ptr->uprawfile.get());
                                 // fclose(data_info[block_steamid].uprawfile);
-                                data_info[block_steamid].uprawfile.reset(nullptr);
+                                block_data_info_ptr->uprawfile.reset(nullptr);
                                 procssformfile();
                             }
-                            data_info[block_steamid].buffer_key.clear();
-                            data_info[block_steamid].buffer_value.clear();
+                            block_data_info_ptr->buffer_key.clear();
+                            block_data_info_ptr->buffer_value.clear();
 
                             // i++;
                             if (buffer[begin] == 0x2D && buffer[begin + 1] == 0x2D)
                             {
-                                http_data[block_steamid]->isfinish = true;
+                                block_steam_httppeer->isfinish = true;
                                 begin += 2;
                                 stream_list.emplace(block_steamid);
                                 // return;
@@ -2877,14 +2957,14 @@ void http2parse::readformfieldfilecontent(const unsigned char *buffer, unsigned 
                 // i += 1;
                 break;
             }
-            data_info[block_steamid].buffer_key.clear();
+            block_data_info_ptr->buffer_key.clear();
             isbound = 0;
         }
     }
-    if (data_info[block_steamid].uprawfile)
+    if (block_data_info_ptr->uprawfile)
     {
-        data_info[block_steamid].upfile.size += (begin - baseoffset);
-        fwrite(&buffer[baseoffset], 1, (begin - baseoffset), data_info[block_steamid].uprawfile.get());
+        block_data_info_ptr->upfile.size += (begin - baseoffset);
+        fwrite(&buffer[baseoffset], 1, (begin - baseoffset), block_data_info_ptr->uprawfile.get());
     }
     begin = buffersize;
 }
@@ -2892,21 +2972,21 @@ void http2parse::readformfieldfilecontent(const unsigned char *buffer, unsigned 
 void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int &begin, unsigned int buffersize)
 {
     unsigned int pmi = 0, ib = 0;
-    if (data_info[block_steamid].match_offset > 0 || data_info[block_steamid].buffer_key.size() > 0)
+    if (block_data_info_ptr->match_offset > 0 || block_data_info_ptr->buffer_key.size() > 0)
     {
 
-        pmi = begin, ib = data_info[block_steamid].match_offset;
+        pmi = begin, ib = block_data_info_ptr->match_offset;
 
-        if (data_info[block_steamid].buffer_key.size() < 5)
+        if (block_data_info_ptr->buffer_key.size() < 5)
         {
-            pmi = pmi + (4 - data_info[block_steamid].buffer_key.size());
+            pmi = pmi + (4 - block_data_info_ptr->buffer_key.size());
             ib  = 0;
         }
 
-        data_info[block_steamid].match_offset = 0;
-        for (; ib < data_info[block_steamid].boundary.size(); ib++)
+        block_data_info_ptr->match_offset = 0;
+        for (; ib < block_data_info_ptr->boundary.size(); ib++)
         {
-            if (buffer[pmi] != data_info[block_steamid].boundary[ib])
+            if (buffer[pmi] != block_data_info_ptr->boundary[ib])
             {
                 break;
             }
@@ -2916,21 +2996,21 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
                 break;
             }
         }
-        if (ib == data_info[block_steamid].boundary.size())
+        if (ib == block_data_info_ptr->boundary.size())
         {
             if (buffer[pmi] == '-' && buffer[pmi + 1] == '-')
             {
                 pmi += 2;
 
-                if (data_info[block_steamid].uprawfile)
+                if (block_data_info_ptr->uprawfile)
                 {
-                    fclose(data_info[block_steamid].uprawfile.get());
+                    fclose(block_data_info_ptr->uprawfile.get());
                 }
-                data_info[block_steamid].buffer_key = data_info[block_steamid].fieldname;
+                block_data_info_ptr->buffer_key = block_data_info_ptr->fieldname;
                 procssxformurlencoded();
-                http_data[block_steamid]->isfinish = true;
-                data_info[block_steamid].buffer_key.clear();
-                data_info[block_steamid].field_value.clear();
+                block_steam_httppeer->isfinish = true;
+                block_data_info_ptr->buffer_key.clear();
+                block_data_info_ptr->field_value.clear();
                 if (buffer[pmi] == 0x0D)
                 {
                     pmi++;
@@ -2939,8 +3019,8 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
                 {
                     pmi++;
                 }
-                begin                                  = pmi;
-                data_info[block_steamid].postfieldtype = 2;
+                begin                              = pmi;
+                block_data_info_ptr->postfieldtype = 2;
                 stream_list.emplace(block_steamid);
                 return;
             }
@@ -2952,13 +3032,13 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
             {
                 pmi++;
             }
-            begin                                  = pmi;
-            data_info[block_steamid].postfieldtype = 2;
+            begin                              = pmi;
+            block_data_info_ptr->postfieldtype = 2;
             return;
         }
 
-        data_info[block_steamid].field_value.append(data_info[block_steamid].buffer_key);
-        data_info[block_steamid].buffer_key.clear();
+        block_data_info_ptr->field_value.append(block_data_info_ptr->buffer_key);
+        block_data_info_ptr->buffer_key.clear();
     }
     unsigned baseoffset = begin;
     // bool islastmatch = false;
@@ -2971,8 +3051,8 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
             pmi = begin + 1;
             ib  = 0;
 
-            data_info[block_steamid].buffer_key.clear();
-            data_info[block_steamid].buffer_key.push_back(0x0D);
+            block_data_info_ptr->buffer_key.clear();
+            block_data_info_ptr->buffer_key.push_back(0x0D);
 
             char splitchar[] = {0x0A, 0x2D, 0x2D};
             if (pmi < buffersize)
@@ -2985,7 +3065,7 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
                         break;
                     }
 
-                    data_info[block_steamid].buffer_key.push_back(splitchar[ik]);
+                    block_data_info_ptr->buffer_key.push_back(splitchar[ik]);
                     pmi += 1;
                     if (pmi >= buffersize)
                     {
@@ -2997,36 +3077,36 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
 
             if (ib == 0)
             {
-                data_info[block_steamid].match_offset = 0;
-                for (; ib < data_info[block_steamid].boundary.size(); ib++)
+                block_data_info_ptr->match_offset = 0;
+                for (; ib < block_data_info_ptr->boundary.size(); ib++)
                 {
-                    if (buffer[pmi] != data_info[block_steamid].boundary[ib])
+                    if (buffer[pmi] != block_data_info_ptr->boundary[ib])
                     {
                         break;
                     }
-                    data_info[block_steamid].buffer_key.push_back(buffer[pmi]);
+                    block_data_info_ptr->buffer_key.push_back(buffer[pmi]);
                     pmi++;
                     if (pmi >= buffersize)
                     {
                         // islastmatch = true;
-                        data_info[block_steamid].match_offset = ib + 1;
+                        block_data_info_ptr->match_offset = ib + 1;
                         break;
                     }
                 }
-                if (ib == data_info[block_steamid].boundary.size())
+                if (ib == block_data_info_ptr->boundary.size())
                 {
-                    data_info[block_steamid].match_offset = 0;
-                    data_info[block_steamid].buffer_key.clear();
-                    data_info[block_steamid].field_value.append((char *)&buffer[baseoffset], (begin - baseoffset));
-                    data_info[block_steamid].buffer_key = data_info[block_steamid].fieldname;
+                    block_data_info_ptr->match_offset = 0;
+                    block_data_info_ptr->buffer_key.clear();
+                    block_data_info_ptr->field_value.append((char *)&buffer[baseoffset], (begin - baseoffset));
+                    block_data_info_ptr->buffer_key = block_data_info_ptr->fieldname;
                     procssxformurlencoded();
-                    data_info[block_steamid].buffer_key.clear();
-                    data_info[block_steamid].field_value.clear();
+                    block_data_info_ptr->buffer_key.clear();
+                    block_data_info_ptr->field_value.clear();
 
                     if (buffer[pmi] == '-' && buffer[pmi + 1] == '-')
                     {
                         pmi += 2;
-                        http_data[block_steamid]->isfinish = true;
+                        block_steam_httppeer->isfinish = true;
 
                         if (buffer[pmi] == 0x0D)
                         {
@@ -3036,8 +3116,8 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
                         {
                             pmi++;
                         }
-                        begin                                  = pmi;
-                        data_info[block_steamid].postfieldtype = 2;
+                        begin                              = pmi;
+                        block_data_info_ptr->postfieldtype = 2;
                         stream_list.emplace(block_steamid);
                         return;
                     }
@@ -3049,8 +3129,8 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
                     {
                         pmi++;
                     }
-                    begin                                  = pmi;
-                    data_info[block_steamid].postfieldtype = 2;
+                    begin                              = pmi;
+                    block_data_info_ptr->postfieldtype = 2;
                     return;
                 }
             }
@@ -3061,10 +3141,10 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
                 pmi = 0;
                 break;
             }
-            data_info[block_steamid].buffer_key.clear();
+            block_data_info_ptr->buffer_key.clear();
         }
     }
-    data_info[block_steamid].field_value.append((char *)&buffer[baseoffset], (begin - baseoffset));
+    block_data_info_ptr->field_value.append((char *)&buffer[baseoffset], (begin - baseoffset));
     begin = buffersize;
 }
 void http2parse::fieldname_process(const std::string &tfheader_name, std::string &fieldname, std::string &fieldfilename)
@@ -3103,9 +3183,9 @@ void http2parse::fieldname_process(const std::string &tfheader_name, std::string
                 }
                 if (fieldname.size() > 0)
                 {
-                    if (data_info[block_steamid].postfieldtype < 3)
+                    if (block_data_info_ptr->postfieldtype < 3)
                     {
-                        data_info[block_steamid].postfieldtype = 4;
+                        block_data_info_ptr->postfieldtype = 4;
                     }
                 }
 
@@ -3134,9 +3214,9 @@ void http2parse::fieldname_process(const std::string &tfheader_name, std::string
                     fieldfilename.push_back(tfheader_name[mm]);
                 }
 
-                if (data_info[block_steamid].postfieldtype < 5)
+                if (block_data_info_ptr->postfieldtype < 5)
                 {
-                    data_info[block_steamid].postfieldtype = 6;
+                    block_data_info_ptr->postfieldtype = 6;
                 }
 
                 if (tfheader_name[mm] == '"')
@@ -3171,14 +3251,14 @@ void http2parse::fieldtype_process(const std::string &tfheader_name)
             break;
         }
     }
-    data_info[block_steamid].upfile.type.clear();
+    block_data_info_ptr->upfile.type.clear();
     for (; jj < tfheader_name.size(); jj++)
     {
         if (tfheader_name[jj] == 0x20 || tfheader_name[jj] == 0x0D || tfheader_name[jj] == ';')
         {
             break;
         }
-        data_info[block_steamid].upfile.type.push_back(tfheader_name[jj]);
+        block_data_info_ptr->upfile.type.push_back(tfheader_name[jj]);
     }
 }
 void http2parse::readformfilename(const unsigned char *buffer, unsigned int &begin, unsigned int buffersize)
@@ -3270,7 +3350,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
                 }
             }
 
-            data_info[block_steamid].buffer_key.push_back(buffer[i]);
+            block_data_info_ptr->buffer_key.push_back(buffer[i]);
         }
     }
     begin = i;
@@ -3281,9 +3361,9 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
         std::string fieldheader_temp;
         unsigned int jj         = 0;
         unsigned char fieldtype = 0;
-        for (; jj < data_info[block_steamid].buffer_key.size(); jj++)
+        for (; jj < block_data_info_ptr->buffer_key.size(); jj++)
         {
-            if (data_info[block_steamid].buffer_key[jj] == 0x0D || data_info[block_steamid].buffer_key[jj] == 0x0A)
+            if (block_data_info_ptr->buffer_key[jj] == 0x0D || block_data_info_ptr->buffer_key[jj] == 0x0A)
             {
                 if (fieldheader_temp.size() > 3)
                 {
@@ -3301,7 +3381,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
                 fieldheader_temp.clear();
                 continue;
             }
-            if (data_info[block_steamid].buffer_key[jj] == ':')
+            if (block_data_info_ptr->buffer_key[jj] == ':')
             {
                 if (fieldheader_temp.size() == 19 && str_casecmp(fieldheader_temp, "Content-Disposition"))
                 {
@@ -3312,7 +3392,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
                     fieldtype = 2;
                 }
             }
-            fieldheader_temp.push_back(data_info[block_steamid].buffer_key[jj]);
+            fieldheader_temp.push_back(block_data_info_ptr->buffer_key[jj]);
         }
         if (fieldtype > 0)
         {
@@ -3329,35 +3409,35 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
         }
         fieldheader_temp.clear();
         // check upload file
-        if (data_info[block_steamid].postfieldtype == 6)
+        if (block_data_info_ptr->postfieldtype == 6)
         {
-            server_loaclvar &localvar                = get_server_global_var();
-            data_info[block_steamid].upfile.filename = filesname;
-            data_info[block_steamid].upfile.name     = fieldname;
+            server_loaclvar &localvar            = get_server_global_var();
+            block_data_info_ptr->upfile.filename = filesname;
+            block_data_info_ptr->upfile.name     = fieldname;
 
-            fieldheader_temp = data_info[block_steamid].upfile.filename + std::to_string(http::timeid()) + fieldname;
+            fieldheader_temp = block_data_info_ptr->upfile.filename + std::to_string(http::timeid()) + fieldname;
 
-            data_info[block_steamid].upfile.tempfile = localvar.temp_path;// + "temp/";
-            data_info[block_steamid].upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
+            block_data_info_ptr->upfile.tempfile = localvar.temp_path;// + "temp/";
+            block_data_info_ptr->upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
 
-            DEBUG_LOG("filename:%s", data_info[block_steamid].upfile.tempfile.c_str());
-            // data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
-            data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
-            if (!data_info[block_steamid].uprawfile)
+            DEBUG_LOG("filename:%s", block_data_info_ptr->upfile.tempfile.c_str());
+            // block_data_info_ptr->uprawfile = fopen(block_data_info_ptr->upfile.tempfile.c_str(), "wb");
+            block_data_info_ptr->uprawfile.reset(fopen(block_data_info_ptr->upfile.tempfile.c_str(), "wb"));
+            if (!block_data_info_ptr->uprawfile)
             {
-                data_info[block_steamid].upfile.tempfile.append("_t");
+                block_data_info_ptr->upfile.tempfile.append("_t");
                 // data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
-                data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
-                if (!data_info[block_steamid].uprawfile)
+                block_data_info_ptr->uprawfile.reset(fopen(block_data_info_ptr->upfile.tempfile.c_str(), "wb"));
+                if (!block_data_info_ptr->uprawfile)
                 {
                     error = 303;
                 }
             }
-            data_info[block_steamid].upfile.size = 0;
+            block_data_info_ptr->upfile.size = 0;
         }
-        data_info[block_steamid].buffer_key.clear();
-        data_info[block_steamid].buffer_value.clear();
-        data_info[block_steamid].fieldname = fieldname;
+        block_data_info_ptr->buffer_key.clear();
+        block_data_info_ptr->buffer_value.clear();
+        block_data_info_ptr->fieldname = fieldname;
     }
 }
 
@@ -3369,15 +3449,15 @@ void http2parse::readboundaryline(const unsigned char *buffer, unsigned int &beg
     {
         begin += 2;
     }
-    for (; ni < data_info[block_steamid].boundary.size(); ni++)
+    for (; ni < block_data_info_ptr->boundary.size(); ni++)
     {
-        if (buffer[begin] != data_info[block_steamid].boundary[ni])
+        if (buffer[begin] != block_data_info_ptr->boundary[ni])
         {
             break;
         }
         begin++;
     }
-    if (ni == data_info[block_steamid].boundary.size())
+    if (ni == block_data_info_ptr->boundary.size())
     {
         if (buffer[begin] == 0x0D)
         {
@@ -3389,7 +3469,7 @@ void http2parse::readboundaryline(const unsigned char *buffer, unsigned int &beg
         }
         if ((begin - baseoffset) == (ni + 4))
         {
-            data_info[block_steamid].postfieldtype = 2;
+            block_data_info_ptr->postfieldtype = 2;
         }
     }
     else
@@ -3406,14 +3486,14 @@ void http2parse::readmultipartformdata(const unsigned char *buffer, unsigned int
         {
             return;
         }
-        switch (data_info[block_steamid].postfieldtype)
+        switch (block_data_info_ptr->postfieldtype)
         {
         case 0:
             // begin post content
             readboundaryline(buffer, i, buffersize);
-            data_info[block_steamid].buffer_key.clear();
-            data_info[block_steamid].buffer_value.clear();
-            data_info[block_steamid].field_value.clear();
+            block_data_info_ptr->buffer_key.clear();
+            block_data_info_ptr->buffer_value.clear();
+            block_data_info_ptr->field_value.clear();
             break;
         case 2: readformfilename(buffer, i, buffersize); break;
         case 4: readformfieldcontent(buffer, i, buffersize); break;
@@ -3425,66 +3505,69 @@ void http2parse::readmultipartformdata(const unsigned char *buffer, unsigned int
 
 void http2parse::readrawfileformdata(const unsigned char *buffer, unsigned int buffersize)
 {
-    if (!data_info[block_steamid].uprawfile)
+    if (!block_data_info_ptr->uprawfile)
     {
-        server_loaclvar &localvar                = get_server_global_var();
-        data_info[block_steamid].upfile.filename = "rawcontent";
-        data_info[block_steamid].upfile.name     = "rawcontent";
+        server_loaclvar &localvar            = get_server_global_var();
+        block_data_info_ptr->upfile.filename = "rawcontent";
+        block_data_info_ptr->upfile.name     = "rawcontent";
 
         std::string fieldheader_temp =
-            data_info[block_steamid].upfile.filename + std::to_string(http::timeid()) + "rawcontent";
+            block_data_info_ptr->upfile.filename + std::to_string(http::timeid()) + "rawcontent";
 
-        data_info[block_steamid].upfile.tempfile = localvar.temp_path;// + "temp/";
-        data_info[block_steamid].upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
-        // data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
-        data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
-        if (!data_info[block_steamid].uprawfile)
+        block_data_info_ptr->upfile.tempfile = localvar.temp_path;// + "temp/";
+        block_data_info_ptr->upfile.tempfile.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
+        // block_data_info_ptr->uprawfile = fopen(block_data_info_ptr->upfile.tempfile.c_str(), "wb");
+        block_data_info_ptr->uprawfile.reset(fopen(block_data_info_ptr->upfile.tempfile.c_str(), "wb"));
+        if (!block_data_info_ptr->uprawfile)
         {
-            data_info[block_steamid].upfile.tempfile.append("_t");
+            block_data_info_ptr->upfile.tempfile.append("_t");
             // data_info[block_steamid].uprawfile = fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb");
-            data_info[block_steamid].uprawfile.reset(fopen(data_info[block_steamid].upfile.tempfile.c_str(), "wb"));
-            if (!data_info[block_steamid].uprawfile)
+            block_data_info_ptr->uprawfile.reset(fopen(block_data_info_ptr->upfile.tempfile.c_str(), "wb"));
+            if (!block_data_info_ptr->uprawfile)
             {
                 error = 303;
             }
         }
-        data_info[block_steamid].upfile.type = http_data[block_steamid]->content_type;
-        data_info[block_steamid].upfile.size = 0;
+        block_data_info_ptr->upfile.type = block_steam_httppeer->content_type;
+        block_data_info_ptr->upfile.size = 0;
     }
-    if (data_info[block_steamid].uprawfile)
+    if (block_data_info_ptr->uprawfile)
     {
-        data_info[block_steamid].upfile.size += buffersize;
-        fwrite(buffer, 1, buffersize, data_info[block_steamid].uprawfile.get());
+        block_data_info_ptr->upfile.size += buffersize;
+        fwrite(buffer, 1, buffersize, block_data_info_ptr->uprawfile.get());
     }
 
-    if (http_data[block_steamid]->content_length < (data_info[block_steamid].upfile.size + 2))
+    if (block_steam_httppeer->content_length < (block_data_info_ptr->upfile.size + 2))
     {
-        if (data_info[block_steamid].uprawfile)
+        if (block_data_info_ptr->uprawfile)
         {
-            fclose(data_info[block_steamid].uprawfile.get());
+            fclose(block_data_info_ptr->uprawfile.get());
         }
         procssformfile();
     }
 }
 
-void http2parse::data_process(unsigned int data_stream_id)
+void http2parse::data_process()
 {
-    unsigned int j = 0, w_size = stream_data[block_steamid].size();
-
-    if (data_info[data_stream_id].padded)
+    //unsigned int j = 0, w_size = stream_data[block_steamid].size();
+    unsigned int j = 0, w_size = stream_data_ptr->size();
+    if (block_data_info_ptr->padded)
     {
         j += 1;
-        w_size -= 1;
-        w_size -= data_info[data_stream_id].pad_length;
+        if (w_size > 0)
+        {
+            w_size -= 1;
+            w_size -= block_data_info_ptr->pad_length;
+        }
     }
 
-    if (http_data[block_steamid]->compress == 10)
+    if (block_steam_httppeer->compress == 10)
     {
-        if (http_data[block_steamid]->content_length < 16777216)
+        if (block_steam_httppeer->content_length < 16777216)
         {
-            if (http_data[block_steamid]->output.size() < http_data[block_steamid]->content_length)
+            if (block_steam_httppeer->output.size() < block_steam_httppeer->content_length)
             {
-                http_data[block_steamid]->output.append(&stream_data[block_steamid][j], w_size);
+                block_steam_httppeer->output.append(stream_data_ptr->data() + j, w_size);
             }
         }
         else
@@ -3494,63 +3577,63 @@ void http2parse::data_process(unsigned int data_stream_id)
     }
     else
     {
-        http_data[block_steamid]->upload_length = http_data[block_steamid]->upload_length + w_size;
-        if (http_data[block_steamid]->upload_length > http_data[block_steamid]->content_length)
+        block_steam_httppeer->upload_length = block_steam_httppeer->upload_length + w_size;
+        if (block_steam_httppeer->upload_length > block_steam_httppeer->content_length)
         {
             error = 403;//now ruturn?
         }
-        switch (data_info[data_stream_id].posttype)
+        switch (block_data_info_ptr->posttype)
         {
         case 1:
             // x-www-form-urlencoded
-            data_info[block_steamid].buffer_value.append(&stream_data[block_steamid][j], w_size);
-            if (data_info[block_steamid].buffer_value.size() == (unsigned int)http_data[block_steamid]->content_length)
+            block_data_info_ptr->buffer_value.append(stream_data_ptr->data() + j, w_size);
+            if (block_data_info_ptr->buffer_value.size() == (unsigned int)block_steam_httppeer->content_length)
             {
                 readformurlencoded();
-                data_info[block_steamid].buffer_value.clear();
+                block_data_info_ptr->buffer_value.clear();
             }
             break;
         case 2:
             // multipart/form-data
-            readmultipartformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
+            readmultipartformdata((const unsigned char *)stream_data_ptr->data() + j, w_size);
             break;
         case 3:
             // json
-            http_data[block_steamid]->rawcontent.append(&stream_data[block_steamid][j], w_size);
-            if (http_data[block_steamid]->rawcontent.size() == (unsigned int)http_data[block_steamid]->content_length)
+            block_steam_httppeer->rawcontent.append(stream_data_ptr->data() + j, w_size);
+            if (block_steam_httppeer->rawcontent.size() == (unsigned int)block_steam_httppeer->content_length)
             {
-                http_data[block_steamid]->json.from_json(http_data[block_steamid]->rawcontent);
+                block_steam_httppeer->json.from_json(block_steam_httppeer->rawcontent);
             }
             break;
         case 4:
             // xml
             // readrawfileformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
-            http_data[block_steamid]->rawcontent.append(&stream_data[block_steamid][j], w_size);
+            block_steam_httppeer->rawcontent.append(stream_data_ptr->data() + j, w_size);
             break;
         case 5:
             // octet-stream
-            readrawfileformdata((const unsigned char *)&stream_data[block_steamid][j], w_size);
+            readrawfileformdata((const unsigned char *)stream_data_ptr->data() + j, w_size);
             break;
         }
     }
 
-    stream_data[block_steamid].clear();
+    //stream_data[block_steamid].clear();
+    stream_data_ptr->clear();
 
-    if (data_info[data_stream_id].endstream)
+    if (block_data_info_ptr->endstream)
     {
         isfinsish     = 2;
         processheader = 0;
 
-        if (data_info[block_steamid].uprawfile)
+        if (block_data_info_ptr->uprawfile)
         {
-            fclose(data_info[block_steamid].uprawfile.get());
+            fclose(block_data_info_ptr->uprawfile.get());
         }
 
-        if (!http_data[block_steamid]->isfinish)
+        if (!block_steam_httppeer->isfinish)
         {
-
-            http_data[block_steamid]->isfinish     = true;
-            data_info[block_steamid].postfieldtype = 0;
+            block_steam_httppeer->isfinish     = true;
+            block_data_info_ptr->postfieldtype = 0;
             stream_list.emplace(block_steamid);
         }
     }
@@ -3565,7 +3648,7 @@ void http2parse::readdatablock(const unsigned char *buffer, unsigned int buffers
     unsigned int short_loop_max;
 
     buffer_short_length = buffersize - readoffset;
-    block_short_length  = data_info[block_steamid].length - data_info[block_steamid].curnum;
+    block_short_length  = block_data_info_ptr->length - block_data_info_ptr->curnum;
 
     if (buffer_short_length <= block_short_length)
     {
@@ -3576,8 +3659,9 @@ void http2parse::readdatablock(const unsigned char *buffer, unsigned int buffers
         short_loop_max = block_short_length;
     }
 
-    stream_data[block_steamid].append((const char *)&buffer[j], short_loop_max);
-    data_info[block_steamid].curnum += short_loop_max;
+    //stream_data[block_steamid].append((const char *)&buffer[j], short_loop_max);
+    stream_data_ptr->append((const char *)&buffer[j], short_loop_max);
+    block_data_info_ptr->curnum += short_loop_max;
 
     window_update_recv_num -= short_loop_max;
 
@@ -3588,10 +3672,10 @@ void http2parse::readdatablock(const unsigned char *buffer, unsigned int buffers
     }
     readoffset = readoffset + short_loop_max;
     // 数据块处理完成
-    if (data_info[block_steamid].curnum == data_info[block_steamid].length)
+    if (block_data_info_ptr->curnum == block_data_info_ptr->length)
     {
-        DEBUG_LOG("data_process block:%llu", data_info[block_steamid].length);
-        data_process(block_steamid);
+        DEBUG_LOG("data_process block:%llu", block_data_info_ptr->length);
+        data_process();
         processheader = 0;
     }
 }

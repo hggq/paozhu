@@ -2651,10 +2651,6 @@ void httpparse::readformraw(const unsigned char *buffer, unsigned int buffersize
 void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
 {
     readoffset = 0;
-    if (error > 0)
-    {
-        return;
-    }
     if (headerfinish == 0)
     {
         for (; readoffset < buffersize;)
@@ -2682,61 +2678,68 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             }
         }
     }
-    if (method == HEAD_METHOD::POST && headerfinish == 1 && error == 0)
+    if (error > 0)
     {
-        if (peer->compress == 10)
+        return;
+    }
+    if (headerfinish == 1)
+    {
+        if (method == HEAD_METHOD::POST)
         {
-            if (peer->content_length > 16777216)
+            if (peer->compress == 10)
             {
-                error = 403;
-                return;
+                if (peer->content_length > 16777216)
+                {
+                    error = 403;
+                    return;
+                }
+                if (peer->output.size() > peer->content_length)
+                {
+                    error = 403;
+                    return;
+                }
+                peer->output.append((char *)&buffer[readoffset], (buffersize - readoffset));
+                if (peer->output.size() == peer->content_length)
+                {
+                    headerfinish = 2;
+                }
             }
-            if (peer->output.size() > peer->content_length)
+            else
             {
-                error = 403;
-                return;
+                peer->upload_length = peer->upload_length + buffersize - readoffset;
+                if (peer->upload_length > peer->content_length)
+                {
+                    error = 403;
+                    return;
+                }
+                switch (poststate.posttype)
+                {
+                case 1:
+                    // x-www-form-urlencoded
+                    readformurlencoded(buffer, buffersize);
+                    break;
+                case 2:
+                    // multipart/form-data-
+                    readmultipartformdata(buffer, buffersize);
+                    break;
+                case 3:
+                    // json
+                    readformjson(buffer, buffersize);
+                    break;
+                case 4:
+                    // xml
+                    readformxml(buffer, buffersize);
+                    break;
+                case 5:
+                    // octet-stream
+                    readformraw(buffer, buffersize);
+                    break;
+                }
             }
-            peer->output.append((char *)&buffer[readoffset], (buffersize - readoffset));
-            if (peer->output.size() == peer->content_length)
+            if (readoffset < buffersize)
             {
-                headerfinish = 2;
+                readoffset = buffersize;
             }
-        }
-        else
-        {
-            peer->upload_length = peer->upload_length + buffersize - readoffset;
-            if (peer->upload_length > peer->content_length)
-            {
-                error = 403;
-                return;
-            }
-            switch (poststate.posttype)
-            {
-            case 1:
-                // x-www-form-urlencoded
-                readformurlencoded(buffer, buffersize);
-                break;
-            case 2:
-                // multipart/form-data-
-                readmultipartformdata(buffer, buffersize);
-                break;
-            case 3:
-                // json
-                readformjson(buffer, buffersize);
-                break;
-            case 4:
-                // xml
-                readformxml(buffer, buffersize);
-                break;
-            case 5:
-                // octet-stream
-                readformraw(buffer, buffersize);
-                break;
-            }
-        }
-        if (readoffset < buffersize)
-        {
-            readoffset = buffersize;
         }
     }
 }
