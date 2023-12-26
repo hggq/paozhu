@@ -162,9 +162,8 @@ class httpparse
     unsigned char headerfinish  = 0;
     unsigned int error          = 0;
 
-    unsigned int readoffset             = 0;
-    unsigned int changetype             = 0;
-    unsigned long long post_content_num = 0;
+    unsigned int readoffset = 0;
+    unsigned int changetype = 0;
     //std::FILE *uprawfile = NULL;
     std::unique_ptr<std::FILE, int (*)(FILE *)> uprawfile;
     ;

@@ -179,6 +179,10 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
     data_info[block_steamid].curnum += block_short_length;
 
     readoffset = readoffset + block_short_length;
+    if (data_info[block_steamid].curnum > 8192)
+    {
+        error = 403;
+    }
     // 数据块处理完成
     if (data_info[block_steamid].curnum == data_info[block_steamid].length)
     {

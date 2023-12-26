@@ -2659,7 +2659,6 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
     {
         for (; readoffset < buffersize;)
         {
-
             readheaderline(buffer, buffersize);
             if (error > 0)
             {
@@ -2672,7 +2671,14 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                     error = peer->check_upload_limit();
                 }
                 peer->isuse_fastcgi();
+                changetype = 0;
                 break;
+            }
+            changetype = changetype + buffersize - readoffset;
+            if (changetype > 8192)
+            {
+                error = 403;
+                return;
             }
         }
     }
@@ -2786,8 +2792,8 @@ void httpparse::clear()
     readoffset               = 0;
     headendhitnum            = 0;
     postfieldtype            = 0;
+    changetype               = 0;
     headerstep               = 0;
-    post_content_num         = 0;
     poststate.content_length = 0;
 
     peer->host.clear();
