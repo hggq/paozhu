@@ -108,18 +108,15 @@ void markdown2html::process_bold()
     {
         htmlcontent.append("<strong><em>");
         read_offset += 3;
-        typefront = 3;
     }
     else if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] == '*')
     {
         htmlcontent.append("<strong>");
         read_offset += 2;
-        typefront = 2;
     }
     else if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] != '*')
     {
         htmlcontent.append("<em>");
-        typefront = 1;
         read_offset += 1;
     }
     for (; read_offset < md_size; read_offset++)
