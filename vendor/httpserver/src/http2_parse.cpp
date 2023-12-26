@@ -211,7 +211,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
     block_data_info_ptr->curnum += block_short_length;
 
     readoffset = readoffset + block_short_length;
-    if (block_data_info_ptr->curnum > 8192)
+    if (block_data_info_ptr->curnum > 16384)
     {
         error = 403;
     }

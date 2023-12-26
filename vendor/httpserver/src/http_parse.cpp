@@ -2671,7 +2671,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                 break;
             }
             changetype = changetype + buffersize - readoffset;
-            if (changetype > 8192)
+            if (changetype > 16384)
             {
                 error = 403;
                 return;
