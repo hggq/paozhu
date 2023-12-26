@@ -1,12 +1,6 @@
 #include <cstdio>
 #include <cstddef>
-#include <stdio.h>
 
-// #include <unistd.h>
-// #include <errno.h>
-// #include <stdlib.h>
-// #include <signal.h>
-// #include <setjmp.h>
 #include <ctime>
 #include <iostream>
 #include <string>
@@ -304,7 +298,6 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         DEBUG_LOG("pool in");
         std::string regmethold_path;
         std::string sitecontent;
-        // bool isfindpath = false;
 
         server_loaclvar &static_server_var = get_server_global_var();
         serverconfig &sysconfigpath        = getserversysconfig();
@@ -321,7 +314,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                 }
                 memcpy(mythread_info->url, peer->url.data(), offsetnum);
             }
-            mythread_info->url[offsetnum + 1] = 0x00;
+            mythread_info->url[offsetnum] = 0x00;
             {
                 unsigned int offsetnum = peer->client_ip.size();
                 if (offsetnum < 61)
@@ -364,7 +357,6 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                             }
                         }
                     }
-                    // isfindpath = true;
                     break;
                 }
                 else
@@ -377,10 +369,6 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         if (regmethold_path.empty())
         {
             regmethold_path = "home";
-            // if (_http_regmethod_table.contains(regmethold_path))// != _http_regmethod_table.end()
-            // {
-            //     isfindpath = true;
-            // }
         }
         DEBUG_LOG("http_regmethod pre in");
 
@@ -420,10 +408,6 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
             DEBUG_LOG("http_regmethod main in");
             for (int i = 0; i < 30; i++)
             {
-                // if (method_iter == _http_regmethod_table.end())// == _http_regmethod_table.end()
-                // {
-                //     break;
-                // }
                 if (method_iter->second.pre != nullptr)
                 {
                     sitecontent = method_iter->second.pre(peer);
@@ -467,7 +451,6 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                 }
                 else
                 {
-                    DEBUG_LOG("in method %s", regmethold_path.c_str());
                     sitecontent = method_iter->second.regfun(peer);
                 }
 
@@ -665,11 +648,6 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         DEBUG_LOG("catch exception");
         if (peer->user_code_handler_call.size() > 0)
         {
-            // auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
-            // asio::dispatch(ex,
-            //                [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-            //                { handler(1); });
-            // peer->user_code_handler_call.pop_front();
             asio::dispatch(*io_context,
                            [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
                            {
