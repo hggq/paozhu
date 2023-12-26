@@ -570,6 +570,27 @@ bool serverconfig::loadserverglobalconfig()
         tempinfo.upload_max_size = 0;
     }
 
+    if (map_value["default"]["http_header_max_size"].size() > 0)
+    {
+        //     unsigned int tempupmax = 0;
+        //     for (unsigned int i = 0; i < map_value["default"]["http_header_max_size"].size(); i++)
+        //     {
+        //         if (map_value["default"]["http_header_max_size"][i] > 0x2F && map_value["default"]["http_header_max_size"][i] < 0x3A)
+        //         {
+        //             tempupmax = tempupmax * 10 + (map_value["default"]["http_header_max_size"][i] - '0');
+        //         }
+        //     }
+
+        //     if (tempupmax > 4096)
+        //     {
+        //         tempinfo.http_header_max_size = tempupmax;
+        //     }
+        // }
+        // else
+        // {
+        //     tempinfo.http_header_max_size = 8192;
+    }
+
     if (map_value["default"]["static_file_compress_cache"].size() > 0 && map_value["default"]["static_file_compress_cache"][0] == '1')
     {
         static_server_var.static_file_compress_cache = true;
@@ -1207,6 +1228,25 @@ bool serverconfig::loadserverglobalconfig()
                         {
                             tempinfo.upload_max_size = 0;
                         }
+                    }
+                    else if (itemname == "http_header_max_size")
+                    {
+                        // tempinfo.http_header_max_size = 8192;
+                        // if (itemval.size() > 0)
+                        // {
+                        //     unsigned int tempupmax = 0;
+                        //     for (unsigned int i = 0; i < itemval.size(); i++)
+                        //     {
+                        //         if (itemval[i] > 0x2F && itemval[i] < 0x3A)
+                        //         {
+                        //             tempupmax = tempupmax * 10 + (itemval[i] - '0');
+                        //         }
+                        //     }
+                        //     if (tempupmax > 4096)
+                        //     {
+                        //         tempinfo.upload_max_size = tempupmax;
+                        //     }
+                        // }
                     }
                 }
                 if (tempinfo.document_index.empty())

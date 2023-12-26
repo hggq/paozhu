@@ -37,14 +37,15 @@ struct site_host_info_t
     std::vector<std::pair<std::string, std::string>> rewrite_php_lists;
     unsigned int rewrite404      = 0;
     unsigned int upload_max_size = 0;
-    bool isuse_php               = false;
-    bool isrewrite               = false;
-    bool http2_enable            = false;
-    bool is_method_pre           = false;
-    bool is_method_after         = false;
-    bool is_static_pre           = false;
-    bool is_show_directory       = false;
-    bool is_limit_upload         = false;
+    //unsigned int http_header_max_size = 0;
+    bool isuse_php         = false;
+    bool isrewrite         = false;
+    bool http2_enable      = false;
+    bool is_method_pre     = false;
+    bool is_method_after   = false;
+    bool is_static_pre     = false;
+    bool is_show_directory = false;
+    bool is_limit_upload   = false;
 };
 class serverconfig
 {
@@ -82,6 +83,7 @@ class serverconfig
     bool is_limit_upload               = false;
     unsigned int siteusehtmlchachetime = 0;
     unsigned int upload_max_size       = 0;
+    unsigned int http_header_max_size  = 0;
     std::map<std::string, SSL_CTX *> g_ctxMap;
     std::map<unsigned long long, bool> domain_http2;
     std::vector<struct site_host_info_t> sitehostinfos;
