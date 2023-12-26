@@ -3,6 +3,7 @@
 #include "markdown2html.h"
 #include <vector>
 #include <list>
+#include <memory>
 
 namespace http
 {
@@ -102,7 +103,6 @@ void markdown2html::process_blockquote()
 void markdown2html::process_bold()
 {
     std::string tempbold;
-    unsigned int typefront = 0;
     unsigned int inboffset = read_offset;
     if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] == '*' && mdcontent[read_offset + 2] == '*')
     {
