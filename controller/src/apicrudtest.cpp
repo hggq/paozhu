@@ -189,6 +189,7 @@ std::string pxapipagesdepartlist(std::shared_ptr<httppeer> peer)
                         if (deps.record[i].parentid == del_id_array[j])
                         {
                             del_id_array.push_back(deps.record[i].dpid);
+                            break;
                         }
                     }
                 }

@@ -264,6 +264,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
                     if (topicm.record[i].parentid == topic_id_array[j])
                     {
                         topic_id_array.push_back(topicm.record[i].topicid);
+                        break;
                     }
                 }
             }

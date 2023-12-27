@@ -256,6 +256,7 @@ std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
                         if (topicm.record[i].parentid == del_id_array[j])
                         {
                             del_id_array.push_back(topicm.record[i].topicid);
+                            break;
                         }
                     }
                 }
