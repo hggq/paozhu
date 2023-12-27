@@ -348,11 +348,9 @@ std::string admin_updatearticleview(std::shared_ptr<httppeer> peer)
 std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->getpeer();
-
     try
     {
         auto topicm = orm::cms::Topic();
-
         topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         unsigned int topicid   = client.get["topicid"].to_int();
@@ -374,14 +372,12 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
-
             temp["id"]       = topicm.record[i].topicid;
             temp["parentid"] = topicm.record[i].parentid;
             temp["value"]    = topicm.record[i].title;
             client.val["list"].push(temp);
 
             topickv[topicm.record[i].topicid] = topicm.record[i].title;
-
             if (topicid > 0)
             {
                 for (unsigned int j = 0; j < topic_id_array.size(); j++)
@@ -395,7 +391,6 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         }
 
         auto artmodel = orm::cms::Article();
-
         artmodel.where("userid", client.session["userid"].to_int());
         if (topicid > 0)
         {

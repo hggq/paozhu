@@ -171,7 +171,7 @@ sudo ./bin/paozhu
 
 ![webbench test](https://hggq.github.io/paozhu/images/webbench_stress.png "webbench test")  
 
-###  8.代码例子 Hello world
+###  8.1代码例子 Hello world
 
 在 `controller` 目录 ,testhello.cpp 文件
 
@@ -211,7 +211,117 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 
 `//@urlpath(null,hello)` 为注解功能
 
+###  8.2 代码例子 文章列表、搜索、分页
 
+来源admin后台演示 controller/src/admin/articles.cpp
+
+```c++
+#include "orm.h"
+#include <chrono>
+#include <thread>
+#include "httppeer.h"
+#include "func.h"
+#include "articles.h"
+#include "json_reflect_headers.h"
+#include "array_to_tree.h"
+
+//@urlpath(admin_islogin,admin/listarticle)
+std::string admin_listarticle(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->getpeer();
+    try
+    {
+        auto topicm = orm::cms::Topic();
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
+
+        unsigned int topicid   = client.get["topicid"].to_int();
+        unsigned int page      = client.get["page"].to_int();
+        std::string searchword = client.get["searchword"].to_string();
+        searchword             = mb_substr(searchword, 0, 15);
+        client.val["topicid"]  = topicid;
+
+        client.val["list"].set_array();
+        OBJ_ARRAY temp;
+
+        std::map<unsigned int, std::string> topickv;
+        std::vector<unsigned int> topic_id_array;//articles under this topic and sub topics
+
+        if (topicid > 0)
+        {
+            topic_id_array.push_back(topicid);
+        }
+
+        for (unsigned int i = 0; i < topicm.record.size(); i++)
+        {
+            temp["id"]       = topicm.record[i].topicid;
+            temp["parentid"] = topicm.record[i].parentid;
+            temp["value"]    = topicm.record[i].title;
+            client.val["list"].push(temp);
+
+            topickv[topicm.record[i].topicid] = topicm.record[i].title;
+            if (topicid > 0)
+            {
+                for (unsigned int j = 0; j < topic_id_array.size(); j++)
+                {
+                    if (topicm.record[i].parentid == topic_id_array[j])
+                    {
+                        topic_id_array.push_back(topicm.record[i].topicid);
+                    }
+                }
+            }
+        }
+
+        auto artmodel = orm::cms::Article();
+        artmodel.where("userid", client.session["userid"].to_int());
+        if (topicid > 0)
+        {
+            std::string topicid_sql_str = array_to_sql(topic_id_array);
+            if (topicid_sql_str.size() > 0)
+            {
+                artmodel.whereIn("topicid", topicid_sql_str);
+            }
+        }
+        if (searchword.size() > 0)
+        {
+            artmodel.andsub().whereLike("title", str_addslash(searchword));
+            artmodel.whereOrLike("content", str_addslash(searchword)).andsub();
+            client.val["searchword"] = searchword;
+        }
+        auto [bar_min, bar_max, current_page, total_page] = artmodel.page(page, 10, 5);
+
+        client.val["pageinfo"].set_array();
+        client.val["pageinfo"]["min"]     = bar_min;
+        client.val["pageinfo"]["max"]     = bar_max;
+        client.val["pageinfo"]["current"] = current_page;
+        client.val["pageinfo"]["total"]   = total_page;
+
+        artmodel.select("aid,topicid,title,createtime,sortid,isopen").desc("aid").fetch();
+        client.val["alist"].set_array();
+        OBJ_ARRAY tempa;
+
+        if (artmodel.size() > 0)
+        {
+            for (auto &item : artmodel)
+            {
+                tempa["title"]     = item.title;
+                tempa["aid"]       = item.aid;
+                tempa["date"]      = item.createtime.substr(0, 10);
+                tempa["topicname"] = topickv[item.topicid];
+                tempa["sortid"]    = item.sortid;
+                tempa["isopen"]    = item.isopen;
+                client.val["alist"].push(tempa);
+            }
+        }
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 1;
+    }
+    peer->view("admin/listarticle");
+    return "";
+}
+
+```
 
 ### 9.相关教程
 
