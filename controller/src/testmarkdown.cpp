@@ -139,7 +139,6 @@ blockquote {
 
     )");
     client << md->get_htmlcontent();
-    client << "</form>";
     return "";
 }
 
