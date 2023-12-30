@@ -5,7 +5,7 @@ jobs:
   Explore-GitHub-Actions:
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-10]
         arch: [x64]
 
     runs-on: ${{ matrix.os }}
