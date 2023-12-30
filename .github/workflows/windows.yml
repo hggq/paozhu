@@ -3,7 +3,7 @@ run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
 jobs:
   Explore-GitHub-Actions:
-    runs-on: windows-10
+    runs-on: windows-2022
     strategy:
       matrix:
         arch: [x64]
