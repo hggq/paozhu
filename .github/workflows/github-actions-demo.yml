@@ -32,3 +32,4 @@ jobs:
       - name: Build
         run: |
           cmake .
+          make
