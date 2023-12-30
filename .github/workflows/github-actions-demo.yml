@@ -31,5 +31,4 @@ jobs:
       - name: Build
         working-directory: ./build
         run: |
-          ls
-          cmake .
+          cmake --build ${{github.workspace}}/build 
