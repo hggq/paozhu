@@ -29,6 +29,6 @@ jobs:
           sudo apt-get install libmysqlclient-dev
           unzip asio.zip
       - name: Build
-        working-directory: ${{github.workspace}}/build
+        working-directory: build
         run: |
           cmake --build ./build 
