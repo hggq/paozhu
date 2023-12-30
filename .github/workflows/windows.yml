@@ -15,7 +15,7 @@ jobs:
       - name: List files in the repository
         run: |
           mkdir asio
-          expand -F:* test.zip asio
+          expand -F:* asio.zip asio
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Install dependencies
