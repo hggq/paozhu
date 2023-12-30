@@ -17,9 +17,7 @@ jobs:
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Install dependencies
-      - uses: xmake-io/github-action-setup-xmake@v1
-        with:
-          xmake-version: branch@dev
+        uses: xmake-io/github-action-setup-xmake@v1
         
       - name: Build
         run: |
