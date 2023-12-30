@@ -17,9 +17,10 @@ jobs:
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Install dependencies
-        uses: xmake-io/github-action-setup-xmake@v1
+      - uses: xmake-io/github-action-setup-xmake@v1
         with:
-        xmake-version: latest
+          xmake-version: branch@dev
+        
       - name: Build
         run: |
           expand asio.zip ./
