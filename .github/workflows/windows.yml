@@ -8,11 +8,6 @@ jobs:
       matrix:
         arch: [x64]
         ssl: [ ON ]
-    services:
-      mysql:
-        image: mysql:8.0
-        ports:
-          - 3306:3306
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
