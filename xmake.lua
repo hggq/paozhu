@@ -1,5 +1,5 @@
 add_rules("mode.debug", "mode.release")
-add_requires("boost", "openssl", "libgd", "mysql", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
+add_requires("boost", "openssl", "libgd", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
 
 set_languages("c++20")
 set_encodings("utf-8")
