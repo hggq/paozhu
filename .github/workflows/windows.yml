@@ -24,4 +24,4 @@ jobs:
       - name: Build
         run: |
           expand asio.zip ./
-          xmake f -k ${{ matrix.kind }} -y -vD
+          xmake
