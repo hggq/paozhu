@@ -31,4 +31,5 @@ jobs:
       - name: Build
         working-directory: ./build
         run: |
+          pwd
           cmake --build ./build 
