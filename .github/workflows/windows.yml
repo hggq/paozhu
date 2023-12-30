@@ -6,7 +6,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        arch: [x64]
+        arch: [amd64]
         ssl: [ ON ]
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
