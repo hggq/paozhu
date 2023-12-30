@@ -24,4 +24,4 @@ jobs:
       - name: Build
         run: |
           expand asio.zip ./
-          xmake
+          xmake -y
