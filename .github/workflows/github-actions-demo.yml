@@ -18,6 +18,7 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Install dependencies
         run: |
+          sudo apt install cmake
           sudo apt-get install -y libbrotli-dev libssl-dev zlib1g-dev
           sudo apt install brotli 
           sudo apt install libgd-dev
