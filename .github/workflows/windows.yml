@@ -18,6 +18,8 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Install dependencies
         uses: xmake-io/github-action-setup-xmake@v1
-        
+
       - name: Build
-        run: xmake
+        run: |
+          expand asio.zip
+          xmake
