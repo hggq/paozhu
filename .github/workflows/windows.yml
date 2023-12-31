@@ -14,8 +14,9 @@ jobs:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v4
-      - name: Add msbuild to PATH (include NuGet, vcpkg)
-        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Restore vcpkg packages
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: vcpkg integrate install
 
       # - uses: xmake-io/github-action-setup-xmake@v1
       #   with:
