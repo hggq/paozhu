@@ -18,12 +18,7 @@ jobs:
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
             vcpkg integrate project
-            vcpkg install zlib:x64-windows
-            vcpkg install brotli:x64-windows
-            vcpkg install openssl:x64-windows
-            vcpkg install asio
-            vcpkg install libmysql
-
+            vcpkg install
       # - uses: xmake-io/github-action-setup-xmake@v1
       #   with:
       #     xmake-version: branch@dev
