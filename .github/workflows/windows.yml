@@ -23,8 +23,8 @@ jobs:
         run: |
            powershell Invoke-WebRequest -OutFile mysql.zip https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
            unzip mysql.zip
-           powershell Copy-Item ./mysql-8.0.35-winx64/include ./
-           powershell Copy-Item ./mysql-8.0.35-winx64/lib ./
+           powershell Copy-Item -Path ./mysql-8.0.35-winx64/include ./ -recurse -force
+           powershell Copy-Item -Path ./mysql-8.0.35-winx64/lib ./ -recurse -force
       - name: List files in the repository
         run: |
           ls include
