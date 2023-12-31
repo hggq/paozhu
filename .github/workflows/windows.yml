@@ -14,14 +14,8 @@ jobs:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v6
-        with:
-          script: |
-          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');   
-          env: 
-            VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+      - name: Add msbuild to PATH (include NuGet, vcpkg)
+        uses: microsoft/setup-msbuild@v1.0.2
 
       # - uses: xmake-io/github-action-setup-xmake@v1
       #   with:
