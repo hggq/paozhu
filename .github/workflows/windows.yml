@@ -16,7 +16,14 @@ jobs:
         uses: actions/checkout@v4
       - name: Restore vcpkg packages
         working-directory: ${{env.GITHUB_WORKSPACE}}
-        run: vcpkg integrate install
+        run: |
+            vcpkg integrate project
+            vcpkg integrate install
+            vcpkg install zlib:x64-windows
+            vcpkg install brotli:x64-windows
+            vcpkg install openssl:x64-windows
+            vcpkg install asio
+            vcpkg install libmysql
 
       # - uses: xmake-io/github-action-setup-xmake@v1
       #   with:
