@@ -193,6 +193,23 @@ add_custom_command(
 
 if (ENABLE_VCPKG)
     add_compile_definitions(ENABLE_VCPKG)
+
+if(USE_STANDALONE_ASIO)
+    set(ASIO_PATH ${CMAKE_CURRENT_SOURCE_DIR}/asio "/usr/include")
+
+    target_compile_definitions(paozhu INTERFACE ASIO_STANDALONE)
+    find_path(ASIO_PATH asio.hpp)
+    message(state " Standalone Asio found: " ${ASIO_PATH})
+    if(NOT ASIO_PATH)
+        message(FATAL_ERROR "Standalone Asio not found")
+    else()
+        target_include_directories(paozhu INTERFACE ${ASIO_PATH})
+    endif()
+
+    include_directories(${ASIO_PATH})
+
+endif()
+
     find_package(asio CONFIG REQUIRED)
     target_link_libraries(paozhu asio::asio)
 
