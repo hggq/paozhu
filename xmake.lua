@@ -38,11 +38,6 @@ add_includedirs("libs/department")
 add_includedirs("libs/img")
 add_includedirs("libs/types")
 
-if is_plat("windows") then 
-    if os.isdir("include") then
-        target:add({includedirs = "./include"})
-    end    
-end 
 
 target("paozhu_pre")
     set_kind("binary")
@@ -72,6 +67,12 @@ target("paozhu")
     add_files("viewsrc/view/**.cpp")
     add_files("libs/**.cpp")
     add_files("test/test.cpp")
+
+    if is_plat("windows") then 
+        if os.isdir("include") then
+            target:add({includedirs = "./include"})
+        end    
+    end 
 
     on_load(function (target)
         if is_plat("linux", "macosx") then
@@ -104,6 +105,13 @@ target("paozhu_empty")
 target("paozhu_cli")
     set_kind("binary")
     add_files("vendor/httpcli/http_cli.cpp")
+
+    if is_plat("windows") then 
+        if os.isdir("include") then
+            target:add({includedirs = "./include"})
+        end    
+    end 
+    
     add_packages("mysql")
     on_load(function (target)
         if is_plat("windows") then
