@@ -82,7 +82,6 @@ target("paozhu")
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
-                        target:add_deps("mysqlclient")
                     end
                 end
             end 
@@ -116,7 +115,6 @@ target("paozhu_cli")
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
-                        target:add_deps("mysqlclient")
                     end
                 end
             end 
