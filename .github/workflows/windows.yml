@@ -18,7 +18,6 @@ jobs:
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
             vcpkg integrate project
-            vcpkg integrate install
             vcpkg install zlib:x64-windows
             vcpkg install brotli:x64-windows
             vcpkg install openssl:x64-windows
