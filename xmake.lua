@@ -22,20 +22,24 @@ end
 add_requires("openssl","asio","zlib", "brotli")
 --mysql
 if is_plat("windows") then
-    add_configs("shared", {description = "Download shared binaries.", default = true, type = "boolean", readonly = true})
-    set_urls("https://github.com/xmake-mirror/mysql/releases/download/$(version)/mysql_$(version)_x64.zip")
-    add_versions("8.0.31", "26312cfa871c101b7a55cea96278f9d14d469455091c4fd3ffaaa67a2d1aeea5")
-    package:add("deps", "boost")
-    package:add("deps", "openssl")
-    package:add("deps", "zlib")
-    package:add("deps", "zstd")
-    package:add("deps", "lz4");
+    package("mysql")    
+        add_configs("shared", {description = "Download shared binaries.", default = true, type = "boolean", readonly = true})
+        set_urls("https://github.com/xmake-mirror/mysql/releases/download/$(version)/mysql_$(version)_x64.zip")
+        add_versions("8.0.31", "26312cfa871c101b7a55cea96278f9d14d469455091c4fd3ffaaa67a2d1aeea5")
+        package:add("deps", "boost")
+        package:add("deps", "openssl")
+        package:add("deps", "zlib")
+        package:add("deps", "zstd")
+        package:add("deps", "lz4");
 
-    add_includedirs("include", "include/mysql")
-    os.cp("lib", package:installdir())
-    os.cp("include", package:installdir())
-    os.cp("lib/libmysql.dll", package:installdir("bin"))
+        add_includedirs("include", "include/mysql")
+        os.cp("lib", package:installdir())
+        os.cp("include", package:installdir())
+        os.cp("lib/libmysql.dll", package:installdir("bin"))
+    package_end()    
+    add_requires("mysql");
 end
+
 
 -- if !is_plat("windows") then
 --     add_requires("openssl","mysql","asio","zlib", "brotli")
@@ -61,6 +65,7 @@ add_includedirs("libs/img")
 add_includedirs("libs/types")
 add_includedirs("libs/ipdata")
 add_includedirs("libs/markdown")
+add_includedirs("include", "include/mysql")
 
 for _, dir in ipairs(os.dirs("$(buildir)/libs/**")) do
     add_includedirs(dir)
