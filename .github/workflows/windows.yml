@@ -7,14 +7,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64]
-        ssl: [ ON ]
-    services:
-      mysql:
-        image: mysql:latest
-        env:
-          MYSQL_ROOT_PASSWORD: 12345678
-        ports:
-          - 3306:3306      
+        ssl: [ ON ]   
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
