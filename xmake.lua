@@ -13,6 +13,15 @@ if is_plat("windows") then
         add_defines("_DISABLE_VECTOR_ANNOTATION")
         add_defines("_DISABLE_STRING_ANNOTATION")
     end
+
+    if os.isdir("lib") then
+        for _, linkdir in ipairs({"./lib"}) do
+            if os.isdir(linkdir) then
+                toolchain:add("linkdirs", linkdir)
+            end
+        end
+    end
+
 end
 
 if is_plat("mingw") then 
