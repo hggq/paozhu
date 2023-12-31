@@ -16,8 +16,7 @@ jobs:
         uses: actions/checkout@v4
       - uses: shogo82148/actions-setup-mysql@v1
         with:
-        mysql-version: "8.0"
-      - run: mysql -uroot -e 'SELECT version()'  
+          mysql-version: "8.0"
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: branch@dev
