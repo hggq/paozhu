@@ -14,6 +14,10 @@ jobs:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v4
+      - uses: shogo82148/actions-setup-mysql@v1
+        with:
+        mysql-version: "8.0"
+      - run: mysql -uroot -e 'SELECT version()'  
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: branch@dev
