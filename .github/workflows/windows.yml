@@ -25,9 +25,10 @@ jobs:
       #      unzip mysql.zip
       #      Move-Item -Path ./mysql-8.0.35-winx64/include -Destination ./
       #      Move-Item -Path ./mysql-8.0.35-winx64/lib -Destination ./ 
+      #     ls include
       - name: List files in the repository
         run: |
-          ls include
+
           unzip asio.zip
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."  
