@@ -33,9 +33,13 @@ if is_plat("windows") then
         package:add("deps", "lz4");
 
         add_includedirs("include", "include/mysql")
-        os.cp("lib", package:installdir())
-        os.cp("include", package:installdir())
-        os.cp("lib/libmysql.dll", package:installdir("bin"))
+
+        on_install("mysql", function (package)
+            os.cp("lib", package:installdir())
+            os.cp("include", package:installdir())
+            os.cp("lib/libmysql.dll", package:installdir("bin"))
+        end)
+        
     package_end()    
     add_requires("mysql");
 end
