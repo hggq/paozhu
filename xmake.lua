@@ -1,6 +1,6 @@
 add_rules("mode.debug", "mode.release")
 --add_requires("boost","mysql", "openssl", "libgd", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
-add_requires("openssl","mysql","asio","zlib", "brotli")
+
 
 set_languages("c++20")
 set_encodings("utf-8")
@@ -18,6 +18,8 @@ end
 if is_plat("mingw") then 
     add_defines("WIN32_LEAN_AND_MEAN")
 end
+
+add_requires("openssl","mysql","asio","zlib", "brotli")
 
 add_defines("DEBUG")
 
@@ -40,6 +42,21 @@ add_includedirs("libs/types")
 add_includedirs("libs/ipdata")
 add_includedirs("libs/markdown")
 add_includedirs("include", "include/mysql")
+for _, dir in ipairs(os.dirs("$(buildir)/libs/**")) do
+    add_includedirs(dir)
+end
+
+for _, dir in ipairs(os.dirs("$(buildir)/orm/**")) do
+    add_includedirs(dir)
+end
+
+for _, dir in ipairs(os.dirs("$(buildir)/controller/**")) do
+    add_includedirs(dir)
+end
+
+for _, dir in ipairs(os.dirs("$(buildir)/vendor/**")) do
+    add_includedirs(dir)
+end
 
 target("paozhu_pre")
     set_kind("binary")
