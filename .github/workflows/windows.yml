@@ -21,10 +21,10 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: download mysql
         run: 
-           powershell curl -o mysql.zip https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
-           unzip mysql.zip
-           mv mysql/include ./
-           mv mysql/lib ./ 
+           powershell curl -O https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
+           unzip mysql-8.0.35-winx64.zip
+           powershell Copy-Item ./mysql-8.0.35-winx64/include ./
+           powershell Copy-Item ./mysql-8.0.35-winx64/lib ./ 
       - name: List files in the repository
         run: |
           unzip asio.zip
