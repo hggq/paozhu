@@ -20,11 +20,11 @@ jobs:
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: download mysql
-        run: 
+        run: |
            powershell Invoke-WebRequest -OutFile mysql.zip https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
-      - run: unzip mysql.zip
-      - run: powershell Copy-Item ./mysql/include ./
-      - run: powershell Copy-Item ./mysql/lib ./
+           unzip mysql.zip
+           powershell Copy-Item ./mysql-8.0.35-winx64/include ./
+           powershell Copy-Item ./mysql-8.0.35-winx64/lib ./
       - name: List files in the repository
         run: |
           unzip asio.zip
