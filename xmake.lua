@@ -17,7 +17,8 @@ if is_plat("windows") then
     if os.isdir("lib") then
         for _, linkdir in ipairs({"./lib"}) do
             if os.isdir(linkdir) then
-                toolchain:add("linkdirs", linkdir)
+                target:add("linkdirs", linkdir)
+                target:add("links", "mysqlclient")
             end
         end
     end
