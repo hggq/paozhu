@@ -26,5 +26,5 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."  
       - name: Build
         run: |
-          xmake f -a ${{ matrix.arch }} -y
+          xmake f -a x64 -y
           xmake
