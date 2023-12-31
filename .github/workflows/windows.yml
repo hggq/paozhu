@@ -17,6 +17,11 @@ jobs:
       - name: Restore vcpkg packages
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
+            git clone git://github.com/microsoft/vcpkg
+            cd vcpkg
+            bootstrap-vcpkg.bat
+            vcpkg integrate install
+            vcpkg install zlib:x64-windows
             vcpkg integrate project
             vcpkg install
       # - uses: xmake-io/github-action-setup-xmake@v1
