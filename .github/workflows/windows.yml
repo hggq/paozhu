@@ -8,15 +8,19 @@ jobs:
       matrix:
         arch: [amd64]
         ssl: [ ON ]
+    services:
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_ROOT_PASSWORD: 12345678
+        ports:
+          - 3306:3306      
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: shogo82148/actions-setup-mysql@v1
-        with:
-          mysql-version: "8.0"
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: branch@dev
