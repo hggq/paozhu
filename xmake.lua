@@ -68,17 +68,14 @@ target("paozhu")
     add_files("libs/**.cpp")
     add_files("test/test.cpp")
 
-    if is_plat("windows") then 
-        if os.isdir("include") then
-            target:add({includedirs = "./include"})
-        end    
-    end 
-
     on_load(function (target)
         if is_plat("linux", "macosx") then
             target:add("links", "pthread")
         elseif is_plat("windows") then
             target:add("links", "ws2_32")
+            if os.isdir("include") then
+                target:add({includedirs = "./include"})
+            end 
             if os.isdir("lib") then
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
@@ -106,16 +103,13 @@ target("paozhu_cli")
     set_kind("binary")
     add_files("vendor/httpcli/http_cli.cpp")
 
-    if is_plat("windows") then 
-        if os.isdir("include") then
-            target:add({includedirs = "./include"})
-        end    
-    end 
-    
     add_packages("mysql")
     on_load(function (target)
         if is_plat("windows") then
             target:add("links", "ws2_32")
+            if os.isdir("include") then
+                target:add({includedirs = "./include"})
+            end    
             if os.isdir("lib") then
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
