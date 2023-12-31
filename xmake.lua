@@ -25,7 +25,7 @@ if is_plat("windows") then
     package("mysql")    
         add_configs("shared", {description = "Download shared binaries.", default = true, type = "boolean", readonly = true})
         set_urls("https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip")
-        -- add_versions("8.0.31", "26312cfa871c101b7a55cea96278f9d14d469455091c4fd3ffaaa67a2d1aeea5")
+        add_versions("8.0.35", "504edb7ffcfd838cc4aac8ba0e7885cfc7b843d8e3f177fac3f69a7e743f926d")
 
         on_load("windows",function(package) 
             package:add("deps", "boost")
