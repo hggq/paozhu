@@ -210,7 +210,7 @@ if(USE_STANDALONE_ASIO)
 
 endif()
 
-    find_package(asio CONFIG REQUIRED)
+    # find_package(asio CONFIG REQUIRED)
     target_link_libraries(paozhu asio::asio)
 
     if (ENABLE_BOOST)
