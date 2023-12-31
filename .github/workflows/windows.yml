@@ -14,9 +14,15 @@ jobs:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: xmake-io/github-action-setup-xmake@v1
-        with:
-          xmake-version: branch@dev
+     - name: Export GitHub Actions cache environment variables
+    uses: actions/github-script@v6
+    with:
+      script: |
+        core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+        core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');   
+      # - uses: xmake-io/github-action-setup-xmake@v1
+      #   with:
+      #     xmake-version: branch@dev
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       # - name: download mysql
@@ -28,11 +34,12 @@ jobs:
       #     ls include
       - name: List files in the repository
         run: |
-
           unzip asio.zip
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."  
       - name: Build
         run: |
-          xmake f -a x64 -y
-          xmake
+          cmake .
+          make
+          # xmake f -a x64 -y
+          # xmake
