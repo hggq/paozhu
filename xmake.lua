@@ -1,5 +1,5 @@
 add_rules("mode.debug", "mode.release")
-add_requires("boost", "openssl", "libgd", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
+add_requires( "openssl", "libgd", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
 
 set_languages("c++20")
 set_encodings("utf-8")
@@ -48,7 +48,6 @@ target("paozhu")
     end
     set_kind("binary")
     add_deps("paozhu_pre")
-    add_packages("boost")
     add_packages("asio")
     add_packages("openssl")
     add_packages("zlib")
