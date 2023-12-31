@@ -22,9 +22,9 @@ jobs:
       - name: download mysql
         run: 
            powershell Invoke-WebRequest -OutFile mysql.zip https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
-           unzip mysql.zip
-           powershell Copy-Item ./mysql/include ./
-           powershell Copy-Item ./mysql/lib ./
+      - run: unzip mysql.zip
+      - run: powershell Copy-Item ./mysql/include ./
+      - run: powershell Copy-Item ./mysql/lib ./
       - name: List files in the repository
         run: |
           unzip asio.zip
