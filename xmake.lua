@@ -38,9 +38,58 @@ if is_plat("windows") then
         add_includedirs("include", "include/mysql")
 
         on_install("mysql", function (package)
-            os.cp("lib", package:installdir())
-            os.cp("include", package:installdir())
-            os.cp("lib/libmysql.dll", package:installdir("bin"))
+            io.gsub("CMakeLists.txt", "ADD_SUBDIRECTORY%(storage/ndb%)", "")
+            local configs = {"-DCOMPILATION_COMMENT=XMake",
+                             "-DDEFAULT_CHARSET=utf8",
+                             "-DDEFAULT_COLLATION=utf8_general_ci",
+                             "-DINSTALL_DOCDIR=share/doc/#{name}",
+                             "-DINSTALL_INCLUDEDIR=include/mysql",
+                             "-DINSTALL_INFODIR=share/info",
+                             "-DINSTALL_MANDIR=share/man",
+                             "-DINSTALL_MYSQLSHAREDIR=share/mysql",
+                             "-DWITH_EDITLINE=bundled",
+                             "-DWITH_UNIT_TESTS=OFF",
+                             "-DDISABLE_SHARED=" .. (package:config("shared") and "OFF" or "ON"),
+                             "-DWITH_LZ4='system'",
+                             "-DWITH_ZSTD='system'",
+                             "-DWITH_ZLIB='system'",
+                             "-DWINDOWS_RUNTIME_MD=" .. (is_plat("windows") and package:config("vs_runtime"):startswith("MD") and "ON" or "OFF"),
+                             "-DWITHOUT_SERVER=ON"}
+            io.replace("cmake/ssl.cmake","IF(NOT OPENSSL_APPLINK_C)","IF(FALSE AND NOT OPENSSL_APPLINK_C)", {plain = true})
+            for _, removelib in ipairs({"icu", "libevent", "re2", "rapidjson", "protobuf", "libedit"}) do
+                io.replace("CMakeLists.txt", "MYSQL_CHECK_" .. string.upper(removelib) .. "()\n", "", {plain = true})
+                io.replace("CMakeLists.txt", "INCLUDE(" .. removelib .. ")\n", "", {plain = true})
+                io.replace("CMakeLists.txt", "WARN_MISSING_SYSTEM_" .. string.upper(removelib) .. "(" .. string.upper(removelib) .. "_WARN_GIVEN)", "# WARN_MISSING_SYSTEM_" .. string.upper(removelib) .. "(" .. string.upper(removelib) .. "_WARN_GIVEN)", {plain = true})
+                io.replace("CMakeLists.txt", "SET(" .. string.upper(removelib) .. "_WARN_GIVEN)", "# SET(" .. string.upper(removelib) .. "_WARN_GIVEN)", {plain = true})
+            end
+            os.rmdir("extra")
+            for _, folder in ipairs({"client", "man", "mysql-test", "libbinlogstandalone"}) do
+                os.rmdir(folder)
+                io.replace("CMakeLists.txt", "ADD_SUBDIRECTORY(" .. folder .. ")\n", "", {plain = true})
+            end
+            os.rmdir("storage/ndb")
+            for _, line in ipairs({"INCLUDE(cmake/boost.cmake)\n", "MYSQL_CHECK_EDITLINE()\n"}) do
+                io.replace("CMakeLists.txt", line, "", {plain = true})
+            end
+            io.replace("libbinlogevents/CMakeLists.txt", "INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/libbinlogevents/include)", "MY_INCLUDE_SYSTEM_DIRECTORIES(LZ4)\nINCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/libbinlogevents/include)", {plain = true})
+            io.replace("cmake/install_macros.cmake", "  INSTALL_DEBUG_SYMBOLS(","  # INSTALL_DEBUG_SYMBOLS(", {plain = true})
+            import("package.tools.cmake").install(package, configs)
+            if package:is_plat("windows") then
+                if package:config("shared") then
+                    os.rm(package:installdir(path.join("lib", "mysqlclient.lib")))
+                    os.cp(package:installdir(path.join("lib", "libmysql.dll")), package:installdir("bin"))
+                else
+                    os.rm(package:installdir(path.join("lib", "libmysql.lib")))
+                    os.rm(package:installdir(path.join("lib", "libmysql.dll")))
+                end
+            else
+                if package:config("shared") then
+                    os.rm(package:installdir(path.join("lib", "*.a")))
+                    os.cp(package:installdir(path.join("lib", "*.so.*")), package:installdir("bin"))
+                else
+                    os.rm(package:installdir(path.join("lib", "*.so.*")))
+                end
+            end
         end)
 
     package_end()    
