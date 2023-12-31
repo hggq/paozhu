@@ -13,16 +13,6 @@ if is_plat("windows") then
         add_defines("_DISABLE_VECTOR_ANNOTATION")
         add_defines("_DISABLE_STRING_ANNOTATION")
     end
-
-    if os.isdir("lib") then
-        for _, linkdir in ipairs({"./lib"}) do
-            if os.isdir(linkdir) then
-                target:add("linkdirs", linkdir)
-                target:add("links", "mysqlclient")
-            end
-        end
-    end
-
 end
 
 if is_plat("mingw") then 
@@ -44,10 +34,15 @@ add_includedirs("models")
 add_includedirs("controller/include")
 add_includedirs("controller/include/admin")
 add_includedirs("libs")
-add_includedirs("include")
 add_includedirs("libs/department")
 add_includedirs("libs/img")
 add_includedirs("libs/types")
+
+if is_plat("windows") then 
+    if os.isdir("include") then
+        target:add({includedirs = "./include"})
+    end    
+end 
 
 target("paozhu_pre")
     set_kind("binary")
@@ -83,8 +78,17 @@ target("paozhu")
             target:add("links", "pthread")
         elseif is_plat("windows") then
             target:add("links", "ws2_32")
+            if os.isdir("lib") then
+                for _, linkdir in ipairs({"./lib"}) do
+                    if os.isdir(linkdir) then
+                        target:add("linkdirs", linkdir)
+                        target:add("links", "mysqlclient")
+                    end
+                end
+            end 
         end
     end)
+
 
     after_build(function (target)
         if is_mode("debug") then
@@ -101,3 +105,16 @@ target("paozhu_cli")
     set_kind("binary")
     add_files("vendor/httpcli/http_cli.cpp")
     add_packages("mysql")
+    on_load(function (target)
+        if is_plat("windows") then
+            target:add("links", "ws2_32")
+            if os.isdir("lib") then
+                for _, linkdir in ipairs({"./lib"}) do
+                    if os.isdir(linkdir) then
+                        target:add("linkdirs", linkdir)
+                        target:add("links", "mysqlclient")
+                    end
+                end
+            end 
+        end
+    end)
