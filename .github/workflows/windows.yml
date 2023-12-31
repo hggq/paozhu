@@ -21,7 +21,7 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: download mysql
         run: 
-           powershell curl -O mysql.zip --url https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
+           powershell curl --output mysql.zip --url https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
            unzip mysql.zip
            powershell Copy-Item ./mysql/include ./
            powershell Copy-Item ./mysql/lib ./
