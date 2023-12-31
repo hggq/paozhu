@@ -1,6 +1,6 @@
 add_rules("mode.debug", "mode.release")
 --add_requires("boost","mysql", "openssl", "libgd", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
-add_requires("openssl","asio","zlib", "brotli")
+add_requires("openssl","mysql","asio","zlib", "brotli")
 
 set_languages("c++20")
 set_encodings("utf-8")
@@ -39,7 +39,7 @@ add_includedirs("libs/img")
 add_includedirs("libs/types")
 add_includedirs("libs/ipdata")
 add_includedirs("libs/markdown")
-add_includedirs("include")
+add_includedirs("include", "include/mysql")
 
 target("paozhu_pre")
     set_kind("binary")
