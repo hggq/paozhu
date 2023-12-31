@@ -27,6 +27,7 @@ jobs:
            powershell Copy-Item ./mysql-8.0.35-winx64/lib ./
       - name: List files in the repository
         run: |
+          ls include
           unzip asio.zip
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."  
