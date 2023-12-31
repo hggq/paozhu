@@ -37,7 +37,7 @@ add_includedirs("libs")
 add_includedirs("libs/department")
 add_includedirs("libs/img")
 add_includedirs("libs/types")
-
+add_includedirs("include")
 
 target("paozhu_pre")
     set_kind("binary")
