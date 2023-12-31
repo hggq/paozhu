@@ -24,9 +24,9 @@ add_requires("openssl","asio","zlib", "brotli")
 if is_plat("windows") then
     package("mysql")    
         add_configs("shared", {description = "Download shared binaries.", default = true, type = "boolean", readonly = true})
-        set_urls("https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35.tar.gz")
-        add_versions("8.0.35", "917c5ed38704e99211185ce4be24e33a8c19c91241ed73af4181a6f38d1574c2")
-
+        set_urls("https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-$(version).tar.gz")
+        add_versions("8.0.31", "67bb8cba75b28e95c7f7948563f01fb84528fcbb1a35dba839d4ce44fe019baa")
+        add_deps("cmake")
         on_load("windows",function(package) 
             package:add("deps", "boost")
             package:add("deps", "openssl")
