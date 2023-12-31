@@ -1,5 +1,5 @@
 add_rules("mode.debug", "mode.release")
-add_requires( "openssl","asio", "zlib", "brotli")
+add_requires( "openssl","asio", "zlib", "brotli","mysql")
 
 set_languages("c++20")
 set_encodings("utf-8")
