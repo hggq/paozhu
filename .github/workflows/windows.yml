@@ -36,7 +36,7 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."  
       - name: Build
         run: |
-          cmake .
+          cmake . -DENABLE_VCPKG=ON
           make
           # xmake f -a x64 -y
           # xmake
