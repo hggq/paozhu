@@ -669,7 +669,7 @@ class typejsonfiles
             if (vartypename[0] == '}')
             {
                 // obj end;
-                return std::make_tuple(startoffset, temp);
+                return std::make_tuple((int)startoffset, temp);
             }
         }
         if (vartypename == "const")
@@ -814,7 +814,7 @@ class typejsonfiles
         temp.name = vartypename;
         if (isfunc)
         {
-            return std::make_tuple(startoffset - linecontent.size(), temp);
+            return std::make_tuple((int)(startoffset - linecontent.size()), temp);
         }
 
         for (; offset < linecontent.size(); offset++)
