@@ -5,6 +5,7 @@ cmake_policy(SET CMP0048 NEW)
 set(ENABLE_VCPKG OFF CACHE BOOL "choose ON to enable")
 set(ENABLE_BOOST OFF CACHE BOOL "choose ON to enable")
 set(ENABLE_GD OFF CACHE BOOL "choose ON to enable")
+set(ENABLE_WIN_VCPKG OFF CACHE BOOL "choose ON to enable")
 
 if (ENABLE_GD STREQUAL "ON")
     list(FIND VCPKG_MANIFEST_FEATURES "gd" index)
@@ -179,8 +180,8 @@ else()
   add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/test/test.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${reflect_list} ${src_list} ${source_list} ${controller_list})
 endif()
 
-
-
+if (ENABLE_WIN_VCPKG STREQUAL "ON")
+else ()
 add_custom_command(
     TARGET paozhu_empty paozhu
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre
@@ -190,6 +191,7 @@ add_custom_command(
     COMMAND ${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/
     COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty
     )
+endif()
 
 if (ENABLE_VCPKG)
     add_compile_definitions(ENABLE_VCPKG)
