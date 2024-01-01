@@ -2,7 +2,10 @@ add_rules("mode.debug", "mode.release")
 --add_requires("boost","mysql", "openssl", "libgd", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
 
 -- add_defines("release")
-
+if is_mode("release") then
+else
+    add_defines("DEBUG")
+end
 set_languages("c++20")
 set_encodings("utf-8")
 
@@ -103,7 +106,7 @@ add_requires("openssl","asio","zlib", "brotli")
 --     add_requires("openssl","mysql","asio","zlib", "brotli")
 -- end   
 
-add_defines("DEBUG")
+
 
 add_includedirs("common")
 add_includedirs("controller")
@@ -182,6 +185,7 @@ target("paozhu")
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
+                        target:add_deps("mysqlclient");
                     end
                 end
             end 
@@ -215,6 +219,7 @@ target("paozhu_cli")
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
+                        target:add_deps("mysqlclient");
                     end
                 end
             end 
