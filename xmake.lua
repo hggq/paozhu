@@ -186,7 +186,8 @@ target("paozhu")
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
                         --target:add_deps("links", "mysqlclient")
-                        target:add_ldflags("-Llib", "-lmysqlclient")
+                        -- target:add_ldflags("-Llib", "-lmysqlclient")
+                        target:add_links("links", "mysqlclient") 
                     end
                 end
             end 
@@ -221,7 +222,8 @@ target("paozhu_cli")
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
                         --target:add_deps("links", "mysqlclient")
-                        target:add_ldflags("-Llib", "-lmysqlclient") 
+                        --target:add_ldflags("-Llib", "-lmysqlclient") 
+                        target:add_links("links", "mysqlclient") 
                     end
                 end
             end 
