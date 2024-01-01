@@ -141,7 +141,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
             if ((j + 5) < buffersize)
             {
                 unsigned int bsteamid = 0;
-
+                //uchar weight ,4 char streamid, may be not use big then 3 char recond number
                 bsteamid = (unsigned char)buffer[j + 4] & 0x7F;
                 j++;
                 bsteamid = bsteamid << 8 | (unsigned char)buffer[j];
