@@ -150,7 +150,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
                 j++;
                 bsteamid = bsteamid << 8 | (unsigned char)buffer[j];
                 j++;
-                block_data_info_ptr->priority_lists.push_back(ident_stream);
+                block_data_info_ptr->priority_lists.push_back(bsteamid);
                 j++;
             }
         }
