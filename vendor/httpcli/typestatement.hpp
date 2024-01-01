@@ -872,9 +872,9 @@ class typejsonfiles
         if (isfunc)
         {
             startoffset = offset;
-            return std::make_tuple(startoffset, temp);
+            return std::make_tuple((int)startoffset, temp);
         }
-        return std::make_tuple(linecontent.size(), temp);
+        return std::make_tuple((int)linecontent.size(), temp);
     }
     std::tuple<unsigned int, std::string> readlinecontent(const std::string &filecontent, unsigned int offset = 0)
     {
