@@ -187,7 +187,8 @@ target("paozhu")
                         target:add("linkdirs", linkdir)
                         --target:add_deps("links", "mysqlclient")
                         -- target:add_ldflags("-Llib", "-lmysqlclient")
-                        target:add_links("links", "mysqlclient") 
+                        --target:add_links("links", "mysqlclient") 
+                        target:add_links("./lib/mysqlclient.lib")
                     end
                 end
             end 
@@ -223,7 +224,8 @@ target("paozhu_cli")
                         target:add("linkdirs", linkdir)
                         --target:add_deps("links", "mysqlclient")
                         --target:add_ldflags("-Llib", "-lmysqlclient") 
-                        target:add_links("links", "mysqlclient") 
+                        --target:add_links("links", "mysqlclient") 
+                        target:add_links("./lib/mysqlclient.lib")
                     end
                 end
             end 
