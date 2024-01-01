@@ -14,24 +14,6 @@ jobs:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v4
-      # - name: Restore vcpkg packages
-      #   working-directory: ${{env.GITHUB_WORKSPACE}}
-      #   run: |
-      #       powershell Invoke-WebRequest -OutFile vcpkg2023.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2023.12.12.zip
-      #       unzip vcpkg2023.zip
-      #       cd vcpkg-2023.12.12
-      #       bootstrap-vcpkg.bat
-      #       vcpkg integrate install
-      #       vcpkg integrate project
-      #       vcpkg install
-      #       cd ${{ github.workspace }}
-      #       powershell Invoke-WebRequest -OutFile zlib.zip https://www.zlib.net/zlib13.zip
-      #       unzip zlib.zip
-      #       Move-Item -Path ./zlib-1.3 -Destination ./zlib
-      #       cd zlib
-      #       cmake .
-      #       make
-      #       cd ${{ github.workspace }}  
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: branch@dev
