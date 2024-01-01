@@ -47,10 +47,6 @@ jobs:
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v3
 
-      - name: Enable Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1.12.0
-        with:
-          arch: ${{ matrix.arch }}
       - name: List files in the repository
         run: |
           unzip asio.zip
@@ -58,6 +54,6 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."  
       - name: Build
         run: |
-          cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DZLIB_INCLUDE_DIR=zlib -DZLIB_LIBRARY=zlib -DCMAKE_TOOLCHAIN_FILE=D:/a/paozhu/paozhu/vcpkg-2023.12.12/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
+          cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=D:/a/paozhu/paozhu/vcpkg-2023.12.12/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
       - name: Build
         run: cmake --build ${{github.workspace}} --config Debug
