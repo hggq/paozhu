@@ -49,11 +49,11 @@ if is_plat("windows") then
                              "-DINSTALL_MYSQLSHAREDIR=share/mysql",
                              "-DWITH_EDITLINE=bundled",
                              "-DWITH_UNIT_TESTS=OFF",
-                             "-DDISABLE_SHARED=" .. (package:config("shared") and "OFF" or "ON"),
+                             "-DDISABLE_SHARED=OFF",
                              "-DWITH_LZ4='system'",
                              "-DWITH_ZSTD='system'",
                              "-DWITH_ZLIB='system'",
-                             "-DWINDOWS_RUNTIME_MD=" .. (is_plat("windows") and package:config("vs_runtime"):startswith("MD") and "ON" or "OFF"),
+                             "-DWINDOWS_RUNTIME_MD=ON",
                              "-DWITHOUT_SERVER=ON"}
             io.replace("cmake/ssl.cmake","IF(NOT OPENSSL_APPLINK_C)","IF(FALSE AND NOT OPENSSL_APPLINK_C)", {plain = true})
             for _, removelib in ipairs({"icu", "libevent", "re2", "rapidjson", "protobuf", "libedit"}) do
