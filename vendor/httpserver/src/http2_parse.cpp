@@ -83,7 +83,8 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
     auto dataiter = data_info.find(block_steamid);
     if (dataiter == data_info.end())
     {
-        block_data_info_ptr = std::make_shared<http2_data_t>();
+        block_data_info_ptr            = std::make_shared<http2_data_t>();
+        block_data_info_ptr->stream_id = block_steamid;
         data_info.emplace(block_steamid, block_data_info_ptr);
     }
     else
@@ -141,7 +142,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
             {
                 unsigned int bsteamid = 0;
 
-                bsteamid = (unsigned char)buffer[j] & 0x7F;
+                bsteamid = (unsigned char)buffer[j + 4] & 0x7F;
                 j++;
                 bsteamid = bsteamid << 8 | (unsigned char)buffer[j];
                 j++;
@@ -149,9 +150,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
                 j++;
                 bsteamid = bsteamid << 8 | (unsigned char)buffer[j];
                 j++;
-                block_data_info_ptr->stream_id = bsteamid;
-
-                block_data_info_ptr->weight = (unsigned char)buffer[j];
+                block_data_info_ptr->priority_lists.push_back(ident_stream);
                 j++;
             }
         }
