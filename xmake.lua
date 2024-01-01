@@ -1,7 +1,7 @@
 add_rules("mode.debug", "mode.release")
 --add_requires("boost","mysql", "openssl", "libgd", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
 
-add_defines("release")
+-- add_defines("release")
 
 set_languages("c++20")
 set_encodings("utf-8")
@@ -103,7 +103,7 @@ add_requires("openssl","asio","zlib", "brotli")
 --     add_requires("openssl","mysql","asio","zlib", "brotli")
 -- end   
 
--- add_defines("DEBUG")
+add_defines("DEBUG")
 
 add_includedirs("common")
 add_includedirs("controller")
