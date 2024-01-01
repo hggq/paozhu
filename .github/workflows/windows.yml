@@ -22,7 +22,6 @@ jobs:
             cd vcpkg-2023.12.12
             bootstrap-vcpkg.bat
             vcpkg integrate install
-            vcpkg install zlib:x64-windows
             vcpkg integrate project
             vcpkg install
             cd ${{ github.workspace }}
@@ -53,7 +52,7 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."  
       - name: Build
         run: |
-          cmake . -DENABLE_VCPKG=ON -DZLIB_INCLUDE_DIR=zlib -DZLIB_LIBRARY=zlib
+          cmake . -DENABLE_VCPKG=ON -DZLIB_INCLUDE_DIR=zlib -DZLIB_LIBRARY=zlib -DCMAKE_TOOLCHAIN_FILE=D:/a/paozhu/paozhu/vcpkg-2023.12.12/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
           make
           # xmake f -a x64 -y
           # xmake
