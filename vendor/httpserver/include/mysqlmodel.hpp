@@ -1729,6 +1729,17 @@ class mysqlclientDB : public base
         return *mod;
     }
 
+    model &endsub()
+    {
+        if (iskuohao == true)
+        {
+            iskuohao     = false;
+            ishascontent = false;
+            wheresql.append(" )");
+        }
+        return *mod;
+    }
+
     model &limit(unsigned int num)
     {
         limitsql.clear();
