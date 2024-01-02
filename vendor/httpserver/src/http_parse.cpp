@@ -818,66 +818,66 @@ void httpparse::callposttype()
     case 33:
         if (str_casecmp(buffer_value, "application/x-www-form-urlencoded"))
         {
-            poststate.type     = "application/x-www-form-urlencoded";
-            poststate.posttype = 1;
-            peer->posttype     = 1;
+            poststate->type = "application/x-www-form-urlencoded";
+            posttype        = 1;
+            peer->posttype  = 1;
             return;
         }
         break;
     case 24:
         if (str_casecmp(buffer_value, "application/octet-stream"))
         {
-            poststate.type     = "application/octet-stream";
-            poststate.posttype = 5;
-            peer->posttype     = 5;
+            poststate->type = "application/octet-stream";
+            posttype        = 5;
+            peer->posttype  = 5;
             return;
         }
         break;
     case 19:
         if (str_casecmp(buffer_value, "multipart/form-data"))
         {
-            poststate.type     = "multipart/form-data";
-            poststate.posttype = 2;
-            peer->posttype     = 2;
+            poststate->type = "multipart/form-data";
+            posttype        = 2;
+            peer->posttype  = 2;
             return;
         }
         break;
     case 16:
         if (str_casecmp(buffer_value, "application/json"))
         {
-            poststate.type     = "application/json";
-            poststate.posttype = 3;
-            peer->posttype     = 3;
+            poststate->type = "application/json";
+            posttype        = 3;
+            peer->posttype  = 3;
             return;
         }
         break;
     case 15:
         if (str_casecmp(buffer_value, "application/xml"))
         {
-            poststate.type     = "application/xml";
-            poststate.posttype = 4;
-            peer->posttype     = 4;
+            poststate->type = "application/xml";
+            posttype        = 4;
+            peer->posttype  = 4;
             return;
         }
         break;
     case 6:
         if (str_casecmp(buffer_value, "binary"))
         {
-            poststate.type     = "binary";
-            poststate.posttype = 6;
-            peer->posttype     = 5;
+            poststate->type = "binary";
+            posttype        = 5;
+            peer->posttype  = 5;
             return;
         }
         break;
     default:
-        poststate.type     = "raw";
-        poststate.posttype = 7;
-        peer->posttype     = 5;
+        poststate->type = "raw";
+        posttype        = 5;
+        peer->posttype  = 5;
         return;
     }
-    poststate.type     = "raw";
-    poststate.posttype = 7;
-    peer->posttype     = 5;
+    poststate->type = "raw";
+    posttype        = 5;
+    peer->posttype  = 5;
     return;
 }
 void httpparse::getcontenttype()
@@ -886,7 +886,12 @@ void httpparse::getcontenttype()
     linesize       = header_value.size();
     buffer_value.clear();
     unsigned char statetemp = 0;
-    poststate.posttype      = 0;
+
+    if (poststate == nullptr)
+    {
+        poststate = std::make_unique<poststate_t>();
+    }
+
     for (; i < linesize; i++)
     {
 
@@ -899,14 +904,14 @@ void httpparse::getcontenttype()
             }
             else if (statetemp == 1)
             {
-                poststate.chartset = buffer_value;
-                peer->chartset     = buffer_value;
-                statetemp          = 0;
+                poststate->chartset = buffer_value;
+                peer->chartset      = buffer_value;
+                statetemp           = 0;
             }
             else if (statetemp == 2)
             {
-                poststate.boundary = buffer_value;
-                statetemp          = 0;
+                poststate->boundary = buffer_value;
+                statetemp           = 0;
             }
             /////////////////////
             buffer_value.clear();
@@ -937,12 +942,12 @@ void httpparse::getcontenttype()
     {
         if (statetemp == 1)
         {
-            poststate.chartset = buffer_value;
-            peer->chartset     = buffer_value;
+            poststate->chartset = buffer_value;
+            peer->chartset      = buffer_value;
         }
         else if (statetemp == 2)
         {
-            poststate.boundary = buffer_value;
+            poststate->boundary = buffer_value;
         }
         else
         {
@@ -1168,9 +1173,8 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                     case 14:
                         if (str_casecmp(header_key, "Content-Length"))
                         {
-                            poststate.content_length = header_valuetoint();
-                            // peer_session->stream[1].content_length=poststate.content_length;
-                            peer->content_length = poststate.content_length;
+                            content_length       = header_valuetoint();
+                            peer->content_length = content_length;
                         }
                         break;
                     case 13:
@@ -1663,7 +1667,11 @@ void httpparse::readboundaryline(const unsigned char *buffer, unsigned int buffe
         std::string bi;
 
         bi = buffer_key.substr(2);
-        if (bi == poststate.boundary)
+        if (poststate == nullptr)
+        {
+            poststate = std::make_unique<poststate_t>();
+        }
+        if (bi == poststate->boundary)
         {
 
             postfieldtype = 2;
@@ -1813,14 +1821,20 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
                             break;
                         }
                     }
-                    upfile.type.clear();
+                    //Content-Type is only available when uploading files
+                    //but some non-standard clients may also be possible
+                    if (upfile == nullptr)
+                    {
+                        upfile = std::make_unique<uploadfile_t>();
+                    }
+                    upfile->type.clear();
                     for (; nmpp < buffer_key.size(); nmpp++)
                     {
                         if (buffer_key[nmpp] == 0x20 || buffer_key[nmpp] == 0x0D)
                         {
                             break;
                         }
-                        upfile.type.push_back(buffer_key[nmpp]);
+                        upfile->type.push_back(buffer_key[nmpp]);
                     }
                     jj = nmpp;
                 }
@@ -1890,6 +1904,19 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
                     if (postfieldtype < 8)
                     {
                         postfieldtype = 9;
+                        if (upfile == nullptr)
+                        {
+                            upfile = std::make_unique<uploadfile_t>();
+                        }
+                        else
+                        {
+                            upfile->name.clear();
+                            upfile->filename.clear();
+                            upfile->tempfile.clear();
+                            upfile->type.clear();
+                            upfile->size  = 0;
+                            upfile->error = 0;
+                        }
                     }
 
                     if (buffer_key[mm] == '"')
@@ -1907,29 +1934,29 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
         if (postfieldtype == 9)
         {
             server_loaclvar &localvar = get_server_global_var();
-            upfile.filename           = header_value;
-            upfile.name               = header_key;
+            upfile->filename          = header_value;
+            upfile->name              = header_key;
 
             header_temp =
-                upfile.filename + std::to_string(timeid()) + header_key + std::to_string(rand_range(100, 999));
+                upfile->filename + std::to_string(timeid()) + header_key + std::to_string(rand_range(100, 999));
 
-            upfile.tempfile = localvar.temp_path;
-            upfile.tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
+            upfile->tempfile = localvar.temp_path;
+            upfile->tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
 
             // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
-            uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
+            uprawfile.reset(fopen(upfile->tempfile.c_str(), "wb"));
             if (!uprawfile)
             {
-                upfile.tempfile.append("_t");
+                upfile->tempfile.append("_t");
                 // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
-                uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
+                uprawfile.reset(fopen(upfile->tempfile.c_str(), "wb"));
                 if (!uprawfile)
                 {
                     error         = 3;
                     postfieldtype = 12;
                 }
             }
-            upfile.size = 0;
+            upfile->size = 0;
             header_temp.clear();
         }
         changetype = 0;
@@ -1944,6 +1971,10 @@ void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buff
     unsigned int i       = readoffset;
     unsigned int isbound = 0;
     unsigned int j       = 0;
+    if (poststate == nullptr)
+    {
+        return;
+    }
     if (changetype > 0 || buffer_key.size() > 0)
     {
         j = i;
@@ -1954,9 +1985,9 @@ void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buff
             changetype = 0;
         }
 
-        for (; changetype < poststate.boundary.size(); changetype++)
+        for (; changetype < poststate->boundary.size(); changetype++)
         {
-            if (buffer[j] != poststate.boundary[changetype])
+            if (buffer[j] != poststate->boundary[changetype])
             {
                 isbound = 2;
                 break;
@@ -2028,9 +2059,9 @@ void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buff
                         j++;
 
                         buffer_key.push_back(0x2D);
-                        for (unsigned int nnn = 0; nnn < poststate.boundary.size(); nnn++)
+                        for (unsigned int nnn = 0; nnn < poststate->boundary.size(); nnn++)
                         {
-                            if (buffer[j] != poststate.boundary[nnn])
+                            if (buffer[j] != poststate->boundary[nnn])
                             {
                                 isbound = 2;
                                 break;
@@ -2110,9 +2141,13 @@ void httpparse::procssformfile()
 {
     std::string objname;
     bool isgroup = true;
-    for (unsigned int j = 0; j < upfile.name.length(); j++)
+    if (upfile == nullptr)
     {
-        if (upfile.name[j] == '[')
+        return;
+    }
+    for (unsigned int j = 0; j < upfile->name.length(); j++)
+    {
+        if (upfile->name[j] == '[')
         {
             std::string key1name;
 
@@ -2120,22 +2155,22 @@ void httpparse::procssformfile()
             n++;
             bool ishaskey  = false;
             bool ishaskey2 = false;
-            for (; n < upfile.name.length(); n++)
+            for (; n < upfile->name.length(); n++)
             {
-                if (upfile.name[n] == ']')
+                if (upfile->name[n] == ']')
                 {
                     ishaskey = true;
                     n++;
                     break;
                 }
-                else if (upfile.name[n] == '[')
+                else if (upfile->name[n] == '[')
                 {
 
                     break;
                 }
-                if (upfile.name[n] != 0x22)
+                if (upfile->name[n] != 0x22)
                 {
-                    key1name.push_back(upfile.name[n]);
+                    key1name.push_back(upfile->name[n]);
                 }
             }
 
@@ -2144,31 +2179,31 @@ void httpparse::procssformfile()
             {
 
                 unsigned int m = n;
-                if (n < upfile.name.length())
+                if (n < upfile->name.length())
                 {
-                    if (upfile.name[m] == '[')
+                    if (upfile->name[m] == '[')
                     {
                         m += 1;
-                        for (; m < upfile.name.length(); m++)
+                        for (; m < upfile->name.length(); m++)
                         {
-                            if (upfile.name[m] == ']')
+                            if (upfile->name[m] == ']')
                             {
                                 ishaskey2 = true;
                                 m++;
                                 break;
                             }
-                            else if (upfile.name[m] == '[')
+                            else if (upfile->name[m] == '[')
                             {
 
                                 break;
                             }
-                            if (upfile.name[m] != 0x22)
+                            if (upfile->name[m] != 0x22)
                             {
-                                key2name.push_back(upfile.name[m]);
+                                key2name.push_back(upfile->name[m]);
                             }
                         }
 
-                        if (ishaskey2 && m == upfile.name.length())
+                        if (ishaskey2 && m == upfile->name.length())
                         {
                         }
                         else
@@ -2188,12 +2223,12 @@ void httpparse::procssformfile()
 
                             http::OBJ_VALUE objtemp;
                             objtemp.set_array();
-                            objtemp["name"]     = upfile.name;
-                            objtemp["filename"] = upfile.filename;
-                            objtemp["tempfile"] = upfile.tempfile;
-                            objtemp["type"]     = upfile.type;
-                            objtemp["size"]     = upfile.size;
-                            objtemp["error"]    = upfile.error;
+                            objtemp["name"]     = upfile->name;
+                            objtemp["filename"] = upfile->filename;
+                            objtemp["tempfile"] = upfile->tempfile;
+                            objtemp["type"]     = upfile->type;
+                            objtemp["size"]     = upfile->size;
+                            objtemp["error"]    = upfile->error;
 
                             http::OBJ_ARRAY objtemp1;
                             objtemp1.push(std::move(objtemp));
@@ -2204,12 +2239,12 @@ void httpparse::procssformfile()
 
                             http::OBJ_VALUE objtemp;
                             objtemp[key2name].set_array();
-                            objtemp[key2name]["name"]     = upfile.name;
-                            objtemp[key2name]["filename"] = upfile.filename;
-                            objtemp[key2name]["tempfile"] = upfile.tempfile;
-                            objtemp[key2name]["type"]     = upfile.type;
-                            objtemp[key2name]["size"]     = upfile.size;
-                            objtemp[key2name]["error"]    = upfile.error;
+                            objtemp[key2name]["name"]     = upfile->name;
+                            objtemp[key2name]["filename"] = upfile->filename;
+                            objtemp[key2name]["tempfile"] = upfile->tempfile;
+                            objtemp[key2name]["type"]     = upfile->type;
+                            objtemp[key2name]["size"]     = upfile->size;
+                            objtemp[key2name]["error"]    = upfile->error;
                             peer->files[objname].set_array();
                             peer->files[objname].push(std::move(objtemp));
                         }
@@ -2222,12 +2257,12 @@ void httpparse::procssformfile()
                             peer->files[objname][key1name].set_array();
                             http::OBJ_VALUE objtemp;
                             objtemp.set_array();
-                            objtemp["name"]     = upfile.name;
-                            objtemp["filename"] = upfile.filename;
-                            objtemp["tempfile"] = upfile.tempfile;
-                            objtemp["type"]     = upfile.type;
-                            objtemp["size"]     = upfile.size;
-                            objtemp["error"]    = upfile.error;
+                            objtemp["name"]     = upfile->name;
+                            objtemp["filename"] = upfile->filename;
+                            objtemp["tempfile"] = upfile->tempfile;
+                            objtemp["type"]     = upfile->type;
+                            objtemp["size"]     = upfile->size;
+                            objtemp["error"]    = upfile->error;
 
                             peer->files[objname][key1name] = objtemp;
                         }
@@ -2235,18 +2270,18 @@ void httpparse::procssformfile()
                         {
 
                             peer->files[objname][key1name][key2name].set_array();
-                            peer->files[objname][key1name][key2name]["name"]     = upfile.name;
-                            peer->files[objname][key1name][key2name]["filename"] = upfile.filename;
-                            peer->files[objname][key1name][key2name]["tempfile"] = upfile.tempfile;
-                            peer->files[objname][key1name][key2name]["type"]     = upfile.type;
-                            peer->files[objname][key1name][key2name]["size"]     = upfile.size;
-                            peer->files[objname][key1name][key2name]["error"]    = upfile.error;
+                            peer->files[objname][key1name][key2name]["name"]     = upfile->name;
+                            peer->files[objname][key1name][key2name]["filename"] = upfile->filename;
+                            peer->files[objname][key1name][key2name]["tempfile"] = upfile->tempfile;
+                            peer->files[objname][key1name][key2name]["type"]     = upfile->type;
+                            peer->files[objname][key1name][key2name]["size"]     = upfile->size;
+                            peer->files[objname][key1name][key2name]["error"]    = upfile->error;
                         }
                     }
                     j       = m;
                     isgroup = false;
                 }
-                else if (n == upfile.name.length())
+                else if (n == upfile->name.length())
                 {
                     // 只有一个
                     if (key1name.empty())
@@ -2254,24 +2289,24 @@ void httpparse::procssformfile()
                         peer->files[objname].set_array();
                         http::OBJ_VALUE objtemp;
                         objtemp.set_array();
-                        objtemp["name"]      = upfile.name;
-                        objtemp["filename"]  = upfile.filename;
-                        objtemp["tempfile"]  = upfile.tempfile;
-                        objtemp["type"]      = upfile.type;
-                        objtemp["size"]      = upfile.size;
-                        objtemp["error"]     = upfile.error;
+                        objtemp["name"]      = upfile->name;
+                        objtemp["filename"]  = upfile->filename;
+                        objtemp["tempfile"]  = upfile->tempfile;
+                        objtemp["type"]      = upfile->type;
+                        objtemp["size"]      = upfile->size;
+                        objtemp["error"]     = upfile->error;
                         peer->files[objname] = objtemp;
                     }
                     else
                     {
                         // files[objname].push(key1name,"");
                         peer->files[objname][key1name].set_array();
-                        peer->files[objname][key1name]["name"]     = upfile.name;
-                        peer->files[objname][key1name]["filename"] = upfile.filename;
-                        peer->files[objname][key1name]["tempfile"] = upfile.tempfile;
-                        peer->files[objname][key1name]["type"]     = upfile.type;
-                        peer->files[objname][key1name]["size"]     = upfile.size;
-                        peer->files[objname][key1name]["error"]    = upfile.error;
+                        peer->files[objname][key1name]["name"]     = upfile->name;
+                        peer->files[objname][key1name]["filename"] = upfile->filename;
+                        peer->files[objname][key1name]["tempfile"] = upfile->tempfile;
+                        peer->files[objname][key1name]["type"]     = upfile->type;
+                        peer->files[objname][key1name]["size"]     = upfile->size;
+                        peer->files[objname][key1name]["error"]    = upfile->error;
                     }
                     j       = n;
                     isgroup = false;
@@ -2284,37 +2319,41 @@ void httpparse::procssformfile()
             }
             if (isgroup)
             {
-                objname.push_back(upfile.name[j]);
+                objname.push_back(upfile->name[j]);
             }
         }
         else
         {
-            objname.push_back(upfile.name[j]);
+            objname.push_back(upfile->name[j]);
         }
     }
     if (isgroup)
     {
         // files[upfile.name]=buffer_value;
-        peer->files[upfile.name].set_array();
-        peer->files[upfile.name]["name"]     = upfile.name;
-        peer->files[upfile.name]["filename"] = upfile.filename;
-        peer->files[upfile.name]["tempfile"] = upfile.tempfile;
-        peer->files[upfile.name]["type"]     = upfile.type;
-        peer->files[upfile.name]["size"]     = upfile.size;
-        peer->files[upfile.name]["error"]    = upfile.error;
+        peer->files[upfile->name].set_array();
+        peer->files[upfile->name]["name"]     = upfile->name;
+        peer->files[upfile->name]["filename"] = upfile->filename;
+        peer->files[upfile->name]["tempfile"] = upfile->tempfile;
+        peer->files[upfile->name]["type"]     = upfile->type;
+        peer->files[upfile->name]["size"]     = upfile->size;
+        peer->files[upfile->name]["error"]    = upfile->error;
     }
-    upfile.name.clear();
-    upfile.filename.clear();
-    upfile.tempfile.clear();
-    upfile.type.clear();
-    upfile.size  = 0;
-    upfile.error = 0;
+    upfile->name.clear();
+    upfile->filename.clear();
+    upfile->tempfile.clear();
+    upfile->type.clear();
+    upfile->size  = 0;
+    upfile->error = 0;
 }
 void httpparse::readformfilecotent(const unsigned char *buffer, unsigned int buffersize)
 {
     unsigned int i       = readoffset;
     unsigned int isbound = 0;
     unsigned int j       = 0;
+    if (poststate == nullptr)
+    {
+        return;
+    }
     if (changetype > 0 || header_input.size() > 0)
     {
         j = i;
@@ -2324,9 +2363,9 @@ void httpparse::readformfilecotent(const unsigned char *buffer, unsigned int buf
             j          = j + (4 - header_input.size());
             changetype = 0;
         }
-        for (; changetype < poststate.boundary.size(); changetype++)
+        for (; changetype < poststate->boundary.size(); changetype++)
         {
-            if (buffer[j] != poststate.boundary[changetype])
+            if (buffer[j] != poststate->boundary[changetype])
             {
                 isbound = 2;
                 break;
@@ -2377,7 +2416,7 @@ void httpparse::readformfilecotent(const unsigned char *buffer, unsigned int buf
             return;
         }
 
-        upfile.size += header_input.size();
+        upfile->size += header_input.size();
         fwrite(&header_input[0], header_input.size(), 1, uprawfile.get());
         header_input.clear();
     }
@@ -2405,9 +2444,9 @@ void httpparse::readformfilecotent(const unsigned char *buffer, unsigned int buf
                         j++;
                         headerstep += 1;
                         header_input.push_back(0x2D);
-                        for (unsigned int nnn = 0; nnn < poststate.boundary.size(); nnn++)
+                        for (unsigned int nnn = 0; nnn < poststate->boundary.size(); nnn++)
                         {
-                            if (buffer[j] != poststate.boundary[nnn])
+                            if (buffer[j] != poststate->boundary[nnn])
                             {
                                 isbound = 2;
                                 break;
@@ -2429,7 +2468,7 @@ void httpparse::readformfilecotent(const unsigned char *buffer, unsigned int buf
                             header_input.clear();
 
                             fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile.get());
-                            upfile.size += (i - readoffset);
+                            upfile->size += (i - readoffset);
                             i = j;
                             if (uprawfile)
                             {
@@ -2482,7 +2521,7 @@ void httpparse::readformfilecotent(const unsigned char *buffer, unsigned int buf
         }
     }
     fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile.get());
-    upfile.size += (i - readoffset);
+    upfile->size += (i - readoffset);
     readoffset = buffersize;
 }
 void httpparse::readmultipartformdata(const unsigned char *buffer, unsigned int buffersize)
@@ -2517,7 +2556,7 @@ void httpparse::readformjson(const unsigned char *buffer, unsigned int buffersiz
         buffer_value.push_back(buffer[i]);
     }
     readoffset = i;
-    if ((buffer_value.size() + 2) >= poststate.content_length)
+    if ((buffer_value.size() + 2) >= content_length)
     {
         headerfinish = 2;
         peer->json.from_json(buffer_value);
@@ -2532,7 +2571,7 @@ void httpparse::readformurlencoded(const unsigned char *buffer, unsigned int buf
         buffer_value.push_back(buffer[i]);
     }
     readoffset = i;
-    if ((buffer_value.size() + 2) >= poststate.content_length)
+    if ((buffer_value.size() + 2) >= content_length)
     {
         headerfinish = 2;
 
@@ -2589,7 +2628,7 @@ void httpparse::readformxml(const unsigned char *buffer, unsigned int buffersize
         buffer_value.push_back(buffer[i]);
     }
     readoffset = i;
-    if ((buffer_value.size() + 2) >= poststate.content_length)
+    if ((buffer_value.size() + 2) >= content_length)
     {
         headerfinish     = 2;
         peer->rawcontent = buffer_value;
@@ -2604,32 +2643,50 @@ void httpparse::readformraw(const unsigned char *buffer, unsigned int buffersize
         server_loaclvar &localvar = get_server_global_var();
 
         srand((int)time(0));
-        header_temp     = "application/octet-stream" + std::to_string(timeid()) + std::to_string(rand());
-        upfile.tempfile = localvar.temp_path;
-        upfile.tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
+        header_temp = "application/octet-stream" + std::to_string(timeid()) + std::to_string(rand());
+
+        if (upfile == nullptr)
+        {
+            upfile = std::make_unique<uploadfile_t>();
+        }
+        else
+        {
+            upfile->name.clear();
+            upfile->filename.clear();
+            upfile->tempfile.clear();
+            upfile->type.clear();
+            upfile->size  = 0;
+            upfile->error = 0;
+        }
+
+        upfile->tempfile = localvar.temp_path;
+        upfile->tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
 
         // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
-        uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
+        uprawfile.reset(fopen(upfile->tempfile.c_str(), "wb"));
         if (!uprawfile)
         {
-            upfile.tempfile.append("_t");
+            upfile->tempfile.append("_t");
             // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
-            uprawfile.reset(fopen(upfile.tempfile.c_str(), "wb"));
+            uprawfile.reset(fopen(upfile->tempfile.c_str(), "wb"));
             if (!uprawfile)
             {
                 error = 3;
             }
         }
-        upfile.size = 0;
+        upfile->size = 0;
     }
     if (i < buffersize && uprawfile)
     {
         unsigned int tempnum = buffersize - i;
         fwrite(&buffer[i], tempnum, 1, uprawfile.get());
-        upfile.size = tempnum;
+        upfile->size = tempnum;
     }
-
-    if ((upfile.size + 2) >= poststate.content_length)
+    if (upfile == nullptr)
+    {
+        return;
+    }
+    if ((upfile->size + 2) >= content_length)
     {
         if (uprawfile)
         {
@@ -2640,10 +2697,10 @@ void httpparse::readformraw(const unsigned char *buffer, unsigned int buffersize
         peer->files["tempraw"].set_array();
         peer->files["tempraw"]["name"]     = "tempraw";
         peer->files["tempraw"]["filename"] = "";
-        peer->files["tempraw"]["tempfile"] = upfile.tempfile;
+        peer->files["tempraw"]["tempfile"] = upfile->tempfile;
         peer->files["tempraw"]["type"]     = "application/octet-stream";
-        peer->files["tempraw"]["size"]     = upfile.size;
-        peer->files["tempraw"]["error"]    = upfile.error;
+        peer->files["tempraw"]["size"]     = upfile->size;
+        peer->files["tempraw"]["error"]    = upfile->error;
         headerfinish                       = 2;
     }
 }
@@ -2670,7 +2727,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                 changetype = 0;
                 break;
             }
-            changetype = changetype + buffersize - readoffset;
+            changetype = changetype + readoffset;
             if (changetype > 16384)
             {
                 error = 403;
@@ -2712,7 +2769,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                     error = 403;
                     return;
                 }
-                switch (poststate.posttype)
+                switch (posttype)
                 {
                 case 1:
                     // x-www-form-urlencoded
@@ -2792,12 +2849,13 @@ void httpparse::clear()
     peer->pathinfos.clear();
     peer->querystring.clear();
     peer->urlpath.clear();
-    readoffset               = 0;
-    headendhitnum            = 0;
-    postfieldtype            = 0;
-    changetype               = 0;
-    headerstep               = 0;
-    poststate.content_length = 0;
+    readoffset     = 0;
+    headendhitnum  = 0;
+    postfieldtype  = 0;
+    changetype     = 0;
+    headerstep     = 0;
+    posttype       = 0;
+    content_length = 0;
 
     peer->host.clear();
     peer->etag.clear();

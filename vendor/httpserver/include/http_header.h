@@ -58,8 +58,8 @@ struct websocket_t
 };
 struct poststate_t
 {
-    unsigned long long content_length;
-    unsigned char posttype = 0;
+    // unsigned long long content_length;
+    // unsigned char posttype = 0;
     std::string chartset;
     std::string type;
     std::string xrequestedwith;

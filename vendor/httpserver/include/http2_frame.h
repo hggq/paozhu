@@ -83,20 +83,21 @@ struct http2_goaway_t
 struct http2_data_t
 {
     http2_data_t() : uprawfile(nullptr, std::fclose){};
-    unsigned int stream_id            = 0;
-    unsigned int match_offset         = 0;
-    bool isbegin                      = false;
-    bool isend                        = false;
-    bool endstream                    = false;
-    bool endheader                    = false;
-    bool padded                       = false;
-    bool priority                     = false;
-    unsigned char posttype            = 0;
-    unsigned char postfieldtype       = 0;
-    unsigned char changetype          = 0;
-    unsigned char pad_length          = 0;
-    unsigned char weight              = 0;
-    unsigned long long length         = 0;// bloack data length;
+    bool isbegin                = false;
+    bool isend                  = false;
+    bool endstream              = false;
+    bool endheader              = false;
+    bool padded                 = false;
+    bool priority               = false;
+    unsigned char posttype      = 0;
+    unsigned char postfieldtype = 0;
+    unsigned char changetype    = 0;
+    unsigned char pad_length    = 0;
+    unsigned char weight        = 0;
+    unsigned int stream_id      = 0;
+    unsigned int match_offset   = 0;
+    unsigned int length         = 0;// bloack data length;
+
     unsigned long long curnum         = 0;// now block length
     unsigned long long content_length = 0;// post length
 
@@ -109,7 +110,8 @@ struct http2_data_t
     std::string buffer_value;
     std::string field_value;
     std::list<unsigned int> priority_lists;
-    struct uploadfile_t upfile;
+    //struct uploadfile_t upfile;
+    std::unique_ptr<uploadfile_t> upfile;
 };
 
 // header code
