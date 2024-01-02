@@ -25,16 +25,6 @@ jobs:
             vcpkg integrate project
             vcpkg install
             cd ${{ github.workspace }}
-      # powershell Invoke-WebRequest -OutFile zlib.zip https://www.zlib.net/zlib13.zip
-      # unzip zlib.zip
-      # Move-Item -Path ./zlib-1.3 -Destination ./zlib
-      # cd zlib
-      # cmake .
-      # make
-      # cd ${{ github.workspace }}  
-      # - uses: xmake-io/github-action-setup-xmake@v1
-      #   with:
-      #     xmake-version: branch@dev
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       # - name: download mysql
