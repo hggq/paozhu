@@ -2898,7 +2898,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                             //http2pre    = std::make_unique<http2parse>();
                             http2pre = std::make_shared<http2parse>();
                             http2pre->setsession(peer_session);
-                            http2pre->http_data[1] = peer;
+                            http2pre->http_data.emplace(1, peer);
                             http2pre->stream_list.emplace(1);
                             //co_spawn(this->io_context, http2task(http2pre), asio::detached);
                             continue;
