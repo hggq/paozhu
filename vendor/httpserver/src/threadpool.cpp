@@ -436,7 +436,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                         }
                         else
                         {
-                            peer->push_path_method(regmethold_path);// record not execute method
+                            peer->push_flow(regmethold_path);// record not execute method
                             auto method_loop_iter = _http_regmethod_table.find(sitecontent);
                             if (method_loop_iter != _http_regmethod_table.end())//_http_regmethod_table.find(sitecontent) == _http_regmethod_table.end()
                             {

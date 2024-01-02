@@ -23,7 +23,6 @@
 #include <cmath>
 #include <thread>
 #include <chrono>
-#include <stack>
 
 #include "request.h"
 #include "client_session.h"
@@ -121,8 +120,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     void cors_domain(const std::string &, const std::string &header_v = "");
     void cors_method(const std::string &header_v = "");
-    void push_path_method(const std::string &);
-    std::string pop_path_method();
+    void push_flow(const std::string &);
+    std::string pop_flow();
     unsigned char add_timeloop_task(const std::string &, unsigned int);
     void clear_timeloop_task();
     unsigned int get_timeloop_count();
@@ -190,7 +189,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string output;
     std::string sitepath;
     std::string sendfilename;
-    std::stack<std::string> path_method_names;
+    std::unique_ptr<std::list<std::string>> flow_method;
     unsigned char sendfiletype;
     unsigned char linktype;
     unsigned char method;

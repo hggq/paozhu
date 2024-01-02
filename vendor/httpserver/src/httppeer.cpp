@@ -1917,15 +1917,15 @@ void httppeer::cors_method(const std::string &header_v)
         send_header["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
     }
 }
-void httppeer::push_path_method(const std::string &m_name) { path_method_names.push(m_name); }
-std::string httppeer::pop_path_method()
+void httppeer::push_flow(const std::string &m_name) { flow_method->push_back(m_name); }
+std::string httppeer::pop_flow()
 {
-    if (path_method_names.empty())
+    if (flow_method->empty())
     {
         return "";
     }
-    std::string tempmethod = path_method_names.top();
-    path_method_names.pop();
+    std::string tempmethod = flow_method->back();
+    flow_method->pop_back();
     return tempmethod;
 }
 void httppeer::clsoesend(asio::io_context &ioc)
