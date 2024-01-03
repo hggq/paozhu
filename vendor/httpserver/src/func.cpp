@@ -1154,7 +1154,7 @@ std::string_view str_trim_view(std::string_view str)
         break;
     }
     tlen = tlen - i;
-    return std::string_view(str.substr(i, tlen));
+    return str.substr(i, tlen);
 }
 
 std::string html_encode(std::string_view str)
