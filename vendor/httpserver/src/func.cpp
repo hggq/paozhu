@@ -1132,6 +1132,31 @@ std::string str_trim(std::string_view str)
     }
     return temp;
 }
+std::string_view str_trim_view(std::string_view str)
+{
+    unsigned int tlen = str.size();
+    for (; tlen > 0; tlen--)
+    {
+        unsigned int j = tlen - 1;
+        if (str[j] == 0x20 || str[j] == 0x09 || str[j] == 0x0A || str[j] == 0x0D)
+        {
+            continue;
+        }
+        break;
+    }
+    unsigned int i = 0;
+    for (; i < tlen; i++)
+    {
+        if (str[i] == 0x20 || str[i] == 0x09 || str[i] == 0x0A || str[i] == 0x0D)
+        {
+            continue;
+        }
+        break;
+    }
+    tlen = tlen - i;
+    return std::string_view(str.substr(i, tlen));
+}
+
 std::string html_encode(std::string_view str)
 {
     std::string temp;

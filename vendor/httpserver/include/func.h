@@ -34,6 +34,7 @@ std::string html_encode(std::string_view);
 std::string strip_html(std::string_view);
 std::string strip_annot(std::string_view);
 std::string str_trim(std::string_view);
+std::string_view str_trim_view(std::string_view);
 std::string mb_substr(std::string_view, int, int length = 0);
 unsigned int mb_strlen(std::string_view);
 std::map<std::string, std::string> filepath(std::string &);

@@ -17,6 +17,7 @@
 #include "teststr_join.h"
 #include "testrand.h"
 #include "testormcache.h"
+#include "teststr_trim.h"
 #include "testsendmail.h"
 #include "admin/articles.h"
 #include "admin/topics.h"
@@ -92,6 +93,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testormcachec;
 		methodcallback.emplace("testormcachec",temp);
+		temp.pre = nullptr;
+		temp.regfun = teststrtrim;
+		methodcallback.emplace("teststr_trim",temp);
 		temp.pre = nullptr;
 		temp.regfun = testsendmaildo;
 		methodcallback.emplace("testsendmaildo",temp);
