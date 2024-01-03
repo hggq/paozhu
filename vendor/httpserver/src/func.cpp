@@ -289,7 +289,7 @@ std::string get_filename(const std::string &filename)
     std::reverse(filename_name.begin(), filename_name.end());
     return filename_name;
 }
-std::vector<std::string> mb_split(std::string pattern, std::string &msg)
+std::vector<std::string> mb_split(std::string_view pattern, std::string_view msg)
 {
     std::vector<std::string> temp;
 
@@ -323,9 +323,9 @@ std::vector<std::string> mb_split(std::string pattern, std::string &msg)
     }
     return temp;
 }
-int mb_strlen(std::string &str)
+unsigned int mb_strlen(std::string_view str)
 {
-    int length             = 0;
+    unsigned int length    = 0;
     unsigned long long pos = 0;
     unsigned char c;
     for (; pos < str.size(); pos++)
@@ -361,7 +361,7 @@ int mb_strlen(std::string &str)
     }
     return length;
 }
-std::string mb_substr(std::string &str, int begin, int length)
+std::string mb_substr(std::string_view str, int begin, int length)
 {
     std::string temp;
     int strlength = 0;
@@ -1104,13 +1104,14 @@ std::map<std::string, std::string> filepath(std::string &str)
     }
     return temp;
 }
-std::string mb_trim(std::string &str)
+std::string str_trim(std::string_view str)
 {
     std::string temp;
     unsigned int tlen = str.size();
     for (; tlen > 0; tlen--)
     {
-        if (str[tlen - 1] == 0x20 || str[tlen - 1] == 0x09 || str[tlen - 1] == 0x0A || str[tlen - 1] == 0x0D)
+        unsigned int j = tlen - 1;
+        if (str[j] == 0x20 || str[j] == 0x09 || str[j] == 0x0A || str[j] == 0x0D)
         {
             continue;
         }
@@ -1131,7 +1132,7 @@ std::string mb_trim(std::string &str)
     }
     return temp;
 }
-std::string html_encode(std::string &str)
+std::string html_encode(std::string_view str)
 {
     std::string temp;
     for (unsigned int i = 0; i < str.size(); i++)
@@ -1325,7 +1326,7 @@ std::string json_addslash(const std::string &content)
     return temp;
 }
 
-std::string strip_html(const std::string &content)
+std::string strip_html(std::string_view content)
 {
     std::string temp;
     std::string tempstr;
@@ -1611,7 +1612,7 @@ std::string strip_html(const std::string &content)
 
     return temp;
 }
-std::string strip_annot(const std::string &content)
+std::string strip_annot(std::string_view content)
 {
     std::string temp;
     for (unsigned int i = 0; i < content.size(); i++)

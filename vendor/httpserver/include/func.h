@@ -29,13 +29,13 @@ bool str_lastcmp(std::string_view str1, std::string_view str2, unsigned int leng
 bool str_caselastcmp(std::string_view str1, std::string_view str2, unsigned int length);
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext);
 std::string get_filename(const std::string &filename);
-std::vector<std::string> mb_split(const std::string, std::string &);
-std::string html_encode(std::string &);
-std::string strip_html(const std::string &);
-std::string strip_annot(const std::string &);
-std::string mb_trim(std::string &);
-std::string mb_substr(std::string &, int, int length = 0);
-int mb_strlen(std::string &);
+std::vector<std::string> mb_split(std::string_view, std::string_view);
+std::string html_encode(std::string_view);
+std::string strip_html(std::string_view);
+std::string strip_annot(std::string_view);
+std::string str_trim(std::string_view);
+std::string mb_substr(std::string_view, int, int length = 0);
+unsigned int mb_strlen(std::string_view);
 std::map<std::string, std::string> filepath(std::string &);
 struct stat filestat(std::string &);
 
@@ -48,6 +48,23 @@ std::string str2safemethold(const char *source, unsigned int str_length);
 std::string numstr_to_sql(const char *source, unsigned int str_length, char b = ',');
 
 template <typename _Tp>
+std::string str_join(const _Tp &source, char b = 0x00)
+{
+    std::stringstream _stream;
+    unsigned int j = 0;
+    for (typename _Tp::const_iterator iter = source.begin(); iter != source.end(); iter++)
+    {
+        if (j > 0 && b != 0x00)
+        {
+            _stream << b;
+        }
+        _stream << *iter;
+        j++;
+    }
+    return _stream.str();
+}
+
+template <typename _Tp>
     requires std::is_integral_v<_Tp>
 std::vector<_Tp> numstr_to_vector(const char *source, unsigned int str_length, char b = ',')
 {
@@ -56,7 +73,7 @@ std::vector<_Tp> numstr_to_vector(const char *source, unsigned int str_length, c
 
     for (unsigned int i = 0; i < str_length; i++)
     {
-        if (source[i] == '-' || (source[i] > 0x2F && source[i] < 0x3A))
+        if (source[i] == '-' || source[i] == '.' || (source[i] > 0x2F && source[i] < 0x3A))
         {
             tempstr.push_back(source[i]);
         }
@@ -91,7 +108,7 @@ std::vector<_Tp> numstr_to_vector(const char *source, unsigned int str_length, c
 
     for (unsigned int i = 0; i < str_length; i++)
     {
-        if (source[i] == '-' || (source[i] > 0x2F && source[i] < 0x3A))
+        if (source[i] == '-' || source[i] == '.' || (source[i] > 0x2F && source[i] < 0x3A))
         {
             tempstr.push_back(source[i]);
         }
