@@ -83,7 +83,7 @@ void client_context::time_out_loop()
             this->timeout_condition.wait(
                 lock,
                 [this]
-                { return this->stop || !this->timeout_lists.empty(); });
+                { return this->isstop || !this->timeout_lists.empty(); });
         }
 
         auto time_in_seconds = time_point_cast<seconds>(system_clock::now());
@@ -145,7 +145,7 @@ void client_context::time_out_loop()
         std::this_thread::sleep_until(m_EndFrame);
         m_BeginFrame = m_EndFrame;
         m_EndFrame   = m_BeginFrame + invFpsLimit;
-        if (stop)
+        if (isstop)
         {
             break;
         }
@@ -178,7 +178,7 @@ void client_context::taskloop()
             std::unique_lock<std::mutex> lock(this->queue_mutex);
             this->condition.wait(lock,
                                  [this]
-                                 { return this->stop || !this->clienttasks.empty() || !this->cgitasks.empty(); });
+                                 { return this->isstop || !this->clienttasks.empty() || !this->cgitasks.empty(); });
 
             if (this->clienttasks.size() > 0)
             {
@@ -204,7 +204,7 @@ void client_context::taskloop()
             else
             {
                 lock.unlock();
-                if (this->stop)
+                if (this->isstop)
                 {
                     break;
                 }
@@ -261,6 +261,14 @@ asio::awaitable<void> client_context::websocket_client_task(std::shared_ptr<clie
         co_await clientpeer->co_send();
     }
     co_return;
+}
+
+void client_context::stop()
+{
+    isstop = true;
+    condition.notify_all();
+    timeout_condition.notify_all();
+    ioc.stop();
 }
 
 }// namespace http

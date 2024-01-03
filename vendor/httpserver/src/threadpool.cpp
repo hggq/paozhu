@@ -96,14 +96,14 @@ unsigned int ThreadPool::getpoolthreadnum() { return thread_arrays.size(); }
 
 void ThreadPool::threadloop(std::shared_ptr<threadinfo_t> mythread_info)
 {
-    while (!this->stop)
+    while (!this->isstop)
     {
         std::unique_lock<std::mutex> lock(this->queue_mutex);
         this->condition.wait(lock,
                              [&, this]
-                             { return this->stop || mythread_info->stop || !this->clienttasks.empty(); });
+                             { return this->isstop || mythread_info->stop || !this->clienttasks.empty(); });
 
-        if (this->stop && this->clienttasks.empty())
+        if (this->isstop && this->clienttasks.empty())
             break;
 
         if (mythread_info->stop)
@@ -235,7 +235,7 @@ bool ThreadPool::addthread(size_t threads)
 }
 
 // the constructor just launches some amount of workers
-ThreadPool::ThreadPool(size_t threads) : stop(false)
+ThreadPool::ThreadPool(size_t threads) : isstop(false)
 {
     isclose_add = true;
     pooltotalnum.store(0);
@@ -260,7 +260,7 @@ ThreadPool::~ThreadPool()
 {
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
-        stop = true;
+        isstop = true;
     }
     condition.notify_all();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -279,7 +279,7 @@ bool ThreadPool::addclient(std::shared_ptr<httppeer> peer)
     {
         return false;
     }
-    if (!stop)
+    if (!isstop)
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
         clienttasks.emplace(peer);

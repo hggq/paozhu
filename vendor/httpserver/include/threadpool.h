@@ -82,7 +82,11 @@ class ThreadPool
     unsigned int getlivenum() { return livethreadcount.load(); };
     unsigned int gettasknum() { return clienttasks.size(); };
     unsigned int getmixthreads() { return mixthreads.load(); };
-
+    void stop()
+    {
+        isstop = true;
+        condition.notify_all();
+    }
     ~ThreadPool();
 
   public:
@@ -92,7 +96,7 @@ class ThreadPool
     std::queue<std::shared_ptr<httppeer>> clienttasks;
     std::mutex queue_mutex;
     std::condition_variable condition;
-    bool stop;
+    bool isstop;
     bool isclose_add = true;
     std::atomic<unsigned int> pooltotalnum, mixthreads;
     std::atomic<unsigned int> livethreadcount;

@@ -1915,7 +1915,7 @@ void httpserver::http2pool(int threadid)
         {
             std::unique_lock<std::mutex> lock(this->http2_task_mutex);
             this->http2condition.wait(lock, [this]
-                                      { return this->stop || !this->http2send_tasks.empty(); });
+                                      { return this->isstop || !this->http2send_tasks.empty(); });
         }
 
         const std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
@@ -1956,7 +1956,7 @@ void httpserver::http2pool(int threadid)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
-        if (stop)
+        if (isstop)
         {
             break;
         }
@@ -3168,7 +3168,7 @@ void httpserver::websocket_loop(int fps)
             this->websocketcondition.wait(
                 lock,
                 [this]
-                { return this->stop || !this->websockettasks.empty() || !this->clientlooptasks.empty(); });
+                { return this->isstop || !this->websockettasks.empty() || !this->clientlooptasks.empty(); });
         }
 
         auto time_in_seconds = time_point_cast<seconds>(system_clock::now());
@@ -3245,7 +3245,7 @@ void httpserver::websocket_loop(int fps)
         std::this_thread::sleep_until(m_EndFrame);
         m_BeginFrame = m_EndFrame;
         m_EndFrame   = m_BeginFrame + invFpsLimit;
-        if (stop)
+        if (isstop)
         {
             break;
         }
@@ -3446,7 +3446,7 @@ void httpserver::listeners()
         catch (std::exception &e)
         {
         }
-        if (stop)
+        if (isstop)
         {
             break;
         }
@@ -3500,7 +3500,7 @@ void httpserver::listener()
             error_loglist.emplace_back(" http accept error  ");
             lock.unlock();
         }
-        if (stop)
+        if (isstop)
         {
             break;
         }
@@ -3846,7 +3846,7 @@ void httpserver::httpwatch()
             DEBUG_LOG("frame thread:%s", e.what());
             catch_num += 1;
         }
-        if (stop)
+        if (isstop)
         {
             break;
         }
@@ -3856,7 +3856,7 @@ void httpserver::run(const std::string &sysconfpath)
 {
     try
     {
-        stop = false;
+        isstop = false;
         _initauto_control_httpmethodregto(_http_regmethod_table);
         _inithttpmethodregto(_http_regmethod_table);
         _inithttpmethodregto_pre(_http_regmethod_table);
@@ -3953,5 +3953,15 @@ void httpserver::run(const std::string &sysconfpath)
         LOG_ERROR << " httpserver Exception " << e.what() << LOG_END;
     }
     DEBUG_LOG("httpserver exit!");
+}
+void httpserver::stop()
+{
+    isstop                         = true;
+    client_context &client_context = get_client_context_obj();
+    client_context.stop();
+    websocketcondition.notify_all();
+    http2condition.notify_all();
+    clientrunpool.stop();
+    io_context.stop();
 }
 }// namespace http

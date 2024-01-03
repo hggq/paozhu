@@ -129,10 +129,11 @@ class httpserver
 
     void add_nullptrlog(const std::string &logstrb);
     void httpwatch();
+    void stop();
     ~httpserver()
     {
         std::printf("~httpserver\n");
-
+        isstop = true;
         io_context.stop();
 
         for (unsigned int i = 0; i < runthreads.size(); ++i)
@@ -154,7 +155,7 @@ class httpserver
     std::list<std::pair<std::size_t, std::shared_ptr<httppeer>>> clientlooptasks;
     std::queue<httpsocket_t> tasks;
 
-    bool stop;
+    bool isstop;
     std::atomic_uint total_count = 0;
     // httpheader end
     // log

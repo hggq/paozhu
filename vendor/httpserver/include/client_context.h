@@ -37,6 +37,7 @@ class client_context
     asio::awaitable<void> websocket_client_task(std::shared_ptr<client>);
     void add_http_task(std::shared_ptr<client>);
     void add_fastcgi_task(std::shared_ptr<fastcgi>);
+    void stop();
     ~client_context();
 
   public:
@@ -48,7 +49,7 @@ class client_context
     std::vector<std::thread> httptask_th;
     std::thread time_out_loop_th;
 
-    bool stop = false;
+    bool isstop = false;
     std::mutex queue_mutex;
     std::condition_variable condition;
     std::queue<std::shared_ptr<client>> clienttasks;
