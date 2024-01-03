@@ -584,7 +584,7 @@ asio::awaitable<void> fastcgi::co_send()
             }
             else if (line_name.size() == 6 && str_casecmp(line_name, "Status"))
             {
-                peer->status(str2int(&line_header[0], line_header.size()));
+                peer->status(str2int(line_header));
             }
             else if (line_name.size() == 10 && str_casecmp(line_name, "Set-Cookie"))
             {
@@ -609,7 +609,7 @@ asio::awaitable<void> fastcgi::co_send()
             }
             else if (line_name.size() == 6 && str_casecmp(line_name, "Status"))
             {
-                peer->status(str2int(&line_header[0], line_header.size()));
+                peer->status(str2int(line_header));
             }
             else if (line_name.size() == 10 && str_casecmp(line_name, "Set-Cookie"))
             {

@@ -1198,6 +1198,37 @@ std::string html_encode(std::string_view str)
     }
     return temp;
 }
+long long str2int(std::string_view source)
+{
+    long long temp      = 0;
+    unsigned int qi     = 0;
+    unsigned int length = source.size();
+    bool issub          = false;
+    for (; qi < length; qi++)
+    {
+        if (source[qi] != 0x20)
+        {
+            break;
+        }
+    }
+    if (source[qi] == '-')
+    {
+        issub = true;
+        qi++;
+    }
+    for (; qi < length; qi++)
+    {
+        if (source[qi] < 0x3A && source[qi] > 0x2F)
+        {
+            temp = temp * 10 + (source[qi] - 0x30);
+        }
+    }
+    if (issub)
+    {
+        temp = ~temp + 1;
+    }
+    return temp;
+}
 long long str2int(const char *source, unsigned int str_length)
 {
     long long temp  = 0;
@@ -1224,20 +1255,28 @@ long long str2int(const char *source, unsigned int str_length)
     }
     if (issub)
     {
-        temp = 0 - temp;
+        temp = ~temp + 1;
     }
     return temp;
 }
-std::string char2str(const unsigned char *source, unsigned int str_length)
+std::string char2hex(const unsigned char *source, unsigned int str_length, unsigned char sp)
 {
     static const unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
     std::string obj;
     unsigned int qi = 0;
+
     for (; qi < str_length; qi++)
     {
         unsigned char tmc = source[qi];
         obj.push_back(str[tmc >> 4 & 0x0F]);
         obj.push_back(str[tmc & 0x0F]);
+        if (sp > 0)
+        {
+            if ((qi + 1) % sp == 0)
+            {
+                obj.push_back(0x20);
+            }
+        }
     }
     return obj;
 }

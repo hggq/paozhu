@@ -23,6 +23,7 @@
 #include "admin/topics.h"
 #include "admin/main.h"
 #include "testformpost.h"
+#include "teststr2int.h"
 #include "testqrcode.h"
 #include "imageapi.h"
 #include "testpzcache.h"
@@ -204,6 +205,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testuploadpostfile;
 		methodcallback.emplace("addpostfile",temp);
+		temp.pre = nullptr;
+		temp.regfun = teststr2int;
+		methodcallback.emplace("teststr2int",temp);
 		temp.pre = nullptr;
 		temp.regfun = testqrcode;
 		methodcallback.emplace("testqrcode",temp);

@@ -40,8 +40,9 @@ unsigned int mb_strlen(std::string_view);
 std::map<std::string, std::string> filepath(std::string &);
 struct stat filestat(std::string &);
 
+long long str2int(std::string_view);
 long long str2int(const char *source, unsigned int str_length);
-std::string char2str(const unsigned char *source, unsigned int str_length);
+std::string char2hex(const unsigned char *source, unsigned int str_length, unsigned char sp = 0);
 std::string str2safepath(const char *source, unsigned int str_length);
 std::string str2safefile(const char *source, unsigned int str_length);
 std::string str2safemethold(const char *source, unsigned int str_length);
