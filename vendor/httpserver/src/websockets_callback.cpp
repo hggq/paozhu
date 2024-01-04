@@ -9,10 +9,9 @@
 
 namespace http
 {
-    WEBSOCKET_REG &get_websocket_config()
-    {
-        static WEBSOCKET_REG instance;
-        return instance;
-    }
+WEBSOCKET_REG &get_websocket_reg()
+{
+    static WEBSOCKET_REG instance;
+    return instance;
 }
-
+}// namespace http

@@ -11,7 +11,7 @@
 
 namespace http
 {
-    typedef  std::map<std::string,std::function<std::shared_ptr<websockets_api>(std::weak_ptr<httppeer>)>> WEBSOCKET_REG;
-    WEBSOCKET_REG &get_websocket_config();
-}
+typedef std::map<std::string, std::function<std::shared_ptr<websockets_api>(std::weak_ptr<httppeer>)>> WEBSOCKET_REG;
+WEBSOCKET_REG &get_websocket_reg();
+}// namespace http
 #endif

@@ -2917,7 +2917,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                             peer->ws->setWebsocketkey(peer->websocket.key);
                             std::string resp = peer->ws->respondHandshake();
                             peer_session->send_data(resp);
-                            WEBSOCKET_REG &wsreg = get_websocket_config();
+                            WEBSOCKET_REG &wsreg = get_websocket_reg();
 
                             if (peer->pathinfos.size() == 0)
                             {
@@ -3895,7 +3895,7 @@ void httpserver::run(const std::string &sysconfpath)
         VIEW_REG &viewreg = get_viewmetholdreg();
         _initview_method_regto(viewreg);
 
-        WEBSOCKET_REG &wsreg = get_websocket_config();
+        WEBSOCKET_REG &wsreg = get_websocket_reg();
         _initwebsocketmethodregto(wsreg);
 
         total_count = sysconfigpath.get_co_thread_num();
