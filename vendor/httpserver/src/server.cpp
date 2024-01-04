@@ -2984,6 +2984,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
                         }
                         else if (peer->ws->opcode == 0x09)
                         {
+                            peer->websockets->onpong();
                             std::string outhello;
                             outhello = peer->ws->makePong();
                             peer->send(outhello);

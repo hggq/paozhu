@@ -22,6 +22,7 @@ class mywebsockets : public websockets_api
   public:
     void onopen() { DEBUG_LOG(" onopen "); }
     void onclose() { DEBUG_LOG(" onclose "); }
+    void onpong() {}
     void pushloop()
     {
         std::shared_ptr<httppeer> peer = weak_peer.lock();

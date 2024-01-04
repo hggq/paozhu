@@ -19,6 +19,7 @@ class loopwebsockets : public websockets_api
   public:
     void onopen() { std::cout << "onopen" << std::endl; }
     void onclose() { std::cout << "onclose" << std::endl; }
+    void onpong() {}
     void pushloop()
     {
         std::shared_ptr<http::httppeer> peer = weakpeer.lock();

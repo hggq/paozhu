@@ -20,7 +20,7 @@ class websockets_api
     //  virtual void timeloop(clientpeer*) = 0;
     virtual void onclose() = 0;
     //  virtual void onping() const = 0;
-    //  virtual void onpong() const = 0;
+    virtual void onpong() = 0;
     virtual ~websockets_api() {}
     unsigned int timeloop_num;
     unsigned char state;
