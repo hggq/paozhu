@@ -15,4 +15,5 @@ namespace http
 	std::string techempowerfortunes(std::shared_ptr<httppeer> peer);
 	std::string techempowerupdates(std::shared_ptr<httppeer> peer);
 	std::string techempowercached_queries(std::shared_ptr<httppeer> peer);
+	std::string techempowercached_db(std::shared_ptr<httppeer> peer);
 }

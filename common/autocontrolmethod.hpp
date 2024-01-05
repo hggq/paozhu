@@ -99,6 +99,9 @@ namespace http
 		temp.regfun = techempowercached_queries;
 		methodcallback.emplace("cached-queries",temp);
 		temp.pre = nullptr;
+		temp.regfun = techempowercached_db;
+		methodcallback.emplace("cached-db",temp);
+		temp.pre = nullptr;
 		temp.regfun = teststrip_html;
 		methodcallback.emplace("teststrip_html",temp);
 		temp.pre = nullptr;

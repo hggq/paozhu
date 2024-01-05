@@ -146,6 +146,65 @@ std::string techempowercached_queries(std::shared_ptr<httppeer> peer)
         get_num = 500;
     }
     auto myworld          = orm::World();
+    std::string mycacheid = "alldatacache";
+
+    pzcache<std::vector<orm::worldbase::meta>> &temp_cache = pzcache<std::vector<orm::worldbase::meta>>::conn();
+
+    std::vector<orm::worldbase::meta> allcachedata_array;
+    //create rand data to cache
+    if (temp_cache.check(mycacheid) > -1)
+    {
+        allcachedata_array = temp_cache.get(mycacheid);
+    }
+    else
+    {
+        allcachedata_array.resize(10000);
+        for (unsigned int i = 0; i < 10000; i++)
+        {
+            allcachedata_array[i].id           = i + 1;
+            allcachedata_array[i].randomnumber = rand_range(1, 10000);
+        }
+        temp_cache.save(mycacheid, allcachedata_array, 120);
+    }
+    //get rand data from cache
+    mycacheid = "my" + std::to_string(get_num);
+    if (temp_cache.check(mycacheid) > -1)
+    {
+        myworld.record = temp_cache.get(mycacheid);
+    }
+    else
+    {
+        if (allcachedata_array.size() == 10000)
+        {
+            for (unsigned int i = 0; i < get_num; i++)
+            {
+                unsigned int temp_rid = rand_range(1, 10000);
+                myworld.record.push_back(allcachedata_array[temp_rid]);
+            }
+        }
+        temp_cache.save(mycacheid, myworld.record, 120);
+    }
+
+    peer->output = myworld.to_json();
+    return "";
+}
+
+//@urlpath(null,cached-db)
+std::string techempowercached_db(std::shared_ptr<httppeer> peer)
+{
+    peer->type("application/json; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+    //this test from database to cache
+    unsigned int get_num = peer->get["count"].to_int();
+    if (get_num == 0)
+    {
+        get_num = 1;
+    }
+    else if (get_num > 500)
+    {
+        get_num = 500;
+    }
+    auto myworld          = orm::World();
     std::string mycacheid = "my" + std::to_string(get_num);
 
     pzcache<std::vector<orm::worldbase::meta>> &temp_cache = pzcache<std::vector<orm::worldbase::meta>>::conn();
