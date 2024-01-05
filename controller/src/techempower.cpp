@@ -178,7 +178,7 @@ std::string techempowercached_queries(std::shared_ptr<httppeer> peer)
         {
             for (unsigned int i = 0; i < get_num; i++)
             {
-                unsigned int temp_rid = rand_range(1, 10000);
+                unsigned int temp_rid = rand_range(0, 9999);
                 myworld.record.push_back(allcachedata_array[temp_rid]);
             }
         }
