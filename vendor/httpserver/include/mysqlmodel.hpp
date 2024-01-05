@@ -496,7 +496,10 @@ class mysqlclientDB : public base
             error_msg = "not find orm link tag in pool";
             iserror   = true;
         }
-        linkconn = iter->second;
+        else
+        {
+            linkconn = iter->second;
+        }
     }
     mysqlclientDB() : dbtag(base::_rmstag)
     {
@@ -510,7 +513,10 @@ class mysqlclientDB : public base
             error_msg = "not find orm link tag in pool";
             iserror   = true;
         }
-        linkconn = iter->second;
+        else
+        {
+            linkconn = iter->second;
+        }
     }
     model &set_table(std::string table_name)
     {
