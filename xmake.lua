@@ -35,6 +35,7 @@ add_includedirs("vendor/httpserver/include")
 add_includedirs("vendor/httpserver/include/utility")
 add_includedirs("orm")
 add_includedirs("models/cms/include")
+add_includedirs("models/include")
 add_includedirs("models")
 add_includedirs("controller/include")
 add_includedirs("controller/include/admin")
@@ -65,7 +66,7 @@ for _, dir in ipairs(os.dirs("$(buildir)/vendor/**")) do
     add_includedirs(dir)
 end
 
-for _, dir in ipairs(os.dirs("$(buildir)/orm/**")) do
+for _, dir in ipairs(os.dirs("$(buildir)/orm/include")) do
     add_includedirs(dir)
 end
 
