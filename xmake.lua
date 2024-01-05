@@ -65,6 +65,14 @@ for _, dir in ipairs(os.dirs("$(buildir)/vendor/**")) do
     add_includedirs(dir)
 end
 
+for _, dir in ipairs(os.dirs("$(buildir)/orm/**")) do
+    add_includedirs(dir)
+end
+
+for _, dir in ipairs(os.dirs("$(buildir)/models/**")) do
+    add_includedirs(dir)
+end
+
 target("paozhu_pre")
     set_kind("binary")
     add_files("vendor/httpcli/autopickmethod.cpp")
