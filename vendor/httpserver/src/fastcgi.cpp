@@ -225,7 +225,7 @@ asio::awaitable<void> fastcgi::co_send()
 
     params.push_back({"DOCUMENT_ROOT", document_root});
     params.push_back({"GATEWAY_INTERFACE", "FastCGI/1.0"});
-    params.push_back({"SERVER_SOFTWARE", "pz"});
+    params.push_back({"SERVER_SOFTWARE", "Paozhu"});
     params.push_back({"REQUEST_URI", request_url});
     params.push_back({"QUERY_STRING", peer->querystring});
     params.push_back({"SERVER_NAME", peer->host});

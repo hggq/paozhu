@@ -17,7 +17,7 @@ namespace http
 {
   void _initview_method_regto(VIEW_REG  &_viewmetholdreg)
   {
-            	 //create time: Wed, 13 Dec 2023 11:26:55 GMT
+            	 //create time: Fri, 05 Jan 2024 04:56:12 GMT
 
 	_viewmetholdreg.emplace("admin/addarticle",http::view::admin::addarticle);
 	_viewmetholdreg.emplace("admin/addtopic",http::view::admin::addtopic);
@@ -37,6 +37,7 @@ namespace http
 	_viewmetholdreg.emplace("cms/show",http::view::cms::show);
 	_viewmetholdreg.emplace("home/header",http::view::home::header);
 	_viewmetholdreg.emplace("login/login",http::view::login::login);
+	_viewmetholdreg.emplace("techempower/fortunes",http::view::techempower::fortunes);
 
 	} 
 }

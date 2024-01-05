@@ -1350,6 +1350,7 @@ std::string httppeer::make_http1_header()
             http1header.append("\r\n");
         }
     }
+    http1header.append("Server: Paozhu\r\n");
     return http1header;
 }
 std::string httppeer::make_http2_header(unsigned char flag_code)

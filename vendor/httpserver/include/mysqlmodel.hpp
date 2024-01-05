@@ -2226,6 +2226,138 @@ class mysqlclientDB : public base
         }
         return *mod;
     }
+    model &fetch_append()
+    {
+        // unsigned long long sqlhashid = 0;
+        if (selectsql.empty())
+        {
+            sqlstring = "SELECT *  FROM ";
+        }
+        else
+        {
+            sqlstring = "SELECT ";
+            sqlstring.append(selectsql);
+            sqlstring.append(" FROM ");
+        }
+
+        sqlstring.append(base::tablename);
+        sqlstring.append(" WHERE ");
+
+        if (wheresql.empty())
+        {
+            sqlstring.append(" 1 ");
+        }
+        else
+        {
+            sqlstring.append(wheresql);
+        }
+        if (!groupsql.empty())
+        {
+            sqlstring.append(groupsql);
+        }
+        if (!ordersql.empty())
+        {
+            sqlstring.append(ordersql);
+        }
+        if (!limitsql.empty())
+        {
+            sqlstring.append(limitsql);
+        }
+
+        if (iscache)
+        {
+            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+            if (get_cacherecord(sqlhashid))
+            {
+                iscache = false;
+                return *mod;
+            }
+        }
+
+        if (iserror)
+        {
+            return *mod;
+        }
+        std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
+        try
+        {
+            conn = linkconn->get_select_connect();
+        }
+        catch (const char *e)
+        {
+            error_msg = std::string(e);
+            return *mod;
+        }
+
+        try
+        {
+            MYSQL_RES *resultall = nullptr;
+            long long readnum    = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+            if (readnum != 0)
+            {
+                error_msg = std::string(mysql_error(conn.get()));
+                mysql_close(conn.get());
+                conn.reset();
+                return *mod;
+            }
+
+            resultall = mysql_store_result(conn.get());
+            linkconn->back_select_connect(std::move(conn));
+            readnum = 0;
+
+            int num_fields = mysql_num_fields(resultall);
+
+            base::_keypos.clear();
+            if (selectsql.empty())
+            {
+                for (unsigned char index = 0; index < num_fields; index++)
+                {
+                    base::_keypos.emplace_back(index);
+                }
+            }
+            else
+            {
+                MYSQL_FIELD *fields;
+                fields = mysql_fetch_fields(resultall);
+                std::string type_temp;
+                for (unsigned char index = 0; index < num_fields; index++)
+                {
+                    type_temp = std::string(fields[index].name);
+                    base::_keypos.emplace_back(base::findcolpos(type_temp));
+                }
+            }
+
+            while ((base::_row = mysql_fetch_row(resultall)))
+            {
+                base::_addnewrowvalue();
+            }
+            mysql_free_result(resultall);
+            if (iscache)
+            {
+                if (exptime > 0)
+                {
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
+                }
+            }
+            return *mod;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+            return *mod;
+        }
+        catch (const char *e)
+        {
+            error_msg = std::string(e);
+            return *mod;
+        }
+        catch (...)
+        {
+        }
+        return *mod;
+    }
     model &use_cache(int cache_time = 0)
     {
         iscache = true;

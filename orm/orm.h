@@ -8,3 +8,5 @@
 #include "cms/include/Topic.h"
 #include "cms/include/Siteinfo.h"
 #include "cms/include/Logininfo.h"
+#include "Fortune.h"
+#include "World.h"

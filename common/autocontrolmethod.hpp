@@ -13,6 +13,7 @@
 #include "testrestfulpath.h"
 #include "testdownloadauth.h"
 #include "testmodelfromjson.h"
+#include "techempower.h"
 #include "teststrip_html.h"
 #include "teststr_join.h"
 #include "testrand.h"
@@ -76,6 +77,27 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testmodelfromjson;
 		methodcallback.emplace("mfromjson",temp);
+		temp.pre = nullptr;
+		temp.regfun = techempowerplaintext;
+		methodcallback.emplace("plaintext",temp);
+		temp.pre = nullptr;
+		temp.regfun = techempowerjson;
+		methodcallback.emplace("json",temp);
+		temp.pre = nullptr;
+		temp.regfun = techempowerdb;
+		methodcallback.emplace("db",temp);
+		temp.pre = nullptr;
+		temp.regfun = techempowerqueries;
+		methodcallback.emplace("queries",temp);
+		temp.pre = nullptr;
+		temp.regfun = techempowerfortunes;
+		methodcallback.emplace("fortunes",temp);
+		temp.pre = nullptr;
+		temp.regfun = techempowerupdates;
+		methodcallback.emplace("updates",temp);
+		temp.pre = nullptr;
+		temp.regfun = techempowercached_queries;
+		methodcallback.emplace("cached-queries",temp);
 		temp.pre = nullptr;
 		temp.regfun = teststrip_html;
 		methodcallback.emplace("teststrip_html",temp);

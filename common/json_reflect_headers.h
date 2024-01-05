@@ -4,7 +4,10 @@
 #include <vector>
 #include <map>
 
+#include "ipdata/ip_data_obj.h"
 #include "types/topics_type.h"
+#include "types/techempower_json.h"
+#include "markdown/markdown2html.h"
 #include "department/department_type.h"
 #include "img/editorupload_type.h"
 #include "img/upload_images.h"
@@ -35,6 +38,20 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
 unsigned int json_decode(topics_tree_outjson_t &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
 
 unsigned int json_decode(std::vector<topics_tree_outjson_t> &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
+}
+
+namespace http
+{
+
+
+std::string json_encode(const techempower_outjson_t &json_reflectobj);
+
+
+std::string json_encode(const std::vector<techempower_outjson_t> &json_reflectobj);
+
+unsigned int json_decode(techempower_outjson_t &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
+
+unsigned int json_decode(std::vector<techempower_outjson_t> &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
 }
 
 namespace psy

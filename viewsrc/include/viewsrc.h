@@ -48,6 +48,11 @@ namespace login{
 	std::string login(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 }
 
+namespace techempower{ 
+
+	std::string fortunes(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+}
+
 
 }
 
