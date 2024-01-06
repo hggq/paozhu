@@ -116,7 +116,7 @@ cmake --build . --config Debug
 
 ### 4.安装方法
 
-下载新版asio到项目根目录
+解压 `unzip asio.zip` 或 下载新版asio到项目根目录
 ```shell
 |-vendor
 |-CMakeLists.txt

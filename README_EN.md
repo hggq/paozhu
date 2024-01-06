@@ -118,7 +118,7 @@ cmake --build . --config Debug
 
 ### 4.Install
 
-Download asio new version to project root part 
+Project root `unzip asio.zip` or Download asio new version to project root part 
 ```shell
 |-vendor
 |-CMakeLists.txt
