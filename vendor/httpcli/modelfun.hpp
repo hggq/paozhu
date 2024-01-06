@@ -54,7 +54,8 @@ std::string getgmtdatetime(time_t inputtime = 0)
     std::string temp(timestr);
     return temp;
 }
-int createtabletoorm(std::string basefilepath,
+int createtabletoorm(std::string ormfilepath,
+                     std::string basefilepath,
                      std::string modelspath,
                      std::string realtablename,
                      std::string tablename,
@@ -219,11 +220,27 @@ int createtabletoorm(std::string basefilepath,
     result     = mysql_store_result(conn);
     num_fields = mysql_num_fields(result);
 
+    if (ormfilepath.back() != '/')
+    {
+        ormfilepath.push_back('/');
+    }
+    ormfilepath.append("/_rawsqlfile");
+    fs::path paths = ormfilepath;
+    if (!fs::exists(paths))
+    {
+        fs::create_directories(paths);
+        fs::permissions(paths,
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                        fs::perm_options::add);
+    }
+    ormfilepath.push_back('/');
+    ormfilepath.append(rmstag);
+    ormfilepath.push_back('_');
     while ((row = mysql_fetch_row(result)))
     {
         if (num_fields > 0)
         {
-            fieldname            = basefilepath;
+            fieldname            = ormfilepath;
             std::string filename = (std::string(row[0]));
             fieldname.append(tablename);
             std::string content = (std::string(row[1]));
@@ -8054,7 +8071,7 @@ dbtype=mysql
                         }
                         if (iszimu > 1)
                         {
-                            createtabletoorm(ormnowpath, controlpath, realtablename, tablename, rmstag, conn.get());
+                            createtabletoorm(ormfilepath, ormnowpath, controlpath, realtablename, tablename, rmstag, conn.get());
                             addhfiletoormfile(ormfilepath, tablename, rmstag);
                         }
                         loopnumcount = 0;
