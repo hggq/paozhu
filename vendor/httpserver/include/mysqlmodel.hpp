@@ -810,7 +810,11 @@ class mysqlclientDB : public base
 
     model &select(std::string fieldname)
     {
-        selectsql = fieldname;
+        if (selectsql.size() > 0)
+        {
+            selectsql.push_back(',');
+        }
+        selectsql.append(fieldname);
         return *mod;
     }
 
@@ -2132,15 +2136,15 @@ class mysqlclientDB : public base
 
         try
         {
-            MYSQL_RES *resultall = nullptr;
-            unsigned int num_fields=0;
+            MYSQL_RES *resultall    = nullptr;
+            unsigned int num_fields = 0;
             error_msg.clear();
-            for(unsigned int i=0;i<2;i++)
-            { 
-                num_fields    = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+            for (unsigned int i = 0; i < 2; i++)
+            {
+                num_fields = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 if (num_fields == 2013)
                 {
-                    if(error_msg.size()>0)
+                    if (error_msg.size() > 0)
                     {
                         return 0;
                     }
@@ -2158,7 +2162,7 @@ class mysqlclientDB : public base
                     }
                     continue;
                 }
-                else if(num_fields !=0)
+                else if (num_fields != 0)
                 {
                     error_msg = std::string(mysql_error(conn.get()));
                     mysql_close(conn.get());
@@ -2299,15 +2303,15 @@ class mysqlclientDB : public base
 
         try
         {
-            MYSQL_RES *resultall = nullptr;
-            unsigned int num_fields=0;
+            MYSQL_RES *resultall    = nullptr;
+            unsigned int num_fields = 0;
             error_msg.clear();
-            for(unsigned int i=0;i<2;i++)
+            for (unsigned int i = 0; i < 2; i++)
             {
-                num_fields    = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+                num_fields = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 if (num_fields == 2013)
                 {
-                    if(error_msg.size()>0)
+                    if (error_msg.size() > 0)
                     {
                         return 0;
                     }
@@ -2325,7 +2329,7 @@ class mysqlclientDB : public base
                     }
                     continue;
                 }
-                else if(num_fields !=0)
+                else if (num_fields != 0)
                 {
                     error_msg = std::string(mysql_error(conn.get()));
                     mysql_close(conn.get());
@@ -3104,7 +3108,7 @@ class mysqlclientDB : public base
                 conn.reset();
                 return 0;
             }
-            readnum           = mysql_affected_rows(conn.get());
+            readnum = mysql_affected_rows(conn.get());
             try
             {
                 linkconn->back_edit_connect(std::move(conn));
@@ -3383,7 +3387,7 @@ class mysqlclientDB : public base
                 return 0;
             }
             try
-            {   
+            {
                 mysql_ping(conn.get());
                 long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 if (readnum != 0)
