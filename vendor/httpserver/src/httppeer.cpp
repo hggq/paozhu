@@ -1919,6 +1919,7 @@ void httppeer::cors_method(const std::string &header_v)
     }
 }
 void httppeer::push_flow(const std::string &m_name) { flow_method->push_back(m_name); }
+void httppeer::push_front_flow(const std::string &m_name) { flow_method->push_front(m_name); }
 std::string httppeer::pop_flow()
 {
     if (flow_method->empty())

@@ -3444,6 +3444,7 @@ class mysqlclientDB : public base
             }
             try
             {
+                mysql_ping(conn.get());
                 long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
                 if (readnum != 0)
                 {
