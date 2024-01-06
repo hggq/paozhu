@@ -73,6 +73,18 @@ brew install brotli
 Ubuntu>= 20.04 , test on Fedora38 需要按装asan（sudo yum install libasan）
 ```
 
+```
+sudo apt-get install cmake
+sudo apt-get install -y brotli  libbrotli-dev zlib1g-dev
+sudo apt-get install libgd-dev
+sudo apt-get install qrencode libqrencode-dev
+sudo apt-get install openssl libssl-dev
+sudo apt-get install mysql-server
+sudo apt-get install mysql-common
+sudo apt-get install mysql-client
+sudo apt-get install libmysqlclient-dev
+```
+
 **注意：** 需要gcc11支持，安装详情请查看
 
 - 环境配置  
