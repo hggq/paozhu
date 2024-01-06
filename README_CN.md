@@ -78,9 +78,11 @@ Ubuntu>= 20.04 , test on Fedora38 需要按装asan（sudo yum install libasan）
 - 环境配置  
   [paozhu 框架linux 环境配置](https://github.com/hggq/paozhu/wiki/linux-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE)
 
-#### 3.3 Windows
+#### 3.3 Windows 
 
-安装xmake 
+支持vcpkg和xmake
+
+xmake安装
 
 在项目根目录 执行  
 配置 `conf/server.conf` 替换 /Users/hzq/paozhu 为你的项目目录   
@@ -88,6 +90,29 @@ Ubuntu>= 20.04 , test on Fedora38 需要按装asan（sudo yum install libasan）
 paozhu-main> xmake
 paozhu-main> .\build\windows\x64\release\paozhu.exe
 ```
+
+vcpkg安装
+
+```
+Invoke-WebRequest -OutFile vcpkg2023.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2023.12.12.zip
+            unzip vcpkg2023.zip
+            cd vcpkg-2023.12.12
+            bootstrap-vcpkg.bat
+            vcpkg integrate install
+            vcpkg integrate project
+            vcpkg install
+```
+
+安装 ninja https://github.com/ninja-build/ninja/releases
+
+编译项目 注意`CMAKE_TOOLCHAIN_FILE`指定vcpkg位置 
+
+```
+unzip asio.zip
+cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=vcpkg-2023.12.12/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
+cmake --build . --config Debug
+```
+
 
 ### 4.安装方法
 

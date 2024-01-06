@@ -81,13 +81,40 @@ Ubuntu>= 20.04 , test on Fedora38, need install asanï¼ˆsudo yum install libasanï
 
 #### 3.3 Windows
 
-- Install xmake  
+
+Supports install methods vcpkg and xmake
+
+- xmake install
 Execute at the root directory of the project  
 Config `conf/server.conf` replace /Users/hzq/paozhu path to your project path  
 ```
 paozhu-main> xmake
 paozhu-main> .\build\windows\x64\release\paozhu.exe
 ```
+
+- vcpkg install
+
+```
+Invoke-WebRequest -OutFile vcpkg2023.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2023.12.12.zip
+            unzip vcpkg2023.zip
+            cd vcpkg-2023.12.12
+            bootstrap-vcpkg.bat
+            vcpkg integrate install
+            vcpkg integrate project
+            vcpkg install
+```
+
+Install ninja https://github.com/ninja-build/ninja/releases
+
+Compile project  `CMAKE_TOOLCHAIN_FILE` is vcpkg install localtion path
+
+```
+unzip asio.zip
+cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=vcpkg-2023.12.12/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
+cmake --build . --config Debug
+```
+
+
 
 ### 4.Install
 

@@ -35,8 +35,8 @@ std::string techempowerdb(std::shared_ptr<httppeer> peer)
 {
     peer->type("application/json; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
-    unsigned int rd_num = rand_range(1, 10000);
     auto myworld        = orm::World();
+    unsigned int rd_num = rand_range(1, 10000);
     myworld.where("id", rd_num).fetch();
 
     peer->output = myworld.data_tojson();
@@ -61,8 +61,8 @@ std::string techempowerqueries(std::shared_ptr<httppeer> peer)
     auto myworld = orm::World();
     for (unsigned int i = 0; i < get_num; i++)
     {
-        unsigned int rd_num = rand_range(1, 10000);
         myworld.wheresql.clear();
+        unsigned int rd_num = rand_range(1, 10000);
         myworld.where("id", rd_num).fetch_append();
     }
 
