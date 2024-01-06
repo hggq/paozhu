@@ -118,11 +118,11 @@ std::string techempowerupdates(std::shared_ptr<httppeer> peer)
     {
         myworld.wheresql.clear();
         unsigned int tempid = rand_range(1, 10000);
-        myworld.where("id", tempid).fetch_append();
-        if (myworld.record.size() > i)
+        if (myworld.where("id", tempid).fetch_append() > 0)
         {
+            unsigned int j=myworld.record.size()-1;
             myworld.data.randomnumber      = rand_range(1, 10000);
-            myworld.record[i].randomnumber = myworld.data.randomnumber;
+            myworld.record[j].randomnumber = myworld.data.randomnumber;
             myworld.update("randomnumber");
         }
     }
