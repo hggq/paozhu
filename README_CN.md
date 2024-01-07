@@ -38,7 +38,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ### 2.运行环境
 
 - C++ standard request c++20
-- asio mysql libmysqlclient-dev zlib brotli(br) [可选](boost gd qrencode)
+- asio mysql libmysqlclient-dev zlib brotli(br) [可选](gd qrencode)
   
 
 ### 3.环境配置
@@ -60,7 +60,6 @@ brew install mysql-client
 brew install zlib
 brew install brotli
 
-[可选安装] brew install boost
 [可选安装] brew install gd
 [可选安装] brew install qrencode
 ```
