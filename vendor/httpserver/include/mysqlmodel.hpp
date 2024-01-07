@@ -1769,6 +1769,7 @@ class mysqlclientDB : public base
 
     std::vector<std::map<std::string, std::string>> fetch_obj()
     {
+        effect_num = 0;
         if (selectsql.empty())
         {
             sqlstring = "SELECT *  FROM ";
@@ -1864,6 +1865,7 @@ class mysqlclientDB : public base
 
             //int j = 0;
             MYSQL_ROW json_row;
+
             while ((json_row = mysql_fetch_row(resultall)))
             {
                 std::map<std::string, std::string> rowtemp;
@@ -1879,7 +1881,7 @@ class mysqlclientDB : public base
                     }
                 }
                 temprecord.push_back(std::move(rowtemp));
-                //j++;
+                effect_num++;
             }
             mysql_free_result(resultall);
         }
@@ -1900,6 +1902,7 @@ class mysqlclientDB : public base
     std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>>
     fetch_row()
     {
+        effect_num = 0;
         if (selectsql.empty())
         {
             sqlstring = "SELECT *  FROM ";
@@ -2014,6 +2017,7 @@ class mysqlclientDB : public base
 
             //int j = 0;
             MYSQL_ROW json_row;
+
             while ((json_row = mysql_fetch_row(resultall)))
             {
                 std::vector<std::string> rowtemp;
@@ -2029,7 +2033,7 @@ class mysqlclientDB : public base
                     }
                 }
                 temprecord.push_back(std::move(rowtemp));
-                //j++;
+                effect_num++;
             }
             mysql_free_result(resultall);
 
@@ -2071,8 +2075,9 @@ class mysqlclientDB : public base
         }
         return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
     }
-    unsigned int fetch()
+    model &fetch()
     {
+        effect_num = 0;
         if (selectsql.empty())
         {
             sqlstring = "SELECT *  FROM ";
@@ -2114,14 +2119,14 @@ class mysqlclientDB : public base
             if (get_cacherecord(sqlhashid))
             {
                 iscache = false;
-                return 0;
+                return *mod;
             }
         }
 
         base::metadata_reset();
         if (iserror)
         {
-            return 0;
+            return *mod;
         }
         std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
         try
@@ -2131,7 +2136,7 @@ class mysqlclientDB : public base
         catch (const char *e)
         {
             error_msg = std::string(e);
-            return 0;
+            return *mod;
         }
 
         try
@@ -2146,7 +2151,7 @@ class mysqlclientDB : public base
                 {
                     if (error_msg.size() > 0)
                     {
-                        return 0;
+                        return *mod;
                     }
                     error_msg = std::string(mysql_error(conn.get()));
                     mysql_close(conn.get());
@@ -2158,7 +2163,7 @@ class mysqlclientDB : public base
                     catch (const char *e)
                     {
                         error_msg = std::string(e);
-                        return 0;
+                        return *mod;
                     }
                     continue;
                 }
@@ -2167,7 +2172,7 @@ class mysqlclientDB : public base
                     error_msg = std::string(mysql_error(conn.get()));
                     mysql_close(conn.get());
                     conn.reset();
-                    return 0;
+                    return *mod;
                 }
                 break;
             }
@@ -2197,10 +2202,9 @@ class mysqlclientDB : public base
                 }
             }
 
-            num_fields = 0;
             while ((base::_row = mysql_fetch_row(resultall)))
             {
-                if (num_fields == 0)
+                if (effect_num == 0)
                 {
                     base::_setColnamevalue();
                 }
@@ -2209,7 +2213,7 @@ class mysqlclientDB : public base
 
                     base::_addnewrowvalue();
                 }
-                num_fields++;
+                effect_num++;
             }
             mysql_free_result(resultall);
             if (iscache)
@@ -2221,26 +2225,26 @@ class mysqlclientDB : public base
                     iscache = false;
                 }
             }
-            return num_fields;
+            return *mod;
         }
         catch (const std::exception &e)
         {
             error_msg = std::string(e.what());
-            return 0;
+            return *mod;
         }
         catch (const char *e)
         {
             error_msg = std::string(e);
-            return 0;
+            return *mod;
         }
         catch (...)
         {
         }
-        return 0;
+        return *mod;
     }
-    unsigned int fetch_append()
+    model &fetch_append()
     {
-        // unsigned long long sqlhashid = 0;
+        effect_num = 0;
         if (selectsql.empty())
         {
             sqlstring = "SELECT *  FROM ";
@@ -2282,13 +2286,13 @@ class mysqlclientDB : public base
             if (get_cacherecord(sqlhashid))
             {
                 iscache = false;
-                return 0;
+                return *mod;
             }
         }
 
         if (iserror)
         {
-            return 0;
+            return *mod;
         }
         std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
         try
@@ -2298,7 +2302,7 @@ class mysqlclientDB : public base
         catch (const char *e)
         {
             error_msg = std::string(e);
-            return 0;
+            return *mod;
         }
 
         try
@@ -2313,7 +2317,7 @@ class mysqlclientDB : public base
                 {
                     if (error_msg.size() > 0)
                     {
-                        return 0;
+                        return *mod;
                     }
                     error_msg = std::string(mysql_error(conn.get()));
                     mysql_close(conn.get());
@@ -2325,7 +2329,7 @@ class mysqlclientDB : public base
                     catch (const char *e)
                     {
                         error_msg = std::string(e);
-                        return 0;
+                        return *mod;
                     }
                     continue;
                 }
@@ -2334,7 +2338,7 @@ class mysqlclientDB : public base
                     error_msg = std::string(mysql_error(conn.get()));
                     mysql_close(conn.get());
                     conn.reset();
-                    return 0;
+                    return *mod;
                 }
                 break;
             }
@@ -2367,6 +2371,7 @@ class mysqlclientDB : public base
             while ((base::_row = mysql_fetch_row(resultall)))
             {
                 base::_addnewrowvalue();
+                effect_num++;
             }
             mysql_free_result(resultall);
             if (iscache)
@@ -2378,22 +2383,22 @@ class mysqlclientDB : public base
                     iscache = false;
                 }
             }
-            return num_fields;
+            return *mod;
         }
         catch (const std::exception &e)
         {
             error_msg = std::string(e.what());
-            return 0;
+            return *mod;
         }
         catch (const char *e)
         {
             error_msg = std::string(e);
-            return 0;
+            return *mod;
         }
         catch (...)
         {
         }
-        return 0;
+        return *mod;
     }
     model &use_cache(int cache_time = 0)
     {
@@ -2510,6 +2515,7 @@ class mysqlclientDB : public base
     }
     http::OBJ_VALUE fetch_json()
     {
+        effect_num = 0;
         if (selectsql.empty())
         {
             sqlstring = "SELECT *  FROM ";
@@ -2562,7 +2568,6 @@ class mysqlclientDB : public base
             return valuetemp;
         }
         MYSQL_RES *resultall = nullptr;
-        //mysql_ping(conn.get());
         std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
         try
         {
@@ -2575,6 +2580,7 @@ class mysqlclientDB : public base
         }
         try
         {
+            mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
 
             if (readnum != 0)
@@ -2586,14 +2592,7 @@ class mysqlclientDB : public base
             }
 
             resultall = mysql_store_result(conn.get());
-            try
-            {
-                linkconn->back_select_connect(std::move(conn));
-            }
-            catch (...)
-            {
-            }
-            readnum = 0;
+            linkconn->back_select_connect(std::move(conn));
 
             int num_fields = mysql_num_fields(resultall);
 
@@ -2608,7 +2607,6 @@ class mysqlclientDB : public base
                 table_fieldname.push_back(type_temp);
             }
 
-            int j = 0;
             MYSQL_ROW json_row;
             while ((json_row = mysql_fetch_row(resultall)))
             {
@@ -2625,8 +2623,8 @@ class mysqlclientDB : public base
                         rowtemp[table_fieldname[index]] = "";
                     }
                 }
-                valuetemp.push(j, std::move(rowtemp));
-                j++;
+                valuetemp.push(effect_num, std::move(rowtemp));
+                effect_num++;
             }
             mysql_free_result(resultall);
         }
@@ -2645,8 +2643,8 @@ class mysqlclientDB : public base
     }
     model &get_one(long long id)
     {
-
-        sqlstring = "SELECT *  FROM ";
+        effect_num = 0;
+        sqlstring  = "SELECT *  FROM ";
 
         sqlstring.append(base::tablename);
         sqlstring.append(" WHERE ");
@@ -2679,7 +2677,6 @@ class mysqlclientDB : public base
             return *mod;
         }
         MYSQL_RES *resultone = nullptr;
-        //mysql_ping(conn.get());
         std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
         try
         {
@@ -2692,8 +2689,8 @@ class mysqlclientDB : public base
         }
         try
         {
+            mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
-
             if (readnum != 0)
             {
                 error_msg = std::string(mysql_error(conn.get()));
@@ -2728,6 +2725,7 @@ class mysqlclientDB : public base
             if ((base::_row = mysql_fetch_row(resultone)))
             {
                 base::_setColnamevalue();
+                effect_num++;
             }
 
             mysql_free_result(resultone);
@@ -2759,6 +2757,7 @@ class mysqlclientDB : public base
     }
     int update()
     {
+        effect_num = 0;
         if (wheresql.empty())
         {
             if (base::getPK() > 0)
@@ -2805,16 +2804,6 @@ class mysqlclientDB : public base
             return 0;
         }
 
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
-        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
-        // auto iter                                                           = myconn.find(dbhash);
-        // if (iter == myconn.end())
-        // {
-        //     error_msg = "not find orm link tag in pool";
-        //     return 0;
-        // }
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = linkconn->get_edit_connect();
-        //mysql_ping(conn.get());
         if (iserror)
         {
             return 0;
@@ -2833,6 +2822,7 @@ class mysqlclientDB : public base
         {
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             readnum           = mysql_affected_rows(conn.get());
+            effect_num        = readnum;
             try
             {
                 linkconn->back_edit_connect(std::move(conn));
@@ -2859,6 +2849,7 @@ class mysqlclientDB : public base
     }
     int update(std::string fieldname)
     {
+        effect_num = 0;
         if (wheresql.empty())
         {
             if (base::getPK() > 0)
@@ -2906,16 +2897,6 @@ class mysqlclientDB : public base
             return 0;
         }
 
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
-        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
-        // auto iter                                                           = myconn.find(dbhash);
-        // if (iter == myconn.end())
-        // {
-        //     error_msg = "not find orm link tag in pool";
-        //     return 0;
-        // }
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = linkconn->get_edit_connect();
-        //mysql_ping(conn.get());
         if (iserror)
         {
             return 0;
@@ -2932,8 +2913,17 @@ class mysqlclientDB : public base
         }
         try
         {
+            mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
-            readnum           = mysql_affected_rows(conn.get());
+            if (readnum != 0)
+            {
+                error_msg = std::string(mysql_error(conn.get()));
+                mysql_close(conn.get());
+                conn.reset();
+                return 0;
+            }
+            readnum    = mysql_affected_rows(conn.get());
+            effect_num = readnum;
             try
             {
                 linkconn->back_edit_connect(std::move(conn));
@@ -2961,6 +2951,7 @@ class mysqlclientDB : public base
     }
     int remove()
     {
+        effect_num = 0;
         if (wheresql.empty())
         {
             if (base::getPK() > 0)
@@ -3010,16 +3001,6 @@ class mysqlclientDB : public base
             return 0;
         }
 
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
-        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
-        // auto iter                                                           = myconn.find(dbhash);
-        // if (iter == myconn.end())
-        // {
-        //     error_msg = "not find orm link tag in pool";
-        //     return 0;
-        // }
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = linkconn->get_edit_connect();
-        //mysql_ping(conn.get());
         if (iserror)
         {
             return 0;
@@ -3038,7 +3019,15 @@ class mysqlclientDB : public base
         try
         {
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
-            readnum           = mysql_affected_rows(conn.get());
+            if (readnum != 0)
+            {
+                error_msg = std::string(mysql_error(conn.get()));
+                mysql_close(conn.get());
+                conn.reset();
+                return 0;
+            }
+            readnum    = mysql_affected_rows(conn.get());
+            effect_num = readnum;
             try
             {
                 linkconn->back_edit_connect(std::move(conn));
@@ -3066,7 +3055,8 @@ class mysqlclientDB : public base
     }
     int remove(long long id)
     {
-        sqlstring = "DELETE FROM  ";
+        effect_num = 0;
+        sqlstring  = "DELETE FROM  ";
         sqlstring.append(base::tablename);
         sqlstring.append(" WHERE ");
 
@@ -3108,7 +3098,8 @@ class mysqlclientDB : public base
                 conn.reset();
                 return 0;
             }
-            readnum = mysql_affected_rows(conn.get());
+            readnum    = mysql_affected_rows(conn.get());
+            effect_num = readnum;
             try
             {
                 linkconn->back_edit_connect(std::move(conn));
@@ -3135,8 +3126,8 @@ class mysqlclientDB : public base
     }
     std::tuple<long long, long long> insert(typename base::meta &insert_data, bool isclear = true)
     {
-
-        sqlstring = base::_makerecordinsertsql(insert_data);
+        effect_num = 0;
+        sqlstring  = base::_makerecordinsertsql(insert_data);
         if (iscommit)
         {
             iscommit = false;
@@ -3174,6 +3165,7 @@ class mysqlclientDB : public base
                 return std::make_tuple(readnum, 0);
             }
             readnum            = mysql_affected_rows(conn.get());
+            effect_num         = readnum;
             long long insertid = mysql_insert_id(conn.get());
             try
             {
@@ -3199,22 +3191,14 @@ class mysqlclientDB : public base
     }
     std::tuple<long long, long long> insert(std::vector<typename base::meta> &insert_data, bool isclear = true)
     {
-
-        sqlstring = base::_makerecordinsertsql(insert_data);
+        effect_num = 0;
+        sqlstring  = base::_makerecordinsertsql(insert_data);
         if (iscommit)
         {
             iscommit = false;
             return std::make_tuple(0, 0);
         }
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
-        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
-        // auto iter                                                           = myconn.find(dbhash);
-        // if (iter == myconn.end())
-        // {
-        //     error_msg = "not find orm link tag in pool";
-        //     return std::make_tuple(0, 0);
-        // }
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = linkconn->get_edit_connect();
+
         if (iserror)
         {
             return std::make_tuple(0, 0);
@@ -3245,6 +3229,7 @@ class mysqlclientDB : public base
                 return std::make_tuple(readnum, 0);
             }
             readnum            = mysql_affected_rows(conn.get());
+            effect_num         = readnum;
             long long insertid = mysql_insert_id(conn.get());
             try
             {
@@ -3270,8 +3255,8 @@ class mysqlclientDB : public base
     }
     std::tuple<long long, long long> insert()
     {
-
-        sqlstring = base::_makeinsertsql();
+        effect_num = 0;
+        sqlstring  = base::_makeinsertsql();
         if (iscommit)
         {
             iscommit = false;
@@ -3305,6 +3290,7 @@ class mysqlclientDB : public base
                 return std::make_tuple(readnum, 0);
             }
             readnum            = mysql_affected_rows(conn.get());
+            effect_num         = readnum;
             long long insertid = mysql_insert_id(conn.get());
             base::setPK(insertid);
             try
@@ -3332,6 +3318,7 @@ class mysqlclientDB : public base
 
     int save(bool isrealnew = false)
     {
+        effect_num = 0;
         if (base::getPK() > 0 && isrealnew == false)
         {
             if (wheresql.empty())
@@ -3397,15 +3384,9 @@ class mysqlclientDB : public base
                     conn.reset();
                     return 0;
                 }
-                readnum = mysql_affected_rows(conn.get());
-
-                try
-                {
-                    linkconn->back_edit_connect(std::move(conn));
-                }
-                catch (...)
-                {
-                }
+                readnum    = mysql_affected_rows(conn.get());
+                effect_num = readnum;
+                linkconn->back_edit_connect(std::move(conn));
                 return readnum;
             }
             catch (const std::exception &e)
@@ -3459,15 +3440,10 @@ class mysqlclientDB : public base
                     return 0;
                 }
                 readnum          = mysql_affected_rows(conn.get());
+                effect_num       = readnum;
                 long long tempid = mysql_insert_id(conn.get());
                 base::setPK(tempid);
-                try
-                {
-                    linkconn->back_edit_connect(std::move(conn));
-                }
-                catch (...)
-                {
-                }
+                linkconn->back_edit_connect(std::move(conn));
                 return readnum;
             }
             catch (const std::exception &e)
@@ -3534,7 +3510,7 @@ class mysqlclientDB : public base
         try
         {
             MYSQL_RES *resultall = nullptr;
-            //mysql_ping(conn.get());
+            mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &rawsql[0], rawsql.size());
 
             if (readnum != 0)
@@ -3639,6 +3615,7 @@ class mysqlclientDB : public base
         }
         try
         {
+            mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &rawsql[0], rawsql.size());
             readnum           = mysql_affected_rows(conn.get());
             if (isinsert)
@@ -3799,6 +3776,10 @@ class mysqlclientDB : public base
 
         return -1;
     }
+    unsigned int effect()
+    {
+        return effect_num;
+    }
 
   public:
     std::string selectsql;
@@ -3812,14 +3793,16 @@ class mysqlclientDB : public base
     std::string original_tablename;
 
     // std::list<std::string> commit_sqllist;
-    bool iskuohao     = false;
-    bool iscommit     = false;
-    bool ishascontent = false;
-    bool iscache      = false;
-    bool iserror      = false;
+    bool iskuohao           = false;
+    bool iscommit           = false;
+    bool ishascontent       = false;
+    bool iscache            = false;
+    bool iserror            = false;
+    int exptime             = 0;
+    unsigned int effect_num = 0;
     std::size_t dbhash;
     model *mod;
-    int exptime = 0;
+
     std::shared_ptr<http::mysqllinkpool> linkconn;
 };
 
