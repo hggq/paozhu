@@ -7,7 +7,7 @@ namespace http
 //@urlpath(null,api/dev/hostcors)
 std::string api_dev_hostcors(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client.cors_domain("*");
     if (client.method == HEAD_METHOD::OPTIONS)
     {

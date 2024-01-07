@@ -11,7 +11,7 @@ namespace http
 //@urlpath(null,minsert)
 std::string testmysqlinsert(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  testmysqlinsert ";
 
     try
@@ -48,7 +48,7 @@ std::string testmysqlinsert(std::shared_ptr<httppeer> peer)
 //@urlpath(null,mpagebar)
 std::string testmysqlpagebar(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  testmysqlpagebar ";
 
     try

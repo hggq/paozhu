@@ -8,7 +8,7 @@ namespace http
 //@urlpath(null,testmarkdown2html)
 std::string testmarkdown2html(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "<p>markdown to html</p>";
     std::unique_ptr<markdown2html> md = std::make_unique<markdown2html>();
     md->set_tags_class("ul", "cssuldemo");

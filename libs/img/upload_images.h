@@ -16,7 +16,7 @@ namespace http
 class upload_images
 {
   public:
-    upload_images(std::shared_ptr<httppeer> peer) : client(peer->getpeer()){};
+    upload_images(std::shared_ptr<httppeer> peer) : client(peer->get_peer()){};
     bool init();
     bool get_config();
     bool upload_img(const std::string &);
@@ -64,5 +64,5 @@ class upload_images
     img_upload_outjson_t imglist;
 };
 
-} //namespace http
+}//namespace http
 #endif

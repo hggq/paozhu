@@ -1520,7 +1520,7 @@ httppeer &httppeer::operator<<(T *a)
     return *this;
 }
 
-httppeer &httppeer::getpeer() { return *this; }
+httppeer &httppeer::get_peer() { return *this; }
 httppeer &httppeer::out(std::string a)
 {
     output.append(a);

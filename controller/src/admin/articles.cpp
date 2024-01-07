@@ -12,7 +12,7 @@ namespace http
 //@urlpath(admin_islogin,admin/addarticle)
 std::string admin_addarticle(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto topicm = orm::cms::Topic();
@@ -47,7 +47,7 @@ std::string admin_addarticle(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/addarticlepost)
 std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     std::string msg;
     try
     {
@@ -95,7 +95,7 @@ std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/editarticle)
 std::string admin_editarticle(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto topicm = orm::cms::Topic();
@@ -148,7 +148,7 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/editarticlepost)
 std::string admin_editarticlepost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     std::string msg;
     try
     {
@@ -193,7 +193,7 @@ std::string admin_editarticlepost(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/deletearticle)
 std::string admin_deletearticle(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     try
     {
@@ -223,7 +223,7 @@ std::string admin_deletearticle(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/gettoparticle)
 std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     try
     {
@@ -305,7 +305,7 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/updatearticlesort)
 std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     try
     {
@@ -326,7 +326,7 @@ std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/updatearticleview)
 std::string admin_updatearticleview(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     try
     {
@@ -348,7 +348,7 @@ std::string admin_updatearticleview(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/listarticle)
 std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto topicm = orm::cms::Topic();

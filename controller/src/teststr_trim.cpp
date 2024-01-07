@@ -10,7 +10,7 @@ namespace http
 //@urlpath(null,teststr_trim)
 std::string teststrtrim(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     std::string a    = " 0123456789abcdefghij ";
     client << "<p>strim|" << a << "|</p>";
     client << "<p>str_trim result|" << str_trim(a) << "|</p>";

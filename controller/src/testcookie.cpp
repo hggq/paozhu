@@ -7,7 +7,7 @@ namespace http
 
 std::string testaddcookie(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  add cookie ";
     client << client.get_hosturl();
     client << "<p><a href=\"" << client.get_hosturl() << "/showcookie\">show</a></p>";
@@ -25,7 +25,7 @@ std::string testaddcookie(std::shared_ptr<httppeer> peer)
 }
 std::string testshowcookie(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  show cookie<br/>";
     client << "<p><a href=\"" << client.get_hosturl() << "/addcookie\">add cookie</a></p>";
     client << "<p>session:|" << client.session["aaa"] << "|</p>";

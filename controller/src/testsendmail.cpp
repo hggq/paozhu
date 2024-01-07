@@ -8,7 +8,7 @@ namespace http
 //@urlpath(null,testsendmaildo)
 std::string testsendmaildo(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "<p>hello world!</p>";
     client << "<p>";
     client << (unsigned int)client.post.size();

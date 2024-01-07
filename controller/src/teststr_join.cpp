@@ -10,7 +10,7 @@ namespace http
 //@urlpath(null,teststr_join)
 std::string teststrjoin(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     std::vector<std::string> a;
     a.push_back("aaaa");
     a.push_back("bbbb");

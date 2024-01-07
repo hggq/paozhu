@@ -10,7 +10,7 @@ namespace http
 //@urlpath(null,testnotaddclienttaskpre)
 std::string testaddclienttaskpre(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << " testaddclienttaskpre <br/> ";
     return "ok";
 }
@@ -18,16 +18,16 @@ std::string testaddclienttaskpre(std::shared_ptr<httppeer> peer)
 //@urlpath(testaddclienttaskpre,testaddclienttask)
 std::string testaddclienttask(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << " Interval task test <br/> ";
     client << client.get_hosturl();
-    peer->add_timeloop_task("executeclienttask", 5); //(regfunc,second)
+    peer->add_timeloop_task("executeclienttask", 5);//(regfunc,second)
     return "T";
 }
 //@urlpath(null,executeclienttask)
 std::string testexecuteclienttask(std::shared_ptr<httppeer> peer)
 {
-    // httppeer &client = peer->getpeer();
+    // httppeer &client = peer->get_peer();
     auto users = orm::cms::User();
 
     try
@@ -56,4 +56,4 @@ std::string testexecuteclienttask(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-} // namespace http
+}// namespace http

@@ -3537,7 +3537,7 @@ void httpserver::httpwatch()
     temp.pre    = nullptr;
     temp.regfun = [self = this](std::shared_ptr<httppeer> peer) -> std::string
     {
-        httppeer &client = peer->getpeer();
+        httppeer &client = peer->get_peer();
         client << "<h3 align=\"center\">";
         client << "<span style=\"font-size:2em\">🧨 Paozhu</h3> <p align=\"center\">Version ";
         client << (PAOZHU_VERSION / 100000);

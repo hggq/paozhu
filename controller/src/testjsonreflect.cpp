@@ -9,7 +9,7 @@ namespace http
 //@urlpath(null,testjsonreflect)
 std::string testjsonreflect(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     // client << " json reflect 🧨 Paozhu c++ web framework ";
 
     psy::department_outjson_t deps_json_one;
@@ -81,4 +81,4 @@ std::string testjsonreflect(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-} // namespace http
+}// namespace http

@@ -10,7 +10,7 @@ namespace http
 //@urlpath(null,tformpost)
 std::string testurlencoded(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  application/x-www-form-urlencoded ";
     // from /addpost.html url
     try
@@ -33,7 +33,7 @@ std::string testurlencoded(std::shared_ptr<httppeer> peer)
 //@urlpath(null,tfilepost)
 std::string testformmultipart(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  multipart/form-data ";
 
     try
@@ -65,7 +65,7 @@ std::string testformmultipart(std::shared_ptr<httppeer> peer)
 //@urlpath(null,tjsonpost)
 std::string testformjsonpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  application/json ";
 
     try
@@ -87,7 +87,7 @@ std::string testformjsonpost(std::shared_ptr<httppeer> peer)
 //@urlpath(null,txmlupload)
 std::string testformxmlpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  application/xml ";
 
     try
@@ -108,7 +108,7 @@ std::string testformxmlpost(std::shared_ptr<httppeer> peer)
 //@urlpath(null,addpostfile)
 std::string testuploadpostfile(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  upload file";
 
     try
@@ -288,4 +288,4 @@ std::string testuploadpostfile(std::shared_ptr<httppeer> peer)
     }
     return "";
 }
-} // namespace http
+}// namespace http

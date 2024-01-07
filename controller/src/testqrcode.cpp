@@ -12,7 +12,7 @@ namespace http
 //@urlpath(null,testqrcode)
 std::string testqrcode(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "<p>hello world!</p>";
 
 #ifdef ENABLE_GD

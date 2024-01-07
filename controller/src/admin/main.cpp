@@ -11,7 +11,7 @@ namespace http
 //@urlpath(null,admin/login)
 std::string admin_login(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     client.view("admin/login");
     return "";
@@ -19,7 +19,7 @@ std::string admin_login(std::shared_ptr<httppeer> peer)
 //@urlpath(null,admin/loginpost)
 std::string admin_loginpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client     = peer->getpeer();
+    httppeer &client     = peer->get_peer();
     std::string username = client.post["username"].to_string();
     std::string password = client.post["password"].to_string();
 
@@ -65,7 +65,7 @@ std::string admin_loginpost(std::shared_ptr<httppeer> peer)
 //@urlpath(null,admin/logout)
 std::string admin_logout(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     client.session["userid"] = 0;
     client.save_session();
@@ -76,7 +76,7 @@ std::string admin_logout(std::shared_ptr<httppeer> peer)
 //@urlpath(null,admin/islogin)
 std::string admin_islogin(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     if (client.session["userid"].to_int() == 0)
     {
@@ -87,7 +87,7 @@ std::string admin_islogin(std::shared_ptr<httppeer> peer)
 //@urlpath(null,admin/isloginjson)
 std::string admin_isloginjson(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     if (client.session["userid"].to_int() == 0)
     {
@@ -101,7 +101,7 @@ std::string admin_isloginjson(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/main)
 std::string admin_main(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     if (client.session["userid"].to_int() == 0)
     {
         client.goto_url("admin/login");
@@ -113,7 +113,7 @@ std::string admin_main(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/welcome)
 std::string admin_welcome(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto artmodel       = orm::cms::Article();
@@ -138,7 +138,7 @@ std::string admin_welcome(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/siteinfo)
 std::string admin_siteinfo(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto stinfo = orm::cms::Siteinfo();
@@ -164,7 +164,7 @@ std::string admin_siteinfo(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/siteinfopost)
 std::string admin_siteinfopost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     std::string msg;
     try
     {
@@ -221,7 +221,7 @@ std::string admin_siteinfopost(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/userinfo)
 std::string admin_userinfo(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto stuser = orm::cms::User();
@@ -261,7 +261,7 @@ std::string admin_userinfo(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/editpassword)
 std::string admin_editpassword(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     client.view("admin/editpassword");
     return "";
@@ -270,7 +270,7 @@ std::string admin_editpassword(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/editpwdpost)
 std::string admin_editpwdpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     std::string msg;
 
     try
@@ -338,4 +338,4 @@ std::string admin_editpwdpost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-} //namespace http
+}//namespace http

@@ -7,7 +7,7 @@ namespace http
 //@urlpath(null,testhttpclient1)
 std::string testhttpclient_get_body(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  test file_get_contents";
     std::string respbody;
     respbody = "https://www.kernel.org/category/about.html";
@@ -22,7 +22,7 @@ std::string testhttpclient_get_body(std::shared_ptr<httppeer> peer)
 //@urlpath(null,testhttpclient3)
 std::string testhttpclient_get_timebody(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  test file_get_contents";
     std::string respbody;
     respbody = "http://localhost:8080/login.php";//test timeout , sleep(20);
@@ -37,7 +37,7 @@ std::string testhttpclient_get_timebody(std::shared_ptr<httppeer> peer)
 //@urlpath(null,testhttpclient2)
 std::string testhttpclient_get_file(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client    = peer->getpeer();
+    httppeer &client    = peer->get_peer();
     std::string content = "<p>hello world!  test testfileputcontent4 write content to local file</p>";
     client << content;
     std::string respbody = "https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback";

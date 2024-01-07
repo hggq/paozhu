@@ -10,7 +10,7 @@ namespace http
 //@urlpath(null,imageapi/gateway)
 std::string imageapi_gateway(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client      = peer->getpeer();
+    httppeer &client      = peer->get_peer();
     std::string action_do = client.get["action"].to_string();
 
     auto img = std::make_unique<upload_images>(peer);
@@ -76,7 +76,7 @@ std::string imageapi_gateway(std::shared_ptr<httppeer> peer)
 //@urlpath(null,imageapi/upload)
 std::string imageapi_upload(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client      = peer->getpeer();
+    httppeer &client      = peer->get_peer();
     std::string action_do = client.get["action"].to_string();
 
     auto img = std::make_unique<upload_images>(peer);
@@ -100,4 +100,4 @@ std::string imageapi_upload(std::shared_ptr<httppeer> peer)
 
     return "";
 }
-} //namespace http
+}//namespace http

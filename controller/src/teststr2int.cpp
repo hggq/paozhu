@@ -10,7 +10,7 @@ namespace http
 //@urlpath(null,teststr2int)
 std::string teststr2int(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     std::string a    = "-123456789";
     client << "<p>str2int origin|" << a << "|</p>";
     client << "<p>str2int result|" << str2int(a) << "|</p>";

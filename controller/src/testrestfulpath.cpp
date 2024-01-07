@@ -5,7 +5,7 @@ namespace http
 //@urlpath(null,user/info/:userid)
 std::string testrestfulpath(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << " Hello world! 🧨 Paozhu c++ web framework ";
     client << "<br />user/info/:userid<br /> userid:";
     client << client.get["userid"].to_string();
@@ -14,7 +14,7 @@ std::string testrestfulpath(std::shared_ptr<httppeer> peer)
 //@urlpath(null,user/profile/:userid/:pathid)
 std::string testrestfulprofilepath(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << " Hello world! 🧨 Paozhu c++ web framework ";
     client << "<br />user/profile/:userid/:pathid<br /> userid:";
     client << client.get["userid"].to_string();

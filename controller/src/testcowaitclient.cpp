@@ -8,7 +8,7 @@ namespace http
 //@urlpath(null,testcowaitclient4)
 std::string testhttpclient_cowait_php(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  test testhttpclient_cowait_body";
     //client_context &temp_io_context = get_client_context_obj();
 
@@ -39,7 +39,7 @@ std::string testhttpclient_cowait_php(std::shared_ptr<httppeer> peer)
 //@urlpath(null,testcowaitclient1)
 std::string testhttpclient_cowait_body(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  test testhttpclient_cowait_body";
     //client_context &temp_io_context = get_client_context_obj();
 
@@ -61,7 +61,7 @@ std::string testhttpclient_cowait_body(std::shared_ptr<httppeer> peer)
 //@urlpath(null,testcowaitclient5)
 std::string testhttpclient_cowait_post(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  test testhttpclient_cowait_body";
     //client_context &temp_io_context = get_client_context_obj();
 
@@ -108,7 +108,7 @@ std::string testhttpclient_cowait_post(std::shared_ptr<httppeer> peer)
 //@urlpath(null,testcowaitclient2)
 std::string testhttpclient_cowait_urls(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  test testhttpclient_cowait_body";
 
     http::client_context &client_context = get_client_context_obj();
@@ -144,7 +144,7 @@ std::string testhttpclient_cowait_urls(std::shared_ptr<httppeer> peer)
 //@urlpath(null,testcowaitclient3)
 std::string testhttpclient_cowait_spawn(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  test testhttpclient_cowait_body";
 
     client_context &client_context = get_client_context_obj();

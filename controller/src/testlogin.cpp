@@ -7,7 +7,7 @@ namespace http
 
 std::string testlogin(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     // client << " 必须登录 ";
     // client << client.gethosturl();
     // client<<"<p><a href=\""<<client.gethosturl()<<"/showcookie\">show</a></p>";
@@ -23,7 +23,7 @@ std::string testlogin(std::shared_ptr<httppeer> peer)
 }
 std::string testshowlogin(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     // client << " 必须登录 ";
     // client << client.gethosturl();
     // client<<"<p><a href=\""<<client.gethosturl()<<"/showcookie\">show</a></p>";
@@ -36,7 +36,7 @@ std::string testshowlogin(std::shared_ptr<httppeer> peer)
 }
 std::string testloginpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     // client << " 必须登录 ";
     // client << client.gethosturl();
     // client<<"<p><a href=\""<<client.gethosturl()<<"/showcookie\">show</a></p>";

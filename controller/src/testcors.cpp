@@ -7,7 +7,7 @@ namespace http
 //@urlpath(null,api/user/message)
 std::string testcors(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     /*
         Access-Control-Allow-Origin: https://foo.bar.org
         Access-Control-Allow-Methods: POST, GET, OPTIONS, DELETE
@@ -38,7 +38,7 @@ std::string testcors(std::shared_ptr<httppeer> peer)
 //@urlpath(null,api/user/info)
 std::string testcorssimple(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     /*
         Access-Control-Allow-Origin: https://foo.bar.org
         Access-Control-Allow-Methods: POST, GET, OPTIONS, DELETE

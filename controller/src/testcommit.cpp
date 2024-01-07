@@ -9,7 +9,7 @@ namespace http
 //@urlpath(null,testcommit)
 std::string testcommit(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << " mysql commit test ";
     orm::cms::Testb ot1;
     orm::cms::Testa ot2;

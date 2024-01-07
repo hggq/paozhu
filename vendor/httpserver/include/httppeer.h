@@ -113,7 +113,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     template <typename T>
     httppeer &operator<<(T *a);
 
-    httppeer &getpeer();
+    httppeer &get_peer();
     void out_json(OBJ_VALUE &a);
     void out_json();
     void json_type();

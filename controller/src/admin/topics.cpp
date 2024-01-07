@@ -11,7 +11,7 @@ namespace http
 //@urlpath(admin_islogin,admin/addtopic)
 std::string admin_addtopic(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     try
     {
@@ -44,7 +44,7 @@ std::string admin_addtopic(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/edittopic)
 std::string admin_edittopic(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     try
     {
@@ -94,7 +94,7 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/martopic)
 std::string admin_martopic(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     try
     {
@@ -148,7 +148,7 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/updatetopicsort)
 std::string admin_updatetopicsort(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     try
     {
@@ -169,7 +169,7 @@ std::string admin_updatetopicsort(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/addtopicpost)
 std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto topicm = orm::cms::Topic();
@@ -235,7 +235,7 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/deletetopic)
 std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto topicm          = orm::cms::Topic();
@@ -289,7 +289,7 @@ std::string admin_deletetopic(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/edittopicpost)
 std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto topicm = orm::cms::Topic();
@@ -367,7 +367,7 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/topicfileupload)
 std::string admin_topicfileupload(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client      = peer->getpeer();
+    httppeer &client      = peer->get_peer();
     std::string action_do = client.get["action"].to_string();
 
     auto img = std::make_unique<upload_images>(peer);
@@ -394,7 +394,7 @@ std::string admin_topicfileupload(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_isloginjson,admin/topicimgtextupload)
 std::string admin_topicimgtextupload(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
 
     unsigned int imgnum = client.post["header_urlpath"].size();
     OBJ_ARRAY temp;

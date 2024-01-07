@@ -12,7 +12,7 @@ namespace http
 //@urlpath(null,api/departments/addpost)
 std::string pxapidepartmentsaddpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client.cors_domain("*");
     if (client.method == 3)
     {
@@ -58,7 +58,7 @@ std::string pxapidepartmentsaddpost(std::shared_ptr<httppeer> peer)
 //@urlpath(null,api/departments/editpost)
 std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client.cors_domain("*");
     if (client.method == 3)
     {
@@ -114,7 +114,7 @@ std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
 //@urlpath(null,api/departments/list)
 std::string pxapidepartmentslist(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client.cors_domain("*");
     if (client.method == 3)
     {
@@ -162,7 +162,7 @@ std::string pxapidepartmentslist(std::shared_ptr<httppeer> peer)
 //@urlpath(null,api/departments/deletedep)
 std::string pxapipagesdepartlist(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client.cors_domain("*");
     if (client.method == 3)
     {

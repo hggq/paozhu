@@ -19,7 +19,7 @@ namespace http
       {
             //run paozhu_cli create this file to so, then browser visit so file nanme and methold.
             //e.g hhttps://www.xxx.com/testviewso/viewso
-            httppeer &client = peer->getpeer();
+            httppeer &client = peer->get_peer();
             client << "hello world!  so视图测试 ";
             client << client.get_hosturl();
             client << "<p><a href=\"" << client.get_hosturl() << "/showcookie\">show</a></p>";

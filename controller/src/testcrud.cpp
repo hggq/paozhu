@@ -18,7 +18,7 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
 {
     // step2
     // get login/login post field
-    httppeer &client     = peer->getpeer();
+    httppeer &client     = peer->get_peer();
     std::string username = client.post["username"].to_string();
     std::string password = client.post["password"].to_string();
 
@@ -58,7 +58,7 @@ std::string articlelist(std::shared_ptr<httppeer> peer)
     // step3 content list
     try
     {
-        httppeer &client = peer->getpeer();
+        httppeer &client = peer->get_peer();
         int userid       = client.session["userid"].to_int();
         if (userid == 0)
         {
@@ -105,7 +105,7 @@ std::string articlelist(std::shared_ptr<httppeer> peer)
 std::string articleshow(std::shared_ptr<httppeer> peer)
 {
     // step4
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     auto articles    = orm::cms::Article();
     int aid          = client.get["id"].to_int();
 
@@ -120,7 +120,7 @@ std::string articleshow(std::shared_ptr<httppeer> peer)
 std::string articleedit(std::shared_ptr<httppeer> peer)
 {
     // same the show content
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     auto articles    = orm::cms::Article();
     int aid          = client.get["id"].to_int();
 
@@ -135,7 +135,7 @@ std::string articleedit(std::shared_ptr<httppeer> peer)
 
 std::string articleeditpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client    = peer->getpeer();
+    httppeer &client    = peer->get_peer();
     std::string title   = client.post["title"].to_string();
     std::string content = client.post["content"].to_string();
     unsigned int aid    = client.post["aid"].to_int();
@@ -178,13 +178,13 @@ std::string articleeditpost(std::shared_ptr<httppeer> peer)
 
 std::string articleadd(std::shared_ptr<httppeer> peer)
 {
-    //httppeer &client = peer->getpeer();
+    //httppeer &client = peer->get_peer();
     peer->view("cms/add");
     return "";
 }
 std::string articleaddpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client    = peer->getpeer();
+    httppeer &client    = peer->get_peer();
     std::string title   = client.post["title"].to_string();
     std::string content = client.post["content"].to_string();
     unsigned int aid    = 0;
@@ -231,7 +231,7 @@ std::string articleaddpost(std::shared_ptr<httppeer> peer)
 }
 std::string articledelete(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     unsigned int aid = client.get["id"].to_int();
 
     auto articles = orm::cms::Article();

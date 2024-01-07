@@ -8,7 +8,7 @@ namespace http
 //@urlpath(null,teststrip_html)
 std::string teststrip_html(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "<p>test strip_html</p>";
     std::string htmlcontent = R"(<th scope="col"><script lang="javascript">alert("abc")</script>th content</th>)";
 
@@ -91,4 +91,4 @@ std::string teststrip_html(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-} //namespace http
+}//namespace http

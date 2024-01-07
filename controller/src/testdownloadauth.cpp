@@ -7,7 +7,7 @@ namespace http
 //@urlpath(null,downloadfileauth)
 std::string downloadfileauthmethod(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     //if (client.cookie["token"].to_string() ==md5(client.cookie["uid"].to_string()+"FWWdR@AB(755y2qwjjj)"))
     if (client.get["token"].to_int() != 123456)
     {

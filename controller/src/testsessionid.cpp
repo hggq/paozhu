@@ -7,7 +7,7 @@ namespace http
 //@urlpath(null,testsetsession)
 std::string testsetsession(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  add cookie ";
     client << client.get_hosturl();
 
@@ -36,7 +36,7 @@ std::string testsetsession(std::shared_ptr<httppeer> peer)
 //@urlpath(null,testshowsession)
 std::string testshowsession(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "hello world!  show cookie<br/>";
     client << "<p><a href=\"" << client.get_hosturl() << "/testsetsession\">add cookie</a></p>";
     client << "<p>session aaa:|" << client.session.to_json() << "|</p>";
