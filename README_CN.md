@@ -220,7 +220,7 @@ namespace http
 //@urlpath(null,hello)
 std::string testhello(std::shared_ptr<httppeer> peer)
 {
-  httppeer &client = peer->getpeer();
+  httppeer &client = peer->get_peer();
   client << " Hello world! 🧨 Paozhu c++ web framework ";
 	
   auto users = orm::cms::User();
@@ -264,7 +264,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/listarticle)
 std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     try
     {
         auto topicm = orm::cms::Topic();
