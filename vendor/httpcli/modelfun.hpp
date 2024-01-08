@@ -34,6 +34,26 @@ int strtointval(std::string vval)
     return temp;
 }
 
+std::string strtoline(const std::string &vval)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < vval.size(); i++)
+    {
+        if (vval[i] == 0x0D)
+        {
+           temp.append("\\r");
+           continue;
+        }
+        else if (vval[i] == 0x0A)
+        {
+           temp.append("\\n");
+           continue;
+        }
+        temp.push_back(vval[i]); 
+    }
+    return temp;
+}
+
 std::string getgmtdatetime(time_t inputtime = 0)
 {
     time_t curr_time;
@@ -355,7 +375,7 @@ int createtabletoorm(std::string ormfilepath,
             outlist.append(defaultvalue);
             outlist.append("; //");
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             numbercollist.push_back({colpos, bb});
@@ -384,7 +404,7 @@ int createtabletoorm(std::string ormfilepath,
                 outlist.append("\"; //");
             }
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
@@ -410,7 +430,7 @@ int createtabletoorm(std::string ormfilepath,
                 outlist.append("\"; //");
             }
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
@@ -457,7 +477,7 @@ int createtabletoorm(std::string ormfilepath,
                 outlist.append("\"; //");
             }
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
@@ -485,7 +505,7 @@ int createtabletoorm(std::string ormfilepath,
                 outlist.append("\"; //");
             }
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
@@ -513,7 +533,7 @@ int createtabletoorm(std::string ormfilepath,
                 outlist.append("\"; //");
             }
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
@@ -541,7 +561,7 @@ int createtabletoorm(std::string ormfilepath,
                 outlist.append(tableinfo[bb]["default"]);
                 outlist.append("\"; //");
             }
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
@@ -598,7 +618,7 @@ int createtabletoorm(std::string ormfilepath,
                     outlist.append("'; //");
                 }
             }
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
             metalist.push_back(outlist);
             numbercollist.push_back({colpos, bb});
             collnametemp          = pretype + " int ";
@@ -651,7 +671,7 @@ int createtabletoorm(std::string ormfilepath,
                 }
             }
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
             metalist.push_back(outlist);
             numbercollist.push_back({colpos, bb});
             collnametemp          = pretype + " long long ";
@@ -674,7 +694,7 @@ int createtabletoorm(std::string ormfilepath,
 
             outlist.append("; //");
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
             collnametemp          = pretype + " std::string ";
@@ -697,7 +717,7 @@ int createtabletoorm(std::string ormfilepath,
 
             outlist.append("; //");
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
             collnametemp          = pretype + " std::string ";
@@ -719,7 +739,7 @@ int createtabletoorm(std::string ormfilepath,
 
             outlist.append("; //");
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
             collnametemp          = pretype + " std::string ";
@@ -771,7 +791,7 @@ int createtabletoorm(std::string ormfilepath,
                     outlist.append("; //");
                 }
             }
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             numbercollist.push_back({colpos, bb});
@@ -804,7 +824,7 @@ int createtabletoorm(std::string ormfilepath,
                     outlist.append("; //");
                 }
             }
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
             metalist.push_back(outlist);
             floatcollist.push_back({colpos, bb});
             collnametemp          = " double ";
@@ -826,7 +846,7 @@ int createtabletoorm(std::string ormfilepath,
                 outlist.append(tableinfo[bb]["default"]);
                 outlist.append("; //");
             }
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             floatcollist.push_back({colpos, bb});
@@ -851,7 +871,7 @@ int createtabletoorm(std::string ormfilepath,
                 outlist.append(tableinfo[bb]["default"]);
                 outlist.append("; //");
             }
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
 
@@ -883,7 +903,7 @@ int createtabletoorm(std::string ormfilepath,
                     outlist.append("; //");
                 }
             }
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
 
@@ -899,7 +919,7 @@ int createtabletoorm(std::string ormfilepath,
 
             outlist.append("; //");
 
-            outlist.append(tableinfo[bb]["comment"]);
+            outlist.append(strtoline(tableinfo[bb]["comment"]));
 
             metalist.push_back(outlist);
             stringcollist.push_back({colpos, bb});
