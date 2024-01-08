@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2023-12-08 15:13:55
+-- 生成日期： 2024-01-08 07:47:46
 -- 服务器版本： 8.0.28
 -- PHP 版本： 8.2.7
 
@@ -60,12 +60,12 @@ CREATE TABLE `article` (
 --
 
 INSERT INTO `article` (`aid`, `topicid`, `classtype`, `userid`, `sortid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `mdcontent`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`, `relatecontent`) VALUES
-(1, 1, 0, 1, 1, '', '下载说明', '', '', '', '127.0.0.1', '2023-12-01 14:06:26', 1701410786, 0, 0, '', '<div>github</div><div><br></div>', '', 1, 0, '', 'downloads', '', '', ''),
+(1, 1, 0, 1, 10, '', '下载说明', '', '', '', '127.0.0.1', '2023-12-01 14:06:26', 1701410786, 0, 0, '', '<div>github</div><div>osc<br></div>', '', 1, 0, '', 'downloads', '', '', ''),
 (2, 2, 0, 1, 2, '', '文档介绍', '', '', '', '127.0.0.1', '2023-12-01 14:07:26', 1701410846, 0, 0, '', '文档介绍<br>', '', 1, 0, '', 'docs', '', '', ''),
 (3, 3, 0, 1, 3, '', '博客总结', '', '', '', '127.0.0.1', '2023-12-01 14:08:07', 1701410887, 0, 0, '', '发布，参会<br>', '', 1, 0, '', 'blogs', '', '', ''),
 (4, 4, 0, 1, 4, '', '关于我们', '', '', '', '127.0.0.1', '2023-12-01 14:09:04', 1701410944, 0, 0, '', '关于我们内容<br>', '', 1, 0, '', 'about', '', '', ''),
-(5, 6, 0, 1, 5, '', '框架简介', '', '', '', '127.0.0.1', '2023-12-02 09:10:33', 1701479433, 0, 0, '', '框架简介<br>', '', 1, 0, '', 'docs_introduce', '', '', ''),
-(6, 3, 0, 1, 6, '', '博客发布', '', '', '', '127.0.0.1', '2023-12-02 09:12:31', 1701479551, 0, 0, '', '博客发布release<br>', '', 1, 0, '', 'blog_release', '', '', ''),
+(5, 6, 0, 1, 5, '', '框架简介', '', '', '', '127.0.0.1', '2023-12-02 09:10:33', 1701479433, 0, 0, '', '框架简介，新一代支持http2<br>', '', 1, 0, '', 'docs_introduce', '', '', ''),
+(6, 3, 0, 1, 6, '', '博客发布', '', '', '', '127.0.0.1', '2023-12-02 09:12:31', 1701479551, 0, 0, '', '博客发布release now<br>', '', 1, 0, '', 'blog_release', '', '', ''),
 (7, 3, 0, 1, 7, '', '博客发布2', '', '', '', '127.0.0.1', '2023-12-02 09:13:46', 1701479626, 0, 0, '', '博客发布2<br>', '', 1, 0, '', 'blog_release2', '', '', '');
 
 -- --------------------------------------------------------
@@ -224,7 +224,7 @@ INSERT INTO `siteinfo` (`sid`, `userid`, `languagetype`, `sitename`, `sitedomain
 
 CREATE TABLE `testa` (
   `id` int NOT NULL,
-  `value` tinyint NOT NULL,
+  `value_id` tinyint NOT NULL,
   `content` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -232,7 +232,7 @@ CREATE TABLE `testa` (
 -- 转存表中的数据 `testa`
 --
 
-INSERT INTO `testa` (`id`, `value`, `content`) VALUES
+INSERT INTO `testa` (`id`, `value_id`, `content`) VALUES
 (1, 65, 'commit test'),
 (5, 65, 'commit test');
 
@@ -290,7 +290,7 @@ INSERT INTO `topic` (`topicid`, `userid`, `parentid`, `cateid`, `languagetype`, 
 (3, 1, 0, 13, 0, 1, 3, 'Blog', '', '', '', '', 'blogs', '', '', 0),
 (4, 1, 0, 1, 0, 1, 4, 'About', '', '', '', '', 'about', '', '', 0),
 (5, 1, 2, 0, 0, 1, 21, '入门概述', '', '', '', '', 'introduce', '', '', 0),
-(6, 1, 5, 0, 0, 1, 21, '框架简介', '', '', '', '', 'framework', '', '', 0),
+(6, 1, 5, 0, 0, 1, 21, '框架简介', '', 'd', '', '', 'framework', '', '', 0),
 (7, 1, 5, 0, 0, 1, 22, 'HelloWorld', '', '', '', '', 'helloworld', '', '', 0),
 (8, 1, 5, 0, 0, 1, 23, 'Ubuntu安装', '', '', '', '', 'ubuntu_install', '', '', 0),
 (9, 1, 5, 0, 0, 1, 24, 'MacOS安装', '', '', '', '', 'macos_install', '', '', 0),
@@ -302,7 +302,7 @@ INSERT INTO `topic` (`topicid`, `userid`, `parentid`, `cateid`, `languagetype`, 
 (15, 1, 13, 0, 0, 1, 0, '静态文件浏览', '', '', '', '', 'staticfiles', '', '', 0),
 (16, 1, 13, 0, 0, 1, 0, '框架配置conf', '', '', '', '', 'frameconf', '', '', 0),
 (17, 1, 2, 0, 0, 1, 40, 'ORM功能', '', '', '', '', 'ormfun', '', '', 0),
-(18, 1, 2, 0, 0, 1, 50, 'HttpClient', '', '', '', '', 'httpclients', '', '', 0),
+(18, 1, 2, 0, 0, 1, 50, 'HttpClient', '', 'b', '', '', 'httpclients', '', '', 0),
 (19, 1, 2, 0, 0, 1, 60, 'WebSocket介绍', '', '', '', '', 'websockets', '', '', 0),
 (20, 1, 19, 0, 0, 1, 0, 'WebSocket入门', '', '', '', '', 'websocket_introduce', '', '', 0),
 (21, 1, 18, 0, 0, 1, 0, 'HttpClient入门', '', '', '', '', 'httpclient_introduce', '', '', 0),
@@ -413,7 +413,7 @@ ALTER TABLE `user`
 -- 使用表AUTO_INCREMENT `article`
 --
 ALTER TABLE `article`
-  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `aid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- 使用表AUTO_INCREMENT `blogcatalog`
