@@ -3631,11 +3631,41 @@ struct )";
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
         getsetstrem << collisttype[j];
-        uptempstring = tablecollist[j];
+        uptempstring     = tablecollist[j];
+        unsigned int re  = 0;
+        bool isupperchar = false;
+        for (unsigned int n = 0; n < uptempstring.size(); n++)
+        {
+            if (uptempstring[n] == '_')
+            {
+                isupperchar = true;
+                continue;
+            }
+            if (isupperchar)
+            {
+                if (uptempstring[n] >= 'a' && uptempstring[n] <= 'z')
+                {
+                    uptempstring[re] = uptempstring[n] - 32;
+                }
+                else
+                {
+                    uptempstring[re] = uptempstring[n];
+                }
+                isupperchar = false;
+            }
+            else
+            {
+                uptempstring[re] = uptempstring[n];
+            }
+            re++;
+        }
+        uptempstring.resize(re);
+
         if (uptempstring[0] >= 'a' && uptempstring[0] <= 'z')
         {
             uptempstring[0] = uptempstring[0] - 32;
         }
+
         getsetstrem << " get" << uptempstring << "(){  return data." + tablecollist[j] + "; } \n";
 
         if (colltypeshuzi[j] > 29)

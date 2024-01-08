@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 06 Jan 2024 14:34:34 GMT
+*本文件为自动生成 Mon, 08 Jan 2024 06:14:25 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -23,7 +23,7 @@ struct testabase
 {
     struct meta{
      int id= 0; //
- char value=0; //
+ char value_id=0; //
  std::string content=""; //
  } data;
  std::vector<testabase::meta> record;
@@ -34,7 +34,7 @@ std::vector<testabase::meta>::iterator begin(){     return record.begin(); }
 std::vector<testabase::meta>::iterator end(){     return record.end(); }
 std::vector<testabase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<testabase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,3> colnames={"id","value","content"};
+const std::array<std::string,3> colnames={"id","value_id","content"};
 const std::array<unsigned char,3> colnamestype= {3,1,253};
 std::string tablename="testa";
 std::string modelname="Testa";
@@ -91,9 +91,9 @@ break;
 			break;
 	case 1:
 		 try{
-			metatemp.value=std::stoi(_row[i]);
+			metatemp.value_id=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.value=0;
+			metatemp.value_id=0;
 			 }
 			break;
 	case 2:
@@ -132,9 +132,9 @@ break;
 			break;
 	case 1:
 		 try{
-			metatemp.value=std::stoi(_row[i]);
+			metatemp.value_id=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.value=0;
+			metatemp.value_id=0;
 			 }
 			break;
 	case 2:
@@ -213,10 +213,10 @@ tempsql<<"null";
  }else{ 
 	tempsql<<std::to_string(data.id);
 }
-if(data.value==0){
+if(data.value_id==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.value);
+	tempsql<<","<<std::to_string(data.value_id);
 }
 tempsql<<",'"<<stringaddslash(data.content)<<"'";
 tempsql<<")";
@@ -249,10 +249,10 @@ tempsql<<"null";
  }else{ 
 	tempsql<<std::to_string(insert_data.id);
 }
-if(insert_data.value==0){
+if(insert_data.value_id==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.value);
+	tempsql<<","<<std::to_string(insert_data.value_id);
 }
 tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
 tempsql<<")";
@@ -294,10 +294,10 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].id);
 	}
-	if(insert_data[i].value==0){
+	if(insert_data[i].value_id==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].value);
+	tempsql<<","<<std::to_string(insert_data[i].value_id);
 	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
 		tempsql<<")";
@@ -325,10 +325,10 @@ tempsql<<")";
  }else{ 
 	tempsql<<"`id`="<<std::to_string(data.id);
 }
-if(data.value==0){
-	tempsql<<",`value`=0";
+if(data.value_id==0){
+	tempsql<<",`value_id`=0";
  }else{ 
-	tempsql<<",`value`="<<std::to_string(data.value);
+	tempsql<<",`value_id`="<<std::to_string(data.value_id);
 }
 tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
  }else{ 
@@ -385,10 +385,10 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(data.value==0){
-	tempsql<<"`value`=0";
+if(data.value_id==0){
+	tempsql<<"`value_id`=0";
  }else{ 
-	tempsql<<"`value`="<<std::to_string(data.value);
+	tempsql<<"`value_id`="<<std::to_string(data.value_id);
 }
  break;
  case 2:
@@ -446,10 +446,10 @@ if(data.id==0){
 }
  break;
  case 1:
-if(data.value==0){
+if(data.value_id==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.value));
+	temparray.push_back(std::to_string(data.value_id));
 }
  break;
  case 2:
@@ -503,10 +503,10 @@ if(data.id==0){
 }
  break;
  case 1:
-if(data.value==0){
-	tempsql.insert({"value","0"});
+if(data.value_id==0){
+	tempsql.insert({"value_id","0"});
  }else{ 
-	tempsql.insert({"value",std::to_string(data.value)});
+	tempsql.insert({"value_id",std::to_string(data.value_id)});
 }
  break;
  case 2:
@@ -530,10 +530,10 @@ if(data.id==0){
  }else{ 
 	tempsql<<"\"id\":"<<std::to_string(data.id);
 }
-if(data.value==0){
-	tempsql<<",\"value\":0";
+if(data.value_id==0){
+	tempsql<<",\"value_id\":0";
  }else{ 
-	tempsql<<",\"value\":"<<std::to_string(data.value);
+	tempsql<<",\"value_id\":"<<std::to_string(data.value_id);
 }
 tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
 tempsql<<"\"";
@@ -584,10 +584,10 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(data.value==0){
-	tempsql<<"\"value\":0";
+if(data.value_id==0){
+	tempsql<<"\"value_id\":0";
  }else{ 
-	tempsql<<"\"value\":"<<std::to_string(data.value);
+	tempsql<<"\"value_id\":"<<std::to_string(data.value_id);
 }
  break;
  case 2:
@@ -850,9 +850,9 @@ tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
 			break;
 		case 1:
 		 try{
-			data.value=std::stoi(set_value_name);
+			data.value_id=std::stoi(set_value_name);
 		}catch (...) { 
-			data.value=0;
+			data.value_id=0;
 			 }
 			break;
 		case 2:
@@ -883,9 +883,9 @@ tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
 			break;
 		case 1:
 		 try{
-			data.value=set_value_name;
+			data.value_id=set_value_name;
 		}catch (...) { 
-			data.value=0;
+			data.value_id=0;
 			 }
 			break;
 		case 2:
@@ -916,9 +916,9 @@ tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
 			break;
 		case 1:
 		 try{
-			data.value=(int)set_value_name;
+			data.value_id=(int)set_value_name;
 		}catch (...) { 
-			data.value=0;
+			data.value_id=0;
 			 }
 			break;
 		case 2:
@@ -984,10 +984,10 @@ if(record[n].id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(record[n].value==0){
-	tempsql<<"\"value\":0";
+if(record[n].value_id==0){
+	tempsql<<"\"value_id\":0";
  }else{ 
-	tempsql<<"\"value\":"<<std::to_string(record[n].value);
+	tempsql<<"\"value_id\":"<<std::to_string(record[n].value_id);
 }
  break;
  case 2:
@@ -1060,10 +1060,10 @@ if(record[n].id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(record[n].value==0){
-	tempsql<<"\"value\":0";
+if(record[n].value_id==0){
+	tempsql<<"\"value_id\":0";
  }else{ 
-	tempsql<<"\"value\":"<<std::to_string(record[n].value);
+	tempsql<<"\"value_id\":"<<std::to_string(record[n].value_id);
 }
  break;
  case 2:
@@ -1085,8 +1085,8 @@ tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  int  getId(){  return data.id; } 
  void setId( int  val){  data.id=val;} 
 
- int  getValue(){  return data.value; } 
- void setValue( int  val){  data.value=val;} 
+ int  getValueId(){  return data.value_id; } 
+ void setValueId( int  val){  data.value_id=val;} 
 
 std::string getContent(){  return data.content; } 
 std::string& getRefContent(){  return std::ref(data.content); } 
@@ -1123,9 +1123,9 @@ std::vector<testabase::meta> getRecord(){
 		{
 			return data.id;
 		}
-		 if(key_name=="value")
+		 if(key_name=="value_id")
 		{
-			return data.value;
+			return data.value_id;
 		}
 		return nullptr; 
 	}
@@ -1153,7 +1153,7 @@ std::vector<testabase::meta> getRecord(){
  				 a.emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a.emplace_back(iter.value);
+ 				 a.emplace_back(iter.value_id);
 				 break;
 
                     }
@@ -1184,7 +1184,7 @@ std::vector<testabase::meta> getRecord(){
  				 return data.id;
 				 break;
 			case 1: 
- 				 return data.value;
+ 				 return data.value_id;
 				 break;
 			}
                 return 0;
@@ -1203,7 +1203,7 @@ std::vector<testabase::meta> getRecord(){
  				 return iter.id;
 				 break;
 			case 1: 
- 				 return iter.value;
+ 				 return iter.value_id;
 				 break;
 
 			}
@@ -1331,7 +1331,7 @@ std::vector<testabase::meta> getRecord(){
  				 a<<std::to_string(iter.id);
 				 break;
 			case 1: 
- 				 a<<std::to_string(iter.value);
+ 				 a<<std::to_string(iter.value_id);
 				 break;
 			case 2: 
  				 if(isyinhao){ a<<jsonaddslash(iter.content); 
@@ -1435,7 +1435,7 @@ std::vector<testabase::meta> getRecord(){
  	 ktemp=iter.id;
 	 break;
 case 1: 
- 	 ktemp=iter.value;
+ 	 ktemp=iter.value_id;
 	 break;
 	 } 
  		  switch(vpos){
@@ -1468,7 +1468,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
  			switch(vpos){
@@ -1510,7 +1510,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 
                 }
@@ -1542,7 +1542,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
  			switch(vpos){
@@ -1550,7 +1550,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 
                 }
@@ -1579,7 +1579,7 @@ case 1:
  				 a.emplace(iter.id,iter);
 				 break;
 			case 1: 
- 				 a.emplace(iter.value,iter);
+ 				 a.emplace(iter.value_id,iter);
 				 break;
 
                 }
@@ -1663,7 +1663,7 @@ case 1:
  				 ktemp=iter.id;
 			 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 			 break;
 			  }
 			 switch(vpos){
@@ -1698,7 +1698,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
  			switch(vpos){
@@ -1739,7 +1739,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 
                    }
@@ -1768,7 +1768,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
 			 switch(vpos){
@@ -1776,7 +1776,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 
                    }
@@ -1834,7 +1834,7 @@ case 2:
  	 a.emplace_back(iter.id,iter);
 	 break;
 case 1: 
- 	 a.emplace_back(iter.value,iter);
+ 	 a.emplace_back(iter.value_id,iter);
 	 break;
 
                 }
@@ -1884,7 +1884,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
 
@@ -1893,7 +1893,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 			  }
 
@@ -1928,7 +1928,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
 
@@ -1937,7 +1937,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 			  }
 
@@ -1946,7 +1946,7 @@ case 1:
  				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.value);
+ 				 a[ktemp][vtemp].emplace_back(iter.value_id);
 				 break;
 
                 }
@@ -1977,7 +1977,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 				  }
 
@@ -1986,7 +1986,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 			 }
 
@@ -2024,7 +2024,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			 }
 
@@ -2065,7 +2065,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			 }
 
@@ -2080,7 +2080,7 @@ case 1:
  				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.value);
+ 				 a[ktemp][vtemp].emplace_back(iter.value_id);
 				 break;
 
             }
@@ -2110,7 +2110,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
 
@@ -2158,7 +2158,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 			  }
 
@@ -2200,7 +2200,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 			 }
 
@@ -2209,7 +2209,7 @@ case 1:
  				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.value);
+ 				 a[ktemp][vtemp].emplace_back(iter.value_id);
 				 break;
 
                 }
@@ -2248,7 +2248,7 @@ case 1:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.value;
+ 				 vtemp=iter.value_id;
 				 break;
 			 }
 
@@ -2335,7 +2335,7 @@ case 1:
  				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.value);
+ 				 a[ktemp][vtemp].emplace_back(iter.value_id);
 				 break;
 
                 }
@@ -2474,7 +2474,7 @@ case 1:
  				 a[ktemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.value);
+ 				 a[ktemp].emplace_back(iter.value_id);
 				 break;
 
                 }
@@ -2504,7 +2504,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			 }
 
@@ -2541,7 +2541,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
 
@@ -2574,7 +2574,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			 }
 
@@ -2583,7 +2583,7 @@ case 1:
  				 a[ktemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.value);
+ 				 a[ktemp].emplace_back(iter.value_id);
 				 break;
 
                 }
@@ -2609,7 +2609,7 @@ case 1:
  				 a[iter.id].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[iter.value].emplace_back(iter);
+ 				 a[iter.value_id].emplace_back(iter);
 				 break;
 
                 }
@@ -2700,7 +2700,7 @@ case 1:
  				 a[ktemp][iter.id].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.value].emplace_back(iter);
+ 				 a[ktemp][iter.value_id].emplace_back(iter);
 				 break;
 
                 }
@@ -2730,7 +2730,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			 }
 
@@ -2739,7 +2739,7 @@ case 1:
  				 a[ktemp][iter.id].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.value].emplace_back(iter);
+ 				 a[ktemp][iter.value_id].emplace_back(iter);
 				 break;
 
                 }
@@ -2769,7 +2769,7 @@ case 1:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.value;
+ 				 ktemp=iter.value_id;
 				 break;
 			  }
 

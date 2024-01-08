@@ -16,8 +16,8 @@ std::string testcommit(std::shared_ptr<httppeer> peer)
 
     orm::commit_lists_callback commitlist;
 
-    ot2.data.value   = 65;
-    ot2.data.content = "commit test";
+    ot2.data.value_id = 65;
+    ot2.data.content  = "commit test";
     ot2.open_commit();
     ot2.insert();
 
