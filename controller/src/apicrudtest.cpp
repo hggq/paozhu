@@ -26,7 +26,7 @@ std::string pxapidepartmentsaddpost(std::shared_ptr<httppeer> peer)
         deps.setParentid(client.json["parentid"].to_int());
         deps.setName(client.json["title"].to_string());
 
-        deps.setBianzhi_num(client.json["bianzhi_num"].to_int());
+        deps.setBianzhiNum(client.json["bianzhi_num"].to_int());
         deps.setMemo(client.json["desc"].to_string());
         deps.setIsopen(client.json["isopen"].to_int());
 
@@ -44,7 +44,7 @@ std::string pxapidepartmentsaddpost(std::shared_ptr<httppeer> peer)
         client.val["data"]["key"]         = lastdepid;
         client.val["data"]["parentid"]    = deps.getParentid();
         client.val["data"]["desc"]        = deps.getMemo();
-        client.val["data"]["bianzhi_num"] = deps.getBianzhi_num();
+        client.val["data"]["bianzhi_num"] = deps.getBianzhiNum();
         client.val["data"]["isopen"]      = deps.getIsopen() == 0 ? false : true;
     }
     catch (std::exception &e)
@@ -72,7 +72,7 @@ std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
         deps.setParentid(client.json["parentid"].to_int());
         deps.setName(client.json["title"].to_string());
 
-        deps.setBianzhi_num(client.json["bianzhi_num"].to_int());
+        deps.setBianzhiNum(client.json["bianzhi_num"].to_int());
         deps.setMemo(client.json["desc"].to_string());
         deps.setIsopen(client.json["isopen"].to_int());
 
@@ -100,7 +100,7 @@ std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
         client.val["data"]["key"]         = lastdepid;
         client.val["data"]["parentid"]    = deps.getParentid();
         client.val["data"]["desc"]        = deps.getMemo();
-        client.val["data"]["bianzhi_num"] = deps.getBianzhi_num();
+        client.val["data"]["bianzhi_num"] = deps.getBianzhiNum();
         client.val["data"]["isopen"]      = deps.getIsopen() == 0 ? false : true;
     }
     catch (std::exception &e)

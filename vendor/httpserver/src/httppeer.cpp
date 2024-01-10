@@ -1918,10 +1918,28 @@ void httppeer::cors_method(const std::string &header_v)
         send_header["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
     }
 }
-void httppeer::push_flow(const std::string &m_name) { flow_method->push_back(m_name); }
-void httppeer::push_front_flow(const std::string &m_name) { flow_method->push_front(m_name); }
+void httppeer::push_flow(const std::string &m_name)
+{ 
+    if(!flow_method)
+    {
+        flow_method=std::make_unique<std::list<std::string>>();
+    }
+    flow_method->push_back(m_name);
+}
+void httppeer::push_front_flow(const std::string &m_name)
+{   
+    if(!flow_method)
+    {
+        flow_method=std::make_unique<std::list<std::string>>();
+    } 
+    flow_method->push_front(m_name);
+}
 std::string httppeer::pop_flow()
 {
+    if(!flow_method)
+    {
+       return ""; 
+    }
     if (flow_method->empty())
     {
         return "";

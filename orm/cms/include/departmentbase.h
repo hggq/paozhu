@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 06 Jan 2024 14:34:34 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 14:41:31 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -129,7 +129,11 @@ break;
      departmentbase::meta metatemp;    
             data = metatemp; 
             record.clear();     
-      }  
+      }
+      void data_reset(){
+     departmentbase::meta metatemp;    
+            data = metatemp; 
+      }
       void _setColnamevalue(){
           departmentbase::meta metatemp;   
          for(unsigned char i=0;i<_keypos.size();i++){
@@ -2185,19 +2189,19 @@ std::string& getRefName(){  return std::ref(data.name); }
  void setName(std::string &val){  data.name=val;} 
  void setName(std::string_view val){  data.name=val;} 
 
-std::string getDepart_code(){  return data.depart_code; } 
-std::string& getRefDepart_code(){  return std::ref(data.depart_code); } 
- void setDepart_code(std::string &val){  data.depart_code=val;} 
- void setDepart_code(std::string_view val){  data.depart_code=val;} 
+std::string getDepartCode(){  return data.depart_code; } 
+std::string& getRefDepartCode(){  return std::ref(data.depart_code); } 
+ void setDepartCode(std::string &val){  data.depart_code=val;} 
+ void setDepartCode(std::string_view val){  data.depart_code=val;} 
 
- int  getBianzhi_num(){  return data.bianzhi_num; } 
- void setBianzhi_num( int  val){  data.bianzhi_num=val;} 
+ int  getBianzhiNum(){  return data.bianzhi_num; } 
+ void setBianzhiNum( int  val){  data.bianzhi_num=val;} 
 
- int  getReal_num(){  return data.real_num; } 
- void setReal_num( int  val){  data.real_num=val;} 
+ int  getRealNum(){  return data.real_num; } 
+ void setRealNum( int  val){  data.real_num=val;} 
 
- int  getQuan_weight(){  return data.quan_weight; } 
- void setQuan_weight( int  val){  data.quan_weight=val;} 
+ int  getQuanWeight(){  return data.quan_weight; } 
+ void setQuanWeight( int  val){  data.quan_weight=val;} 
 
  int  getIsopen(){  return data.isopen; } 
  void setIsopen( int  val){  data.isopen=val;} 

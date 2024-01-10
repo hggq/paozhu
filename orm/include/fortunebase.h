@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 06 Jan 2024 14:32:45 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 14:41:06 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -72,7 +72,11 @@ break;
      fortunebase::meta metatemp;    
             data = metatemp; 
             record.clear();     
-      }  
+      }
+      void data_reset(){
+     fortunebase::meta metatemp;    
+            data = metatemp; 
+      }
       void _setColnamevalue(){
           fortunebase::meta metatemp;   
          for(unsigned char i=0;i<_keypos.size();i++){

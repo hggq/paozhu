@@ -1367,8 +1367,17 @@ struct )";
     headtxt += R"(base::meta metatemp;    
             data = metatemp; 
             record.clear();     
-      }  
-      void _setColnamevalue(){
+      })"; 
+    headtxt += R"(
+      void data_reset(){
+     )";
+    headtxt += tablenamebase;
+    headtxt += R"(base::meta metatemp;    
+            data = metatemp; 
+      }
+      )"; 
+
+      headtxt += R"(void _setColnamevalue(){
           )";
     headtxt += tablenamebase;
     headtxt += R"(base::meta metatemp;   

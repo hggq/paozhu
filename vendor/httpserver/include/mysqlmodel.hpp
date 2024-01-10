@@ -2662,16 +2662,8 @@ class mysqlclientDB : public base
             }
         }
 
-        base::metadata_reset();
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqlselectexecute(dbhash);
-        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
-        // auto iter                                                           = myconn.find(dbhash);
-        // if (iter == myconn.end())
-        // {
-        //     error_msg = "not find orm link tag in pool";
-        //     return *mod;
-        // }
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = linkconn->get_select_connect();
+        base::data_reset();
+
         if (iserror)
         {
             return *mod;
@@ -2700,13 +2692,8 @@ class mysqlclientDB : public base
             }
 
             resultone = mysql_store_result(conn.get());
-            try
-            {
-                linkconn->back_select_connect(std::move(conn));
-            }
-            catch (...)
-            {
-            }
+
+            linkconn->back_select_connect(std::move(conn));
 
             if (!resultone)
             {

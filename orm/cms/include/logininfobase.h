@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 06 Jan 2024 14:34:34 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 14:41:31 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -105,7 +105,11 @@ break;
      logininfobase::meta metatemp;    
             data = metatemp; 
             record.clear();     
-      }  
+      }
+      void data_reset(){
+     logininfobase::meta metatemp;    
+            data = metatemp; 
+      }
       void _setColnamevalue(){
           logininfobase::meta metatemp;   
          for(unsigned char i=0;i<_keypos.size();i++){
