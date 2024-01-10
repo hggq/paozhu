@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 10 Jan 2024 14:41:06 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 16:49:16 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -77,22 +77,24 @@ break;
      fortunebase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue(){
-          fortunebase::meta metatemp;   
-         for(unsigned char i=0;i<_keypos.size();i++){
+      void _setColnamevalue()
+      {
+
+         for(unsigned char i=0;i<_keypos.size();i++)
+         {
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.id=std::stoul(_row[i]);
+			data.id=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.id=0;
+			data.id=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.message.append((_row[i]==NULL?"":_row[i]));
+			data.message.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.message.clear();
+			data.message.clear();
 			 }
 			break;
 	default:
@@ -105,8 +107,6 @@ break;
                      break;
                  }
           }
-          data=metatemp;
-          record.emplace_back(metatemp);   
    } 
          void _addnewrowvalue(){
            fortunebase::meta metatemp;   

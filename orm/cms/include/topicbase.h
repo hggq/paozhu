@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 10 Jan 2024 14:41:31 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 16:49:42 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -146,120 +146,122 @@ break;
      topicbase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue(){
-          topicbase::meta metatemp;   
-         for(unsigned char i=0;i<_keypos.size();i++){
+      void _setColnamevalue()
+      {
+
+         for(unsigned char i=0;i<_keypos.size();i++)
+         {
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.topicid=std::stoul(_row[i]);
+			data.topicid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.topicid=0;
+			data.topicid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.userid=std::stoul(_row[i]);
+			data.userid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.userid=0;
+			data.userid=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.parentid=std::stoul(_row[i]);
+			data.parentid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.parentid=0;
+			data.parentid=0;
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.cateid=std::stoul(_row[i]);
+			data.cateid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.cateid=0;
+			data.cateid=0;
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.languagetype=std::stoul(_row[i]);
+			data.languagetype=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.languagetype=0;
+			data.languagetype=0;
 			 }
 			break;
 	case 5:
 		 try{
-			metatemp.isview=std::stoi(_row[i]);
+			data.isview=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.isview=0;
+			data.isview=0;
 			 }
 			break;
 	case 6:
 		 try{
-			metatemp.sortid=std::stoul(_row[i]);
+			data.sortid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.sortid=0;
+			data.sortid=0;
 			 }
 			break;
 	case 7:
 		 try{
-			metatemp.title.append((_row[i]==NULL?"":_row[i]));
+			data.title.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.title.clear();
+			data.title.clear();
 			 }
 			break;
 	case 8:
 		 try{
-			metatemp.twotitle.append((_row[i]==NULL?"":_row[i]));
+			data.twotitle.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.twotitle.clear();
+			data.twotitle.clear();
 			 }
 			break;
 	case 9:
 		 try{
-			metatemp.memo.append((_row[i]==NULL?"":_row[i]));
+			data.memo.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.memo.clear();
+			data.memo.clear();
 			 }
 			break;
 	case 10:
 		 try{
-			metatemp.templatename.append((_row[i]==NULL?"":_row[i]));
+			data.templatename.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.templatename.clear();
+			data.templatename.clear();
 			 }
 			break;
 	case 11:
 		 try{
-			metatemp.url.append((_row[i]==NULL?"":_row[i]));
+			data.url.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.url.clear();
+			data.url.clear();
 			 }
 			break;
 	case 12:
 		 try{
-			metatemp.urlpath.append((_row[i]==NULL?"":_row[i]));
+			data.urlpath.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.urlpath.clear();
+			data.urlpath.clear();
 			 }
 			break;
 	case 13:
 		 try{
-			metatemp.imgurl.append((_row[i]==NULL?"":_row[i]));
+			data.imgurl.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.imgurl.clear();
+			data.imgurl.clear();
 			 }
 			break;
 	case 14:
 		 try{
-			metatemp.topimg.append((_row[i]==NULL?"":_row[i]));
+			data.topimg.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.topimg.clear();
+			data.topimg.clear();
 			 }
 			break;
 	case 15:
 		 try{
-			metatemp.accesscode=std::stoul(_row[i]);
+			data.accesscode=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.accesscode=0;
+			data.accesscode=0;
 			 }
 			break;
 	default:
@@ -272,8 +274,6 @@ break;
                      break;
                  }
           }
-          data=metatemp;
-          record.emplace_back(metatemp);   
    } 
          void _addnewrowvalue(){
            topicbase::meta metatemp;   

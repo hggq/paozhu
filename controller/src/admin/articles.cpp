@@ -106,7 +106,7 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
 
         auto artmodel = orm::cms::Article();
 
-        artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", aid).limit(1).fetch();
+        artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", aid).fetch_one();
 
         unsigned int topicid = artmodel.getTopicid();
 

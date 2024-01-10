@@ -10,7 +10,7 @@ std::string testmodel(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
     client << "testmodel ";
     auto users = orm::cms::User();
-    users.where("name", "admin").limit(1).fetch();
+    users.where("name", "admin").fetch_one();
 
     client << "userid: " << users.getUserid();
     auto artlists = users.gettoparticle(1);
@@ -27,7 +27,7 @@ std::string testmodelsmartptr(std::shared_ptr<httppeer> peer)
     client << "testmodel ";
     auto users = std::make_shared<orm::cms::User>();
 
-    users->where("name", "admin").limit(1).fetch();
+    users->where("name", "admin").fetch_one();
 
     client << "userid: " << users->getUserid();
     auto artlists = users->gettoparticle(1);

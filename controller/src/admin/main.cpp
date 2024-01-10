@@ -29,7 +29,7 @@ std::string admin_loginpost(std::shared_ptr<httppeer> peer)
     try
     {
         md5string = md5(password);
-        users.where("name=", username).whereAnd("password=", md5string).limit(1).fetch();
+        users.where("name=", username).whereAnd("password=", md5string).fetch_one();
         // view orm create sql
         // client<<"<p>"<<users.sqlstring<<"</p>";
         auto loginfo = orm::cms::Logininfo();
@@ -142,7 +142,7 @@ std::string admin_siteinfo(std::shared_ptr<httppeer> peer)
     try
     {
         auto stinfo = orm::cms::Siteinfo();
-        stinfo.where("userid", client.session["userid"].to_int()).fetch();
+        stinfo.where("userid", client.session["userid"].to_int()).fetch_one();
 
         client.val["info"].set_array();
 
@@ -225,7 +225,7 @@ std::string admin_userinfo(std::shared_ptr<httppeer> peer)
     try
     {
         auto stuser = orm::cms::User();
-        stuser.where("userid", 1).fetch();
+        stuser.where("userid", 1).fetch_one();
 
         client.val["info"].set_array();
 
@@ -278,7 +278,7 @@ std::string admin_editpwdpost(std::shared_ptr<httppeer> peer)
         auto stinfo = orm::cms::User();
 
         unsigned int sid = 1;
-        stinfo.where("userid", sid).fetch();
+        stinfo.where("userid", sid).fetch_one();
 
         std::string old_password = client.post["oldpassword"].to_string();
         std::string new_password;

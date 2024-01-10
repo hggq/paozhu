@@ -16,7 +16,7 @@ std::string testmysqlconnect(std::shared_ptr<httppeer> peer)
     client << "<p><a href=\"" << client.get_hosturl() << "/showcookie\">show</a></p>";
     auto users = orm::cms::User();
 
-    users.where("name", "admin").limit(1).fetch();
+    users.where("name", "admin").fetch_one();
     try
     {
         client << "<p>sql result</p>";

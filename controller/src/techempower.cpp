@@ -37,7 +37,7 @@ std::string techempowerdb(std::shared_ptr<httppeer> peer)
     peer->set_header("Date", get_gmttime());
     auto myworld        = orm::World();
     unsigned int rd_num = rand_range(1, 10000);
-    myworld.where("id", rd_num).fetch();
+    myworld.get_one(rd_num);
 
     peer->output = myworld.data_tojson();
     return "";

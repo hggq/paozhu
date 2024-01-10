@@ -2,7 +2,7 @@
 #define ORM_CMS_USERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 10 Jan 2024 14:41:31 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 16:49:42 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -90,43 +90,45 @@ break;
      userbase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue(){
-          userbase::meta metatemp;   
-         for(unsigned char i=0;i<_keypos.size();i++){
+      void _setColnamevalue()
+      {
+
+         for(unsigned char i=0;i<_keypos.size();i++)
+         {
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.userid=std::stoul(_row[i]);
+			data.userid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.userid=0;
+			data.userid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.name.append((_row[i]==NULL?"":_row[i]));
+			data.name.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.name.clear();
+			data.name.clear();
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.password.append((_row[i]==NULL?"":_row[i]));
+			data.password.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.password.clear();
+			data.password.clear();
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.isopen=std::stoi(_row[i]);
+			data.isopen=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.isopen=0;
+			data.isopen=0;
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.level=std::stoi(_row[i]);
+			data.level=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.level=0;
+			data.level=0;
 			 }
 			break;
 	default:
@@ -139,8 +141,6 @@ break;
                      break;
                  }
           }
-          data=metatemp;
-          record.emplace_back(metatemp);   
    } 
          void _addnewrowvalue(){
            userbase::meta metatemp;   

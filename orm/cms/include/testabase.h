@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 10 Jan 2024 14:41:31 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 16:49:42 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -82,29 +82,31 @@ break;
      testabase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue(){
-          testabase::meta metatemp;   
-         for(unsigned char i=0;i<_keypos.size();i++){
+      void _setColnamevalue()
+      {
+
+         for(unsigned char i=0;i<_keypos.size();i++)
+         {
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.id=std::stoi(_row[i]);
+			data.id=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.id=0;
+			data.id=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.value_id=std::stoi(_row[i]);
+			data.value_id=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.value_id=0;
+			data.value_id=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.content.append((_row[i]==NULL?"":_row[i]));
+			data.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.content.clear();
+			data.content.clear();
 			 }
 			break;
 	default:
@@ -117,8 +119,6 @@ break;
                      break;
                  }
           }
-          data=metatemp;
-          record.emplace_back(metatemp);   
    } 
          void _addnewrowvalue(){
            testabase::meta metatemp;   

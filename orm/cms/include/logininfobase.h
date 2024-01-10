@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 10 Jan 2024 14:41:31 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 16:49:42 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -110,57 +110,59 @@ break;
      logininfobase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue(){
-          logininfobase::meta metatemp;   
-         for(unsigned char i=0;i<_keypos.size();i++){
+      void _setColnamevalue()
+      {
+
+         for(unsigned char i=0;i<_keypos.size();i++)
+         {
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.lgid=std::stoul(_row[i]);
+			data.lgid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.lgid=0;
+			data.lgid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.userid=std::stoul(_row[i]);
+			data.userid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.userid=0;
+			data.userid=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.username.append((_row[i]==NULL?"":_row[i]));
+			data.username.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.username.clear();
+			data.username.clear();
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.addtime.append((_row[i]==NULL?"":_row[i]));
+			data.addtime.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.addtime.clear();
+			data.addtime.clear();
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.addip.append((_row[i]==NULL?"":_row[i]));
+			data.addip.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.addip.clear();
+			data.addip.clear();
 			 }
 			break;
 	case 5:
 		 try{
-			metatemp.addregion.append((_row[i]==NULL?"":_row[i]));
+			data.addregion.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.addregion.clear();
+			data.addregion.clear();
 			 }
 			break;
 	case 6:
 		 try{
-			metatemp.loginstate.append((_row[i]==NULL?"":_row[i]));
+			data.loginstate.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.loginstate.clear();
+			data.loginstate.clear();
 			 }
 			break;
 	default:
@@ -173,8 +175,6 @@ break;
                      break;
                  }
           }
-          data=metatemp;
-          record.emplace_back(metatemp);   
    } 
          void _addnewrowvalue(){
            logininfobase::meta metatemp;   

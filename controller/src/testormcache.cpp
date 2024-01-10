@@ -14,7 +14,7 @@ std::string testormcache(std::shared_ptr<httppeer> peer)
     auto articles = orm::cms::Article();
     int aid       = 5;
 
-    articles.where("isopen=1").where(" aid=", aid).limit(1).use_cache().fetch();
+    articles.where("isopen=1").where(" aid=", aid).limit(1).use_cache().fetch_one();
     client << "<br />title:" << articles.getTitle();
     if (articles.isuse_cache())
     {
@@ -32,7 +32,7 @@ std::string testormcacheb(std::shared_ptr<httppeer> peer)
     auto articles = orm::cms::Article();
     int aid       = 5;
 
-    articles.where("isopen=1").where(" aid=", aid).limit(1).use_cache(60).fetch();
+    articles.where("isopen=1").where(" aid=", aid).limit(1).use_cache(60).fetch_one();
     client << "<br />title:" << articles.getTitle();
     if (articles.isuse_cache(true))
     {

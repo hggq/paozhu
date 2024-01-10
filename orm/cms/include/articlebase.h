@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 10 Jan 2024 14:41:31 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 16:49:42 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -198,183 +198,185 @@ break;
      articlebase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue(){
-          articlebase::meta metatemp;   
-         for(unsigned char i=0;i<_keypos.size();i++){
+      void _setColnamevalue()
+      {
+
+         for(unsigned char i=0;i<_keypos.size();i++)
+         {
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.aid=std::stoul(_row[i]);
+			data.aid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.aid=0;
+			data.aid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.topicid=std::stoul(_row[i]);
+			data.topicid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.topicid=0;
+			data.topicid=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.classtype=std::stoul(_row[i]);
+			data.classtype=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.classtype=0;
+			data.classtype=0;
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.userid=std::stoul(_row[i]);
+			data.userid=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.userid=0;
+			data.userid=0;
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.sortid=std::stoi(_row[i]);
+			data.sortid=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.sortid=0;
+			data.sortid=0;
 			 }
 			break;
 	case 5:
 		 try{
-			metatemp.topicname.append((_row[i]==NULL?"":_row[i]));
+			data.topicname.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.topicname.clear();
+			data.topicname.clear();
 			 }
 			break;
 	case 6:
 		 try{
-			metatemp.title.append((_row[i]==NULL?"":_row[i]));
+			data.title.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.title.clear();
+			data.title.clear();
 			 }
 			break;
 	case 7:
 		 try{
-			metatemp.keywords.append((_row[i]==NULL?"":_row[i]));
+			data.keywords.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.keywords.clear();
+			data.keywords.clear();
 			 }
 			break;
 	case 8:
 		 try{
-			metatemp.fromsource.append((_row[i]==NULL?"":_row[i]));
+			data.fromsource.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.fromsource.clear();
+			data.fromsource.clear();
 			 }
 			break;
 	case 9:
 		 try{
-			metatemp.author.append((_row[i]==NULL?"":_row[i]));
+			data.author.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.author.clear();
+			data.author.clear();
 			 }
 			break;
 	case 10:
 		 try{
-			metatemp.addip.append((_row[i]==NULL?"":_row[i]));
+			data.addip.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.addip.clear();
+			data.addip.clear();
 			 }
 			break;
 	case 11:
 		 try{
-			metatemp.createtime.append((_row[i]==NULL?"":_row[i]));
+			data.createtime.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.createtime.clear();
+			data.createtime.clear();
 			 }
 			break;
 	case 12:
 		 try{
-			metatemp.addtime=std::stoull(_row[i]);
+			data.addtime=std::stoull(_row[i]);
 		}catch (...) { 
-			metatemp.addtime=0;
+			data.addtime=0;
 			 }
 			break;
 	case 13:
 		 try{
-			metatemp.readnum=std::stoi(_row[i]);
+			data.readnum=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.readnum=0;
+			data.readnum=0;
 			 }
 			break;
 	case 14:
 		 try{
-			metatemp.review=std::stoi(_row[i]);
+			data.review=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.review=0;
+			data.review=0;
 			 }
 			break;
 	case 15:
 		 try{
-			metatemp.icoimg.append((_row[i]==NULL?"":_row[i]));
+			data.icoimg.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.icoimg.clear();
+			data.icoimg.clear();
 			 }
 			break;
 	case 16:
 		 try{
-			metatemp.content.append((_row[i]==NULL?"":_row[i]));
+			data.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.content.clear();
+			data.content.clear();
 			 }
 			break;
 	case 17:
 		 try{
-			metatemp.mdcontent.append((_row[i]==NULL?"":_row[i]));
+			data.mdcontent.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.mdcontent.clear();
+			data.mdcontent.clear();
 			 }
 			break;
 	case 18:
 		 try{
-			metatemp.isopen=std::stoi(_row[i]);
+			data.isopen=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.isopen=0;
+			data.isopen=0;
 			 }
 			break;
 	case 19:
 		 try{
-			metatemp.iscomment=std::stoi(_row[i]);
+			data.iscomment=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.iscomment=0;
+			data.iscomment=0;
 			 }
 			break;
 	case 20:
 		 try{
-			metatemp.fromlocal.append((_row[i]==NULL?"":_row[i]));
+			data.fromlocal.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.fromlocal.clear();
+			data.fromlocal.clear();
 			 }
 			break;
 	case 21:
 		 try{
-			metatemp.texturl.append((_row[i]==NULL?"":_row[i]));
+			data.texturl.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.texturl.clear();
+			data.texturl.clear();
 			 }
 			break;
 	case 22:
 		 try{
-			metatemp.summary.append((_row[i]==NULL?"":_row[i]));
+			data.summary.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.summary.clear();
+			data.summary.clear();
 			 }
 			break;
 	case 23:
 		 try{
-			metatemp.editauthor.append((_row[i]==NULL?"":_row[i]));
+			data.editauthor.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.editauthor.clear();
+			data.editauthor.clear();
 			 }
 			break;
 	case 24:
 		 try{
-			metatemp.relatecontent.append((_row[i]==NULL?"":_row[i]));
+			data.relatecontent.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.relatecontent.clear();
+			data.relatecontent.clear();
 			 }
 			break;
 	default:
@@ -387,8 +389,6 @@ break;
                      break;
                  }
           }
-          data=metatemp;
-          record.emplace_back(metatemp);   
    } 
          void _addnewrowvalue(){
            articlebase::meta metatemp;   

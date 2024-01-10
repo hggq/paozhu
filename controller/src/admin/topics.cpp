@@ -68,7 +68,7 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
         unsigned int topicid = client.get["id"].to_int();
         if (topicid > 0)
         {
-            topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", topicid).limit(1).fetch();
+            topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", topicid).fetch_one();
             client.val["info"].set_array();
             client.val["info"]["topicid"]     = topicm.data.topicid;
             client.val["info"]["parentid"]    = topicm.data.parentid;

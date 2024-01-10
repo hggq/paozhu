@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 10 Jan 2024 14:41:31 GMT
+*本文件为自动生成 Wed, 10 Jan 2024 16:49:42 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -110,64 +110,66 @@ break;
      siteinfobase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue(){
-          siteinfobase::meta metatemp;   
-         for(unsigned char i=0;i<_keypos.size();i++){
+      void _setColnamevalue()
+      {
+
+         for(unsigned char i=0;i<_keypos.size();i++)
+         {
                  switch(_keypos[i]){
         	case 0:
 		 try{
-			metatemp.sid=std::stoi(_row[i]);
+			data.sid=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.sid=0;
+			data.sid=0;
 			 }
 			break;
 	case 1:
 		 try{
-			metatemp.userid=std::stoi(_row[i]);
+			data.userid=std::stoi(_row[i]);
 		}catch (...) { 
-			metatemp.userid=0;
+			data.userid=0;
 			 }
 			break;
 	case 2:
 		 try{
-			metatemp.languagetype=std::stoul(_row[i]);
+			data.languagetype=std::stoul(_row[i]);
 		}catch (...) { 
-			metatemp.languagetype=0;
+			data.languagetype=0;
 			 }
 			break;
 	case 3:
 		 try{
-			metatemp.sitename.append((_row[i]==NULL?"":_row[i]));
+			data.sitename.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.sitename.clear();
+			data.sitename.clear();
 			 }
 			break;
 	case 4:
 		 try{
-			metatemp.sitedomain.append((_row[i]==NULL?"":_row[i]));
+			data.sitedomain.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.sitedomain.clear();
+			data.sitedomain.clear();
 			 }
 			break;
 	case 5:
 		 try{
-			metatemp.metakeys.append((_row[i]==NULL?"":_row[i]));
+			data.metakeys.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.metakeys.clear();
+			data.metakeys.clear();
 			 }
 			break;
 	case 6:
 		 try{
-			metatemp.metadesc.append((_row[i]==NULL?"":_row[i]));
+			data.metadesc.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.metadesc.clear();
+			data.metadesc.clear();
 			 }
 			break;
 	case 7:
 		 try{
-			metatemp.copyright.append((_row[i]==NULL?"":_row[i]));
+			data.copyright.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
-			metatemp.copyright.clear();
+			data.copyright.clear();
 			 }
 			break;
 	default:
@@ -180,8 +182,6 @@ break;
                      break;
                  }
           }
-          data=metatemp;
-          record.emplace_back(metatemp);   
    } 
          void _addnewrowvalue(){
            siteinfobase::meta metatemp;   

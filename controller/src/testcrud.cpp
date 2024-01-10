@@ -28,7 +28,7 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
     try
     {
         md5string = md5(password);
-        users.where("name=", username).whereAnd("password=", md5string).limit(1).fetch();
+        users.where("name=", username).whereAnd("password=", md5string).fetch_one();
         // view orm create sql
         // client<<"<p>"<<users.sqlstring<<"</p>";
         if (users.getUserid() > 0)
@@ -109,7 +109,7 @@ std::string articleshow(std::shared_ptr<httppeer> peer)
     auto articles    = orm::cms::Article();
     int aid          = client.get["id"].to_int();
 
-    articles.where("isopen=1").where(" aid=", aid).limit(1).fetch();
+    articles.where("isopen=1").where(" aid=", aid).fetch_one();
 
     client.val["title"]   = articles.getTitle();
     client.val["content"] = articles.getContent();
@@ -124,7 +124,7 @@ std::string articleedit(std::shared_ptr<httppeer> peer)
     auto articles    = orm::cms::Article();
     int aid          = client.get["id"].to_int();
 
-    articles.where("isopen=1").where(" aid=", aid).limit(1).fetch();
+    articles.where("isopen=1").where(" aid=", aid).fetch_one();
 
     client.val["title"]   = articles.getTitle();
     client.val["content"] = html_encode(articles.getRefContent());
