@@ -1374,7 +1374,7 @@ struct )";
       }
       )";
     headtxt += R"(
-      std::string soft_remove_sql(){
+      std::string soft_remove_sql([[maybe_unused]] const std::string &fieldsql){
           std::string temp;
      )";
     modelfileclasscpp.clear();
@@ -1392,9 +1392,9 @@ struct )";
             modelfileclasscpp.append("\");\n\t");
             modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
             modelfileclasscpp.append("\ttemp.append(\"=1 \");\n\t");
-            modelfileclasscpp.append("\tdata.");
+            modelfileclasscpp.append("\t if(fieldsql.size()>1){ data.");
             modelfileclasscpp.append(tablecollist[j]);
-            modelfileclasscpp.append("=1;\n\t");
+            modelfileclasscpp.append("=1; }\n\t");
         }
         else if (tablecollist[j] == "deletetime" || tablecollist[j] == "delete_time" || tablecollist[j] == "deletedtime" || tablecollist[j] == "deleted_time" || tablecollist[j] == "deleted_at" || tablecollist[j] == "delete_at")
         {
@@ -1408,21 +1408,42 @@ struct )";
             modelfileclasscpp.append("\");\n\t");
             modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
             modelfileclasscpp.append("\ttemp.append(\"=UNIX_TIMESTAMP() \");\n\t");
-            modelfileclasscpp.append("\tdata.");
+            modelfileclasscpp.append("\tif(fieldsql.size()>1){ data.");
             modelfileclasscpp.append(tablecollist[j]);
-            modelfileclasscpp.append("=time((time_t *)NULL);\n\t");
+            modelfileclasscpp.append("=time((time_t *)NULL); }\n\t");
         }
     }
     if (modelfileclasscpp.size() > 0)
     {
         headtxt += R"(
-         temp="UPDATE `";
-         temp.append(tablename);
-         temp.push_back('`');
-         temp.append(" SET ");
+         if(fieldsql.size()<2)
+         {
+            temp="UPDATE `";
+            temp.append(tablename);
+            temp.push_back('`');
+            temp.append(" SET ");
+         }
+         else
+         {
+            temp=_makeupdatesql(fieldsql);
+            if(temp.size()>2)
+            {
+                if(temp.back()==0x20&&temp[temp.size()-2]=='T')
+                {
+
+                }
+                else
+                {
+                    temp.push_back(',');
+                }
+            }
+            
+         }   
+         
       )";
         headtxt.append(modelfileclasscpp);
     }
+    //
     headtxt += R"(
          return temp;
      }
@@ -2239,7 +2260,7 @@ struct )";
     // update sql
     headtxt.clear();
     headtxt = R"(   
-    std::string _makeupdatesql(std::string fileld){
+    std::string _makeupdatesql(const std::string &fileld){
        //int j=0;
             std::ostringstream tempsql;
                  tempsql<<"UPDATE ";

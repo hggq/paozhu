@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 11 Jan 2024 13:27:35 GMT
+*本文件为自动生成 Thu, 11 Jan 2024 15:56:28 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -134,7 +134,7 @@ break;
             data = metatemp; 
       }
       
-      std::string soft_remove_sql(){
+      std::string soft_remove_sql([[maybe_unused]] const std::string &fieldsql){
           std::string temp;
      
          return temp;
@@ -650,7 +650,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string fileld){
+    std::string _makeupdatesql(const std::string &fileld){
        //int j=0;
             std::ostringstream tempsql;
                  tempsql<<"UPDATE ";

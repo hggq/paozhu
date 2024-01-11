@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 11 Jan 2024 13:27:35 GMT
+*本文件为自动生成 Thu, 11 Jan 2024 15:56:28 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -94,24 +94,44 @@ break;
             data = metatemp; 
       }
       
-      std::string soft_remove_sql(){
+      std::string soft_remove_sql([[maybe_unused]] const std::string &fieldsql){
           std::string temp;
      
-         temp="UPDATE `";
-         temp.append(tablename);
-         temp.push_back('`');
-         temp.append(" SET ");
+         if(fieldsql.size()<2)
+         {
+            temp="UPDATE `";
+            temp.append(tablename);
+            temp.push_back('`');
+            temp.append(" SET ");
+         }
+         else
+         {
+            temp=_makeupdatesql(fieldsql);
+            if(temp.size()>2)
+            {
+                if(temp.back()==0x20&&temp[temp.size()-2]=='T')
+                {
+
+                }
+                else
+                {
+                    temp.push_back(',');
+                }
+            }
+            
+         }   
+         
       	temp.push_back('`');
 		temp.append("deleted");
 		temp.push_back('`');
 		temp.append("=1 ");
-		data.deleted=1;
+		 if(fieldsql.size()>1){ data.deleted=1; }
 		temp.push_back(',');
 		temp.push_back('`');
 		temp.append("deletetime");
 		temp.push_back('`');
 		temp.append("=UNIX_TIMESTAMP() ");
-		data.deletetime=time((time_t *)NULL);
+		if(fieldsql.size()>1){ data.deletetime=time((time_t *)NULL); }
 	
          return temp;
      }
@@ -401,7 +421,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string fileld){
+    std::string _makeupdatesql(const std::string &fileld){
        //int j=0;
             std::ostringstream tempsql;
                  tempsql<<"UPDATE ";
