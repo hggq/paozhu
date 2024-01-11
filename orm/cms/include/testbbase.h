@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 10 Jan 2024 16:49:42 GMT
+*本文件为自动生成 Thu, 11 Jan 2024 02:03:57 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -69,9 +69,8 @@ break;
        return "tid";
 }
 
-      void metadata_reset(){
-     testbbase::meta metatemp;    
-            data = metatemp; 
+      void record_reset()
+      {
             record.clear();     
       }
       void data_reset(){
@@ -80,10 +79,9 @@ break;
       }
       void _setColnamevalue()
       {
-
-         for(unsigned char i=0;i<_keypos.size();i++)
-         {
-                 switch(_keypos[i]){
+        for(unsigned char i=0;i<_keypos.size();i++)
+        {
+            switch(_keypos[i]){
         	case 0:
 		 try{
 			data.tid=std::stoi(_row[i]);

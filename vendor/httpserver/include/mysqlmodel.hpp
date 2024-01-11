@@ -2123,7 +2123,7 @@ class mysqlclientDB : public base
             }
         }
 
-        base::metadata_reset();
+        base::record_reset();
         if (iserror)
         {
             return *mod;
@@ -2392,7 +2392,7 @@ class mysqlclientDB : public base
         }
         return *mod;
     }
-    model &fetch_one(bool isappend=false)
+    model &fetch_one(bool isappend = false)
     {
         effect_num = 0;
         if (selectsql.empty())
@@ -2425,7 +2425,7 @@ class mysqlclientDB : public base
         {
             sqlstring.append(ordersql);
         }
- 
+
         sqlstring.append(" limit 1");
 
         if (iscache)
@@ -2516,16 +2516,11 @@ class mysqlclientDB : public base
                     base::_keypos.emplace_back(base::findcolpos(type_temp));
                 }
             }
-            
-            if(isappend)
-            {
-
-            }
 
             if ((base::_row = mysql_fetch_row(resultall)))
             {
                 base::_setColnamevalue();
-                if(isappend)
+                if (isappend)
                 {
                     base::record.emplace_back(base::data);
                 }
@@ -2618,7 +2613,7 @@ class mysqlclientDB : public base
         base::record                                      = temp_cache.get(cache_key_name);
         if (base::record.size() == 0)
         {
-            base::metadata_reset();
+            base::record_reset();
         }
         else
         {
@@ -3798,9 +3793,11 @@ class mysqlclientDB : public base
         ishascontent = false;
         iscommit     = false;
         iscache      = false;
+        effect_num   = 0;
         if (both)
         {
-            base::metadata_reset();
+            base::record_reset();
+            base::data_reset();
         }
         return *mod;
     }

@@ -41,15 +41,15 @@ std::string strtoline(const std::string &vval)
     {
         if (vval[i] == 0x0D)
         {
-           temp.append("\\r");
-           continue;
+            temp.append("\\r");
+            continue;
         }
         else if (vval[i] == 0x0A)
         {
-           temp.append("\\n");
-           continue;
+            temp.append("\\n");
+            continue;
         }
-        temp.push_back(vval[i]); 
+        temp.push_back(vval[i]);
     }
     return temp;
 }
@@ -1361,13 +1361,10 @@ struct )";
     headtxt.clear();
 
     headtxt = R"(
-      void metadata_reset(){
-     )";
-    headtxt += tablenamebase;
-    headtxt += R"(base::meta metatemp;    
-            data = metatemp; 
+      void record_reset()
+      {
             record.clear();     
-      })"; 
+      })";
     headtxt += R"(
       void data_reset(){
      )";
@@ -1375,14 +1372,13 @@ struct )";
     headtxt += R"(base::meta metatemp;    
             data = metatemp; 
       }
-      )"; 
+      )";
 
-      headtxt += R"(void _setColnamevalue()
+    headtxt += R"(void _setColnamevalue()
       {
-
-         for(unsigned char i=0;i<_keypos.size();i++)
-         {
-                 switch(_keypos[i]){
+        for(unsigned char i=0;i<_keypos.size();i++)
+        {
+            switch(_keypos[i]){
         )";
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
