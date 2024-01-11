@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 11 Jan 2024 02:03:57 GMT
+*本文件为自动生成 Thu, 11 Jan 2024 13:27:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -25,6 +25,8 @@ struct testabase
      int id= 0; //
  char value_id=0; //
  std::string content=""; //
+unsigned  char deleted=0; //
+unsigned  int deletetime= 0; //
  } data;
  std::vector<testabase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -34,8 +36,8 @@ std::vector<testabase::meta>::iterator begin(){     return record.begin(); }
 std::vector<testabase::meta>::iterator end(){     return record.end(); }
 std::vector<testabase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<testabase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,3> colnames={"id","value_id","content"};
-const std::array<unsigned char,3> colnamestype= {3,1,253};
+const std::array<std::string,5> colnames={"id","value_id","content","deleted","deletetime"};
+const std::array<unsigned char,5> colnamestype= {3,1,253,1,3};
 std::string tablename="testa";
 std::string modelname="Testa";
 
@@ -56,6 +58,16 @@ std::string modelname="Testa";
          case 'c':
    	 return 2;
 break;
+case 'd':
+ switch(coln.size()){  
+case 7:
+   	 return 3;
+break;
+case 10:
+   	 return 4;
+break;
+ }
+ break;
 case 'i':
    	 return 0;
 break;
@@ -81,7 +93,29 @@ break;
      testabase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue()
+      
+      std::string soft_remove_sql(){
+          std::string temp;
+     
+         temp="UPDATE `";
+         temp.append(tablename);
+         temp.push_back('`');
+         temp.append(" SET ");
+      	temp.push_back('`');
+		temp.append("deleted");
+		temp.push_back('`');
+		temp.append("=1 ");
+		data.deleted=1;
+		temp.push_back(',');
+		temp.push_back('`');
+		temp.append("deletetime");
+		temp.push_back('`');
+		temp.append("=UNIX_TIMESTAMP() ");
+		data.deletetime=time((time_t *)NULL);
+	
+         return temp;
+     }
+     void _setColnamevalue()
       {
         for(unsigned char i=0;i<_keypos.size();i++)
         {
@@ -105,6 +139,20 @@ break;
 			data.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.content.clear();
+			 }
+			break;
+	case 3:
+		 try{
+			data.deleted=std::stoi(_row[i]);
+		}catch (...) { 
+			data.deleted=0;
+			 }
+			break;
+	case 4:
+		 try{
+			data.deletetime=std::stoul(_row[i]);
+		}catch (...) { 
+			data.deletetime=0;
 			 }
 			break;
 	default:
@@ -144,6 +192,20 @@ break;
 			metatemp.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.content.clear();
+			 }
+			break;
+	case 3:
+		 try{
+			metatemp.deleted=std::stoi(_row[i]);
+		}catch (...) { 
+			metatemp.deleted=0;
+			 }
+			break;
+	case 4:
+		 try{
+			metatemp.deletetime=std::stoul(_row[i]);
+		}catch (...) { 
+			metatemp.deletetime=0;
 			 }
 			break;
 	default:
@@ -221,6 +283,16 @@ if(data.value_id==0){
 	tempsql<<","<<std::to_string(data.value_id);
 }
 tempsql<<",'"<<stringaddslash(data.content)<<"'";
+if(data.deleted==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.deleted);
+}
+if(data.deletetime==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.deletetime);
+}
 tempsql<<")";
 
      
@@ -257,6 +329,16 @@ if(insert_data.value_id==0){
 	tempsql<<","<<std::to_string(insert_data.value_id);
 }
 tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
+if(insert_data.deleted==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.deleted);
+}
+if(insert_data.deletetime==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.deletetime);
+}
 tempsql<<")";
 
      
@@ -302,6 +384,16 @@ tempsql<<")";
 	tempsql<<","<<std::to_string(insert_data[i].value_id);
 	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
+	if(insert_data[i].deleted==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].deleted);
+	}
+	if(insert_data[i].deletetime==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].deletetime);
+	}
 		tempsql<<")";
 	 } 
 
@@ -333,6 +425,16 @@ if(data.value_id==0){
 	tempsql<<",`value_id`="<<std::to_string(data.value_id);
 }
 tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
+if(data.deleted==0){
+	tempsql<<",`deleted`=0";
+ }else{ 
+	tempsql<<",`deleted`="<<std::to_string(data.deleted);
+}
+if(data.deletetime==0){
+	tempsql<<",`deletetime`=0";
+ }else{ 
+	tempsql<<",`deletetime`="<<std::to_string(data.deletetime);
+}
  }else{ 
 
      
@@ -397,6 +499,22 @@ if(data.value_id==0){
  if(jj>0){ tempsql<<","; } 
 tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
  break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(data.deleted==0){
+	tempsql<<"`deleted`=0";
+ }else{ 
+	tempsql<<"`deleted`="<<std::to_string(data.deleted);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(data.deletetime==0){
+	tempsql<<"`deletetime`=0";
+ }else{ 
+	tempsql<<"`deletetime`="<<std::to_string(data.deletetime);
+}
+ break;
 
      
                   default:
@@ -457,6 +575,20 @@ if(data.value_id==0){
  case 2:
 	temparray.push_back(data.content);
  break;
+ case 3:
+if(data.deleted==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.deleted));
+}
+ break;
+ case 4:
+if(data.deletetime==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.deletetime));
+}
+ break;
 
                              default:
                                 ;
@@ -514,6 +646,20 @@ if(data.value_id==0){
  case 2:
 	tempsql.insert({"content",data.content});
  break;
+ case 3:
+if(data.deleted==0){
+	tempsql.insert({"deleted","0"});
+ }else{ 
+	tempsql.insert({"deleted",std::to_string(data.deleted)});
+}
+ break;
+ case 4:
+if(data.deletetime==0){
+	tempsql.insert({"deletetime","0"});
+ }else{ 
+	tempsql.insert({"deletetime",std::to_string(data.deletetime)});
+}
+ break;
 
                              default:
                                 ;
@@ -539,6 +685,16 @@ if(data.value_id==0){
 }
 tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
 tempsql<<"\"";
+if(data.deleted==0){
+	tempsql<<",\"deleted\":0";
+ }else{ 
+	tempsql<<",\"deleted\":"<<std::to_string(data.deleted);
+}
+if(data.deletetime==0){
+	tempsql<<",\"deletetime\":0";
+ }else{ 
+	tempsql<<",\"deletetime\":"<<std::to_string(data.deletetime);
+}
 tempsql<<"}";
 
      
@@ -595,6 +751,22 @@ if(data.value_id==0){
  case 2:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(data.deleted==0){
+	tempsql<<"\"deleted\":0";
+ }else{ 
+	tempsql<<"\"deleted\":"<<std::to_string(data.deleted);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(data.deletetime==0){
+	tempsql<<"\"deletetime\":0";
+ }else{ 
+	tempsql<<"\"deletetime\":"<<std::to_string(data.deletetime);
+}
  break;
 
                              default:
@@ -864,6 +1036,20 @@ tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
 			data.content.clear();
 			 }
 			break;
+		case 3:
+		 try{
+			data.deleted=std::stoi(set_value_name);
+		}catch (...) { 
+			data.deleted=0;
+			 }
+			break;
+		case 4:
+		 try{
+			data.deletetime=std::stoul(set_value_name);
+		}catch (...) { 
+			data.deletetime=0;
+			 }
+			break;
 	default:
 		 { }
 			
@@ -897,6 +1083,20 @@ tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
 			data.content.clear();
 			 }
 			break;
+		case 3:
+		 try{
+			data.deleted=set_value_name;
+		}catch (...) { 
+			data.deleted=0;
+			 }
+			break;
+		case 4:
+		 try{
+			data.deletetime=set_value_name;
+		}catch (...) { 
+			data.deletetime=0;
+			 }
+			break;
 	default:
 		 { }
 			
@@ -928,6 +1128,20 @@ tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
 			data.content=std::to_string(set_value_name);
 		}catch (...) { 
 			data.content.clear();
+			 }
+			break;
+		case 3:
+		 try{
+			data.deleted=(int)set_value_name;
+		}catch (...) { 
+			data.deleted=0;
+			 }
+			break;
+		case 4:
+		 try{
+			data.deletetime=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.deletetime=0;
 			 }
 			break;
 	default:
@@ -995,6 +1209,22 @@ if(record[n].value_id==0){
  case 2:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].deleted==0){
+	tempsql<<"\"deleted\":0";
+ }else{ 
+	tempsql<<"\"deleted\":"<<std::to_string(record[n].deleted);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].deletetime==0){
+	tempsql<<"\"deletetime\":0";
+ }else{ 
+	tempsql<<"\"deletetime\":"<<std::to_string(record[n].deletetime);
+}
  break;
 
                              default:
@@ -1072,6 +1302,22 @@ if(record[n].value_id==0){
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].deleted==0){
+	tempsql<<"\"deleted\":0";
+ }else{ 
+	tempsql<<"\"deleted\":"<<std::to_string(record[n].deleted);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].deletetime==0){
+	tempsql<<"\"deletetime\":0";
+ }else{ 
+	tempsql<<"\"deletetime\":"<<std::to_string(record[n].deletetime);
+}
+ break;
 
                              default:
                                 ;
@@ -1094,6 +1340,12 @@ std::string getContent(){  return data.content; }
 std::string& getRefContent(){  return std::ref(data.content); } 
  void setContent(std::string &val){  data.content=val;} 
  void setContent(std::string_view val){  data.content=val;} 
+
+unsigned  int  getDeleted(){  return data.deleted; } 
+ void setDeleted(unsigned  int  val){  data.deleted=val;} 
+
+unsigned  int  getDeletetime(){  return data.deletetime; } 
+ void setDeletetime(unsigned  int  val){  data.deletetime=val;} 
 
 testabase::meta getnewData(){
  	 struct meta newdata;
@@ -1129,6 +1381,14 @@ std::vector<testabase::meta> getRecord(){
 		{
 			return data.value_id;
 		}
+		 if(key_name=="deleted")
+		{
+			return data.deleted;
+		}
+		 if(key_name=="deletetime")
+		{
+			return data.deletetime;
+		}
 		return nullptr; 
 	}
 
@@ -1156,6 +1416,12 @@ std::vector<testabase::meta> getRecord(){
 				 break;
 			case 1: 
  				 a.emplace_back(iter.value_id);
+				 break;
+			case 3: 
+ 				 a.emplace_back(iter.deleted);
+				 break;
+			case 4: 
+ 				 a.emplace_back(iter.deletetime);
 				 break;
 
                     }
@@ -1188,6 +1454,12 @@ std::vector<testabase::meta> getRecord(){
 			case 1: 
  				 return data.value_id;
 				 break;
+			case 3: 
+ 				 return data.deleted;
+				 break;
+			case 4: 
+ 				 return data.deletetime;
+				 break;
 			}
                 return 0;
             }  
@@ -1206,6 +1478,12 @@ std::vector<testabase::meta> getRecord(){
 				 break;
 			case 1: 
  				 return iter.value_id;
+				 break;
+			case 3: 
+ 				 return iter.deleted;
+				 break;
+			case 4: 
+ 				 return iter.deletetime;
 				 break;
 
 			}
@@ -1341,6 +1619,12 @@ std::vector<testabase::meta> getRecord(){
 				 a<<iter.content;
 				 }
 				 break;
+			case 3: 
+ 				 a<<std::to_string(iter.deleted);
+				 break;
+			case 4: 
+ 				 a<<std::to_string(iter.deletetime);
+				 break;
 
                     }
                     j++;
@@ -1439,6 +1723,12 @@ std::vector<testabase::meta> getRecord(){
 case 1: 
  	 ktemp=iter.value_id;
 	 break;
+case 3: 
+ 	 ktemp=iter.deleted;
+	 break;
+case 4: 
+ 	 ktemp=iter.deletetime;
+	 break;
 	 } 
  		  switch(vpos){
 
@@ -1471,6 +1761,12 @@ case 1:
 				 break;
 			case 1: 
  				 ktemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
 				 break;
 			  }
  			switch(vpos){
@@ -1514,6 +1810,12 @@ case 1:
 			case 1: 
  				 vtemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
+				 break;
 
                 }
                 if(ktemp.size()>0)
@@ -1546,6 +1848,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 			  }
  			switch(vpos){
 			case 0: 
@@ -1553,6 +1861,12 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
 				 break;
 
                 }
@@ -1582,6 +1896,12 @@ case 1:
 				 break;
 			case 1: 
  				 a.emplace(iter.value_id,iter);
+				 break;
+			case 3: 
+ 				 a.emplace(iter.deleted,iter);
+				 break;
+			case 4: 
+ 				 a.emplace(iter.deletetime,iter);
 				 break;
 
                 }
@@ -1667,6 +1987,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 			 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+			 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+			 break;
 			  }
 			 switch(vpos){
 
@@ -1701,6 +2027,12 @@ case 1:
 				 break;
 			case 1: 
  				 ktemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
 				 break;
 			  }
  			switch(vpos){
@@ -1743,6 +2075,12 @@ case 1:
 			case 1: 
  				 vtemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
+				 break;
 
                    }
                     a.emplace_back(ktemp,vtemp);
@@ -1772,6 +2110,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 			  }
 			 switch(vpos){
 			case 0: 
@@ -1779,6 +2123,12 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
 				 break;
 
                    }
@@ -1838,6 +2188,12 @@ case 2:
 case 1: 
  	 a.emplace_back(iter.value_id,iter);
 	 break;
+case 3: 
+ 	 a.emplace_back(iter.deleted,iter);
+	 break;
+case 4: 
+ 	 a.emplace_back(iter.deletetime,iter);
+	 break;
 
                 }
             }       
@@ -1888,6 +2244,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 			  }
 
 			 switch(vpos){
@@ -1896,6 +2258,12 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
 				 break;
 			  }
 
@@ -1932,6 +2300,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 			  }
 
 			 switch(vpos){
@@ -1941,6 +2315,12 @@ case 1:
 			case 1: 
  				 vtemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
+				 break;
 			  }
 
 			 switch(dpos){
@@ -1949,6 +2329,12 @@ case 1:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.value_id);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.deleted);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.deletetime);
 				 break;
 
                 }
@@ -1981,6 +2367,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 				  }
 
 			 switch(vpos){
@@ -1989,6 +2381,12 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
 				 break;
 			 }
 
@@ -2027,6 +2425,12 @@ case 1:
 				 break;
 			case 1: 
  				 ktemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
 				 break;
 			 }
 
@@ -2069,6 +2473,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 			 }
 
 			 switch(vpos){
@@ -2083,6 +2493,12 @@ case 1:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.value_id);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.deleted);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.deletetime);
 				 break;
 
             }
@@ -2113,6 +2529,12 @@ case 1:
 				 break;
 			case 1: 
  				 ktemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
 				 break;
 			  }
 
@@ -2162,6 +2584,12 @@ case 1:
 			case 1: 
  				 vtemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
+				 break;
 			  }
 
 			 switch(dpos){
@@ -2204,6 +2632,12 @@ case 1:
 			case 1: 
  				 vtemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
+				 break;
 			 }
 
 			 switch(dpos){
@@ -2212,6 +2646,12 @@ case 1:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.value_id);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.deleted);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.deletetime);
 				 break;
 
                 }
@@ -2251,6 +2691,12 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 vtemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 vtemp=iter.deletetime;
 				 break;
 			 }
 
@@ -2338,6 +2784,12 @@ case 1:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.value_id);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.deleted);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.deletetime);
 				 break;
 
                 }
@@ -2478,6 +2930,12 @@ case 1:
 			case 1: 
  				 a[ktemp].emplace_back(iter.value_id);
 				 break;
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.deleted);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.deletetime);
+				 break;
 
                 }
             }       
@@ -2507,6 +2965,12 @@ case 1:
 				 break;
 			case 1: 
  				 ktemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
 				 break;
 			 }
 
@@ -2545,6 +3009,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 			  }
 
 			 switch(vpos){
@@ -2578,6 +3048,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 			 }
 
 			 switch(vpos){
@@ -2586,6 +3062,12 @@ case 1:
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.value_id);
+				 break;
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.deleted);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.deletetime);
 				 break;
 
                 }
@@ -2612,6 +3094,12 @@ case 1:
 				 break;
 			case 1: 
  				 a[iter.value_id].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[iter.deleted].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[iter.deletetime].emplace_back(iter);
 				 break;
 
                 }
@@ -2704,6 +3192,12 @@ case 1:
 			case 1: 
  				 a[ktemp][iter.value_id].emplace_back(iter);
 				 break;
+			case 3: 
+ 				 a[ktemp][iter.deleted].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.deletetime].emplace_back(iter);
+				 break;
 
                 }
             }       
@@ -2734,6 +3228,12 @@ case 1:
 			case 1: 
  				 ktemp=iter.value_id;
 				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
+				 break;
 			 }
 
 			 switch(vpos){
@@ -2742,6 +3242,12 @@ case 1:
 				 break;
 			case 1: 
  				 a[ktemp][iter.value_id].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[ktemp][iter.deleted].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.deletetime].emplace_back(iter);
 				 break;
 
                 }
@@ -2772,6 +3278,12 @@ case 1:
 				 break;
 			case 1: 
  				 ktemp=iter.value_id;
+				 break;
+			case 3: 
+ 				 ktemp=iter.deleted;
+				 break;
+			case 4: 
+ 				 ktemp=iter.deletetime;
 				 break;
 			  }
 

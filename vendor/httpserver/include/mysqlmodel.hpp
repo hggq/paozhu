@@ -3160,6 +3160,7 @@ class mysqlclientDB : public base
 
         try
         {
+            mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
             if (readnum != 0)
             {
@@ -3259,6 +3260,113 @@ class mysqlclientDB : public base
         catch (const char *e)
         {
             error_msg = std::string(e);
+            return 0;
+        }
+        catch (...)
+        {
+            return 0;
+        }
+    }
+    int soft_remove()
+    {
+        effect_num = 0;
+        if (wheresql.empty())
+        {
+            if (base::getPK() > 0)
+            {
+                std::ostringstream tempsql;
+                tempsql << " ";
+                tempsql << base::getPKname();
+                tempsql << " = '";
+                tempsql << base::getPK();
+                tempsql << "' ";
+                wheresql = tempsql.str();
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        sqlstring = base::soft_remove_sql();
+        if (sqlstring.empty())
+        {
+            error_msg = "soft delete field empty.";
+            return 0;
+        }
+        sqlstring.append(" where ");
+        if (wheresql.empty())
+        {
+            return 0;
+        }
+        else
+        {
+            sqlstring.append(wheresql);
+        }
+        if (!groupsql.empty())
+        {
+            sqlstring.append(groupsql);
+        }
+        if (!ordersql.empty())
+        {
+            sqlstring.append(ordersql);
+        }
+        if (!limitsql.empty())
+        {
+            sqlstring.append(limitsql);
+        }
+
+        if (iscommit)
+        {
+            iscommit = false;
+            return 0;
+        }
+
+        if (iserror)
+        {
+            return 0;
+        }
+        std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
+        try
+        {
+            conn = linkconn->get_edit_connect();
+        }
+        catch (const char *e)
+        {
+            error_msg = std::string(e);
+            return 0;
+        }
+        try
+        {
+            mysql_ping(conn.get());
+            long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+            if (readnum != 0)
+            {
+                error_msg = std::string(mysql_error(conn.get()));
+                mysql_close(conn.get());
+                conn.reset();
+                return 0;
+            }
+            readnum    = mysql_affected_rows(conn.get());
+            effect_num = readnum;
+            try
+            {
+                linkconn->back_edit_connect(std::move(conn));
+            }
+            catch (...)
+            {
+            }
+            return readnum;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+            return 0;
+        }
+        catch (const char *e)
+        {
+            error_msg = std::string(e);
+            throw std::runtime_error(e);
             return 0;
         }
         catch (...)
@@ -3731,16 +3839,6 @@ class mysqlclientDB : public base
     }
     long long edit_query(const std::string &rawsql, bool isinsert = false)
     {
-
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = http::get_mysqleditexecute(dbhash);
-        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
-        // auto iter                                                           = myconn.find(dbhash);
-        // if (iter == myconn.end())
-        // {
-        //     error_msg = "not find orm link tag in pool";
-        //     return 0;
-        // }
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = linkconn->get_edit_connect();
         if (iserror)
         {
             return 0;

@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 11 Jan 2024 02:03:57 GMT
+*本文件为自动生成 Thu, 11 Jan 2024 13:27:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -133,7 +133,13 @@ break;
      departmentbase::meta metatemp;    
             data = metatemp; 
       }
-      void _setColnamevalue()
+      
+      std::string soft_remove_sql(){
+          std::string temp;
+     
+         return temp;
+     }
+     void _setColnamevalue()
       {
         for(unsigned char i=0;i<_keypos.size();i++)
         {

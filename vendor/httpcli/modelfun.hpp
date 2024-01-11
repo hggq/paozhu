@@ -1373,6 +1373,60 @@ struct )";
             data = metatemp; 
       }
       )";
+    headtxt += R"(
+      std::string soft_remove_sql(){
+          std::string temp;
+     )";
+    modelfileclasscpp.clear();
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
+    {
+        if (tablecollist[j] == "isdelete" || tablecollist[j] == "deleted" || tablecollist[j] == "isdeleted" || tablecollist[j] == "is_deleted" || tablecollist[j] == "is_delete" || tablecollist[j] == "order_deleted" || tablecollist[j] == "order_delete")
+        {
+            if (modelfileclasscpp.size() > 0)
+            {
+                modelfileclasscpp.append("\ttemp.push_back(',');\n\t");
+            }
+            modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
+            modelfileclasscpp.append("\ttemp.append(\"");
+            modelfileclasscpp.append(tablecollist[j]);
+            modelfileclasscpp.append("\");\n\t");
+            modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
+            modelfileclasscpp.append("\ttemp.append(\"=1 \");\n\t");
+            modelfileclasscpp.append("\tdata.");
+            modelfileclasscpp.append(tablecollist[j]);
+            modelfileclasscpp.append("=1;\n\t");
+        }
+        else if (tablecollist[j] == "deletetime" || tablecollist[j] == "delete_time" || tablecollist[j] == "deletedtime" || tablecollist[j] == "deleted_time" || tablecollist[j] == "deleted_at" || tablecollist[j] == "delete_at")
+        {
+            if (modelfileclasscpp.size() > 0)
+            {
+                modelfileclasscpp.append("\ttemp.push_back(',');\n\t");
+            }
+            modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
+            modelfileclasscpp.append("\ttemp.append(\"");
+            modelfileclasscpp.append(tablecollist[j]);
+            modelfileclasscpp.append("\");\n\t");
+            modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
+            modelfileclasscpp.append("\ttemp.append(\"=UNIX_TIMESTAMP() \");\n\t");
+            modelfileclasscpp.append("\tdata.");
+            modelfileclasscpp.append(tablecollist[j]);
+            modelfileclasscpp.append("=time((time_t *)NULL);\n\t");
+        }
+    }
+    if (modelfileclasscpp.size() > 0)
+    {
+        headtxt += R"(
+         temp="UPDATE `";
+         temp.append(tablename);
+         temp.push_back('`');
+         temp.append(" SET ");
+      )";
+        headtxt.append(modelfileclasscpp);
+    }
+    headtxt += R"(
+         return temp;
+     }
+     )";
 
     headtxt += R"(void _setColnamevalue()
       {
