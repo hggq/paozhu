@@ -226,7 +226,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
   auto users = orm::cms::User();
   try
   {
-    users.where("name","admin").limit(1).fetch();
+    users.where("name","admin").fetch_one();
     if (users.getUserid() > 0)
     {
       client<<"<p>found:"<<users.data.name<<"</p>";
