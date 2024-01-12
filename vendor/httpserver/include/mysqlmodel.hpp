@@ -270,7 +270,7 @@ class get_orm_client
             linkconn = iter->second;
         }
     }
-    bool switch_db(const std::string &tag)
+    bool switchDB(const std::string &tag)
     {
         dbhash                                                              = std::hash<std::string>{}(tag);
         db_type                                                             = 0;// 0 Mysql 1 MariaDB 2 PostgreSQL 3 SQLite
@@ -484,7 +484,7 @@ template <typename model, typename base>
 class mysqlclientDB : public base
 {
   public:
-    mysqlclientDB(std::string tag) : dbtag(tag)
+    mysqlclientDB(const std::string &tag) : dbtag(tag)
     {
         // dbhash = hash_fn(dbtag);
         dbhash                                                              = std::hash<std::string>{}(dbtag);
@@ -518,7 +518,22 @@ class mysqlclientDB : public base
             linkconn = iter->second;
         }
     }
-    model &set_table(std::string table_name)
+    model &switchDB(const std::string &temptag)
+    {
+        dbhash                                                              = std::hash<std::string>{}(temptag);
+        std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
+        auto iter                                                           = myconn.find(dbhash);
+        if (iter == myconn.end())
+        {
+            error_msg = "not find orm link tag in pool";
+            iserror   = true;
+        }
+        else
+        {
+            linkconn = iter->second;
+        }
+    }
+    model &set_table(const std::string &table_name)
     {
         if (original_tablename.empty())
         {
@@ -532,10 +547,11 @@ class mysqlclientDB : public base
     }
     model &reset_table()
     {
-        if (!original_tablename.empty())
+        if (original_tablename.empty())
         {
-            base::tablename = original_tablename;
+            return *mod;
         }
+        base::tablename = original_tablename;
         return *mod;
     }
     unsigned int count()
@@ -561,14 +577,6 @@ class mysqlclientDB : public base
             countsql.append(limitsql);
         }
 
-        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
-        // auto iter                                                           = myconn.find(dbhash);
-        // if (iter == myconn.end())
-        // {
-        //     error_msg = "not find orm link tag in pool";
-        //     return 0;
-        // }
-        //std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = iter->second->get_select_connect();
         if (iserror)
         {
             return 0;
@@ -587,30 +595,18 @@ class mysqlclientDB : public base
         try
         {
             MYSQL_RES *resultone = nullptr;
-            //mysql_ping(conn.get());
+            mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &countsql[0], countsql.size());
 
             if (readnum != 0)
             {
                 error_msg = std::string(mysql_error(conn.get()));
-                try
-                {
-                    linkconn->back_select_connect(std::move(conn));
-                }
-                catch (...)
-                {
-                }
+                linkconn->back_select_connect(std::move(conn));
                 return 0;
             }
 
             resultone = mysql_store_result(conn.get());
-            try
-            {
-                linkconn->back_select_connect(std::move(conn));
-            }
-            catch (...)
-            {
-            }
+            linkconn->back_select_connect(std::move(conn));
 
             if (!resultone)
             {
@@ -702,6 +698,7 @@ class mysqlclientDB : public base
     }
     int update_col(std::string colname, int num)
     {
+        effect_num = 0;
         std::string countsql;
         countsql = "UPDATE ";
         countsql.append(base::tablename);
@@ -757,14 +754,6 @@ class mysqlclientDB : public base
             return 0;
         }
 
-        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &myconn = http::get_mysqlpool();
-        // auto iter                                                           = myconn.find(dbhash);
-        // if (iter == myconn.end())
-        // {
-        //     error_msg = "not find orm link tag in pool";
-        //     return 0;
-        // }
-        // std::unique_ptr<MYSQL, decltype(&mysql_close)> conn = linkconn->get_edit_connect();
         if (iserror)
         {
             return 0;
@@ -781,15 +770,19 @@ class mysqlclientDB : public base
         }
         try
         {
+            mysql_ping(conn.get());
             long long readnum = mysql_real_query(conn.get(), &countsql[0], countsql.size());
-            readnum           = mysql_affected_rows(conn.get());
-            try
+            if (readnum != 0)
             {
-                linkconn->back_edit_connect(std::move(conn));
+                error_msg = std::string(mysql_error(conn.get()));
+                mysql_close(conn.get());
+                conn.reset();
+                return 0;
             }
-            catch (...)
-            {
-            }
+            readnum    = mysql_affected_rows(conn.get());
+            effect_num = readnum;
+            linkconn->back_edit_connect(std::move(conn));
+
             return readnum;
         }
         catch (const std::exception &e)
@@ -808,7 +801,7 @@ class mysqlclientDB : public base
         }
     }
 
-    model &select(std::string fieldname)
+    model &select(const std::string &fieldname)
     {
         if (selectsql.size() > 0)
         {
@@ -818,7 +811,7 @@ class mysqlclientDB : public base
         return *mod;
     }
 
-    model &where(const std::string wq)
+    model &where(const std::string &wq)
     {
         if (wheresql.empty())
         {
@@ -847,7 +840,7 @@ class mysqlclientDB : public base
     }
     template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-    model &where(std::string wq, _SQL_Value val)
+    model &where(const std::string &wq, _SQL_Value val)
     {
         if (wheresql.empty())
         {
@@ -870,24 +863,23 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
+        wheresql.append(wq);
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
         {
         }
         else
         {
-            wq.push_back('=');
+            wheresql.push_back('=');
         }
+
         std::stringstream _stream;
         _stream << val;
-        wq.append(_stream.str());
-
-        wheresql.append(wq);
+        wheresql.append(_stream.str());
         return *mod;
     }
 
-    model &where(std::string wq, char bi, http::OBJ_VALUE &obj)
+    model &where(const std::string &wq, char bi, http::OBJ_VALUE &obj)
     {
         if (wheresql.empty())
         {
@@ -910,24 +902,22 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
-        wq.push_back(bi);
+        wheresql.append(wq);
+        wheresql.push_back(bi);
         if (obj.is_string())
         {
-            wq.push_back('\'');
-            wq.append(obj.as_string());
-            wq.push_back('\'');
+            wheresql.push_back('\'');
+            wheresql.append(obj.as_string());
+            wheresql.push_back('\'');
         }
         else
         {
 
-            wq.append(obj.to_string());
+            wheresql.append(obj.to_string());
         }
-
-        wheresql.append(wq);
         return *mod;
     }
-    model &where(std::string wq, http::OBJ_VALUE &obj)
+    model &where(const std::string &wq, http::OBJ_VALUE &obj)
     {
         if (wheresql.empty())
         {
@@ -950,34 +940,32 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
+        wheresql.append(wq);
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
         {
         }
         else
         {
-            wq.push_back('=');
+            wheresql.push_back('=');
         }
 
         if (obj.is_string())
         {
-            wq.push_back('\'');
-            wq.append(obj.as_string());
-            wq.push_back('\'');
+            wheresql.push_back('\'');
+            wheresql.append(obj.as_string());
+            wheresql.push_back('\'');
         }
         else
         {
 
-            wq.append(obj.to_string());
+            wheresql.append(obj.to_string());
         }
-
-        wheresql.append(wq);
         return *mod;
     }
     template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-    model &where(std::string wq, char bi, _SQL_Value val)
+    model &where(const std::string &wq, char bi, _SQL_Value val)
     {
         if (wheresql.empty())
         {
@@ -1000,12 +988,11 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
-        wq.push_back(bi);
+        wheresql.append(wq);
+        wheresql.push_back(bi);
         std::stringstream _stream;
         _stream << val;
-        wq.append(_stream.str());
-        wheresql.append(wq);
+        wheresql.append(_stream.str());
         return *mod;
     }
 
@@ -1032,14 +1019,12 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
-        wq.push_back(bi);
-        wq.push_back('\'');
-
-        wq.append(val);
-        wq.push_back('\'');
-
         wheresql.append(wq);
+        wheresql.push_back(bi);
+        wheresql.push_back('\'');
+
+        wheresql.append(val);
+        wheresql.push_back('\'');
         return *mod;
     }
     model &where(std::string wq, std::string val)
@@ -1065,23 +1050,60 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
+        wheresql.append(wq);
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
         {
         }
         else
         {
-            wq.push_back('=');
+            wheresql.push_back('=');
         }
 
-        wq.push_back('\'');
-        wq.append(val);
-        wq.push_back('\'');
-
-        wheresql.append(wq);
+        wheresql.push_back('\'');
+        wheresql.append(val);
+        wheresql.push_back('\'');
         return *mod;
     }
-    model &whereLike(std::string wq, std::string val)
+    model &whereLike(const std::string &wq, const std::string &val)
+    {
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(wq);
+        wheresql.append(" like '");
+        if (val.size() > 0 && (val[0] == '%' || val.back() == '%'))
+        {
+            wheresql.append(val);
+            wheresql.append("' ");
+        }
+        else
+        {
+            wheresql.push_back('%');
+            wheresql.append(val);
+            wheresql.append("%' ");
+        }
+        return *mod;
+    }
+    model &whereLikeLeft(const std::string &wq, const std::string &val)
     {
 
         if (wheresql.empty())
@@ -1105,26 +1127,45 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
+        wheresql.append(wq);
+        wheresql.append(" like '");
+        wheresql.push_back('%');
+        wheresql.append(val);
+        wheresql.append("' ");
+        return *mod;
+    }
+    model &whereLikeRight(const std::string &wq, const std::string &val)
+    {
 
-        wq.append(" like '");
-        if (val[0] == '%' || val.back() == '%')
+        if (wheresql.empty())
         {
-            wq.append(val);
-            wq.append("' ");
         }
         else
         {
-            wq.push_back('%');
-            wq.append(val);
-            wq.append("%' ");
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
         }
-
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
         wheresql.append(wq);
+        wheresql.append(" like '");
+        wheresql.append(val);
+        wheresql.append("%' ");
         return *mod;
     }
-    model &whereOrLike(std::string wq, std::string val)
+    model &whereOrLike(const std::string &wq, const std::string &val)
     {
-
         if (wheresql.empty())
         {
         }
@@ -1146,24 +1187,22 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
-        wq.append(" like '");
+        wheresql.append(wq);
+        wheresql.append(" like '");
         if (val[0] == '%' || val.back() == '%')
         {
-            wq.append(val);
-            wq.append("' ");
+            wheresql.append(val);
+            wheresql.append("' ");
         }
         else
         {
-            wq.push_back('%');
-            wq.append(val);
-            wq.append("%' ");
+            wheresql.push_back('%');
+            wheresql.append(val);
+            wheresql.append("%' ");
         }
-
-        wheresql.append(wq);
         return *mod;
     }
-    model &whereAnd(const std::string wq)
+    model &whereAnd(const std::string &wq)
     {
         if (wheresql.empty())
         {
@@ -1186,13 +1225,12 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
         wheresql.append(wq);
         return *mod;
     }
     template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-    model &whereAnd(std::string wq, _SQL_Value val)
+    model &whereAnd(const std::string &wq, _SQL_Value val)
     {
 
         if (wheresql.empty())
@@ -1216,23 +1254,21 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
+        wheresql.append(wq);
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
         {
         }
         else
         {
-            wq.push_back('=');
+            wheresql.push_back('=');
         }
         std::stringstream _stream;
         _stream << val;
-        wq.append(_stream.str());
-
-        wheresql.append(wq);
+        wheresql.append(_stream.str());
         return *mod;
     }
-    model &whereAnd(std::string wq, const std::string &val)
+    model &whereAnd(const std::string &wq, const std::string &val)
     {
         if (wheresql.empty())
         {
@@ -1255,25 +1291,23 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
+        wheresql.append(wq);
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
         {
         }
         else
         {
-            wq.push_back('=');
+            wheresql.push_back('=');
         }
 
-        wq.push_back('\'');
-        wq.append(val);
-        wq.push_back('\'');
-
-        wheresql.append(wq);
+        wheresql.push_back('\'');
+        wheresql.append(val);
+        wheresql.push_back('\'');
 
         return *mod;
     }
-    model &whereOr(const std::string wq)
+    model &whereOr(const std::string &wq)
     {
         if (wheresql.empty())
         {
@@ -1296,15 +1330,13 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
         wheresql.append(wq);
         return *mod;
     }
     template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-    model &whereOr(std::string wq, _SQL_Value val)
+    model &whereOr(const std::string &wq, _SQL_Value val)
     {
-
         if (wheresql.empty())
         {
         }
@@ -1326,23 +1358,21 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
+        wheresql.append(wq);
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
         {
         }
         else
         {
-            wq.push_back('=');
+            wheresql.push_back('=');
         }
         std::stringstream _stream;
         _stream << val;
-        wq.append(_stream.str());
-
-        wheresql.append(wq);
+        wheresql.append(_stream.str());
         return *mod;
     }
-    model &whereOr(std::string wq, std::string val)
+    model &whereOr(const std::string &wq, const std::string &val)
     {
         if (wheresql.empty())
         {
@@ -1365,25 +1395,22 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
+        wheresql.append(wq);
         char bi = wq.back();
         if (bi == '=' || bi == '>' || bi == '<')
         {
         }
         else
         {
-            wq.push_back('=');
+            wheresql.push_back('=');
         }
 
-        wq.push_back('\'');
-        wq.append(val);
-        wq.push_back('\'');
-
-        wheresql.append(wq);
-
+        wheresql.push_back('\'');
+        wheresql.append(val);
+        wheresql.push_back('\'');
         return *mod;
     }
-    model &whereIn(const std::string k)
+    model &whereIn(const std::string &k)
     {
         if (wheresql.empty())
         {
@@ -1406,7 +1433,6 @@ class mysqlclientDB : public base
         {
             ishascontent = true;
         }
-
         wheresql.append(k);
         return *mod;
     }
@@ -1441,7 +1467,7 @@ class mysqlclientDB : public base
         return *mod;
     }
 
-    model &whereIn(const std::string k, const std::vector<std::string> &a)
+    model &whereIn(const std::string &k, const std::vector<std::string> &a)
     {
         if (wheresql.empty())
         {
@@ -1484,7 +1510,7 @@ class mysqlclientDB : public base
         wheresql.append(") ");
         return *mod;
     }
-    model &whereNotIn(const std::string k, const std::vector<std::string> &a)
+    model &whereNotIn(const std::string &k, const std::vector<std::string> &a)
     {
         if (wheresql.empty())
         {
@@ -1530,7 +1556,7 @@ class mysqlclientDB : public base
     }
     template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-    model &whereIn(const std::string k, const std::list<_SQL_Value> &a)
+    model &whereIn(const std::string &k, const std::list<_SQL_Value> &a)
     {
         if (wheresql.empty())
         {
@@ -1575,7 +1601,7 @@ class mysqlclientDB : public base
 
     template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-    model &whereIn(const std::string k, const std::vector<_SQL_Value> &a)
+    model &whereIn(const std::string &k, const std::vector<_SQL_Value> &a)
     {
         if (wheresql.empty())
         {
@@ -1619,7 +1645,7 @@ class mysqlclientDB : public base
     }
     template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-    model &whereNotIn(std::string k, std::vector<_SQL_Value> &a)
+    model &whereNotIn(const std::string &k, const std::vector<_SQL_Value> &a)
     {
         if (wheresql.empty())
         {
@@ -1662,14 +1688,13 @@ class mysqlclientDB : public base
         return *mod;
     }
 
-    model &order(std::string wq)
+    model &order(const std::string &wq)
     {
-
         ordersql.append(" ORDER by ");
         ordersql.append(wq);
         return *mod;
     }
-    model &asc(std::string wq)
+    model &asc(const std::string &wq)
     {
 
         ordersql.append(" ORDER by ");
@@ -1678,7 +1703,7 @@ class mysqlclientDB : public base
         return *mod;
     }
 
-    model &desc(std::string wq)
+    model &desc(const std::string &wq)
     {
 
         ordersql.append(" ORDER by ");
@@ -1687,7 +1712,7 @@ class mysqlclientDB : public base
         return *mod;
     }
 
-    model &having(std::string wq)
+    model &having(const std::string &wq)
     {
 
         groupsql.append(" HAVING by ");
@@ -1695,7 +1720,7 @@ class mysqlclientDB : public base
         return *mod;
     }
 
-    model &group(std::string wq)
+    model &group(const std::string &wq)
     {
 
         groupsql.append(" GROUP BY ");
