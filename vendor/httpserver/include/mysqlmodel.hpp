@@ -3514,6 +3514,7 @@ class mysqlclientDB : public base
             if (base::getPK() > 0)
             {
                 std::ostringstream tempsql;
+                effect_num = 1;
                 tempsql << " ";
                 tempsql << base::getPKname();
                 tempsql << " = '";
@@ -3526,8 +3527,15 @@ class mysqlclientDB : public base
                 return 0;
             }
         }
-
-        sqlstring = base::soft_remove_sql("");
+        if (effect_num == 1)
+        {
+            sqlstring = base::soft_remove_sql(" ");
+        }
+        else
+        {
+            sqlstring = base::soft_remove_sql("");
+        }
+        effect_num = 0;
         if (sqlstring.empty())
         {
             error_msg = "soft delete field empty.";

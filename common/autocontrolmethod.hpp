@@ -15,6 +15,7 @@
 #include "testmodelfromjson.h"
 #include "techempower.h"
 #include "teststrip_html.h"
+#include "testsoft_remove.h"
 #include "teststr_join.h"
 #include "testrand.h"
 #include "testormcache.h"
@@ -104,6 +105,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = teststrip_html;
 		methodcallback.emplace("teststrip_html",temp);
+		temp.pre = nullptr;
+		temp.regfun = testsoftremove;
+		methodcallback.emplace("testsoftremove",temp);
 		temp.pre = nullptr;
 		temp.regfun = teststrjoin;
 		methodcallback.emplace("teststr_join",temp);

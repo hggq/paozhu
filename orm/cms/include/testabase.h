@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 11 Jan 2024 15:56:28 GMT
+*本文件为自动生成 Fri, 12 Jan 2024 04:37:36 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -125,13 +125,15 @@ break;
 		temp.append("deleted");
 		temp.push_back('`');
 		temp.append("=1 ");
-		 if(fieldsql.size()>1){ data.deleted=1; }
+		 if(fieldsql.size()>0){ data.deleted=1; }
 		temp.push_back(',');
 		temp.push_back('`');
 		temp.append("deletetime");
 		temp.push_back('`');
-		temp.append("=UNIX_TIMESTAMP() ");
-		if(fieldsql.size()>1){ data.deletetime=time((time_t *)NULL); }
+		temp.append("=");
+		unsigned int t=time((time_t *)NULL);
+		temp.append(std::to_string(t));
+		if(fieldsql.size()>0){ data.deletetime=t; }
 	
          return temp;
      }

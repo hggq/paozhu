@@ -1392,7 +1392,7 @@ struct )";
             modelfileclasscpp.append("\");\n\t");
             modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
             modelfileclasscpp.append("\ttemp.append(\"=1 \");\n\t");
-            modelfileclasscpp.append("\t if(fieldsql.size()>1){ data.");
+            modelfileclasscpp.append("\t if(fieldsql.size()>0){ data.");
             modelfileclasscpp.append(tablecollist[j]);
             modelfileclasscpp.append("=1; }\n\t");
         }
@@ -1407,10 +1407,12 @@ struct )";
             modelfileclasscpp.append(tablecollist[j]);
             modelfileclasscpp.append("\");\n\t");
             modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
-            modelfileclasscpp.append("\ttemp.append(\"=UNIX_TIMESTAMP() \");\n\t");
-            modelfileclasscpp.append("\tif(fieldsql.size()>1){ data.");
+            modelfileclasscpp.append("\ttemp.append(\"=\");\n\t");
+            modelfileclasscpp.append("\tunsigned int t=time((time_t *)NULL);\n\t");
+            modelfileclasscpp.append("\ttemp.append(std::to_string(t));\n\t");
+            modelfileclasscpp.append("\tif(fieldsql.size()>0){ data.");
             modelfileclasscpp.append(tablecollist[j]);
-            modelfileclasscpp.append("=time((time_t *)NULL); }\n\t");
+            modelfileclasscpp.append("=t; }\n\t");
         }
     }
     if (modelfileclasscpp.size() > 0)
