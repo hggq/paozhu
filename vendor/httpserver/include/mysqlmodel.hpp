@@ -996,7 +996,7 @@ class mysqlclientDB : public base
         return *mod;
     }
 
-    model &where(std::string wq, char bi, std::string val)
+    model &where(const std::string &wq, char bi, const std::string &val)
     {
         if (wheresql.empty())
         {
@@ -1027,7 +1027,7 @@ class mysqlclientDB : public base
         wheresql.push_back('\'');
         return *mod;
     }
-    model &where(std::string wq, std::string val)
+    model &where(const std::string &wq, const std::string &val)
     {
         if (wheresql.empty())
         {
@@ -1063,6 +1063,113 @@ class mysqlclientDB : public base
         wheresql.push_back('\'');
         wheresql.append(val);
         wheresql.push_back('\'');
+        return *mod;
+    }
+
+    model &between(const std::string &wq, const std::string &a, const std::string &b)
+    {
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" (");
+        wheresql.append(wq);
+        wheresql.append(" BETWEEN '");
+        std::stringstream _stream;
+        _stream << a;
+        _stream << "' AND '";
+        _stream << b;
+        _stream << "' ) ";
+        wheresql.append(_stream.str());
+        return *mod;
+    }
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &between(const std::string &wq, _SQL_Value a, _SQL_Value b)
+    {
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" (");
+        wheresql.append(wq);
+        wheresql.append(" BETWEEN ");
+        std::stringstream _stream;
+        _stream << a;
+        _stream << " AND ";
+        _stream << b;
+        _stream << " ) ";
+        wheresql.append(_stream.str());
+        return *mod;
+    }
+    template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+    model &orBetween(const std::string &wq, _SQL_Value a, _SQL_Value b)
+    {
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" (");
+        wheresql.append(wq);
+        wheresql.append(" BETWEEN ");
+        std::stringstream _stream;
+        _stream << a;
+        _stream << " AND ";
+        _stream << b;
+        _stream << " ) ";
+        wheresql.append(_stream.str());
         return *mod;
     }
     model &whereLike(const std::string &wq, const std::string &val)
