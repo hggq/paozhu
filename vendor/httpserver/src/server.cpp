@@ -3295,7 +3295,6 @@ httpserver::sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &conte
             }
         }
         total_count++;
-
         struct httpsocket_t sock_temp(std::move(sslsocket));
         co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), true, httpversion), asio::detached);
     }
@@ -3491,9 +3490,9 @@ void httpserver::listener()
                 std::this_thread::sleep_for(std::chrono::nanoseconds(200));
                 continue;
             }
+            total_count++;
             struct httpsocket_t sock_temp(std::move(socket));
             co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), false, false), asio::detached);
-            total_count++;
         }
         catch (std::exception &e)
         {
