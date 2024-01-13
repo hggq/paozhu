@@ -3257,7 +3257,6 @@ httpserver::sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &conte
 {
     try
     {
-
         serverconfig &sysconfigpath         = getserversysconfig();
         const unsigned char *for_next_proto = nullptr;
         unsigned int next_proto_len         = 0;
@@ -3426,20 +3425,16 @@ void httpserver::listeners()
         {
             // httpversion = false;
             asio::ip::tcp::socket socket(this->io_context);
-            DEBUG_LOG("https accept");
-
             acceptor.accept(socket, ec_error);
             if (ec_error)
             {
-
                 std::unique_lock<std::mutex> lock(log_mutex);
                 error_loglist.emplace_back(" accept ec_error ");
                 lock.unlock();
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 continue;
             }
             DEBUG_LOG(" accept ok!");
-
             co_spawn(this->io_context,
                      sslhandshake(std::move(socket), std::ref(context_), temp_domain),
                      asio::detached);
