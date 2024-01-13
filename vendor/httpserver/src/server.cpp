@@ -3262,7 +3262,7 @@ httpserver::sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &conte
         unsigned int next_proto_len         = 0;
         bool httpversion                    = false;
         asio::error_code ec_error;
-        DEBUG_LOG(" accept ok!");
+        DEBUG_LOG("https accept ok!");
         // if all http2
         if (sysconfigpath.isallnothttp2)
         {
@@ -3294,7 +3294,6 @@ httpserver::sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &conte
                 httpversion = true;
             }
         }
-        DEBUG_LOG(" https ok!");
         total_count++;
 
         struct httpsocket_t sock_temp(std::move(sslsocket));
@@ -3423,18 +3422,16 @@ void httpserver::listeners()
     {
         try
         {
-            // httpversion = false;
             asio::ip::tcp::socket socket(this->io_context);
             acceptor.accept(socket, ec_error);
             if (ec_error)
             {
                 std::unique_lock<std::mutex> lock(log_mutex);
-                error_loglist.emplace_back(" accept ec_error ");
+                error_loglist.emplace_back("https accept ec_error ");
                 lock.unlock();
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::this_thread::sleep_for(std::chrono::nanoseconds(200));
                 continue;
             }
-            DEBUG_LOG(" accept ok!");
             co_spawn(this->io_context,
                      sslhandshake(std::move(socket), std::ref(context_), temp_domain),
                      asio::detached);
@@ -3486,15 +3483,20 @@ void httpserver::listener()
         {
             asio::ip::tcp::socket socket(this->io_context);
             acceptor.accept(socket, ec);
-            total_count++;
+            if (ec)
+            {
+                std::unique_lock<std::mutex> lock(log_mutex);
+                error_loglist.emplace_back("http accept ec_error ");
+                lock.unlock();
+                std::this_thread::sleep_for(std::chrono::nanoseconds(200));
+                continue;
+            }
             struct httpsocket_t sock_temp(std::move(socket));
             co_spawn(this->io_context, clientpeerfun(std::move(sock_temp), false, false), asio::detached);
+            total_count++;
         }
         catch (std::exception &e)
         {
-            std::unique_lock<std::mutex> lock(log_mutex);
-            error_loglist.emplace_back(" http accept error  ");
-            lock.unlock();
         }
         if (isstop)
         {
