@@ -38,6 +38,7 @@
 #include "urlcode.h"
 #include "request.h"
 #include "func.h"
+#include "cost_define.h"
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -211,7 +212,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
     block_data_info_ptr->curnum += block_short_length;
 
     readoffset = readoffset + block_short_length;
-    if (block_data_info_ptr->curnum > 16384)
+    if (block_data_info_ptr->curnum > CONST_HTTP_HEADER_BODY_SIZE)
     {
         error = 403;
     }
@@ -3597,7 +3598,7 @@ void http2parse::data_process()
 
     if (block_steam_httppeer->compress == 10)
     {
-        if (block_steam_httppeer->content_length < 16777216)
+        if (block_steam_httppeer->content_length < CONST_PHP_BODY_POST_SIZE)
         {
             if (block_steam_httppeer->output.size() < block_steam_httppeer->content_length)
             {

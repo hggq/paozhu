@@ -8,7 +8,7 @@
 #include <string>
 #include <thread>
 #include <memory>
-#include <cstdio>
+#include <cmath>
 #include <sstream>
 #include <filesystem>
 #include <string_view>
@@ -23,6 +23,7 @@
 #endif
 
 #include "func.h"
+#include "cost_define.h"
 
 namespace http
 {
@@ -1835,6 +1836,26 @@ std::string numstr_to_sql(const char *source, unsigned int str_length, char b)
         tempt.append(tempstr);
     }
     return tempt;
+}
+
+double money_get_num(long long a)
+{
+    //may be define MONEY_PART 1000000
+    return (double)((long double)a / CONST_MONEY_PART);
+}
+long long money_put_num(double a)
+{
+    return std::round(a * CONST_MONEY_PART);
+}
+
+long long num_get_money(long long a)
+{
+    //may be define MONEY_PART 1000000
+    return std::round(a / CONST_MONEY_PART);
+}
+long long num_put_money(long long a)
+{
+    return a * CONST_MONEY_PART;
 }
 
 }// namespace http

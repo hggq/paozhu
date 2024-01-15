@@ -6,6 +6,7 @@
 #include "topics.h"
 #include "json_reflect_headers.h"
 #include "array_to_tree.h"
+#include "upload_images.h"
 namespace http
 {
 //@urlpath(admin_islogin,admin/addtopic)

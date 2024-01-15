@@ -163,5 +163,11 @@ void get_directory_all_file(std::map<unsigned long long, std::string> &listobj,
                             const std::string &url_path,
                             const std::string &extfile);
 
+double money_get_num(long long a);
+long long money_put_num(double a);
+
+long long num_put_money(long long a);
+long long num_get_money(long long a);
+
 }// namespace http
 #endif

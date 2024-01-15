@@ -70,9 +70,9 @@ int jsoncli()
         // 取出所有 对象 命名空间 kv 方式 留作 生成json_encode json_decode使用
         std::string tempcppfile       = filepath + "/" + filist[i] + "_jsonreflect.cpp";
         std::string headerincludefile = "#include \"" + filist[i] + ".h\"";
-        filelists.push_back(headerincludefile);
         if (fa.size() > 0)
         {
+            filelists.push_back(headerincludefile);
             std::cout << ifindex << " " << tempcppfile << std::endl;
             ifindex += 1;
             tjf.createhfile(tempcppfile, fa, headerincludefile);

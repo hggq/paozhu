@@ -40,8 +40,8 @@
 #include "client_session.h"
 #include "httppeer.h"
 #include "server_localvar.h"
-
 #include "func.h"
+#include "cost_define.h"
 namespace http
 {
 
@@ -2728,7 +2728,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                 break;
             }
             changetype = changetype + readoffset;
-            if (changetype > 16384)
+            if (changetype > CONST_HTTP_HEADER_BODY_SIZE)
             {
                 error = 403;
                 return;
@@ -2745,7 +2745,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
         {
             if (peer->compress == 10)
             {
-                if (peer->content_length > 16777216)
+                if (peer->content_length > CONST_PHP_BODY_POST_SIZE)
                 {
                     error = 403;
                     return;

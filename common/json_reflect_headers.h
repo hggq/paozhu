@@ -4,13 +4,10 @@
 #include <vector>
 #include <map>
 
-#include "ipdata/ip_data_obj.h"
 #include "types/topics_type.h"
 #include "types/techempower_json.h"
-#include "markdown/markdown2html.h"
 #include "department/department_type.h"
 #include "img/editorupload_type.h"
-#include "img/upload_images.h"
 #include "unicode.h"
 
 template<typename JSON_REF_OBJ_TEMP>
