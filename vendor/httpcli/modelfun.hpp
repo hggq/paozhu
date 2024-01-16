@@ -126,6 +126,7 @@ int createtabletoorm(std::string ormfilepath,
     // int defaultcolnamepos = 255;
 
     std::map<std::string, std::map<std::string, std::string>> tableinfo;
+    std::map<std::string, std::pair<std::string, std::string>> tablefieldscale;
     std::map<unsigned char, unsigned char> table_type;
     std::map<unsigned char, unsigned char> table_type_unsigned;
     for (int index = 0; index < num_fields; index++)
@@ -175,7 +176,52 @@ int createtabletoorm(std::string ormfilepath,
                 std::transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
             }
             tableinfo[fieldname][table[j]] = temp;
+            if (table[j] == "comment")
+            {
+                //check [name*100]
+                std::string scalename;
+                std::string scalenum;
+                bool isc = false;
+                for (unsigned int n = 0; n < temp.size(); n++)
+                {
+                    if (temp[n] == '[')
+                    {
+                        isc = true;
+                        continue;
+                    }
 
+                    if (isc)
+                    {
+                        if (temp[n] == '*')
+                        {
+                            isc = false;
+                            for (; n < temp.size(); n++)
+                            {
+                                if (temp[n] == ']')
+                                {
+                                    break;
+                                }
+                                if (temp[n] > 0x2F && temp[n] < 0x3A)
+                                {
+                                    scalenum.push_back(temp[n]);
+                                }
+                            }
+                        }
+                        if (isc)
+                        {
+                            scalename.push_back(temp[n]);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+                if (scalename.size() > 0 && scalenum.size() > 0)
+                {
+                    tablefieldscale.insert({fieldname, {scalename, scalenum}});
+                }
+            }
             if (table[j] == "type")
             {
                 bool isc   = false;
@@ -3926,6 +3972,149 @@ struct )";
     //////////////////////////////////////////////
 
     std::ostringstream getcollstrem;
+    //scale field
+    //tablefieldscale
+    headtxt.clear();
+    update2strem.str("");
+    if (tablefieldscale.size() > 0)
+    {
+        for (auto &kaa : tablefieldscale)
+        {
+
+            for (auto &nbb : numbercollist)
+            {
+                if (nbb.second == kaa.first)
+                {
+                    uptempstring.clear();
+                    uptempstring     = kaa.first;
+                    unsigned int re  = 0;
+                    bool isupperchar = false;
+                    for (unsigned int n = 0; n < uptempstring.size(); n++)
+                    {
+                        if (uptempstring[n] == '_')
+                        {
+                            isupperchar = true;
+                            continue;
+                        }
+                        if (isupperchar)
+                        {
+                            if (uptempstring[n] >= 'a' && uptempstring[n] <= 'z')
+                            {
+                                uptempstring[re] = uptempstring[n] - 32;
+                            }
+                            else
+                            {
+                                uptempstring[re] = uptempstring[n];
+                            }
+                            isupperchar = false;
+                        }
+                        else
+                        {
+                            uptempstring[re] = uptempstring[n];
+                        }
+                        re++;
+                    }
+                    uptempstring.resize(re);
+                    if (uptempstring[0] >= 'a' && uptempstring[0] <= 'z')
+                    {
+                        uptempstring[0] = uptempstring[0] - 32;
+                    }
+                    std::string scalename = kaa.second.first;
+                    std::string scalnum   = kaa.second.second;
+
+                    if (scalename.size() > 0)
+                    {
+                        if (scalename[0] >= 'a' && scalename[0] <= 'z')
+                        {
+                            scalename[0] = scalename[0] - 32;
+                        }
+                    }
+
+                    headtxt.append("\n double get");
+                    headtxt.append(uptempstring);
+                    headtxt.append("To");
+                    headtxt.append(scalename);
+                    headtxt.append("()\n{\n");
+                    headtxt.append("\treturn (double)data.");
+                    headtxt.append(nbb.second);
+                    headtxt.append("/");
+                    if (scalnum.size() > 0)
+                    {
+                        headtxt.append(scalnum);
+                    }
+                    else
+                    {
+                        headtxt.append("1");
+                    }
+                    headtxt.append(";\n}\n");
+                    headtxt.append("\n template<typename T>");
+                    headtxt.append("\n requires std::is_arithmetic_v<T>");
+                    headtxt.append("\n double get");
+                    headtxt.append(uptempstring);
+                    headtxt.append("To");
+                    headtxt.append(scalename);
+                    headtxt.append("(T a)\n{\n");
+                    headtxt.append("\treturn (double)((long double)a/");
+                    if (scalnum.size() > 0)
+                    {
+                        headtxt.append(scalnum);
+                    }
+                    else
+                    {
+                        headtxt.append("1");
+                    }
+                    headtxt.push_back(')');
+                    headtxt.append(";\n}\n");
+
+                    headtxt.append("\n template<typename T>");
+                    headtxt.append("\n requires std::is_arithmetic_v<T>");
+                    headtxt.append("\n long long get");
+                    headtxt.append(scalename);
+                    headtxt.append("To");
+                    headtxt.append(uptempstring);
+                    headtxt.append("(T a)\n{\n");
+                    headtxt.append("\treturn std::round(a*");
+                    if (scalnum.size() > 0)
+                    {
+                        headtxt.append(scalnum);
+                    }
+                    else
+                    {
+                        headtxt.append("1");
+                    }
+                    headtxt.push_back(')');
+                    headtxt.append(";\n}\n");
+
+                    headtxt.append("\n template<typename T>");
+                    headtxt.append("\n requires std::is_arithmetic_v<T>");
+                    headtxt.append("\n void set");
+                    headtxt.append(uptempstring);
+                    headtxt.append("To");
+                    headtxt.append(scalename);
+                    headtxt.append("(T a)\n{\n\tdata.");
+                    headtxt.append(nbb.second);
+                    headtxt.append("=std::round(a*");
+                    if (scalnum.size() > 0)
+                    {
+                        headtxt.append(scalnum);
+                    }
+                    else
+                    {
+                        headtxt.append("1");
+                    }
+                    headtxt.push_back(')');
+                    headtxt.append(";\n}\n");
+                }
+            }
+        }
+    }
+
+    if (headtxt.size() > 0)
+    {
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+    }
+
     ///////////////////////////////////////////////////////
     // get_meta string
     headtxt.clear();

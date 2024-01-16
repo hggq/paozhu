@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 12 Jan 2024 04:37:36 GMT
+*本文件为自动生成 Tue, 16 Jan 2024 15:08:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -23,6 +23,7 @@ struct testbbase
 {
     struct meta{
      int tid= 0; //
+ long long score=0; //分数[num*100]
  std::string name=""; //
  } data;
  std::vector<testbbase::meta> record;
@@ -33,8 +34,8 @@ std::vector<testbbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<testbbase::meta>::iterator end(){     return record.end(); }
 std::vector<testbbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<testbbase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,2> colnames={"tid","name"};
-const std::array<unsigned char,2> colnamestype= {3,253};
+const std::array<std::string,3> colnames={"tid","score","name"};
+const std::array<unsigned char,3> colnamestype= {3,8,253};
 std::string tablename="testb";
 std::string modelname="Testb";
 
@@ -53,6 +54,9 @@ std::string modelname="Testb";
 
 
          case 'n':
+   	 return 2;
+break;
+case 's':
    	 return 1;
 break;
 case 't':
@@ -97,6 +101,13 @@ break;
 			break;
 	case 1:
 		 try{
+			data.score=std::stoll(_row[i]);
+		}catch (...) { 
+			data.score=0;
+			 }
+			break;
+	case 2:
+		 try{
 			data.name.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.name.clear();
@@ -128,6 +139,13 @@ break;
 			 }
 			break;
 	case 1:
+		 try{
+			metatemp.score=std::stoll(_row[i]);
+		}catch (...) { 
+			metatemp.score=0;
+			 }
+			break;
+	case 2:
 		 try{
 			metatemp.name.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
@@ -203,6 +221,11 @@ tempsql<<"null";
  }else{ 
 	tempsql<<std::to_string(data.tid);
 }
+if(data.score==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.score);
+}
 tempsql<<",'"<<stringaddslash(data.name)<<"'";
 tempsql<<")";
 
@@ -233,6 +256,11 @@ tempsql<<")";
 tempsql<<"null";
  }else{ 
 	tempsql<<std::to_string(insert_data.tid);
+}
+if(insert_data.score==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.score);
 }
 tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
 tempsql<<")";
@@ -274,6 +302,11 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].tid);
 	}
+	if(insert_data[i].score==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].score);
+	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
 		tempsql<<")";
 	 } 
@@ -299,6 +332,11 @@ tempsql<<")";
 	tempsql<<"`tid`=0";
  }else{ 
 	tempsql<<"`tid`="<<std::to_string(data.tid);
+}
+if(data.score==0){
+	tempsql<<",`score`=0";
+ }else{ 
+	tempsql<<",`score`="<<std::to_string(data.score);
 }
 tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
  }else{ 
@@ -355,6 +393,14 @@ if(data.tid==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+if(data.score==0){
+	tempsql<<"`score`=0";
+ }else{ 
+	tempsql<<"`score`="<<std::to_string(data.score);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
 tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
  break;
 
@@ -408,6 +454,13 @@ if(data.tid==0){
 }
  break;
  case 1:
+if(data.score==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.score));
+}
+ break;
+ case 2:
 	temparray.push_back(data.name);
  break;
 
@@ -458,6 +511,13 @@ if(data.tid==0){
 }
  break;
  case 1:
+if(data.score==0){
+	tempsql.insert({"score","0"});
+ }else{ 
+	tempsql.insert({"score",std::to_string(data.score)});
+}
+ break;
+ case 2:
 	tempsql.insert({"name",data.name});
  break;
 
@@ -477,6 +537,11 @@ if(data.tid==0){
 	tempsql<<"\"tid\":0";
  }else{ 
 	tempsql<<"\"tid\":"<<std::to_string(data.tid);
+}
+if(data.score==0){
+	tempsql<<",\"score\":0";
+ }else{ 
+	tempsql<<",\"score\":"<<std::to_string(data.score);
 }
 tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
 tempsql<<"\"";
@@ -526,6 +591,14 @@ if(data.tid==0){
 }
  break;
  case 1:
+ if(jj>0){ tempsql<<","; } 
+if(data.score==0){
+	tempsql<<"\"score\":0";
+ }else{ 
+	tempsql<<"\"score\":"<<std::to_string(data.score);
+}
+ break;
+ case 2:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
  break;
@@ -785,6 +858,13 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
 			break;
 		case 1:
 		 try{
+			data.score=std::stoll(set_value_name);
+		}catch (...) { 
+			data.score=0;
+			 }
+			break;
+		case 2:
+		 try{
 			data.name.append(set_value_name);
 		}catch (...) { 
 			data.name.clear();
@@ -811,6 +891,13 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
 			break;
 		case 1:
 		 try{
+			data.score=set_value_name;
+		}catch (...) { 
+			data.score=0;
+			 }
+			break;
+		case 2:
+		 try{
 			data.name=std::to_string(set_value_name);
 		}catch (...) { 
 			data.name.clear();
@@ -836,6 +923,13 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
 			 }
 			break;
 		case 1:
+		 try{
+			data.score=(long long)set_value_name;
+		}catch (...) { 
+			data.score=0;
+			 }
+			break;
+		case 2:
 		 try{
 			data.name=std::to_string(set_value_name);
 		}catch (...) { 
@@ -897,6 +991,14 @@ if(record[n].tid==0){
 }
  break;
  case 1:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].score==0){
+	tempsql<<"\"score\":0";
+ }else{ 
+	tempsql<<"\"score\":"<<std::to_string(record[n].score);
+}
+ break;
+ case 2:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  break;
@@ -966,6 +1068,14 @@ if(record[n].tid==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+if(record[n].score==0){
+	tempsql<<"\"score\":0";
+ }else{ 
+	tempsql<<"\"score\":"<<std::to_string(record[n].score);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
 tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  break;
 
@@ -983,6 +1093,9 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  int  getTid(){  return data.tid; } 
  void setTid( int  val){  data.tid=val;} 
 
+ long long  getScore(){  return data.score; } 
+ void setScore( long long  val){  data.score=val;} 
+
 std::string getName(){  return data.name; } 
 std::string& getRefName(){  return std::ref(data.name); } 
  void setName(std::string &val){  data.name=val;} 
@@ -998,6 +1111,32 @@ testbbase::meta getData(){
 std::vector<testbbase::meta> getRecord(){
  	 return record; 
 } 
+
+ double getScoreToNum()
+{
+	return (double)data.score/100;
+}
+
+ template<typename T>
+ requires std::is_arithmetic_v<T>
+ double getScoreToNum(T a)
+{
+	return (double)((long double)a/100);
+}
+
+ template<typename T>
+ requires std::is_arithmetic_v<T>
+ long long getNumToScore(T a)
+{
+	return std::round(a*100);
+}
+
+ template<typename T>
+ requires std::is_arithmetic_v<T>
+ void setScoreToNum(T a)
+{
+	data.score=std::round(a*100);
+}
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
@@ -1017,6 +1156,10 @@ std::vector<testbbase::meta> getRecord(){
    		 if(key_name=="tid")
 		{
 			return data.tid;
+		}
+		 if(key_name=="score")
+		{
+			return data.score;
 		}
 		return nullptr; 
 	}
@@ -1042,6 +1185,9 @@ std::vector<testbbase::meta> getRecord(){
                     {
    			case 0: 
  				 a.emplace_back(iter.tid);
+				 break;
+			case 1: 
+ 				 a.emplace_back(iter.score);
 				 break;
 
                     }
@@ -1071,6 +1217,9 @@ std::vector<testbbase::meta> getRecord(){
    			case 0: 
  				 return data.tid;
 				 break;
+			case 1: 
+ 				 return data.score;
+				 break;
 			}
                 return 0;
             }  
@@ -1086,6 +1235,9 @@ std::vector<testbbase::meta> getRecord(){
             {
    			case 0: 
  				 return iter.tid;
+				 break;
+			case 1: 
+ 				 return iter.score;
 				 break;
 
 			}
@@ -1133,7 +1285,7 @@ std::vector<testbbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 return data.name;
 				 break;
 
@@ -1151,7 +1303,7 @@ std::vector<testbbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 return iter.name;
 				 break;
 
@@ -1175,7 +1327,7 @@ std::vector<testbbase::meta> getRecord(){
                     switch(kpos)
                     {
 
-    			case 1: 
+    			case 2: 
  				 a.emplace_back(iter.name);
 					 break;
 					}
@@ -1213,6 +1365,9 @@ std::vector<testbbase::meta> getRecord(){
  				 a<<std::to_string(iter.tid);
 				 break;
 			case 1: 
+ 				 a<<std::to_string(iter.score);
+				 break;
+			case 2: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
@@ -1243,12 +1398,12 @@ std::vector<testbbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 				 } 
 			switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 
@@ -1279,7 +1434,7 @@ std::vector<testbbase::meta> getRecord(){
                     switch(kpos)
                     {
  
-       			case 1: 
+       			case 2: 
  				 ktemp=iter.name;
 				 break;
 			 } 
@@ -1313,6 +1468,9 @@ std::vector<testbbase::meta> getRecord(){
        case 0: 
  	 ktemp=iter.tid;
 	 break;
+case 1: 
+ 	 ktemp=iter.score;
+	 break;
 	 } 
  		  switch(vpos){
 
@@ -1343,9 +1501,12 @@ std::vector<testbbase::meta> getRecord(){
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			  }
  			switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 
@@ -1374,13 +1535,16 @@ std::vector<testbbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
  				 vtemp=iter.tid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.score;
 				 break;
 
                 }
@@ -1411,10 +1575,16 @@ std::vector<testbbase::meta> getRecord(){
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			  }
  			switch(vpos){
 			case 0: 
  				 vtemp=iter.tid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.score;
 				 break;
 
                 }
@@ -1442,6 +1612,9 @@ std::vector<testbbase::meta> getRecord(){
    			case 0: 
  				 a.emplace(iter.tid,iter);
 				 break;
+			case 1: 
+ 				 a.emplace(iter.score,iter);
+				 break;
 
                 }
             }       
@@ -1462,7 +1635,7 @@ std::vector<testbbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 a.emplace(iter.name,iter);
 			 break;
 
@@ -1489,7 +1662,7 @@ std::vector<testbbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 	 		 }
@@ -1523,6 +1696,9 @@ std::vector<testbbase::meta> getRecord(){
    			case 0: 
  				 ktemp=iter.tid;
 			 break;
+			case 1: 
+ 				 ktemp=iter.score;
+			 break;
 			  }
 			 switch(vpos){
 
@@ -1555,9 +1731,12 @@ std::vector<testbbase::meta> getRecord(){
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			  }
  			switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 
@@ -1585,13 +1764,16 @@ std::vector<testbbase::meta> getRecord(){
                     switch(kpos)
                     {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
  				 vtemp=iter.tid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.score;
 				 break;
 
                    }
@@ -1619,10 +1801,16 @@ std::vector<testbbase::meta> getRecord(){
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			  }
 			 switch(vpos){
 			case 0: 
  				 vtemp=iter.tid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.score;
 				 break;
 
                    }
@@ -1647,12 +1835,12 @@ std::vector<testbbase::meta> getRecord(){
                     switch(kpos)
                     {
 
-   case 1: 
+   case 2: 
  	 ktemp=iter.name;
 	 break;
 	  }
  switch(vpos){
-case 1: 
+case 2: 
  	 vtemp=iter.name;
 	 break;
 
@@ -1679,6 +1867,9 @@ case 1:
    case 0: 
  	 a.emplace_back(iter.tid,iter);
 	 break;
+case 1: 
+ 	 a.emplace_back(iter.score,iter);
+	 break;
 
                 }
             }       
@@ -1697,7 +1888,7 @@ case 1:
                 switch(kpos)
                 {
 
-   case 1: 
+   case 2: 
  	 a.emplace_back(iter.name,iter);
 	 break;
 
@@ -1726,11 +1917,17 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
  				 vtemp=iter.tid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.score;
 				 break;
 			  }
 
@@ -1764,17 +1961,26 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
  				 vtemp=iter.tid;
 				 break;
+			case 1: 
+ 				 vtemp=iter.score;
+				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
  				 a[ktemp][vtemp].emplace_back(iter.tid);
+				 break;
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -1804,16 +2010,22 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
  				 vtemp=iter.tid;
 				 break;
+			case 1: 
+ 				 vtemp=iter.score;
+				 break;
 			 }
 
 			 switch(dpos){
-			case 1: 
+			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.name);
 				 break;
 
@@ -1845,10 +2057,13 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 			  }
@@ -1883,10 +2098,13 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 			 }
@@ -1894,6 +2112,9 @@ case 1:
 			 switch(dpos){
 			case 0: 
  				 a[ktemp][vtemp].emplace_back(iter.tid);
+				 break;
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.score);
 				 break;
 
             }
@@ -1922,16 +2143,19 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 1: 
+			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.name);
 				 break;
 
@@ -1958,7 +2182,7 @@ case 1:
                     switch(kpos)
                     {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			 }
@@ -1966,6 +2190,9 @@ case 1:
 			 switch(vpos){
 			case 0: 
  				 vtemp=iter.tid;
+				 break;
+			case 1: 
+ 				 vtemp=iter.score;
 				 break;
 			  }
 
@@ -1997,7 +2224,7 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			  }
@@ -2006,11 +2233,17 @@ case 1:
 			case 0: 
  				 vtemp=iter.tid;
 				 break;
+			case 1: 
+ 				 vtemp=iter.score;
+				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
  				 a[ktemp][vtemp].emplace_back(iter.tid);
+				 break;
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -2039,7 +2272,7 @@ case 1:
             switch(kpos)
             {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			 }
@@ -2048,10 +2281,13 @@ case 1:
 			case 0: 
  				 vtemp=iter.tid;
 				 break;
+			case 1: 
+ 				 vtemp=iter.score;
+				 break;
 			 }
 
 			switch(dpos){
-			case 1: 
+			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.name);
 				 break;
 
@@ -2079,13 +2315,13 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 			  }
@@ -2117,13 +2353,13 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 			 }
@@ -2131,6 +2367,9 @@ case 1:
 			 switch(dpos){
 			case 0: 
  				 a[ktemp][vtemp].emplace_back(iter.tid);
+				 break;
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -2157,19 +2396,19 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 vtemp=iter.name;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 1: 
+			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.name);
 				 break;
 
@@ -2196,13 +2435,13 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 a[ktemp].emplace_back(iter.name);
 				 break;
 
@@ -2228,7 +2467,7 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			 }
@@ -2259,7 +2498,7 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			  }
@@ -2267,6 +2506,9 @@ case 1:
 			 switch(vpos){
 			case 0: 
  				 a[ktemp].emplace_back(iter.tid);
+				 break;
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -2295,10 +2537,13 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 a[ktemp].emplace_back(iter.name);
 				 break;
 
@@ -2328,6 +2573,9 @@ case 1:
 
    			case 0: 
  				 ktemp=iter.tid;
+				 break;
+			case 1: 
+ 				 ktemp=iter.score;
 				 break;
 			  }
 
@@ -2359,11 +2607,17 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
  				 a[ktemp].emplace_back(iter.tid);
+				 break;
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -2388,6 +2642,9 @@ case 1:
    			case 0: 
  				 a[iter.tid].emplace_back(iter);
 				 break;
+			case 1: 
+ 				 a[iter.score].emplace_back(iter);
+				 break;
 
                 }
             }       
@@ -2409,7 +2666,7 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 a[iter.name].emplace_back(iter);
 				 break;
 
@@ -2435,13 +2692,13 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 a[ktemp][iter.name].emplace_back(iter);
 				 break;
 
@@ -2467,7 +2724,7 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 1: 
+   			case 2: 
  				 ktemp=iter.name;
 				 break;
 	  }
@@ -2475,6 +2732,9 @@ case 1:
  switch(vpos){
 			case 0: 
  				 a[ktemp][iter.tid].emplace_back(iter);
+				 break;
+			case 1: 
+ 				 a[ktemp][iter.score].emplace_back(iter);
 				 break;
 
                 }
@@ -2503,11 +2763,17 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
  				 a[ktemp][iter.tid].emplace_back(iter);
+				 break;
+			case 1: 
+ 				 a[ktemp][iter.score].emplace_back(iter);
 				 break;
 
                 }
@@ -2536,10 +2802,13 @@ case 1:
    			case 0: 
  				 ktemp=iter.tid;
 				 break;
+			case 1: 
+ 				 ktemp=iter.score;
+				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
+			case 2: 
  				 a[ktemp][iter.name].emplace_back(iter);
 				 break;
 
