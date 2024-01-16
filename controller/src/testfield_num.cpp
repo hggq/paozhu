@@ -8,8 +8,8 @@ namespace http
 std::string testfieldnum(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    long long a      = 0;
-    double h         = 0.0;
+    long long a = 0, b = 0;
+    double h = 0.0;
     client << "<p>test field to num</p>";
     auto testb = orm::cms::Testb();
     testb.limit(2).fetch();
@@ -22,13 +22,14 @@ std::string testfieldnum(std::shared_ptr<httppeer> peer)
             h = testb.getScoreToNum(testb.record[i].score);
             client << "<p>a|" << a << " h:" << h << " h to num:" << testb.getNumToScore(h) << "</p>";
             h = h + 0.055;
-
+            b = b + a;
             testb.setScoreToNum(h);
             testb.clear(false);
             testb.where("tid", testb.record[i].tid).limit(1);
             testb.update("score");
         }
     }
+    client << "<p>double b total:" << testb.getScoreToNum(b) << "</p>";
     return "";
 }
 
