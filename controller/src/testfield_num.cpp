@@ -20,8 +20,8 @@ std::string testfieldnum(std::shared_ptr<httppeer> peer)
         {
             a = testb.record[i].score;
             h = testb.getScoreToNum(testb.record[i].score);
-            client << "<p>a|" << a << " h:" << h << "</p>";
-            h = h + 0.05;
+            client << "<p>a|" << a << " h:" << h << " h to num:" << testb.getNumToScore(h) << "</p>";
+            h = h + 0.055;
 
             testb.setScoreToNum(h);
             testb.clear(false);
