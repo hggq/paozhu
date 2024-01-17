@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 17 Jan 2024 12:38:03 GMT
+*本文件为自动生成 Wed, 17 Jan 2024 13:38:02 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1504,7 +1504,7 @@ std::vector<testabase::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_json(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -1593,14 +1593,14 @@ if(tree_data[n].deletetime==0){
                  }
 
         tempsql<<",\"children\":";
-         tempsql<<tree_json(tree_data[n].children, fileld);     
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
       tempsql<<"}";  
             }
       tempsql<<"]";
      return tempsql.str();             
    }   
    
-   std::string tree_json(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -1695,7 +1695,7 @@ if(tree_data[n].deletetime==0){
                      }
                  }   
          tempsql<<",\"children\":";
-         tempsql<<tree_json(tree_data[n].children,func,fileld);     
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
       tempsql<<"}";  
             }
       tempsql<<"]";

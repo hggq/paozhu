@@ -16,7 +16,7 @@ std::string testtotree(std::shared_ptr<httppeer> peer)
     auto treedata = testa.to_tree();
 
     //client << testa.tree_json(treedata);
-    client << testa.tree_json(treedata, "id,parentid,content");
+    client << testa.tree_tojson(treedata, "id,parentid,content");
     client.json_type();
     return "";
 }

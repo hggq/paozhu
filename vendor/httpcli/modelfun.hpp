@@ -4199,7 +4199,7 @@ struct )";
     if (ismeta_tree || tablefieldtree.size() > 0)
     {
         headtxt = R"(
-   std::string tree_json(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -4318,7 +4318,7 @@ struct )";
                  }
 
         tempsql<<",\"children\":";
-         tempsql<<tree_json(tree_data[n].children, fileld);     
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
       tempsql<<"}";  
             }
       tempsql<<"]";
@@ -4331,7 +4331,7 @@ struct )";
 
         ///////////////////////////////////////////////
         headtxt = R"(
-   std::string tree_json(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
        std::ostringstream tempsql;
             std::string keyname;
             unsigned char jj=0;
@@ -4457,7 +4457,7 @@ struct )";
                      }
                  }   
          tempsql<<",\"children\":";
-         tempsql<<tree_json(tree_data[n].children,func,fileld);     
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
       tempsql<<"}";  
             }
       tempsql<<"]";
