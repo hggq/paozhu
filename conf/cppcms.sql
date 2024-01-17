@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2024-01-17 12:41:02
+-- 生成日期： 2024-01-17 13:14:32
 -- 服务器版本： 8.0.28
 -- PHP 版本： 8.2.10
 
@@ -147,17 +147,6 @@ CREATE TABLE `logininfo` (
   `addregion` varchar(70) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录地区',
   `loginstate` varchar(10) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录状态'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录';
-
---
--- 转存表中的数据 `logininfo`
---
-
-INSERT INTO `logininfo` (`lgid`, `userid`, `username`, `addtime`, `addip`, `addregion`, `loginstate`) VALUES
-(1, 1, '', '2024-01-10 23:32:45', '127.0.0.1', '', '成功'),
-(2, 1, '', '2024-01-11 00:39:19', '127.0.0.1', '', '成功'),
-(3, 1, '', '2024-01-11 00:48:09', '127.0.0.1', '', '成功'),
-(4, 1, '', '2024-01-11 00:51:46', '127.0.0.1', '', '成功'),
-(5, 1, '', '2024-01-12 09:52:06', '127.0.0.1', '', '成功');
 
 -- --------------------------------------------------------
 
@@ -453,7 +442,7 @@ ALTER TABLE `department`
 -- 使用表AUTO_INCREMENT `logininfo`
 --
 ALTER TABLE `logininfo`
-  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `product`
