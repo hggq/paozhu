@@ -59,6 +59,7 @@ std::string techempowerqueries(std::shared_ptr<httppeer> peer)
         get_num = 500;
     }
     auto myworld = orm::World();
+    myworld.record.reserve(get_num);
     for (unsigned int i = 0; i < get_num; i++)
     {
         myworld.wheresql.clear();
@@ -114,6 +115,7 @@ std::string techempowerupdates(std::shared_ptr<httppeer> peer)
     }
     auto myworld = orm::World();
     myworld.record.clear();
+    myworld.record.reserve(get_num);
     for (unsigned int i = 0; i < get_num; i++)
     {
         myworld.wheresql.clear();
@@ -152,6 +154,7 @@ std::string techempowercached_queries(std::shared_ptr<httppeer> peer)
     pzcache<std::vector<orm::worldbase::meta>> &temp_cache = pzcache<std::vector<orm::worldbase::meta>>::conn();
 
     std::vector<orm::worldbase::meta> allcachedata_array;
+    allcachedata_array.reserve(10000);
     //create rand data to cache
     if (temp_cache.check(mycacheid) > -1)
     {
@@ -169,6 +172,7 @@ std::string techempowercached_queries(std::shared_ptr<httppeer> peer)
     }
     //get rand data from cache
     mycacheid = "my" + std::to_string(get_num);
+    myworld.record.reserve(get_num);
     if (temp_cache.check(mycacheid) > -1)
     {
         myworld.record = temp_cache.get(mycacheid);
@@ -210,6 +214,7 @@ std::string techempowercached_db(std::shared_ptr<httppeer> peer)
 
     pzcache<std::vector<orm::worldbase::meta>> &temp_cache = pzcache<std::vector<orm::worldbase::meta>>::conn();
 
+    myworld.record.reserve(get_num);
     if (temp_cache.check(mycacheid) > -1)
     {
         myworld.record = temp_cache.get(mycacheid);

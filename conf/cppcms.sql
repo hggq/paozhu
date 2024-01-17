@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2024-01-08 07:47:46
+-- 生成日期： 2024-01-17 12:41:02
 -- 服务器版本： 8.0.28
--- PHP 版本： 8.2.7
+-- PHP 版本： 8.2.10
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -60,13 +60,13 @@ CREATE TABLE `article` (
 --
 
 INSERT INTO `article` (`aid`, `topicid`, `classtype`, `userid`, `sortid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `mdcontent`, `isopen`, `iscomment`, `fromlocal`, `texturl`, `summary`, `editauthor`, `relatecontent`) VALUES
-(1, 1, 0, 1, 10, '', '下载说明', '', '', '', '127.0.0.1', '2023-12-01 14:06:26', 1701410786, 0, 0, '', '<div>github</div><div>osc<br></div>', '', 1, 0, '', 'downloads', '', '', ''),
+(1, 1, 0, 1, 1, '', '下载说明', '', '', '', '127.0.0.1', '2023-12-01 14:06:26', 1701410786, 0, 0, '', '<div>github</div><div>osc<br></div>', '', 1, 0, '', 'downloads', '', '', ''),
 (2, 2, 0, 1, 2, '', '文档介绍', '', '', '', '127.0.0.1', '2023-12-01 14:07:26', 1701410846, 0, 0, '', '文档介绍<br>', '', 1, 0, '', 'docs', '', '', ''),
 (3, 3, 0, 1, 3, '', '博客总结', '', '', '', '127.0.0.1', '2023-12-01 14:08:07', 1701410887, 0, 0, '', '发布，参会<br>', '', 1, 0, '', 'blogs', '', '', ''),
 (4, 4, 0, 1, 4, '', '关于我们', '', '', '', '127.0.0.1', '2023-12-01 14:09:04', 1701410944, 0, 0, '', '关于我们内容<br>', '', 1, 0, '', 'about', '', '', ''),
 (5, 6, 0, 1, 5, '', '框架简介', '', '', '', '127.0.0.1', '2023-12-02 09:10:33', 1701479433, 0, 0, '', '框架简介，新一代支持http2<br>', '', 1, 0, '', 'docs_introduce', '', '', ''),
 (6, 3, 0, 1, 6, '', '博客发布', '', '', '', '127.0.0.1', '2023-12-02 09:12:31', 1701479551, 0, 0, '', '博客发布release now<br>', '', 1, 0, '', 'blog_release', '', '', ''),
-(7, 3, 0, 1, 7, '', '博客发布2', '', '', '', '127.0.0.1', '2023-12-02 09:13:46', 1701479626, 0, 0, '', '博客发布2<br>', '', 1, 0, '', 'blog_release2', '', '', '');
+(7, 3, 0, 1, 7, '', '博客发布24', '', '', '', '127.0.0.1', '2023-12-02 09:13:46', 1701479626, 0, 0, '', '博客发布24<br>', '', 1, 0, '', 'blog_release2', '', '', '');
 
 -- --------------------------------------------------------
 
@@ -148,6 +148,17 @@ CREATE TABLE `logininfo` (
   `loginstate` varchar(10) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录状态'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录';
 
+--
+-- 转存表中的数据 `logininfo`
+--
+
+INSERT INTO `logininfo` (`lgid`, `userid`, `username`, `addtime`, `addip`, `addregion`, `loginstate`) VALUES
+(1, 1, '', '2024-01-10 23:32:45', '127.0.0.1', '', '成功'),
+(2, 1, '', '2024-01-11 00:39:19', '127.0.0.1', '', '成功'),
+(3, 1, '', '2024-01-11 00:48:09', '127.0.0.1', '', '成功'),
+(4, 1, '', '2024-01-11 00:51:46', '127.0.0.1', '', '成功'),
+(5, 1, '', '2024-01-12 09:52:06', '127.0.0.1', '', '成功');
+
 -- --------------------------------------------------------
 
 --
@@ -223,18 +234,22 @@ INSERT INTO `siteinfo` (`sid`, `userid`, `languagetype`, `sitename`, `sitedomain
 --
 
 CREATE TABLE `testa` (
-  `id` int NOT NULL,
-  `value_id` tinyint NOT NULL,
-  `content` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
+  `id` int UNSIGNED NOT NULL,
+  `parentid` int UNSIGNED NOT NULL COMMENT '父id[id tree]',
+  `value_id` tinyint DEFAULT NULL,
+  `content` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `deleted` tinyint UNSIGNED NOT NULL,
+  `deletetime` int UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- 转存表中的数据 `testa`
 --
 
-INSERT INTO `testa` (`id`, `value_id`, `content`) VALUES
-(1, 65, 'commit test'),
-(5, 65, 'commit test');
+INSERT INTO `testa` (`id`, `parentid`, `value_id`, `content`, `deleted`, `deletetime`) VALUES
+(1, 0, 65, 'commit test', 0, 1704978371),
+(5, 33, 65, 'commit test', 0, 0),
+(33, 1, 2, 'Hwkh', 1, 1705034952);
 
 -- --------------------------------------------------------
 
@@ -244,6 +259,7 @@ INSERT INTO `testa` (`id`, `value_id`, `content`) VALUES
 
 CREATE TABLE `testb` (
   `tid` int NOT NULL,
+  `score` bigint NOT NULL DEFAULT '0' COMMENT '分数[num*100]',
   `name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -251,9 +267,9 @@ CREATE TABLE `testb` (
 -- 转存表中的数据 `testb`
 --
 
-INSERT INTO `testb` (`tid`, `name`) VALUES
-(2, 'caname'),
-(4, 'caname');
+INSERT INTO `testb` (`tid`, `score`, `name`) VALUES
+(2, 486, 'caname'),
+(4, 89, 'caname');
 
 -- --------------------------------------------------------
 
@@ -287,8 +303,8 @@ CREATE TABLE `topic` (
 INSERT INTO `topic` (`topicid`, `userid`, `parentid`, `cateid`, `languagetype`, `isview`, `sortid`, `title`, `twotitle`, `memo`, `templatename`, `url`, `urlpath`, `imgurl`, `topimg`, `accesscode`) VALUES
 (1, 1, 0, 0, 0, 1, 1, 'Download', '', '下载3', '', '', 'downloads', '', '', 0),
 (2, 1, 0, 4, 0, 1, 2, 'Docs', '', '', '', '', 'docs', '', '', 0),
-(3, 1, 0, 13, 0, 1, 3, 'Blog', '', '', '', '', 'blogs', '', '', 0),
-(4, 1, 0, 1, 0, 1, 4, 'About', '', '', '', '', 'about', '', '', 0),
+(3, 1, 0, 13, 0, 1, 4, 'Blog', '', '', '', '', 'blogs', '', '', 0),
+(4, 1, 0, 1, 0, 1, 5, 'About', '', '', '', '', 'about', '', '', 0),
 (5, 1, 2, 0, 0, 1, 21, '入门概述', '', '', '', '', 'introduce', '', '', 0),
 (6, 1, 5, 0, 0, 1, 21, '框架简介', '', 'd', '', '', 'framework', '', '', 0),
 (7, 1, 5, 0, 0, 1, 22, 'HelloWorld', '', '', '', '', 'helloworld', '', '', 0),
@@ -437,7 +453,7 @@ ALTER TABLE `department`
 -- 使用表AUTO_INCREMENT `logininfo`
 --
 ALTER TABLE `logininfo`
-  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- 使用表AUTO_INCREMENT `product`
@@ -461,7 +477,7 @@ ALTER TABLE `siteinfo`
 -- 使用表AUTO_INCREMENT `testa`
 --
 ALTER TABLE `testa`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- 使用表AUTO_INCREMENT `testb`

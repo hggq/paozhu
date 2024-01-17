@@ -54,6 +54,18 @@ std::string strtoline(const std::string &vval)
     return temp;
 }
 
+bool isparent(const std::string &vval)
+{
+    if (vval.size() > 6)
+    {
+        if (vval[0] == 'p' && vval[1] == 'a' && vval[2] == 'r' && vval[3] == 'e' && vval[4] == 'n' && vval[5] == 't')
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string getgmtdatetime(time_t inputtime = 0)
 {
     time_t curr_time;
@@ -127,6 +139,7 @@ int createtabletoorm(std::string ormfilepath,
 
     std::map<std::string, std::map<std::string, std::string>> tableinfo;
     std::map<std::string, std::pair<std::string, std::string>> tablefieldscale;
+    std::map<std::string, std::pair<std::string, std::string>> tablefieldtree;
     std::map<unsigned char, unsigned char> table_type;
     std::map<unsigned char, unsigned char> table_type_unsigned;
     for (int index = 0; index < num_fields; index++)
@@ -155,12 +168,22 @@ int createtabletoorm(std::string ormfilepath,
     int row_num_count = 0;
     row_num_count     = mysql_num_rows(result);
     tablecollist.reserve(row_num_count);
+    bool ismeta_tree = false;
 
     while ((row = mysql_fetch_row(result)))
     {
         fieldname = std::string(row[0]);
         std::transform(fieldname.begin(), fieldname.end(), fieldname.begin(), ::tolower);
         tablecollist.push_back(fieldname);
+
+        if (fieldname == "pid" || fieldname == "parentid" || fieldname == "parent_id")
+        {
+            ismeta_tree = true;
+        }
+        else if (isparent(fieldname))
+        {
+            ismeta_tree = true;
+        }
 
         for (int j = 1; j < num_fields; j++)
         {
@@ -181,7 +204,8 @@ int createtabletoorm(std::string ormfilepath,
                 //check [name*100]
                 std::string scalename;
                 std::string scalenum;
-                bool isc = false;
+                bool isc      = false;
+                char act_type = 0;
                 for (unsigned int n = 0; n < temp.size(); n++)
                 {
                     if (temp[n] == '[')
@@ -195,6 +219,8 @@ int createtabletoorm(std::string ormfilepath,
                         if (temp[n] == '*')
                         {
                             isc = false;
+                            n++;
+                            act_type = 1;
                             for (; n < temp.size(); n++)
                             {
                                 if (temp[n] == ']')
@@ -204,6 +230,33 @@ int createtabletoorm(std::string ormfilepath,
                                 if (temp[n] > 0x2F && temp[n] < 0x3A)
                                 {
                                     scalenum.push_back(temp[n]);
+                                }
+                                else
+                                {
+                                    scalenum.clear();
+                                    break;
+                                }
+                            }
+                        }
+                        else if (temp[n] == 0x20)
+                        {
+                            isc = false;
+                            n++;
+                            act_type = 2;
+                            for (; n < temp.size(); n++)
+                            {
+                                if (temp[n] == ']')
+                                {
+                                    break;
+                                }
+                                if ((temp[n] > 0x40 && temp[n] < 0x5B) || (temp[n] > 0x60 && temp[n] < 0x7B))
+                                {
+                                    scalenum.push_back(temp[n]);
+                                }
+                                else
+                                {
+                                    scalenum.clear();
+                                    break;
                                 }
                             }
                         }
@@ -217,9 +270,21 @@ int createtabletoorm(std::string ormfilepath,
                         }
                     }
                 }
-                if (scalename.size() > 0 && scalenum.size() > 0)
+
+                switch (act_type)
                 {
-                    tablefieldscale.insert({fieldname, {scalename, scalenum}});
+                case 1:
+                    if (scalename.size() > 0 && scalenum.size() > 0)
+                    {
+                        tablefieldscale.insert({fieldname, {scalename, scalenum}});
+                    }
+                    break;
+                case 2:
+                    if (scalename.size() > 0 && scalenum.size() > 0)
+                    {
+                        tablefieldtree.insert({fieldname, {scalename, scalenum}});
+                    }
+                    break;
                 }
             }
             if (table[j] == "type")
@@ -1194,6 +1259,18 @@ struct )";
         filemodelstrem << metalist[j] << std::endl;
     }
     filemodelstrem << " } data;\n ";
+    if (ismeta_tree || tablefieldtree.size() > 0)
+    {
+        filemodelstrem << R"( 
+        struct meta_tree{
+        )";
+        for (unsigned int j = 0; j < metalist.size(); j++)
+        {
+            filemodelstrem << metalist[j] << std::endl;
+        }
+        filemodelstrem << "\n\tstd::vector<meta_tree> children;\n };\n ";
+    }
+
     filemodelstrem << "std::vector<" << tablenamebase << "base::meta> record;\n";
     filemodelstrem << "std::string _rmstag=\"" << rmstag
                    << "\";//this value must be default or tag value, tag in mysqlconnect config file .\n";
@@ -4115,6 +4192,458 @@ struct )";
         headtxt.clear();
     }
 
+    headtxt.clear();
+    update2strem.str("");
+    ///////////////////////////////////////////////////////
+    // mete_tree to json
+    headtxt.clear();
+    if (ismeta_tree || tablefieldtree.size() > 0)
+    {
+        headtxt = R"(
+   std::string tree_json(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+       std::ostringstream tempsql;
+            std::string keyname;
+            unsigned char jj=0;
+                  std::vector<unsigned char> keypos;
+                  if(fileld.size()>0){
+                    for(;jj<fileld.size();jj++){
+                            if(fileld[jj]==','){
+                                keypos.emplace_back(findcolpos(keyname)); 
+                                keyname.clear();
+                                continue;   
+                            }
+                            if(fileld[jj]==0x20){
+
+                                continue;   
+                            }
+                            keyname.push_back(fileld[jj]);
+
+                    }  
+                    if(keyname.size()>0){
+                                    keypos.emplace_back(findcolpos(keyname)); 
+                                    keyname.clear();
+                    }
+                 }else{
+                     for(jj=0;jj<colnames.size();jj++){
+                         keypos.emplace_back(jj); 
+                     }
+                 }
+                tempsql<<"[";
+              for(size_t n=0;n<tree_data.size();n++){
+                  if(n>0){
+                      tempsql<<",{";
+                  }else{
+                      tempsql<<"{";
+                  }  
+                 
+                 for(jj=0;jj<keypos.size();jj++){
+                       switch(keypos[jj]){
+        )";
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+
+        update2strem.str("");
+
+        for (unsigned int j = 0; j < tablecollist.size(); j++)
+        {
+
+            // 数字
+            update2strem << " case " << std::to_string(j) << ":\n";
+            update2strem << " if(jj>0){ tempsql<<\",\"; } \n";
+            if (colltypeshuzi[j] < 30)
+            {
+                update2strem << "if(tree_data[n]." << tablecollist[j] << "==0){\n";
+                if (j > 0)
+                {
+                    update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":0\";\n";
+                }
+                else
+                {
+                    update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":0\";\n";
+                }
+                update2strem << " }else{ \n";
+                if (j > 0)
+                {
+                    update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(tree_data[n]."
+                                 << tablecollist[j] << ");\n";
+                }
+                else
+                {
+                    update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(tree_data[n]."
+                                 << tablecollist[j] << ");\n";
+                }
+
+                update2strem << "}\n";
+            }
+            else if (colltypeshuzi[j] == 60)
+            {
+                update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00 00:00:00\\\"\";\n";
+                update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<tree_data[n]."
+                             << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            }
+            else if (colltypeshuzi[j] == 61)
+            {
+                update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00\\\"\";\n";
+                update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<tree_data[n]."
+                             << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            }
+            else
+            {
+                if (j > 0)
+                {
+                    update2strem << "tempsql<<\"\\\"" << tablecollist[j]
+                                 << "\\\":\\\"\"<<http::utf8_to_jsonstring(tree_data[n]." << tablecollist[j]
+                                 << ")<<\"\\\"\";\n";
+                }
+                else
+                {
+                    update2strem << "tempsql<<\"\\\"" << tablecollist[j]
+                                 << "\\\":\\\"\"<<http::utf8_to_jsonstring(tree_data[n]." << tablecollist[j]
+                                 << ")<<\"\\\"\";\n";
+                }
+            }
+            update2strem << " break;\n";
+        }
+
+        headtxt.append(update2strem.str());
+
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+
+        headtxt = R"(
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_json(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   )";
+
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+
+        ///////////////////////////////////////////////
+        headtxt = R"(
+   std::string tree_json(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+       std::ostringstream tempsql;
+            std::string keyname;
+            unsigned char jj=0;
+                  std::vector<unsigned char> keypos;
+                  if(fileld.size()>0){
+                    for(;jj<fileld.size();jj++){
+                            if(fileld[jj]==','){
+                                keypos.emplace_back(findcolpos(keyname)); 
+                                keyname.clear();
+                                continue;   
+                            }
+                            if(fileld[jj]==0x20){
+
+                                continue;   
+                            }
+                            keyname.push_back(fileld[jj]);
+
+                    }  
+                    if(keyname.size()>0){
+                                    keypos.emplace_back(findcolpos(keyname)); 
+                                    keyname.clear();
+                    }
+                 }else{
+                     for(jj=0;jj<colnames.size();jj++){
+                         keypos.emplace_back(jj); 
+                     }
+                 }
+                tempsql<<"[";
+              for(size_t n=0;n<tree_data.size();n++){
+                 keyname.clear();
+                 if(func(keyname,tree_data[n])){ 
+                            if(n>0){
+                                tempsql<<",{";
+                            }else{
+                                tempsql<<"{";
+                            } 
+                            tempsql<<keyname;
+                 }else{
+                    continue;
+                 } 
+                  
+                 for(jj=0;jj<keypos.size();jj++){
+                        
+                       switch(keypos[jj]){
+        )";
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+
+        update2strem.str("");
+
+        for (unsigned int j = 0; j < tablecollist.size(); j++)
+        {
+
+            // 数字
+            update2strem << " case " << std::to_string(j) << ":\n";
+            update2strem << " if(jj>0){ tempsql<<\",\"; } \n";
+
+            if (colltypeshuzi[j] < 30)
+            {
+                update2strem << "if(tree_data[n]." << tablecollist[j] << "==0){\n";
+                if (j > 0)
+                {
+                    update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":0\";\n";
+                }
+                else
+                {
+                    update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":0\";\n";
+                }
+                update2strem << " }else{ \n";
+                if (j > 0)
+                {
+                    update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(tree_data[n]."
+                                 << tablecollist[j] << ");\n";
+                }
+                else
+                {
+                    update2strem << "\ttempsql<<\"\\\"" << tablecollist[j] << "\\\":\"<<std::to_string(tree_data[n]."
+                                 << tablecollist[j] << ");\n";
+                }
+
+                update2strem << "}\n";
+            }
+            else if (colltypeshuzi[j] == 60)
+            {
+                update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00 00:00:00\\\"\";\n";
+                update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<tree_data[n]."
+                             << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            }
+            else if (colltypeshuzi[j] == 61)
+            {
+                update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
+                update2strem << "tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"0000-00-00\\\"\";\n";
+                update2strem << " }else{ \n tempsql<<\"\\\"" << tablecollist[j] << "\\\":\\\"\"<<tree_data[n]."
+                             << tablecollist[j] << "<<\"\\\"\";\n }\n";
+            }
+            else
+            {
+                if (j > 0)
+                {
+                    update2strem << "tempsql<<\"\\\"" << tablecollist[j]
+                                 << "\\\":\\\"\"<<http::utf8_to_jsonstring(tree_data[n]." << tablecollist[j]
+                                 << ")<<\"\\\"\";\n";
+                }
+                else
+                {
+                    update2strem << "tempsql<<\"\\\"" << tablecollist[j]
+                                 << "\\\":\\\"\"<<http::utf8_to_jsonstring(tree_data[n]." << tablecollist[j]
+                                 << ")<<\"\\\"\";\n";
+                }
+            }
+            update2strem << " break;\n";
+        }
+
+        headtxt.append(update2strem.str());
+
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+
+        headtxt = R"(
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_json(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   )";
+
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+    }
+    headtxt.clear();
+
+    ///////////////////////////////////////////////////////
+    // record to tree
+
+    if (tablefieldtree.size() > 0)
+    {
+        auto iter = tablefieldtree.begin();
+
+        std::string parentitemname = iter->first;
+        std::string sourceidname   = iter->second.first;
+
+        std::string itemmember_str;
+        itemmember_str.append("\t\tmeta_tree temp_obja;\n");
+        for (auto &fe : tablecollist)
+        {
+
+            itemmember_str.append("\t\t\t\t\t\ttemp_obja.");
+            itemmember_str.append(fe);
+            itemmember_str.append("=record[i].");
+            itemmember_str.append(fe);
+            itemmember_str.append(";\n");
+        }
+
+        headtxt = R"(
+    meta_tree treedata_from_record(unsigned int i=0)
+    {
+        meta_tree temp_obja;
+        if(i>=record.size())
+        {
+           return  temp_obja;   
+        }
+        )";
+        for (auto &fe : tablecollist)
+        {
+
+            headtxt.append("\ttemp_obja.");
+            headtxt.append(fe);
+            headtxt.append("=record[i].");
+            headtxt.append(fe);
+            headtxt.append(";\n");
+        }
+        headtxt += R"(
+        return  temp_obja;   
+    }
+    meta_tree treedata_from_data()
+    {
+        meta_tree temp_obja;
+
+        )";
+        for (auto &fe : tablecollist)
+        {
+
+            headtxt.append("\ttemp_obja.");
+            headtxt.append(fe);
+            headtxt.append("=data.");
+            headtxt.append(fe);
+            headtxt.append(";\n");
+        }
+        headtxt += R"(
+        return  temp_obja;   
+    }      
+    meta_tree treedata_from_data(const meta &tempdata)
+    {
+        meta_tree temp_obja;
+        )";
+        for (auto &fe : tablecollist)
+        {
+
+            headtxt.append("\ttemp_obja.");
+            headtxt.append(fe);
+            headtxt.append("=tempdata.");
+            headtxt.append(fe);
+            headtxt.append(";\n");
+        }
+        headtxt += R"(
+        return  temp_obja;   
+    }     
+    std::vector<meta_tree> to_tree(unsigned int beginid=0)
+    {
+       std::vector<meta_tree> temp;
+
+       if(beginid==0)
+       {
+            for (unsigned int i = 0; i < record.size(); i++)
+            {
+                if (record[i].)";
+        headtxt.append(parentitemname);
+        headtxt += R"( == 0)
+                {
+                    )";
+        headtxt.append(itemmember_str);
+        headtxt += R"(
+                    temp.push_back(temp_obja);
+                }
+            }
+       }
+       else
+       {
+           for (unsigned int i = 0; i < record.size(); i++)
+            {
+                if (record[i].)";
+        headtxt.append(sourceidname);
+        headtxt += R"( == beginid)
+                {
+                    )";
+        headtxt.append(itemmember_str);
+        headtxt += R"(
+                    temp.push_back(temp_obja);
+                    break;
+                }
+            }
+       }
+
+       if(temp.size()==0)
+       {
+          return temp; 
+       }
+       for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (record[i].)";
+        headtxt.append(parentitemname);
+        headtxt += R"( > 0)
+            {
+                for (unsigned int j = 0; j < temp.size(); j++)
+                {
+                    if (temp[j].)";
+        headtxt.append(sourceidname);
+        headtxt += R"( == record[i].)";
+        headtxt.append(parentitemname);
+        headtxt += R"()
+                    {
+                        )";
+        headtxt.append(itemmember_str);
+        headtxt += R"(
+                        temp[j].children.push_back(temp_obja);
+                        record_to_tree(temp[j].children);
+                    }
+                }
+            }
+        }
+       return temp; 
+    }    
+    void record_to_tree(std::vector<meta_tree> &targetdata)
+    {
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (record[i].)";
+        headtxt.append(parentitemname);
+        headtxt += R"(> 0)
+            {
+                for (unsigned int j = 0; j < targetdata.size(); j++)
+                {
+                    if (targetdata[j].)";
+        headtxt.append(sourceidname);
+        headtxt += R"( == record[i].)";
+        headtxt.append(parentitemname);
+        headtxt += R"()
+                    {
+                         )";
+        headtxt.append(itemmember_str);
+        headtxt += R"(
+                        targetdata[j].children.push_back(temp_obja);
+                        record_to_tree(targetdata[j].children);
+                    }
+                }
+            }
+        }
+    }      
+   )";
+    }
+    if (headtxt.size() > 0)
+    {
+        fwrite(&headtxt[0], headtxt.size(), 1, f);
+        headtxt.clear();
+    }
     ///////////////////////////////////////////////////////
     // get_meta string
     headtxt.clear();

@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 12 Jan 2024 04:37:36 GMT
+*本文件为自动生成 Wed, 17 Jan 2024 12:38:03 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -22,12 +22,24 @@ namespace orm {
 struct testabase
 {
     struct meta{
-     int id= 0; //
+    unsigned  int id= 0; //
+unsigned  int parentid= 0; //父id[id tree]
  char value_id=0; //
  std::string content=""; //
 unsigned  char deleted=0; //
 unsigned  int deletetime= 0; //
  } data;
+  
+        struct meta_tree{
+        unsigned  int id= 0; //
+unsigned  int parentid= 0; //父id[id tree]
+ char value_id=0; //
+ std::string content=""; //
+unsigned  char deleted=0; //
+unsigned  int deletetime= 0; //
+
+	std::vector<meta_tree> children;
+ };
  std::vector<testabase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 std::vector<unsigned char> _keypos{0x00};
@@ -36,8 +48,8 @@ std::vector<testabase::meta>::iterator begin(){     return record.begin(); }
 std::vector<testabase::meta>::iterator end(){     return record.end(); }
 std::vector<testabase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<testabase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,5> colnames={"id","value_id","content","deleted","deletetime"};
-const std::array<unsigned char,5> colnamestype= {3,1,253,1,3};
+const std::array<std::string,6> colnames={"id","parentid","value_id","content","deleted","deletetime"};
+const std::array<unsigned char,6> colnamestype= {3,3,1,253,1,3};
 std::string tablename="testa";
 std::string modelname="Testa";
 
@@ -56,23 +68,26 @@ std::string modelname="Testa";
 
 
          case 'c':
-   	 return 2;
+   	 return 3;
 break;
 case 'd':
  switch(coln.size()){  
 case 7:
-   	 return 3;
+   	 return 4;
 break;
 case 10:
-   	 return 4;
+   	 return 5;
 break;
  }
  break;
 case 'i':
    	 return 0;
 break;
-case 'v':
+case 'p':
    	 return 1;
+break;
+case 'v':
+   	 return 2;
 break;
 
              }
@@ -144,33 +159,40 @@ break;
             switch(_keypos[i]){
         	case 0:
 		 try{
-			data.id=std::stoi(_row[i]);
+			data.id=std::stoul(_row[i]);
 		}catch (...) { 
 			data.id=0;
 			 }
 			break;
 	case 1:
 		 try{
+			data.parentid=std::stoul(_row[i]);
+		}catch (...) { 
+			data.parentid=0;
+			 }
+			break;
+	case 2:
+		 try{
 			data.value_id=std::stoi(_row[i]);
 		}catch (...) { 
 			data.value_id=0;
 			 }
 			break;
-	case 2:
+	case 3:
 		 try{
 			data.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.content.clear();
 			 }
 			break;
-	case 3:
+	case 4:
 		 try{
 			data.deleted=std::stoi(_row[i]);
 		}catch (...) { 
 			data.deleted=0;
 			 }
 			break;
-	case 4:
+	case 5:
 		 try{
 			data.deletetime=std::stoul(_row[i]);
 		}catch (...) { 
@@ -197,33 +219,40 @@ break;
 
         	case 0:
 		 try{
-			metatemp.id=std::stoi(_row[i]);
+			metatemp.id=std::stoul(_row[i]);
 		}catch (...) { 
 			metatemp.id=0;
 			 }
 			break;
 	case 1:
 		 try{
+			metatemp.parentid=std::stoul(_row[i]);
+		}catch (...) { 
+			metatemp.parentid=0;
+			 }
+			break;
+	case 2:
+		 try{
 			metatemp.value_id=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.value_id=0;
 			 }
 			break;
-	case 2:
+	case 3:
 		 try{
 			metatemp.content.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.content.clear();
 			 }
 			break;
-	case 3:
+	case 4:
 		 try{
 			metatemp.deleted=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.deleted=0;
 			 }
 			break;
-	case 4:
+	case 5:
 		 try{
 			metatemp.deletetime=std::stoul(_row[i]);
 		}catch (...) { 
@@ -299,6 +328,11 @@ tempsql<<"null";
  }else{ 
 	tempsql<<std::to_string(data.id);
 }
+if(data.parentid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.parentid);
+}
 if(data.value_id==0){
 	tempsql<<",0";
  }else{ 
@@ -344,6 +378,11 @@ tempsql<<")";
 tempsql<<"null";
  }else{ 
 	tempsql<<std::to_string(insert_data.id);
+}
+if(insert_data.parentid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.parentid);
 }
 if(insert_data.value_id==0){
 	tempsql<<",0";
@@ -400,6 +439,11 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].id);
 	}
+	if(insert_data[i].parentid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].parentid);
+	}
 	if(insert_data[i].value_id==0){
 	tempsql<<",0";
 	 }else{ 
@@ -440,6 +484,11 @@ tempsql<<")";
 	tempsql<<"`id`=0";
  }else{ 
 	tempsql<<"`id`="<<std::to_string(data.id);
+}
+if(data.parentid==0){
+	tempsql<<",`parentid`=0";
+ }else{ 
+	tempsql<<",`parentid`="<<std::to_string(data.parentid);
 }
 if(data.value_id==0){
 	tempsql<<",`value_id`=0";
@@ -511,17 +560,25 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+if(data.parentid==0){
+	tempsql<<"`parentid`=0";
+ }else{ 
+	tempsql<<"`parentid`="<<std::to_string(data.parentid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
 if(data.value_id==0){
 	tempsql<<"`value_id`=0";
  }else{ 
 	tempsql<<"`value_id`="<<std::to_string(data.value_id);
 }
  break;
- case 2:
+ case 3:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
  break;
- case 3:
+ case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.deleted==0){
 	tempsql<<"`deleted`=0";
@@ -529,7 +586,7 @@ if(data.deleted==0){
 	tempsql<<"`deleted`="<<std::to_string(data.deleted);
 }
  break;
- case 4:
+ case 5:
  if(jj>0){ tempsql<<","; } 
 if(data.deletetime==0){
 	tempsql<<"`deletetime`=0";
@@ -588,23 +645,30 @@ if(data.id==0){
 }
  break;
  case 1:
+if(data.parentid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.parentid));
+}
+ break;
+ case 2:
 if(data.value_id==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.value_id));
 }
  break;
- case 2:
+ case 3:
 	temparray.push_back(data.content);
  break;
- case 3:
+ case 4:
 if(data.deleted==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.deleted));
 }
  break;
- case 4:
+ case 5:
 if(data.deletetime==0){
 	temparray.push_back("0");
  }else{ 
@@ -659,23 +723,30 @@ if(data.id==0){
 }
  break;
  case 1:
+if(data.parentid==0){
+	tempsql.insert({"parentid","0"});
+ }else{ 
+	tempsql.insert({"parentid",std::to_string(data.parentid)});
+}
+ break;
+ case 2:
 if(data.value_id==0){
 	tempsql.insert({"value_id","0"});
  }else{ 
 	tempsql.insert({"value_id",std::to_string(data.value_id)});
 }
  break;
- case 2:
+ case 3:
 	tempsql.insert({"content",data.content});
  break;
- case 3:
+ case 4:
 if(data.deleted==0){
 	tempsql.insert({"deleted","0"});
  }else{ 
 	tempsql.insert({"deleted",std::to_string(data.deleted)});
 }
  break;
- case 4:
+ case 5:
 if(data.deletetime==0){
 	tempsql.insert({"deletetime","0"});
  }else{ 
@@ -699,6 +770,11 @@ if(data.id==0){
 	tempsql<<"\"id\":0";
  }else{ 
 	tempsql<<"\"id\":"<<std::to_string(data.id);
+}
+if(data.parentid==0){
+	tempsql<<",\"parentid\":0";
+ }else{ 
+	tempsql<<",\"parentid\":"<<std::to_string(data.parentid);
 }
 if(data.value_id==0){
 	tempsql<<",\"value_id\":0";
@@ -764,17 +840,25 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+if(data.parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(data.parentid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
 if(data.value_id==0){
 	tempsql<<"\"value_id\":0";
  }else{ 
 	tempsql<<"\"value_id\":"<<std::to_string(data.value_id);
 }
  break;
- case 2:
+ case 3:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
  break;
- case 3:
+ case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.deleted==0){
 	tempsql<<"\"deleted\":0";
@@ -782,7 +866,7 @@ if(data.deleted==0){
 	tempsql<<"\"deleted\":"<<std::to_string(data.deleted);
 }
  break;
- case 4:
+ case 5:
  if(jj>0){ tempsql<<","; } 
 if(data.deletetime==0){
 	tempsql<<"\"deletetime\":0";
@@ -1039,33 +1123,40 @@ if(data.deletetime==0){
         {
     		case 0:
 		 try{
-			data.id=std::stoi(set_value_name);
+			data.id=std::stoul(set_value_name);
 		}catch (...) { 
 			data.id=0;
 			 }
 			break;
 		case 1:
 		 try{
+			data.parentid=std::stoul(set_value_name);
+		}catch (...) { 
+			data.parentid=0;
+			 }
+			break;
+		case 2:
+		 try{
 			data.value_id=std::stoi(set_value_name);
 		}catch (...) { 
 			data.value_id=0;
 			 }
 			break;
-		case 2:
+		case 3:
 		 try{
 			data.content.append(set_value_name);
 		}catch (...) { 
 			data.content.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.deleted=std::stoi(set_value_name);
 		}catch (...) { 
 			data.deleted=0;
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.deletetime=std::stoul(set_value_name);
 		}catch (...) { 
@@ -1093,26 +1184,33 @@ if(data.deletetime==0){
 			break;
 		case 1:
 		 try{
+			data.parentid=set_value_name;
+		}catch (...) { 
+			data.parentid=0;
+			 }
+			break;
+		case 2:
+		 try{
 			data.value_id=set_value_name;
 		}catch (...) { 
 			data.value_id=0;
 			 }
 			break;
-		case 2:
+		case 3:
 		 try{
 			data.content=std::to_string(set_value_name);
 		}catch (...) { 
 			data.content.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.deleted=set_value_name;
 		}catch (...) { 
 			data.deleted=0;
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.deletetime=set_value_name;
 		}catch (...) { 
@@ -1133,33 +1231,40 @@ if(data.deletetime==0){
         {
     		case 0:
 		 try{
-			data.id=(int)set_value_name;
+			data.id=(unsigned int)set_value_name;
 		}catch (...) { 
 			data.id=0;
 			 }
 			break;
 		case 1:
 		 try{
+			data.parentid=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.parentid=0;
+			 }
+			break;
+		case 2:
+		 try{
 			data.value_id=(int)set_value_name;
 		}catch (...) { 
 			data.value_id=0;
 			 }
 			break;
-		case 2:
+		case 3:
 		 try{
 			data.content=std::to_string(set_value_name);
 		}catch (...) { 
 			data.content.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.deleted=(int)set_value_name;
 		}catch (...) { 
 			data.deleted=0;
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.deletetime=(unsigned int)set_value_name;
 		}catch (...) { 
@@ -1222,17 +1327,25 @@ if(record[n].id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+if(record[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].value_id==0){
 	tempsql<<"\"value_id\":0";
  }else{ 
 	tempsql<<"\"value_id\":"<<std::to_string(record[n].value_id);
 }
  break;
- case 2:
+ case 3:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
- case 3:
+ case 4:
  if(jj>0){ tempsql<<","; } 
 if(record[n].deleted==0){
 	tempsql<<"\"deleted\":0";
@@ -1240,7 +1353,7 @@ if(record[n].deleted==0){
 	tempsql<<"\"deleted\":"<<std::to_string(record[n].deleted);
 }
  break;
- case 4:
+ case 5:
  if(jj>0){ tempsql<<","; } 
 if(record[n].deletetime==0){
 	tempsql<<"\"deletetime\":0";
@@ -1314,17 +1427,25 @@ if(record[n].id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+if(record[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].value_id==0){
 	tempsql<<"\"value_id\":0";
  }else{ 
 	tempsql<<"\"value_id\":"<<std::to_string(record[n].value_id);
 }
  break;
- case 2:
+ case 3:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
- case 3:
+ case 4:
  if(jj>0){ tempsql<<","; } 
 if(record[n].deleted==0){
 	tempsql<<"\"deleted\":0";
@@ -1332,7 +1453,7 @@ if(record[n].deleted==0){
 	tempsql<<"\"deleted\":"<<std::to_string(record[n].deleted);
 }
  break;
- case 4:
+ case 5:
  if(jj>0){ tempsql<<","; } 
 if(record[n].deletetime==0){
 	tempsql<<"\"deletetime\":0";
@@ -1352,8 +1473,11 @@ if(record[n].deletetime==0){
    }   
    long long getPK(){  return data.id; } 
  void setPK(long long val){  data.id=val;} 
- int  getId(){  return data.id; } 
- void setId( int  val){  data.id=val;} 
+unsigned  int  getId(){  return data.id; } 
+ void setId(unsigned  int  val){  data.id=val;} 
+
+unsigned  int  getParentid(){  return data.parentid; } 
+ void setParentid(unsigned  int  val){  data.parentid=val;} 
 
  int  getValueId(){  return data.value_id; } 
  void setValueId( int  val){  data.value_id=val;} 
@@ -1380,6 +1504,341 @@ std::vector<testabase::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_json(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+       std::ostringstream tempsql;
+            std::string keyname;
+            unsigned char jj=0;
+                  std::vector<unsigned char> keypos;
+                  if(fileld.size()>0){
+                    for(;jj<fileld.size();jj++){
+                            if(fileld[jj]==','){
+                                keypos.emplace_back(findcolpos(keyname)); 
+                                keyname.clear();
+                                continue;   
+                            }
+                            if(fileld[jj]==0x20){
+
+                                continue;   
+                            }
+                            keyname.push_back(fileld[jj]);
+
+                    }  
+                    if(keyname.size()>0){
+                                    keypos.emplace_back(findcolpos(keyname)); 
+                                    keyname.clear();
+                    }
+                 }else{
+                     for(jj=0;jj<colnames.size();jj++){
+                         keypos.emplace_back(jj); 
+                     }
+                 }
+                tempsql<<"[";
+              for(size_t n=0;n<tree_data.size();n++){
+                  if(n>0){
+                      tempsql<<",{";
+                  }else{
+                      tempsql<<"{";
+                  }  
+                 
+                 for(jj=0;jj<keypos.size();jj++){
+                       switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].id==0){
+	tempsql<<"\"id\":0";
+ }else{ 
+	tempsql<<"\"id\":"<<std::to_string(tree_data[n].id);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].value_id==0){
+	tempsql<<"\"value_id\":0";
+ }else{ 
+	tempsql<<"\"value_id\":"<<std::to_string(tree_data[n].value_id);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(tree_data[n].content)<<"\"";
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].deleted==0){
+	tempsql<<"\"deleted\":0";
+ }else{ 
+	tempsql<<"\"deleted\":"<<std::to_string(tree_data[n].deleted);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].deletetime==0){
+	tempsql<<"\"deletetime\":0";
+ }else{ 
+	tempsql<<"\"deletetime\":"<<std::to_string(tree_data[n].deletetime);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_json(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_json(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+       std::ostringstream tempsql;
+            std::string keyname;
+            unsigned char jj=0;
+                  std::vector<unsigned char> keypos;
+                  if(fileld.size()>0){
+                    for(;jj<fileld.size();jj++){
+                            if(fileld[jj]==','){
+                                keypos.emplace_back(findcolpos(keyname)); 
+                                keyname.clear();
+                                continue;   
+                            }
+                            if(fileld[jj]==0x20){
+
+                                continue;   
+                            }
+                            keyname.push_back(fileld[jj]);
+
+                    }  
+                    if(keyname.size()>0){
+                                    keypos.emplace_back(findcolpos(keyname)); 
+                                    keyname.clear();
+                    }
+                 }else{
+                     for(jj=0;jj<colnames.size();jj++){
+                         keypos.emplace_back(jj); 
+                     }
+                 }
+                tempsql<<"[";
+              for(size_t n=0;n<tree_data.size();n++){
+                 keyname.clear();
+                 if(func(keyname,tree_data[n])){ 
+                            if(n>0){
+                                tempsql<<",{";
+                            }else{
+                                tempsql<<"{";
+                            } 
+                            tempsql<<keyname;
+                 }else{
+                    continue;
+                 } 
+                  
+                 for(jj=0;jj<keypos.size();jj++){
+                        
+                       switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].id==0){
+	tempsql<<"\"id\":0";
+ }else{ 
+	tempsql<<"\"id\":"<<std::to_string(tree_data[n].id);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].value_id==0){
+	tempsql<<"\"value_id\":0";
+ }else{ 
+	tempsql<<"\"value_id\":"<<std::to_string(tree_data[n].value_id);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(tree_data[n].content)<<"\"";
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].deleted==0){
+	tempsql<<"\"deleted\":0";
+ }else{ 
+	tempsql<<"\"deleted\":"<<std::to_string(tree_data[n].deleted);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].deletetime==0){
+	tempsql<<"\"deletetime\":0";
+ }else{ 
+	tempsql<<"\"deletetime\":"<<std::to_string(tree_data[n].deletetime);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_json(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+    meta_tree treedata_from_record(unsigned int i=0)
+    {
+        meta_tree temp_obja;
+        if(i>=record.size())
+        {
+           return  temp_obja;   
+        }
+        	temp_obja.id=record[i].id;
+	temp_obja.parentid=record[i].parentid;
+	temp_obja.value_id=record[i].value_id;
+	temp_obja.content=record[i].content;
+	temp_obja.deleted=record[i].deleted;
+	temp_obja.deletetime=record[i].deletetime;
+
+        return  temp_obja;   
+    }
+    meta_tree treedata_from_data()
+    {
+        meta_tree temp_obja;
+
+        	temp_obja.id=data.id;
+	temp_obja.parentid=data.parentid;
+	temp_obja.value_id=data.value_id;
+	temp_obja.content=data.content;
+	temp_obja.deleted=data.deleted;
+	temp_obja.deletetime=data.deletetime;
+
+        return  temp_obja;   
+    }      
+    meta_tree treedata_from_data(const meta &tempdata)
+    {
+        meta_tree temp_obja;
+        	temp_obja.id=tempdata.id;
+	temp_obja.parentid=tempdata.parentid;
+	temp_obja.value_id=tempdata.value_id;
+	temp_obja.content=tempdata.content;
+	temp_obja.deleted=tempdata.deleted;
+	temp_obja.deletetime=tempdata.deletetime;
+
+        return  temp_obja;   
+    }     
+    std::vector<meta_tree> to_tree(unsigned int beginid=0)
+    {
+       std::vector<meta_tree> temp;
+
+       if(beginid==0)
+       {
+            for (unsigned int i = 0; i < record.size(); i++)
+            {
+                if (record[i].parentid == 0)
+                {
+                    		meta_tree temp_obja;
+						temp_obja.id=record[i].id;
+						temp_obja.parentid=record[i].parentid;
+						temp_obja.value_id=record[i].value_id;
+						temp_obja.content=record[i].content;
+						temp_obja.deleted=record[i].deleted;
+						temp_obja.deletetime=record[i].deletetime;
+
+                    temp.push_back(temp_obja);
+                }
+            }
+       }
+       else
+       {
+           for (unsigned int i = 0; i < record.size(); i++)
+            {
+                if (record[i].id == beginid)
+                {
+                    		meta_tree temp_obja;
+						temp_obja.id=record[i].id;
+						temp_obja.parentid=record[i].parentid;
+						temp_obja.value_id=record[i].value_id;
+						temp_obja.content=record[i].content;
+						temp_obja.deleted=record[i].deleted;
+						temp_obja.deletetime=record[i].deletetime;
+
+                    temp.push_back(temp_obja);
+                    break;
+                }
+            }
+       }
+
+       if(temp.size()==0)
+       {
+          return temp; 
+       }
+       for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (record[i].parentid > 0)
+            {
+                for (unsigned int j = 0; j < temp.size(); j++)
+                {
+                    if (temp[j].id == record[i].parentid)
+                    {
+                        		meta_tree temp_obja;
+						temp_obja.id=record[i].id;
+						temp_obja.parentid=record[i].parentid;
+						temp_obja.value_id=record[i].value_id;
+						temp_obja.content=record[i].content;
+						temp_obja.deleted=record[i].deleted;
+						temp_obja.deletetime=record[i].deletetime;
+
+                        temp[j].children.push_back(temp_obja);
+                        record_to_tree(temp[j].children);
+                    }
+                }
+            }
+        }
+       return temp; 
+    }    
+    void record_to_tree(std::vector<meta_tree> &targetdata)
+    {
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (record[i].parentid> 0)
+            {
+                for (unsigned int j = 0; j < targetdata.size(); j++)
+                {
+                    if (targetdata[j].id == record[i].parentid)
+                    {
+                         		meta_tree temp_obja;
+						temp_obja.id=record[i].id;
+						temp_obja.parentid=record[i].parentid;
+						temp_obja.value_id=record[i].value_id;
+						temp_obja.content=record[i].content;
+						temp_obja.deleted=record[i].deleted;
+						temp_obja.deletetime=record[i].deletetime;
+
+                        targetdata[j].children.push_back(temp_obja);
+                        record_to_tree(targetdata[j].children);
+                    }
+                }
+            }
+        }
+    }      
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
@@ -1398,6 +1857,10 @@ std::vector<testabase::meta> getRecord(){
    		 if(key_name=="id")
 		{
 			return data.id;
+		}
+		 if(key_name=="parentid")
+		{
+			return data.parentid;
 		}
 		 if(key_name=="value_id")
 		{
@@ -1437,12 +1900,15 @@ std::vector<testabase::meta> getRecord(){
  				 a.emplace_back(iter.id);
 				 break;
 			case 1: 
+ 				 a.emplace_back(iter.parentid);
+				 break;
+			case 2: 
  				 a.emplace_back(iter.value_id);
 				 break;
-			case 3: 
+			case 4: 
  				 a.emplace_back(iter.deleted);
 				 break;
-			case 4: 
+			case 5: 
  				 a.emplace_back(iter.deletetime);
 				 break;
 
@@ -1474,12 +1940,15 @@ std::vector<testabase::meta> getRecord(){
  				 return data.id;
 				 break;
 			case 1: 
+ 				 return data.parentid;
+				 break;
+			case 2: 
  				 return data.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 return data.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 return data.deletetime;
 				 break;
 			}
@@ -1499,12 +1968,15 @@ std::vector<testabase::meta> getRecord(){
  				 return iter.id;
 				 break;
 			case 1: 
+ 				 return iter.parentid;
+				 break;
+			case 2: 
  				 return iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 return iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 return iter.deletetime;
 				 break;
 
@@ -1553,7 +2025,7 @@ std::vector<testabase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 return data.content;
 				 break;
 
@@ -1571,7 +2043,7 @@ std::vector<testabase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 return iter.content;
 				 break;
 
@@ -1595,7 +2067,7 @@ std::vector<testabase::meta> getRecord(){
                     switch(kpos)
                     {
 
-    			case 2: 
+    			case 3: 
  				 a.emplace_back(iter.content);
 					 break;
 					}
@@ -1633,18 +2105,21 @@ std::vector<testabase::meta> getRecord(){
  				 a<<std::to_string(iter.id);
 				 break;
 			case 1: 
- 				 a<<std::to_string(iter.value_id);
+ 				 a<<std::to_string(iter.parentid);
 				 break;
 			case 2: 
+ 				 a<<std::to_string(iter.value_id);
+				 break;
+			case 3: 
  				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
 				 a<<iter.content;
 				 }
 				 break;
-			case 3: 
+			case 4: 
  				 a<<std::to_string(iter.deleted);
 				 break;
-			case 4: 
+			case 5: 
  				 a<<std::to_string(iter.deletetime);
 				 break;
 
@@ -1672,12 +2147,12 @@ std::vector<testabase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 				 } 
 			switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 
@@ -1708,7 +2183,7 @@ std::vector<testabase::meta> getRecord(){
                     switch(kpos)
                     {
  
-       			case 2: 
+       			case 3: 
  				 ktemp=iter.content;
 				 break;
 			 } 
@@ -1743,12 +2218,15 @@ std::vector<testabase::meta> getRecord(){
  	 ktemp=iter.id;
 	 break;
 case 1: 
+ 	 ktemp=iter.parentid;
+	 break;
+case 2: 
  	 ktemp=iter.value_id;
 	 break;
-case 3: 
+case 4: 
  	 ktemp=iter.deleted;
 	 break;
-case 4: 
+case 5: 
  	 ktemp=iter.deletetime;
 	 break;
 	 } 
@@ -1782,17 +2260,20 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
  			switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 
@@ -1821,7 +2302,7 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			  }
@@ -1830,12 +2311,15 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 
@@ -1868,12 +2352,15 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
@@ -1882,12 +2369,15 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 
@@ -1917,12 +2407,15 @@ case 4:
  				 a.emplace(iter.id,iter);
 				 break;
 			case 1: 
+ 				 a.emplace(iter.parentid,iter);
+				 break;
+			case 2: 
  				 a.emplace(iter.value_id,iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a.emplace(iter.deleted,iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a.emplace(iter.deletetime,iter);
 				 break;
 
@@ -1945,7 +2438,7 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 a.emplace(iter.content,iter);
 			 break;
 
@@ -1972,7 +2465,7 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 	 		 }
@@ -2007,12 +2500,15 @@ case 4:
  				 ktemp=iter.id;
 			 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+			 break;
+			case 2: 
  				 ktemp=iter.value_id;
 			 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 			 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 			 break;
 			  }
@@ -2048,17 +2544,20 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
  			switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 
@@ -2086,7 +2585,7 @@ case 4:
                     switch(kpos)
                     {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			  }
@@ -2095,12 +2594,15 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 
@@ -2130,12 +2632,15 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
@@ -2144,12 +2649,15 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 
@@ -2175,12 +2683,12 @@ case 4:
                     switch(kpos)
                     {
 
-   case 2: 
+   case 3: 
  	 ktemp=iter.content;
 	 break;
 	  }
  switch(vpos){
-case 2: 
+case 3: 
  	 vtemp=iter.content;
 	 break;
 
@@ -2208,12 +2716,15 @@ case 2:
  	 a.emplace_back(iter.id,iter);
 	 break;
 case 1: 
+ 	 a.emplace_back(iter.parentid,iter);
+	 break;
+case 2: 
  	 a.emplace_back(iter.value_id,iter);
 	 break;
-case 3: 
+case 4: 
  	 a.emplace_back(iter.deleted,iter);
 	 break;
-case 4: 
+case 5: 
  	 a.emplace_back(iter.deletetime,iter);
 	 break;
 
@@ -2234,7 +2745,7 @@ case 4:
                 switch(kpos)
                 {
 
-   case 2: 
+   case 3: 
  	 a.emplace_back(iter.content,iter);
 	 break;
 
@@ -2264,12 +2775,15 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
@@ -2279,12 +2793,15 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 			  }
@@ -2320,12 +2837,15 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
@@ -2335,12 +2855,15 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 			  }
@@ -2350,12 +2873,15 @@ case 4:
  				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+				 break;
+			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.value_id);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.deleted);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.deletetime);
 				 break;
 
@@ -2387,12 +2913,15 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 				  }
@@ -2402,18 +2931,21 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 			 }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
@@ -2446,18 +2978,21 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 			  }
@@ -2493,18 +3028,21 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 			 }
@@ -2514,12 +3052,15 @@ case 4:
  				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+				 break;
+			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.value_id);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.deleted);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.deletetime);
 				 break;
 
@@ -2550,24 +3091,27 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
@@ -2594,7 +3138,7 @@ case 4:
                     switch(kpos)
                     {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			 }
@@ -2604,12 +3148,15 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 			  }
@@ -2642,7 +3189,7 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			  }
@@ -2652,12 +3199,15 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 			 }
@@ -2667,12 +3217,15 @@ case 4:
  				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+				 break;
+			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.value_id);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.deleted);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.deletetime);
 				 break;
 
@@ -2702,7 +3255,7 @@ case 4:
             switch(kpos)
             {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			 }
@@ -2712,18 +3265,21 @@ case 4:
  				 vtemp=iter.id;
 				 break;
 			case 1: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 2: 
  				 vtemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.deletetime;
 				 break;
 			 }
 
 			switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
@@ -2751,13 +3307,13 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 			  }
@@ -2789,13 +3345,13 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 			 }
@@ -2805,12 +3361,15 @@ case 4:
  				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+				 break;
+			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.value_id);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.deleted);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.deletetime);
 				 break;
 
@@ -2838,19 +3397,19 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.content;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
@@ -2877,13 +3436,13 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp].emplace_back(iter.content);
 				 break;
 
@@ -2909,7 +3468,7 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			 }
@@ -2940,7 +3499,7 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			  }
@@ -2950,12 +3509,15 @@ case 4:
  				 a[ktemp].emplace_back(iter.id);
 				 break;
 			case 1: 
+ 				 a[ktemp].emplace_back(iter.parentid);
+				 break;
+			case 2: 
  				 a[ktemp].emplace_back(iter.value_id);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp].emplace_back(iter.deleted);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp].emplace_back(iter.deletetime);
 				 break;
 
@@ -2986,18 +3548,21 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp].emplace_back(iter.content);
 				 break;
 
@@ -3029,12 +3594,15 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
@@ -3068,12 +3636,15 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			 }
@@ -3083,12 +3654,15 @@ case 4:
  				 a[ktemp].emplace_back(iter.id);
 				 break;
 			case 1: 
+ 				 a[ktemp].emplace_back(iter.parentid);
+				 break;
+			case 2: 
  				 a[ktemp].emplace_back(iter.value_id);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp].emplace_back(iter.deleted);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp].emplace_back(iter.deletetime);
 				 break;
 
@@ -3115,12 +3689,15 @@ case 4:
  				 a[iter.id].emplace_back(iter);
 				 break;
 			case 1: 
+ 				 a[iter.parentid].emplace_back(iter);
+				 break;
+			case 2: 
  				 a[iter.value_id].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[iter.deleted].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[iter.deletetime].emplace_back(iter);
 				 break;
 
@@ -3144,7 +3721,7 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 a[iter.content].emplace_back(iter);
 				 break;
 
@@ -3170,13 +3747,13 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][iter.content].emplace_back(iter);
 				 break;
 
@@ -3202,7 +3779,7 @@ case 4:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.content;
 				 break;
 	  }
@@ -3212,12 +3789,15 @@ case 4:
  				 a[ktemp][iter.id].emplace_back(iter);
 				 break;
 			case 1: 
+ 				 a[ktemp][iter.parentid].emplace_back(iter);
+				 break;
+			case 2: 
  				 a[ktemp][iter.value_id].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][iter.deleted].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][iter.deletetime].emplace_back(iter);
 				 break;
 
@@ -3248,12 +3828,15 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			 }
@@ -3263,12 +3846,15 @@ case 4:
  				 a[ktemp][iter.id].emplace_back(iter);
 				 break;
 			case 1: 
+ 				 a[ktemp][iter.parentid].emplace_back(iter);
+				 break;
+			case 2: 
  				 a[ktemp][iter.value_id].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][iter.deleted].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][iter.deletetime].emplace_back(iter);
 				 break;
 
@@ -3299,18 +3885,21 @@ case 4:
  				 ktemp=iter.id;
 				 break;
 			case 1: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 2: 
  				 ktemp=iter.value_id;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.deleted;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.deletetime;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][iter.content].emplace_back(iter);
 				 break;
 
