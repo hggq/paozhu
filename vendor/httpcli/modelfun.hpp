@@ -4481,7 +4481,7 @@ struct )";
 
         std::string itemmember_str, tree_torecord_str;
         itemmember_str.append("\t\tmeta_tree temp_obja;\n");
-        tree_torecord_str.append("\t\tmeta temp_obja;\n");
+        tree_torecord_str.append("\n\t\tmeta temp_obja;\n");
         for (auto &fe : tablecollist)
         {
 
@@ -4491,7 +4491,7 @@ struct )";
             itemmember_str.append(fe);
             itemmember_str.append(";\n");
 
-            tree_torecord_str.append("\t\t\t\t\t\ttemp_obja.");
+            tree_torecord_str.append("\t\t\ttemp_obja.");
             tree_torecord_str.append(fe);
             tree_torecord_str.append("=sourcedata[i].");
             tree_torecord_str.append(fe);
@@ -4643,7 +4643,7 @@ struct )";
             }
         }
     }
-    void tree_to_record(const std::vector<meta_tree> &sourcedata)
+    void tree_torecord(const std::vector<meta_tree> &sourcedata)
     {
         for (unsigned int i = 0; i < sourcedata.size(); i++)
         {)";
@@ -4652,7 +4652,7 @@ struct )";
             record.push_back(temp_obja);
             if(sourcedata[i].children.size()>0)
             {
-                tree_to_record(sourcedata[i].children);
+                tree_torecord(sourcedata[i].children);
             }
         }
     }      

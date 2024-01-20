@@ -20,7 +20,7 @@ std::string testtotree(std::shared_ptr<httppeer> peer)
     client << testa.tree_tojson(treedata, "id,parentid,content");
     client << ",\"two\":";
     testa.record.clear();
-    testa.tree_to_record(treedata);
+    testa.tree_torecord(treedata);
     client << testa.to_json("id,parentid,content");
     client << "}";
 
