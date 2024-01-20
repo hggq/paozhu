@@ -12,11 +12,18 @@ std::string testtotree(std::shared_ptr<httppeer> peer)
     //client << "<p>test record to tree</p>";
     auto testa = orm::cms::Testa();
     testa.fetch();
-    //record to tree data database table must has parentid  or parentid field annotation is [userid tree]
+    //record to tree data, database table must has parentid  or parentid field annotation is [userid tree]
     auto treedata = testa.to_tree();
 
     //client << testa.tree_json(treedata);
+    client << "{\"one\":";
     client << testa.tree_tojson(treedata, "id,parentid,content");
+    client << ",\"two\":";
+    testa.record.clear();
+    testa.tree_to_record(treedata);
+    client << testa.to_json("id,parentid,content");
+    client << "}";
+
     client.json_type();
     return "";
 }

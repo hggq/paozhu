@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 17 Jan 2024 13:18:15 GMT
+*本文件为自动生成 Sat, 20 Jan 2024 08:59:31 GMT
 ***/
 #include <iostream>
 #include <cstdio>
