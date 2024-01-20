@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 20 Jan 2024 08:59:31 GMT
+*本文件为自动生成 Sat, 20 Jan 2024 09:05:42 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1838,7 +1838,7 @@ if(tree_data[n].deletetime==0){
             }
         }
     }
-    void tree_to_record(std::vector<meta_tree> &sourcedata)
+    void tree_to_record(const std::vector<meta_tree> &sourcedata)
     {
         for (unsigned int i = 0; i < sourcedata.size(); i++)
         {		meta temp_obja;

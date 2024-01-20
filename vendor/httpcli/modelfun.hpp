@@ -4643,7 +4643,7 @@ struct )";
             }
         }
     }
-    void tree_to_record(std::vector<meta_tree> &sourcedata)
+    void tree_to_record(const std::vector<meta_tree> &sourcedata)
     {
         for (unsigned int i = 0; i < sourcedata.size(); i++)
         {)";
