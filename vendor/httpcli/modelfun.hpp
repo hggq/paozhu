@@ -2599,6 +2599,397 @@ struct )";
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    //batch update
+    headtxt.clear();
+    update2strem.str("");
+    headtxt = R"(
+    std::string _make_replace_into_sql()
+    {
+        unsigned int j = 0;
+        std::ostringstream tempsql;
+        tempsql << "REPLACE INTO ";
+        tempsql << tablename;
+        tempsql << " (";
+        for (; j < colnames.size(); j++)
+        {
+            if (j > 0)
+            {
+                tempsql << "`,`";
+            }
+            else
+            {
+                tempsql << "`";
+            }
+            tempsql << colnames[j];
+        }
+        if (j > 0)
+        {
+            tempsql << "`";
+        }
+        tempsql << ") VALUES ";
+
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (i > 0)
+            {
+                tempsql << ",\n";
+            }
+            tempsql << "(";
+            )";
+
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
+    {
+        // 数字
+        // if (j == 0)
+        if (table_type[j] < 10 || table_type[j] == 246)
+        {
+            if (table_type[j] != 7)
+            {
+                if (j == 0)
+                {
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                        update2strem << "\ttempsql<<\"null\";\n";
+                        update2strem << "\t }else{ \n";
+                        update2strem << "\ttempsql<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                        update2strem << "\t}\n";
+                    }
+                    else
+                    {
+                        update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                        update2strem << "\ttempsql<<\"0\";\n";
+                        update2strem << "\t }else{ \n";
+                        update2strem << "\ttempsql<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                        update2strem << "\t}\n";
+                    }
+                }
+                else
+                {
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                        update2strem << "\ttempsql<<\",null\";\n";
+                        update2strem << "\t }else{ \n";
+                        update2strem << "\ttempsql<<\",\"<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                        update2strem << "\t}\n";
+                    }
+                    else
+                    {
+                        update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                        update2strem << "\ttempsql<<\",0\";\n";
+                        update2strem << "\t }else{ \n";
+                        update2strem << "\ttempsql<<\",\"<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                        update2strem << "\t}\n";
+                    }
+                }
+                if ((j + 1) == tablecollist.size())
+                {
+                    update2strem << "\ttempsql<<\")\";\n";
+                }
+                continue;
+            }
+        }
+        // 数字
+        if (j == 0)
+        {
+            if (tablecollist[j] == tablepkname)
+            {
+                update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                update2strem << "\ttempsql<<\"null\";\n";
+                update2strem << "\t }else{ \n";
+                update2strem << "\ttempsql<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                update2strem << "\t}\n";
+            }
+            else
+            {
+                if (colltypeshuzi[j] < 30)
+                {
+                    update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                    update2strem << "\ttempsql<<\"0\";\n";
+                    update2strem << "\t }else{ \n";
+                    update2strem << "\ttempsql<<\"\"<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                    update2strem << "\t}\n";
+                }
+                else if (colltypeshuzi[j] == 60)
+                {
+                    update2strem << "  \n\tif(record[i]." << tablecollist[j] << ".size()==0){ \n";
+                    update2strem << "\ttempsql<<\" CURRENT_TIMESTAMP \";\n";
+                    update2strem << "\t }else{ \n tempsql<<\"'\"<<record[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else if (colltypeshuzi[j] == 61)
+                {
+                    update2strem << "  \n\tif(record[i]." << tablecollist[j] << ".size()==0){ \n";
+                    update2strem << "\ttempsql<<\"CURRENT_DATE \";\n";
+                    update2strem << "\t }else{ \n tempsql<<\"'\"<<record[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else
+                {
+
+                    update2strem << "\ttempsql<<\"'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
+                }
+            }
+            if ((j + 1) == tablecollist.size())
+            {
+                update2strem << "\ttempsql<<\")\";\n";
+            }
+            continue;
+        }
+        if (colltypeshuzi[j] < 30)
+        {
+            update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+            update2strem << "\ttempsql<<\",0\";\n";
+            update2strem << "\t }else{ \n";
+            update2strem << "\ttempsql<<\",\"<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+            update2strem << "\t}\n";
+        }
+        else if (colltypeshuzi[j] == 60)
+        {
+            update2strem << "  \n\tif(record[i]." << tablecollist[j] << ".size()==0){ \n";
+            update2strem << "\ttempsql<<\", CURRENT_TIMESTAMP \";\n";
+            update2strem << "\t }else{ \n tempsql<<\",'\"<<record[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+        }
+        else if (colltypeshuzi[j] == 61)
+        {
+            update2strem << "  \n\tif(record[i]." << tablecollist[j] << ".size()==0){ \n";
+            update2strem << "\ttempsql<<\", CURRENT_DATE \";\n";
+            update2strem << "\t }else{ \n tempsql<<\",'\"<<record[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+        }
+        else
+        {
+
+            update2strem << "\ttempsql<<\",'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
+        }
+        update2strem << "\ttempsql<<\")\";\n";
+    }
+
+    update2strem << "\n }\n return tempsql.str();\n}\n";
+
+    headtxt.append(update2strem.str());
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    update2strem.str("");
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    //batch update
+    headtxt.clear();
+    update2strem.str("");
+    headtxt = R"(
+    std::string _make_insert_into_sql(const std::string &fileld)
+    {
+        unsigned int j = 0;
+        std::ostringstream tempsql;
+        tempsql << "INSERT INTO ";
+        tempsql << tablename;
+        tempsql << " (";
+        for (; j < colnames.size(); j++)
+        {
+            if (j > 0)
+            {
+                tempsql << "`,`";
+            }
+            else
+            {
+                tempsql << "`";
+            }
+            tempsql << colnames[j];
+        }
+        if (j > 0)
+        {
+            tempsql << "`";
+        }
+        tempsql << ") VALUES ";
+
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (i > 0)
+            {
+                tempsql << ",\n";
+            }
+            tempsql << "(";
+            )";
+
+    for (unsigned int j = 0; j < tablecollist.size(); j++)
+    {
+        // 数字
+        // if (j == 0)
+        if (table_type[j] < 10 || table_type[j] == 246)
+        {
+            if (table_type[j] != 7)
+            {
+                if (j == 0)
+                {
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                        update2strem << "\ttempsql<<\"null\";\n";
+                        update2strem << "\t }else{ \n";
+                        update2strem << "\ttempsql<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                        update2strem << "\t}\n";
+                    }
+                    else
+                    {
+                        update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                        update2strem << "\ttempsql<<\"0\";\n";
+                        update2strem << "\t }else{ \n";
+                        update2strem << "\ttempsql<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                        update2strem << "\t}\n";
+                    }
+                }
+                else
+                {
+                    if (tablecollist[j] == tablepkname)
+                    {
+                        update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                        update2strem << "\ttempsql<<\",null\";\n";
+                        update2strem << "\t }else{ \n";
+                        update2strem << "\ttempsql<<\",\"<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                        update2strem << "\t}\n";
+                    }
+                    else
+                    {
+                        update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                        update2strem << "\ttempsql<<\",0\";\n";
+                        update2strem << "\t }else{ \n";
+                        update2strem << "\ttempsql<<\",\"<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                        update2strem << "\t}\n";
+                    }
+                }
+                if ((j + 1) == tablecollist.size())
+                {
+                    update2strem << "\ttempsql<<\")\";\n";
+                }
+                continue;
+            }
+        }
+        // 数字
+        if (j == 0)
+        {
+            if (tablecollist[j] == tablepkname)
+            {
+                update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                update2strem << "\ttempsql<<\"null\";\n";
+                update2strem << "\t }else{ \n";
+                update2strem << "\ttempsql<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                update2strem << "\t}\n";
+            }
+            else
+            {
+                if (colltypeshuzi[j] < 30)
+                {
+                    update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+                    update2strem << "\ttempsql<<\"0\";\n";
+                    update2strem << "\t }else{ \n";
+                    update2strem << "\ttempsql<<\"\"<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+                    update2strem << "\t}\n";
+                }
+                else if (colltypeshuzi[j] == 60)
+                {
+                    update2strem << "  \n\tif(record[i]." << tablecollist[j] << ".size()==0){ \n";
+                    update2strem << "\ttempsql<<\" CURRENT_TIMESTAMP \";\n";
+                    update2strem << "\t }else{ \n tempsql<<\"'\"<<record[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else if (colltypeshuzi[j] == 61)
+                {
+                    update2strem << "  \n\tif(record[i]." << tablecollist[j] << ".size()==0){ \n";
+                    update2strem << "\ttempsql<<\"CURRENT_DATE \";\n";
+                    update2strem << "\t }else{ \n tempsql<<\"'\"<<record[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+                }
+                else
+                {
+
+                    update2strem << "\ttempsql<<\"'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
+                }
+            }
+            if ((j + 1) == tablecollist.size())
+            {
+                update2strem << "\ttempsql<<\")\";\n";
+            }
+            continue;
+        }
+        if (colltypeshuzi[j] < 30)
+        {
+            update2strem << "\tif(record[i]." << tablecollist[j] << "==0){\n";
+            update2strem << "\ttempsql<<\",0\";\n";
+            update2strem << "\t }else{ \n";
+            update2strem << "\ttempsql<<\",\"<<std::to_string(record[i]." << tablecollist[j] << ");\n";
+            update2strem << "\t}\n";
+        }
+        else if (colltypeshuzi[j] == 60)
+        {
+            update2strem << "  \n\tif(record[i]." << tablecollist[j] << ".size()==0){ \n";
+            update2strem << "\ttempsql<<\", CURRENT_TIMESTAMP \";\n";
+            update2strem << "\t }else{ \n tempsql<<\",'\"<<record[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+        }
+        else if (colltypeshuzi[j] == 61)
+        {
+            update2strem << "  \n\tif(record[i]." << tablecollist[j] << ".size()==0){ \n";
+            update2strem << "\ttempsql<<\", CURRENT_DATE \";\n";
+            update2strem << "\t }else{ \n tempsql<<\",'\"<<record[i]." << tablecollist[j] << "<<\"'\";\n }\n";
+        }
+        else
+        {
+
+            update2strem << "\ttempsql<<\",'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
+        }
+        update2strem << "\ttempsql<<\")\";\n";
+    }
+
+    update2strem << "\t }\n\t tempsql<<\" as new ON DUPLICATE KEY UPDATE \";\n";
+    headtxt.append(update2strem.str());
+
+    headtxt += R"(
+     
+    std::string keyname;
+    unsigned char jj=0;
+    j=0;
+     if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                    if(fileld[jj]==','){
+                        if(findcolpos(keyname)<255)
+                        {
+                            if(j>0)
+                            {
+                                tempsql<<",";
+                            }
+                            tempsql<<keyname;
+                            tempsql<<"=new.";
+                            tempsql<<keyname;
+                             
+                        }
+                        continue;   
+                    }
+                    if(fileld[jj]==0x20){
+
+                        continue;   
+                    }
+                    keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                if(findcolpos(keyname)<255)
+                {
+                    if(j>0)
+                    {
+                        tempsql<<",";
+                    }
+                    tempsql<<keyname;
+                    tempsql<<"=new.";
+                    tempsql<<keyname;
+                    
+                }
+            }
+        } 
+ )";
+
+    headtxt.append("\n return tempsql.str();\n}\n");
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    update2strem.str("");
+
     /////////////////////////////////////////////////////////////////////////////////////
 
     headtxt = R"(

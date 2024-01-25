@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 12 Jan 2024 04:37:36 GMT
+*本文件为自动生成 Thu, 25 Jan 2024 16:21:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -39,6 +39,27 @@ unsigned  int sortid= 0; //排序id
  std::string topimg=""; //头图
 unsigned  int accesscode= 0; //权限代码
  } data;
+  
+        struct meta_tree{
+        unsigned  int topicid= 0; //
+unsigned  int userid= 0; //
+unsigned  int parentid= 0; //
+unsigned  int cateid= 0; //类型
+unsigned  int languagetype= 0; //语言类型
+unsigned  char isview=0; //是否显示
+unsigned  int sortid= 0; //排序id
+ std::string title=""; //标题
+ std::string twotitle=""; //第二标题
+ std::string memo=""; //备注
+ std::string templatename=""; //模板名称
+ std::string url=""; //网址
+ std::string urlpath=""; //路径
+ std::string imgurl=""; //图片地址
+ std::string topimg=""; //头图
+unsigned  int accesscode= 0; //权限代码
+
+	std::vector<meta_tree> children;
+ };
  std::vector<topicbase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 std::vector<unsigned char> _keypos{0x00};
@@ -885,6 +906,237 @@ if(data.accesscode==0){
         return tempsql.str();
    } 
    
+    std::string _make_replace_into_sql()
+    {
+        unsigned int j = 0;
+        std::ostringstream tempsql;
+        tempsql << "REPLACE INTO ";
+        tempsql << tablename;
+        tempsql << " (";
+        for (; j < colnames.size(); j++)
+        {
+            if (j > 0)
+            {
+                tempsql << "`,`";
+            }
+            else
+            {
+                tempsql << "`";
+            }
+            tempsql << colnames[j];
+        }
+        if (j > 0)
+        {
+            tempsql << "`";
+        }
+        tempsql << ") VALUES ";
+
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (i > 0)
+            {
+                tempsql << ",\n";
+            }
+            tempsql << "(";
+            	if(record[i].topicid==0){
+	tempsql<<"null";
+	 }else{ 
+	tempsql<<std::to_string(record[i].topicid);
+	}
+	if(record[i].userid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].userid);
+	}
+	if(record[i].parentid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].parentid);
+	}
+	if(record[i].cateid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].cateid);
+	}
+	if(record[i].languagetype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].languagetype);
+	}
+	if(record[i].isview==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isview);
+	}
+	if(record[i].sortid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].sortid);
+	}
+	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].twotitle)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].memo)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].templatename)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].url)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].topimg)<<"'";
+	tempsql<<")";
+	if(record[i].accesscode==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].accesscode);
+	}
+	tempsql<<")";
+
+ }
+ return tempsql.str();
+}
+
+    std::string _make_insert_into_sql(const std::string &fileld)
+    {
+        unsigned int j = 0;
+        std::ostringstream tempsql;
+        tempsql << "INSERT INTO ";
+        tempsql << tablename;
+        tempsql << " (";
+        for (; j < colnames.size(); j++)
+        {
+            if (j > 0)
+            {
+                tempsql << "`,`";
+            }
+            else
+            {
+                tempsql << "`";
+            }
+            tempsql << colnames[j];
+        }
+        if (j > 0)
+        {
+            tempsql << "`";
+        }
+        tempsql << ") VALUES ";
+
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (i > 0)
+            {
+                tempsql << ",\n";
+            }
+            tempsql << "(";
+            	if(record[i].topicid==0){
+	tempsql<<"null";
+	 }else{ 
+	tempsql<<std::to_string(record[i].topicid);
+	}
+	if(record[i].userid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].userid);
+	}
+	if(record[i].parentid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].parentid);
+	}
+	if(record[i].cateid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].cateid);
+	}
+	if(record[i].languagetype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].languagetype);
+	}
+	if(record[i].isview==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isview);
+	}
+	if(record[i].sortid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].sortid);
+	}
+	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].twotitle)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].memo)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].templatename)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].url)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
+	tempsql<<")";
+	tempsql<<",'"<<stringaddslash(record[i].topimg)<<"'";
+	tempsql<<")";
+	if(record[i].accesscode==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].accesscode);
+	}
+	tempsql<<")";
+	 }
+	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
+
+     
+    std::string keyname;
+    unsigned char jj=0;
+    j=0;
+     if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                    if(fileld[jj]==','){
+                        if(findcolpos(keyname)<255)
+                        {
+                            if(j>0)
+                            {
+                                tempsql<<",";
+                            }
+                            tempsql<<keyname;
+                            tempsql<<"=new.";
+                            tempsql<<keyname;
+                             
+                        }
+                        continue;   
+                    }
+                    if(fileld[jj]==0x20){
+
+                        continue;   
+                    }
+                    keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                if(findcolpos(keyname)<255)
+                {
+                    if(j>0)
+                    {
+                        tempsql<<",";
+                    }
+                    tempsql<<keyname;
+                    tempsql<<"=new.";
+                    tempsql<<keyname;
+                    
+                }
+            }
+        } 
+ 
+ return tempsql.str();
+}
+
    std::vector<std::string> data_toarray(std::string fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
@@ -2306,6 +2558,308 @@ std::vector<topicbase::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+       std::ostringstream tempsql;
+            std::string keyname;
+            unsigned char jj=0;
+                  std::vector<unsigned char> keypos;
+                  if(fileld.size()>0){
+                    for(;jj<fileld.size();jj++){
+                            if(fileld[jj]==','){
+                                keypos.emplace_back(findcolpos(keyname)); 
+                                keyname.clear();
+                                continue;   
+                            }
+                            if(fileld[jj]==0x20){
+
+                                continue;   
+                            }
+                            keyname.push_back(fileld[jj]);
+
+                    }  
+                    if(keyname.size()>0){
+                                    keypos.emplace_back(findcolpos(keyname)); 
+                                    keyname.clear();
+                    }
+                 }else{
+                     for(jj=0;jj<colnames.size();jj++){
+                         keypos.emplace_back(jj); 
+                     }
+                 }
+                tempsql<<"[";
+              for(size_t n=0;n<tree_data.size();n++){
+                  if(n>0){
+                      tempsql<<",{";
+                  }else{
+                      tempsql<<"{";
+                  }  
+                 
+                 for(jj=0;jj<keypos.size();jj++){
+                       switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].topicid==0){
+	tempsql<<"\"topicid\":0";
+ }else{ 
+	tempsql<<"\"topicid\":"<<std::to_string(tree_data[n].topicid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].cateid==0){
+	tempsql<<"\"cateid\":0";
+ }else{ 
+	tempsql<<"\"cateid\":"<<std::to_string(tree_data[n].cateid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(tree_data[n].languagetype);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(tree_data[n].isview);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
+}
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(tree_data[n].title)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(tree_data[n].twotitle)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(tree_data[n].memo)<<"\"";
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(tree_data[n].templatename)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(tree_data[n].url)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(tree_data[n].urlpath)<<"\"";
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(tree_data[n].topimg)<<"\"";
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].accesscode==0){
+	tempsql<<"\"accesscode\":0";
+ }else{ 
+	tempsql<<"\"accesscode\":"<<std::to_string(tree_data[n].accesscode);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+       std::ostringstream tempsql;
+            std::string keyname;
+            unsigned char jj=0;
+                  std::vector<unsigned char> keypos;
+                  if(fileld.size()>0){
+                    for(;jj<fileld.size();jj++){
+                            if(fileld[jj]==','){
+                                keypos.emplace_back(findcolpos(keyname)); 
+                                keyname.clear();
+                                continue;   
+                            }
+                            if(fileld[jj]==0x20){
+
+                                continue;   
+                            }
+                            keyname.push_back(fileld[jj]);
+
+                    }  
+                    if(keyname.size()>0){
+                                    keypos.emplace_back(findcolpos(keyname)); 
+                                    keyname.clear();
+                    }
+                 }else{
+                     for(jj=0;jj<colnames.size();jj++){
+                         keypos.emplace_back(jj); 
+                     }
+                 }
+                tempsql<<"[";
+              for(size_t n=0;n<tree_data.size();n++){
+                 keyname.clear();
+                 if(func(keyname,tree_data[n])){ 
+                            if(n>0){
+                                tempsql<<",{";
+                            }else{
+                                tempsql<<"{";
+                            } 
+                            tempsql<<keyname;
+                 }else{
+                    continue;
+                 } 
+                  
+                 for(jj=0;jj<keypos.size();jj++){
+                        
+                       switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].topicid==0){
+	tempsql<<"\"topicid\":0";
+ }else{ 
+	tempsql<<"\"topicid\":"<<std::to_string(tree_data[n].topicid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].cateid==0){
+	tempsql<<"\"cateid\":0";
+ }else{ 
+	tempsql<<"\"cateid\":"<<std::to_string(tree_data[n].cateid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(tree_data[n].languagetype);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(tree_data[n].isview);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
+}
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(tree_data[n].title)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(tree_data[n].twotitle)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(tree_data[n].memo)<<"\"";
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(tree_data[n].templatename)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(tree_data[n].url)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(tree_data[n].urlpath)<<"\"";
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(tree_data[n].topimg)<<"\"";
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].accesscode==0){
+	tempsql<<"\"accesscode\":0";
+ }else{ 
+	tempsql<<"\"accesscode\":"<<std::to_string(tree_data[n].accesscode);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)

@@ -124,11 +124,10 @@ std::string techempowerupdates(std::shared_ptr<httppeer> peer)
         if (myworld.effect() > 0)
         {
             unsigned int j                 = myworld.record.size() - 1;
-            myworld.data.randomnumber      = rand_range(1, 10000);
-            myworld.record[j].randomnumber = myworld.data.randomnumber;
-            myworld.update("randomnumber");
+            myworld.record[j].randomnumber = rand_range(1, 10000);
         }
     }
+    myworld.update_batch("randomnumber");
     peer->output = myworld.to_json();
     return "";
 }

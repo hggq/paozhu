@@ -7,4 +7,4 @@ CREATE TABLE `logininfo` (
   `addregion` varchar(70) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录地区',
   `loginstate` varchar(10) COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录状态',
   PRIMARY KEY (`lgid`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录'

@@ -3223,6 +3223,74 @@ class mysqlclientDB : public base
             return 0;
         }
     }
+    int update_batch(const std::string &fieldname)
+    {
+        effect_num = 0;
+        if (base::record.size() == 0)
+        {
+            return 0;
+        }
+        if (fieldname.size() > 0)
+        {
+            sqlstring = base::_make_insert_into_sql(fieldname);
+        }
+        else
+        {
+            sqlstring = base::_make_replace_into_sql();
+        }
+
+        if (iserror)
+        {
+            return 0;
+        }
+        std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
+        try
+        {
+            conn = linkconn->get_edit_connect();
+        }
+        catch (const char *e)
+        {
+            error_msg = std::string(e);
+            return 0;
+        }
+        try
+        {
+            mysql_ping(conn.get());
+            long long readnum = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
+            if (readnum != 0)
+            {
+                error_msg = std::string(mysql_error(conn.get()));
+                mysql_close(conn.get());
+                conn.reset();
+                return 0;
+            }
+            readnum    = mysql_affected_rows(conn.get());
+            effect_num = readnum;
+            try
+            {
+                linkconn->back_edit_connect(std::move(conn));
+            }
+            catch (...)
+            {
+            }
+            return readnum;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+            return 0;
+        }
+        catch (const char *e)
+        {
+            error_msg = std::string(e);
+            throw std::runtime_error(e);
+            return 0;
+        }
+        catch (...)
+        {
+            return 0;
+        }
+    }
     int remove()
     {
         effect_num = 0;

@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 12 Jan 2024 04:37:14 GMT
+*本文件为自动生成 Thu, 25 Jan 2024 16:21:21 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -388,6 +388,145 @@ if(data.randomnumber==0){
         return tempsql.str();
    } 
    
+    std::string _make_replace_into_sql()
+    {
+        unsigned int j = 0;
+        std::ostringstream tempsql;
+        tempsql << "REPLACE INTO ";
+        tempsql << tablename;
+        tempsql << " (";
+        for (; j < colnames.size(); j++)
+        {
+            if (j > 0)
+            {
+                tempsql << "`,`";
+            }
+            else
+            {
+                tempsql << "`";
+            }
+            tempsql << colnames[j];
+        }
+        if (j > 0)
+        {
+            tempsql << "`";
+        }
+        tempsql << ") VALUES ";
+
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (i > 0)
+            {
+                tempsql << ",\n";
+            }
+            tempsql << "(";
+            	if(record[i].id==0){
+	tempsql<<"null";
+	 }else{ 
+	tempsql<<std::to_string(record[i].id);
+	}
+	if(record[i].randomnumber==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].randomnumber);
+	}
+	tempsql<<")";
+
+ }
+ return tempsql.str();
+}
+
+    std::string _make_insert_into_sql(const std::string &fileld)
+    {
+        unsigned int j = 0;
+        std::ostringstream tempsql;
+        tempsql << "INSERT INTO ";
+        tempsql << tablename;
+        tempsql << " (";
+        for (; j < colnames.size(); j++)
+        {
+            if (j > 0)
+            {
+                tempsql << "`,`";
+            }
+            else
+            {
+                tempsql << "`";
+            }
+            tempsql << colnames[j];
+        }
+        if (j > 0)
+        {
+            tempsql << "`";
+        }
+        tempsql << ") VALUES ";
+
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (i > 0)
+            {
+                tempsql << ",\n";
+            }
+            tempsql << "(";
+            	if(record[i].id==0){
+	tempsql<<"null";
+	 }else{ 
+	tempsql<<std::to_string(record[i].id);
+	}
+	if(record[i].randomnumber==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].randomnumber);
+	}
+	tempsql<<")";
+	 }
+	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
+
+     
+    std::string keyname;
+    unsigned char jj=0;
+    j=0;
+     if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                    if(fileld[jj]==','){
+                        if(findcolpos(keyname)<255)
+                        {
+                            if(j>0)
+                            {
+                                tempsql<<",";
+                            }
+                            tempsql<<keyname;
+                            tempsql<<"=new.";
+                            tempsql<<keyname;
+                             
+                        }
+                        continue;   
+                    }
+                    if(fileld[jj]==0x20){
+
+                        continue;   
+                    }
+                    keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                if(findcolpos(keyname)<255)
+                {
+                    if(j>0)
+                    {
+                        tempsql<<",";
+                    }
+                    tempsql<<keyname;
+                    tempsql<<"=new.";
+                    tempsql<<keyname;
+                    
+                }
+            }
+        } 
+ 
+ return tempsql.str();
+}
+
    std::vector<std::string> data_toarray(std::string fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
