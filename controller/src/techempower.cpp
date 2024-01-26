@@ -116,13 +116,13 @@ std::string techempowerupdates(std::shared_ptr<httppeer> peer)
     {
         get_num = 500;
     }
-    std::vector<int> temprand;
+    std::vector<unsigned int> temprand;
     for (unsigned int j = 1; j < 10001; j++)
     {
         temprand.push_back(j);
     }
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::shuffle(temprand.begin(), temprand.end() std::default_random_engine(seed));
+    std::shuffle(temprand.begin(), temprand.end(), std::default_random_engine(seed));
     // std::default_random_engine generator{std::random_device{}()};
     // std::shuffle(temprand.begin(), temprand.end(), generator);
 
