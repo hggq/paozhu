@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 25 Jan 2024 16:21:30 GMT
+*本文件为自动生成 Fri, 26 Jan 2024 02:59:40 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -654,7 +654,6 @@ if(data.deletetime==0){
 	tempsql<<","<<std::to_string(record[i].value_id);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
-	tempsql<<")";
 	if(record[i].deleted==0){
 	tempsql<<",0";
 	 }else{ 
@@ -719,7 +718,6 @@ if(data.deletetime==0){
 	tempsql<<","<<std::to_string(record[i].value_id);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
-	tempsql<<")";
 	if(record[i].deleted==0){
 	tempsql<<",0";
 	 }else{ 

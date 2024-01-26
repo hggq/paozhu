@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 25 Jan 2024 16:21:30 GMT
+*本文件为自动生成 Fri, 26 Jan 2024 02:59:40 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -574,13 +574,9 @@ tempsql<<"`loginstate`='"<<stringaddslash(data.loginstate)<<"'";
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].username)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].addtime)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].addip)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].addregion)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].loginstate)<<"'";
 	tempsql<<")";
 
@@ -631,13 +627,9 @@ tempsql<<"`loginstate`='"<<stringaddslash(data.loginstate)<<"'";
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].username)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].addtime)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].addip)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].addregion)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].loginstate)<<"'";
 	tempsql<<")";
 	 }

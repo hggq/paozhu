@@ -2685,10 +2685,6 @@ struct )";
                         update2strem << "\t}\n";
                     }
                 }
-                if ((j + 1) == tablecollist.size())
-                {
-                    update2strem << "\ttempsql<<\")\";\n";
-                }
                 continue;
             }
         }
@@ -2731,10 +2727,6 @@ struct )";
                     update2strem << "\ttempsql<<\"'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
                 }
             }
-            if ((j + 1) == tablecollist.size())
-            {
-                update2strem << "\ttempsql<<\")\";\n";
-            }
             continue;
         }
         if (colltypeshuzi[j] < 30)
@@ -2762,9 +2754,8 @@ struct )";
 
             update2strem << "\ttempsql<<\",'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
         }
-        update2strem << "\ttempsql<<\")\";\n";
     }
-
+    update2strem << "\ttempsql<<\")\";\n";
     update2strem << "\n }\n return tempsql.str();\n}\n";
 
     headtxt.append(update2strem.str());
@@ -2858,10 +2849,6 @@ struct )";
                         update2strem << "\t}\n";
                     }
                 }
-                if ((j + 1) == tablecollist.size())
-                {
-                    update2strem << "\ttempsql<<\")\";\n";
-                }
                 continue;
             }
         }
@@ -2904,10 +2891,6 @@ struct )";
                     update2strem << "\ttempsql<<\"'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
                 }
             }
-            if ((j + 1) == tablecollist.size())
-            {
-                update2strem << "\ttempsql<<\")\";\n";
-            }
             continue;
         }
         if (colltypeshuzi[j] < 30)
@@ -2935,9 +2918,8 @@ struct )";
 
             update2strem << "\ttempsql<<\",'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
         }
-        update2strem << "\ttempsql<<\")\";\n";
     }
-
+    update2strem << "\ttempsql<<\")\";\n";
     update2strem << "\t }\n\t tempsql<<\" as new ON DUPLICATE KEY UPDATE \";\n";
     headtxt.append(update2strem.str());
 

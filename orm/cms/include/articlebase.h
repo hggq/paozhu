@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 25 Jan 2024 16:21:30 GMT
+*本文件为自动生成 Fri, 26 Jan 2024 03:07:14 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1233,19 +1233,12 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	tempsql<<","<<std::to_string(record[i].sortid);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].topicname)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].keywords)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].fromsource)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].author)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].addip)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].createtime)<<"'";
-	tempsql<<")";
 	if(record[i].addtime==0){
 	tempsql<<",0";
 	 }else{ 
@@ -1262,11 +1255,8 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	tempsql<<","<<std::to_string(record[i].review);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].icoimg)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].mdcontent)<<"'";
-	tempsql<<")";
 	if(record[i].isopen==0){
 	tempsql<<",0";
 	 }else{ 
@@ -1278,13 +1268,9 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	tempsql<<","<<std::to_string(record[i].iscomment);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].fromlocal)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].texturl)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].summary)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].editauthor)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].relatecontent)<<"'";
 	tempsql<<")";
 
@@ -1350,19 +1336,12 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	tempsql<<","<<std::to_string(record[i].sortid);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].topicname)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].keywords)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].fromsource)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].author)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].addip)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].createtime)<<"'";
-	tempsql<<")";
 	if(record[i].addtime==0){
 	tempsql<<",0";
 	 }else{ 
@@ -1379,11 +1358,8 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	tempsql<<","<<std::to_string(record[i].review);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].icoimg)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].mdcontent)<<"'";
-	tempsql<<")";
 	if(record[i].isopen==0){
 	tempsql<<",0";
 	 }else{ 
@@ -1395,13 +1371,9 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	tempsql<<","<<std::to_string(record[i].iscomment);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].fromlocal)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].texturl)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].summary)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].editauthor)<<"'";
-	tempsql<<")";
 	tempsql<<",'"<<stringaddslash(record[i].relatecontent)<<"'";
 	tempsql<<")";
 	 }
