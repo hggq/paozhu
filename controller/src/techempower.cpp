@@ -116,13 +116,6 @@ std::string techempowerupdates(std::shared_ptr<httppeer> peer)
     {
         get_num = 500;
     }
-    // std::vector<unsigned int> temprand;
-    // for (unsigned int j = 1; j < 10001; j++)
-    // {
-    //     temprand.push_back(j);
-    // }
-    // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    // std::shuffle(temprand.begin(), temprand.end(), std::default_random_engine(seed));
     auto myworld = orm::World();
     myworld.record.clear();
     myworld.record.reserve(get_num);
@@ -133,15 +126,10 @@ std::string techempowerupdates(std::shared_ptr<httppeer> peer)
         if (myworld.effect() > 0)
         {
             unsigned int j                 = myworld.record.size() - 1;
-            myworld.record[j].randomnumber = rand_range(1, 10000);
-            //myworld.update("randomnumber");
+            myworld.data.randomnumber      = rand_range(1, 10000);
+            myworld.record[j].randomnumber = myworld.data.randomnumber;
+            myworld.update("randomnumber");
         }
-    }
-    for (unsigned int i = 0; i < myworld.record.size(); i++)
-    {
-        myworld.wheresql.clear();
-        myworld.data.randomnumber = myworld.record[i].randomnumber;
-        myworld.where("id", myworld.record[i].id).update("randomnumber");
     }
     peer->output = myworld.to_json();
     return "";
