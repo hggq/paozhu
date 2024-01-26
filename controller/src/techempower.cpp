@@ -1,6 +1,9 @@
 #include "orm.h"
 #include <chrono>
 #include <thread>
+#include <algorithm>
+#include <random>
+#include <chrono>
 #include "httppeer.h"
 #include "techempower.h"
 #include "techempower_json.h"
@@ -113,21 +116,30 @@ std::string techempowerupdates(std::shared_ptr<httppeer> peer)
     {
         get_num = 500;
     }
+    std::vector<int> temprand;
+    for (unsigned int j = 1; j < 10001; j++)
+    {
+        temprand.push_back(j);
+    }
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::shuffle(temprand.begin(), temprand.end() std::default_random_engine(seed));
+    // std::default_random_engine generator{std::random_device{}()};
+    // std::shuffle(temprand.begin(), temprand.end(), generator);
+
     auto myworld = orm::World();
     myworld.record.clear();
     myworld.record.reserve(get_num);
     for (unsigned int i = 0; i < get_num; i++)
     {
         myworld.wheresql.clear();
-        unsigned int tempid = rand_range(1, 10000);
-        myworld.where("id", tempid).fetch_append();
+        myworld.where("id", temprand[i]).fetch_append();
         if (myworld.effect() > 0)
         {
             unsigned int j                 = myworld.record.size() - 1;
-            myworld.record[j].randomnumber = rand_range(1, 10000);
+            myworld.record[j].randomnumber = temprand[i + 2000];
         }
     }
-    myworld.update_batch("randomnumber");
+    myworld.update_batch("");
     peer->output = myworld.to_json();
     return "";
 }
