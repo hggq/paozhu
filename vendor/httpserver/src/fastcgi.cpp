@@ -639,6 +639,10 @@ asio::awaitable<void> fastcgi::co_send()
                 }
                 break;
             }
+            if (ret >= respbody.size())
+            {
+                break;
+            }
         }
         line_header.push_back(respbody[ret]);
     }

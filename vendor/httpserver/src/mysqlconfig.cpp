@@ -82,7 +82,7 @@ std::vector<mysqlconnect_t> getmysqlconfig(std::string filename)
                 }
             }
         }
-        if (s[i] == 0x0A)
+        if (i < s.size() && s[i] == 0x0A)
         {
             readkey = false;
             // myconfig[linestr]=strval;

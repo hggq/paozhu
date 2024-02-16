@@ -498,7 +498,7 @@ void markdown2html::process_hr()
             break;
         }
     }
-    if (mdcontent[j] != 0x0A)
+    if (j > 0 && mdcontent[j] != 0x0A)
     {
         process_p();
         return;

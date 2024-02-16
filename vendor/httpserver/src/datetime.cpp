@@ -22,7 +22,7 @@ std::string get_gmttime(time_t inputtime)
     {
         curr_time = inputtime;
     }
-    tm *timeInfo;
+    const tm *timeInfo;
 
     char timestr[30] = {};
     timeInfo         = gmtime(&curr_time);
@@ -33,7 +33,7 @@ std::string get_gmttime(time_t inputtime)
 }
 std::string get_utctime(time_t inputtime)
 {
-    time_t curr_time;
+    std::time_t curr_time;
     if (inputtime == 0)
     {
         curr_time = time((time_t *)NULL);
@@ -42,7 +42,7 @@ std::string get_utctime(time_t inputtime)
     {
         curr_time = inputtime;
     }
-    tm *timeInfo;
+    const tm *timeInfo;
 
     char timestr[30] = {};
     timeInfo         = gmtime(&curr_time);
@@ -130,7 +130,7 @@ unsigned int timeid() { return time((time_t *)NULL); }
 
 std::string get_date(const std::string &format, unsigned int inputtime)
 {
-    time_t curr_time;
+    std::time_t curr_time;
     if (inputtime == 0)
     {
         curr_time = time((time_t *)NULL);
@@ -139,7 +139,7 @@ std::string get_date(const std::string &format, unsigned int inputtime)
     {
         curr_time = inputtime;
     }
-    tm *timeInfo;
+    const tm *timeInfo;
     std::string temp(36, 0x00);
     timeInfo = localtime(&curr_time);
     strftime(temp.data(), temp.length(), format.c_str(), timeInfo);
@@ -233,7 +233,7 @@ unsigned int strgmttotime(const std::string &gmtstr)
     default: timeInfo.tm_mon = 0;
     }
     i += 4;
-    if (i >= gmtstr.length())
+    if ((i + 13) > gmtstr.length())
     {
         return temp;
     }
@@ -297,7 +297,7 @@ unsigned int strgmttotime(const std::string &gmtstr)
     if (gmtstr[i] == 'G' && gmtstr[i + 1] == 'M' && gmtstr[i + 2] == 'T')
     {
         std::time_t rt = std::mktime(&timeInfo);
-        std::tm *tm    = std::gmtime((const time_t *)&rt);
+        std::tm *tm    = std::gmtime((const std::time_t *)&rt);
         std::time_t gt = std::mktime(tm);
         temp           = rt + (rt - gt);
     }
@@ -324,6 +324,11 @@ unsigned int strtotime(const std::string &str)
         }
     }
 
+    if ((i + 5) > str.length())
+    {
+        return 0;
+    }
+
     tc[0] = str[i] - '0';
     i++;
     tc[1] = str[i] - '0';
@@ -342,12 +347,13 @@ unsigned int strtotime(const std::string &str)
     {
         i++;
     }
-    if (str[i] >= '0' && str[i] <= '9')
+
+    if (i < str.length() && str[i] >= '0' && str[i] <= '9')
     {
         tc[0] = str[i] - '0';
     }
     i++;
-    if (str[i] >= '0' && str[i] <= '9')
+    if (i < str.length() && str[i] >= '0' && str[i] <= '9')
     {
         tc[1] = str[i] - '0';
         i++;
@@ -363,7 +369,7 @@ unsigned int strtotime(const std::string &str)
         datetime.tm_mon = datetime.tm_mon - 1;
     }
 
-    if ((unsigned char)str[i] > 0x7F)
+    if (i < str.length() && (unsigned char)str[i] > 0x7F)
     {
         i += 3;
     }
@@ -372,12 +378,12 @@ unsigned int strtotime(const std::string &str)
         i++;
     }
 
-    if (str[i] >= '0' && str[i] <= '9')
+    if (i < str.length() && str[i] >= '0' && str[i] <= '9')
     {
         tc[0] = str[i] - '0';
     }
     i++;
-    if (str[i] >= '0' && str[i] <= '9')
+    if (i < str.length() && str[i] >= '0' && str[i] <= '9')
     {
         tc[1] = str[i] - '0';
         i++;
@@ -393,7 +399,7 @@ unsigned int strtotime(const std::string &str)
         datetime.tm_mday = 1;
     }
 
-    if ((unsigned char)str[i] > 0x7F)
+    if (i < str.length() && (unsigned char)str[i] > 0x7F)
     {
         i += 3;
     }
@@ -419,13 +425,13 @@ unsigned int strtotime(const std::string &str)
             }
         }
 
-        if (str[i] >= '0' && str[i] <= '9')
+        if (i < str.length() && str[i] >= '0' && str[i] <= '9')
         {
             tc[0] = str[i] - '0';
         }
         i++;
 
-        if (str[i] >= '0' && str[i] <= '9')
+        if (i < str.length() && str[i] >= '0' && str[i] <= '9')
         {
             tc[1] = str[i] - '0';
             i++;
@@ -453,12 +459,12 @@ unsigned int strtotime(const std::string &str)
         else
         {
 
-            if (str[i] >= '0' && str[i] <= '9')
+            if (i < str.length() && str[i] >= '0' && str[i] <= '9')
             {
                 tc[0] = str[i] - '0';
             }
             i++;
-            if (str[i] >= '0' && str[i] <= '9')
+            if (i < str.length() && str[i] >= '0' && str[i] <= '9')
             {
                 tc[1] = str[i] - '0';
                 i++;
@@ -469,7 +475,7 @@ unsigned int strtotime(const std::string &str)
                 datetime.tm_min = tc[0];
             }
 
-            if ((unsigned char)str[i] > 0x7F)
+            if (i < str.length() && (unsigned char)str[i] > 0x7F)
             {
                 i += 3;
             }
@@ -487,12 +493,12 @@ unsigned int strtotime(const std::string &str)
         else
         {
 
-            if (str[i] >= '0' && str[i] <= '9')
+            if (i < str.length() && str[i] >= '0' && str[i] <= '9')
             {
                 tc[0] = str[i] - '0';
             }
             i++;
-            if (str[i] >= '0' && str[i] <= '9')
+            if (i < str.length() && str[i] >= '0' && str[i] <= '9')
             {
                 tc[1] = str[i] - '0';
                 i++;
@@ -516,16 +522,16 @@ std::string get_uuid()
 
     std::uniform_int_distribution<int> dist(0, 15);
 
-    const char *v     = "0123456789abcdef";
-    const bool dash[] = {0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0};
+    static const unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    static const bool dash[]         = {0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0};
 
     std::string res;
     for (int i = 0; i < 16; i++)
     {
         if (dash[i])
             res += "-";
-        res += v[dist(rng)];
-        res += v[dist(rng)];
+        res += str[dist(rng)];
+        res += str[dist(rng)];
     }
     return res;
 }

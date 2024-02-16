@@ -1824,7 +1824,7 @@ std::string JSON_STR(std::string &jsonstr, unsigned int &offset)
             case 'u':
                 // str+=json.substr(j,6);
                 {
-                    unsigned char c[10];
+                    unsigned char c[10] = {0x00};
                     unsigned char ch;
                     unsigned int temp;
                     auto chartoint = [](unsigned char &ch, unsigned char &c)

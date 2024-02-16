@@ -507,7 +507,7 @@ class viewtemplate
                 }
                 break;
             }
-            if (readcontent[i] == '#')
+            if (i < readcontent.size() && readcontent[i] == '#')
             {
                 for (; i < readcontent.size(); i++)
                 {
@@ -525,7 +525,7 @@ class viewtemplate
                 }
                 break;
             }
-            if (readcontent[i] == '#')
+            if (i < readcontent.size() && readcontent[i] == '#')
             {
                 for (; i < readcontent.size(); i++)
                 {

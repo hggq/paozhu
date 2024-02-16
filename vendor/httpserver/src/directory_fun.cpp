@@ -191,7 +191,7 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
     struct directorylist_t
     {
         std::string filename;
-        long long size;
+        long long size = 0;
         std::string time;
         std::string ext;
     };

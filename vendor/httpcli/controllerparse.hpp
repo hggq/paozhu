@@ -235,7 +235,7 @@ class controllerparse
                             break;
                         }
                     }
-                    if (readcontent[ij] == '"')
+                    if (ij < readcontent.size() && readcontent[ij] == '"')
                     {
                         ij++;
                         std::string cppincludefilename;
@@ -365,7 +365,7 @@ class controllerparse
                 }
                 break;
             }
-            if (readcontent[i] == '#')
+            if (i < readcontent.size() && readcontent[i] == '#')
             {
                 for (; i < readcontent.size(); i++)
                 {
@@ -384,7 +384,7 @@ class controllerparse
                 }
                 break;
             }
-            if (readcontent[i] == '#')
+            if (i < readcontent.size() && readcontent[i] == '#')
             {
                 for (; i < readcontent.size(); i++)
                 {

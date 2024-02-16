@@ -37,7 +37,7 @@ std::map<std::string, std::map<std::string, std::string>> loadserversconfig(std:
     bool readkey = false;
     bool isvalue = false;
     keyname      = "";
-    std::string typeone;
+
     for (unsigned int i = 0; i < s.size(); i++)
     {
         if (s[i] == ';')
@@ -60,7 +60,7 @@ std::map<std::string, std::map<std::string, std::string>> loadserversconfig(std:
                 }
             }
         }
-        if (s[i] == 0x0A)
+        if (i < s.size() && s[i] == 0x0A)
         {
             readkey = false;
 
@@ -73,7 +73,7 @@ std::map<std::string, std::map<std::string, std::string>> loadserversconfig(std:
             isvalue = false;
             continue;
         }
-        if (s[i] == '[')
+        if (i < s.size() && s[i] == '[')
         {
             if (keyname.size() > 0)
             {

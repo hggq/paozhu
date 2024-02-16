@@ -1,3 +1,8 @@
+/*
+ *  @author 黄自权 huangziquan
+ *  @date 2023-04-24
+ *  @dest struct json reflect file
+ */
 #pragma once
 #include <map>
 #include <vector>
@@ -488,7 +493,7 @@ class typejsonfiles
                 break;
             }
         }
-        if (filecontent[offset] == '}')
+        if (offset < filecontent.size() && filecontent[offset] == '}')
         {
             offset += 1;
             for (; offset < filecontent.size(); offset++)
@@ -827,7 +832,7 @@ class typejsonfiles
         }
 
         std::string defaultvalue;
-        if (linecontent[offset] == '=')
+        if (offset < linecontent.size() && linecontent[offset] == '=')
         {
             offset += 1;
             for (; offset < linecontent.size(); offset++)
@@ -852,7 +857,7 @@ class typejsonfiles
             }
         }
         temp.value = defaultvalue;
-        if (linecontent[offset] == ';')
+        if (offset < linecontent.size() && linecontent[offset] == ';')
         {
             offset += 1;
         }
@@ -1032,8 +1037,10 @@ class typejsonfiles
 
             header_content.append("\n}\n");
         }
-
-        fwrite(&header_content[0], 1, header_content.size(), fp.get());
+        if (header_content.size() > 0)
+        {
+            fwrite(&header_content[0], 1, header_content.size(), fp.get());
+        }
     }
     std::string createjsonobj(const struct obj_reflect_type &json_reflect_data)
     {

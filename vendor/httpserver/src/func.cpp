@@ -293,9 +293,10 @@ std::string get_filename(const std::string &filename)
 std::vector<std::string> mb_split(std::string_view pattern, std::string_view msg)
 {
     std::vector<std::string> temp;
-
     std::string mp;
-    unsigned int j = 0, n = msg.size();
+    unsigned int j = 0;
+    unsigned int n = msg.size();
+
     for (unsigned int i = 0; i < n; i++)
     {
         for (j = 0; j < pattern.size(); j++)
@@ -328,10 +329,10 @@ unsigned int mb_strlen(std::string_view str)
 {
     unsigned int length    = 0;
     unsigned long long pos = 0;
-    unsigned char c;
+
     for (; pos < str.size(); pos++)
     {
-        c = (unsigned char)str[pos];
+        unsigned char c = (unsigned char)str[pos];
         if (c < 0x80)
         {
             length++;
@@ -906,9 +907,9 @@ std::map<std::string, std::string> filepath(std::string &str)
         }
         break;
     }
-    if (str[i] == 'h')
+    if (i < str.size() && str[i] == 'h')
     {
-        if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' &&
+        if (((i + 6) < str.size()) && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == ':' &&
             str[i + 5] == '/' && str[i + 6] == '/')
         {
             temp["scheme"] = "http";
@@ -962,7 +963,7 @@ std::map<std::string, std::string> filepath(std::string &str)
             i     = j;
             isurl = true;
         }
-        else if (str[i] == 'h' && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' &&
+        else if (((i + 7) < str.size()) && str[i + 1] == 't' && str[i + 2] == 't' && str[i + 3] == 'p' && str[i + 4] == 's' &&
                  str[i + 5] == ':' && str[i + 6] == '/' && str[i + 7] == '/')
         {
             temp["scheme"] = "https";
@@ -1212,7 +1213,7 @@ long long str2int(std::string_view source)
             break;
         }
     }
-    if (source[qi] == '-')
+    if (qi < length && source[qi] == '-')
     {
         issub = true;
         qi++;
