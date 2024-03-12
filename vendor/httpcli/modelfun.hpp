@@ -4855,20 +4855,29 @@ struct )";
         std::string itemmember_str, tree_torecord_str;
         itemmember_str.append("\t\tmeta_tree temp_obja;\n");
         tree_torecord_str.append("\n\t\tmeta temp_obja;\n");
+        unsigned int j=0;
         for (auto &fe : tablecollist)
         {
+            if(fe=="level"&&colltypeshuzi[j] < 30)
+            {
+                itemmember_str.append("\t\t\t\t\t\ttemp_obja.level=level;\n");
+                tree_torecord_str.append("\t\t\ttemp_obja.level=level;\n");
+            }
+            else
+            {
+                itemmember_str.append("\t\t\t\t\t\ttemp_obja.");
+                itemmember_str.append(fe);
+                itemmember_str.append("=record[i].");
+                itemmember_str.append(fe);
+                itemmember_str.append(";\n");
 
-            itemmember_str.append("\t\t\t\t\t\ttemp_obja.");
-            itemmember_str.append(fe);
-            itemmember_str.append("=record[i].");
-            itemmember_str.append(fe);
-            itemmember_str.append(";\n");
-
-            tree_torecord_str.append("\t\t\ttemp_obja.");
-            tree_torecord_str.append(fe);
-            tree_torecord_str.append("=sourcedata[i].");
-            tree_torecord_str.append(fe);
-            tree_torecord_str.append(";\n");
+                tree_torecord_str.append("\t\t\ttemp_obja.");
+                tree_torecord_str.append(fe);
+                tree_torecord_str.append("=sourcedata[i].");
+                tree_torecord_str.append(fe);
+                tree_torecord_str.append(";\n");
+            }
+            j++;
         }
 
         headtxt = R"(
@@ -4928,7 +4937,7 @@ struct )";
     std::vector<meta_tree> to_tree(unsigned int beginid=0)
     {
        std::vector<meta_tree> temp;
-
+       unsigned int level=0; 
        if(beginid==0)
        {
             for (unsigned int i = 0; i < record.size(); i++)
@@ -4965,58 +4974,38 @@ struct )";
        {
           return temp; 
        }
-       for (unsigned int i = 0; i < record.size(); i++)
-        {
-            if (record[i].)";
-        headtxt.append(parentitemname);
-        headtxt += R"( > 0)
-            {
-                for (unsigned int j = 0; j < temp.size(); j++)
-                {
-                    if (temp[j].)";
+       level+=1;
+       for (unsigned int j = 0; j < temp.size(); j++)
+       {
+         record_to_tree(temp[j].children,temp[j].)";
         headtxt.append(sourceidname);
-        headtxt += R"( == record[i].)";
-        headtxt.append(parentitemname);
-        headtxt += R"()
-                    {
-                        )";
-        headtxt.append(itemmember_str);
-        headtxt += R"(
-                        temp[j].children.push_back(temp_obja);
-                        record_to_tree(temp[j].children);
-                    }
-                }
-            }
-        }
+        headtxt += R"(,level);
+       }
        return temp; 
     }    
-    void record_to_tree(std::vector<meta_tree> &targetdata)
+    void record_to_tree(std::vector<meta_tree> &targetdata,long long t_vid,unsigned int level=0)
     {
         for (unsigned int i = 0; i < record.size(); i++)
         {
             if (record[i].)";
         headtxt.append(parentitemname);
-        headtxt += R"(> 0)
+        headtxt += R"(== t_vid)
             {
-                for (unsigned int j = 0; j < targetdata.size(); j++)
-                {
-                    if (targetdata[j].)";
-        headtxt.append(sourceidname);
-        headtxt += R"( == record[i].)";
-        headtxt.append(parentitemname);
-        headtxt += R"()
-                    {
-                         )";
+                )";
         headtxt.append(itemmember_str);
         headtxt += R"(
-                        targetdata[j].children.push_back(temp_obja);
-                        record_to_tree(targetdata[j].children);
-                    }
-                }
+                targetdata.push_back(temp_obja);
             }
         }
+        level+=1;
+        for (unsigned int j = 0; j < targetdata.size(); j++)
+        {
+         record_to_tree(targetdata[j].children,targetdata[j].)";
+         headtxt.append(sourceidname);
+         headtxt += R"(,level);
+        }
     }
-    void tree_torecord(const std::vector<meta_tree> &sourcedata)
+    void tree_torecord(const std::vector<meta_tree> &sourcedata,unsigned int level=0)
     {
         for (unsigned int i = 0; i < sourcedata.size(); i++)
         {)";
@@ -5025,7 +5014,7 @@ struct )";
             record.push_back(temp_obja);
             if(sourcedata[i].children.size()>0)
             {
-                tree_torecord(sourcedata[i].children);
+                tree_torecord(sourcedata[i].children,level+1);
             }
         }
     }      

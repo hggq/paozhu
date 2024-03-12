@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 26 Jan 2024 02:59:40 GMT
+*本文件为自动生成 Tue, 12 Mar 2024 04:11:11 GMT
 ***/
 #include <iostream>
 #include <cstdio>

@@ -233,7 +233,7 @@ unsigned int strgmttotime(const std::string &gmtstr)
     default: timeInfo.tm_mon = 0;
     }
     i += 4;
-    if ((i + 13) > gmtstr.length())
+    if ((unsigned int)(i + 13) > gmtstr.length())
     {
         return temp;
     }
@@ -324,7 +324,7 @@ unsigned int strtotime(const std::string &str)
         }
     }
 
-    if ((i + 5) > str.length())
+    if ((unsigned int)(i + 5) > str.length())
     {
         return 0;
     }

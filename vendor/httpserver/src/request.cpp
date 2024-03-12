@@ -1734,7 +1734,7 @@ std::string OBJ_VALUE::to_json()
     }
 
     break;
-    case NIL: os << "null"; break;
+    case NIL: os << "{}"; break;
 
     case STRING: os << '"' << JSON_UTF8_TO_ASCII(string_v) << '"'; break;
 
@@ -2448,7 +2448,7 @@ std::ostream &operator<<(std::ostream &os, const http::OBJ_VALUE &v)
     }
 
     break;
-    case http::NIL: os << "null"; break;
+    case http::NIL: os << "{}"; break;
 
     case http::STRING: os << '"' << http::JSON_UTF8_TO_ASCII(v.as_string()) << '"'; break;
 

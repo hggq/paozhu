@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 26 Jan 2024 02:59:40 GMT
+*本文件为自动生成 Tue, 12 Mar 2024 04:11:11 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1917,7 +1917,7 @@ if(tree_data[n].deletetime==0){
     std::vector<meta_tree> to_tree(unsigned int beginid=0)
     {
        std::vector<meta_tree> temp;
-
+       unsigned int level=0; 
        if(beginid==0)
        {
             for (unsigned int i = 0; i < record.size(); i++)
@@ -1960,41 +1960,20 @@ if(tree_data[n].deletetime==0){
        {
           return temp; 
        }
-       for (unsigned int i = 0; i < record.size(); i++)
-        {
-            if (record[i].parentid > 0)
-            {
-                for (unsigned int j = 0; j < temp.size(); j++)
-                {
-                    if (temp[j].id == record[i].parentid)
-                    {
-                        		meta_tree temp_obja;
-						temp_obja.id=record[i].id;
-						temp_obja.parentid=record[i].parentid;
-						temp_obja.value_id=record[i].value_id;
-						temp_obja.content=record[i].content;
-						temp_obja.deleted=record[i].deleted;
-						temp_obja.deletetime=record[i].deletetime;
-
-                        temp[j].children.push_back(temp_obja);
-                        record_to_tree(temp[j].children);
-                    }
-                }
-            }
-        }
+       level+=1;
+       for (unsigned int j = 0; j < temp.size(); j++)
+       {
+         record_to_tree(temp[j].children,temp[j].id,level);
+       }
        return temp; 
     }    
-    void record_to_tree(std::vector<meta_tree> &targetdata)
+    void record_to_tree(std::vector<meta_tree> &targetdata,long long t_vid,unsigned int level=0)
     {
         for (unsigned int i = 0; i < record.size(); i++)
         {
-            if (record[i].parentid> 0)
+            if (record[i].parentid== t_vid)
             {
-                for (unsigned int j = 0; j < targetdata.size(); j++)
-                {
-                    if (targetdata[j].id == record[i].parentid)
-                    {
-                         		meta_tree temp_obja;
+                		meta_tree temp_obja;
 						temp_obja.id=record[i].id;
 						temp_obja.parentid=record[i].parentid;
 						temp_obja.value_id=record[i].value_id;
@@ -2002,14 +1981,16 @@ if(tree_data[n].deletetime==0){
 						temp_obja.deleted=record[i].deleted;
 						temp_obja.deletetime=record[i].deletetime;
 
-                        targetdata[j].children.push_back(temp_obja);
-                        record_to_tree(targetdata[j].children);
-                    }
-                }
+                targetdata.push_back(temp_obja);
             }
         }
+        level+=1;
+        for (unsigned int j = 0; j < targetdata.size(); j++)
+        {
+         record_to_tree(targetdata[j].children,targetdata[j].id,level);
+        }
     }
-    void tree_torecord(const std::vector<meta_tree> &sourcedata)
+    void tree_torecord(const std::vector<meta_tree> &sourcedata,unsigned int level=0)
     {
         for (unsigned int i = 0; i < sourcedata.size(); i++)
         {
@@ -2024,7 +2005,7 @@ if(tree_data[n].deletetime==0){
             record.push_back(temp_obja);
             if(sourcedata[i].children.size()>0)
             {
-                tree_torecord(sourcedata[i].children);
+                tree_torecord(sourcedata[i].children,level+1);
             }
         }
     }      
