@@ -51,7 +51,7 @@ std::string admin_loginpost(std::shared_ptr<httppeer> peer)
         {
             loginfo.setLoginstate("失败");
             loginfo.save();
-            client.goto_url("admin/login", 3, "用户名或密码错误！");
+            client.goto_url("/admin/login", 3, "用户名或密码错误！");
             return "";
         }
     }
@@ -104,7 +104,7 @@ std::string admin_main(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
     if (client.session["userid"].to_int() == 0)
     {
-        client.goto_url("admin/login");
+        client.goto_url("/admin/login");
         return "";
     }
     client.view("admin/main");
