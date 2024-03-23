@@ -51,9 +51,9 @@ httpparse::httpparse() : uprawfile(nullptr, std::fclose) { error = 0; }
 //       peer_session = peer->get_ptr();
 // }
 void httpparse::setpeer(std::shared_ptr<httppeer> hpeer) { peer = hpeer->get_ptr(); }
-unsigned int httpparse::header_valuetoint()
+unsigned long long httpparse::header_valuetoint()
 {
-    unsigned int temp = 0;
+    unsigned long long temp = 0;
     for (unsigned int qi = 0; qi < header_value.size(); qi++)
     {
         if (header_value[qi] < 0x3A && header_value[qi] > 0x2F)

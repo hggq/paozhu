@@ -46,7 +46,7 @@ class httpparse
     httpparse();
     //void setsession(std::shared_ptr<client_session> peer);
     void setpeer(std::shared_ptr<httppeer> peer);
-    unsigned int header_valuetoint();
+    unsigned long long header_valuetoint();
     unsigned int checkheadend(const unsigned char *buffer, unsigned int buffersize);
     void procssparamter();
     void procssxformurlencoded();
