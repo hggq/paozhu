@@ -342,6 +342,18 @@ FIND_PATH(MYSQL_INCLUDE_DIR NAMES mysql.h
   PATHS /usr/local/include/mysql /usr/include/mysql /usr/local/mysql/include /opt/homebrew/opt/mysql-client/include
 )
 
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  if (IS_DIRECTORY "/usr/local/mysql/include")
+      set(MYSQL_INCLUDE_DIR "/usr/local/mysql/include")
+  endif()
+ 
+  if (IS_DIRECTORY "/usr/local/opt/mysql-client/include")
+      set(MYSQL_INCLUDE_DIR "/usr/local/opt/mysql-client/include")
+  endif()
+ 
+endif()
+
+
 if(NOT MYSQL_INCLUDE_DIR)
   message(STATUS "Could not find \"mysql.h\" from searching ")
 endif()
