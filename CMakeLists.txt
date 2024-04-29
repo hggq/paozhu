@@ -460,7 +460,13 @@ target_link_libraries(paozhu ${FREETYPE_LIB_DIR})
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
+  if (IS_DIRECTORY "/usr/local/opt/brotli/lib")
+      set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
+  endif()
+#  set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
+  if (IS_DIRECTORY "/opt/homebrew/Cellar/brotli/lib")
+      set(BROTLI_ROOT_DIR "/opt/homebrew/Cellar/brotli/lib")
+  endif()
 else()
   set(BROTLI_ROOT_DIR "${sys_so_path}")
 endif()
@@ -487,16 +493,9 @@ INCLUDE_DIRECTORIES("${BROTLI_ROOT_DIR}/include")
 link_directories("${BROTLI_ROOT_DIR}/lib")
 
 if(NOT BR_LIB_DIR)
-
-find_package(BROTLI REQUIRED)
-
-if(BROTLI_FOUND)
-message(STATUS "Brotli at: ${BROTLI_ROOT_DIR}")
-endif()
 message(FATAL_ERROR
 "Brotli Library  NOT FOUND! please install . "
 )
-
 endif()
 
 message(STATUS "Brotli at: ${BR_LIB_DIR}")
