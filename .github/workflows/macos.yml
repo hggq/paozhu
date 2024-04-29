@@ -24,6 +24,7 @@ jobs:
           brew install mysql-client
           brew install zlib
           brew install brotli
+          brew info brotli
           brew install gd
           brew install qrencode
           unzip asio.zip
