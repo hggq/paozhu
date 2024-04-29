@@ -488,7 +488,7 @@ link_directories("${BROTLI_ROOT_DIR}/lib")
 
 if(NOT BR_LIB_DIR)
 
-find_package(Brotli REQUIRED)
+find_package(BROTLI REQUIRED)
 
 if(BROTLI_FOUND)
 message(STATUS "Brotli at: ${BROTLI_ROOT_DIR}")
