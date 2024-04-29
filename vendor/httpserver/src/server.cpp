@@ -3277,6 +3277,12 @@ httpserver::sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &conte
             error_loglist.emplace_back(" handshake ec_error ");
             lock.unlock();
             DEBUG_LOG(" handshake ec_error !");
+
+            sslsocket.shutdown(ec_error);
+            if (sslsocket.lowest_layer().is_open())
+            {
+                sslsocket.lowest_layer().close();
+            }
             co_return;
         }
         // client select proto 看看客户端是否指定 协议，如果没有指定为null
@@ -3301,6 +3307,7 @@ httpserver::sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &conte
     catch (std::exception &e)
     {
     }
+    co_return;
 }
 void httpserver::listeners()
 {
