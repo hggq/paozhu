@@ -487,9 +487,16 @@ INCLUDE_DIRECTORIES("${BROTLI_ROOT_DIR}/include")
 link_directories("${BROTLI_ROOT_DIR}/lib")
 
 if(NOT BR_LIB_DIR)
+
+find_package(Brotli REQUIRED)
+
+if(BROTLI_FOUND)
+message(STATUS "Brotli at: ${BROTLI_ROOT_DIR}")
+endif()
 message(FATAL_ERROR
 "Brotli Library  NOT FOUND! please install . "
 )
+
 endif()
 
 message(STATUS "Brotli at: ${BR_LIB_DIR}")
