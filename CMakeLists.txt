@@ -352,14 +352,13 @@ else()
  find_path(MYSQL_ROOT_DIR mysql)
 endif()
 
-MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
-find_package_handle_standard_args(mysql REQUIRED_VARS MYSQL_ROOT_DIR)
 
 FIND_PATH(MYSQL_INCLUDE_DIR NAMES mysql.h
-  PATHS /usr/local/include/mysql /usr/include/mysql /usr/local/mysql/include /opt/homebrew/opt/mysql-client/include
+  PATHS /usr/local/include/mysql /usr/include/mysql /usr/local/opt/mysql-client/include /opt/homebrew/opt/mysql-client/include
 )
 
-
+MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
+find_package_handle_standard_args(mysql REQUIRED_VARS MYSQL_ROOT_DIR)
 
 
 if(NOT MYSQL_INCLUDE_DIR)
