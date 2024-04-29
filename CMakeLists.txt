@@ -342,7 +342,7 @@ FIND_PATH(MYSQL_INCLUDE_DIR mysql.h
   /usr/local/include/mysql
   /usr/include/mysql
   /usr/local/mysql/include
-  /opt/homebrew/opt/mysql/include
+  /opt/homebrew/opt/mysql-client/include
 )
 
 if(NOT MYSQL_INCLUDE_DIR)
@@ -352,7 +352,7 @@ endif()
 SET(MYSQL_NAMES mysqlclient)
 FIND_LIBRARY(MYSQL_LIBRARY
   NAMES ${MYSQL_NAMES}
-  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib /opt/homebrew/opt/mysql/lib
+  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib /opt/homebrew/opt/mysql-client/lib
   PATH_SUFFIXES mysql
 )
 
