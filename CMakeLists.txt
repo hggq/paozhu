@@ -275,7 +275,7 @@ else ()
 
 if(USE_STANDALONE_ASIO)
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-set(ASIO_PATH "/usr/local/opt/asio/include" "/usr/local/include")
+set(ASIO_PATH "/usr/local/opt/asio/include" "/usr/local/include" ${CMAKE_CURRENT_SOURCE_DIR}/asio)
 else()
 set(ASIO_PATH ${CMAKE_CURRENT_SOURCE_DIR}/asio "/usr/include")
 endif()
