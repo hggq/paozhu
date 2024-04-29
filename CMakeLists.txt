@@ -344,6 +344,11 @@ FIND_PATH(MYSQL_INCLUDE_DIR mysql.h
   /usr/local/mysql/include
   /opt/homebrew/opt/mysql/include
 )
+
+if(NOT MYSQL_INCLUDE_DIR)
+  message(STATUS "Could not find \"mysql.h\" from searching ")
+endif()
+
 SET(MYSQL_NAMES mysqlclient)
 FIND_LIBRARY(MYSQL_LIBRARY
   NAMES ${MYSQL_NAMES}
