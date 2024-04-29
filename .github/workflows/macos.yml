@@ -28,6 +28,9 @@ jobs:
           brew install gd
           brew install qrencode
           unzip asio.zip
+          echo 'export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"' >> /Users/runner/.bash_profile
+          export LDFLAGS="-L/opt/homebrew/opt/mysql-client/lib"
+          export CPPFLAGS="-I/opt/homebrew/opt/mysql-client/include"
       - name: Build
         run: |
           cmake .
