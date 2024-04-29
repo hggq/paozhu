@@ -343,6 +343,11 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   if (IS_DIRECTORY "/usr/local/opt/mysql-client/include")
       set(MYSQL_INCLUDE_DIR "/usr/local/opt/mysql-client/include")
   endif()
+  
+  if (IS_DIRECTORY "/opt/homebrew/opt/mysql-client/include")
+      set(MYSQL_INCLUDE_DIR "/opt/homebrew/opt/mysql-client/include")
+  endif()
+  
 else()  
  find_path(MYSQL_ROOT_DIR mysql)
 endif()
