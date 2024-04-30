@@ -339,11 +339,13 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   if (IS_DIRECTORY "/usr/local/mysql/include")
   MESSAGE( STATUS "/usr/local/mysql")
       set(MYSQL_INCLUDE_DIR "/usr/local/mysql/include")
+      include_sub_directories_recursively(/usr/local/mysql/include)
   endif()
  
   if (IS_DIRECTORY "/usr/local/opt/mysql-client")
         MESSAGE( STATUS "/usr/local/opt/mysql-client")
       set(MYSQL_INCLUDE_DIR "/usr/local/opt/mysql-client/include")
+      include_sub_directories_recursively(/usr/local/opt/mysql-client/include)
   endif()
   
   if (IS_DIRECTORY "/opt/homebrew/opt/mysql-client")
@@ -372,7 +374,7 @@ endif()
 SET(MYSQL_NAMES mysqlclient)
 FIND_LIBRARY(MYSQL_LIBRARY
   NAMES ${MYSQL_NAMES}
-  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib /opt/homebrew/opt/mysql-client/lib
+  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib /usr/local/opt/mysql/lib /opt/homebrew/opt/mysql-client/lib
   PATH_SUFFIXES mysql
 )
 
@@ -407,7 +409,17 @@ if(ENABLE_GD STREQUAL "ON")
 message("---ENABLE_GD-----")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  set(GD_ROOT_DIR "/usr/local/opt/gd/lib")
+  
+  if (IS_DIRECTORY "/usr/local/opt/gd/lib")
+        MESSAGE( STATUS "/usr/local/opt/gd/lib")
+      set(GD_ROOT_DIR "/usr/local/opt/gd/lib")
+      include_sub_directories_recursively(/usr/local/opt/gd/include)
+  endif()
+  if (IS_DIRECTORY "/opt/homebrew/opt/gd/lib")
+        MESSAGE( STATUS "/opt/homebrew/opt/gd/lib")
+      set(GD_ROOT_DIR "/opt/homebrew/opt/gd/lib")
+      include_sub_directories_recursively(/opt/homebrew/opt/gd/include)
+  endif()
 else()
   set(GD_ROOT_DIR "${sys_so_path}")
 endif()
@@ -429,7 +441,18 @@ endif()
 message(STATUS "GD Graphics Library  at: ${GD_LIB_DIR}")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-set(QR_ROOT_DIR "/usr/local/opt/qrencode/lib")
+
+  if (IS_DIRECTORY "/usr/local/opt/qrencode/lib")
+        MESSAGE( STATUS "/usr/local/opt/qrencode/lib")
+      set(QR_ROOT_DIR "/usr/local/opt/qrencode/lib")
+      include_sub_directories_recursively(/usr/local/opt/qrencode/include)
+  endif()
+  if (IS_DIRECTORY "/opt/homebrew/opt/qrencode/lib")
+        MESSAGE( STATUS "/opt/homebrew/opt/qrencode/lib")
+      set(QR_ROOT_DIR "/opt/homebrew/opt/qrencode/lib")
+      include_sub_directories_recursively(/opt/homebrew/opt/qrencode/include)
+  endif()
+  
 else()
 set(QR_ROOT_DIR "${sys_so_path}")
 endif()
@@ -458,7 +481,18 @@ target_link_libraries(paozhu ${GD_LIB_DIR})
 target_link_libraries(paozhu ${QR_LIB_DIR})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-set(PNG_ROOT_DIR "/usr/local/opt/libpng/lib")
+
+  if (IS_DIRECTORY "/usr/local/opt/libpng/lib")
+        MESSAGE( STATUS "/usr/local/opt/libpng/lib")
+      set(PNG_ROOT_DIR "/usr/local/opt/libpng/lib")
+      include_sub_directories_recursively(/usr/local/opt/libpng/include)
+  endif()
+  if (IS_DIRECTORY "/opt/homebrew/opt/libpng/lib")
+        MESSAGE( STATUS "/opt/homebrew/opt/libpng/lib")
+      set(PNG_ROOT_DIR "/opt/homebrew/opt/libpng/lib")
+      include_sub_directories_recursively(/opt/homebrew/opt/libpng/include)
+  endif()
+  
 else()
 set(PNG_ROOT_DIR "${sys_so_path}")
 endif()
@@ -471,7 +505,18 @@ find_library(PNG_LIB_DIR
 target_link_libraries(paozhu ${PNG_LIB_DIR})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  set(FREETYPE_ROOT_DIR "/usr/local/opt/freetype/lib")
+  
+    if (IS_DIRECTORY "/usr/local/opt/freetype/lib")
+        MESSAGE( STATUS "/usr/local/opt/freetype/lib")
+      set(FREETYPE_ROOT_DIR "/usr/local/opt/freetype/lib")
+      include_sub_directories_recursively(/usr/local/opt/freetype/include)
+  endif()
+  if (IS_DIRECTORY "/opt/homebrew/opt/freetype/lib")
+        MESSAGE( STATUS "/opt/homebrew/opt/freetype/lib")
+      set(FREETYPE_ROOT_DIR "/opt/homebrew/opt/freetype/lib")
+      include_sub_directories_recursively(/opt/homebrew/opt/freetype/include)
+  endif()
+  
 else()
   set(FREETYPE_ROOT_DIR "${sys_so_path}")
 endif()
