@@ -18,7 +18,7 @@ std::mutex loadcontrolmtx, loadviewmtx, moudulecachemethod;
 std::string httpempty([[maybe_unused]] OBJ_VALUE &a) { return "<p>--.so image not found--</p>"; }
 std::string httpso(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->getpeer();
+    httppeer &client = peer->get_peer();
     client << "<p>-- controller not found--</p>";
     return "";
 }

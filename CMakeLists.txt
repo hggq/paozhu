@@ -348,6 +348,13 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
       include_sub_directories_recursively(/usr/local/opt/mysql-client/include)
   endif()
   
+  if (IS_DIRECTORY "/opt/homebrew/opt/mysql")
+        MESSAGE( STATUS "/opt/homebrew/opt/mysql")
+      set(MYSQL_INCLUDE_DIR "/opt/homebrew/opt/mysql/include")
+      include_sub_directories_recursively(/opt/homebrew/opt/mysql/include)
+  endif()
+  
+  
   if (IS_DIRECTORY "/opt/homebrew/opt/mysql-client")
         MESSAGE( STATUS "/opt/homebrew/opt/mysql-client")
       set(MYSQL_INCLUDE_DIR "/opt/homebrew/opt/mysql-client/include")
@@ -360,7 +367,7 @@ endif()
 
 
 FIND_PATH(MYSQL_INCLUDE_DIR NAMES mysql.h
-  PATHS /usr/local/include/mysql /usr/include/mysql /usr/local/opt/mysql-client/include /opt/homebrew/opt/mysql-client/include
+  PATHS /usr/local/include/mysql /usr/include/mysql /opt/homebrew/opt/mysql/include /usr/local/opt/mysql-client/include /opt/homebrew/opt/mysql-client/include
 )
 
 MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
@@ -374,7 +381,7 @@ endif()
 SET(MYSQL_NAMES mysqlclient)
 FIND_LIBRARY(MYSQL_LIBRARY
   NAMES ${MYSQL_NAMES}
-  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib /usr/local/opt/mysql/lib /opt/homebrew/opt/mysql-client/lib
+  PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib /usr/local/opt/mysql/lib /opt/homebrew/opt/mysql/lib /opt/homebrew/opt/mysql-client/lib
   PATH_SUFFIXES mysql
 )
 
