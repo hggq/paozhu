@@ -3632,12 +3632,12 @@ void httpserver::httpwatch()
     pn->api_loadview    = loadviewso;
     pn->api_loadcontrol = loadcontrol;
 
-    pn->api_mysqlselect     = get_mysqlselectexecute;
-    pn->api_mysqledit       = get_mysqlselectexecute;
-    pn->api_mysqlcommit     = get_mysqlselectexecute;
+    // pn->api_mysqlselect     = get_mysqlselectexecute;
+    // pn->api_mysqledit       = get_mysqlselectexecute;
+    // pn->api_mysqlcommit     = get_mysqlselectexecute;
     pn->map_value           = sysconfigpath.map_value;
     pn->server_global_var   = get_server_global_var;
-    pn->api_mysql_back_conn = back_mysql_connect;
+    //pn->api_mysql_back_conn = back_mysql_connect;
 #endif
 
     int catch_num               = 0;
