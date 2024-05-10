@@ -186,14 +186,10 @@ int serverNameCallback(SSL *ssl, [[maybe_unused]] int *ad, [[maybe_unused]] void
     SSL_clear_options(ssl, 0xFFFFFFFFL);
     SSL_set_options(ssl, SSL_CTX_get_options(ctx));
 
-    constexpr char DEFAULT_CIPHER_LIST[] = "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-"
-                                           "AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-"
-                                           "POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-"
-                                           "AES256-GCM-SHA384";
-
     if (SSL_CTX_set_cipher_list(ctx, DEFAULT_CIPHER_LIST) == 0)
     {
         std::cerr << ERR_error_string(ERR_get_error(), nullptr) << std::endl;
+        return SSL_TLSEXT_ERR_OK;
     }
 
     std::vector<unsigned char> next_proto;

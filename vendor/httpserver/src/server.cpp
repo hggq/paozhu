@@ -2866,7 +2866,7 @@ asio::awaitable<void> httpserver::clientpeerfun(struct httpsocket_t sock_temp, b
 
                         {
                             log_item.clear();
-                            log_item.append(peer->server_ip);
+                            log_item.append(peer->client_ip);
                             log_item.push_back(0x20);
                             log_item.append(get_date("%Y-%m-%d %X"));
                             log_item.push_back(0x20);
@@ -3364,11 +3364,6 @@ void httpserver::listeners()
     SSL_CTX_set_options(context_.native_handle(), ssl_opts);
     //SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_AUTO_RETRY);
     SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_RELEASE_BUFFERS);
-
-    constexpr char DEFAULT_CIPHER_LIST[] = "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-"
-                                           "AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-"
-                                           "POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-"
-                                           "AES256-GCM-SHA384";
 
     if (SSL_CTX_set_cipher_list(context_.native_handle(), DEFAULT_CIPHER_LIST) == 0)
     {
