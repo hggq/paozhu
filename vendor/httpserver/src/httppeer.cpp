@@ -442,6 +442,15 @@ void httppeer::clear_session()
     }
 }
 std::string httppeer::get_sitepath() { return getserversysconfig().getsitepath(host); }
+unsigned long long httppeer::get_siteid()
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (host_index >= sysconfigpath.sitehostinfos.size())
+    {
+        return 0;
+    }
+    return sysconfigpath.sitehostinfos[host_index].siteid;
+}
 std::string httppeer::get_hosturl()
 {
     std::string tempurl;
@@ -693,7 +702,13 @@ unsigned char httppeer::has_urlfileext()
             // {
             //     break;
             // }
-
+            if (i > 0 && i < pathinfos.size())
+            {
+                if (_http_regmethod_table.contains(sendfilename))
+                {
+                    return 4;
+                }
+            }
             if (i > 0)
             {
                 sendfilename.append("/");
@@ -1919,26 +1934,26 @@ void httppeer::cors_method(const std::string &header_v)
     }
 }
 void httppeer::push_flow(const std::string &m_name)
-{ 
-    if(!flow_method)
+{
+    if (!flow_method)
     {
-        flow_method=std::make_unique<std::list<std::string>>();
+        flow_method = std::make_unique<std::list<std::string>>();
     }
     flow_method->push_back(m_name);
 }
 void httppeer::push_front_flow(const std::string &m_name)
-{   
-    if(!flow_method)
+{
+    if (!flow_method)
     {
-        flow_method=std::make_unique<std::list<std::string>>();
-    } 
+        flow_method = std::make_unique<std::list<std::string>>();
+    }
     flow_method->push_front(m_name);
 }
 std::string httppeer::pop_flow()
 {
-    if(!flow_method)
+    if (!flow_method)
     {
-       return ""; 
+        return "";
     }
     if (flow_method->empty())
     {

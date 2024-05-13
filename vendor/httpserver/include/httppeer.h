@@ -66,6 +66,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::list<std::string> cookietoheader();
     std::string get_hosturl();
     std::string get_sitepath();
+    unsigned long long get_siteid();
     unsigned char has_urlfileext();
     bool isuse_fastcgi();
     void goto_url(const std::string &url, unsigned char second = 0, const std::string &msg = "");
@@ -170,6 +171,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     unsigned int status_code            = 0;
     unsigned int timeloop_num           = 0;
     unsigned int timecount_num          = 0;
+    unsigned int request_time           = 0;
+    unsigned int time_limit             = 0;
     unsigned long long content_length   = 0;
     unsigned long long sessionfile_time = 0;
     unsigned long long upload_length    = 0;

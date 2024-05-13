@@ -35,6 +35,7 @@ struct site_host_info_t
     std::vector<std::string> action_after_lists;
     std::vector<std::string> static_pre_lists;
     std::vector<std::pair<std::string, std::string>> rewrite_php_lists;
+    unsigned long long siteid    = 0;
     unsigned int rewrite404      = 0;
     unsigned int upload_max_size = 0;
     //unsigned int http_header_max_size = 0;

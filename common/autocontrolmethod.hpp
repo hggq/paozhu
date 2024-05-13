@@ -44,6 +44,7 @@
 #include "testcowaitclient.h"
 #include "testcors.h"
 #include "testsqltuple.h"
+#include "testsiteid.h"
 #include "testsessionid.h"
 #include "devcors.h"
 
@@ -339,6 +340,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testsqltuple;
 		methodcallback.emplace("mtuple",temp);
+		temp.pre = nullptr;
+		temp.regfun = testsiteid;
+		methodcallback.emplace("testsiteid",temp);
 		temp.pre = nullptr;
 		temp.regfun = testsetsession;
 		methodcallback.emplace("testsetsession",temp);

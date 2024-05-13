@@ -666,6 +666,28 @@ bool serverconfig::loadserverglobalconfig()
     tempinfo.document_index    = map_value["default"]["index"];
     tempinfo.is_show_directory = false;
 
+    if (map_value["default"]["siteid"].size() > 0)
+    {
+        tempinfo.siteid = 0;
+        for (unsigned int i = 0; i < map_value["default"]["siteid"].size(); i++)
+        {
+            if (map_value["default"]["siteid"][i] >= '0' && map_value["default"]["siteid"][i] <= '9')
+            {
+                tempinfo.siteid = tempinfo.siteid * 10 + (map_value["default"]["siteid"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["siteid"][i] == 0x20)
+            {
+                continue;
+            }
+            break;
+        }
+    }
+    else
+    {
+        tempinfo.siteid = 0;
+    }
+
     if (map_value["default"]["directorylist"].size() > 0 && map_value["default"]["directorylist"][0] == '1')
     {
         tempinfo.is_show_directory = true;
@@ -1247,6 +1269,23 @@ bool serverconfig::loadserverglobalconfig()
                         //         tempinfo.upload_max_size = tempupmax;
                         //     }
                         // }
+                    }
+                    else if (itemname == "siteid")
+                    {
+                        tempinfo.siteid = 0;
+                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        {
+                            if (itemval[i] >= '0' && itemval[i] <= '9')
+                            {
+                                tempinfo.siteid = tempinfo.siteid * 10 + (itemval[i] - '0');
+                                continue;
+                            }
+                            else if (itemval[i] == 0x20)
+                            {
+                                continue;
+                            }
+                            break;
+                        }
                     }
                 }
                 if (tempinfo.document_index.empty())
