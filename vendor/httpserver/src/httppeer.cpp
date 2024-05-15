@@ -441,7 +441,7 @@ void httppeer::clear_session()
         }
     }
 }
-std::string httppeer::get_sitepath() { return getserversysconfig().getsitepath(host); }
+std::string httppeer::get_sitepath() { return getserversysconfig().getsitewwwpath(host_index); }
 unsigned long long httppeer::get_siteid()
 {
     serverconfig &sysconfigpath = getserversysconfig();

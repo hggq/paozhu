@@ -31,6 +31,7 @@
 #include "imageapi.h"
 #include "testpzcache.h"
 #include "testhello.h"
+#include "testsitepath.h"
 #include "testto_tree.h"
 #include "testcmake.h"
 #include "testjsonreflect.h"
@@ -265,6 +266,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testhellobusy;
 		methodcallback.emplace("hellobusy",temp);
+		temp.pre = nullptr;
+		temp.regfun = testsitepath;
+		methodcallback.emplace("testsitepath",temp);
 		temp.pre = nullptr;
 		temp.regfun = testtotree;
 		methodcallback.emplace("testtotree",temp);

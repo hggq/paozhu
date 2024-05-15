@@ -511,7 +511,7 @@ bool serverconfig::loadserverglobalconfig()
     }
     server_loaclvar &static_server_var = get_server_global_var();
     static_server_var.http2_enable     = isallnothttp2;
-    struct site_host_info_t tempinfo;
+    struct site_host_info_t tempinfo_default;
 
     if (map_value["default"]["controlsopath"].size() > 0)
     {
@@ -557,17 +557,17 @@ bool serverconfig::loadserverglobalconfig()
                 tempupmax = tempupmax * 10 + (map_value["default"]["upload_max_size"][i] - '0');
             }
         }
-        tempinfo.upload_max_size = tempupmax;
-        tempinfo.is_limit_upload = false;
+        tempinfo_default.upload_max_size = tempupmax;
+        tempinfo_default.is_limit_upload = false;
         if (tempupmax > 1024)
         {
-            tempinfo.is_limit_upload = true;
+            tempinfo_default.is_limit_upload = true;
         }
     }
     else
     {
-        tempinfo.is_limit_upload = false;
-        tempinfo.upload_max_size = 0;
+        tempinfo_default.is_limit_upload = false;
+        tempinfo_default.upload_max_size = 0;
     }
 
     if (map_value["default"]["http_header_max_size"].size() > 0)
@@ -660,20 +660,20 @@ bool serverconfig::loadserverglobalconfig()
         static_server_var.log_path.push_back('/');
     }
 
-    tempinfo.mainhost          = mainhost;
-    tempinfo.wwwpath           = static_server_var.www_path;
-    tempinfo.http2_enable      = static_server_var.http2_enable;
-    tempinfo.document_index    = map_value["default"]["index"];
-    tempinfo.is_show_directory = false;
+    tempinfo_default.mainhost          = mainhost;
+    tempinfo_default.wwwpath           = static_server_var.www_path;
+    tempinfo_default.http2_enable      = static_server_var.http2_enable;
+    tempinfo_default.document_index    = map_value["default"]["index"];
+    tempinfo_default.is_show_directory = false;
 
     if (map_value["default"]["siteid"].size() > 0)
     {
-        tempinfo.siteid = 0;
+        tempinfo_default.siteid = 0;
         for (unsigned int i = 0; i < map_value["default"]["siteid"].size(); i++)
         {
             if (map_value["default"]["siteid"][i] >= '0' && map_value["default"]["siteid"][i] <= '9')
             {
-                tempinfo.siteid = tempinfo.siteid * 10 + (map_value["default"]["siteid"][i] - '0');
+                tempinfo_default.siteid = tempinfo_default.siteid * 10 + (map_value["default"]["siteid"][i] - '0');
                 continue;
             }
             else if (map_value["default"]["siteid"][i] == 0x20)
@@ -685,57 +685,57 @@ bool serverconfig::loadserverglobalconfig()
     }
     else
     {
-        tempinfo.siteid = 0;
+        tempinfo_default.siteid = 0;
     }
 
     if (map_value["default"]["directorylist"].size() > 0 && map_value["default"]["directorylist"][0] == '1')
     {
-        tempinfo.is_show_directory = true;
+        tempinfo_default.is_show_directory = true;
     }
 
     if (map_value["default"]["directorylist"].size() > 0)
     {
-        tempinfo.certificate_file = map_value["default"]["certificate_chain_file"];
+        tempinfo_default.certificate_file = map_value["default"]["certificate_chain_file"];
     }
     else
     {
-        tempinfo.certificate_file.clear();
+        tempinfo_default.certificate_file.clear();
     }
 
     if (map_value["default"]["certificate_chain_file"].size() > 0)
     {
-        tempinfo.certificate_file = map_value["default"]["certificate_chain_file"];
+        tempinfo_default.certificate_file = map_value["default"]["certificate_chain_file"];
     }
     else
     {
-        tempinfo.certificate_file.clear();
+        tempinfo_default.certificate_file.clear();
     }
 
     if (map_value["default"]["private_key_file"].size() > 0)
     {
-        tempinfo.privateKey_file = map_value["default"]["private_key_file"];
+        tempinfo_default.privateKey_file = map_value["default"]["private_key_file"];
     }
     else
     {
-        tempinfo.privateKey_file.clear();
+        tempinfo_default.privateKey_file.clear();
     }
 
     if (map_value["default"]["rewrite_404"].size() > 0)
     {
-        tempinfo.isrewrite = true;
+        tempinfo_default.isrewrite = true;
         try
         {
-            tempinfo.rewrite404 = std::stoul(map_value["default"]["rewrite_404"].c_str());
+            tempinfo_default.rewrite404 = std::stoul(map_value["default"]["rewrite_404"].c_str());
         }
         catch (const std::exception &e)
         {
-            tempinfo.rewrite404 = 0;
+            tempinfo_default.rewrite404 = 0;
         }
     }
     else
     {
-        tempinfo.isrewrite  = false;
-        tempinfo.rewrite404 = 0;
+        tempinfo_default.isrewrite  = false;
+        tempinfo_default.rewrite404 = 0;
     }
 
     if (map_value["default"]["rewrite_404_action"].size() > 0)
@@ -751,7 +751,7 @@ bool serverconfig::loadserverglobalconfig()
             }
             tempac.push_back(itemval[m]);
         }
-        tempinfo.rewrite_404_action = tempac;
+        tempinfo_default.rewrite_404_action = tempac;
         if (m < itemval.size() && itemval[m] == '|')
         {
             m++;
@@ -763,7 +763,7 @@ bool serverconfig::loadserverglobalconfig()
             {
                 if (tempac.size() > 0)
                 {
-                    tempinfo.action_404_lists.push_back(tempac);
+                    tempinfo_default.action_404_lists.push_back(tempac);
                 }
                 tempac.clear();
                 continue;
@@ -772,12 +772,12 @@ bool serverconfig::loadserverglobalconfig()
         }
         if (tempac.size() > 0)
         {
-            tempinfo.action_404_lists.push_back(tempac);
+            tempinfo_default.action_404_lists.push_back(tempac);
         }
     }
     else
     {
-        tempinfo.rewrite_404_action.clear();
+        tempinfo_default.rewrite_404_action.clear();
     }
 
     if (map_value["default"]["method_pre"].size() > 0)
@@ -792,7 +792,7 @@ bool serverconfig::loadserverglobalconfig()
             {
                 if (tempac.size() > 0)
                 {
-                    tempinfo.action_pre_lists.push_back(tempac);
+                    tempinfo_default.action_pre_lists.push_back(tempac);
                 }
                 tempac.clear();
                 continue;
@@ -801,16 +801,16 @@ bool serverconfig::loadserverglobalconfig()
         }
         if (tempac.size() > 0)
         {
-            tempinfo.action_pre_lists.push_back(tempac);
+            tempinfo_default.action_pre_lists.push_back(tempac);
         }
-        if (tempinfo.action_pre_lists.size() > 0)
+        if (tempinfo_default.action_pre_lists.size() > 0)
         {
-            tempinfo.is_method_pre = true;
+            tempinfo_default.is_method_pre = true;
         }
     }
     else
     {
-        tempinfo.action_pre_lists.clear();
+        tempinfo_default.action_pre_lists.clear();
     }
 
     if (map_value["default"]["method_after"].size() > 0)
@@ -825,7 +825,7 @@ bool serverconfig::loadserverglobalconfig()
             {
                 if (tempac.size() > 0)
                 {
-                    tempinfo.action_after_lists.push_back(tempac);
+                    tempinfo_default.action_after_lists.push_back(tempac);
                 }
                 tempac.clear();
                 continue;
@@ -834,20 +834,20 @@ bool serverconfig::loadserverglobalconfig()
         }
         if (tempac.size() > 0)
         {
-            tempinfo.action_after_lists.push_back(tempac);
+            tempinfo_default.action_after_lists.push_back(tempac);
         }
-        if (tempinfo.action_after_lists.size() > 0)
+        if (tempinfo_default.action_after_lists.size() > 0)
         {
-            tempinfo.is_method_after = true;
+            tempinfo_default.is_method_after = true;
         }
     }
     else
     {
-        tempinfo.action_after_lists.clear();
+        tempinfo_default.action_after_lists.clear();
     }
 
-    tempinfo.php_root_document = tempinfo.wwwpath;
-    sitehostinfos.push_back(std::move(tempinfo));
+    tempinfo_default.php_root_document = tempinfo_default.wwwpath;
+    sitehostinfos.push_back(std::move(tempinfo_default));
     for (auto [first, second] : map_value)
     {
         if (first != "default")
@@ -855,6 +855,7 @@ bool serverconfig::loadserverglobalconfig()
             if (first.size() > 0 && first[0] != '*')
             {
                 struct site_host_info_t tempinfo;
+                tempinfo          = tempinfo_default;
                 tempinfo.mainhost = first;
                 for (auto [itemname, itemval] : second)
                 {
