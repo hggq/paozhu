@@ -1677,7 +1677,7 @@ void httpparse::readboundaryline(const unsigned char *buffer, unsigned int buffe
             postfieldtype = 2;
         }
         i++;
-        if (buffer[i] == 0x0A && i < buffersize)
+        if (i < buffersize && buffer[i] == 0x0A)
         {
             i++;
         }
@@ -1692,11 +1692,11 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
     {
         if (headendhitnum == 2)
         {
-            if (buffer[i] == 0x0D && i < buffersize && headendhitnum < 4)
+            if (i < buffersize && buffer[i] == 0x0D && headendhitnum < 4)
             {
                 i++;
                 headendhitnum++;
-                if (buffer[i] == 0x0A && i < buffersize && headendhitnum < 4)
+                if (i < buffersize && buffer[i] == 0x0A && headendhitnum < 4)
                 {
                     i++;
                     headendhitnum++;
@@ -1705,15 +1705,15 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
         }
         else
         {
-            if (buffer[i] == 0x0A && i < buffersize && headendhitnum < 4)
+            if (i < buffersize && buffer[i] == 0x0A && headendhitnum < 4)
             {
                 i++;
                 headendhitnum++;
-                if (buffer[i] == 0x0D && i < buffersize && headendhitnum < 4)
+                if (i < buffersize && buffer[i] == 0x0D && headendhitnum < 4)
                 {
                     i++;
                     headendhitnum++;
-                    if (buffer[i] == 0x0A && i < buffersize && headendhitnum < 4)
+                    if (i < buffersize && buffer[i] == 0x0A && headendhitnum < 4)
                     {
                         i++;
                         headendhitnum++;
@@ -1752,15 +1752,15 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
             if (buffer[i] == 0x0D)
             {
                 headendhitnum = 1;
-                if (buffer[i + 1] == 0x0A && i < buffersize)
+                if ((i + 1) < buffersize && buffer[i + 1] == 0x0A)
                 {
 
                     headendhitnum++;
-                    if (buffer[i + 2] == 0x0D && i < buffersize)
+                    if ((i + 2) < buffersize && buffer[i + 2] == 0x0D)
                     {
 
                         headendhitnum++;
-                        if (buffer[i + 3] == 0x0A && i < buffersize)
+                        if ((i + 3) < buffersize && buffer[i + 3] == 0x0A)
                         {
 
                             headendhitnum++;
@@ -1787,7 +1787,7 @@ void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffe
     readoffset = i;
     if (isbound == 1)
     {
-        std::string fieldname;
+        //std::string fieldname;
 
         header_temp.clear();
         unsigned int jj = 0;
@@ -2018,11 +2018,11 @@ void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buff
 
                 return;
             }
-            if (buffer[i] == 0x0D && i < buffersize)
+            if (i < buffersize && buffer[i] == 0x0D)
             {
                 i++;
             }
-            if (buffer[i] == 0x0A && i < buffersize)
+            if (i < buffersize && buffer[i] == 0x0A)
             {
                 i++;
             }
@@ -2030,8 +2030,8 @@ void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buff
             readoffset = i;
             return;
         }
-
-        header_input.append((char *)&buffer_key[0], buffer_key.size());
+        //header_input.append((char *)&buffer_key[0], buffer_key.size());
+        header_input.append(buffer_key);
         buffer_key.clear();
     }
     changetype = 0;
