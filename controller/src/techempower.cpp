@@ -40,8 +40,7 @@ std::string techempowerdb(std::shared_ptr<httppeer> peer)
     peer->set_header("Date", get_gmttime());
     auto myworld        = orm::World();
     unsigned int rd_num = rand_range(1, 10000);
-    myworld.get_one(rd_num);
-
+    myworld.where("id",rd_num).limit(1).fetch_one();
     peer->output = myworld.data_tojson();
     return "";
 }
@@ -170,7 +169,7 @@ std::string techempowercached_queries(std::shared_ptr<httppeer> peer)
             allcachedata_array[i].id           = i + 1;
             allcachedata_array[i].randomnumber = rand_range(1, 10000);
         }
-        temp_cache.save(mycacheid, allcachedata_array, 120);
+        temp_cache.save(mycacheid, allcachedata_array, 360);
     }
     //get rand data from cache
     mycacheid = "my" + std::to_string(get_num);
@@ -189,7 +188,7 @@ std::string techempowercached_queries(std::shared_ptr<httppeer> peer)
                 myworld.record.push_back(allcachedata_array[temp_rid]);
             }
         }
-        temp_cache.save(mycacheid, myworld.record, 120);
+        temp_cache.save(mycacheid, myworld.record, 360);
     }
 
     peer->output = myworld.to_json();
@@ -231,7 +230,7 @@ std::string techempowercached_db(std::shared_ptr<httppeer> peer)
 
         std::string sqlstr = array_to_sql(cacheid);
         myworld.whereIn("id", sqlstr).fetch();
-        temp_cache.save(mycacheid, myworld.record, 120);
+        temp_cache.save(mycacheid, myworld.record, 360);
     }
 
     peer->output = myworld.to_json();
