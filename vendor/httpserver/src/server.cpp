@@ -1746,14 +1746,9 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             DEBUG_LOG("htttp2 pool in");
             peer->parse_session();
             peer->status(200);
-
-            peer->type("text/html; charset=utf-8");
-            // http_clientrun(peer);
-            //////////////
-            peer->linktype = 0;
-
-            peer->status(200);
             peer->content_type.clear();
+            peer->type("text/html; charset=utf-8");
+            peer->linktype = 0;            
             peer->etag.clear();
 
             sendtype = co_await co_user_task(peer);
