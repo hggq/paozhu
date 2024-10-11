@@ -2214,7 +2214,7 @@ asio::awaitable<void> httpserver::http1_send_file(unsigned int streamid,
     }
     co_return;
 }
-bool httpserver::http1_send_file_range(unsigned int streamid,
+asio::awaitable<void> httpserver::http1_send_file_range(unsigned int streamid,
                                        std::shared_ptr<httppeer> peer,
                                        std::shared_ptr<client_session> peer_session,
                                        const std::string &filename)
@@ -2317,7 +2317,8 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
         htmlcontent = peer->make_http1_header();
         htmlcontent.append("\r\n");
 
-        peer_session->send_data(htmlcontent);
+        //peer_session->send_data(htmlcontent);
+        co_await peer_session->co_send_writer(htmlcontent);
         fseek(fp.get(), readnum, SEEK_SET);
         try
         {
@@ -2327,8 +2328,8 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
                 htmlcontent.resize(4096);
                 unsigned int nread = fread(&htmlcontent[0], 1, 4096, fp.get());
                 htmlcontent.resize(nread);
-                peer_session->send_data(htmlcontent);
-
+                //peer_session->send_data(htmlcontent);
+                co_await peer_session->co_send_writer(htmlcontent);
                 readnum += nread;
             }
         }
@@ -2340,7 +2341,7 @@ bool httpserver::http1_send_file_range(unsigned int streamid,
     {
         http1_send_bad_server(peer, peer_session);
     }
-    return true;
+    co_return;
 }
 // bool httpserver::http1_send_body(unsigned int streamid,
 //                                  std::shared_ptr<httppeer> peer,
@@ -2566,7 +2567,7 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
 
         if (peer->state.rangebytes)
         {
-            http1_send_file_range(stream_id, peer, peer_session, peer->sendfilename);
+            co_await http1_send_file_range(stream_id, peer, peer_session, peer->sendfilename);
         }
         else
         {

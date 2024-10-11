@@ -23,10 +23,10 @@ namespace http
 {
 bool str_cmp(std::string_view str1, std::string_view str2);
 bool str_casecmp(std::string_view str1, std::string_view str2);
-bool str_compare(std::string_view str1, std::string_view str2, unsigned int length);
-bool str_casecompare(std::string_view str1, std::string_view str2, unsigned int length);
-bool str_lastcmp(std::string_view str1, std::string_view str2, unsigned int length);
-bool str_caselastcmp(std::string_view str1, std::string_view str2, unsigned int length);
+bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int length=0);
+bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length=0);
+bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int length=0);
+bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length=0);
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext);
 std::string get_filename(const std::string &filename);
 std::vector<std::string> mb_split(std::string_view, std::string_view);

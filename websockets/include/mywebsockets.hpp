@@ -61,7 +61,16 @@ class mywebsockets : public websockets_api
         if (peer)
         {
             std::string outhello;
-            peer->ws->makeWSText(data, outhello);
+            if(data=="html")
+            {
+               std::string html_data="<h3> Websocket test 测试h3 </h3>";
+               peer->ws->makeWSText(html_data, outhello); 
+            }
+            else
+            {
+                peer->ws->makeWSText(data, outhello);
+            }
+            
             peer->send(outhello);
         }
     }

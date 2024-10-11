@@ -1048,7 +1048,7 @@ unsigned char httppeer::get_fileinfo()
                     {
                         for (unsigned int k = 0; k < sysconfigpath.sitehostinfos[host_index].action_404_lists.size(); k++)
                         {
-                            if (pathinfos[0].size() <= sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() && str_compare(pathinfos[0], sysconfigpath.sitehostinfos[host_index].action_404_lists[k], pathinfos[0].size()))
+                            if (pathinfos[0].size() <= sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() && str_cmp_pre(sysconfigpath.sitehostinfos[host_index].action_404_lists[k], pathinfos[0],  pathinfos[0].size()))
                             {
                                 sendfilename = sitepath;
                                 sendfilename.append(sysconfigpath.sitehostinfos[host_index].action_404_lists[k]);
@@ -1090,7 +1090,7 @@ unsigned char httppeer::get_fileinfo()
                     {
                         for (unsigned int k = 0; k < sysconfigpath.sitehostinfos[host_index].action_404_lists.size(); k++)
                         {
-                            if (pathinfos[0].size() > 2 && sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() > 2 && str_compare(pathinfos[0], sysconfigpath.sitehostinfos[host_index].action_404_lists[k], 3))
+                            if (pathinfos[0].size() > 2 && sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() > 2 && str_cmp_pre(sysconfigpath.sitehostinfos[host_index].action_404_lists[k], pathinfos[0], 3))
                             {
                                 unsigned int tempsize = pathinfos.size();
                                 if (tempsize < 20)

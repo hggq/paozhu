@@ -503,15 +503,24 @@ bool serverconfig::loadserverglobalconfig()
     }
     if (map_value["default"]["http2_enable"].size() > 0 && map_value["default"]["http2_enable"][0] == '1')
     {
-        isallnothttp2 = false;
+        isallnothttp2 = true;
     }
     else
     {
-        isallnothttp2 = true;
+        isallnothttp2 = false;
     }
     server_loaclvar &static_server_var = get_server_global_var();
     static_server_var.http2_enable     = isallnothttp2;
     struct site_host_info_t tempinfo_default;
+
+    if (map_value["default"]["global_http2_enable"].size() > 0 && map_value["default"]["global_http2_enable"][0] == '1')
+    {
+        isallnothttp2 = true;
+    }
+    else
+    {
+        isallnothttp2 = false;
+    }
 
     if (map_value["default"]["controlsopath"].size() > 0)
     {
@@ -857,6 +866,9 @@ bool serverconfig::loadserverglobalconfig()
                 struct site_host_info_t tempinfo;
                 tempinfo          = tempinfo_default;
                 tempinfo.mainhost = first;
+                tempinfo.certificate_file.clear();
+                tempinfo.privateKey_file.clear();
+
                 for (auto [itemname, itemval] : second)
                 {
                     if (itemname == "http2_enable")

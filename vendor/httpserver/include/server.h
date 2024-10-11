@@ -121,7 +121,7 @@ class httpserver
                                           std::shared_ptr<client_session> peer_session,
                                           const std::string &filename);
 
-    bool http1_send_file_range(unsigned int streamid,
+    asio::awaitable<void> http1_send_file_range(unsigned int streamid,
                                std::shared_ptr<httppeer> peer,
                                std::shared_ptr<client_session> peer_session,
                                const std::string &filename);

@@ -72,11 +72,19 @@ bool str_casecmp(std::string_view str1, std::string_view str2)
     }
     return true;
 }
-bool str_compare(std::string_view str1, std::string_view str2, unsigned int length)
+bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int length)
 {
+    if(length==0)
+	{
+		length = str2.size();
+	}
+    if(str1.size() < str2.size())
+    {
+        return false;
+    }
     for (unsigned int i = 0; i < length; i++)
     {
-        if (i < str1.size() && i < str2.size())
+        if (i < str2.size())
         {
             if (str1[i] == str2[i])
             {
@@ -86,24 +94,26 @@ bool str_compare(std::string_view str1, std::string_view str2, unsigned int leng
             {
                 return false;
             }
-        }
-        if (i == str1.size())
+        }else
         {
             return true;
         }
-        if (i == str2.size())
-        {
-            return true;
-        }
-        return false;
     }
     return true;
 }
-bool str_casecompare(std::string_view str1, std::string_view str2, unsigned int length)
+bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length)
 {
+    if(length==0)
+	{
+		length = str2.size();
+	}
+    if(str1.size() < str2.size())
+    {
+        return false;
+    }
     for (unsigned int i = 0; i < length; i++)
     {
-        if (i < str1.size() && i < str2.size())
+        if (i < str2.size())
         {
             if (str1[i] == str2[i])
             {
@@ -127,21 +137,19 @@ bool str_casecompare(std::string_view str1, std::string_view str2, unsigned int 
                 }
                 return false;
             }
-        }
-        if (i == str1.size())
+        }else
         {
             return true;
         }
-        if (i == str2.size())
-        {
-            return true;
-        }
-        return false;
     }
     return true;
 }
-bool str_lastcmp(std::string_view str1, std::string_view str2, unsigned int length)
+bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int length)
 {
+    if(length==0)
+	{
+		length = str2.size();
+	}
     int a = (int)str1.size();
     int b = (int)str2.size();
     if (a == 0)
@@ -152,6 +160,10 @@ bool str_lastcmp(std::string_view str1, std::string_view str2, unsigned int leng
     {
         return false;
     }
+    if(a < b)
+    {
+        return false;
+    }
     a = a - 1;
     b = b - 1;
 
@@ -159,10 +171,6 @@ bool str_lastcmp(std::string_view str1, std::string_view str2, unsigned int leng
     {
         a -= i;
         b -= i;
-        if (a < 0)
-        {
-            return true;
-        }
         if (b < 0)
         {
             return true;
@@ -178,8 +186,12 @@ bool str_lastcmp(std::string_view str1, std::string_view str2, unsigned int leng
     }
     return true;
 }
-bool str_caselastcmp(std::string_view str1, std::string_view str2, unsigned int length)
+bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length)
 {
+    if(length==0)
+	{
+		length = str2.size();
+	}
     int a = (int)str1.size();
     int b = (int)str2.size();
     if (a == 0)
@@ -190,6 +202,10 @@ bool str_caselastcmp(std::string_view str1, std::string_view str2, unsigned int 
     {
         return false;
     }
+    if(a < b)
+    {
+        return false;
+    }
     a = a - 1;
     b = b - 1;
 
@@ -197,10 +213,6 @@ bool str_caselastcmp(std::string_view str1, std::string_view str2, unsigned int 
     {
         a -= i;
         b -= i;
-        if (a < 0)
-        {
-            return true;
-        }
         if (b < 0)
         {
             return true;
