@@ -21,7 +21,8 @@ jobs:
           unzip vcpkg2024.zip
           mv vcpkg-2024.09.30 vcpkg
           cd vcpkg
-      #   We'll need it later  -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg is fix vcpkg directory  
+      #   We'll need it later  -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg is fix vcpkg directory
+      - run: |
           bootstrap-vcpkg.bat
           vcpkg integrate install
           vcpkg integrate project
