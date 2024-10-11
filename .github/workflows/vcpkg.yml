@@ -19,7 +19,9 @@ jobs:
         run: |
           powershell Invoke-WebRequest -OutFile vcpkg2024.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2024.09.30.zip
           unzip vcpkg2024.zip
-          cd vcpkg-2024.09.30
+          mv vcpkg-2024.09.30 vcpkg
+          cd vcpkg
+      #   We'll need it later  -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg is fix vcpkg directory  
           bootstrap-vcpkg.bat
           vcpkg integrate install
           vcpkg integrate project
@@ -48,6 +50,6 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Build
         run: |
-          cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg-2024.09.30/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
+          cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
       - name: Build
         run: cmake --build ${{github.workspace}} --config Debug
