@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64]
-        ssl: [ ON ]   
+        ssl: [ON]
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
@@ -17,14 +17,14 @@ jobs:
       - name: Restore vcpkg packages
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
-            powershell Invoke-WebRequest -OutFile vcpkg2023.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2023.12.12.zip
-            unzip vcpkg2023.zip
-            cd vcpkg-2023.12.12
-            bootstrap-vcpkg.bat
-            vcpkg integrate install
-            vcpkg integrate project
-            vcpkg install
-            cd ${{ github.workspace }}
+          powershell Invoke-WebRequest -OutFile vcpkg2024.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2024.09.30.zip
+          unzip vcpkg2024.zip
+          cd vcpkg-2024.09.30
+          bootstrap-vcpkg.bat
+          vcpkg integrate install
+          vcpkg integrate project
+          vcpkg install
+          cd ${{ github.workspace }}
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       # - name: download mysql
@@ -32,7 +32,7 @@ jobs:
       #      powershell Invoke-WebRequest -OutFile mysql.zip https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
       #      unzip mysql.zip
       #      Move-Item -Path ./mysql-8.0.35-winx64/include -Destination ./
-      #      Move-Item -Path ./mysql-8.0.35-winx64/lib -Destination ./ 
+      #      Move-Item -Path ./mysql-8.0.35-winx64/lib -Destination ./
       #     ls include
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v3
@@ -45,7 +45,7 @@ jobs:
         run: |
           unzip asio.zip
           ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."  
+      - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Build
         run: |
           cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg-2023.12.12/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
