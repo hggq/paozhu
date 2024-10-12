@@ -336,6 +336,9 @@ namespace http
 		temp.regfun = testhttpclient_cowait_spawn;
 		methodcallback.emplace("testcowaitclient3",temp);
 		temp.pre = nullptr;
+		temp.regfun = testhttpclient_get_range;
+		methodcallback.emplace("testclientgetrange",temp);
+		temp.pre = nullptr;
 		temp.regfun = testcors;
 		methodcallback.emplace("api/user/message",temp);
 		temp.pre = nullptr;

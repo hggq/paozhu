@@ -13,4 +13,5 @@ namespace http
 	std::string testhttpclient_cowait_post(std::shared_ptr<httppeer> peer);
 	std::string testhttpclient_cowait_urls(std::shared_ptr<httppeer> peer);
 	std::string testhttpclient_cowait_spawn(std::shared_ptr<httppeer> peer);
+	std::string testhttpclient_get_range(std::shared_ptr<httppeer> peer);
 }

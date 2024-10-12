@@ -303,6 +303,7 @@ asio::awaitable<bool> client::co_init_http_sock()
     asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
     asio::ip::tcp::resolver::iterator end;
     asio::ip::tcp::endpoint endpoint;
+
     sock = std::make_shared<asio::ip::tcp::socket>(executor);
     asio::error_code ec;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
@@ -320,12 +321,12 @@ asio::awaitable<bool> client::co_init_http_sock()
         }
     }
 
-    if (iter == end)
-    {
-        error_msg = "resolver " + host + port;
-        DEBUG_LOG("%s", error_msg.c_str());
-        co_return false;
-    }
+    // if (iter == end)
+    // {
+    //     error_msg = "resolver " + host + port;
+    //     DEBUG_LOG("%s", error_msg.c_str());
+    //     co_return false;
+    // }
 
     if (ec)
     {
@@ -408,9 +409,14 @@ bool client::init_http_sock()
     {
         endpoint = *iter++;
         // at here  maybe under code
+        sock->connect(endpoint, ec);
+        if (ec)
+        {
+            continue;
+        }
     }
     // asio::error_code ec;
-    sock->connect(endpoint, ec);
+
     if (ec)
     {
         //error_msg = "Unable to connect";

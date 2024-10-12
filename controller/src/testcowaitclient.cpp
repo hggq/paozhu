@@ -169,4 +169,47 @@ std::string testhttpclient_cowait_spawn(std::shared_ptr<httppeer> peer)
     }
     return "";
 }
+
+//@urlpath(null,testclientgetrange)
+std::string testhttpclient_get_range(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "hello world!  test testhttpclient_cowait_body";
+
+    client_context &client_context = get_client_context_obj();
+    std::vector<std::string> urls  = {"https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz",
+                                      "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-arm64-apple-macos11.tar.xz"};
+
+    for (unsigned int i = 0; i < urls.size(); i++)
+    {
+        std::shared_ptr<http::client> a = std::make_shared<http::client>();
+        a->get(urls[i]);
+        a->addheader("Range", "bytes=100-13919154");
+        client << "<p>" << i << "</p>";
+        a->onload = [](const std::string &respbody, std::shared_ptr<http::client> a) -> void
+        {
+            std::cout << a->host << std::endl;
+        };
+        // co_spawn(
+        //     client_context.ioc,
+        //     [](std::shared_ptr<http::client> a) -> asio::awaitable<void>
+        //     {
+        //         co_await a->co_send();
+        //     }(a),
+        //     asio::detached);
+        client_context.add_http_task(a);
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    return "";
+}
 }// namespace http
