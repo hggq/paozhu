@@ -199,7 +199,8 @@ bool ThreadPool::fixthread()
 bool ThreadPool::addthread(size_t threads)
 {
     unsigned int index_num = thread_arrays.size();
-    if (index_num > 1023)
+
+    if (index_num > cpu_threads)
     {
         return false;
     }
@@ -238,6 +239,8 @@ bool ThreadPool::addthread(size_t threads)
 ThreadPool::ThreadPool(size_t threads) : isstop(false)
 {
     isclose_add = true;
+    cpu_threads = std::thread::hardware_concurrency();
+    cpu_threads = cpu_threads * 2 + 2;
     pooltotalnum.store(0);
     livethreadcount.store(0);
     mixthreads.store(16);

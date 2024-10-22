@@ -87,22 +87,21 @@ std::string techempowerfortunes(std::shared_ptr<httppeer> peer)
 
     std::sort(myfortune.record.begin(), myfortune.record.end(), [](const auto &lhs, const auto &rhs)
               { return lhs.message < rhs.message; });
-    // peer->val["list"].set_array();
-    // OBJ_ARRAY item;
-    // for (unsigned int i = 0; i < myfortune.record.size(); i++)
-    // {
-    //     item["id"]      = myfortune.record[i].id;
-    //     item["message"] = html_encode(myfortune.record[i].message);
-    //     peer->val["list"].push(item);
-    // }
-    //<!DOCTYPE html><html><head><title>Fortunes</title></head><body><table><tr><th>id</th><th>message</th></tr>$html</table></body></html>
-    //peer->view("techempower/fortunes");
-    peer->output = "<!DOCTYPE html><html><head><title>Fortunes</title></head><body><table><tr><th>id</th><th>message</th></tr>";
+    peer->val["list"].set_array();
+    OBJ_ARRAY item;
     for (unsigned int i = 0; i < myfortune.record.size(); i++)
     {
-        peer->output += "<tr><td>" + std::to_string(myfortune.record[i].id) + "</td><td>" + html_encode(myfortune.record[i].message) + "</td></tr>";
+        item["id"]      = myfortune.record[i].id;
+        item["message"] = html_encode(myfortune.record[i].message);
+        peer->val["list"].push(item);
     }
-    peer->output += "</table></body></html>";
+    peer->view("techempower/fortunes");
+    // peer->output = "<!DOCTYPE html><html><head><title>Fortunes</title></head><body><table><tr><th>id</th><th>message</th></tr>";
+    // for (unsigned int i = 0; i < myfortune.record.size(); i++)
+    // {
+    //     peer->output += "<tr><td>" + std::to_string(myfortune.record[i].id) + "</td><td>" + html_encode(myfortune.record[i].message) + "</td></tr>";
+    // }
+    // peer->output += "</table></body></html>";
     return "";
 }
 

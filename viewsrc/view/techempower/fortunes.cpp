@@ -27,7 +27,7 @@ namespace view {
                      std::ostringstream echo;
 
         
- 			 echo<<"<!DOCTYPE html><html><head><title>Fortunes</title></head>\n<body>\n<table>\n<tr><th>id</th><th>message</th></tr>\n";
+ 			 echo<<"<!DOCTYPE html><html><head><title>Fortunes</title></head><body><table><tr><th>id</th><th>message</th></tr>";
 
     for(auto &a:obj["list"].as_array()){
 
@@ -35,11 +35,11 @@ namespace view {
  echo<<a.second["id"].to_string(); 
  			 echo<<"</td><td>";
  echo<<a.second["message"].to_string(); 
- 			 echo<<"</td></tr>\n";
+ 			 echo<<"</td></tr>";
 
     }
 
- 			 echo<<"  \n</table>\n</body>\n</html>";
+ 			 echo<<"</table></body></html>";
 
                   return echo.str();
              }

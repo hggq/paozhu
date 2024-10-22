@@ -69,7 +69,7 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
 
         if (iter == end)
         {
-            error_msg = "resolver " + host + port;
+            error_msg = "php-fpm resolver " + host + port;
             DEBUG_LOG("%s", error_msg.c_str());
             co_return false;
         }
@@ -91,7 +91,7 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
 
     if (ec)
     {
-        error_msg = "Unable to connect\r\n";
+        error_msg = "php-fpm Unable to connect\r\n";
         DEBUG_LOG("%s", error_msg.c_str());
         co_return false;
     }
@@ -100,6 +100,7 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
 
 asio::awaitable<void> fastcgi::co_send()
 {
+    std::shared_ptr<httppeer> peer = peer_ptr.lock();
     if (sock == nullptr && socklocal == nullptr)
     {
         DEBUG_LOG("co_await co_init_http_sock");
@@ -108,16 +109,19 @@ asio::awaitable<void> fastcgi::co_send()
         if (!isinit)
         {
             add_error_msg(error_msg);
+            peer->output=error_msg;
+            co_await send_exit(peer);
             co_return;
         }
     }
     DEBUG_LOG("co_init_http_sock");
     unsigned int ret;
-    std::shared_ptr<httppeer> peer = peer_ptr.lock();
-
+    
     if (!peer)
     {
         add_error_msg("fastcgi::co_send httppeer empty;\r\n");
+        peer->output="fastcgi::co_send httppeer empty;\r\n";
+        co_await send_exit(peer);
         co_return;
     }
 

@@ -93,11 +93,13 @@ class ThreadPool
     asio::io_context *io_context = nullptr;
 
   private:
+    bool isstop;
+    bool isclose_add         = true;
+    unsigned int cpu_threads = 2;
     std::queue<std::shared_ptr<httppeer>> clienttasks;
     std::mutex queue_mutex;
     std::condition_variable condition;
-    bool isstop;
-    bool isclose_add = true;
+
     std::atomic<unsigned int> pooltotalnum, mixthreads;
     std::atomic<unsigned int> livethreadcount;
 

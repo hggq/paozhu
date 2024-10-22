@@ -532,6 +532,7 @@ bool httppeer::isuse_fastcgi()
                     sendfilename.append(pathinfos[i]);
                     struct stat sessfileinfo;
                     std::string tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename;
+                    DEBUG_LOG("php file %s",tempac.c_str());
                     memset(&sessfileinfo, 0, sizeof(sessfileinfo));
                     if (stat(tempac.c_str(), &sessfileinfo) == 0)
                     {
@@ -588,21 +589,22 @@ bool httppeer::isuse_fastcgi()
                 {
                     compress = 0;
                     linktype = 0;
+                    tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
+                    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+                    if (stat(tempac.c_str(), &sessfileinfo) == 0)
+                    {
+                        if (sessfileinfo.st_mode & S_IFREG)
+                        {
+                            compress = 10;
+                            linktype = 15;
+                            sendfilename.append("/index.php");
+                            return true;
+                        }
+                    }
                     return false;
                 }
             }
-            tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
-            memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-            if (stat(tempac.c_str(), &sessfileinfo) == 0)
-            {
-                if (sessfileinfo.st_mode & S_IFREG)
-                {
-                    compress = 10;
-                    linktype = 15;
-                    sendfilename.append("/index.php");
-                    return true;
-                }
-            }
+
             DEBUG_LOG("rewrite_php_lists: %zu", sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size());
             if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size() > 0)
             {
