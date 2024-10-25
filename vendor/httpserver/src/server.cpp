@@ -3893,6 +3893,10 @@ void httpserver::run(const std::string &sysconfpath)
         _initwebsocketmethodregto(wsreg);
 
         total_count = sysconfigpath.get_co_thread_num();
+        if(total_count < std::thread::hardware_concurrency())
+        {
+            total_count = std::thread::hardware_concurrency();
+        }
         asio::io_context::work worker(io_context);
         for (std::size_t i = 0; i < total_count; ++i)
         {
