@@ -117,7 +117,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/websockets/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_executable(paozhu_pre ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopickmethod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/md5.cpp)
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
+  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
+endif ()
+#EXECUTE_PROCESS(COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty)
+set(PAOZHU_PRE paozhu_pre)
+add_executable(${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopickmethod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/md5.cpp)
+add_executable(paozhu_empty ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autoemptymethod.cpp)
 
 
 
@@ -193,11 +199,12 @@ endif()
 if (ENABLE_WIN_VCPKG STREQUAL "ON")
 else ()
 add_custom_command(
-    TARGET paozhu_pre
+    TARGET paozhu_empty paozhu
     PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
     COMMAND echo "-- controls method --"
-    COMMAND paozhu_pre ${CMAKE_CURRENT_SOURCE_DIR}/
+    COMMAND ${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/
+    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_empty
     )
 endif()
 
