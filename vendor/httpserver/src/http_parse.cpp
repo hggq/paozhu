@@ -2730,6 +2730,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             changetype = changetype + readoffset;
             if (changetype > CONST_HTTP_HEADER_BODY_SIZE)
             {
+                DEBUG_LOG("changetype > CONST_HTTP_HEADER_BODY_SIZE %u %d", changetype, CONST_HTTP_HEADER_BODY_SIZE);
                 error = 403;
                 return;
             }
@@ -2766,6 +2767,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                 peer->upload_length = peer->upload_length + buffersize - readoffset;
                 if (peer->upload_length > peer->content_length)
                 {
+                    DEBUG_LOG("upload_length > content_length %llu %llu", peer->upload_length, peer->content_length);
                     error = 403;
                     return;
                 }
@@ -2874,6 +2876,7 @@ void httpparse::clear()
     peer->httpv                       = 1;
     peer->isso                        = false;
     peer->compress                    = 0;
+    peer->upload_length               = 0;
     peer->websocket.deflate           = false;
     peer->websocket.permessagedeflate = false;
     peer->websocket.perframedeflate   = false;

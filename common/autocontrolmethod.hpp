@@ -40,6 +40,7 @@
 #include "testmarkdown.h"
 #include "testcommit.h"
 #include "apicrudtest.h"
+#include "testpinyin.h"
 #include "testmoney_num.h"
 #include "testipsearch.h"
 #include "testcowaitclient.h"
@@ -311,6 +312,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = pxapipagesdepartlist;
 		methodcallback.emplace("api/departments/deletedep",temp);
+		temp.pre = nullptr;
+		temp.regfun = testpinyin;
+		methodcallback.emplace("testpinyin",temp);
+		temp.pre = nullptr;
+		temp.regfun = testpinyin_loaded;
+		methodcallback.emplace("testpinyin_loaded",temp);
 		temp.pre = nullptr;
 		temp.regfun = testtestmoneynum;
 		methodcallback.emplace("testtestmoneynum",temp);

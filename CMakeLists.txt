@@ -140,14 +140,20 @@ foreach(cppfile IN LISTS controller_list)
   string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" cppfilename ${cppfile})
   string(FIND ${cppfilename} "/" strpos)
   if(${strpos} GREATER_EQUAL "0" )
-      string(REGEX MATCH "(.*)/" onepath ${cppfilename})
-      string(REPLACE "/" "" toucpath ${onepath})
-      if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${toucpath}") 
-      else()
-            message("mkdir ${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${toucpath}") 
-            file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${toucpath}")
-      endif()
-   endif()
+      string(REGEX MATCHALL "([A-Za-z0-9._-]+)/" npaths ${cppfilename} )
+      set(fullpaths "")
+      string(APPEND fullpaths "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/")
+      foreach(onepathname ${npaths})
+            string(REPLACE "/" "" toucpath ${onepathname})
+            string(APPEND fullpaths ${toucpath})
+            if (IS_DIRECTORY "${fullpaths}") 
+            else()
+                  message("mkdir ${fullpaths}") 
+                  file(MAKE_DIRECTORY "${fullpaths}")
+            endif()
+            string(APPEND fullpaths "/")
+      endforeach()
+  endif()
   string(REGEX REPLACE ".cpp" "" cppbasename ${cppfilename})
 #  message(${cppbasename})
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${cppbasename}.h")
@@ -193,8 +199,7 @@ endif()
 if (ENABLE_WIN_VCPKG STREQUAL "ON")
 else ()
 add_custom_command(
-    TARGET paozhu_empty paozhu
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre
+    TARGET ${PAOZHU_PRE} 
     PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
     COMMAND echo "-- controls method --"
