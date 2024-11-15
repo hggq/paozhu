@@ -117,6 +117,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/websockets/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
+  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
+endif()
 set(PAOZHU_PRE paozhu_pre)
 add_executable(${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopickmethod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/md5.cpp)
 
@@ -192,7 +195,7 @@ else()
 endif()
 
 if (ENABLE_WIN_VCPKG STREQUAL "ON")
-else ()
+else()
 add_custom_command(
     TARGET paozhu_pre POST_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
