@@ -23,6 +23,7 @@
 #include <cmath>
 #include <condition_variable>
 #include <sstream>
+#include <algorithm>
 #include "mysqlpool.h"
 namespace orm
 {
