@@ -182,7 +182,8 @@ std::string superadmin_editsiteinfopost(std::shared_ptr<httppeer> peer)
         }
         if (basepath.size() == 0)
         {
-            basepath = fs::current_path();
+            fs::path current_path = fs::current_path();
+            basepath              = current_path.string();
             if (basepath.size() > 0 && basepath.back() != '/')
             {
                 basepath += '/';
@@ -354,7 +355,8 @@ std::string superadmin_addsiteinfopost(std::shared_ptr<httppeer> peer)
     }
     if (basepath.size() == 0)
     {
-        basepath = fs::current_path();
+        fs::path current_path = fs::current_path();
+        basepath              = current_path.string();
         if (basepath.size() > 0 && basepath.back() != '/')
         {
             basepath += '/';
