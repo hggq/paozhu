@@ -17,4 +17,5 @@ namespace http
 	std::string admin_edittopicpost(std::shared_ptr<httppeer> peer);
 	std::string admin_topicfileupload(std::shared_ptr<httppeer> peer);
 	std::string admin_topicimgtextupload(std::shared_ptr<httppeer> peer);
+	std::string admin_updatetopicview(std::shared_ptr<httppeer> peer);
 }

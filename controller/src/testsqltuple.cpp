@@ -15,7 +15,7 @@ std::string testsqltuple(std::shared_ptr<httppeer> peer)
 
     try
     {
-        auto users = orm::cms::User();
+        auto users = orm::cms::Sysuser();
 
         auto [key_names, key_mapname, lists] = users.query("SELECT * FROM `user` ");
         client << "<p>--------------</p>";

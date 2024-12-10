@@ -21,8 +21,14 @@
 #include "testormcache.h"
 #include "teststr_trim.h"
 #include "testsendmail.h"
+#include "superadmin/supermain.h"
 #include "admin/articles.h"
+#include "admin/marproduct.h"
 #include "admin/topics.h"
+#include "admin/marbrand.h"
+#include "admin/attachfile.h"
+#include "admin/category.h"
+#include "admin/marhome.h"
 #include "admin/main.h"
 #include "testformpost.h"
 #include "teststr2int.h"
@@ -135,6 +141,72 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testsendmaildo;
 		methodcallback.emplace("testsendmaildo",temp);
+		temp.pre = nullptr;
+		temp.regfun = superadmin_login;
+		methodcallback.emplace("superadmin/login",temp);
+		temp.pre = nullptr;
+		temp.regfun = superadmin_loginpost;
+		methodcallback.emplace("superadmin/loginpost",temp);
+		temp.pre = nullptr;
+		temp.regfun = superadmin_logout;
+		methodcallback.emplace("superadmin/logout",temp);
+		temp.pre = nullptr;
+		temp.regfun = superadmin_islogin;
+		methodcallback.emplace("superadmin/islogin",temp);
+		temp.pre = nullptr;
+		temp.regfun = superadmin_isloginjson;
+		methodcallback.emplace("superadmin/isloginjson",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_main;
+		methodcallback.emplace("superadmin/main",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_editsiteinfo;
+		methodcallback.emplace("superadmin/editsiteinfo",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_editsiteinfopost;
+		methodcallback.emplace("superadmin/editsiteinfopost",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_deletesiteinfo;
+		methodcallback.emplace("superadmin/deletesiteinfo",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_deletesiteinfopost;
+		methodcallback.emplace("superadmin/deletesiteinfopost",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_addsiteinfo;
+		methodcallback.emplace("superadmin/addsiteinfo",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_addsiteinfopost;
+		methodcallback.emplace("superadmin/addsiteinfopost",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_welcome;
+		methodcallback.emplace("superadmin/welcome",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_listuser;
+		methodcallback.emplace("superadmin/listuser",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_edituser;
+		methodcallback.emplace("superadmin/edituser",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_adduser;
+		methodcallback.emplace("superadmin/adduser",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_adduserpost;
+		methodcallback.emplace("superadmin/adduserpost",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_edituserpost;
+		methodcallback.emplace("superadmin/edituserpost",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_deleteuser;
+		methodcallback.emplace("superadmin/deleteuser",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_userinfo;
+		methodcallback.emplace("superadmin/userinfo",temp);
+		temp.pre = superadmin_islogin;
+		temp.regfun = superadmin_editpassword;
+		methodcallback.emplace("superadmin/editpassword",temp);
+		temp.pre = superadmin_isloginjson;
+		temp.regfun = superadmin_editpwdpost;
+		methodcallback.emplace("superadmin/editpwdpost",temp);
 		temp.pre = admin_islogin;
 		temp.regfun = admin_addarticle;
 		methodcallback.emplace("admin/addarticle",temp);
@@ -159,9 +231,51 @@ namespace http
 		temp.pre = admin_isloginjson;
 		temp.regfun = admin_updatearticleview;
 		methodcallback.emplace("admin/updatearticleview",temp);
+		temp.pre = admin_isloginjson;
+		temp.regfun = admin_updatearticleishome;
+		methodcallback.emplace("admin/updatearticleishome",temp);
 		temp.pre = admin_islogin;
 		temp.regfun = admin_listarticle;
 		methodcallback.emplace("admin/listarticle",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addproduct;
+		methodcallback.emplace("admin/addproduct",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addproductpost;
+		methodcallback.emplace("admin/addproductpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_editproductpost;
+		methodcallback.emplace("admin/editproductpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_getcategorytopproduct;
+		methodcallback.emplace("admin/getcategorytopproduct",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_editproduct;
+		methodcallback.emplace("admin/editproduct",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_listproduct;
+		methodcallback.emplace("admin/listproduct",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_marproductattach;
+		methodcallback.emplace("admin/marproductattach",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_deleteproduct;
+		methodcallback.emplace("admin/deleteproduct",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_deleteproductajax;
+		methodcallback.emplace("admin/deleteproductajax",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_updateproducthome;
+		methodcallback.emplace("admin/updateproducthome",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_updateproductstore;
+		methodcallback.emplace("admin/updateproductstore",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_updateproductview;
+		methodcallback.emplace("admin/updateproductview",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_updateproductsort;
+		methodcallback.emplace("admin/updateproductsort",temp);
 		temp.pre = admin_islogin;
 		temp.regfun = admin_addtopic;
 		methodcallback.emplace("admin/addtopic",temp);
@@ -189,6 +303,102 @@ namespace http
 		temp.pre = admin_isloginjson;
 		temp.regfun = admin_topicimgtextupload;
 		methodcallback.emplace("admin/topicimgtextupload",temp);
+		temp.pre = admin_isloginjson;
+		temp.regfun = admin_updatetopicview;
+		methodcallback.emplace("admin/updatetopicview",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_marbrand;
+		methodcallback.emplace("admin/marbrand",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_brandaddpost;
+		methodcallback.emplace("admin/brandaddpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_deletebrand;
+		methodcallback.emplace("admin/deletebrand",temp);
+		temp.pre = admin_isloginjson;
+		temp.regfun = admin_updatebrandsort;
+		methodcallback.emplace("admin/updatebrandsort",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = attachfile_gateway;
+		methodcallback.emplace("attachfile/gateway",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = attachimg_gateway;
+		methodcallback.emplace("attachimg/gateway",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = attachfile_delete;
+		methodcallback.emplace("attachfile/delete",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = attachimg_delete;
+		methodcallback.emplace("attachimg/delete",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = attachfile_upload;
+		methodcallback.emplace("attachfile/upload",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = attachfile_uploadpost;
+		methodcallback.emplace("attachfile/uploadpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_attachselectfiles;
+		methodcallback.emplace("admin/attachselectfiles",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_marcatalogue;
+		methodcallback.emplace("admin/marcatalogue",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addcataloguepost;
+		methodcallback.emplace("admin/addcataloguepost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_editcataloguepost;
+		methodcallback.emplace("admin/editcataloguepost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_deletecatalogue;
+		methodcallback.emplace("admin/deletecatalogue",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_marhome;
+		methodcallback.emplace("admin/marhome",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_edithomeblockpic;
+		methodcallback.emplace("admin/edithomeblockpic",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_updatehomeblocksort;
+		methodcallback.emplace("admin/updatehomeblocksort",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addhomepic;
+		methodcallback.emplace("admin/addhomepic",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addhometext;
+		methodcallback.emplace("admin/addhometext",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addhometopic;
+		methodcallback.emplace("admin/addhometopic",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addhomecontent;
+		methodcallback.emplace("admin/addhomecontent",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_edithomeblockcontent;
+		methodcallback.emplace("admin/edithomeblockcontent",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_edithomeblocktopic;
+		methodcallback.emplace("admin/edithomeblocktopic",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_edithomeblockpost;
+		methodcallback.emplace("admin/edithomeblockpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addhomeblockpost;
+		methodcallback.emplace("admin/addhomeblockpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_addhomehot;
+		methodcallback.emplace("admin/addhomehot",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_edithomeblockhot;
+		methodcallback.emplace("admin/edithomeblockhot",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_edithomeblocktext;
+		methodcallback.emplace("admin/edithomeblocktext",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_deletehomeblock;
+		methodcallback.emplace("admin/deletehomeblock",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_homedesign;
+		methodcallback.emplace("admin/homedesign",temp);
 		temp.pre = nullptr;
 		temp.regfun = admin_login;
 		methodcallback.emplace("admin/login",temp);
@@ -216,6 +426,24 @@ namespace http
 		temp.pre = admin_islogin;
 		temp.regfun = admin_siteinfopost;
 		methodcallback.emplace("admin/siteinfopost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_footscript;
+		methodcallback.emplace("admin/footscript",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_footscriptpost;
+		methodcallback.emplace("admin/footscriptpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_copyright;
+		methodcallback.emplace("admin/copyright",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_copyrightpost;
+		methodcallback.emplace("admin/copyrightpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_sitelogo;
+		methodcallback.emplace("admin/sitelogo",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_sitelogopost;
+		methodcallback.emplace("admin/sitelogopost",temp);
 		temp.pre = admin_islogin;
 		temp.regfun = admin_userinfo;
 		methodcallback.emplace("admin/userinfo",temp);
@@ -369,6 +597,16 @@ namespace http
 
 
     }
+    
+    void _initauto_domain_httpmethodregto(std::map<std::string, std::map<std::string, regmethold_t>> &domain_methodcallback)
+    {
+        struct regmethold_t temp;
+        std::map<std::string, regmethold_t> methodcallback;
+        std::map<std::string, std::map<std::string, regmethold_t>>::iterator domain_iterator;
+    
+
+    }
+    
 }
 
 #endif

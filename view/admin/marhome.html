@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>首页模块</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+
+  <link href="/css/dashboard.css" rel="stylesheet">
+  <script src="/js/jquery.min.js"></script>  
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2">首页模块</h5>
+    <hr>
+    <div class="row p-3">
+      <div class="col-10">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">名称</th>
+              <th scope="col">类型</th>
+              <th scope="col">排序</th>
+              <th scope="col">编辑</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%c for(auto &a:obj["list"].as_array()){ %>
+              <tr id="topicid_<%c echo<<a.second["id"].to_string(); %>">
+                <td>
+                  <%c echo<<a.second["id"].to_string(); %>
+                </td>
+                <td>
+                  <%c echo<<a.second["title"].as_string(); %>
+                </td>
+                <td>
+                  <%c 
+                      switch(a.second["viewtype"].to_int())
+                      {
+                            case 0:
+                                 echo<<"图文内容";
+                                 break;
+                            case 1:
+                                 echo<<"图片轮播";
+                                 break;
+                            case 2:
+                                 echo<<"栏目列表";
+                                 break;
+                            case 3:
+                                 echo<<"栏目内容";
+                                 break;   
+                            case 4:
+                                 echo<<"内容提取";
+                                 break;
+               
+                      }
+                  %>
+                </td>
+                <td>
+                  <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatehomeblocksort(<%c echo<<a.second["id"].to_string(); %>,this.value)">
+                </td>
+                </td>
+                <td>
+
+                  <a href="/admin/edithomeblock<%c 
+                  switch(a.second["viewtype"].to_int())
+                  {
+                        case 0:
+                             echo<<"text";
+                             break;
+                        case 1:
+                             echo<<"pic";
+                             break;
+                        case 2:
+                             echo<<"topic";
+                             break;
+                        case 3:
+                             echo<<"content";
+                             break;   
+                        case 4:
+                             echo<<"hot";
+                             break;
+           
+                  }
+              %>?id=<%c echo<<a.second["id"].to_string(); %>">编辑</a>
+                  
+                  ｜
+                  <a href="/admin/deletehomeblock?id=<%c echo<<a.second["id"].to_string(); %>" onclick="return deletehomeblock(<%c echo<<a.second["id"].to_string(); %>)">删除</a>
+                </td>
+              </tr>
+              <%c } %>
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+
+    <div class="row p-3">
+      <div class="col-md-4">
+        <label for="viewtype" class="form-label">模块类型</label> 
+      </div>
+    </div> 
+    <div class="row p-3">
+      <div class="col-md-4">
+        <select id="viewtype" class="form-select" name="viewtype">
+          <option  value="0">图文内容</option>
+          <option  value="1">图片轮播</option>
+          <option  value="2">栏目列表</option>
+          <option  value="3">栏目内容</option>
+          <option  value="4">内容提取</option>
+        </select>  
+      </div>
+      <div class="col-5">
+
+          <a href="/admin/addhomeblock" class="btn btn-primary" onclick="return addblcok();">添加模块内容</a>
+ 
+        
+      </div>
+    </div> 
+
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script lang="javascript">
+      function addblcok()
+    {
+      var blid=jQuery('#viewtype').val();
+      switch(blid)
+      {
+        case "0":
+          window.location.href="/admin/addhometext";
+          break;
+        case "1":
+          window.location.href="/admin/addhomepic";
+          break;
+        case "2":
+          window.location.href="/admin/addhometopic";
+          break;
+        case "3":
+          window.location.href="/admin/addhomecontent";
+          break;
+        case "4":
+          window.location.href="/admin/addhomehot";
+          break;
+        default:
+          window.location.href="/admin/addhometext";
+      }   
+      return false;
+    }
+
+    function deletehomeblock(id)
+    {
+      if(confirm('是否删除?'))
+      {          
+          $.getJSON("/admin/deletehomeblock?id="+id,function(result){
+                if(result.code==0)
+                {
+                
+                     $("#topicid_"+id).remove();
+                }
+                
+          });
+
+      }
+      return false;
+    }
+      function updatehomeblocksort(id,sortid)
+    {
+       $.getJSON("/admin/updatehomeblocksort?id="+id+"&sortid="+sortid,function(result){
+                               
+       });
+    }
+
+  </script>
+</body>
+
+</html>

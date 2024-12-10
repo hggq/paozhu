@@ -24,6 +24,7 @@
 #include <map>
 #include <vector>
 #include <cstring>
+#include <string_view>
 namespace http
 {
 namespace fs = std::filesystem;
@@ -32,6 +33,7 @@ struct reg_autoitem
     std::string pre;
     std::string func;
     std::string urlpath;
+    std::string domain;
 };
 struct file_regitem
 {
@@ -39,6 +41,52 @@ struct file_regitem
     std::string filetime;
     std::string filehash;
 };
+
+bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length)
+{
+	if(length==0)
+	{
+		length=str2.size();
+	}
+
+    if(str1.size() < str2.size())
+    {
+        return false;
+    }
+    for (unsigned int i = 0; i < length; i++)
+    {
+        if (i < str2.size())
+        {
+            if (str1[i] == str2[i])
+            {
+                continue;
+            }
+            else
+            {
+                if (str1[i] < 91 && str1[i] > 64)
+                {
+                    if ((str1[i] + 32) == str2[i])
+                    {
+                        continue;
+                    }
+                }
+                else if (str2[i] < 91 && str2[i] > 64)
+                {
+                    if (str1[i] == (str2[i] + 32))
+                    {
+                        continue;
+                    }
+                }
+                return false;
+            }
+        }else
+        {
+            return true;
+        }
+    }
+    return true;
+}
+
 class pickcontrol
 {
   public:
@@ -238,52 +286,128 @@ class pickcontrol
                 isbegin = false;
                 continue;
             }
-
-            if (filecontent[i] == '/' && filecontent[i + 1] == '/' && filecontent[i + 2] == '@' &&
-                filecontent[i + 3] == 'u' && filecontent[i + 4] == 'r' && filecontent[i + 5] == 'l' &&
-                filecontent[i + 6] == 'p')
+            bool is_match = false;
+            unsigned int offset_temp=0;
+            if(str_casecmp_pre(&filecontent[i],"//@urlpath(",0))
             {
-                if (filecontent[i + 7] == 'a' && filecontent[i + 8] == 't' && filecontent[i + 9] == 'h' &&
-                    filecontent[i + 10] == '(')
-                {
-                    std::string prename;
-                    std::string tempname;
-                    unsigned int j = i + 11;
-                    for (; j < filecontent.size(); j++)
-                    {
-                        if (filecontent[j] == ')' || filecontent[j] == 0x0A)
-                        {
-                            // j++;
-                            break;
-                        }
-                        if (filecontent[j] == ',')
-                        {
-                            prename = tempname;
-                            tempname.clear();
-                            continue;
-                        }
-                        if (filecontent[j] == '"')
-                        {
-                            continue;
-                        }
-                        if (filecontent[j] == '\t')
-                        {
-                            continue;
-                        }
-                        if (filecontent[j] == 0x20)
-                        {
-                            continue;
-                        }
-                        tempname.push_back(filecontent[j]);
-                    }
+                is_match = true;
+                offset_temp = 11;
+            }
+            else if(str_casecmp_pre(&filecontent[i],"// @urlpath(",0))
+            {
+                is_match = true;
+                offset_temp = 12;
+            }
 
-                    i = j;
-                    std::string linestr;
-                    if (tempname.empty())
+            if (is_match)
+            {
+                std::string prename;
+                std::string tempname;
+                unsigned int j = i + offset_temp;
+                for (; j < filecontent.size(); j++)
+                {
+                    if (filecontent[j] == ')' || filecontent[j] == 0x0A)
                     {
-                        isbegin = false;
+                        // j++;
+                        break;
+                    }
+                    if (filecontent[j] == ',')
+                    {
+                        prename = tempname;
+                        tempname.clear();
                         continue;
                     }
+                    if (filecontent[j] == '"')
+                    {
+                        continue;
+                    }
+                    if (filecontent[j] == '\t')
+                    {
+                        continue;
+                    }
+                    if (filecontent[j] == 0x20)
+                    {
+                        continue;
+                    }
+                    tempname.push_back(filecontent[j]);
+                }
+
+                i = j;
+                std::string linestr;
+                if (tempname.empty())
+                {
+                    isbegin = false;
+                    continue;
+                }
+                for (; j < filecontent.size(); j++)
+                {
+                    if (filecontent[j] == 0x0A)
+                    {
+                        j++;
+                        break;
+                    }
+                }
+                for (; j < filecontent.size(); j++)
+                {
+                    if (filecontent[j] == 0x0A || filecontent[j] == '(')
+                    {
+                        if (linestr.size() < 2)
+                        {
+                            linestr.clear();
+                            for (; j < filecontent.size(); j++)
+                            {
+                                if (filecontent[j] == 0x0A)
+                                {
+                                    break;
+                                }
+                            }
+                            continue;
+                        }
+                        break;
+                    }
+                    else if (filecontent[j] == '/')
+                    {
+                        // is ship annotation
+                        linestr.clear();
+                        unsigned int nnn = j + 1;
+                        if (nnn < filecontent.size() && filecontent[nnn] == '*')
+                        {
+                            j += 2;
+                            for (; j < filecontent.size(); j++)
+                            {
+                                if (filecontent[j] == '*')
+                                {
+                                    nnn = j + 1;
+                                    if (nnn < filecontent.size() && filecontent[nnn] == '/')
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                            continue;
+                        }
+                        else
+                        {
+                            for (; j < filecontent.size(); j++)
+                            {
+                                if (filecontent[j] == 0x0A)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (filecontent[j] == 0x20 || filecontent[j] == '\t')
+                    {
+                        linestr.clear();
+                        continue;
+                    }
+                    linestr.push_back(filecontent[j]);
+                }
+                if (linestr.size() < 2)
+                {
                     for (; j < filecontent.size(); j++)
                     {
                         if (filecontent[j] == 0x0A)
@@ -296,52 +420,8 @@ class pickcontrol
                     {
                         if (filecontent[j] == 0x0A || filecontent[j] == '(')
                         {
-                            if (linestr.size() < 2)
-                            {
-                                linestr.clear();
-                                for (; j < filecontent.size(); j++)
-                                {
-                                    if (filecontent[j] == 0x0A)
-                                    {
-                                        break;
-                                    }
-                                }
-                                continue;
-                            }
+                            // j++;
                             break;
-                        }
-                        else if (filecontent[j] == '/')
-                        {
-                            // is ship annotation
-                            linestr.clear();
-                            unsigned int nnn = j + 1;
-                            if (nnn < filecontent.size() && filecontent[nnn] == '*')
-                            {
-                                j += 2;
-                                for (; j < filecontent.size(); j++)
-                                {
-                                    if (filecontent[j] == '*')
-                                    {
-                                        nnn = j + 1;
-                                        if (nnn < filecontent.size() && filecontent[nnn] == '/')
-                                        {
-                                            break;
-                                        }
-                                    }
-                                }
-                                continue;
-                            }
-                            else
-                            {
-                                for (; j < filecontent.size(); j++)
-                                {
-                                    if (filecontent[j] == 0x0A)
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                            continue;
                         }
 
                         if (filecontent[j] == 0x20 || filecontent[j] == '\t')
@@ -351,41 +431,16 @@ class pickcontrol
                         }
                         linestr.push_back(filecontent[j]);
                     }
-                    if (linestr.size() < 2)
-                    {
-                        for (; j < filecontent.size(); j++)
-                        {
-                            if (filecontent[j] == 0x0A)
-                            {
-                                j++;
-                                break;
-                            }
-                        }
-                        for (; j < filecontent.size(); j++)
-                        {
-                            if (filecontent[j] == 0x0A || filecontent[j] == '(')
-                            {
-                                // j++;
-                                break;
-                            }
-
-                            if (filecontent[j] == 0x20 || filecontent[j] == '\t')
-                            {
-                                linestr.clear();
-                                continue;
-                            }
-                            linestr.push_back(filecontent[j]);
-                        }
-                    }
-                    i       = j;
-                    isbegin = false;
-                    struct reg_autoitem reg_temp;
-                    reg_temp.pre     = prename;
-                    reg_temp.func    = linestr;
-                    reg_temp.urlpath = tempname;
-                    temp.emplace_back(reg_temp);
-                    continue;
                 }
+                i       = j;
+                isbegin = false;
+                struct reg_autoitem reg_temp;
+                reg_temp.pre     = prename;
+                reg_temp.func    = linestr;
+                reg_temp.urlpath = tempname;
+                temp.emplace_back(reg_temp);
+                continue;
+                 
             }
         }
 

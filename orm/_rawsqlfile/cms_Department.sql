@@ -9,8 +9,10 @@ CREATE TABLE `department` (
   `quan_weight` int NOT NULL COMMENT '部门权重',
   `isopen` tinyint NOT NULL COMMENT '是否开放',
   `memo` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '备注',
-  `addtime` int unsigned NOT NULL COMMENT '添加时间',
-  `edittime` int unsigned NOT NULL COMMENT '修改时间',
+  `created_time` int unsigned NOT NULL COMMENT '添加时间',
+  `created_user` int unsigned NOT NULL,
+  `updated_time` int unsigned NOT NULL COMMENT '修改时间',
+  `updated_user` int unsigned NOT NULL,
   `isvirtual` tinyint NOT NULL COMMENT '是否虚拟部门',
   `linkdpid` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '关联部门',
   PRIMARY KEY (`dpid`)

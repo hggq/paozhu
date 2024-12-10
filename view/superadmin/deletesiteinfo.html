@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+ 
+  <title>网站信息</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2">删除网站</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+        <p>公司名称：<% echo << obj["info"]["companyname"].to_string(); %></p>
+        <p>网站名称：<% echo << obj["info"]["sitename"].to_string(); %></p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+            你确定要删除网站吗？数据将永久删除。
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <form id="form" action="/superadmin/deletesiteinfopost" method="post">
+          <div class="row mb-3">
+            <label for="username" class="col-sm-2 col-form-label text-sm-end">超级管理员用户名</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" name="username" id="username" placeholder="用户名">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="password" class="col-sm-2 col-form-label text-sm-end">超级管理员密码</label>
+            <div class="col-sm-10">
+              <input type="password" class="form-control" name="password" id="password" placeholder="密码">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-sm-10 offset-sm-2">
+              <button type="submit" class="btn btn-primary">确定删除</button>
+              <input type="hidden" id="sid" name="sid" value="<% echo<<obj["info"]["sid"].to_string(); %>" />
+                <a href="/superadmin/welcome" class="btn btn-link rounded-pill px-3">返回</a>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+ 
+</body>
+
+</html>

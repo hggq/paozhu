@@ -3,8 +3,10 @@ CREATE TABLE `topic` (
   `userid` int unsigned NOT NULL,
   `parentid` int unsigned NOT NULL,
   `cateid` int unsigned NOT NULL COMMENT '类型',
+  `sorttype` tinyint unsigned NOT NULL COMMENT '内容排序',
   `languagetype` int unsigned NOT NULL COMMENT '语言类型',
   `isview` tinyint unsigned NOT NULL COMMENT '是否显示',
+  `isside` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '是否边栏',
   `sortid` int unsigned NOT NULL COMMENT '排序id',
   `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '标题',
   `twotitle` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '第二标题',
@@ -12,8 +14,9 @@ CREATE TABLE `topic` (
   `templatename` varchar(254) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '模板名称',
   `url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '网址',
   `urlpath` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '路径',
-  `imgurl` varchar(254) COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片地址',
+  `imgurl` varchar(254) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片地址',
   `topimg` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '头图',
   `accesscode` int unsigned NOT NULL COMMENT '权限代码',
-  PRIMARY KEY (`topicid`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='栏目表'
+  PRIMARY KEY (`topicid`),
+  KEY `userid` (`userid`)
+) ENGINE=InnoDB AUTO_INCREMENT=136 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='栏目表'

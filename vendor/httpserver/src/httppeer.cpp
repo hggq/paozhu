@@ -61,6 +61,8 @@ namespace http
 
 std::map<std::string, regmethold_t> _http_regmethod_table;
 std::map<std::string, std::vector<std::string>> _http_regurlpath_table;
+std::map<std::string, std::map<std::string, regmethold_t>> _domain_regmethod_table;
+std::map<std::string, std::map<std::string, std::vector<std::string>>> _domain_regurlpath_table;
 void make_404_content(std::shared_ptr<httppeer> peer)
 {
     peer->output = "<h3>404 Not Found</h3>";
@@ -155,7 +157,7 @@ void httppeer::parse_session_file(std::string &sessionfile)
         sessionfile = cookie.get(COOKIE_SESSION_NAME);
         // cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
         // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
-        set_cookie(COOKIE_SESSION_NAME, sessionfile, 7200, host, "/");
+        set_cookie(COOKIE_SESSION_NAME, sessionfile, 30000, host, "/");
     }
 
     if (tempsesstime > 0 && tempsesstime == sessionfile_time)
@@ -226,7 +228,7 @@ void httppeer::parse_session_file(std::string &sessionfile)
 void httppeer::parse_session_memory(std::string &sessionfile_id)
 {
     pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
-    temp_cache.update(sessionfile_id, 3600);
+    temp_cache.update(sessionfile_id, 30000);
     session = temp_cache.get(sessionfile_id);
 }
 std::string httppeer::get_session_id()
@@ -312,7 +314,7 @@ void httppeer::save_session()
         sessionfile = std::to_string(std::hash<std::string>{}(sessionfile));
         // cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
         // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
-        set_cookie(COOKIE_SESSION_NAME, sessionfile, 7200, host, "/");
+        set_cookie(COOKIE_SESSION_NAME, sessionfile, 30000, host, "/");
     }
     if (localvar.session_type == 1)
     {
@@ -326,7 +328,7 @@ void httppeer::save_session()
 void httppeer::save_session_memory(std::string &sessionfile)
 {
     pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
-    temp_cache.save(sessionfile, session, 3600, true);
+    temp_cache.save(sessionfile, session, 30000, true);
 }
 void httppeer::save_session_file(std::string &sessionfile)
 {
@@ -451,6 +453,44 @@ unsigned long long httppeer::get_siteid()
     }
     return sysconfigpath.sitehostinfos[host_index].siteid;
 }
+unsigned long long httppeer::get_groupid()
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (host_index >= sysconfigpath.sitehostinfos.size())
+    {
+        return 0;
+    }
+    return sysconfigpath.sitehostinfos[host_index].groupid;
+}
+std::string httppeer::get_theme()
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (host_index >= sysconfigpath.sitehostinfos.size())
+    {
+        return "";
+    }
+    return sysconfigpath.sitehostinfos[host_index].themes;
+}
+std::string httppeer::get_themeurl()
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (host_index >= sysconfigpath.sitehostinfos.size())
+    {
+        return "";
+    }
+    return sysconfigpath.sitehostinfos[host_index].themes_url;
+}
+bool httppeer::is_ssl()
+{
+    if (isssl)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 std::string httppeer::get_hosturl()
 {
     std::string tempurl;
@@ -486,6 +526,7 @@ unsigned int httppeer::check_upload_limit()
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.sitehostinfos[host_index].is_limit_upload && content_length > sysconfigpath.sitehostinfos[host_index].upload_max_size)
     {
+        DEBUG_LOG("upload file size limit %lld", content_length);
         return 403;
     }
     return 0;
@@ -532,7 +573,7 @@ bool httppeer::isuse_fastcgi()
                     sendfilename.append(pathinfos[i]);
                     struct stat sessfileinfo;
                     std::string tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename;
-                    DEBUG_LOG("php file %s",tempac.c_str());
+                    DEBUG_LOG("php file %s", tempac.c_str());
                     memset(&sessfileinfo, 0, sizeof(sessfileinfo));
                     if (stat(tempac.c_str(), &sessfileinfo) == 0)
                     {
@@ -589,7 +630,7 @@ bool httppeer::isuse_fastcgi()
                 {
                     compress = 0;
                     linktype = 0;
-                    tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
+                    tempac   = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
                     memset(&sessfileinfo, 0, sizeof(sessfileinfo));
                     if (stat(tempac.c_str(), &sessfileinfo) == 0)
                     {
@@ -1050,7 +1091,7 @@ unsigned char httppeer::get_fileinfo()
                     {
                         for (unsigned int k = 0; k < sysconfigpath.sitehostinfos[host_index].action_404_lists.size(); k++)
                         {
-                            if (pathinfos[0].size() <= sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() && str_cmp_pre(sysconfigpath.sitehostinfos[host_index].action_404_lists[k], pathinfos[0],  pathinfos[0].size()))
+                            if (pathinfos[0].size() <= sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() && str_cmp_pre(sysconfigpath.sitehostinfos[host_index].action_404_lists[k], pathinfos[0], pathinfos[0].size()))
                             {
                                 sendfilename = sitepath;
                                 sendfilename.append(sysconfigpath.sitehostinfos[host_index].action_404_lists[k]);

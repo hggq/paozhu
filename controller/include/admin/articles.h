@@ -16,5 +16,6 @@ namespace http
 	std::string admin_gettoparticle(std::shared_ptr<httppeer> peer);
 	std::string admin_updatearticlesort(std::shared_ptr<httppeer> peer);
 	std::string admin_updatearticleview(std::shared_ptr<httppeer> peer);
+	std::string admin_updatearticleishome(std::shared_ptr<httppeer> peer);
 	std::string admin_listarticle(std::shared_ptr<httppeer> peer);
 }

@@ -14,7 +14,7 @@ std::string testmysqlconnect(std::shared_ptr<httppeer> peer)
     client << "hello world!  testmysqlconnect ";
     client << client.get_hosturl();
     client << "<p><a href=\"" << client.get_hosturl() << "/showcookie\">show</a></p>";
-    auto users = orm::cms::User();
+    auto users = orm::cms::Sysuser();
 
     users.where("name", "admin").fetch_one();
     try
@@ -22,10 +22,10 @@ std::string testmysqlconnect(std::shared_ptr<httppeer> peer)
         client << "<p>sql result</p>";
         // view orm create sql
         client << "<p>sql:" << users.sqlstring << "</p>";
-        if (users.getUserid() > 0)
+        if (users.getAdminid() > 0)
         {
             // save session,other page get  int userid= client.session["userid"].to_int();
-            client.session["aaa"] = users.getUserid();
+            client.session["aaa"] = users.getAdminid();
             client.save_session();
             client << "<p>found:" << users.data.name << "</p>";
             return "";

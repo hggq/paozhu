@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 12 Mar 2024 04:11:11 GMT
+*本文件为自动生成 Tue, 10 Dec 2024 07:41:52 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -24,11 +24,14 @@ struct logininfobase
     struct meta{
     unsigned  int lgid= 0; //
 unsigned  int userid= 0; //会员id
+unsigned  char logtype=0; //
  std::string username=""; //会员名字
  std::string addtime=""; //登录时间
  std::string addip=""; //登录ip
  std::string addregion=""; //登录地区
  std::string loginstate=""; //登录状态
+ std::string agent=""; //
+ std::string urlpath=""; //
  } data;
  std::vector<logininfobase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -38,8 +41,8 @@ std::vector<logininfobase::meta>::iterator begin(){     return record.begin(); }
 std::vector<logininfobase::meta>::iterator end(){     return record.end(); }
 std::vector<logininfobase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<logininfobase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,7> colnames={"lgid","userid","username","addtime","addip","addregion","loginstate"};
-const std::array<unsigned char,7> colnamestype= {3,3,253,253,253,253,253};
+const std::array<std::string,10> colnames={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
+const std::array<unsigned char,10> colnamestype= {3,3,1,253,253,253,253,253,253,253};
 std::string tablename="logininfo";
 std::string modelname="Logininfo";
 
@@ -49,7 +52,7 @@ std::string modelname="Logininfo";
                 return 255;
             }
 		    unsigned char  bi=coln[0];
-         
+         char colpospppc;
 
 	         if(bi<91&&bi>64){
 				bi+=32;
@@ -60,13 +63,16 @@ std::string modelname="Logininfo";
          case 'a':
  switch(coln.size()){  
 case 5:
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='p'){ return 5; }
+ if(colpospppc=='t'){ return 8; }
+   	 break;
+case 7:
    	 return 4;
 break;
-case 7:
-   	 return 3;
-break;
 case 9:
-   	 return 5;
+   	 return 6;
 break;
  }
  break;
@@ -75,8 +81,11 @@ case 'l':
 case 4:
    	 return 0;
 break;
+case 7:
+   	 return 2;
+break;
 case 10:
-   	 return 6;
+   	 return 7;
 break;
  }
  break;
@@ -85,8 +94,11 @@ case 'u':
 case 6:
    	 return 1;
 break;
+case 7:
+   	 return 9;
+break;
 case 8:
-   	 return 2;
+   	 return 3;
 break;
  }
  break;
@@ -136,37 +148,58 @@ break;
 			break;
 	case 2:
 		 try{
+			data.logtype=std::stoi(_row[i]);
+		}catch (...) { 
+			data.logtype=0;
+			 }
+			break;
+	case 3:
+		 try{
 			data.username.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.username.clear();
 			 }
 			break;
-	case 3:
+	case 4:
 		 try{
 			data.addtime.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.addtime.clear();
 			 }
 			break;
-	case 4:
+	case 5:
 		 try{
 			data.addip.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.addip.clear();
 			 }
 			break;
-	case 5:
+	case 6:
 		 try{
 			data.addregion.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.addregion.clear();
 			 }
 			break;
-	case 6:
+	case 7:
 		 try{
 			data.loginstate.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.loginstate.clear();
+			 }
+			break;
+	case 8:
+		 try{
+			data.agent.append((_row[i]==NULL?"":_row[i]));
+		}catch (...) { 
+			data.agent.clear();
+			 }
+			break;
+	case 9:
+		 try{
+			data.urlpath.append((_row[i]==NULL?"":_row[i]));
+		}catch (...) { 
+			data.urlpath.clear();
 			 }
 			break;
 	default:
@@ -203,37 +236,58 @@ break;
 			break;
 	case 2:
 		 try{
+			metatemp.logtype=std::stoi(_row[i]);
+		}catch (...) { 
+			metatemp.logtype=0;
+			 }
+			break;
+	case 3:
+		 try{
 			metatemp.username.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.username.clear();
 			 }
 			break;
-	case 3:
+	case 4:
 		 try{
 			metatemp.addtime.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.addtime.clear();
 			 }
 			break;
-	case 4:
+	case 5:
 		 try{
 			metatemp.addip.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.addip.clear();
 			 }
 			break;
-	case 5:
+	case 6:
 		 try{
 			metatemp.addregion.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.addregion.clear();
 			 }
 			break;
-	case 6:
+	case 7:
 		 try{
 			metatemp.loginstate.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.loginstate.clear();
+			 }
+			break;
+	case 8:
+		 try{
+			metatemp.agent.append((_row[i]==NULL?"":_row[i]));
+		}catch (...) { 
+			metatemp.agent.clear();
+			 }
+			break;
+	case 9:
+		 try{
+			metatemp.urlpath.append((_row[i]==NULL?"":_row[i]));
+		}catch (...) { 
+			metatemp.urlpath.clear();
 			 }
 			break;
 	default:
@@ -310,11 +364,18 @@ if(data.userid==0){
  }else{ 
 	tempsql<<","<<std::to_string(data.userid);
 }
+if(data.logtype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.logtype);
+}
 tempsql<<",'"<<stringaddslash(data.username)<<"'";
 tempsql<<",'"<<stringaddslash(data.addtime)<<"'";
 tempsql<<",'"<<stringaddslash(data.addip)<<"'";
 tempsql<<",'"<<stringaddslash(data.addregion)<<"'";
 tempsql<<",'"<<stringaddslash(data.loginstate)<<"'";
+tempsql<<",'"<<stringaddslash(data.agent)<<"'";
+tempsql<<",'"<<stringaddslash(data.urlpath)<<"'";
 tempsql<<")";
 
      
@@ -350,11 +411,18 @@ if(insert_data.userid==0){
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.userid);
 }
+if(insert_data.logtype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.logtype);
+}
 tempsql<<",'"<<stringaddslash(insert_data.username)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.addtime)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.addip)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.addregion)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.loginstate)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.agent)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.urlpath)<<"'";
 tempsql<<")";
 
      
@@ -399,11 +467,18 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
+	if(insert_data[i].logtype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].logtype);
+	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].username)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].addtime)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].addip)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].addregion)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].loginstate)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].agent)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].urlpath)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -434,11 +509,18 @@ if(data.userid==0){
  }else{ 
 	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
+if(data.logtype==0){
+	tempsql<<",`logtype`=0";
+ }else{ 
+	tempsql<<",`logtype`="<<std::to_string(data.logtype);
+}
 tempsql<<",`username`='"<<stringaddslash(data.username)<<"'";
 tempsql<<",`addtime`='"<<stringaddslash(data.addtime)<<"'";
 tempsql<<",`addip`='"<<stringaddslash(data.addip)<<"'";
 tempsql<<",`addregion`='"<<stringaddslash(data.addregion)<<"'";
 tempsql<<",`loginstate`='"<<stringaddslash(data.loginstate)<<"'";
+tempsql<<",`agent`='"<<stringaddslash(data.agent)<<"'";
+tempsql<<",`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  }else{ 
 
      
@@ -501,23 +583,39 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`username`='"<<stringaddslash(data.username)<<"'";
+if(data.logtype==0){
+	tempsql<<"`logtype`=0";
+ }else{ 
+	tempsql<<"`logtype`="<<std::to_string(data.logtype);
+}
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`addtime`='"<<stringaddslash(data.addtime)<<"'";
+tempsql<<"`username`='"<<stringaddslash(data.username)<<"'";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`addip`='"<<stringaddslash(data.addip)<<"'";
+tempsql<<"`addtime`='"<<stringaddslash(data.addtime)<<"'";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`addregion`='"<<stringaddslash(data.addregion)<<"'";
+tempsql<<"`addip`='"<<stringaddslash(data.addip)<<"'";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
+tempsql<<"`addregion`='"<<stringaddslash(data.addregion)<<"'";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
 tempsql<<"`loginstate`='"<<stringaddslash(data.loginstate)<<"'";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`agent`='"<<stringaddslash(data.agent)<<"'";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  break;
 
      
@@ -573,11 +671,18 @@ tempsql<<"`loginstate`='"<<stringaddslash(data.loginstate)<<"'";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
+	if(record[i].logtype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].logtype);
+	}
 	tempsql<<",'"<<stringaddslash(record[i].username)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].addtime)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].addip)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].addregion)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].loginstate)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].agent)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
 	tempsql<<")";
 
  }
@@ -626,11 +731,18 @@ tempsql<<"`loginstate`='"<<stringaddslash(data.loginstate)<<"'";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
+	if(record[i].logtype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].logtype);
+	}
 	tempsql<<",'"<<stringaddslash(record[i].username)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].addtime)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].addip)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].addregion)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].loginstate)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].agent)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -726,19 +838,32 @@ if(data.userid==0){
 }
  break;
  case 2:
-	temparray.push_back(data.username);
+if(data.logtype==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.logtype));
+}
  break;
  case 3:
-	temparray.push_back(data.addtime);
+	temparray.push_back(data.username);
  break;
  case 4:
-	temparray.push_back(data.addip);
+	temparray.push_back(data.addtime);
  break;
  case 5:
-	temparray.push_back(data.addregion);
+	temparray.push_back(data.addip);
  break;
  case 6:
+	temparray.push_back(data.addregion);
+ break;
+ case 7:
 	temparray.push_back(data.loginstate);
+ break;
+ case 8:
+	temparray.push_back(data.agent);
+ break;
+ case 9:
+	temparray.push_back(data.urlpath);
  break;
 
                              default:
@@ -795,19 +920,32 @@ if(data.userid==0){
 }
  break;
  case 2:
-	tempsql.insert({"username",data.username});
+if(data.logtype==0){
+	tempsql.insert({"logtype","0"});
+ }else{ 
+	tempsql.insert({"logtype",std::to_string(data.logtype)});
+}
  break;
  case 3:
-	tempsql.insert({"addtime",data.addtime});
+	tempsql.insert({"username",data.username});
  break;
  case 4:
-	tempsql.insert({"addip",data.addip});
+	tempsql.insert({"addtime",data.addtime});
  break;
  case 5:
-	tempsql.insert({"addregion",data.addregion});
+	tempsql.insert({"addip",data.addip});
  break;
  case 6:
+	tempsql.insert({"addregion",data.addregion});
+ break;
+ case 7:
 	tempsql.insert({"loginstate",data.loginstate});
+ break;
+ case 8:
+	tempsql.insert({"agent",data.agent});
+ break;
+ case 9:
+	tempsql.insert({"urlpath",data.urlpath});
  break;
 
                              default:
@@ -832,6 +970,11 @@ if(data.userid==0){
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
+if(data.logtype==0){
+	tempsql<<",\"logtype\":0";
+ }else{ 
+	tempsql<<",\"logtype\":"<<std::to_string(data.logtype);
+}
 tempsql<<",\"username\":\""<<http::utf8_to_jsonstring(data.username);
 tempsql<<"\"";
 tempsql<<",\"addtime\":\""<<http::utf8_to_jsonstring(data.addtime);
@@ -841,6 +984,10 @@ tempsql<<"\"";
 tempsql<<",\"addregion\":\""<<http::utf8_to_jsonstring(data.addregion);
 tempsql<<"\"";
 tempsql<<",\"loginstate\":\""<<http::utf8_to_jsonstring(data.loginstate);
+tempsql<<"\"";
+tempsql<<",\"agent\":\""<<http::utf8_to_jsonstring(data.agent);
+tempsql<<"\"";
+tempsql<<",\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath);
 tempsql<<"\"";
 tempsql<<"}";
 
@@ -897,23 +1044,39 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(data.username)<<"\"";
+if(data.logtype==0){
+	tempsql<<"\"logtype\":0";
+ }else{ 
+	tempsql<<"\"logtype\":"<<std::to_string(data.logtype);
+}
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(data.addtime)<<"\"";
+tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(data.username)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(data.addip)<<"\"";
+tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(data.addtime)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(data.addregion)<<"\"";
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(data.addip)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(data.addregion)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
 tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(data.loginstate)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"agent\":\""<<http::utf8_to_jsonstring(data.agent)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
  break;
 
                              default:
@@ -1178,37 +1341,58 @@ tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(data.loginstate)<<"\"";
 			break;
 		case 2:
 		 try{
+			data.logtype=std::stoi(set_value_name);
+		}catch (...) { 
+			data.logtype=0;
+			 }
+			break;
+		case 3:
+		 try{
 			data.username.append(set_value_name);
 		}catch (...) { 
 			data.username.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.addtime.append(set_value_name);
 		}catch (...) { 
 			data.addtime.clear();
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.addip.append(set_value_name);
 		}catch (...) { 
 			data.addip.clear();
 			 }
 			break;
-		case 5:
+		case 6:
 		 try{
 			data.addregion.append(set_value_name);
 		}catch (...) { 
 			data.addregion.clear();
 			 }
 			break;
-		case 6:
+		case 7:
 		 try{
 			data.loginstate.append(set_value_name);
 		}catch (...) { 
 			data.loginstate.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.agent.append(set_value_name);
+		}catch (...) { 
+			data.agent.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.urlpath.append(set_value_name);
+		}catch (...) { 
+			data.urlpath.clear();
 			 }
 			break;
 	default:
@@ -1239,37 +1423,58 @@ tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(data.loginstate)<<"\"";
 			break;
 		case 2:
 		 try{
+			data.logtype=set_value_name;
+		}catch (...) { 
+			data.logtype=0;
+			 }
+			break;
+		case 3:
+		 try{
 			data.username=std::to_string(set_value_name);
 		}catch (...) { 
 			data.username.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.addtime=std::to_string(set_value_name);
 		}catch (...) { 
 			data.addtime.clear();
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.addip=std::to_string(set_value_name);
 		}catch (...) { 
 			data.addip.clear();
 			 }
 			break;
-		case 5:
+		case 6:
 		 try{
 			data.addregion=std::to_string(set_value_name);
 		}catch (...) { 
 			data.addregion.clear();
 			 }
 			break;
-		case 6:
+		case 7:
 		 try{
 			data.loginstate=std::to_string(set_value_name);
 		}catch (...) { 
 			data.loginstate.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.agent=std::to_string(set_value_name);
+		}catch (...) { 
+			data.agent.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.urlpath=std::to_string(set_value_name);
+		}catch (...) { 
+			data.urlpath.clear();
 			 }
 			break;
 	default:
@@ -1300,37 +1505,58 @@ tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(data.loginstate)<<"\"";
 			break;
 		case 2:
 		 try{
+			data.logtype=(int)set_value_name;
+		}catch (...) { 
+			data.logtype=0;
+			 }
+			break;
+		case 3:
+		 try{
 			data.username=std::to_string(set_value_name);
 		}catch (...) { 
 			data.username.clear();
 			 }
 			break;
-		case 3:
+		case 4:
 		 try{
 			data.addtime=std::to_string(set_value_name);
 		}catch (...) { 
 			data.addtime.clear();
 			 }
 			break;
-		case 4:
+		case 5:
 		 try{
 			data.addip=std::to_string(set_value_name);
 		}catch (...) { 
 			data.addip.clear();
 			 }
 			break;
-		case 5:
+		case 6:
 		 try{
 			data.addregion=std::to_string(set_value_name);
 		}catch (...) { 
 			data.addregion.clear();
 			 }
 			break;
-		case 6:
+		case 7:
 		 try{
 			data.loginstate=std::to_string(set_value_name);
 		}catch (...) { 
 			data.loginstate.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.agent=std::to_string(set_value_name);
+		}catch (...) { 
+			data.agent.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.urlpath=std::to_string(set_value_name);
+		}catch (...) { 
+			data.urlpath.clear();
 			 }
 			break;
 	default:
@@ -1397,23 +1623,39 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(record[n].username)<<"\"";
+if(record[n].logtype==0){
+	tempsql<<"\"logtype\":0";
+ }else{ 
+	tempsql<<"\"logtype\":"<<std::to_string(record[n].logtype);
+}
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(record[n].addtime)<<"\"";
+tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(record[n].username)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(record[n].addip)<<"\"";
+tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(record[n].addtime)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(record[n].addregion)<<"\"";
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(record[n].addip)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(record[n].addregion)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
 tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(record[n].loginstate)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"agent\":\""<<http::utf8_to_jsonstring(record[n].agent)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  break;
 
                              default:
@@ -1489,23 +1731,39 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(record[n].username)<<"\"";
+if(record[n].logtype==0){
+	tempsql<<"\"logtype\":0";
+ }else{ 
+	tempsql<<"\"logtype\":"<<std::to_string(record[n].logtype);
+}
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(record[n].addtime)<<"\"";
+tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(record[n].username)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(record[n].addip)<<"\"";
+tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(record[n].addtime)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(record[n].addregion)<<"\"";
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(record[n].addip)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(record[n].addregion)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
 tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(record[n].loginstate)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"agent\":\""<<http::utf8_to_jsonstring(record[n].agent)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  break;
 
                              default:
@@ -1524,6 +1782,9 @@ unsigned  int  getLgid(){  return data.lgid; }
 
 unsigned  int  getUserid(){  return data.userid; } 
  void setUserid(unsigned  int  val){  data.userid=val;} 
+
+unsigned  int  getLogtype(){  return data.logtype; } 
+ void setLogtype(unsigned  int  val){  data.logtype=val;} 
 
 std::string getUsername(){  return data.username; } 
 std::string& getRefUsername(){  return std::ref(data.username); } 
@@ -1549,6 +1810,16 @@ std::string getLoginstate(){  return data.loginstate; }
 std::string& getRefLoginstate(){  return std::ref(data.loginstate); } 
  void setLoginstate(std::string &val){  data.loginstate=val;} 
  void setLoginstate(std::string_view val){  data.loginstate=val;} 
+
+std::string getAgent(){  return data.agent; } 
+std::string& getRefAgent(){  return std::ref(data.agent); } 
+ void setAgent(std::string &val){  data.agent=val;} 
+ void setAgent(std::string_view val){  data.agent=val;} 
+
+std::string getUrlpath(){  return data.urlpath; } 
+std::string& getRefUrlpath(){  return std::ref(data.urlpath); } 
+ void setUrlpath(std::string &val){  data.urlpath=val;} 
+ void setUrlpath(std::string_view val){  data.urlpath=val;} 
 
 logininfobase::meta getnewData(){
  	 struct meta newdata;
@@ -1585,6 +1856,14 @@ std::vector<logininfobase::meta> getRecord(){
 		{
 			return data.loginstate;
 		}
+		 if(key_name=="agent")
+		{
+			return data.agent;
+		}
+		 if(key_name=="urlpath")
+		{
+			return data.urlpath;
+		}
 		return nullptr; 
 	}
 
@@ -1599,6 +1878,10 @@ std::vector<logininfobase::meta> getRecord(){
 		 if(key_name=="userid")
 		{
 			return data.userid;
+		}
+		 if(key_name=="logtype")
+		{
+			return data.logtype;
 		}
 		return nullptr; 
 	}
@@ -1627,6 +1910,9 @@ std::vector<logininfobase::meta> getRecord(){
 				 break;
 			case 1: 
  				 a.emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a.emplace_back(iter.logtype);
 				 break;
 
                     }
@@ -1659,6 +1945,9 @@ std::vector<logininfobase::meta> getRecord(){
 			case 1: 
  				 return data.userid;
 				 break;
+			case 2: 
+ 				 return data.logtype;
+				 break;
 			}
                 return 0;
             }  
@@ -1677,6 +1966,9 @@ std::vector<logininfobase::meta> getRecord(){
 				 break;
 			case 1: 
  				 return iter.userid;
+				 break;
+			case 2: 
+ 				 return iter.logtype;
 				 break;
 
 			}
@@ -1724,20 +2016,26 @@ std::vector<logininfobase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 return data.username;
 				 break;
-			case 3: 
+			case 4: 
  				 return data.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 return data.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 return data.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 return data.loginstate;
+				 break;
+			case 8: 
+ 				 return data.agent;
+				 break;
+			case 9: 
+ 				 return data.urlpath;
 				 break;
 
                 }
@@ -1754,20 +2052,26 @@ std::vector<logininfobase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 return iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 return iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 return iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 return iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 return iter.loginstate;
+				 break;
+			case 8: 
+ 				 return iter.agent;
+				 break;
+			case 9: 
+ 				 return iter.urlpath;
 				 break;
 
                 }
@@ -1790,20 +2094,26 @@ std::vector<logininfobase::meta> getRecord(){
                     switch(kpos)
                     {
 
-    			case 2: 
+    			case 3: 
  				 a.emplace_back(iter.username);
 					 break;
-			case 3: 
+			case 4: 
  				 a.emplace_back(iter.addtime);
 					 break;
-			case 4: 
+			case 5: 
  				 a.emplace_back(iter.addip);
 					 break;
-			case 5: 
+			case 6: 
  				 a.emplace_back(iter.addregion);
 					 break;
-			case 6: 
+			case 7: 
  				 a.emplace_back(iter.loginstate);
+					 break;
+			case 8: 
+ 				 a.emplace_back(iter.agent);
+					 break;
+			case 9: 
+ 				 a.emplace_back(iter.urlpath);
 					 break;
 					}
 				}
@@ -1843,33 +2153,48 @@ std::vector<logininfobase::meta> getRecord(){
  				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
+ 				 a<<std::to_string(iter.logtype);
+				 break;
+			case 3: 
  				 if(isyinhao){ a<<jsonaddslash(iter.username); 
 				 }else{
 				 a<<iter.username;
 				 }
 				 break;
-			case 3: 
+			case 4: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addtime); 
 				 }else{
 				 a<<iter.addtime;
 				 }
 				 break;
-			case 4: 
+			case 5: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addip); 
 				 }else{
 				 a<<iter.addip;
 				 }
 				 break;
-			case 5: 
+			case 6: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addregion); 
 				 }else{
 				 a<<iter.addregion;
 				 }
 				 break;
-			case 6: 
+			case 7: 
  				 if(isyinhao){ a<<jsonaddslash(iter.loginstate); 
 				 }else{
 				 a<<iter.loginstate;
+				 }
+				 break;
+			case 8: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.agent); 
+				 }else{
+				 a<<iter.agent;
+				 }
+				 break;
+			case 9: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
+				 }else{
+				 a<<iter.urlpath;
 				 }
 				 break;
 
@@ -1897,37 +2222,49 @@ std::vector<logininfobase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 				 } 
 			switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 
                 }
@@ -1957,20 +2294,26 @@ std::vector<logininfobase::meta> getRecord(){
                     switch(kpos)
                     {
  
-       			case 2: 
+       			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 } 
 		 switch(vpos){
@@ -2006,6 +2349,9 @@ std::vector<logininfobase::meta> getRecord(){
 case 1: 
  	 ktemp=iter.userid;
 	 break;
+case 2: 
+ 	 ktemp=iter.logtype;
+	 break;
 	 } 
  		  switch(vpos){
 
@@ -2039,22 +2385,31 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			  }
  			switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 
                     }
@@ -2082,20 +2437,26 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
  			 switch(vpos){
@@ -2104,6 +2465,9 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
 				 break;
 
                 }
@@ -2137,6 +2501,9 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			  }
  			switch(vpos){
 			case 0: 
@@ -2144,6 +2511,9 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
 				 break;
 
                 }
@@ -2174,6 +2544,9 @@ case 1:
 			case 1: 
  				 a.emplace(iter.userid,iter);
 				 break;
+			case 2: 
+ 				 a.emplace(iter.logtype,iter);
+				 break;
 
                 }
             }       
@@ -2194,20 +2567,26 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 a.emplace(iter.username,iter);
 			 break;
-			case 3: 
+			case 4: 
  				 a.emplace(iter.addtime,iter);
 			 break;
-			case 4: 
+			case 5: 
  				 a.emplace(iter.addip,iter);
 			 break;
-			case 5: 
+			case 6: 
  				 a.emplace(iter.addregion,iter);
 			 break;
-			case 6: 
+			case 7: 
  				 a.emplace(iter.loginstate,iter);
+			 break;
+			case 8: 
+ 				 a.emplace(iter.agent,iter);
+			 break;
+			case 9: 
+ 				 a.emplace(iter.urlpath,iter);
 			 break;
 
                 }
@@ -2233,20 +2612,26 @@ case 1:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 	 		 }
  			switch(vpos){
@@ -2281,6 +2666,9 @@ case 1:
 			 break;
 			case 1: 
  				 ktemp=iter.userid;
+			 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
 			 break;
 			  }
 			 switch(vpos){
@@ -2317,22 +2705,31 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			  }
  			switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 
                    }
@@ -2359,20 +2756,26 @@ case 1:
                     switch(kpos)
                     {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
  			 switch(vpos){
@@ -2381,6 +2784,9 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
 				 break;
 
                    }
@@ -2411,6 +2817,9 @@ case 1:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			  }
 			 switch(vpos){
 			case 0: 
@@ -2418,6 +2827,9 @@ case 1:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
 				 break;
 
                    }
@@ -2442,37 +2854,49 @@ case 1:
                     switch(kpos)
                     {
 
-   case 2: 
+   case 3: 
  	 ktemp=iter.username;
 	 break;
-case 3: 
+case 4: 
  	 ktemp=iter.addtime;
 	 break;
-case 4: 
+case 5: 
  	 ktemp=iter.addip;
 	 break;
-case 5: 
+case 6: 
  	 ktemp=iter.addregion;
 	 break;
-case 6: 
+case 7: 
  	 ktemp=iter.loginstate;
+	 break;
+case 8: 
+ 	 ktemp=iter.agent;
+	 break;
+case 9: 
+ 	 ktemp=iter.urlpath;
 	 break;
 	  }
  switch(vpos){
-case 2: 
+case 3: 
  	 vtemp=iter.username;
 	 break;
-case 3: 
+case 4: 
  	 vtemp=iter.addtime;
 	 break;
-case 4: 
+case 5: 
  	 vtemp=iter.addip;
 	 break;
-case 5: 
+case 6: 
  	 vtemp=iter.addregion;
 	 break;
-case 6: 
+case 7: 
  	 vtemp=iter.loginstate;
+	 break;
+case 8: 
+ 	 vtemp=iter.agent;
+	 break;
+case 9: 
+ 	 vtemp=iter.urlpath;
 	 break;
 
                    }
@@ -2501,6 +2925,9 @@ case 6:
 case 1: 
  	 a.emplace_back(iter.userid,iter);
 	 break;
+case 2: 
+ 	 a.emplace_back(iter.logtype,iter);
+	 break;
 
                 }
             }       
@@ -2519,20 +2946,26 @@ case 1:
                 switch(kpos)
                 {
 
-   case 2: 
+   case 3: 
  	 a.emplace_back(iter.username,iter);
 	 break;
-case 3: 
+case 4: 
  	 a.emplace_back(iter.addtime,iter);
 	 break;
-case 4: 
+case 5: 
  	 a.emplace_back(iter.addip,iter);
 	 break;
-case 5: 
+case 6: 
  	 a.emplace_back(iter.addregion,iter);
 	 break;
-case 6: 
+case 7: 
  	 a.emplace_back(iter.loginstate,iter);
+	 break;
+case 8: 
+ 	 a.emplace_back(iter.agent,iter);
+	 break;
+case 9: 
+ 	 a.emplace_back(iter.urlpath,iter);
 	 break;
 
                 }
@@ -2563,6 +2996,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			  }
 
 			 switch(vpos){
@@ -2571,6 +3007,9 @@ case 6:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
 				 break;
 			  }
 
@@ -2607,6 +3046,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			  }
 
 			 switch(vpos){
@@ -2616,6 +3058,9 @@ case 6:
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
+				 break;
 			  }
 
 			 switch(dpos){
@@ -2624,6 +3069,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -2656,6 +3104,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 				  }
 
 			 switch(vpos){
@@ -2665,23 +3116,32 @@ case 6:
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
+				 break;
 			 }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.username);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.addtime);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.addip);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.addregion);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -2715,23 +3175,32 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			  }
 
@@ -2768,23 +3237,32 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			 }
 
@@ -2794,6 +3272,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.logtype);
 				 break;
 
             }
@@ -2825,41 +3306,56 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.username);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.addtime);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.addip);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.addregion);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -2885,20 +3381,26 @@ case 6:
                     switch(kpos)
                     {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
@@ -2908,6 +3410,9 @@ case 6:
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
+				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
 				 break;
 			  }
 
@@ -2939,20 +3444,26 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
@@ -2963,6 +3474,9 @@ case 6:
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
+				 break;
 			 }
 
 			 switch(dpos){
@@ -2971,6 +3485,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -2999,20 +3516,26 @@ case 6:
             switch(kpos)
             {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
@@ -3023,23 +3546,32 @@ case 6:
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.logtype;
+				 break;
 			 }
 
 			switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.username);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.addtime);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.addip);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.addregion);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
 
             }
@@ -3066,38 +3598,50 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			  }
 
@@ -3128,38 +3672,50 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			 }
 
@@ -3169,6 +3725,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -3195,56 +3754,74 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 vtemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 vtemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 vtemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 vtemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.username);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][vtemp].emplace_back(iter.addtime);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.addip);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.addregion);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -3270,38 +3847,50 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp].emplace_back(iter.username);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp].emplace_back(iter.addtime);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp].emplace_back(iter.addip);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp].emplace_back(iter.addregion);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -3326,20 +3915,26 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
@@ -3369,20 +3964,26 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
@@ -3392,6 +3993,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -3423,23 +4027,32 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp].emplace_back(iter.username);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp].emplace_back(iter.addtime);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp].emplace_back(iter.addip);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp].emplace_back(iter.addregion);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -3471,6 +4084,9 @@ case 6:
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
+				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
 
@@ -3505,6 +4121,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			 }
 
 			 switch(vpos){
@@ -3513,6 +4132,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
+				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -3540,6 +4162,9 @@ case 6:
 			case 1: 
  				 a[iter.userid].emplace_back(iter);
 				 break;
+			case 2: 
+ 				 a[iter.logtype].emplace_back(iter);
+				 break;
 
                 }
             }       
@@ -3561,20 +4186,26 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 a[iter.username].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[iter.addtime].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[iter.addip].emplace_back(iter);
 				 break;
-			case 5: 
+			case 6: 
  				 a[iter.addregion].emplace_back(iter);
 				 break;
-			case 6: 
+			case 7: 
  				 a[iter.loginstate].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[iter.agent].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[iter.urlpath].emplace_back(iter);
 				 break;
 
                 }
@@ -3599,38 +4230,50 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][iter.username].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][iter.addtime].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][iter.addip].emplace_back(iter);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][iter.addregion].emplace_back(iter);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][iter.loginstate].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[ktemp][iter.agent].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.urlpath].emplace_back(iter);
 				 break;
 
                 }
@@ -3655,20 +4298,26 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 2: 
+   			case 3: 
  				 ktemp=iter.username;
 				 break;
-			case 3: 
+			case 4: 
  				 ktemp=iter.addtime;
 				 break;
-			case 4: 
+			case 5: 
  				 ktemp=iter.addip;
 				 break;
-			case 5: 
+			case 6: 
  				 ktemp=iter.addregion;
 				 break;
-			case 6: 
+			case 7: 
  				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 	  }
 
@@ -3678,6 +4327,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[ktemp][iter.logtype].emplace_back(iter);
 				 break;
 
                 }
@@ -3709,6 +4361,9 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			 }
 
 			 switch(vpos){
@@ -3717,6 +4372,9 @@ case 6:
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
+				 break;
+			case 2: 
+ 				 a[ktemp][iter.logtype].emplace_back(iter);
 				 break;
 
                 }
@@ -3748,23 +4406,32 @@ case 6:
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.logtype;
+				 break;
 			  }
 
 			 switch(vpos){
-			case 2: 
+			case 3: 
  				 a[ktemp][iter.username].emplace_back(iter);
 				 break;
-			case 3: 
+			case 4: 
  				 a[ktemp][iter.addtime].emplace_back(iter);
 				 break;
-			case 4: 
+			case 5: 
  				 a[ktemp][iter.addip].emplace_back(iter);
 				 break;
-			case 5: 
+			case 6: 
  				 a[ktemp][iter.addregion].emplace_back(iter);
 				 break;
-			case 6: 
+			case 7: 
  				 a[ktemp][iter.loginstate].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[ktemp][iter.agent].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.urlpath].emplace_back(iter);
 				 break;
 
                 }

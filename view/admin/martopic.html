@@ -8,7 +8,7 @@
   <title>栏目管理</title>
 
   <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
 
   <link href="/css/dashboard.css" rel="stylesheet">
   <script src="/js/jquery.min.js"></script>  
@@ -30,6 +30,7 @@
               <th scope="col">url</th>
               <th scope="col">类型</th>
               <th scope="col">排序</th>
+              <th scope="col">显示</th>
               <th scope="col">编辑</th>
             </tr>
           </thead>
@@ -64,14 +65,40 @@
                             case 4:
                                  echo<<"文档目录";
                                  break;
+                            case 5:
+                                 echo<<"新闻列表";
+                                 break;       
+                            case 7:
+                                 echo<<"产品展示";
+                                 break;     
                             case 13:
                                  echo<<"博客类型";
-                                 break;       
+                                 break;   
+                            case 24:
+                                 echo<<"品牌分类";
+                                 break;  
+                            case 31:
+                                 echo<<"文章首页图片1";
+                                 break;  
+                            case 32:
+                                 echo<<"文章首页图片2";
+                                 break;      
+                            case 33:
+                                 echo<<"文章单页图片3";
+                                 break;   
+                            case 34:
+                                 echo<<"文章列表无日期1";
+                                 break;  
+                            case 35:
+                                 echo<<"文章单页图片4";                                 
+                                 break;                
                       }
                   %>
                 </td>
                 <td>
                   <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatetopic(<%c echo<<a.second["id"].to_string(); %>,this.value)">
+                </td>
+                <td><input class="form-check-input" type="checkbox" value="<%c echo<<a.second["id"].to_string(); %>" id="art_<%c echo<<a.second["id"].to_string(); %>" onclick="artupdateview(this)" <%c if(a.second["isview"].to_int()==1){ %>checked<%c } %> >
                 </td>
                 <td>
                   <a href="/admin/edittopic?id=<%c echo<<a.second["id"].to_string(); %>">编辑</a>｜
@@ -110,6 +137,17 @@
       function updatetopic(id,sortid)
     {
        $.getJSON("/admin/updatetopicsort?id="+id+"&sortid="+sortid,function(result){
+                               
+       });
+    }
+    function artupdateview(obj)
+    {
+      let isview=0;
+      if(obj.checked)
+        {
+           isview=1;
+        }
+        $.post("/admin/updatetopicview?id="+obj.value,{isview:isview},function(result){
                                
        });
     }

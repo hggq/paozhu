@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>登录</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+
+  <link href="/css/dashboard.css" rel="stylesheet">
+<style>
+html,
+body {
+  height: 100%;
+}
+.form-signin {
+  max-width: 330px;
+  padding: 1rem;
+}
+
+.form-signin .form-floating:focus-within {
+  z-index: 2;
+}
+</style>
+</head>
+
+<body class="d-flex align-items-center py-4 bg-body-tertiary">
+
+  <div class="container-fluid">
+<main class="form-signin w-100 m-auto">
+  <form action="/superadmin/loginpost" method="post">
+    <h1 class="h3 mb-3 fw-normal">Please sign in</h1>
+    <div class="form-floating">
+      <input type="text" class="form-control" id="username" name="username" value="admin" placeholder="admin or name@example.com">
+      <label for="floatingInput">Admin name</label>
+    </div>
+    <div class="form-floating">
+      <input type="password" class="form-control" id="password" name="password" value="123456" placeholder="Password">
+      <label for="floatingPassword">Password</label>
+    </div>
+
+    <div class="form-check text-start my-3">
+      <input class="form-check-input" type="checkbox" value="1" id="flexCheckDefault" name="remberme">
+      <label class="form-check-label" for="flexCheckDefault">
+        Remember me
+      </label>
+    </div>
+    <button class="btn btn-primary w-100 py-2" type="submit">Sign in</button>
+    <p class="mt-5 mb-3 text-body-secondary">&copy; 2017–2023</p>
+    <p class="mt-5 mb-3 text-body-secondary">by paozhu</p>
+  </form>
+</main>
+
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

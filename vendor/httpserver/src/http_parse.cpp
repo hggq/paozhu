@@ -1198,6 +1198,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                             if (str_casecmp(header_key, "Connection"))
                             {
                                 getconnection();
+                                peer->keepalive = peer->state.keepalive;
                             }
                             break;
                         case 'u':
@@ -1468,13 +1469,23 @@ void httpparse::getupgrade()
 }
 void httpparse::getconnection()
 {
+    if (header_value[0] == 'K' || header_value[0] == 'k')
+    {
+        if (header_value[1] == 'e' || header_value[1] == 'E')
+        {
+            peer->state.keepalive = true;
+            return;
+        }
+    }
     if (str_casecmp(header_value, "keep-alive"))
     {
         peer->state.keepalive = true;
+        return;
     }
     if (str_casecmp(header_value, "Upgrade"))
     {
         peer->state.upgradeconnection = true;
+        return;
     }
     if (header_value[0] == 'c' || header_value[0] == 'C')
     {

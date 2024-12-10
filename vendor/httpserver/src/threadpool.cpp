@@ -240,7 +240,7 @@ ThreadPool::ThreadPool(size_t threads) : isstop(false)
 {
     isclose_add = true;
     cpu_threads = std::thread::hardware_concurrency();
-    cpu_threads = cpu_threads * 2 + 2;
+    cpu_threads = cpu_threads * 4 + 2;
     pooltotalnum.store(0);
     livethreadcount.store(0);
     mixthreads.store(16);
@@ -328,6 +328,26 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
             }
         }
         DEBUG_LOG("begin method");
+
+        bool is_use_alias_domain = false;
+
+        if (sysconfigpath.sitehostinfos[peer->host_index].alias_domain.size() > 0)
+        {
+            is_use_alias_domain = true;
+        }
+        std::map<std::string, std::map<std::string, regmethold_t>>::iterator domain_method_map_iter          = _domain_regmethod_table.end();
+        std::map<std::string, std::map<std::string, std::vector<std::string>>>::iterator domain_url_map_iter = _domain_regurlpath_table.end();
+        if (is_use_alias_domain)
+        {
+            domain_method_map_iter = _domain_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].alias_domain);
+            domain_url_map_iter    = _domain_regurlpath_table.find(sysconfigpath.sitehostinfos[peer->host_index].alias_domain);
+        }
+        else
+        {
+            domain_method_map_iter = _domain_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].mainhost);
+            domain_url_map_iter    = _domain_regurlpath_table.find(sysconfigpath.sitehostinfos[peer->host_index].mainhost);
+        }
+
         if (peer->pathinfos.size() > 0)
         {
             unsigned int pathinfos_size = peer->pathinfos.size();
@@ -342,6 +362,31 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                     }
                     regmethold_path.append(get_filename(peer->pathinfos[j]));
                 }
+
+                if (domain_method_map_iter != _domain_regmethod_table.end())
+                {
+                    if (domain_method_map_iter->second.contains(regmethold_path))//!= _http_regmethod_table.end()
+                    {
+                        if (pathinfos_size != i)
+                        {
+                            if (domain_url_map_iter != _domain_regurlpath_table.end() && domain_url_map_iter->second.contains(regmethold_path))//!= _http_regurlpath_table.end()
+                            {
+                                for (unsigned int m = i; m < pathinfos_size; m++)
+                                {
+                                    if (domain_url_map_iter->second[regmethold_path].size() > m)
+                                    {
+                                        if (domain_url_map_iter->second[regmethold_path][m].size() > 0)
+                                        {
+                                            peer->get[domain_url_map_iter->second[regmethold_path][m]] = peer->pathinfos[m];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+
                 if (_http_regmethod_table.contains(regmethold_path))//!= _http_regmethod_table.end()
                 {
                     if (pathinfos_size != i)
@@ -405,8 +450,98 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         }
 
         sitecontent.clear();
-        auto method_iter = _http_regmethod_table.find(regmethold_path);
-        if (method_iter != _http_regmethod_table.end())
+        unsigned char method_type = 0;
+
+        if (domain_method_map_iter != _domain_regmethod_table.end())
+        {
+            auto method_iter = domain_method_map_iter->second.find(regmethold_path);
+            if (method_iter != domain_method_map_iter->second.end())
+            {
+                DEBUG_LOG("http domain regmethod main in");
+                method_type = 10;
+                for (int i = 0; i < 30; i++)
+                {
+                    if (method_iter->second.pre != nullptr)
+                    {
+                        sitecontent = method_iter->second.pre(peer);
+                        if (sitecontent.size() == 2 && str_casecmp(sitecontent, "ok"))
+                        {
+                            sitecontent = method_iter->second.regfun(peer);
+                            if (sitecontent.size() == 1 && sitecontent[0] == 'T')
+                            {
+                                auto method_loop_iter = domain_method_map_iter->second.find("frametasks_timeloop");
+                                if (method_loop_iter != domain_method_map_iter->second.end())// != _http_regmethod_table.end()
+                                {
+                                    sitecontent = method_loop_iter->second.regfun(peer);
+                                }
+                                sitecontent.clear();
+                            }
+                        }
+                        else
+                        {
+                            if (sitecontent.empty())
+                            {
+                                regmethold_path.clear();
+                                break;
+                            }
+                            if (str_casecmp(regmethold_path, sitecontent))
+                            {
+                                sitecontent = method_iter->second.regfun(peer);
+                            }
+                            else
+                            {
+                                peer->push_flow(regmethold_path);// record not execute method
+                                auto method_loop_iter = domain_method_map_iter->second.find(sitecontent);
+                                if (method_loop_iter != domain_method_map_iter->second.end())//_http_regmethod_table.find(sitecontent) == _http_regmethod_table.end()
+                                {
+                                    sitecontent = method_loop_iter->second.regfun(peer);
+                                }
+                                else
+                                {
+                                    //sitecontent.clear();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        sitecontent = method_iter->second.regfun(peer);
+                    }
+
+                    if (sitecontent.empty())
+                    {
+                        regmethold_path.clear();
+                        break;
+                    }
+                    if (sitecontent.size() == 4 && str_casecmp(sitecontent, "exit"))
+                    {
+                        sitecontent.clear();
+                        regmethold_path.clear();
+                        break;
+                    }
+
+                    method_iter = domain_method_map_iter->second.find(sitecontent);
+                    if (method_iter == domain_method_map_iter->second.end())// == _http_regmethod_table.end()
+                    {
+                        //sitecontent.clear();
+                        regmethold_path.clear();
+                        break;
+                    }
+                    regmethold_path = sitecontent;
+                }
+            }
+            if (!sitecontent.empty())
+            {
+                regmethold_path = sitecontent;
+                method_type     = 1;
+            }
+        }
+
+        if (method_type > 9)
+        {
+        }
+        else if (auto method_iter = _http_regmethod_table.find(regmethold_path); method_iter != _http_regmethod_table.end())
         {
             DEBUG_LOG("http_regmethod main in");
             for (int i = 0; i < 30; i++)
@@ -475,147 +610,12 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                 regmethold_path = sitecontent;
             }
         }
+        else if (method_type > 0)
+        {
+        }
         else
         {
-#ifdef ENABLE_BOOST
-
-            std::string moduleso, sopath;
-            if (peer->pathinfos.size() > 0)
-            {
-                regmethold_path = get_filename(peer->pathinfos[0]);
-                regmethold_path = str2safepath((const char *)&regmethold_path[0], regmethold_path.size());
-
-                peer->pathinfos[0] = regmethold_path;
-            }
-            else
-            {
-                regmethold_path = "";
-            }
-
-            if (sysconfigpath.map_value.find(peer->host) != sysconfigpath.map_value.end())
-            {
-                if (sysconfigpath.map_value[peer->host].find("controlsopath") !=
-                    sysconfigpath.map_value[peer->host].end())
-                {
-                    moduleso = sysconfigpath.map_value[peer->host]["controlsopath"];
-                }
-            }
-            if (moduleso.empty())
-            {
-                moduleso = sysconfigpath.map_value["default"]["controlsopath"];
-            }
-            if (moduleso.size() > 0 && moduleso.back() != '/')
-            {
-                moduleso.push_back('/');
-            }
-
-            sopath = moduleso;
-            if (peer->pathinfos.size() > 0)
-            {
-                moduleso.append(peer->pathinfos[0]);
-            }
-            moduleso.append(".so");
-            struct stat modso;
-            DEBUG_LOG("so:%s", moduleso.c_str());
-            if (stat(moduleso.c_str(), &modso) == 0)
-            {
-                if (modso.st_mode & S_IFREG)
-                {
-
-                    peer->isso = true;
-                    if (peer->pathinfos.size() > 1)
-                    {
-
-                        regmethold_path =
-                            str2safemethold((const char *)&peer->pathinfos[1][0], peer->pathinfos[1].size());
-                        peer->pathinfos[1] = regmethold_path;
-                        if (regmethold_path[0] == 'i' && str_casecmp(regmethold_path, "index"))
-                        {
-                            regmethold_path = "home";
-                        }
-                    }
-                    else
-                    {
-                        regmethold_path = "home";
-                    }
-                    auto sitemodloadis      = loadcontrol(moduleso, regmethold_path);
-                    std::string sitecontent = sitemodloadis(peer);
-                    peer->isso              = false;
-
-                    if (sitecontent.size() > 2 &&
-                        _http_regmethod_table.find(sitecontent) != _http_regmethod_table.end())
-                    {
-
-                        if (_http_regmethod_table[sitecontent].pre != nullptr)
-                        {
-                            sitecontent = _http_regmethod_table[sitecontent].pre(peer);
-                            if (str_casecmp(sitecontent, "ok"))
-                            {
-                                sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
-                            }
-                        }
-                        else
-                        {
-                            sitecontent = _http_regmethod_table[sitecontent].regfun(peer);
-                        }
-                    }
-                    else if (sitecontent.size() > 2)
-                    {
-                        std::string filename;
-                        unsigned int i = 0;
-                        regmethold_path.clear();
-                        for (; i < sitecontent.size(); i++)
-                        {
-                            if (sitecontent[i] == '/')
-                            {
-                                i++;
-                                break;
-                            }
-                            filename.push_back(sitecontent[i]);
-                        }
-                        if (filename.size() > 0)
-                        {
-                            for (; i < sitecontent.size(); i++)
-                            {
-                                if (sitecontent[i] == '/')
-                                {
-                                    i++;
-                                    break;
-                                }
-                                regmethold_path.push_back(sitecontent[i]);
-                            }
-                            if (regmethold_path.size() > 0)
-                            {
-                                moduleso = sopath;
-                                moduleso.append(filename);
-                                moduleso.append(".so");
-                                memset(&modso, 0, sizeof(modso));
-                                if (stat(moduleso.c_str(), &modso) == 0)
-                                {
-                                    if (modso.st_mode & S_IFREG)
-                                    {
-                                        peer->isso    = true;
-                                        sitemodloadis = loadcontrol(moduleso, regmethold_path);
-                                        sitecontent   = sitemodloadis(peer);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    make_404_content(peer);
-                }
-            }
-            else
-            {
-                make_404_content(peer);
-            }
-#endif
-#ifndef ENABLE_BOOST
             make_404_content(peer);
-#endif
         }
         DEBUG_LOG("action method after");
         if (sysconfigpath.sitehostinfos[peer->host_index].is_method_after)

@@ -8,7 +8,7 @@
   <title>Paozhu admin</title>
 
   <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
   <link href="/css/dashboard.css" rel="stylesheet">
   <style>
 
@@ -60,7 +60,53 @@
               </a>
             </li>
             <li>
-              <a href="/admin/siteinfo"><i class="bi bi-gear"></i>网站设置</a>
+              <a href="javascript:" class="has-children open">
+                <i class="bi bi-gear"></i>网站设置
+              </a>
+              <ul>
+                <li>
+                  <a href="/admin/siteinfo">基本信息</a>
+                </li>
+                <li>
+                  <a href="/admin/sitelogo">网站logo</a>
+                </li>
+                <li>
+                  <a href="/admin/copyright">版权信息</a>
+                </li>
+                <li>
+                  <a href="/admin/footscript">底部脚本</a>
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <a href="javascript:" class="has-children open">
+                <i class="bi bi-pencil-square"></i>附件管理
+              </a>
+              <ul>
+                <li>
+                  <a href="/attachfile/upload">上传文件</a>
+                </li>
+                <li>
+                  <a href="/attachfile/gateway">文件附件</a>
+                </li>
+                <li>
+                  <a href="/attachimg/gateway">网站图片</a>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a href="javascript:" class="has-children open">
+                <i class="bi bi-pencil-square"></i>首页设置
+              </a>
+              <ul>
+                <li>
+                  <a href="/admin/homedesign">首页设计</a>
+                </li>
+                <li>
+                  <a href="/admin/marhome">内容块列表</a>
+                </li>
+              </ul>
             </li>
             <li>
               <a href="javascript:" class="has-children open">
@@ -86,6 +132,28 @@
                 </li>
                 <li>
                   <a href="/admin/listarticle">文章列表</a>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a href="javascript:" class="has-children open">
+                <i class="bi bi-pencil-square"></i>产品管理
+              </a>
+              <ul>
+                <li>
+                  <a href="/admin/marcatalogue">分类管理</a>
+                </li>
+                <li>
+                  <a href="/admin/marbrand">类别品牌</a>
+                </li>
+                <li>
+                  <a href="/admin/addproduct">添加产品</a>
+                </li>
+                <li>
+                  <a href="/admin/listproduct">产品列表</a>
+                </li>
+                <li>
+                  <a href="/admin/marproductattach">产品附件</a>
                 </li>
               </ul>
             </li>

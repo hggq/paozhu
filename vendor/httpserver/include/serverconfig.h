@@ -30,12 +30,16 @@ struct site_host_info_t
     std::string privateKey_file;
     std::string static_pre_method;
     std::string document_index;
+    std::string alias_domain;
+    std::string themes;
+    std::string themes_url;
     std::vector<std::string> action_404_lists;
     std::vector<std::string> action_pre_lists;
     std::vector<std::string> action_after_lists;
     std::vector<std::string> static_pre_lists;
     std::vector<std::pair<std::string, std::string>> rewrite_php_lists;
     unsigned long long siteid    = 0;
+    unsigned long long groupid   = 0;
     unsigned int rewrite404      = 0;
     unsigned int upload_max_size = 0;
     //unsigned int http_header_max_size = 0;
@@ -47,6 +51,8 @@ struct site_host_info_t
     bool is_static_pre     = false;
     bool is_show_directory = false;
     bool is_limit_upload   = false;
+    bool is_close          = false;
+    bool is_proxy          = false;
 };
 class serverconfig
 {
@@ -64,6 +70,7 @@ class serverconfig
     std::string ssl_chain_file();
     std::string ssl_key_file();
     std::string ssl_dh_file();
+    std::string ssl_chain_crt_file();
     SSL_CTX *getctx(std::string filename);
     SSL_CTX *getdefaultctx();
 

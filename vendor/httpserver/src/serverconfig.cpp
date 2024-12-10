@@ -6,6 +6,8 @@
 #include <cstring>
 #include "httppeer.h"
 #include "func.h"
+#include "terminal_color.h"
+
 namespace http
 {
 serverconfig &getserversysconfig()
@@ -697,6 +699,60 @@ bool serverconfig::loadserverglobalconfig()
         tempinfo_default.siteid = 0;
     }
 
+    if (map_value["default"]["groupid"].size() > 0)
+    {
+        tempinfo_default.groupid = 0;
+        for (unsigned int i = 0; i < map_value["default"]["groupid"].size(); i++)
+        {
+            if (map_value["default"]["groupid"][i] >= '0' && map_value["default"]["groupid"][i] <= '9')
+            {
+                tempinfo_default.groupid = tempinfo_default.groupid * 10 + (map_value["default"]["groupid"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["groupid"][i] == 0x20)
+            {
+                continue;
+            }
+            break;
+        }
+    }
+    else
+    {
+        tempinfo_default.groupid = 0;
+    }
+
+    if (map_value["default"]["alias_domain"].size() > 2)
+    {
+        tempinfo_default.alias_domain.clear();
+        for (unsigned int i = 0; i < map_value["default"]["alias_domain"].size(); i++)
+        {
+            if (map_value["default"]["alias_domain"][i] >= '0' && map_value["default"]["alias_domain"][i] <= '9')
+            {
+                tempinfo_default.alias_domain.push_back(map_value["default"]["alias_domain"][i]);
+            }
+            else if (map_value["default"]["alias_domain"][i] >= 'a' && map_value["default"]["alias_domain"][i] <= 'z')
+            {
+                tempinfo_default.alias_domain.push_back(map_value["default"]["alias_domain"][i]);
+            }
+            else if (map_value["default"]["alias_domain"][i] >= 'A' && map_value["default"]["alias_domain"][i] <= 'Z')
+            {
+                tempinfo_default.alias_domain.push_back(map_value["default"]["alias_domain"][i]);
+            }
+            else if (map_value["default"]["alias_domain"][i] == '.')
+            {
+                tempinfo_default.alias_domain.push_back(map_value["default"]["alias_domain"][i]);
+            }
+            else if (map_value["default"]["alias_domain"][i] == '_')
+            {
+                tempinfo_default.alias_domain.push_back(map_value["default"]["alias_domain"][i]);
+            }
+            else if (map_value["default"]["alias_domain"][i] == '-')
+            {
+                tempinfo_default.alias_domain.push_back(map_value["default"]["alias_domain"][i]);
+            }
+        }
+    }
+
     if (map_value["default"]["directorylist"].size() > 0 && map_value["default"]["directorylist"][0] == '1')
     {
         tempinfo_default.is_show_directory = true;
@@ -868,6 +924,9 @@ bool serverconfig::loadserverglobalconfig()
                 tempinfo.mainhost = first;
                 tempinfo.certificate_file.clear();
                 tempinfo.privateKey_file.clear();
+                tempinfo.alias_domain.clear();
+                tempinfo.themes.clear();
+                tempinfo.themes_url.clear();
 
                 for (auto [itemname, itemval] : second)
                 {
@@ -1300,7 +1359,137 @@ bool serverconfig::loadserverglobalconfig()
                             break;
                         }
                     }
+                    else if (itemname == "groupid")
+                    {
+                        tempinfo.groupid = 0;
+                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        {
+                            if (itemval[i] >= '0' && itemval[i] <= '9')
+                            {
+                                tempinfo.groupid = tempinfo.groupid * 10 + (itemval[i] - '0');
+                                continue;
+                            }
+                            else if (itemval[i] == 0x20)
+                            {
+                                continue;
+                            }
+                            break;
+                        }
+                    }
+                    else if (itemname == "is_close")
+                    {
+                        if (itemval.size() > 0 && (itemval[0] == '1' || itemval[0] == 'T' || itemval[0] == 't'))
+                        {
+                            tempinfo.is_close = true;
+                        }
+                        else
+                        {
+                            tempinfo.is_close = false;
+                        }
+                    }
+                    else if (itemname == "alias_domain")
+                    {
+                        tempinfo.alias_domain.clear();
+                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        {
+                            if (itemval[i] >= '0' && itemval[i] <= '9')
+                            {
+                                tempinfo.alias_domain.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] >= 'a' && itemval[i] <= 'z')
+                            {
+                                tempinfo.alias_domain.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] >= 'A' && itemval[i] <= 'Z')
+                            {
+                                tempinfo.alias_domain.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '.')
+                            {
+                                tempinfo.alias_domain.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '_')
+                            {
+                                tempinfo.alias_domain.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '-')
+                            {
+                                tempinfo.alias_domain.push_back(itemval[i]);
+                            }
+                        }
+                    }
+                    else if (itemname == "themes")
+                    {
+                        tempinfo.themes.clear();
+                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        {
+                            if (itemval[i] >= '0' && itemval[i] <= '9')
+                            {
+                                tempinfo.themes.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] >= 'a' && itemval[i] <= 'z')
+                            {
+                                tempinfo.themes.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] >= 'A' && itemval[i] <= 'Z')
+                            {
+                                tempinfo.themes.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '.')
+                            {
+                                tempinfo.themes.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '_')
+                            {
+                                tempinfo.themes.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '-')
+                            {
+                                tempinfo.themes.push_back(itemval[i]);
+                            }
+                        }
+                    }
+                    else if (itemname == "themes_url")
+                    {
+                        tempinfo.themes_url.clear();
+                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        {
+                            if (itemval[i] >= '0' && itemval[i] <= '9')
+                            {
+                                tempinfo.themes_url.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] >= 'a' && itemval[i] <= 'z')
+                            {
+                                tempinfo.themes_url.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] >= 'A' && itemval[i] <= 'Z')
+                            {
+                                tempinfo.themes_url.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '.')
+                            {
+                                tempinfo.themes_url.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '_')
+                            {
+                                tempinfo.themes_url.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == '-')
+                            {
+                                tempinfo.themes_url.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == ':')
+                            {
+                                tempinfo.themes_url.push_back(itemval[i]);
+                            }
+                            else if (itemval[i] == 0x2F)
+                            {
+                                tempinfo.themes_url.push_back(itemval[i]);
+                            }
+                        }
+                    }
                 }
+
                 if (tempinfo.document_index.empty())
                 {
                     tempinfo.document_index = "index.html";
@@ -1346,7 +1535,10 @@ std::string serverconfig::ssl_dh_file()
 {
     return configpath + map_value["default"]["tmp_dh_file"];
 }
-
+std::string serverconfig::ssl_chain_crt_file()
+{
+    return configpath + map_value["default"]["chain_crt_file"];
+}
 unsigned char serverconfig::get_co_thread_num()
 {
     unsigned char tempnum = 0;
@@ -1446,9 +1638,10 @@ SSL_CTX *serverconfig::getctx(std::string filename)
         filepathurl.append(filepath);
         filepath.append(filename);
         filepath.append(".pem");
+        DEBUG_LOG(" ssl file:%s", filepath.c_str());
         if (filename[0] == 'w' && filename[1] == 'w' && filename[2] == 'w' && filename[3] == '.')
         {
-            if (::SSL_CTX_use_certificate_file(ctx, filepath.c_str(), SSL_FILETYPE_PEM) != 1)
+            if (::SSL_CTX_use_certificate_chain_file(ctx, filepath.c_str()) != 1)
             {
                 // ec = boost::asio::error_code(
                 //     static_cast<int>(::ERR_get_error()),
@@ -1456,7 +1649,7 @@ SSL_CTX *serverconfig::getctx(std::string filename)
                 filepath = filepathurl;
                 filepath.append(&filename[4], filename.size() - 4);
                 filepath.append(".pem");
-                if (::SSL_CTX_use_certificate_file(ctx, filepath.c_str(), SSL_FILETYPE_PEM) != 1)
+                if (::SSL_CTX_use_certificate_chain_file(ctx, filepath.c_str()) != 1)
                 {
                     // return ctx;
                     // isdomainsave=false;
@@ -1466,15 +1659,18 @@ SSL_CTX *serverconfig::getctx(std::string filename)
         else
         {
 
-            if (::SSL_CTX_use_certificate_file(ctx, filepath.c_str(), SSL_FILETYPE_PEM) != 1)
+            if (::SSL_CTX_use_certificate_chain_file(ctx, filepath.c_str()) != 1)
             {
                 // ec = boost::asio::error_code(
                 //     static_cast<int>(::ERR_get_error()),
                 //     boost::asio::error::get_ssl_category());
+
                 filepathurl.append("www.");
                 filepathurl.append(filename);
                 filepath = filepathurl;
-                if (::SSL_CTX_use_certificate_file(ctx, filepath.c_str(), SSL_FILETYPE_PEM) != 1)
+                filepath.append(".pem");
+                DEBUG_LOG(" ssl file:%s", filepath.c_str());
+                if (::SSL_CTX_use_certificate_chain_file(ctx, filepath.c_str()) != 1)
                 {
                 }
             }
@@ -1486,6 +1682,13 @@ SSL_CTX *serverconfig::getctx(std::string filename)
             // ec = boost::asio::error_code(
             //     static_cast<int>(::ERR_get_error()),
             //     boost::asio::error::get_ssl_category());
+        }
+        filepath.erase(filepath.end() - 4, filepath.end());
+        filepath.append(".crt");
+        if (::SSL_CTX_use_certificate_file(ctx, filepath.c_str(), SSL_FILETYPE_PEM) != 1)
+        {
+            //ec = translate_error(::ERR_get_error());
+            //ASIO_SYNC_OP_VOID_RETURN(ec);
         }
 
         if (!SSL_CTX_check_private_key(ctx))

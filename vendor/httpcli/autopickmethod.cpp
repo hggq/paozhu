@@ -3,7 +3,6 @@
  *  @date 2023-01-06
  *  @dest controller method pick file
  */
-#include <iostream>
 #include <cstdio>
 #include <string>
 #include <sstream>
@@ -12,7 +11,7 @@
 #include <map>
 #include <vector>
 #include <filesystem>
-
+#include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -128,6 +127,7 @@ int main(int argc, char *argv[])
     http::pickcontrol lp;
     std::vector<std::string> header_lists;
     std::vector<struct http::reg_autoitem> reg_method_lists;
+    std::vector<struct http::reg_autoitem> domain_method_lists;
     std::string src_path = current_run_path + "controller/src";
 
     fs::path vsrcpath = src_path;
@@ -158,11 +158,41 @@ int main(int argc, char *argv[])
     std::string md5hash;
     std::string hash_value;
     std::string mttime_value;
+    std::string domain_value;
     struct http::file_regitem cahce_info;
     bool is_must_again = false;
     for (unsigned int i = 0; i < plist.size(); i++)
     {
-        std::string filename = src_path;// get_filename(plist[i]);
+        std::string filename;// = src_path;// get_filename(plist[i]);
+
+        bool is_haspath = false;
+        bool is_domain_path = false;
+        bool is_file_domain = false;
+        filename=plist[i];
+        domain_value.clear();    
+        for(unsigned int jj=0;jj<filename.size();jj++)
+        {
+            if(filename[jj]=='/')
+            {
+                is_haspath = true;
+                break;
+            }
+            if(filename[jj]=='.')
+            {
+                is_domain_path = true;
+            }
+            domain_value.push_back(filename[jj]);
+        }
+
+        if(is_haspath)
+        {
+            if(domain_value.size()>0 && is_domain_path)
+            {
+                is_file_domain = true;
+            }
+        }
+        
+        filename = src_path;
         if (filename.back() != '/')
         {
             filename.push_back('/');
@@ -230,7 +260,15 @@ int main(int argc, char *argv[])
 
             for (unsigned int j = 0; j < method_item.size(); j++)
             {
-                reg_method_lists.emplace_back(method_item[j]);
+                if(is_file_domain)
+                {
+                    method_item[j].domain = domain_value;
+                    domain_method_lists.emplace_back(method_item[j]);
+                }
+                else
+                {
+                    reg_method_lists.emplace_back(method_item[j]);
+                }
             }
             filename.append(".h\"\r\n");
             header_lists.emplace_back(filename);
@@ -279,6 +317,7 @@ namespace http
 )");
 
     std::map<std::string, std::vector<std::string>> _http_regurlpath_table;
+    std::map<std::string, std::map<std::string, std::vector<std::string>>> _domain_regurlpath_table;
 
     for (unsigned int j = 0; j < reg_method_lists.size(); j++)
     {
@@ -380,6 +419,157 @@ namespace http
     automethod_content.append(R"(
 
     }
+    )");
+    
+    automethod_content.append(R"(
+    void _initauto_domain_httpmethodregto(std::map<std::string, std::map<std::string, regmethold_t>> &domain_methodcallback)
+    {
+        struct regmethold_t temp;
+        std::map<std::string, regmethold_t> methodcallback;
+        std::map<std::string, std::map<std::string, regmethold_t>>::iterator domain_iterator;
+    )");   
+    
+
+    for (unsigned int j = 0; j < domain_method_lists.size(); j++)
+    {
+        if (stringcasecmp(domain_method_lists[j].pre, "null") ||
+            stringcasecmp(domain_method_lists[j].pre, "nullptr"))
+        {
+            automethod_content.append("\ttemp.pre = nullptr;\r\n");
+        }
+        else
+        {
+            automethod_content.append("\ttemp.pre = ");
+            automethod_content.append(domain_method_lists[j].pre);
+            automethod_content.append(";\r\n");
+        }
+        automethod_content.append("\t\ttemp.regfun = ");
+        automethod_content.append(domain_method_lists[j].func);
+        automethod_content.append(";\r\n");
+
+        // test restfull {}
+        bool ismatch = false;
+        for (unsigned int n = 0; n < domain_method_lists[j].urlpath.size(); n++)
+        {
+            if (domain_method_lists[j].urlpath[n] == ':')
+            {
+                ismatch = true;
+                break;
+            }
+        }
+
+        if (ismatch)
+        {
+            std::vector<std::string> paths;
+            unsigned int n = 0;
+            if (domain_method_lists[j].urlpath.size() > 0 && domain_method_lists[j].urlpath[0] == '/')
+            {
+                n += 1;
+            }
+            ismatch = true;
+            std::string temp_str;
+            std::string temp_new_urlpath;
+            for (; n < domain_method_lists[j].urlpath.size(); n++)
+            {
+                if (domain_method_lists[j].urlpath[n] == ':')
+                {
+                    ismatch = false;
+                }
+
+                if (domain_method_lists[j].urlpath[n] == '/')
+                {
+                    paths.push_back(temp_str);
+                    if (ismatch)
+                    {
+                        if (temp_new_urlpath.size() > 0)
+                        {
+                            temp_new_urlpath.push_back('/');
+                            temp_new_urlpath.append(temp_str);
+                        }
+                        else
+                        {
+                            temp_new_urlpath.append(temp_str);
+                        }
+                    }
+                    temp_str.clear();
+                    continue;
+                }
+                if (domain_method_lists[j].urlpath[n] == '"' || domain_method_lists[j].urlpath[n] == 0x5C ||
+                    domain_method_lists[j].urlpath[n] == 0x27)
+                {
+                    continue;
+                }
+                temp_str.push_back(domain_method_lists[j].urlpath[n]);
+            }
+            if (temp_str.size() > 0)
+            {
+                paths.push_back(temp_str);
+                if (ismatch)
+                {
+                    if (temp_new_urlpath.size() > 0)
+                    {
+                        temp_new_urlpath.push_back('/');
+                        temp_new_urlpath.append(temp_str);
+                    }
+                    else
+                    {
+                        temp_new_urlpath.append(temp_str);
+                    }
+                }
+                temp_str.clear();
+            }
+            domain_method_lists[j].urlpath              = temp_new_urlpath;
+            //_http_regurlpath_table[temp_new_urlpath] = paths;
+            //domain table 
+            auto domain_map_iter = _domain_regurlpath_table.find(domain_method_lists[j].domain);
+            if(domain_map_iter!=_domain_regurlpath_table.end())
+            {
+                domain_map_iter->second[temp_new_urlpath] = paths;
+            }        
+            else
+            {
+                std::map<std::string, std::vector<std::string>> temp_domain_map_a;
+                temp_domain_map_a[temp_new_urlpath] = paths;
+                _domain_regurlpath_table.emplace(domain_method_lists[j].domain,temp_domain_map_a);
+            }
+        }
+        //path safe filter
+        automethod_content.append(R"(
+        domain_iterator=domain_methodcallback.find(")");   
+        automethod_content.append(domain_method_lists[j].domain);       
+        automethod_content.append(R"("); 
+        if(domain_iterator!=domain_methodcallback.end())
+        {
+            domain_iterator->second.emplace(")");
+            automethod_content.append(domain_method_lists[j].urlpath);
+            automethod_content.append("\",temp);\r\n");
+            automethod_content.append(R"( 
+        }
+        else
+        {
+            methodcallback.clear();)");
+            automethod_content.append(R"( 
+            methodcallback.emplace(")");
+            automethod_content.append(domain_method_lists[j].urlpath);
+            automethod_content.append(R"(",temp);
+            domain_methodcallback.emplace(")");
+            automethod_content.append(domain_method_lists[j].domain);
+            automethod_content.append(R"(",methodcallback); 
+        } 
+        )");  
+        // automethod_content.append("\t\tmethodcallback.emplace(\"");
+        // automethod_content.append(domain_method_lists[j].urlpath);
+        // automethod_content.append("\",temp);\r\n");
+    }
+
+    automethod_content.append(R"(
+
+    }
+    )");
+
+
+
+    automethod_content.append(R"(
 }
 
 #endif
@@ -467,7 +657,129 @@ namespace http
 
     automethod_content.append(R"(
 
+  }
+    )");
+    
+    automethod_content.append(R"(
+    void _initauto_domain_httprestful_paths(std::map<std::string,std::map<std::string, std::vector<std::string>>>  &restfulmethod)
+    {
+        std::map<std::string, std::vector<std::string>> temp_path;
+        std::map<std::string,std::map<std::string, std::vector<std::string>>>::iterator domain_iterator;  
+)");
+
+
+    if (_domain_regurlpath_table.size() > 0)
+    {
+        for (auto [_domain_name, _regurlpath_table] : _domain_regurlpath_table)
+        {
+            for (auto [keyname, paths] : _regurlpath_table)
+            {
+
+                automethod_content.append(R"(     
+                domain_iterator=restfulmethod.find(")");
+                automethod_content.append(_domain_name);  
+                automethod_content.append(R"(");  
+                if(domain_iterator!=restfulmethod.end())
+                {
+                )");
+                automethod_content.append("\t domain_iterator->second[\"");
+                automethod_content.append(keyname);
+                automethod_content.append("\"]={");
+
+                for (unsigned int j = 0; j < paths.size(); j++)
+                {
+                    if (j > 0)
+                    {
+                        automethod_content.append(",{\"");
+                    }
+                    else
+                    {
+                        automethod_content.append("{\"");
+                    }
+
+                    if (paths[j].size() > 0 && paths[j][0] == ':')
+                    {
+                        hash_value.clear();
+                        for (unsigned int jj = 0; jj < paths[j].size(); jj++)
+                        {
+                            if (paths[j][jj] == ':')
+                            {
+                                continue;
+                            }
+                            hash_value.push_back(paths[j][jj]);
+                        }
+                        automethod_content.append(hash_value);
+                    }
+
+                    automethod_content.append("\"}");
+                }
+
+                automethod_content.append("};");
+
+                //empty iter 
+                automethod_content.append(R"(     
+                }
+                else
+                {
+                    temp_path.clear(); 
+                    temp_path[")");
+                automethod_content.append(keyname);
+                automethod_content.append("\"]={");
+
+                for (unsigned int j = 0; j < paths.size(); j++)
+                {
+                    if (j > 0)
+                    {
+                        automethod_content.append(",{\"");
+                    }
+                    else
+                    {
+                        automethod_content.append("{\"");
+                    }
+
+                    if (paths[j].size() > 0 && paths[j][0] == ':')
+                    {
+                        hash_value.clear();
+                        for (unsigned int jj = 0; jj < paths[j].size(); jj++)
+                        {
+                            if (paths[j][jj] == ':')
+                            {
+                                continue;
+                            }
+                            hash_value.push_back(paths[j][jj]);
+                        }
+                        automethod_content.append(hash_value);
+                    }
+
+                    automethod_content.append("\"}");
+                }
+
+                automethod_content.append("};");
+                automethod_content.append(R"(
+                    restfulmethod.emplace(")");
+                automethod_content.append(_domain_name);  
+                automethod_content.append(R"(",temp_path); 
+                }
+                )");
+            }
+        }
     }
+    else
+    {
+        automethod_content.append(R"(
+        domain_iterator=restfulmethod.begin();
+        temp_path.clear();
+        )");
+    }
+
+
+    automethod_content.append(R"(
+
+    }
+    )");
+
+
+    automethod_content.append(R"(
 }
 
 #endif

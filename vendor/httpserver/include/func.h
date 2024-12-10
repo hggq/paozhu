@@ -23,10 +23,10 @@ namespace http
 {
 bool str_cmp(std::string_view str1, std::string_view str2);
 bool str_casecmp(std::string_view str1, std::string_view str2);
-bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int length=0);
-bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length=0);
-bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int length=0);
-bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length=0);
+bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int length = 0);
+bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length = 0);
+bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int length = 0);
+bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length = 0);
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext);
 std::string get_filename(const std::string &filename);
 std::vector<std::string> mb_split(std::string_view, std::string_view);
@@ -36,6 +36,10 @@ std::string strip_annot(std::string_view);
 std::string str_trim(std::string_view);
 std::string_view str_trim_view(std::string_view);
 std::string mb_substr(std::string_view, int, int length = 0);
+bool tidy_domainname(std::string &filename);
+bool is_domainname(std::string_view filename);
+std::string strip_domainname(std::string_view filename);
+bool check_isodate(std::string_view filename);
 unsigned int mb_strlen(std::string_view);
 std::map<std::string, std::string> filepath(std::string &);
 struct stat filestat(std::string &);
@@ -46,7 +50,7 @@ std::string char2hex(const unsigned char *source, unsigned int str_length, unsig
 std::string str2safepath(const char *source, unsigned int str_length);
 std::string str2safefile(const char *source, unsigned int str_length);
 std::string str2safemethold(const char *source, unsigned int str_length);
-
+std::string get_safepath(std::string_view str1);
 std::string numstr_to_sql(const char *source, unsigned int str_length, char b = ',');
 
 template <typename _Tp>
@@ -64,6 +68,41 @@ std::string str_join(const _Tp &source, char b = 0x00)
         j++;
     }
     return _stream.str();
+}
+
+template <typename _Tp>
+    requires std::is_integral_v<_Tp>
+std::vector<_Tp> numstr_to_vector(std::string_view source, char b = ',')
+{
+    std::vector<_Tp> tempt;
+    std::string tempstr;
+
+    for (unsigned int i = 0; i < source.size(); i++)
+    {
+        if (source[i] == '-' || source[i] == '.' || (source[i] > 0x2F && source[i] < 0x3A))
+        {
+            tempstr.push_back(source[i]);
+        }
+        else if (source[i] == b)
+        {
+            if (tempstr.size() > 0)
+            {
+                try
+                {
+                    tempt.push_back(std::stoi(tempstr.c_str()));
+                }
+                catch (...)
+                {
+                }
+            }
+            tempstr.clear();
+        }
+    }
+    if (tempstr.size() > 0)
+    {
+        tempt.push_back(std::stoi(tempstr.c_str()));
+    }
+    return tempt;
 }
 
 template <typename _Tp>

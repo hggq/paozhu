@@ -74,11 +74,11 @@ bool str_casecmp(std::string_view str1, std::string_view str2)
 }
 bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int length)
 {
-    if(length==0)
-	{
-		length = str2.size();
-	}
-    if(str1.size() < str2.size())
+    if (length == 0)
+    {
+        length = str2.size();
+    }
+    if (str1.size() < str2.size())
     {
         return false;
     }
@@ -94,7 +94,8 @@ bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int leng
             {
                 return false;
             }
-        }else
+        }
+        else
         {
             return true;
         }
@@ -103,11 +104,11 @@ bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int leng
 }
 bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length)
 {
-    if(length==0)
-	{
-		length = str2.size();
-	}
-    if(str1.size() < str2.size())
+    if (length == 0)
+    {
+        length = str2.size();
+    }
+    if (str1.size() < str2.size())
     {
         return false;
     }
@@ -137,7 +138,8 @@ bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int 
                 }
                 return false;
             }
-        }else
+        }
+        else
         {
             return true;
         }
@@ -146,10 +148,10 @@ bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int 
 }
 bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int length)
 {
-    if(length==0)
-	{
-		length = str2.size();
-	}
+    if (length == 0)
+    {
+        length = str2.size();
+    }
     int a = (int)str1.size();
     int b = (int)str2.size();
     if (a == 0)
@@ -160,7 +162,7 @@ bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int len
     {
         return false;
     }
-    if(a < b)
+    if (a < b)
     {
         return false;
     }
@@ -188,10 +190,10 @@ bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int len
 }
 bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length)
 {
-    if(length==0)
-	{
-		length = str2.size();
-	}
+    if (length == 0)
+    {
+        length = str2.size();
+    }
     int a = (int)str1.size();
     int b = (int)str2.size();
     if (a == 0)
@@ -202,7 +204,7 @@ bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int
     {
         return false;
     }
-    if(a < b)
+    if (a < b)
     {
         return false;
     }
@@ -374,6 +376,176 @@ unsigned int mb_strlen(std::string_view str)
         }
     }
     return length;
+}
+bool check_isodate(std::string_view filename)
+{
+    if (filename.size() < 10)
+    {
+        return false;
+    }
+    for (unsigned int i = 0; i < 4; ++i)
+    {
+        if (filename[i] > 0x2F && filename[i] < 0x3A)
+        {
+            continue;
+        }
+        return false;
+    }
+    if (filename[4] != '-')
+    {
+        return false;
+    }
+    for (unsigned int i = 5; i < 7; ++i)
+    {
+        if (filename[i] > 0x2F && filename[i] < 0x3A)
+        {
+            continue;
+        }
+        return false;
+    }
+    if (filename[7] != '-')
+    {
+        return false;
+    }
+    for (unsigned int i = 8; i < 10; ++i)
+    {
+        if (filename[i] > 0x2F && filename[i] < 0x3A)
+        {
+            continue;
+        }
+        return false;
+    }
+    if (filename.size() > 10)
+    {
+        return false;
+    }
+    return true;
+}
+std::string strip_domainname(std::string_view domainname)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < domainname.size(); ++i)
+    {
+        if (domainname[i] > 0x2F && domainname[i] < 0x3A)
+        {
+            temp.push_back(domainname[i]);
+        }
+        else if (domainname[i] > 0x40 && domainname[i] < 0x5B)
+        {
+            temp.push_back(domainname[i] + 32);
+        }
+        else if (domainname[i] > 0x60 && domainname[i] < 0x7B)
+        {
+            temp.push_back(domainname[i]);
+        }
+        else if (domainname[i] == '.')
+        {
+            if (i > 0)
+            {
+                if (domainname[i - 1] == '-')
+                {
+                    temp[temp.size() - 1] = '.';
+                }
+                else
+                {
+                    temp.push_back('.');
+                }
+            }
+        }
+        else if (domainname[i] == '-')
+        {
+            if (i > 0)
+            {
+                if (domainname[i - 1] != '-')
+                {
+                    temp.push_back('-');
+                }
+            }
+        }
+    }
+    if (temp[temp.size() - 1] == '-')
+    {
+        temp.resize(temp.size() - 1);
+    }
+    return temp;
+}
+bool tidy_domainname(std::string &domainname)
+{
+    for (unsigned int i = 0; i < domainname.size(); ++i)
+    {
+        if (domainname[i] > 0x2F && domainname[i] < 0x3A)
+        {
+        }
+        else if (domainname[i] > 0x40 && domainname[i] < 0x5B)
+        {
+            domainname[i] = domainname[i] + 32;
+        }
+        else if (domainname[i] > 0x60 && domainname[i] < 0x7B)
+        {
+        }
+        else if (domainname[i] == '.')
+        {
+        }
+        else if (domainname[i] == '-')
+        {
+        }
+        else
+        {
+            return false;
+        }
+    }
+    return true;
+}
+bool is_domainname(std::string_view domainname)
+{
+    if (domainname.empty())
+    {
+        return false;
+    }
+    if (domainname[0] == '-' || domainname[domainname.size() - 1] == '-')
+    {
+        return false;
+    }
+    if (domainname[0] == '.')
+    {
+        return false;
+    }
+
+    for (unsigned int i = 0; i < domainname.size(); ++i)
+    {
+        if (domainname[i] > 0x2F && domainname[i] < 0x3A)
+        {
+        }
+        else if (domainname[i] > 0x40 && domainname[i] < 0x5B)
+        {
+        }
+        else if (domainname[i] > 0x60 && domainname[i] < 0x7B)
+        {
+        }
+        else if (domainname[i] == '.')
+        {
+            unsigned int j = i + 1;
+            if (j < domainname.size() && domainname[j] == '-')
+            {
+                return false;
+            }
+            if (i > 0)
+            {
+                if (domainname[i - 1] == '-')
+                {
+                    return false;
+                }
+            }
+        }
+        else if (domainname[i] == '-')
+        {
+        }
+        else
+        {
+            return false;
+        }
+    }
+    return true;
 }
 std::string mb_substr(std::string_view str, int begin, int length)
 {
@@ -1814,6 +1986,40 @@ void get_directory_all_file(std::map<unsigned long long, std::string> &listobj,
             }
         }
     }
+}
+
+std::string get_safepath(std::string_view source)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < source.size(); i++)
+    {
+        char temc = source[i];
+        if (temc >= 'A' && temc <= 'Z')
+        {
+            temp.push_back(temc + 32);
+        }
+        else if (temc >= 'a' && temc <= 'z')
+        {
+            temp.push_back(temc);
+        }
+        else if (temc >= '0' && temc <= '9')
+        {
+            temp.push_back(temc);
+        }
+        else if (temc == '-')
+        {
+            temp.push_back(temc);
+        }
+        else if (temc == '_')
+        {
+            temp.push_back(temc);
+        }
+        else if (temc == '.')
+        {
+            temp.push_back(temc);
+        }
+    }
+    return temp;
 }
 
 std::string numstr_to_sql(const char *source, unsigned int str_length, char b)

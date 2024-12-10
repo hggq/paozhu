@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 12 Mar 2024 04:11:29 GMT
+*本文件为自动生成 Tue, 10 Dec 2024 07:41:37 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -41,7 +41,9 @@ unsigned  long long addtime=0; //添加或修改时间
  std::string content=""; //
  std::string mdcontent=""; //markdown content
  char isopen=0; //是否开放
+ char ishome=0; //show homepage
  char iscomment=0; //是否可以评论
+ char showtype=0; //art content display type
  std::string fromlocal=""; //发表地址
  std::string texturl=""; //url用英文代替
  std::string summary=""; //文章摘要
@@ -56,8 +58,8 @@ std::vector<articlebase::meta>::iterator begin(){     return record.begin(); }
 std::vector<articlebase::meta>::iterator end(){     return record.end(); }
 std::vector<articlebase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<articlebase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,25> colnames={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","iscomment","fromlocal","texturl","summary","editauthor","relatecontent"};
-const std::array<unsigned char,25> colnamestype= {3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,253,253,253,253,253};
+const std::array<std::string,27> colnames={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
+const std::array<unsigned char,27> colnamestype= {3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
 std::string tablename="article";
 std::string modelname="Article";
 
@@ -105,12 +107,12 @@ break;
  }
  break;
 case 'e':
-   	 return 23;
+   	 return 25;
 break;
 case 'f':
  switch(coln.size()){  
 case 9:
-   	 return 20;
+   	 return 22;
 break;
 case 10:
    	 return 8;
@@ -122,11 +124,12 @@ case 'i':
 case 6:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='e'){ return 19; }
  if(colpospppc=='g'){ return 15; }
  if(colpospppc=='n'){ return 18; }
    	 break;
 case 9:
-   	 return 19;
+   	 return 20;
 break;
  }
  break;
@@ -145,7 +148,7 @@ case 7:
    	 return 13;
 break;
 case 13:
-   	 return 24;
+   	 return 26;
 break;
  }
  break;
@@ -155,7 +158,10 @@ case 6:
    	 return 4;
 break;
 case 7:
-   	 return 22;
+   	 return 24;
+break;
+case 8:
+   	 return 21;
 break;
  }
  break;
@@ -168,7 +174,7 @@ case 7:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
  if(colpospppc=='d'){ return 1; }
- if(colpospppc=='l'){ return 21; }
+ if(colpospppc=='l'){ return 23; }
    	 break;
 case 9:
    	 return 5;
@@ -343,40 +349,54 @@ break;
 			break;
 	case 19:
 		 try{
+			data.ishome=std::stoi(_row[i]);
+		}catch (...) { 
+			data.ishome=0;
+			 }
+			break;
+	case 20:
+		 try{
 			data.iscomment=std::stoi(_row[i]);
 		}catch (...) { 
 			data.iscomment=0;
 			 }
 			break;
-	case 20:
+	case 21:
+		 try{
+			data.showtype=std::stoi(_row[i]);
+		}catch (...) { 
+			data.showtype=0;
+			 }
+			break;
+	case 22:
 		 try{
 			data.fromlocal.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.fromlocal.clear();
 			 }
 			break;
-	case 21:
+	case 23:
 		 try{
 			data.texturl.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.texturl.clear();
 			 }
 			break;
-	case 22:
+	case 24:
 		 try{
 			data.summary.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.summary.clear();
 			 }
 			break;
-	case 23:
+	case 25:
 		 try{
 			data.editauthor.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			data.editauthor.clear();
 			 }
 			break;
-	case 24:
+	case 26:
 		 try{
 			data.relatecontent.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
@@ -536,40 +556,54 @@ break;
 			break;
 	case 19:
 		 try{
+			metatemp.ishome=std::stoi(_row[i]);
+		}catch (...) { 
+			metatemp.ishome=0;
+			 }
+			break;
+	case 20:
+		 try{
 			metatemp.iscomment=std::stoi(_row[i]);
 		}catch (...) { 
 			metatemp.iscomment=0;
 			 }
 			break;
-	case 20:
+	case 21:
+		 try{
+			metatemp.showtype=std::stoi(_row[i]);
+		}catch (...) { 
+			metatemp.showtype=0;
+			 }
+			break;
+	case 22:
 		 try{
 			metatemp.fromlocal.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.fromlocal.clear();
 			 }
 			break;
-	case 21:
+	case 23:
 		 try{
 			metatemp.texturl.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.texturl.clear();
 			 }
 			break;
-	case 22:
+	case 24:
 		 try{
 			metatemp.summary.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.summary.clear();
 			 }
 			break;
-	case 23:
+	case 25:
 		 try{
 			metatemp.editauthor.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
 			metatemp.editauthor.clear();
 			 }
 			break;
-	case 24:
+	case 26:
 		 try{
 			metatemp.relatecontent.append((_row[i]==NULL?"":_row[i]));
 		}catch (...) { 
@@ -695,10 +729,20 @@ if(data.isopen==0){
  }else{ 
 	tempsql<<","<<std::to_string(data.isopen);
 }
+if(data.ishome==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.ishome);
+}
 if(data.iscomment==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.iscomment);
+}
+if(data.showtype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.showtype);
 }
 tempsql<<",'"<<stringaddslash(data.fromlocal)<<"'";
 tempsql<<",'"<<stringaddslash(data.texturl)<<"'";
@@ -785,10 +829,20 @@ if(insert_data.isopen==0){
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.isopen);
 }
+if(insert_data.ishome==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.ishome);
+}
 if(insert_data.iscomment==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.iscomment);
+}
+if(insert_data.showtype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.showtype);
 }
 tempsql<<",'"<<stringaddslash(insert_data.fromlocal)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.texturl)<<"'";
@@ -884,10 +938,20 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].isopen);
 	}
+	if(insert_data[i].ishome==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].ishome);
+	}
 	if(insert_data[i].iscomment==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].iscomment);
+	}
+	if(insert_data[i].showtype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].showtype);
 	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].fromlocal)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].texturl)<<"'";
@@ -969,10 +1033,20 @@ if(data.isopen==0){
  }else{ 
 	tempsql<<",`isopen`="<<std::to_string(data.isopen);
 }
+if(data.ishome==0){
+	tempsql<<",`ishome`=0";
+ }else{ 
+	tempsql<<",`ishome`="<<std::to_string(data.ishome);
+}
 if(data.iscomment==0){
 	tempsql<<",`iscomment`=0";
  }else{ 
 	tempsql<<",`iscomment`="<<std::to_string(data.iscomment);
+}
+if(data.showtype==0){
+	tempsql<<",`showtype`=0";
+ }else{ 
+	tempsql<<",`showtype`="<<std::to_string(data.showtype);
 }
 tempsql<<",`fromlocal`='"<<stringaddslash(data.fromlocal)<<"'";
 tempsql<<",`texturl`='"<<stringaddslash(data.texturl)<<"'";
@@ -1137,29 +1211,45 @@ if(data.isopen==0){
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
+if(data.ishome==0){
+	tempsql<<"`ishome`=0";
+ }else{ 
+	tempsql<<"`ishome`="<<std::to_string(data.ishome);
+}
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
 if(data.iscomment==0){
 	tempsql<<"`iscomment`=0";
  }else{ 
 	tempsql<<"`iscomment`="<<std::to_string(data.iscomment);
 }
  break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`fromlocal`='"<<stringaddslash(data.fromlocal)<<"'";
- break;
  case 21:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`texturl`='"<<stringaddslash(data.texturl)<<"'";
+if(data.showtype==0){
+	tempsql<<"`showtype`=0";
+ }else{ 
+	tempsql<<"`showtype`="<<std::to_string(data.showtype);
+}
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`summary`='"<<stringaddslash(data.summary)<<"'";
+tempsql<<"`fromlocal`='"<<stringaddslash(data.fromlocal)<<"'";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`editauthor`='"<<stringaddslash(data.editauthor)<<"'";
+tempsql<<"`texturl`='"<<stringaddslash(data.texturl)<<"'";
  break;
  case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`summary`='"<<stringaddslash(data.summary)<<"'";
+ break;
+ case 25:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`editauthor`='"<<stringaddslash(data.editauthor)<<"'";
+ break;
+ case 26:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
  break;
@@ -1262,10 +1352,20 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].isopen);
 	}
+	if(record[i].ishome==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].ishome);
+	}
 	if(record[i].iscomment==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].iscomment);
+	}
+	if(record[i].showtype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].showtype);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].fromlocal)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].texturl)<<"'";
@@ -1365,10 +1465,20 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].isopen);
 	}
+	if(record[i].ishome==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].ishome);
+	}
 	if(record[i].iscomment==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].iscomment);
+	}
+	if(record[i].showtype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].showtype);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].fromlocal)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].texturl)<<"'";
@@ -1549,25 +1659,39 @@ if(data.isopen==0){
 }
  break;
  case 19:
+if(data.ishome==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.ishome));
+}
+ break;
+ case 20:
 if(data.iscomment==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.iscomment));
 }
  break;
- case 20:
-	temparray.push_back(data.fromlocal);
- break;
  case 21:
-	temparray.push_back(data.texturl);
+if(data.showtype==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.showtype));
+}
  break;
  case 22:
-	temparray.push_back(data.summary);
+	temparray.push_back(data.fromlocal);
  break;
  case 23:
-	temparray.push_back(data.editauthor);
+	temparray.push_back(data.texturl);
  break;
  case 24:
+	temparray.push_back(data.summary);
+ break;
+ case 25:
+	temparray.push_back(data.editauthor);
+ break;
+ case 26:
 	temparray.push_back(data.relatecontent);
  break;
 
@@ -1704,25 +1828,39 @@ if(data.isopen==0){
 }
  break;
  case 19:
+if(data.ishome==0){
+	tempsql.insert({"ishome","0"});
+ }else{ 
+	tempsql.insert({"ishome",std::to_string(data.ishome)});
+}
+ break;
+ case 20:
 if(data.iscomment==0){
 	tempsql.insert({"iscomment","0"});
  }else{ 
 	tempsql.insert({"iscomment",std::to_string(data.iscomment)});
 }
  break;
- case 20:
-	tempsql.insert({"fromlocal",data.fromlocal});
- break;
  case 21:
-	tempsql.insert({"texturl",data.texturl});
+if(data.showtype==0){
+	tempsql.insert({"showtype","0"});
+ }else{ 
+	tempsql.insert({"showtype",std::to_string(data.showtype)});
+}
  break;
  case 22:
-	tempsql.insert({"summary",data.summary});
+	tempsql.insert({"fromlocal",data.fromlocal});
  break;
  case 23:
-	tempsql.insert({"editauthor",data.editauthor});
+	tempsql.insert({"texturl",data.texturl});
  break;
  case 24:
+	tempsql.insert({"summary",data.summary});
+ break;
+ case 25:
+	tempsql.insert({"editauthor",data.editauthor});
+ break;
+ case 26:
 	tempsql.insert({"relatecontent",data.relatecontent});
  break;
 
@@ -1803,10 +1941,20 @@ if(data.isopen==0){
  }else{ 
 	tempsql<<",\"isopen\":"<<std::to_string(data.isopen);
 }
+if(data.ishome==0){
+	tempsql<<",\"ishome\":0";
+ }else{ 
+	tempsql<<",\"ishome\":"<<std::to_string(data.ishome);
+}
 if(data.iscomment==0){
 	tempsql<<",\"iscomment\":0";
  }else{ 
 	tempsql<<",\"iscomment\":"<<std::to_string(data.iscomment);
+}
+if(data.showtype==0){
+	tempsql<<",\"showtype\":0";
+ }else{ 
+	tempsql<<",\"showtype\":"<<std::to_string(data.showtype);
 }
 tempsql<<",\"fromlocal\":\""<<http::utf8_to_jsonstring(data.fromlocal);
 tempsql<<"\"";
@@ -1969,29 +2117,45 @@ if(data.isopen==0){
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
+if(data.ishome==0){
+	tempsql<<"\"ishome\":0";
+ }else{ 
+	tempsql<<"\"ishome\":"<<std::to_string(data.ishome);
+}
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
 if(data.iscomment==0){
 	tempsql<<"\"iscomment\":0";
  }else{ 
 	tempsql<<"\"iscomment\":"<<std::to_string(data.iscomment);
 }
  break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(data.fromlocal)<<"\"";
- break;
  case 21:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(data.texturl)<<"\"";
+if(data.showtype==0){
+	tempsql<<"\"showtype\":0";
+ }else{ 
+	tempsql<<"\"showtype\":"<<std::to_string(data.showtype);
+}
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(data.summary)<<"\"";
+tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(data.fromlocal)<<"\"";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(data.editauthor)<<"\"";
+tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(data.texturl)<<"\"";
  break;
  case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(data.summary)<<"\"";
+ break;
+ case 25:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(data.editauthor)<<"\"";
+ break;
+ case 26:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(data.relatecontent)<<"\"";
  break;
@@ -2377,40 +2541,54 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(data.relatecontent)<<"
 			break;
 		case 19:
 		 try{
+			data.ishome=std::stoi(set_value_name);
+		}catch (...) { 
+			data.ishome=0;
+			 }
+			break;
+		case 20:
+		 try{
 			data.iscomment=std::stoi(set_value_name);
 		}catch (...) { 
 			data.iscomment=0;
 			 }
 			break;
-		case 20:
+		case 21:
+		 try{
+			data.showtype=std::stoi(set_value_name);
+		}catch (...) { 
+			data.showtype=0;
+			 }
+			break;
+		case 22:
 		 try{
 			data.fromlocal.append(set_value_name);
 		}catch (...) { 
 			data.fromlocal.clear();
 			 }
 			break;
-		case 21:
+		case 23:
 		 try{
 			data.texturl.append(set_value_name);
 		}catch (...) { 
 			data.texturl.clear();
 			 }
 			break;
-		case 22:
+		case 24:
 		 try{
 			data.summary.append(set_value_name);
 		}catch (...) { 
 			data.summary.clear();
 			 }
 			break;
-		case 23:
+		case 25:
 		 try{
 			data.editauthor.append(set_value_name);
 		}catch (...) { 
 			data.editauthor.clear();
 			 }
 			break;
-		case 24:
+		case 26:
 		 try{
 			data.relatecontent.append(set_value_name);
 		}catch (...) { 
@@ -2564,40 +2742,54 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(data.relatecontent)<<"
 			break;
 		case 19:
 		 try{
+			data.ishome=set_value_name;
+		}catch (...) { 
+			data.ishome=0;
+			 }
+			break;
+		case 20:
+		 try{
 			data.iscomment=set_value_name;
 		}catch (...) { 
 			data.iscomment=0;
 			 }
 			break;
-		case 20:
+		case 21:
+		 try{
+			data.showtype=set_value_name;
+		}catch (...) { 
+			data.showtype=0;
+			 }
+			break;
+		case 22:
 		 try{
 			data.fromlocal=std::to_string(set_value_name);
 		}catch (...) { 
 			data.fromlocal.clear();
 			 }
 			break;
-		case 21:
+		case 23:
 		 try{
 			data.texturl=std::to_string(set_value_name);
 		}catch (...) { 
 			data.texturl.clear();
 			 }
 			break;
-		case 22:
+		case 24:
 		 try{
 			data.summary=std::to_string(set_value_name);
 		}catch (...) { 
 			data.summary.clear();
 			 }
 			break;
-		case 23:
+		case 25:
 		 try{
 			data.editauthor=std::to_string(set_value_name);
 		}catch (...) { 
 			data.editauthor.clear();
 			 }
 			break;
-		case 24:
+		case 26:
 		 try{
 			data.relatecontent=std::to_string(set_value_name);
 		}catch (...) { 
@@ -2751,40 +2943,54 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(data.relatecontent)<<"
 			break;
 		case 19:
 		 try{
+			data.ishome=(int)set_value_name;
+		}catch (...) { 
+			data.ishome=0;
+			 }
+			break;
+		case 20:
+		 try{
 			data.iscomment=(int)set_value_name;
 		}catch (...) { 
 			data.iscomment=0;
 			 }
 			break;
-		case 20:
+		case 21:
+		 try{
+			data.showtype=(int)set_value_name;
+		}catch (...) { 
+			data.showtype=0;
+			 }
+			break;
+		case 22:
 		 try{
 			data.fromlocal=std::to_string(set_value_name);
 		}catch (...) { 
 			data.fromlocal.clear();
 			 }
 			break;
-		case 21:
+		case 23:
 		 try{
 			data.texturl=std::to_string(set_value_name);
 		}catch (...) { 
 			data.texturl.clear();
 			 }
 			break;
-		case 22:
+		case 24:
 		 try{
 			data.summary=std::to_string(set_value_name);
 		}catch (...) { 
 			data.summary.clear();
 			 }
 			break;
-		case 23:
+		case 25:
 		 try{
 			data.editauthor=std::to_string(set_value_name);
 		}catch (...) { 
 			data.editauthor.clear();
 			 }
 			break;
-		case 24:
+		case 26:
 		 try{
 			data.relatecontent=std::to_string(set_value_name);
 		}catch (...) { 
@@ -2951,29 +3157,45 @@ if(record[n].isopen==0){
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
+if(record[n].ishome==0){
+	tempsql<<"\"ishome\":0";
+ }else{ 
+	tempsql<<"\"ishome\":"<<std::to_string(record[n].ishome);
+}
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].iscomment==0){
 	tempsql<<"\"iscomment\":0";
  }else{ 
 	tempsql<<"\"iscomment\":"<<std::to_string(record[n].iscomment);
 }
  break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(record[n].fromlocal)<<"\"";
- break;
  case 21:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(record[n].texturl)<<"\"";
+if(record[n].showtype==0){
+	tempsql<<"\"showtype\":0";
+ }else{ 
+	tempsql<<"\"showtype\":"<<std::to_string(record[n].showtype);
+}
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(record[n].summary)<<"\"";
+tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(record[n].fromlocal)<<"\"";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\"";
+tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(record[n].texturl)<<"\"";
  break;
  case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(record[n].summary)<<"\"";
+ break;
+ case 25:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\"";
+ break;
+ case 26:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relatecontent)<<"\"";
  break;
@@ -3147,29 +3369,45 @@ if(record[n].isopen==0){
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
+if(record[n].ishome==0){
+	tempsql<<"\"ishome\":0";
+ }else{ 
+	tempsql<<"\"ishome\":"<<std::to_string(record[n].ishome);
+}
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].iscomment==0){
 	tempsql<<"\"iscomment\":0";
  }else{ 
 	tempsql<<"\"iscomment\":"<<std::to_string(record[n].iscomment);
 }
  break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(record[n].fromlocal)<<"\"";
- break;
  case 21:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(record[n].texturl)<<"\"";
+if(record[n].showtype==0){
+	tempsql<<"\"showtype\":0";
+ }else{ 
+	tempsql<<"\"showtype\":"<<std::to_string(record[n].showtype);
+}
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(record[n].summary)<<"\"";
+tempsql<<"\"fromlocal\":\""<<http::utf8_to_jsonstring(record[n].fromlocal)<<"\"";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\"";
+tempsql<<"\"texturl\":\""<<http::utf8_to_jsonstring(record[n].texturl)<<"\"";
  break;
  case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"summary\":\""<<http::utf8_to_jsonstring(record[n].summary)<<"\"";
+ break;
+ case 25:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"editauthor\":\""<<http::utf8_to_jsonstring(record[n].editauthor)<<"\"";
+ break;
+ case 26:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relatecontent)<<"\"";
  break;
@@ -3262,8 +3500,14 @@ std::string& getRefMdcontent(){  return std::ref(data.mdcontent); }
  int  getIsopen(){  return data.isopen; } 
  void setIsopen( int  val){  data.isopen=val;} 
 
+ int  getIshome(){  return data.ishome; } 
+ void setIshome( int  val){  data.ishome=val;} 
+
  int  getIscomment(){  return data.iscomment; } 
  void setIscomment( int  val){  data.iscomment=val;} 
+
+ int  getShowtype(){  return data.showtype; } 
+ void setShowtype( int  val){  data.showtype=val;} 
 
 std::string getFromlocal(){  return data.fromlocal; } 
 std::string& getRefFromlocal(){  return std::ref(data.fromlocal); } 
@@ -3408,9 +3652,17 @@ std::vector<articlebase::meta> getRecord(){
 		{
 			return data.isopen;
 		}
+		 if(key_name=="ishome")
+		{
+			return data.ishome;
+		}
 		 if(key_name=="iscomment")
 		{
 			return data.iscomment;
+		}
+		 if(key_name=="showtype")
+		{
+			return data.showtype;
 		}
 		return nullptr; 
 	}
@@ -3462,7 +3714,13 @@ std::vector<articlebase::meta> getRecord(){
  				 a.emplace_back(iter.isopen);
 				 break;
 			case 19: 
+ 				 a.emplace_back(iter.ishome);
+				 break;
+			case 20: 
  				 a.emplace_back(iter.iscomment);
+				 break;
+			case 21: 
+ 				 a.emplace_back(iter.showtype);
 				 break;
 
                     }
@@ -3517,7 +3775,13 @@ std::vector<articlebase::meta> getRecord(){
  				 return data.isopen;
 				 break;
 			case 19: 
+ 				 return data.ishome;
+				 break;
+			case 20: 
  				 return data.iscomment;
+				 break;
+			case 21: 
+ 				 return data.showtype;
 				 break;
 			}
                 return 0;
@@ -3560,7 +3824,13 @@ std::vector<articlebase::meta> getRecord(){
  				 return iter.isopen;
 				 break;
 			case 19: 
+ 				 return iter.ishome;
+				 break;
+			case 20: 
  				 return iter.iscomment;
+				 break;
+			case 21: 
+ 				 return iter.showtype;
 				 break;
 
 			}
@@ -3638,19 +3908,19 @@ std::vector<articlebase::meta> getRecord(){
 			case 17: 
  				 return data.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 return data.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 return data.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 return data.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 return data.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 return data.relatecontent;
 				 break;
 
@@ -3698,19 +3968,19 @@ std::vector<articlebase::meta> getRecord(){
 			case 17: 
  				 return iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 return iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 return iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 return iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 return iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 return iter.relatecontent;
 				 break;
 
@@ -3764,19 +4034,19 @@ std::vector<articlebase::meta> getRecord(){
 			case 17: 
  				 a.emplace_back(iter.mdcontent);
 					 break;
-			case 20: 
+			case 22: 
  				 a.emplace_back(iter.fromlocal);
 					 break;
-			case 21: 
+			case 23: 
  				 a.emplace_back(iter.texturl);
 					 break;
-			case 22: 
+			case 24: 
  				 a.emplace_back(iter.summary);
 					 break;
-			case 23: 
+			case 25: 
  				 a.emplace_back(iter.editauthor);
 					 break;
-			case 24: 
+			case 26: 
  				 a.emplace_back(iter.relatecontent);
 					 break;
 					}
@@ -3898,33 +4168,39 @@ std::vector<articlebase::meta> getRecord(){
  				 a<<std::to_string(iter.isopen);
 				 break;
 			case 19: 
- 				 a<<std::to_string(iter.iscomment);
+ 				 a<<std::to_string(iter.ishome);
 				 break;
 			case 20: 
+ 				 a<<std::to_string(iter.iscomment);
+				 break;
+			case 21: 
+ 				 a<<std::to_string(iter.showtype);
+				 break;
+			case 22: 
  				 if(isyinhao){ a<<jsonaddslash(iter.fromlocal); 
 				 }else{
 				 a<<iter.fromlocal;
 				 }
 				 break;
-			case 21: 
+			case 23: 
  				 if(isyinhao){ a<<jsonaddslash(iter.texturl); 
 				 }else{
 				 a<<iter.texturl;
 				 }
 				 break;
-			case 22: 
+			case 24: 
  				 if(isyinhao){ a<<jsonaddslash(iter.summary); 
 				 }else{
 				 a<<iter.summary;
 				 }
 				 break;
-			case 23: 
+			case 25: 
  				 if(isyinhao){ a<<jsonaddslash(iter.editauthor); 
 				 }else{
 				 a<<iter.editauthor;
 				 }
 				 break;
-			case 24: 
+			case 26: 
  				 if(isyinhao){ a<<jsonaddslash(iter.relatecontent); 
 				 }else{
 				 a<<iter.relatecontent;
@@ -3985,19 +4261,19 @@ std::vector<articlebase::meta> getRecord(){
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 				 } 
@@ -4032,19 +4308,19 @@ std::vector<articlebase::meta> getRecord(){
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 
@@ -4105,19 +4381,19 @@ std::vector<articlebase::meta> getRecord(){
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			 } 
@@ -4176,7 +4452,13 @@ case 18:
  	 ktemp=iter.isopen;
 	 break;
 case 19: 
+ 	 ktemp=iter.ishome;
+	 break;
+case 20: 
  	 ktemp=iter.iscomment;
+	 break;
+case 21: 
+ 	 ktemp=iter.showtype;
 	 break;
 	 } 
  		  switch(vpos){
@@ -4233,7 +4515,13 @@ case 19:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
  			switch(vpos){
@@ -4267,19 +4555,19 @@ case 19:
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 
@@ -4338,19 +4626,19 @@ case 19:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			  }
@@ -4383,7 +4671,13 @@ case 19:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 
                 }
@@ -4439,7 +4733,13 @@ case 19:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
  			switch(vpos){
@@ -4471,7 +4771,13 @@ case 19:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 
                 }
@@ -4524,7 +4830,13 @@ case 19:
  				 a.emplace(iter.isopen,iter);
 				 break;
 			case 19: 
+ 				 a.emplace(iter.ishome,iter);
+				 break;
+			case 20: 
  				 a.emplace(iter.iscomment,iter);
+				 break;
+			case 21: 
+ 				 a.emplace(iter.showtype,iter);
 				 break;
 
                 }
@@ -4576,19 +4888,19 @@ case 19:
 			case 17: 
  				 a.emplace(iter.mdcontent,iter);
 			 break;
-			case 20: 
+			case 22: 
  				 a.emplace(iter.fromlocal,iter);
 			 break;
-			case 21: 
+			case 23: 
  				 a.emplace(iter.texturl,iter);
 			 break;
-			case 22: 
+			case 24: 
  				 a.emplace(iter.summary,iter);
 			 break;
-			case 23: 
+			case 25: 
  				 a.emplace(iter.editauthor,iter);
 			 break;
-			case 24: 
+			case 26: 
  				 a.emplace(iter.relatecontent,iter);
 			 break;
 
@@ -4645,19 +4957,19 @@ case 19:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 	 		 }
@@ -4716,7 +5028,13 @@ case 19:
  				 ktemp=iter.isopen;
 			 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+			 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+			 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 			 break;
 			  }
 			 switch(vpos){
@@ -4775,7 +5093,13 @@ case 19:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
  			switch(vpos){
@@ -4809,19 +5133,19 @@ case 19:
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 
@@ -4879,19 +5203,19 @@ case 19:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			  }
@@ -4924,7 +5248,13 @@ case 19:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 
                    }
@@ -4977,7 +5307,13 @@ case 19:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
 			 switch(vpos){
@@ -5009,7 +5345,13 @@ case 19:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 
                    }
@@ -5064,19 +5406,19 @@ case 16:
 case 17: 
  	 ktemp=iter.mdcontent;
 	 break;
-case 20: 
+case 22: 
  	 ktemp=iter.fromlocal;
 	 break;
-case 21: 
+case 23: 
  	 ktemp=iter.texturl;
 	 break;
-case 22: 
+case 24: 
  	 ktemp=iter.summary;
 	 break;
-case 23: 
+case 25: 
  	 ktemp=iter.editauthor;
 	 break;
-case 24: 
+case 26: 
  	 ktemp=iter.relatecontent;
 	 break;
 	  }
@@ -5111,19 +5453,19 @@ case 16:
 case 17: 
  	 vtemp=iter.mdcontent;
 	 break;
-case 20: 
+case 22: 
  	 vtemp=iter.fromlocal;
 	 break;
-case 21: 
+case 23: 
  	 vtemp=iter.texturl;
 	 break;
-case 22: 
+case 24: 
  	 vtemp=iter.summary;
 	 break;
-case 23: 
+case 25: 
  	 vtemp=iter.editauthor;
 	 break;
-case 24: 
+case 26: 
  	 vtemp=iter.relatecontent;
 	 break;
 
@@ -5175,7 +5517,13 @@ case 18:
  	 a.emplace_back(iter.isopen,iter);
 	 break;
 case 19: 
+ 	 a.emplace_back(iter.ishome,iter);
+	 break;
+case 20: 
  	 a.emplace_back(iter.iscomment,iter);
+	 break;
+case 21: 
+ 	 a.emplace_back(iter.showtype,iter);
 	 break;
 
                 }
@@ -5225,19 +5573,19 @@ case 16:
 case 17: 
  	 a.emplace_back(iter.mdcontent,iter);
 	 break;
-case 20: 
+case 22: 
  	 a.emplace_back(iter.fromlocal,iter);
 	 break;
-case 21: 
+case 23: 
  	 a.emplace_back(iter.texturl,iter);
 	 break;
-case 22: 
+case 24: 
  	 a.emplace_back(iter.summary,iter);
 	 break;
-case 23: 
+case 25: 
  	 a.emplace_back(iter.editauthor,iter);
 	 break;
-case 24: 
+case 26: 
  	 a.emplace_back(iter.relatecontent,iter);
 	 break;
 
@@ -5291,7 +5639,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
 
@@ -5324,7 +5678,13 @@ case 24:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 			  }
 
@@ -5383,7 +5743,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
 
@@ -5416,7 +5782,13 @@ case 24:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 			  }
 
@@ -5449,7 +5821,13 @@ case 24:
  				 a[ktemp][vtemp].emplace_back(iter.isopen);
 				 break;
 			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.ishome);
+				 break;
+			case 20: 
  				 a[ktemp][vtemp].emplace_back(iter.iscomment);
+				 break;
+			case 21: 
+ 				 a[ktemp][vtemp].emplace_back(iter.showtype);
 				 break;
 
                 }
@@ -5504,7 +5882,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 				  }
 
@@ -5537,7 +5921,13 @@ case 24:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 			 }
 
@@ -5572,19 +5962,19 @@ case 24:
 			case 17: 
  				 a[ktemp][vtemp].emplace_back(iter.mdcontent);
 				 break;
-			case 20: 
+			case 22: 
  				 a[ktemp][vtemp].emplace_back(iter.fromlocal);
 				 break;
-			case 21: 
+			case 23: 
  				 a[ktemp][vtemp].emplace_back(iter.texturl);
 				 break;
-			case 22: 
+			case 24: 
  				 a[ktemp][vtemp].emplace_back(iter.summary);
 				 break;
-			case 23: 
+			case 25: 
  				 a[ktemp][vtemp].emplace_back(iter.editauthor);
 				 break;
-			case 24: 
+			case 26: 
  				 a[ktemp][vtemp].emplace_back(iter.relatecontent);
 				 break;
 
@@ -5641,7 +6031,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			 }
 
@@ -5676,19 +6072,19 @@ case 24:
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 			  }
@@ -5748,7 +6144,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			 }
 
@@ -5783,19 +6185,19 @@ case 24:
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 			 }
@@ -5829,7 +6231,13 @@ case 24:
  				 a[ktemp][vtemp].emplace_back(iter.isopen);
 				 break;
 			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.ishome);
+				 break;
+			case 20: 
  				 a[ktemp][vtemp].emplace_back(iter.iscomment);
+				 break;
+			case 21: 
+ 				 a[ktemp][vtemp].emplace_back(iter.showtype);
 				 break;
 
             }
@@ -5883,7 +6291,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
 
@@ -5918,19 +6332,19 @@ case 24:
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 			  }
@@ -5966,19 +6380,19 @@ case 24:
 			case 17: 
  				 a[ktemp][vtemp].emplace_back(iter.mdcontent);
 				 break;
-			case 20: 
+			case 22: 
  				 a[ktemp][vtemp].emplace_back(iter.fromlocal);
 				 break;
-			case 21: 
+			case 23: 
  				 a[ktemp][vtemp].emplace_back(iter.texturl);
 				 break;
-			case 22: 
+			case 24: 
  				 a[ktemp][vtemp].emplace_back(iter.summary);
 				 break;
-			case 23: 
+			case 25: 
  				 a[ktemp][vtemp].emplace_back(iter.editauthor);
 				 break;
-			case 24: 
+			case 26: 
  				 a[ktemp][vtemp].emplace_back(iter.relatecontent);
 				 break;
 
@@ -6035,19 +6449,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			 }
@@ -6081,7 +6495,13 @@ case 24:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 			  }
 
@@ -6143,19 +6563,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			  }
@@ -6189,7 +6609,13 @@ case 24:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 			 }
 
@@ -6222,7 +6648,13 @@ case 24:
  				 a[ktemp][vtemp].emplace_back(iter.isopen);
 				 break;
 			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.ishome);
+				 break;
+			case 20: 
  				 a[ktemp][vtemp].emplace_back(iter.iscomment);
+				 break;
+			case 21: 
+ 				 a[ktemp][vtemp].emplace_back(iter.showtype);
 				 break;
 
                 }
@@ -6281,19 +6713,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			 }
@@ -6327,7 +6759,13 @@ case 24:
  				 vtemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 vtemp=iter.ishome;
+				 break;
+			case 20: 
  				 vtemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 vtemp=iter.showtype;
 				 break;
 			 }
 
@@ -6362,19 +6800,19 @@ case 24:
 			case 17: 
  				 a[ktemp][vtemp].emplace_back(iter.mdcontent);
 				 break;
-			case 20: 
+			case 22: 
  				 a[ktemp][vtemp].emplace_back(iter.fromlocal);
 				 break;
-			case 21: 
+			case 23: 
  				 a[ktemp][vtemp].emplace_back(iter.texturl);
 				 break;
-			case 22: 
+			case 24: 
  				 a[ktemp][vtemp].emplace_back(iter.summary);
 				 break;
-			case 23: 
+			case 25: 
  				 a[ktemp][vtemp].emplace_back(iter.editauthor);
 				 break;
-			case 24: 
+			case 26: 
  				 a[ktemp][vtemp].emplace_back(iter.relatecontent);
 				 break;
 
@@ -6432,19 +6870,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			 }
@@ -6480,19 +6918,19 @@ case 24:
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 			  }
@@ -6554,19 +6992,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			  }
@@ -6602,19 +7040,19 @@ case 24:
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 			 }
@@ -6648,7 +7086,13 @@ case 24:
  				 a[ktemp][vtemp].emplace_back(iter.isopen);
 				 break;
 			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.ishome);
+				 break;
+			case 20: 
  				 a[ktemp][vtemp].emplace_back(iter.iscomment);
+				 break;
+			case 21: 
+ 				 a[ktemp][vtemp].emplace_back(iter.showtype);
 				 break;
 
                 }
@@ -6705,19 +7149,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			  }
@@ -6753,19 +7197,19 @@ case 24:
 			case 17: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 vtemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 vtemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 vtemp=iter.relatecontent;
 				 break;
 			  }
@@ -6801,19 +7245,19 @@ case 24:
 			case 17: 
  				 a[ktemp][vtemp].emplace_back(iter.mdcontent);
 				 break;
-			case 20: 
+			case 22: 
  				 a[ktemp][vtemp].emplace_back(iter.fromlocal);
 				 break;
-			case 21: 
+			case 23: 
  				 a[ktemp][vtemp].emplace_back(iter.texturl);
 				 break;
-			case 22: 
+			case 24: 
  				 a[ktemp][vtemp].emplace_back(iter.summary);
 				 break;
-			case 23: 
+			case 25: 
  				 a[ktemp][vtemp].emplace_back(iter.editauthor);
 				 break;
-			case 24: 
+			case 26: 
  				 a[ktemp][vtemp].emplace_back(iter.relatecontent);
 				 break;
 
@@ -6870,19 +7314,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			  }
@@ -6918,19 +7362,19 @@ case 24:
 			case 17: 
  				 a[ktemp].emplace_back(iter.mdcontent);
 				 break;
-			case 20: 
+			case 22: 
  				 a[ktemp].emplace_back(iter.fromlocal);
 				 break;
-			case 21: 
+			case 23: 
  				 a[ktemp].emplace_back(iter.texturl);
 				 break;
-			case 22: 
+			case 24: 
  				 a[ktemp].emplace_back(iter.summary);
 				 break;
-			case 23: 
+			case 25: 
  				 a[ktemp].emplace_back(iter.editauthor);
 				 break;
-			case 24: 
+			case 26: 
  				 a[ktemp].emplace_back(iter.relatecontent);
 				 break;
 
@@ -6986,19 +7430,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			 }
@@ -7059,19 +7503,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			  }
@@ -7105,7 +7549,13 @@ case 24:
  				 a[ktemp].emplace_back(iter.isopen);
 				 break;
 			case 19: 
+ 				 a[ktemp].emplace_back(iter.ishome);
+				 break;
+			case 20: 
  				 a[ktemp].emplace_back(iter.iscomment);
+				 break;
+			case 21: 
+ 				 a[ktemp].emplace_back(iter.showtype);
 				 break;
 
                 }
@@ -7159,7 +7609,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			 }
 
@@ -7194,19 +7650,19 @@ case 24:
 			case 17: 
  				 a[ktemp].emplace_back(iter.mdcontent);
 				 break;
-			case 20: 
+			case 22: 
  				 a[ktemp].emplace_back(iter.fromlocal);
 				 break;
-			case 21: 
+			case 23: 
  				 a[ktemp].emplace_back(iter.texturl);
 				 break;
-			case 22: 
+			case 24: 
  				 a[ktemp].emplace_back(iter.summary);
 				 break;
-			case 23: 
+			case 25: 
  				 a[ktemp].emplace_back(iter.editauthor);
 				 break;
-			case 24: 
+			case 26: 
  				 a[ktemp].emplace_back(iter.relatecontent);
 				 break;
 
@@ -7262,7 +7718,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
 
@@ -7319,7 +7781,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			 }
 
@@ -7352,7 +7820,13 @@ case 24:
  				 a[ktemp].emplace_back(iter.isopen);
 				 break;
 			case 19: 
+ 				 a[ktemp].emplace_back(iter.ishome);
+				 break;
+			case 20: 
  				 a[ktemp].emplace_back(iter.iscomment);
+				 break;
+			case 21: 
+ 				 a[ktemp].emplace_back(iter.showtype);
 				 break;
 
                 }
@@ -7402,7 +7876,13 @@ case 24:
  				 a[iter.isopen].emplace_back(iter);
 				 break;
 			case 19: 
+ 				 a[iter.ishome].emplace_back(iter);
+				 break;
+			case 20: 
  				 a[iter.iscomment].emplace_back(iter);
+				 break;
+			case 21: 
+ 				 a[iter.showtype].emplace_back(iter);
 				 break;
 
                 }
@@ -7455,19 +7935,19 @@ case 24:
 			case 17: 
  				 a[iter.mdcontent].emplace_back(iter);
 				 break;
-			case 20: 
+			case 22: 
  				 a[iter.fromlocal].emplace_back(iter);
 				 break;
-			case 21: 
+			case 23: 
  				 a[iter.texturl].emplace_back(iter);
 				 break;
-			case 22: 
+			case 24: 
  				 a[iter.summary].emplace_back(iter);
 				 break;
-			case 23: 
+			case 25: 
  				 a[iter.editauthor].emplace_back(iter);
 				 break;
-			case 24: 
+			case 26: 
  				 a[iter.relatecontent].emplace_back(iter);
 				 break;
 
@@ -7523,19 +8003,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 			 }
@@ -7571,19 +8051,19 @@ case 24:
 			case 17: 
  				 a[ktemp][iter.mdcontent].emplace_back(iter);
 				 break;
-			case 20: 
+			case 22: 
  				 a[ktemp][iter.fromlocal].emplace_back(iter);
 				 break;
-			case 21: 
+			case 23: 
  				 a[ktemp][iter.texturl].emplace_back(iter);
 				 break;
-			case 22: 
+			case 24: 
  				 a[ktemp][iter.summary].emplace_back(iter);
 				 break;
-			case 23: 
+			case 25: 
  				 a[ktemp][iter.editauthor].emplace_back(iter);
 				 break;
-			case 24: 
+			case 26: 
  				 a[ktemp][iter.relatecontent].emplace_back(iter);
 				 break;
 
@@ -7639,19 +8119,19 @@ case 24:
 			case 17: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 20: 
+			case 22: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 21: 
+			case 23: 
  				 ktemp=iter.texturl;
 				 break;
-			case 22: 
+			case 24: 
  				 ktemp=iter.summary;
 				 break;
-			case 23: 
+			case 25: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 24: 
+			case 26: 
  				 ktemp=iter.relatecontent;
 				 break;
 	  }
@@ -7685,7 +8165,13 @@ case 24:
  				 a[ktemp][iter.isopen].emplace_back(iter);
 				 break;
 			case 19: 
+ 				 a[ktemp][iter.ishome].emplace_back(iter);
+				 break;
+			case 20: 
  				 a[ktemp][iter.iscomment].emplace_back(iter);
+				 break;
+			case 21: 
+ 				 a[ktemp][iter.showtype].emplace_back(iter);
 				 break;
 
                 }
@@ -7739,7 +8225,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			 }
 
@@ -7772,7 +8264,13 @@ case 24:
  				 a[ktemp][iter.isopen].emplace_back(iter);
 				 break;
 			case 19: 
+ 				 a[ktemp][iter.ishome].emplace_back(iter);
+				 break;
+			case 20: 
  				 a[ktemp][iter.iscomment].emplace_back(iter);
+				 break;
+			case 21: 
+ 				 a[ktemp][iter.showtype].emplace_back(iter);
 				 break;
 
                 }
@@ -7826,7 +8324,13 @@ case 24:
  				 ktemp=iter.isopen;
 				 break;
 			case 19: 
+ 				 ktemp=iter.ishome;
+				 break;
+			case 20: 
  				 ktemp=iter.iscomment;
+				 break;
+			case 21: 
+ 				 ktemp=iter.showtype;
 				 break;
 			  }
 
@@ -7861,19 +8365,19 @@ case 24:
 			case 17: 
  				 a[ktemp][iter.mdcontent].emplace_back(iter);
 				 break;
-			case 20: 
+			case 22: 
  				 a[ktemp][iter.fromlocal].emplace_back(iter);
 				 break;
-			case 21: 
+			case 23: 
  				 a[ktemp][iter.texturl].emplace_back(iter);
 				 break;
-			case 22: 
+			case 24: 
  				 a[ktemp][iter.summary].emplace_back(iter);
 				 break;
-			case 23: 
+			case 25: 
  				 a[ktemp][iter.editauthor].emplace_back(iter);
 				 break;
-			case 24: 
+			case 26: 
  				 a[ktemp][iter.relatecontent].emplace_back(iter);
 				 break;
 

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>首页</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+
+  <link href="/css/dashboard.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2"><% echo<<obj["info"]["sitename"].to_string(); %> 网站管理</h5>
+    <hr>
+    <div class="row p-3">
+      <div class="col-10">
+        <a class="btn btn-primary" href="/superadmin/adduser?sid=<% echo<<obj["info"]["sid"].to_string(); %>">添加用户</a>
+      </div>
+    </div>      
+    <div class="row p-3">
+      <div class="col-10">
+        <table class="table table-bordered">
+
+          <tbody>
+            <tr>
+              <th>#</th>
+              <th>昵称</th>
+              <th>登录名</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+            <%c for(auto &a:obj["infos"].as_array()){ %>
+            <tr>
+              <td><%c echo<<a.second["userid"].to_string(); %></td>
+              <td><%c echo<<a.second["nickname"].to_string(); %></td>
+              <td><%c echo<<a.second["name"].to_string(); %></td>
+              <td><%c if(a.second["isopen"].to_int()==1){ %>启用<%c }else{ %>关闭<%c } %></td>
+              <td><a href="/superadmin/edituser?userid=<%c echo<<a.second["userid"].to_string(); %>">编辑</a> | <a href="/superadmin/deleteuser?userid=<%c echo<<a.second["userid"].to_string(); %>" onclick="return confirm('确定删除？');">删除</a></td>
+            </tr>
+            <%c } %>
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+    <div class="row p-3">
+      <div class="col-10">
+         <a href="/superadmin/welcome" class="btn btn-link rounded-pill px-3">返回</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

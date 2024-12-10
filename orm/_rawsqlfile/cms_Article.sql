@@ -16,13 +16,16 @@ CREATE TABLE `article` (
   `review` int NOT NULL,
   `icoimg` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '列表图片',
   `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `mdcontent` longtext COLLATE utf8mb4_general_ci NOT NULL COMMENT 'markdown content',
+  `mdcontent` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'markdown content',
   `isopen` tinyint NOT NULL COMMENT '是否开放',
+  `ishome` tinyint NOT NULL DEFAULT '0' COMMENT 'show homepage',
   `iscomment` tinyint NOT NULL COMMENT '是否可以评论',
+  `showtype` tinyint NOT NULL DEFAULT '0' COMMENT 'art content display type',
   `fromlocal` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发表地址',
   `texturl` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'url用英文代替',
   `summary` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章摘要',
   `editauthor` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '文章编辑',
-  `relatecontent` varchar(256) COLLATE utf8mb4_general_ci NOT NULL COMMENT '相关内容',
-  PRIMARY KEY (`aid`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+  `relatecontent` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '相关内容',
+  PRIMARY KEY (`aid`),
+  KEY `userid` (`userid`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci

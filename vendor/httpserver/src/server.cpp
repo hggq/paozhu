@@ -1748,7 +1748,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             peer->status(200);
             peer->content_type.clear();
             peer->type("text/html; charset=utf-8");
-            peer->linktype = 0;            
+            peer->linktype = 0;
             peer->etag.clear();
 
             sendtype = co_await co_user_task(peer);
@@ -2215,9 +2215,9 @@ asio::awaitable<void> httpserver::http1_send_file(unsigned int streamid,
     co_return;
 }
 asio::awaitable<void> httpserver::http1_send_file_range(unsigned int streamid,
-                                       std::shared_ptr<httppeer> peer,
-                                       std::shared_ptr<client_session> peer_session,
-                                       const std::string &filename)
+                                                        std::shared_ptr<httppeer> peer,
+                                                        std::shared_ptr<client_session> peer_session,
+                                                        const std::string &filename)
 {
     DEBUG_LOG("http1_send_file_range %s %u", filename.c_str(), streamid);
 
@@ -2599,7 +2599,7 @@ asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
         peer->output.clear();
 
         sendtype = co_await co_user_task(peer);
-
+        DEBUG_LOG("---  http1 pool post --------");
         if (peer->get_status() < 100)
         {
             peer->status(200);
@@ -3346,7 +3346,9 @@ void httpserver::listeners()
     {
         context_.use_certificate_chain_file(sysconfigpath.ssl_chain_file());
         context_.use_private_key_file(sysconfigpath.ssl_key_file(), asio::ssl::context::pem);
+        //use_certificate_file
         context_.use_tmp_dh_file(sysconfigpath.ssl_dh_file());
+        context_.use_certificate_file(sysconfigpath.ssl_chain_crt_file(), asio::ssl::context::pem);
     }
     catch (std::exception &e)
     {
@@ -3618,19 +3620,6 @@ void httpserver::httpwatch()
     };
     _http_regmethod_table.emplace("frametasks_timeloop", std::move(temp));
 
-#ifdef ENABLE_BOOST
-    clientapi *pn       = clientapi::instance();
-    pn->api_loadview    = loadviewso;
-    pn->api_loadcontrol = loadcontrol;
-
-    // pn->api_mysqlselect     = get_mysqlselectexecute;
-    // pn->api_mysqledit       = get_mysqlselectexecute;
-    // pn->api_mysqlcommit     = get_mysqlselectexecute;
-    pn->map_value           = sysconfigpath.map_value;
-    pn->server_global_var   = get_server_global_var;
-    //pn->api_mysql_back_conn = back_mysql_connect;
-#endif
-
     int catch_num               = 0;
     unsigned int updatetimetemp = sysconfigpath.siteusehtmlchachetime;
     std::string currentpath;
@@ -3648,6 +3637,76 @@ void httpserver::httpwatch()
     unsigned int mysqlpool_time = 1;
     std::size_t n_write         = 0;
     updatetimetemp              = 0;
+    unsigned char cron_type     = 0x00;
+    unsigned char cron_day      = 0x00;
+    unsigned char cron_hour     = 0x00;
+
+    //reboot server
+    if (sysconfigpath.map_value["default"]["reboot_cron"].size() > 1)
+    {
+        if (sysconfigpath.map_value["default"]["reboot_cron"][0] == 'M' || sysconfigpath.map_value["default"]["reboot_cron"][0] == 'm')
+        {
+            cron_type = 'm';
+        }
+        else if (sysconfigpath.map_value["default"]["reboot_cron"][0] == 'D' || sysconfigpath.map_value["default"]["reboot_cron"][0] == 'd')
+        {
+            cron_type = 'd';
+        }
+        else if (sysconfigpath.map_value["default"]["reboot_cron"][0] == 'W' || sysconfigpath.map_value["default"]["reboot_cron"][0] == 'w')
+        {
+            cron_type = 'w';
+        }
+        else if (sysconfigpath.map_value["default"]["reboot_cron"][0] == 'S' || sysconfigpath.map_value["default"]["reboot_cron"][0] == 's')
+        {
+            cron_type = 's';
+        }
+        if (cron_type != 0x00)
+        {
+            for (unsigned int i = 1; i < sysconfigpath.map_value["default"]["reboot_cron"].size(); ++i)
+            {
+                if (sysconfigpath.map_value["default"]["reboot_cron"][i] >= '0' && sysconfigpath.map_value["default"]["reboot_cron"][i] <= '9')
+                {
+                    cron_day = cron_day * 10 + (sysconfigpath.map_value["default"]["reboot_cron"][i] - '0');
+                }
+                else
+                {
+                    if (sysconfigpath.map_value["default"]["reboot_cron"][i] == 'H' || sysconfigpath.map_value["default"]["reboot_cron"][i] == 'h')
+                    {
+                        for (unsigned int j = i + 1; j < sysconfigpath.map_value["default"]["reboot_cron"].size(); ++j)
+                        {
+                            if (sysconfigpath.map_value["default"]["reboot_cron"][j] >= '0' && sysconfigpath.map_value["default"]["reboot_cron"][j] <= '9')
+                            {
+                                cron_hour = cron_hour * 10 + (sysconfigpath.map_value["default"]["reboot_cron"][j] - '0');
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            if (cron_type == 'w')
+            {
+                cron_day = cron_day % 8;
+            }
+            else if (cron_type == 's')
+            {
+                cron_day = cron_day % 32;
+            }
+            else if (cron_type == 'm')
+            {
+                cron_day = cron_day % 32;
+            }
+
+            if (cron_day == 0)
+            {
+                cron_day = 1;
+            }
+        }
+    }
+
 #ifndef _WIN32
     struct flock lockstr = {};
 #endif
@@ -3816,7 +3875,6 @@ void httpserver::httpwatch()
 
                         DEBUG_LOG("mysql pool clearpoool ");
                     }
-                    mysqlpool_time = 1;
                 }
             }
 
@@ -3835,6 +3893,81 @@ void httpserver::httpwatch()
 
             mysqlpool_time += 1;
             DEBUG_LOG("clear mysql poll time:%d,client live:%d", mysqlpool_time, total_count.load());
+            DEBUG_LOG("cron type:%c day:%d,hour:%d min:%d", cron_type, cron_day, cron_hour, now->tm_min);
+
+            //cron reboot process
+            if (cron_type > 0 && cron_day > 0 && cron_hour > 0 && mysqlpool_time > 40 && now->tm_min < 3)
+            {
+                if (cron_type == 'd')
+                {
+                    if ((now->tm_yday + 1) % cron_day == 0)
+                    {
+                        if (cron_hour > 0 && now->tm_hour % cron_hour == 0)
+                        {
+                            isstop = true;
+                        }
+                    }
+                }
+                else if (cron_type == 'm')
+                {
+                    if (now->tm_mday % cron_day == 0)
+                    {
+                        if (cron_hour > 0 && now->tm_hour % cron_hour == 0)
+                        {
+                            isstop = true;
+                        }
+                    }
+                }
+                else if (cron_type == 'w')
+                {
+                    if (cron_day == 7 && 0 == now->tm_wday)
+                    {
+                        if (cron_hour > 0 && now->tm_hour % cron_hour == 0)
+                        {
+                            isstop = true;
+                        }
+                    }
+                    else if (now->tm_wday % cron_day == 0)
+                    {
+                        if (cron_hour > 0 && now->tm_hour % cron_hour == 0)
+                        {
+                            isstop = true;
+                        }
+                    }
+                }
+                else if (cron_type == 's')
+                {
+                    if (now->tm_mon == 0 || now->tm_mon == 3 || now->tm_mon == 6 || now->tm_mon == 9)
+                    {
+                        if (now->tm_mday % cron_day == 0)
+                        {
+                            if (cron_hour > 0 && now->tm_hour % cron_hour == 0)
+                            {
+                                isstop = true;
+                            }
+                        }
+                    }
+                }
+                if (isstop)
+                {
+                    std::string logstr = "--- server restart ";
+                    logstr.append(std::string(std::to_string(now->tm_mon + 1)));
+                    logstr.append("-");
+                    logstr.append(std::string(std::to_string(now->tm_mday)));
+                    logstr.append(" ");
+                    logstr.append(std::string(std::to_string(now->tm_hour)));
+                    logstr.append(" ---\n");
+                    DEBUG_LOG("exit now:%s", logstr.c_str());
+                    std::unique_lock<std::mutex> loglock(log_mutex);
+                    for (unsigned int i = 0; i < 10; i++)
+                    {
+                        error_loglist.push_back(logstr);
+                    }
+                    loglock.unlock();
+                    cron_type = 0x00;
+                    continue;
+                }
+            }
         }
         catch (std::exception &e)
         {
@@ -3843,9 +3976,12 @@ void httpserver::httpwatch()
         }
         if (isstop)
         {
+            DEBUG_LOG("std::abort");
             break;
         }
     }
+    //std::abort();
+    std::terminate();
 }
 void httpserver::run(const std::string &sysconfpath)
 {
@@ -3856,6 +3992,9 @@ void httpserver::run(const std::string &sysconfpath)
         _inithttpmethodregto(_http_regmethod_table);
         _inithttpmethodregto_pre(_http_regmethod_table);
         _initauto_control_httprestful_paths(_http_regurlpath_table);
+
+        _initauto_domain_httpmethodregto(_domain_regmethod_table);
+        _initauto_domain_httprestful_paths(_domain_regurlpath_table);
 
         serverconfig &sysconfigpath = getserversysconfig();
         sysconfigpath.init_path();
@@ -3893,10 +4032,11 @@ void httpserver::run(const std::string &sysconfpath)
         _initwebsocketmethodregto(wsreg);
 
         total_count = sysconfigpath.get_co_thread_num();
-        if(total_count < std::thread::hardware_concurrency())
+        if (total_count < std::thread::hardware_concurrency())
         {
             total_count = std::thread::hardware_concurrency();
         }
+
         asio::io_context::work worker(io_context);
         for (std::size_t i = 0; i < total_count; ++i)
         {

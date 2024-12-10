@@ -76,8 +76,11 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
             client.val["info"]["topicname"]   = topicm.data.title;
             client.val["info"]["topictype"]   = topicm.data.cateid;
             client.val["info"]["topicstatus"] = topicm.data.isview == 1 ? true : false;
+            client.val["info"]["isside"]      = topicm.data.isside == 1 ? true : false;
             client.val["info"]["urlpath"]     = topicm.data.urlpath;
             client.val["info"]["memo"]        = topicm.data.memo;
+            client.val["info"]["sorttype"]    = topicm.data.sorttype;
+            client.val["info"]["imgurl"]      = topicm.data.imgurl;
 
             client.val["infotopimgs"].set_array();
             client.val["infotopimgs"].from_json(topicm.data.topimg);
@@ -187,12 +190,24 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
             topicm.setIsview(false);
         }
 
+        unsigned char issidestatus = client.post["isside"].to_int();
+
+        if (issidestatus == 1)
+        {
+            topicm.setIsside(1);
+        }
+        else
+        {
+            topicm.setIsside(0);
+        }
+
         topicm.setMemo(client.post["memo"].as_string());
         topicm.setCateid(client.post["topictype"].to_int());
         topicm.setUrlpath(client.post["urlpath"].as_string());
         topicm.setParentid(client.post["parentid"].to_int());
-
-        topicm.setUserid(0);
+        topicm.setSorttype(client.post["sorttype"].to_int());
+        topicm.setUserid(client.session["userid"].to_int());
+        topicm.setImgurl(client.post["icoimg"].as_string());
 
         topicm.save();
         unsigned int topicid = 0;
@@ -306,12 +321,26 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
         {
             topicm.setIsview(false);
         }
+
+        unsigned char issidestatus = client.post["isside"].to_int();
+
+        if (issidestatus == 1)
+        {
+            topicm.setIsside(1);
+        }
+        else
+        {
+            topicm.setIsside(0);
+        }
+
         unsigned int topicid_parentid = client.post["parentid"].to_int();
         unsigned int topicid          = client.post["topicid"].to_int();
 
         topicm.setMemo(client.post["memo"].as_string());
         topicm.setUrlpath(client.post["urlpath"].as_string());
         topicm.setCateid(client.post["topictype"].to_int());
+        topicm.setSorttype(client.post["sorttype"].to_int());
+        topicm.setImgurl(client.post["icoimg"].as_string());
         if (topicid_parentid != topicid)
         {
             // block set parentid as self
@@ -321,11 +350,11 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
         topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", client.post["topicid"].to_int());
         if (topicid_parentid != topicid)
         {
-            topicid_parentid = topicm.update("cateid,title,isview,memo,urlpath,parentid");
+            topicid_parentid = topicm.update("cateid,sorttype,title,isview,isside,memo,urlpath,imgurl,parentid");
         }
         else
         {
-            topicid_parentid = topicm.update("cateid,title,isview,memo,urlpath");
+            topicid_parentid = topicm.update("cateid,sorttype,title,isview,isside,memo,urlpath,imgurl");
         }
 
         if (topicm.error_msg.size() > 0)
@@ -372,7 +401,12 @@ std::string admin_topicfileupload(std::shared_ptr<httppeer> peer)
     std::string action_do = client.get["action"].to_string();
 
     auto img = std::make_unique<upload_images>(peer);
-    img->init();
+    // img->init();
+    // img->set_host(peer->get_hosturl());
+    std::string img_path = client.session["sitepath"].to_string();
+    std::string hosturl  = client.session["hosturl"].to_string();
+    img->set_host(hosturl);
+    img->set_sitepath(img_path);
 
     if (action_do == "uploadimage")
     {
@@ -433,4 +467,28 @@ std::string admin_topicimgtextupload(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
+
+//@urlpath(admin_isloginjson,admin/updatetopicview)
+std::string admin_updatetopicview(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    try
+    {
+        auto topicm          = orm::cms::Topic();
+        unsigned char isview = client.post["isview"].to_int() > 0 ? 1 : 0;
+
+        topicm.setIsview(isview);
+        topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", client.get["id"].to_int());
+        client.val["code"] = topicm.update("isview");
+        client.val["msg"]  = "ok";
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 0;
+    }
+    client.out_json();
+    return "";
+}
+
 }// namespace http

@@ -22,7 +22,7 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
     std::string username = client.post["username"].to_string();
     std::string password = client.post["password"].to_string();
 
-    auto users = orm::cms::User();
+    auto users = orm::cms::Sysuser();
     std::string md5string;
 
     try
@@ -31,10 +31,10 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
         users.where("name=", username).whereAnd("password=", md5string).fetch_one();
         // view orm create sql
         // client<<"<p>"<<users.sqlstring<<"</p>";
-        if (users.getUserid() > 0)
+        if (users.getAdminid() > 0)
         {
             // save session,other page get  int userid= client.session["userid"].to_int();
-            client.session["userid"] = users.getUserid();
+            client.session["userid"] = users.getCompanyid();
             client.save_session();
             client.goto_url("/cms/list");
             return "";

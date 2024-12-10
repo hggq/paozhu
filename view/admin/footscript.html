@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>网站信息</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+
+  <div class="container-fluid">
+    <h5 class="card-title mt-2">底部Javascript代码</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+        <form id="form" action="/admin/footscriptpost" method="post">
+          <div class="row mb-3">
+            <div class="ml-2">（需要用&lt;script&gt;闭合js代码）</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-12">
+              <textarea class="form-control" name="footscript" id="footscript" rows="20"
+                name="footscript"><% echo << obj["info"]["footscript"].to_string(); %></textarea>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-sm-10 offset-sm-2">
+              <button type="submit" class="btn btn-primary">确认</button>
+              <input type="hidden" id="sid" name="sid" value="<% echo<<obj["info"]["sid"].to_string(); %>" />
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+  
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>添加产品</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/libs/tree/select-tree.css">
+ 
+  <link href="/css/dashboard.css" rel="stylesheet">
+  <script src="/js/jquery.min.js"></script>
+  <script src="/libs/tree/select-tree.js"></script>
+  
+ <script type="text/javascript" charset="utf-8" src="/ueditor/ueditor.config.js"></script>
+  <script type="text/javascript" charset="utf-8" src="/ueditor/ueditor.all.js"> </script>
+  <script type="text/javascript" charset="utf-8" src="/ueditor/lang/zh-cn/zh-cn.js"></script>
+  
+  <style type="text/css">
+   
+
+    .edui-editor {
+      width: 830px !important;
+      min-height: 300px;
+      height: auto;
+    }
+
+    #edui1_iframeholder {
+      min-height: 200px;
+    }
+
+    body {
+      background-color: #FFFFFF;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2">添加产品</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+        <form id="form" action="/admin/addproductpost" method="post">
+
+          <div class="row mb-3">
+            <label for="topicid" class="col-sm-2 col-form-label text-sm-end">选择栏目</label>
+            <div class="col-sm-10">
+                   <select class="form-select" id="topicid" name="topicid"></select>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="title" class="col-sm-2 col-form-label text-sm-end">产品名称</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="title" name="title" value="">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="sntype" class="col-sm-2 col-form-label text-sm-end">型号</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="sntype" name="sntype" value="">
+            </div>
+          </div>
+           <div class="row mb-3">
+            <label for="smallid" class="col-sm-2 col-form-label text-sm-end">分类</label>
+            <div class="col-sm-10">
+              <select class="form-select" id="smallid" name="smallid"></select>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="brandid" class="col-sm-2 col-form-label text-sm-end">品牌</label>
+            <div class="col-sm-10">
+              <select class="form-select" id="brandid" name="brandid">
+                <option value="0">无品牌</option>  
+                <%c for(auto &a:obj["brandlist"].as_array()){ %>
+                <option value="<%c echo<<a.second["id"].to_string(); %>"><%c echo<<a.second["name"].as_string(); %></option>  
+                <%c } %>  
+              </select>
+            </div>
+          </div>  
+
+
+         <div class="row mb-3">
+            <label for="icoimg" class="col-sm-2 col-form-label text-sm-end">产品头图</label>
+            <div class="col-sm-6">
+              <div class="input-group mb-3">
+              <input type="text" class="form-control" id="icoimg" name="icoimg" value="" placeholder="列表使用封面图或头图使用">
+              <input class="form-control" type="file" style="width:100px" id="relate-icoimg" accept=".png,.jpg,.jpeg">
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="progress" id="progress-bar-show" style="display:none" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-bar" id="progress-bar" style="width: 0%">0</div>
+                </div>
+              <div id="progress-bar-result"></div>  
+            </div>
+          </div> 
+
+
+
+          <div class="row mb-3">
+            <label for="keywords" class="col-sm-2 col-form-label text-sm-end">产品图片</label>
+            <div class="col-sm-10">
+              <div class="row" style="margin-left: unset;margin-bottom: 5px;">
+                <div class="col-md-8">
+                  <div class="input-group row">
+                    <input type="text" class="form-control col-md-8"  name="header_urlpath[]"  placeholder="图片地址" value="">
+                    <input type="file" class="form-control uploadfile col-md-4"  accept=".jpg,.png,.jpeg"  aria-describedby="inputGroupFileAddon04" aria-label="Upload">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <button type="button" class="btn btn-outline-info" onclick="additem(this)">+</button>
+                  <button type="button" class="btn btn-outline-danger" onclick="removeitem(this)">-</button>
+                </div>
+              </div>
+
+              
+            </div>
+          </div>
+
+ 
+
+          <div class="row mb-3">
+            <label for="keywords" class="col-sm-2 col-form-label text-sm-end">关键词</label>
+            <div class="col-sm-10">
+              <textarea class="form-control" id="keywords" rows="3" name="keywords"></textarea>
+            </div>
+          </div>
+ 
+          <div class="row mb-3">
+            <label for="introduce" class="col-sm-2 col-form-label text-sm-end">摘要</label>
+            <div class="col-sm-10">
+              <textarea class="form-control" id="introduce" rows="3" name="introduce"
+                placeholder="250字以内"></textarea>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="content" class="col-sm-2 col-form-label text-sm-end">产品内容</label>
+            <div class="col-sm-10">
+              <textarea id="editor" style="width:830px" rows="10" name="content"></textarea>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <label for="relatecontent" class="col-sm-2 col-form-label text-sm-end">相关产品</label>
+            <div class="col-sm-7">
+            <div class="input-group mb-3">
+  <input type="text" class="form-control" id="relatecontent" name="relatecontent" placeholder="选择相关产品" aria-label="相关产品" aria-describedby="relate-addon">
+  <button class="btn btn-outline-secondary" type="button" id="relate-addon" data-bs-toggle="modal" data-bs-target="#exampleModal">选择</button>
+</div>
+
+
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <label for="relateattach" class="col-sm-2 col-form-label text-sm-end">产品附件</label>
+            <div class="col-sm-10">
+              <div class="row" style="margin-left: unset;margin-bottom: 5px;">
+                <div class="col-md-8">
+                  <div class="input-group row">
+                    <input type="text" class="form-control col-md-5"  name="attach_name[]"  placeholder="附件显示名称" value="">
+                    <input type="text" class="form-control col-md-5"  name="attach_urlpath[]"  placeholder="附件地址" value="">
+                    <button class="btn btn-outline-secondary selectattach col-md-2" type="button"  data-bs-toggle="modal" data-bs-target="#attachModal">选择文件</button>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <button type="button" class="btn btn-outline-info" onclick="addattachitem(this)">+</button>
+                  <button type="button" class="btn btn-outline-danger" onclick="removeattachitem(this)">-</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-sm-10 offset-sm-2">
+              <button type="submit" class="btn btn-primary">确认</button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+
+<div class="modal modal-lg fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">相关内容</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+      <table class="table table-hover" id="selecttable">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">标题</th>
+          <th scope="col">选择</th>
+        </tr>
+      </thead>
+      <tbody> 
+      </tbody>
+
+      </table>
+      
+      <ul class="pagination">
+        <li class="page-item" id="select_pre">
+          <a class="page-link" href="#" onclick="return select_prepage()">前一页</a>
+        </li>
+        <li class="page-item" id="select_next">
+          <a class="page-link" href="#" onclick="return select_nextpage()">下一页</a>
+        </li>
+      </ul>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+         
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal modal-lg fade" id="attachModal" tabindex="-1" aria-labelledby="attachModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="attachModalLabel">附件列表</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+      <table class="table table-hover" id="attachtable">
+      <thead>
+        <tr>
+          <th scope="col">文件名</th>
+          <th scope="col">时间</th>
+          <th scope="col">大小</th>
+        </tr>
+      </thead>
+      <tbody id="attach_body"> 
+      </tbody>
+      </table>
+      
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+         
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" id="myfiletobigModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="staticBackdropLabel">提示</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+         文件太大了，请传4M以下的文件！
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+         
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="myfilesuccessModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="myfilesuccess" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="myfilesuccess">提示</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+         上传成功！
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">确定</button>
+         
+      </div>
+    </div>
+  </div>
+</div>
+
+ 
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- <script src="/nicedit/nicEdit.js" type="text/javascript"></script> -->
+  <script lang="javascript">
+    var ue = UE.getEditor('editor');
+    
+  //  bkLib.onDomLoaded(function() {
+	//   new nicEditor({fullPanel : true,iconsPath : '/nicedit/nicEditorIcons.gif'}).panelInstance('editor');
+  //   });
+    
+    var current_page=0;
+    var min_page=0;
+    var max_page=0;
+    
+    var topicid=<% echo<<obj["topicid"].to_int(); %>;
+    var topic_json = <% echo << obj["topiclist"].to_json(); %> ;
+
+    var categoryid=<% echo<<obj["categoryid"].to_int(); %>;
+    var category_json = <% echo << obj["categorylist"].to_json(); %> ;
+
+    var directory_path="";
+    var directory_oldpath="";
+
+    var attach_obj =new Object();
+
+    $('#topicid').append($('<option>').val("0").text("所有栏目").attr("selected", true));
+    for (var i = 0; i < topic_json.length; i++) 
+    {
+      if(topic_json[i].id==topicid)
+      {
+        $('#topicid').append($('<option>').val(topic_json[i].id).text(topic_json[i].value).data("pid", topic_json[i].parentid).attr("selected","selected"));
+      }
+      else
+      {      
+        $('#topicid').append($('<option>').val(topic_json[i].id).text(topic_json[i].value).data("pid", topic_json[i].parentid));
+      }
+    }
+    var treeselect =$("#topicid").selectTree({ expandLevel: 1,
+        changeCallBack:function(data){
+           topicid=data[0].value;
+        }
+    });
+
+
+    $('#smallid').append($('<option>').val("0").text("产品分类").attr("selected", true));
+    for (var i = 0; i < category_json.length; i++) 
+    {
+      if(category_json[i].id==categoryid)
+      {
+        $('#smallid').append($('<option>').val(category_json[i].id).text(category_json[i].value).data("pid", category_json[i].parentid).attr("selected","selected"));
+      }
+      else
+      {      
+        $('#smallid').append($('<option>').val(category_json[i].id).text(category_json[i].value).data("pid", category_json[i].parentid));
+      }
+    }
+
+    var categoryselect =$("#smallid").selectTree({ expandLevel: 1,
+        changeCallBack:function(data){
+          categoryid=data[0].value;
+        }
+    });
+
+    function ajax_getattachlist(pathname)
+    {
+      directory_oldpath=directory_path;
+      if(pathname.length>0)
+      {
+        directory_path=directory_oldpath+"/"+pathname;
+      }
+      
+      $.getJSON("/admin/attachselectfiles/"+directory_path,function(result){
+               if(result.code==0)
+               {   
+                selectattach_content(result.list);   
+               }
+      });
+    }
+    function select_attachfile(filename)
+    {
+         jQuery(attach_obj).prev().val(filename);
+         $('#attachModal').modal("hide");
+    }
+    $('#attachModal').on('show.bs.modal', event => {
+      attach_obj=$(event.relatedTarget);
+            $.getJSON("/admin/attachselectfiles/"+directory_path,function(result){
+               console.log(result); 
+               if(result.code==0)
+               {   
+                selectattach_content(result.list);   
+                
+               }
+             });
+       });
+       function selectattach_content(alist)
+    {
+        var stable=$("#attachtable tbody");
+        stable.empty();
+                    
+        for (let i = 0; i < alist.length; i++) {
+ 
+          const row = document.createElement("tr");
+        
+          const cell = document.createElement("td");
+          const cellText = document.createTextNode(alist[i].filename);
+
+          const cellname = document.createElement("a");
+          cellname.setAttribute("href", "javascript:void(0)");
+          if(alist[i].time=='-')
+          {
+            if(alist[i].filename=="..")
+            {
+                  var totaloffset=directory_oldpath.length;
+                  var tempname="";
+                  directory_path=directory_oldpath;
+                  if(totaloffset>0)
+                  {
+                    totaloffset=-1;
+                    for(;totaloffset>=0;totaloffset--)
+                    {
+                      if(directory_oldpath.charAt[totaloffset]=='/')
+                      {
+                          break;
+                      }
+                      tempname=tempname+directory_oldpath.charAt[totaloffset];
+                    }
+                  }
+                  
+                  if(tempname.length==0)
+                  {
+                    directory_oldpath="";
+                    directory_path="";
+                    cellname.setAttribute("onClick","ajax_getattachlist('')");
+                  }
+                  else
+                  {
+                    directory_oldpath=directory_oldpath.substring(0,totaloffset);
+                    cellname.setAttribute("onClick","ajax_getattachlist('"+tempname+"')");
+                  }
+                 
+            }
+            else
+            {
+              cellname.setAttribute("onClick","ajax_getattachlist('"+alist[i].filename+"')");
+            }
+          }
+          else
+          {
+            cellname.setAttribute("onClick","select_attachfile('"+alist[i].url+alist[i].filename+"')");
+          }
+          
+          cellname.appendChild(cellText);
+          cell.appendChild(cellname);
+       
+          row.appendChild(cell);
+        
+          const cellb = document.createElement("td");
+          const cellTextb = document.createTextNode(alist[i].time);
+          cellb.appendChild(cellTextb);
+
+          row.appendChild(cellb);
+
+          const cella = document.createElement("td");
+          const cellTexta = document.createTextNode(alist[i].size);
+          cella.appendChild(cellTexta);
+       
+          row.appendChild(cella);
+          stable.append(row);
+        }
+    }
+    $('#exampleModal').on('show.bs.modal', event => {
+        
+//       var button = $(event.relatedTarget) 
+//attach_body
+// var ppath = button.data('name');
+// var ptime = button.data('time');
+      
+         $.getJSON("/admin/getcategorytopproduct?id="+categoryid,function(result){
+               if(result.code==0)
+               {   
+                  addselect_content(result.alist);   
+                  current_page=result.pageinfo.current;
+                  min_page=result.pageinfo.min;
+                  max_page=result.pageinfo.max;
+               }
+          });
+    });
+
+
+    function addselect_content(alist)
+    {
+        var stable=$("#selecttable tbody");
+        stable.empty();
+        
+        var relateval = $("#relatecontent").val(); 
+        const artArray = relateval.split(",");   
+            
+        for (let i = 0; i < alist.length; i++) {
+ 
+          const row = document.createElement("tr");
+        
+          const cell = document.createElement("td");
+          const cellText = document.createTextNode(alist[i].aid);
+          cell.appendChild(cellText);
+       
+          row.appendChild(cell);
+        
+      
+          const cella = document.createElement("td");
+          const cellTexta = document.createTextNode(alist[i].title);
+          cella.appendChild(cellTexta);
+       
+          row.appendChild(cella);
+          
+          
+          var x = document.createElement("input");
+          x.setAttribute("type", "checkbox");
+          x.setAttribute("value",alist[i].aid);
+          x.setAttribute("onClick","select_addart(this.value,this)");
+         
+          if(artArray.length>0)
+          {
+              for (let j = 0; j < artArray.length; j++) {
+                    if(alist[i].aid==artArray[j])
+                    {
+                        x.setAttribute("checked", "checked");
+                        break;
+                    }
+              }
+          }
+          
+          const cellb = document.createElement("td");
+          cellb.appendChild(x);
+          row.appendChild(cellb);
+          
+          stable.append(row);
+        }
+    }
+    
+    function select_addart(id,obj)
+    {
+        var relateval = $("#relatecontent").val(); 
+        const artArray = relateval.split(",");   
+  
+        if(obj.checked)
+        {
+           let n=0;
+           for (let j = 0; j < artArray.length; j++) {
+                if(id==artArray[j])
+                {
+                    n=1;
+                    break;
+                }
+
+            }     
+            if(n!=1)
+            {
+                artArray.push(id);
+                
+            }
+            $("#relatecontent").val(artArray.join(","));
+            
+        }
+        else
+        {
+            let newArray=[];
+            for (let j = 0; j < artArray.length; j++) {
+                    if(id==artArray[j])
+                    {
+                        continue;
+                    }
+                    newArray.push(artArray[j]);
+            }  
+            $("#relatecontent").val(newArray.join(","));
+        }
+    }
+    
+    
+
+    
+    function select_prepage()
+    {
+           
+           if(current_page<1)
+           {
+                $("#select_pre").addClass("disabled");
+                return false;
+           }
+           
+           if($("#select_pre").hasClass("disabled"))
+           {
+                $("#select_pre").removeClass("disabled");
+           }
+           
+           var page=current_page-1;
+           $.getJSON("/admin/getcategorytopproduct?page="+page+"&id="+categoryid,function(result){
+           if(result.code==0)
+           {   
+               addselect_content(result.alist);  
+               current_page=result.pageinfo.current;
+                  min_page=result.pageinfo.min;
+                  max_page=result.pageinfo.max; 
+           }
+          });
+         return false;
+    }
+    
+    function select_nextpage()
+    {
+           
+           if(current_page>=max_page)
+           {
+                $("#select_next").addClass("disabled");
+                return false;
+           }
+           if($("#select_next").hasClass("disabled"))
+           {
+                $("#select_next").removeClass("disabled");
+           }
+           
+           var page=current_page+1;
+           $.getJSON("/admin/getcategorytopproduct?page="+page+"&id="+categoryid,function(result){
+           if(result.code==0)
+           {   
+               addselect_content(result.alist);   
+               current_page=result.pageinfo.current;
+                  min_page=result.pageinfo.min;
+                  max_page=result.pageinfo.max;
+           }
+          });
+         return false;
+    }
+    
+    function additem(obj)
+    {
+        jQuery(obj).parent().parent().after(jQuery(obj).parent().parent().clone()); 
+        upfile_event();
+    }
+    function removeitem(obj)
+    {
+        if(jQuery(obj).parent().parent().parent().children().length>1)
+        {
+           jQuery(obj).parent().parent().remove();      
+        }
+    }
+
+    function addattachitem(obj)
+    {
+        jQuery(obj).parent().parent().after(jQuery(obj).parent().parent().clone()); 
+        
+    }
+    function removeattachitem(obj)
+    {
+        if(jQuery(obj).parent().parent().parent().children().length>1)
+        {
+           jQuery(obj).parent().parent().remove();      
+        }
+    }
+
+    function upfile_event()
+    {
+
+      $(".uploadfile").change(function(){
+              var fd=new FormData();
+              if($(this).get(0).files[0].size>15728640){
+                alert("附件不能大于15M，附件为zip、rar、jpg格式！");
+                return false;
+              }
+              fd.append("upfile",$(this).get(0).files[0]);
+              var selfobj=this;
+              $.ajax({
+                url:"/admin/topicfileupload?action=uploadimage",
+                type:"POST",
+                processData: false,
+                contentType:false,
+                data: fd,
+                dataType: "json",
+                success:function(data){
+                    if(data.state=="SUCCESS"){
+                      $(selfobj).prev().val(data.url);
+                    }
+                    else
+                    {
+                        alert(data.state);
+                    }
+                    //console.log(data.status);
+                }
+              });
+            });
+    }
+
+    $(document).ready(function(e) {
+      upfile_event();
+
+        $("#relate-icoimg").change(function(){
+            var fd=new FormData();
+            if($(this).get(0).files[0].size>4596640){
+                $('#myfiletobigModal').modal('show');
+                return false;
+            }
+            fd.append("upfile",$(this).get(0).files[0]);
+            $("#progress-bar-show").show();
+            $("#progress-bar-result").hide();
+            $.ajax({
+                url:"/imageapi/upload?action=uploadimage",
+                type:"POST",
+                processData: false,
+                contentType:false,
+                data: fd,
+                dataType: "json",
+                xhr: function() {  // custom xhr
+                    myXhr = $.ajaxSettings.xhr();
+                    if(myXhr.upload){ // check if upload property exists
+                        myXhr.upload.addEventListener('progress',function(evt){
+                            var percentComplete = Math.round(evt.loaded*100 / evt.total);
+                            $( "#progress-bar").css("width",percentComplete*2);
+                            $( "#progress-bar").html(percentComplete+'%');
+                        }, false); // for handling the progress of the upload
+                    }
+                    return myXhr;
+                },
+                success:function(data){
+                    if(data.state=="SUCCESS"){
+                        $("#progress-bar-show").hide();
+                        $("#progress-bar-result").show();
+                        $("#icoimg").val(data.url);
+						$("#progress-bar-result").html("<a href='"+data.url+"' target=_blank><img height=\"50\" width=\"50\"  src=\""+data.url+"\"/></a>");
+                       $('#myfilesuccessModal').modal('show');
+                    }
+                     
+                }
+            });
+        });
+    });	  
+  </script>
+</body>
+
+</html>

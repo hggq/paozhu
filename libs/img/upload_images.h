@@ -16,7 +16,7 @@ namespace http
 class upload_images
 {
   public:
-    upload_images(std::shared_ptr<httppeer> peer) : client(peer->get_peer()){};
+    upload_images(std::shared_ptr<httppeer> peer) : client(peer->get_peer()) {};
     bool init();
     bool get_config();
     bool upload_img(const std::string &);
@@ -25,9 +25,12 @@ class upload_images
     bool upload_video(const std::string &);
     bool upload_base64(const std::string &);
     bool upload_upfile(const std::string &);
+    void set_host(const std::string &);
+    void set_sitepath(const std::string &);
 
   public:
     std::string upload_path;
+    std::string url_host;
     std::string url_path;
     std::string jsoncontent;
     std::string configpath;

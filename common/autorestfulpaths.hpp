@@ -19,7 +19,19 @@ namespace http
 		restfulmethod["user/info"]={{""},{""},{"userid"}};
 		restfulmethod["user/profile"]={{""},{""},{"userid"},{"pathid"}};
 
+  }
+    
+    void _initauto_domain_httprestful_paths(std::map<std::string,std::map<std::string, std::vector<std::string>>>  &restfulmethod)
+    {
+        std::map<std::string, std::vector<std::string>> temp_path;
+        std::map<std::string,std::map<std::string, std::vector<std::string>>>::iterator domain_iterator;  
+
+        domain_iterator=restfulmethod.begin();
+        temp_path.clear();
+        
+
     }
+    
 }
 
 #endif

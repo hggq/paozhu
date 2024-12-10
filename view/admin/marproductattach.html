@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>产品管理</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/libs/tree/select-tree.css">
+ 
+  <link href="/css/dashboard.css" rel="stylesheet">
+  <script src="/js/jquery.min.js"></script>
+  <script src="/libs/tree/select-tree.js"></script>
+ 
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2">产品管理-附件查看</h5>
+    <hr>
+    <div class="row p-3">
+      <div class="col-5">
+        <div class="col-sm-10">
+          <select class="form-select" id="smallid" name="smallid"></select>
+        </div>
+      </div>
+      <div class="col-5">
+        <div class="input-group">
+        <input type="text" class="form-control" name="searchkeyword" id="searchkeyword" value="<%c echo<<obj["searchword"].to_string(); %>" placeholder="">
+          <button class="btn btn-outline-secondary" type="button" id="button-addon2" onclick="searcharticle()">搜索</button>
+        </div> 
+      </div>  
+    </div>  
+    <div class="row p-3">
+      <div class="col-10">
+            <%c for(auto &a:obj["alist"].as_array()){ %>
+            <p class="proattach" data-id="<%c echo<<a.second["pid"].to_string(); %>"><strong><%c echo<<a.second["cname"].to_string(); %> 	<%c echo<<a.second["name"].to_string(); %> </strong></p>
+            <%c for(auto &b:a.second["profilelist"].as_array()){ 
+              std::string attrname=b.second["name"].as_string();  
+              if(attrname.size()>0)
+              {
+            %>
+            <p style="color: #555555;text-decoration: underline;margin-left: 150px;""><a href="<%c echo<<b.second["url"].to_string(); %>" target="_blank"><%c echo<<b.second["name"].as_string(); %> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cloud-download" viewBox="0 0 16 16">
+              <path d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383"/>
+              <path d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708z"/>
+            </svg></a></p>
+            <%c } } %> 
+            <%c } %>    
+ 
+      </div>
+    </div>
+
+    <div class="row p-3">
+      <div class="col-10">
+        <nav aria-label="Page navigation example">
+          <ul class="pagination">
+          <%c if(obj["pageinfo"]["min"].to_int()>1){ %>
+            <li class="page-item"><a class="page-link" href="/admin/marproductattach?categoryid=<% echo<<obj["categoryid"].to_int(); %>&page=<% echo<<obj["pageinfo"]["current"].to_int(); %>">1</a></li>
+          <%c } %>
+          <%c if(obj["pageinfo"]["current"].to_int()>1){ %>
+            <li class="page-item"><a class="page-link" href="/admin/marproductattach?categoryid=<% echo<<obj["categoryid"].to_int(); %>&page=<% echo<<(obj["pageinfo"]["current"].to_int()-1); %>">上一页</a></li>
+          <%c } %>
+            
+            <%c unsigned int maxpage=obj["pageinfo"]["max"].to_int(); %>
+            <%c unsigned int currentpage=obj["pageinfo"]["current"].to_int(); %>
+            <%c for(unsigned int i=obj["pageinfo"]["min"].to_int();i<=maxpage;i++){ %>
+            <%c if(i==currentpage){ %>
+            <li class="page-item"><a class="page-link active" href="/admin/marproductattach?categoryid=<% echo<<obj["categoryid"].to_int(); %>&page=<% echo<<std::to_string(i); %>"><%c echo<<std::to_string(i); %></a></li>
+            <%c }else{ %>
+            <li class="page-item"><a class="page-link" href="/admin/marproductattach?categoryid=<% echo<<obj["categoryid"].to_int(); %>&page=<% echo<<std::to_string(i); %>"><%c echo<<std::to_string(i); %></a></li>
+            <%c } %>
+            <%c } %>
+            <%c if(obj["pageinfo"]["current"].to_int()<obj["pageinfo"]["total"].to_int()){ %>
+            <li class="page-item"><a class="page-link" href="/admin/marproductattach?categoryid=<% echo<<obj["categoryid"].to_int(); %>&page=<% echo<<(obj["pageinfo"]["current"].to_int()+1); %>">下一页</a></li>
+            <%c } %>
+            <%c if(obj["pageinfo"]["total"].to_int()>obj["pageinfo"]["max"].to_int()){ %>
+            <li class="page-item"><a class="page-link" href="/admin/marproductattach?categoryid=<% echo<<obj["categoryid"].to_int(); %>&page=<% echo<<obj["pageinfo"]["total"].to_int(); %>"><% echo<<obj["pageinfo"]["total"].to_string(); %></a></li>
+            <%c } %>
+          
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+    <script lang="javascript">
+ 
+    var categoryid=<% echo<<obj["categoryid"].to_int(); %>;
+    var category_json = <% echo << obj["categorylist"].to_json(); %> ;
+
+    $('#smallid').append($('<option>').val("0").text("产品分类").attr("selected", true));
+    for (var i = 0; i < category_json.length; i++) 
+    {
+      if(category_json[i].id==categoryid)
+      {
+        $('#smallid').append($('<option>').val(category_json[i].id).text(category_json[i].value).data("pid", category_json[i].parentid).attr("selected","selected"));
+      }
+      else
+      {      
+        $('#smallid').append($('<option>').val(category_json[i].id).text(category_json[i].value).data("pid", category_json[i].parentid));
+      }
+    }
+
+    var categoryselect =$("#smallid").selectTree({ expandLevel: 1,
+        changeCallBack:function(data){
+          categoryid=data[0].value;
+        }
+    });
+
+ 
+    function searcharticle()
+    {
+        if($("#searchkeyword").val()<1)
+        {
+           alert("请输入关键词！");
+        }
+        window.location.href="/admin/marproductattach?categoryid="+categoryid+"&searchword="+$("#searchkeyword").val();
+    }
+ 
+
+    $(document).ready(function(e) {
+
+      $(".proattach").mouseover(function(e){
+              if($(this).children("a").length==0)
+              {
+                $(this).append("<a href=\"/admin/editproduct?id="+$(this).data("id")+"\">编辑</a>");
+              }
+        });
+
+        $(".proattach").mouseout(function(e){
+               $(this).find("a").remove();
+        });
+
+    });
+
+    </script>
+</body>
+
+</html>

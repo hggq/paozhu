@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>网站信息</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+
+  <script type="text/javascript" charset="utf-8" src="/ueditor/ueditor.config.js"></script>
+  <script type="text/javascript" charset="utf-8" src="/ueditor/ueditor.admin.all.js"></script>
+  <script type="text/javascript" charset="utf-8" src="/ueditor/lang/zh-cn/zh-cn.js"></script>
+  
+  <style type="text/css">
+   
+
+    .edui-editor {
+      width: 1082px !important;
+      min-height: 300px;
+      height: auto;
+    }
+
+    #edui1_iframeholder {
+      min-height: 200px;
+    }
+
+    body {
+      background-color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container-fluid">
+    <h5 class="card-title mt-2">版权信息</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+        <form id="form" action="/admin/copyrightpost" method="post">
+          <div class="row mb-3">
+            <div class="col-sm-12">
+              <textarea name="copyright" id="copyright" rows="20"
+                name="copyright"><% echo << obj["info"]["copyright"].to_string(); %></textarea>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-sm-10 offset-sm-2">
+              <button type="submit" class="btn btn-primary">确认</button>
+              <input type="hidden" id="sid" name="sid" value="<% echo<<obj["info"]["sid"].to_string(); %>" />
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+  
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- <script src="/nicedit/nicEdit.js" type="text/javascript"></script> -->
+  <script lang="javascript">
+    var ue = UE.getEditor('copyright',{initialFrameWidth:1080});
+  </script>  
+</body>
+
+</html>

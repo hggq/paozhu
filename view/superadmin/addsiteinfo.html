@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+ 
+  <title>网站信息</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2">添加网站</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+        <form id="form" action="/superadmin/addsiteinfopost" method="post">
+          <div class="row mb-3">
+            <label for="companyname" class="col-sm-2 col-form-label text-sm-end">公司名称</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="companyname" name="companyname" value="<% echo << obj["info"]["companyname"].to_string(); %>">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="linkname" class="col-sm-2 col-form-label text-sm-end">联系人</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="linkname" name="linkname" value="<% echo << obj["info"]["linkname"].to_string(); %>">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="linkmobile" class="col-sm-2 col-form-label text-sm-end">电话</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="linkmobile" name="linkmobile" value="<% echo << obj["info"]["linkmobile"].to_string(); %>">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="sitename" class="col-sm-2 col-form-label text-sm-end">网站名称</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="sitename" name="sitename" value="<% echo << obj["info"]["sitename"].to_string(); %>">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="sitedomain" class="col-sm-2 col-form-label text-sm-end">网站域名</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="sitedomain" name="sitedomain" value="<% echo << obj["info"]["sitedomain"].to_string(); %>">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <label for="sitepath" class="col-sm-2 col-form-label text-sm-end">网站路径</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="sitepath" name="sitepath" placeholder="必须是字母和数字" value="<% echo << obj["info"]["sitepath"].to_string(); %>">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="expectdate" class="col-sm-2 col-form-label text-sm-end">到期日期</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="expectdate" name="expectdate" placeholder="yyyy-mm-dd" value="<% echo << obj["info"]["expectdate"].to_string(); %>">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <label for="isopen" class="col-sm-2 col-form-label text-sm-end">启用状态</label>
+            <div class="col-sm-10">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="1" name="isopen" id="isopen" <%c if(obj["info"]["isopen"].to_int()==1){ %>checked="checked"<%c } %>>
+                </div>                
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-10 offset-sm-2">
+              <button type="submit" class="btn btn-primary">添加</button>
+              <input type="hidden" id="sid" name="sid" value="<% echo<<obj["info"]["sid"].to_string(); %>" />
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+  
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+ 
+</body>
+
+</html>

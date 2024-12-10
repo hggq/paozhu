@@ -42,8 +42,8 @@ template <typename BASE_MODEL>
 class model_meta_cache
 {
   private:
-    model_meta_cache(){};
-    ~model_meta_cache(){};
+    model_meta_cache() {};
+    ~model_meta_cache() {};
     model_meta_cache(const model_meta_cache &);
     model_meta_cache &operator=(const model_meta_cache &);
 
@@ -3138,6 +3138,7 @@ class mysqlclientDB : public base
             }
             else
             {
+                error_msg = "warning empty where sql!";
                 return 0;
             }
         }

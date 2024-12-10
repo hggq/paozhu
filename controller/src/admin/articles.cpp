@@ -63,8 +63,9 @@ std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.content       = client.post["content"].to_string();
         artmodel.data.texturl       = client.post["texturl"].to_string();
         artmodel.data.relatecontent = client.post["relatecontent"].to_string();
-        artmodel.data.userid        = 0;
+        artmodel.data.userid        = client.session["userid"].to_int();
         artmodel.data.isopen        = 1;
+        artmodel.data.showtype      = 0;
         artmodel.data.createtime    = get_date("%Y-%m-%d %X");
         artmodel.data.addtime       = timeid();
         artmodel.data.addip         = client.client_ip;
@@ -132,9 +133,10 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
         client.val["info"]["icoimg"]        = artmodel.getIcoimg();
         client.val["info"]["relatecontent"] = artmodel.getRelatecontent();
         client.val["info"]["texturl"]       = artmodel.getTexturl();
+        client.val["info"]["texturl"]       = artmodel.getTexturl();
         client.val["info"]["content"]       = html_encode(artmodel.getRefContent());
         client.val["info"]["summary"]       = html_encode(artmodel.getRefSummary());
-        client.val["info"]["keywords"]      = html_encode(artmodel.getRefKeywords());
+        client.val["info"]["showtype"]      = artmodel.getShowtype();
     }
     catch (std::exception &e)
     {
@@ -166,10 +168,11 @@ std::string admin_editarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.content       = client.post["content"].to_string();
         artmodel.data.texturl       = client.post["texturl"].to_string();
         artmodel.data.relatecontent = client.post["relatecontent"].to_string();
+        artmodel.data.showtype      = client.post["showtype"].to_int();
 
         artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", aid).limit(1);
         int result_status =
-            artmodel.update("topicid,title,author,fromsource,icoimg,keywords,summary,content,texturl,relatecontent");
+            artmodel.update("topicid,title,author,fromsource,icoimg,keywords,summary,showtype,content,texturl,relatecontent");
 
         if (result_status > 0)
         {
@@ -345,6 +348,30 @@ std::string admin_updatearticleview(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
+
+//@urlpath(admin_isloginjson,admin/updatearticleishome)
+std::string admin_updatearticleishome(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    try
+    {
+        auto artmodel        = orm::cms::Article();
+        unsigned char ishome = client.post["ishome"].to_int() > 0 ? 1 : 0;
+
+        artmodel.setIshome(ishome);
+        artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", client.get["id"].to_int());
+        client.val["code"] = artmodel.update("ishome");
+        client.val["msg"]  = "ok";
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 0;
+    }
+    client.out_json();
+    return "";
+}
+
 //@urlpath(admin_islogin,admin/listarticle)
 std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 {
@@ -416,7 +443,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         client.val["pageinfo"]["current"] = current_page;
         client.val["pageinfo"]["total"]   = total_page;
 
-        artmodel.select("aid,topicid,title,createtime,sortid,isopen").desc("aid").fetch();
+        artmodel.select("aid,topicid,title,createtime,sortid,isopen,ishome").desc("aid").fetch();
         client.val["alist"].set_array();
         OBJ_ARRAY tempa;
 
@@ -430,6 +457,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
                 tempa["topicname"] = topickv[item.topicid];
                 tempa["sortid"]    = item.sortid;
                 tempa["isopen"]    = item.isopen;
+                tempa["ishome"]    = item.ishome;
                 client.val["alist"].push(tempa);
             }
         }

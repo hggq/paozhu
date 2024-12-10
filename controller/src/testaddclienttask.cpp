@@ -28,12 +28,12 @@ std::string testaddclienttask(std::shared_ptr<httppeer> peer)
 std::string testexecuteclienttask(std::shared_ptr<httppeer> peer)
 {
     // httppeer &client = peer->get_peer();
-    auto users = orm::cms::User();
+    auto users = orm::cms::Sysuser();
 
     try
     {
         users.where("name", "admin").limit(1).fetch();
-        if (users.getUserid() > 0)
+        if (users.getAdminid() > 0)
         {
             // not output
             users.update_col("level", 1);

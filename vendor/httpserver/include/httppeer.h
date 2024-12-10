@@ -62,11 +62,14 @@ class httppeer : public std::enable_shared_from_this<httppeer>
                     bool secure            = false,
                     bool httponly          = true,
                     std::string issamesite = "");
-
+    bool is_ssl();
     std::list<std::string> cookietoheader();
     std::string get_hosturl();
     std::string get_sitepath();
     unsigned long long get_siteid();
+    unsigned long long get_groupid();
+    std::string get_theme();
+    std::string get_themeurl();
     unsigned char has_urlfileext();
     bool isuse_fastcgi();
     void goto_url(const std::string &url, unsigned char second = 0, const std::string &msg = "");
@@ -220,7 +223,9 @@ struct regmethold_t
 };
 // extern std::map<std::string, std::function<std::string(std::shared_ptr<httppeer>)>> _http_regmethod_table;
 extern std::map<std::string, regmethold_t> _http_regmethod_table;
+extern std::map<std::string, std::map<std::string, regmethold_t>> _domain_regmethod_table;
 extern std::map<std::string, std::vector<std::string>> _http_regurlpath_table;
+extern std::map<std::string, std::map<std::string, std::vector<std::string>>> _domain_regurlpath_table;
 void make_404_content(std::shared_ptr<httppeer> peer);
 }// namespace http
 #endif

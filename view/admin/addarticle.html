@@ -15,9 +15,9 @@
   <script src="/js/jquery.min.js"></script>
   <script src="/libs/tree/select-tree.js"></script>
   
-<!--  <script type="text/javascript" charset="utf-8" src="/ueditor/ueditor.config.js"></script>
+ <script type="text/javascript" charset="utf-8" src="/ueditor/ueditor.config.js"></script>
   <script type="text/javascript" charset="utf-8" src="/ueditor/ueditor.all.js"> </script>
-  <script type="text/javascript" charset="utf-8" src="/ueditor/lang/zh-cn/zh-cn.js"></script>-->
+  <script type="text/javascript" charset="utf-8" src="/ueditor/lang/zh-cn/zh-cn.js"></script>
   
   <style type="text/css">
    
@@ -216,13 +216,13 @@
 
  
   <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/nicedit/nicEdit.js" type="text/javascript"></script>
+  <!-- <script src="/nicedit/nicEdit.js" type="text/javascript"></script> -->
   <script lang="javascript">
-    //var ue = UE.getEditor('editor');
+    var ue = UE.getEditor('editor');
     
-   bkLib.onDomLoaded(function() {
-	  new nicEditor({fullPanel : true,iconsPath : '/nicedit/nicEditorIcons.gif'}).panelInstance('editor');
-    });
+  //  bkLib.onDomLoaded(function() {
+	//   new nicEditor({fullPanel : true,iconsPath : '/nicedit/nicEditorIcons.gif'}).panelInstance('editor');
+  //   });
     
     var current_page=<% echo<<obj["pageinfo"]["current"].to_int(); %>;
     var min_page=<% echo<<obj["pageinfo"]["min"].to_int(); %>;

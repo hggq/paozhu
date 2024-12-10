@@ -20,7 +20,7 @@ namespace http
 {
 bool upload_images::init()
 {
-    sitepath = client.get_sitepath();
+    //sitepath = client.get_sitepath();
     return true;
 }
 bool upload_images::get_config()
@@ -43,14 +43,23 @@ bool upload_images::get_config()
     }
     config_json.from_json(jsoncontent);
 
-    sitepath = client.get_sitepath();
+    // sitepath = client.get_sitepath();
     return true;
+}
+void upload_images::set_host(const std::string &a)
+{
+    url_host = a;
+}
+void upload_images::set_sitepath(const std::string &a)
+{
+    sitepath = a;
 }
 bool upload_images::upload_img(const std::string &fieldname)
 {
     namespace fs      = std::filesystem;
     fs::path paths    = sitepath;
     upload_info.state = "未知错误(not action)";
+    upload_info.state.append(sitepath);
     if (fs::exists(paths))
     {
         std::string upimgpath = sitepath;
@@ -124,7 +133,18 @@ bool upload_images::upload_img(const std::string &fieldname)
             upimgpath.push_back('/');
         }
 
-        url_path = "/";
+        url_path = url_host;
+        
+        if (url_path.size() > 0 && url_path.back() != '/')
+        {
+            url_path.push_back('/');
+        }
+
+        if (url_path.size() == 0)
+        {
+            url_path.push_back('/');
+        }
+
         url_path.append("upload/image/");
         url_path.append(tempstr);
         url_path.push_back('/');
@@ -562,10 +582,18 @@ bool upload_images::upload_upfile(const std::string &fieldname)
         tempstr = tempstr.substr(0, extfilesize);
         filename.append(mb_substr(tempstr, 0, 13));
 
-        tempstr         = client.files[fieldname]["filename"].to_string();
+        tempstr = client.files[fieldname]["filename"].to_string();
+        for (unsigned int jj = extfilesize; jj < tempstr.size(); jj++)
+        {
+            if (tempstr[jj] > 0x40 && tempstr[jj] < 0x5B)
+            {
+                tempstr[jj] = tempstr[jj] + 32;
+            }
+        }
+
         bool isshowfile = true;
         extfilesize     = tempstr.size();
-        if (extfilesize > 3)
+        if (extfilesize > 1)
         {
             if (isshowfile && tempstr[extfilesize - 1] == 'p' && tempstr[extfilesize - 2] == 'i' &&
                 tempstr[extfilesize - 3] == 'z' && tempstr[extfilesize - 4] == '.')
