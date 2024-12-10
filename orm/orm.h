@@ -10,7 +10,6 @@
 #include "Fortune.h"
 #include "World.h"
 #include "cms/include/Brand.h"
-#include "cms/include/Blogcatalog.h"
 #include "cms/include/Catalogue.h"
 #include "cms/include/Homeblock.h"
 #include "cms/include/Product.h"
