@@ -24,8 +24,10 @@ macro(auto_enable_vcpkg_feature opt feature)
     endif()
 endmacro()
 
-auto_enable_vcpkg_feature(ENABLE_GD "gd")
-auto_enable_vcpkg_feature(ENABLE_BOOST "boost")
+if(ENABLE_VCPKG)
+  auto_enable_vcpkg_feature(ENABLE_GD "gd")
+  auto_enable_vcpkg_feature(ENABLE_BOOST "boost")
+endif()
 
 PROJECT(Paozhu_web_framework)
 set(CMAKE_CXX_STANDARD 20)
