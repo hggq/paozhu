@@ -3814,6 +3814,9 @@ void httpserver::httpwatch()
     unsigned int mysqlpool_time = 1;
     unsigned int remove_linknum = 0;
     unsigned int old_total_count= 0;
+
+    unsigned int old_ten_total_count = 0;
+    
     std::size_t n_write         = 0;
     unsigned char cron_type     = 0x00;
     unsigned char cron_day      = 0x00;
@@ -4427,13 +4430,20 @@ void httpserver::httpwatch()
             //may be asio post pool is die;
             if(total_http2_count.load()>2)
             {
-                std::unique_lock<std::mutex> loglock(log_mutex);
-                error_loglist.push_back("--total_http2_count > 2 --\n"); 
-                loglock.unlock();
+                error_msg_loop.clear();
+                error_msg_loop.append("-- total_http2_count ");
+                error_msg_loop.append(std::to_string(total_http1_count.load()));
+                error_msg_loop.append(" --\n");
+
+                if(plan_http2_exit==0)
+                {
+                    old_ten_total_count = old_total_count;
+                }
+
                 plan_http2_exit ++;
                 if(plan_http2_exit>1)
                 {
-                    if(old_total_count == total_count.load())
+                    if(old_ten_total_count == total_count.load())
                     {
                         isstop = true;
                     }
@@ -4452,13 +4462,20 @@ void httpserver::httpwatch()
             }
             if(total_http1_count.load()>2)
             {
-                std::unique_lock<std::mutex> loglock(log_mutex);
-                error_loglist.push_back("--total_http1_count > 2 --\n"); 
-                loglock.unlock();
+                error_msg_loop.clear();
+                error_msg_loop.append("-- total_http1_count ");
+                error_msg_loop.append(std::to_string(total_http1_count.load()));
+                error_msg_loop.append(" --\n");
+
+                if(plan_http1_exit==0)
+                {
+                    old_ten_total_count = old_total_count;
+                }
+
                 plan_http1_exit ++;
                 if(plan_http1_exit >1)
                 {
-                    if(old_total_count==total_count.load())
+                    if(old_ten_total_count == total_count.load())
                     {
                         isstop = true;
                     }
