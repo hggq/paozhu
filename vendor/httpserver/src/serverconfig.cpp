@@ -210,6 +210,23 @@ std::string serverconfig::getsitewwwpath(unsigned int host_index)
     }
     return sitehostinfos[0].wwwpath;
 }
+unsigned int serverconfig::get_hostindex(const std::string &host)
+{
+    auto iter = host_toint.find(host);
+    if (iter != host_toint.end())
+    {
+        unsigned int host_index = iter->second;
+        if (host_index > 0 && host_index < sitehostinfos.size())
+        {
+            return host_index;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    return 0;
+}
 std::string serverconfig::getsitepath(const std::string &host)
 {
 
@@ -927,6 +944,7 @@ bool serverconfig::loadserverglobalconfig()
                 tempinfo.alias_domain.clear();
                 tempinfo.themes.clear();
                 tempinfo.themes_url.clear();
+                tempinfo.http2_enable = isallnothttp2;
 
                 for (auto [itemname, itemval] : second)
                 {

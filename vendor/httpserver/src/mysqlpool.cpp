@@ -139,7 +139,38 @@ MYSQL_CONN_PTR mysqllinkpool::add_edit_connect()
     }
     return conn;
 }
-
+void mysqllinkpool::addpool_select_connect()
+{
+    if(mysql_select_pool_list.size()>0)
+    {
+        return;
+    }
+    MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
+    mysql_init(conn.get());
+    if (mysql_real_connect(conn.get(), (select_link.host.size() > 0 ? select_link.host.c_str() : NULL), select_link.username.c_str(), select_link.password.c_str(), select_link.db.c_str(), select_link.port, (select_link.unix_socket.size() > 0 ? select_link.unix_socket.c_str() : NULL), 0))
+    {
+        std::unique_lock<std::mutex> lock(lock_select_list);
+        mysql_select_pool_list.emplace_back(std::move(conn));
+        select_current_num++;
+        lock.unlock();
+    }
+}
+void mysqllinkpool::addpool_edit_connect()
+{
+    if(mysql_edit_pool_list.size()>0)
+    {
+        return;
+    }
+    MYSQL_CONN_PTR conn(new MYSQL, &mysql_close);
+    mysql_init(conn.get());
+    if (mysql_real_connect(conn.get(), (edit_link.host.size() > 0 ? edit_link.host.c_str() : NULL), edit_link.username.c_str(), edit_link.password.c_str(), edit_link.db.c_str(), edit_link.port, (edit_link.unix_socket.size() > 0 ? edit_link.unix_socket.c_str() : NULL), 0))
+    {
+        std::unique_lock<std::mutex> lock(lock_select_list);
+        mysql_edit_pool_list.emplace_back(std::move(conn));
+        select_current_num++;
+        lock.unlock();
+    }
+}
 void mysqllinkpool::back_select_connect(MYSQL_CONN_PTR temp)
 {
     std::unique_lock<std::mutex> lock(lock_select_list);

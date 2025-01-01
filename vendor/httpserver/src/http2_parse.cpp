@@ -87,9 +87,11 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
         block_data_info_ptr            = std::make_shared<http2_data_t>();
         block_data_info_ptr->stream_id = block_steamid;
         data_info.emplace(block_steamid, block_data_info_ptr);
+        DEBUG_LOG("http2_data_t %u",block_steamid);
     }
     else
     {
+        DEBUG_LOG("block_data_info_ptr->stream_id %u",block_steamid);
         if (block_data_info_ptr->stream_id != block_steamid)
         {
             block_data_info_ptr = dataiter->second;
@@ -2175,7 +2177,7 @@ void http2parse::readsetting(const unsigned char *buffer, [[maybe_unused]] unsig
     {
         readoffset += blocklength;
         processheader = 0;
-        DEBUG_LOG("readsetting 0x01 %ul", buffersize);
+        DEBUG_LOG("readsetting 0x01 buffersize:%u blocklength:%u", buffersize,blocklength);
         return;
     }
 
@@ -2281,8 +2283,8 @@ void http2parse::readgoaway([[maybe_unused]] const unsigned char *buffer, [[mayb
 
     readoffset += blocklength;
     processheader = 0;
-
     peer_session->isgoway = true;
+    
 }
 
 void http2parse::readsubdata([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
@@ -2339,6 +2341,12 @@ void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] uns
 //
 void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
 {
+    if (flag_type == 0x01)
+    {
+        DEBUG_LOG("readping ack %d",blocklength);
+        readoffset += blocklength;
+        return;
+    }
     unsigned int j = readoffset;
     processheader  = 0;
     unsigned char _recvack[] =
@@ -2362,7 +2370,7 @@ void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
 }
 void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
-    DEBUG_LOG("readrst_stream %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
+    DEBUG_LOG("readrst_stream %u %c", buffersize, (buffer[readoffset] ? '0' : '1'));
     readoffset += blocklength;
     processheader = 0;
     if (http_data.contains(block_steamid))
@@ -3461,7 +3469,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
 
 void http2parse::readboundaryline(const unsigned char *buffer, unsigned int &begin, [[maybe_unused]] unsigned int buffersize)
 {
-    DEBUG_LOG("readboundaryline:%ul\n", buffersize);
+    //DEBUG_LOG("readboundaryline:%ul\n", buffersize);
     unsigned int ni = 0, baseoffset = begin;
     if (buffer[begin] == '-' && buffer[begin + 1] == '-')
     {
@@ -3616,6 +3624,22 @@ void http2parse::data_process()
         if (block_steam_httppeer->upload_length > block_steam_httppeer->content_length)
         {
             error = 403;//now ruturn?
+        }
+        //fix qq weixin browser post data (make a last-ditch attempt) 2024-12-21
+        if(block_data_info_ptr->posttype==0)
+        {
+            if(stream_data_ptr)
+            {
+                if(stream_data_ptr->size()>j&&stream_data_ptr->at(j)!='-')
+                {
+                    block_data_info_ptr->posttype = 1;
+                }
+                else
+                {
+                    block_data_info_ptr->posttype = 2;
+                }
+            }
+
         }
         switch (block_data_info_ptr->posttype)
         {

@@ -73,7 +73,7 @@ class serverconfig
     std::string ssl_chain_crt_file();
     SSL_CTX *getctx(std::string filename);
     SSL_CTX *getdefaultctx();
-
+    unsigned int get_hostindex(const std::string &host);
   public:
     std::string serverpath;
     std::string wwwpath;

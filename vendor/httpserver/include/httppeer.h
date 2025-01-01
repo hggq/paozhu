@@ -175,10 +175,12 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     unsigned int timeloop_num           = 0;
     unsigned int timecount_num          = 0;
     unsigned int request_time           = 0;
-    unsigned int time_limit             = 0;
+    //unsigned int time_limit             = 0;
     unsigned long long content_length   = 0;
     unsigned long long sessionfile_time = 0;
     unsigned long long upload_length    = 0;
+
+    //std::atomic_uint time_limit  = 0;
     struct headstate_t state;
     struct websocket_t websocket;
 

@@ -4,6 +4,7 @@
 
 #include <asio.hpp>
 #include <asio/ssl.hpp>
+#include <asio/io_context.hpp>
 // #include <asio/co_spawn.hpp>
 // #include <asio/detached.hpp>
 // #include <asio/io_context.hpp>
@@ -76,9 +77,9 @@ class httpserver
 {
   public:
     httpserver() {}
-    asio::awaitable<void> clientpeerfun(struct httpsocket_t sock_temp, bool isssl, bool httpversion);
+    asio::awaitable<void> clientpeerfun(std::shared_ptr<client_session>, bool isssl);
     asio::awaitable<void>
-    sslhandshake(asio::ip::tcp::socket socket, asio::ssl::context &context_, unsigned long long temp_domain);
+    sslhandshake(std::shared_ptr<client_session>);
 
     void http2pool(int threadid);
     asio::awaitable<void> http2loop(std::shared_ptr<httppeer>);
@@ -94,6 +95,7 @@ class httpserver
     void add_error_lists(const std::string &);
     asio::awaitable<void> http1loop(unsigned int sig, std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
     void websocket_loop(int myid);
+    
     void listeners();
     void listener();
 
@@ -106,10 +108,11 @@ class httpserver
     asio::awaitable<size_t> co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
     asio::awaitable<size_t> co_user_fastcgi_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
     asio::awaitable<size_t> co_http2_wait_window_update(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
+    //asio::awaitable<size_t> co_http_link_clear_wait(std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> &, asio::use_awaitable_t<> h = {});
     void add_runsocketthread();
     int checkhttp2(std::shared_ptr<client_session> peer_session);
-    void http1_send_bad_request(unsigned int, std::shared_ptr<client_session>);
-    void http1_send_bad_server(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
+    asio::awaitable<void> http1_send_bad_request(unsigned int, std::shared_ptr<client_session>);
+    asio::awaitable<void> http1_send_bad_server(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
     /*bool http1_send_body(unsigned int streamid, std::shared_ptr<httppeer> peer, std::shared_ptr<client_session>
      * peer_session, const unsigned char *buffer, unsigned int begin_end);*/
     // bool http1_send_file(unsigned int streamid,
@@ -129,6 +132,9 @@ class httpserver
 
     void add_nullptrlog(const std::string &logstrb);
     void httpwatch();
+    // void http1_linkwatch();
+    // void http2_linkwatch();
+    void save_traffic_arrays();
     void stop();
     ~httpserver()
     {
@@ -153,13 +159,27 @@ class httpserver
     std::vector<std::thread> websocketthreads;
     std::list<std::weak_ptr<httppeer>> websockettasks;
     std::list<std::pair<std::size_t, std::shared_ptr<httppeer>>> clientlooptasks;
+    
+    // std::list<std::weak_ptr<httppeer>> httpclient1_wach_links;
+    // std::list<std::weak_ptr<http2parse>> httpclient2_wach_links;
+    std::string traffic_arrays;
     std::queue<httpsocket_t> tasks;
 
-    bool isstop;
+    bool isstop =false;
+    bool istraffic =false;
     std::atomic_uint total_count = 0;
+
+    std::atomic_uint total_http2_count = 0;
+    std::atomic_uint total_http1_count = 0;
     // httpheader end
     // log
-    std::set<std::shared_ptr<client_session>> client_sessions;
+    //std::set<std::shared_ptr<client_session>> client_sessions;
+    std::mutex socket_session_lists_mutex;
+    std::list<std::weak_ptr<client_session>> socket_session_lists;
+    std::list<std::shared_ptr<client_session>> socket_session_wait_clear;
+    // std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> socket_session_handler_call;
+    
+    std::mutex wait_clear_mutex;
     std::list<std::string> access_loglist;
     std::list<std::string> error_loglist;
     std::mutex log_mutex;

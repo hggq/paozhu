@@ -505,14 +505,13 @@ void httpparse::methodprocess()
         if (j > 9)
         {
             error = 6;
-            break;
+            return;
         }
     }
     if (header_key.size() > 8)
     {
         error = 6;
         return;
-        ;
     }
     method = HEAD_METHOD::UNKNOW;
     switch (header_key[0])
@@ -789,7 +788,7 @@ void httpparse::methodprocess()
             procssparamter();
         }
     }
-    peer->httpv = 1;
+    // peer->httpv = 1;
     // for (; ioffset < linesize; ioffset++)
     // {
     //       if (contentline[ioffset] == 0x20)
@@ -1060,6 +1059,10 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
             if (headerstep == 0 && checkmethod())
             {
                 methodprocess();
+                if(error>0)
+                {
+                    return;
+                }
             }
             else
             {

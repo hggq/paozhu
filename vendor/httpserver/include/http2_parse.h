@@ -129,15 +129,16 @@ class http2parse
     unsigned int blocklength   = 0;
     unsigned int block_steamid = 0;
     unsigned char headerfinish = 0;
+    unsigned char frame_type   = 0;
+    unsigned char flag_type    = 0;
     unsigned int error         = 0;
     unsigned int readoffset    = 0;
     unsigned int processheader = 0;
-    unsigned char frame_type   = 0;
-    unsigned char flag_type    = 0;
 
     unsigned int steam_id    = 0;
     unsigned int steam_count = 0;
     unsigned int isfinsish   = 0;
+
     struct http2_setting_t setting_data;
 
     //std::vector<std::pair<std::string, std::string>> header_lists;

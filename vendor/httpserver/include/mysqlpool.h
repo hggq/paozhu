@@ -36,6 +36,9 @@ class mysqllinkpool
     MYSQL_CONN_PTR add_select_connect();
     MYSQL_CONN_PTR add_edit_connect();
 
+    void addpool_select_connect();
+    void addpool_edit_connect();
+
     void back_select_connect(MYSQL_CONN_PTR);
     void back_edit_connect(MYSQL_CONN_PTR);
     unsigned int clearpool();
