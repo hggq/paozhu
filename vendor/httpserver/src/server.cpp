@@ -4430,11 +4430,18 @@ void httpserver::httpwatch()
                 std::unique_lock<std::mutex> loglock(log_mutex);
                 error_loglist.push_back("--total_http2_count > 2 --\n"); 
                 loglock.unlock();
-                if(plan_http2_exit>0)
-                {
-                    isstop = true;
-                }
                 plan_http2_exit ++;
+                if(plan_http2_exit>1)
+                {
+                    if(old_total_count == total_count.load())
+                    {
+                        isstop = true;
+                    }
+                    else
+                    {
+                        plan_http2_exit = 0;
+                    }
+                }
             }
             else
             {
@@ -4448,11 +4455,19 @@ void httpserver::httpwatch()
                 std::unique_lock<std::mutex> loglock(log_mutex);
                 error_loglist.push_back("--total_http1_count > 2 --\n"); 
                 loglock.unlock();
-                if(plan_http1_exit>0)
-                {
-                    isstop = true;
-                }
                 plan_http1_exit ++;
+                if(plan_http1_exit >1)
+                {
+                    if(old_total_count==total_count.load())
+                    {
+                        isstop = true;
+                    }
+                    else
+                    {
+                        plan_http1_exit = 0;
+                    }
+                }
+                
             }
             else
             {
