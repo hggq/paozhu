@@ -95,7 +95,7 @@ class httpserver
 
     void add_error_lists(const std::string &);
     asio::awaitable<void> http1_fastcgi(std::shared_ptr<httppeer>);
-    asio::awaitable<void> http1loop(unsigned int sig, std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
+    asio::awaitable<void> http1loop(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
 
     asio::awaitable<void> http2_send_sequence_header(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t>);
     asio::awaitable<void> http2_send_sequence(std::shared_ptr<http2_send_data_t>);
@@ -188,7 +188,7 @@ class httpserver
     std::list<std::string> error_loglist;
     std::mutex log_mutex;
 
-    ThreadPool clientrunpool{std::thread::hardware_concurrency() * 2};
+    ThreadPool clientrunpool{std::thread::hardware_concurrency() * 2 + 2};
 
     std::mutex http2_task_mutex;
     std::list<struct http2sendblock_t> http2send_tasks;

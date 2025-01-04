@@ -1446,6 +1446,7 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
             make_http2_headers_item3(http2header, (unsigned char)first, second);
         }
     }
+    make_http2_headers_item3(http2header, "server", "Paozhu");
     if (send_header.size() > 0)
     {
         for (auto [first, second] : send_header)

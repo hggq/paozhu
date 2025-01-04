@@ -1514,8 +1514,7 @@ asio::awaitable<void> httpserver::http1_fastcgi(std::shared_ptr<httppeer> peer)
     peer->output.clear();
     co_return;
 }
-asio::awaitable<void> httpserver::http1loop(unsigned int stream_id,
-                                            std::shared_ptr<httppeer> peer,
+asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                                             std::shared_ptr<client_session> peer_session)
 {
     if (peer->compress == 10)
@@ -1978,7 +1977,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                             lock.unlock();
                         }
 
-                        co_await http1loop(1, peer, peer_session);
+                        co_await http1loop(peer, peer_session);
                         DEBUG_LOG("http1loop end");
                         if (peer->state.keepalive == false)
                         {

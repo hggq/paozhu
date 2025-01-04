@@ -7,6 +7,6 @@
 
 namespace http
 {
-#define PAOZHU_VERSION 100502
+#define PAOZHU_VERSION 100700
 }// namespace http
 #endif
