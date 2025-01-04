@@ -29,6 +29,7 @@ bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int len
 bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length = 0);
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext);
 std::string get_filename(const std::string &filename);
+std::string get_fileext(const std::string &filename);
 std::vector<std::string> mb_split(std::string_view, std::string_view);
 std::string html_encode(std::string_view);
 std::string strip_html(std::string_view);

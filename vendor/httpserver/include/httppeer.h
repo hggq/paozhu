@@ -167,14 +167,14 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool keepalive    = true;
     bool isso         = false;
 
-    unsigned char posttype              = 0;
-    unsigned char compress              = 0;
-    unsigned int host_index             = 0;
-    unsigned int stream_id              = 0;
-    unsigned int status_code            = 0;
-    unsigned int timeloop_num           = 0;
-    unsigned int timecount_num          = 0;
-    unsigned int request_time           = 0;
+    unsigned char posttype     = 0;
+    unsigned char compress     = 0;
+    unsigned int host_index    = 0;
+    unsigned int stream_id     = 0;
+    unsigned int status_code   = 0;
+    unsigned int timeloop_num  = 0;
+    unsigned int timecount_num = 0;
+    unsigned int request_time  = 0;
     //unsigned int time_limit             = 0;
     unsigned long long content_length   = 0;
     unsigned long long sessionfile_time = 0;
@@ -209,7 +209,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     unsigned int client_port;
     unsigned int server_port;
 
-    std::shared_ptr<client_session> socket_session;
+    std::shared_ptr<client_session> socket_session = nullptr;
 
     std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
     std::mutex pop_user_handleer_mutex;

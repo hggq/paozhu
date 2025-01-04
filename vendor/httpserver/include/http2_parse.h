@@ -156,7 +156,9 @@ class http2parse
 
     std::queue<unsigned int> stream_list;
     std::queue<std::shared_ptr<httppeer>> httppeer_lists;
-    std::atomic<bool> istaskout = false;
+
+    std::mutex http2loop_mutex;
+    std::atomic<bool> http2_loop_in = false;
 
     std::shared_ptr<httppeer> block_steam_httppeer;
     std::shared_ptr<http2_data_t> block_data_info_ptr;

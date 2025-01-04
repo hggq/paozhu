@@ -1059,7 +1059,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
             if (headerstep == 0 && checkmethod())
             {
                 methodprocess();
-                if(error>0)
+                if (error > 0)
                 {
                     return;
                 }

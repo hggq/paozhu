@@ -304,6 +304,38 @@ std::string get_filename(const std::string &filename)
     std::reverse(filename_name.begin(), filename_name.end());
     return filename_name;
 }
+std::string get_fileext(const std::string &filename)
+{
+    unsigned int filename_length = filename.size();
+    std::string temp;
+    if (filename_length == 0)
+    {
+        return temp;
+    }
+    unsigned int j = 0;
+    for (unsigned int i = filename_length - 1; i > 0; i--)
+    {
+        if (filename[i] == '.')
+        {
+            break;
+        }
+        j++;
+        if (j > 6)
+        {
+            j = 0;
+            break;
+        }
+    }
+    if (j == 0)
+    {
+        return temp;
+    }
+    for (unsigned int i = filename_length - j; i < filename_length; i++)
+    {
+        temp.push_back(filename[i]);
+    }
+    return temp;
+}
 std::vector<std::string> mb_split(std::string_view pattern, std::string_view msg)
 {
     std::vector<std::string> temp;

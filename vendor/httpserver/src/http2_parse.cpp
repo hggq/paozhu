@@ -87,11 +87,11 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
         block_data_info_ptr            = std::make_shared<http2_data_t>();
         block_data_info_ptr->stream_id = block_steamid;
         data_info.emplace(block_steamid, block_data_info_ptr);
-        DEBUG_LOG("http2_data_t %u",block_steamid);
+        DEBUG_LOG("http2_data_t %u", block_steamid);
     }
     else
     {
-        DEBUG_LOG("block_data_info_ptr->stream_id %u",block_steamid);
+        DEBUG_LOG("block_data_info_ptr->stream_id %u", block_steamid);
         if (block_data_info_ptr->stream_id != block_steamid)
         {
             block_data_info_ptr = dataiter->second;
@@ -224,118 +224,173 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
         if (block_data_info_ptr->endheader)
         {
             bool ishasold = true;
-            for (auto iter = http_data.begin(); iter != http_data.end();)
+            // for (auto iter = http_data.begin(); iter != http_data.end();)
+            // {
+            //     if (iter->second->issend)
+            //     {
+            //         block_steam_httppeer      = iter->second;
+            //         unsigned int oldstream_id = iter->first;
+            //         http_data.erase(iter++);
+            //         block_steam_httppeer->state.gzip              = false;
+            //         block_steam_httppeer->state.deflate           = false;
+            //         block_steam_httppeer->state.br                = false;
+            //         block_steam_httppeer->state.avif              = false;
+            //         block_steam_httppeer->state.webp              = false;
+            //         block_steam_httppeer->state.keepalive         = false;
+            //         block_steam_httppeer->state.websocket         = false;
+            //         block_steam_httppeer->state.upgradeconnection = false;
+            //         block_steam_httppeer->state.rangebytes        = false;
+            //         block_steam_httppeer->state.language[0]       = {0};
+            //         block_steam_httppeer->state.version           = 0;
+            //         block_steam_httppeer->state.port              = 0;
+            //         block_steam_httppeer->state.ifmodifiedsince   = 0;
+            //         block_steam_httppeer->state.rangebegin        = 0;
+            //         block_steam_httppeer->state.rangeend          = 0;
+            //         block_steam_httppeer->upload_length           = 0;
+            //         block_steam_httppeer->content_length          = 0;
+            //         block_steam_httppeer->keepalive               = false;
+            //         block_steam_httppeer->issend                  = false;
+            //         block_steam_httppeer->isclose                 = false;
+            //         block_steam_httppeer->send_header.clear();
+            //         block_steam_httppeer->send_cookie_lists.clear();
+            //         block_steam_httppeer->http2_send_header.clear();
+            //         block_steam_httppeer->header.clear();
+            //         block_steam_httppeer->pathinfos.clear();
+            //         block_steam_httppeer->querystring.clear();
+            //         block_steam_httppeer->urlpath.clear();
+            //         block_steam_httppeer->host.clear();
+            //         block_steam_httppeer->etag.clear();
+            //         block_steam_httppeer->output.clear();
+            //         block_steam_httppeer->val.clear();
+            //         block_steam_httppeer->post.clear();
+            //         block_steam_httppeer->session.clear();
+            //         block_steam_httppeer->get.clear();
+            //         block_steam_httppeer->files.clear();
+            //         block_steam_httppeer->json.clear();
+            //         block_steam_httppeer->cookie.clear();
+            //         block_steam_httppeer->rawcontent.clear();
+            //         block_steam_httppeer->httpv    = 2;
+            //         block_steam_httppeer->isso     = false;
+            //         block_steam_httppeer->compress = 0;
+            //         // peer->websocket.deflate           = false;
+            //         // peer->websocket.permessagedeflate = false;
+            //         // peer->websocket.perframedeflate   = false;
+            //         // peer->websocket.deflateframe      = false;
+            //         // peer->websocket.isopen            = false;
+            //         // peer->websocket.version           = 0x00;
+            //         // peer->websocket.key.clear();
+            //         // peer->websocket.ext.clear();
+
+            //         http_data.emplace(block_steamid, block_steam_httppeer);
+            //         ishasold = false;
+
+            //         auto dataiter = data_info.find(oldstream_id);
+            //         if (dataiter == data_info.end())
+            //         {
+            //             block_data_info_ptr = std::make_shared<http2_data_t>();
+            //             data_info.emplace(block_steamid, block_data_info_ptr);
+            //         }
+            //         else
+            //         {
+            //             block_data_info_ptr = dataiter->second;
+            //             data_info.erase(dataiter++);
+            //             block_data_info_ptr->stream_id      = block_steamid;
+            //             block_data_info_ptr->match_offset   = 0;
+            //             block_data_info_ptr->isbegin        = false;
+            //             block_data_info_ptr->isend          = false;
+            //             block_data_info_ptr->endstream      = false;
+            //             block_data_info_ptr->endheader      = false;
+            //             block_data_info_ptr->padded         = false;
+            //             block_data_info_ptr->priority       = false;
+            //             block_data_info_ptr->posttype       = 0;
+            //             block_data_info_ptr->postfieldtype  = 0;
+            //             block_data_info_ptr->changetype     = 0;
+            //             block_data_info_ptr->pad_length     = 0;
+            //             block_data_info_ptr->weight         = 0;
+            //             block_data_info_ptr->length         = 0;// bloack data length;
+            //             block_data_info_ptr->curnum         = 0;// now block length
+            //             block_data_info_ptr->content_length = 0;// post length
+
+            //             //std::FILE *uprawfile = NULL;
+            //             block_data_info_ptr->uprawfile = nullptr;
+
+            //             block_data_info_ptr->boundary.clear();
+            //             block_data_info_ptr->fieldname.clear();
+            //             block_data_info_ptr->buffer_key.clear();
+            //             block_data_info_ptr->buffer_value.clear();
+            //             block_data_info_ptr->field_value.clear();
+            //             block_data_info_ptr->priority_lists.clear();
+
+            //             if (block_data_info_ptr->upfile)
+            //             {
+            //                 block_data_info_ptr->upfile->name.clear();
+            //                 block_data_info_ptr->upfile->filename.clear();
+            //                 block_data_info_ptr->upfile->tempfile.clear();
+            //                 block_data_info_ptr->upfile->type.clear();
+            //                 block_data_info_ptr->upfile->size  = 0;
+            //                 block_data_info_ptr->upfile->error = 0;
+            //             }
+            //             data_info.emplace(block_steamid, block_data_info_ptr);
+            //         }
+            //         break;
+            //     }
+            //     ++iter;
+            // }
+
+            auto http_data_iter = http_data.find(block_steamid);
+            if (http_data_iter != http_data.end())
             {
-                if (iter->second->issend)
-                {
-                    block_steam_httppeer                          = iter->second;
-                    unsigned int oldstream_id                     = iter->first;
-                    iter                                          = http_data.erase(iter);
-                    block_steam_httppeer->state.gzip              = false;
-                    block_steam_httppeer->state.deflate           = false;
-                    block_steam_httppeer->state.br                = false;
-                    block_steam_httppeer->state.avif              = false;
-                    block_steam_httppeer->state.webp              = false;
-                    block_steam_httppeer->state.keepalive         = false;
-                    block_steam_httppeer->state.websocket         = false;
-                    block_steam_httppeer->state.upgradeconnection = false;
-                    block_steam_httppeer->state.rangebytes        = false;
-                    block_steam_httppeer->state.language[0]       = {0};
-                    block_steam_httppeer->state.version           = 0;
-                    block_steam_httppeer->state.port              = 0;
-                    block_steam_httppeer->state.ifmodifiedsince   = 0;
-                    block_steam_httppeer->state.rangebegin        = 0;
-                    block_steam_httppeer->state.rangeend          = 0;
-                    block_steam_httppeer->upload_length           = 0;
-                    block_steam_httppeer->content_length          = 0;
-                    block_steam_httppeer->keepalive               = false;
-                    block_steam_httppeer->issend                  = false;
-                    block_steam_httppeer->isclose                 = false;
-                    block_steam_httppeer->send_header.clear();
-                    block_steam_httppeer->send_cookie_lists.clear();
-                    block_steam_httppeer->http2_send_header.clear();
-                    block_steam_httppeer->header.clear();
-                    block_steam_httppeer->pathinfos.clear();
-                    block_steam_httppeer->querystring.clear();
-                    block_steam_httppeer->urlpath.clear();
-                    block_steam_httppeer->host.clear();
-                    block_steam_httppeer->etag.clear();
-                    block_steam_httppeer->output.clear();
-                    block_steam_httppeer->val.clear();
-                    block_steam_httppeer->post.clear();
-                    block_steam_httppeer->session.clear();
-                    block_steam_httppeer->get.clear();
-                    block_steam_httppeer->files.clear();
-                    block_steam_httppeer->json.clear();
-                    block_steam_httppeer->cookie.clear();
-                    block_steam_httppeer->rawcontent.clear();
-                    block_steam_httppeer->httpv    = 2;
-                    block_steam_httppeer->isso     = false;
-                    block_steam_httppeer->compress = 0;
-                    // peer->websocket.deflate           = false;
-                    // peer->websocket.permessagedeflate = false;
-                    // peer->websocket.perframedeflate   = false;
-                    // peer->websocket.deflateframe      = false;
-                    // peer->websocket.isopen            = false;
-                    // peer->websocket.version           = 0x00;
-                    // peer->websocket.key.clear();
-                    // peer->websocket.ext.clear();
+                block_steam_httppeer = http_data_iter->second;
 
-                    http_data.emplace(block_steamid, block_steam_httppeer);
-                    ishasold = false;
+                block_steam_httppeer->state.gzip              = false;
+                block_steam_httppeer->state.deflate           = false;
+                block_steam_httppeer->state.br                = false;
+                block_steam_httppeer->state.avif              = false;
+                block_steam_httppeer->state.webp              = false;
+                block_steam_httppeer->state.keepalive         = false;
+                block_steam_httppeer->state.websocket         = false;
+                block_steam_httppeer->state.upgradeconnection = false;
+                block_steam_httppeer->state.rangebytes        = false;
+                block_steam_httppeer->state.language[0]       = {0};
+                block_steam_httppeer->state.version           = 0;
+                block_steam_httppeer->state.port              = 0;
+                block_steam_httppeer->state.ifmodifiedsince   = 0;
+                block_steam_httppeer->state.rangebegin        = 0;
+                block_steam_httppeer->state.rangeend          = 0;
+                block_steam_httppeer->upload_length           = 0;
+                block_steam_httppeer->content_length          = 0;
+                block_steam_httppeer->keepalive               = false;
+                block_steam_httppeer->issend                  = false;
+                block_steam_httppeer->isclose                 = false;
+                block_steam_httppeer->send_header.clear();
+                block_steam_httppeer->send_cookie_lists.clear();
+                block_steam_httppeer->http2_send_header.clear();
+                block_steam_httppeer->header.clear();
+                block_steam_httppeer->pathinfos.clear();
 
-                    auto dataiter = data_info.find(oldstream_id);
-                    if (dataiter == data_info.end())
-                    {
-                        block_data_info_ptr = std::make_shared<http2_data_t>();
-                        data_info.emplace(block_steamid, block_data_info_ptr);
-                    }
-                    else
-                    {
-                        block_data_info_ptr                 = dataiter->second;
-                        dataiter                            = data_info.erase(dataiter);
-                        block_data_info_ptr->stream_id      = block_steamid;
-                        block_data_info_ptr->match_offset   = 0;
-                        block_data_info_ptr->isbegin        = false;
-                        block_data_info_ptr->isend          = false;
-                        block_data_info_ptr->endstream      = false;
-                        block_data_info_ptr->endheader      = false;
-                        block_data_info_ptr->padded         = false;
-                        block_data_info_ptr->priority       = false;
-                        block_data_info_ptr->posttype       = 0;
-                        block_data_info_ptr->postfieldtype  = 0;
-                        block_data_info_ptr->changetype     = 0;
-                        block_data_info_ptr->pad_length     = 0;
-                        block_data_info_ptr->weight         = 0;
-                        block_data_info_ptr->length         = 0;// bloack data length;
-                        block_data_info_ptr->curnum         = 0;// now block length
-                        block_data_info_ptr->content_length = 0;// post length
+                block_steam_httppeer->querystring.clear();
+                block_steam_httppeer->urlpath.clear();
+                block_steam_httppeer->host.clear();
+                block_steam_httppeer->etag.clear();
+                block_steam_httppeer->output.clear();
+                block_steam_httppeer->output.shrink_to_fit();
 
-                        //std::FILE *uprawfile = NULL;
-                        block_data_info_ptr->uprawfile = nullptr;
+                block_steam_httppeer->val.clear();
+                block_steam_httppeer->post.clear();
+                block_steam_httppeer->session.clear();
+                block_steam_httppeer->get.clear();
+                block_steam_httppeer->files.clear();
+                block_steam_httppeer->json.clear();
+                block_steam_httppeer->cookie.clear();
+                block_steam_httppeer->rawcontent.clear();
+                block_steam_httppeer->rawcontent.shrink_to_fit();
+                block_steam_httppeer->httpv    = 2;
+                block_steam_httppeer->isso     = false;
+                block_steam_httppeer->compress = 0;
 
-                        block_data_info_ptr->boundary.clear();
-                        block_data_info_ptr->fieldname.clear();
-                        block_data_info_ptr->buffer_key.clear();
-                        block_data_info_ptr->buffer_value.clear();
-                        block_data_info_ptr->field_value.clear();
-                        block_data_info_ptr->priority_lists.clear();
-
-                        if (block_data_info_ptr->upfile)
-                        {
-                            block_data_info_ptr->upfile->name.clear();
-                            block_data_info_ptr->upfile->filename.clear();
-                            block_data_info_ptr->upfile->tempfile.clear();
-                            block_data_info_ptr->upfile->type.clear();
-                            block_data_info_ptr->upfile->size  = 0;
-                            block_data_info_ptr->upfile->error = 0;
-                        }
-                        data_info.emplace(block_steamid, block_data_info_ptr);
-                    }
-                    break;
-                }
-                ++iter;
+                ishasold = false;
             }
+
             if (ishasold)
             {
                 block_steam_httppeer = std::make_shared<httppeer>();
@@ -2177,7 +2232,7 @@ void http2parse::readsetting(const unsigned char *buffer, [[maybe_unused]] unsig
     {
         readoffset += blocklength;
         processheader = 0;
-        DEBUG_LOG("readsetting 0x01 buffersize:%u blocklength:%u", buffersize,blocklength);
+        DEBUG_LOG("readsetting 0x01 buffersize:%u blocklength:%u", buffersize, blocklength);
         return;
     }
 
@@ -2282,9 +2337,8 @@ void http2parse::readgoaway([[maybe_unused]] const unsigned char *buffer, [[mayb
     // }
 
     readoffset += blocklength;
-    processheader = 0;
+    processheader         = 0;
     peer_session->isgoway = true;
-    
 }
 
 void http2parse::readsubdata([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
@@ -2313,37 +2367,13 @@ void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] uns
     DEBUG_LOG("window_update %d", ident_stream);
     peer_session->window_update_num = ident_stream + peer_session->window_update_num;
     window_update_recv_num          = ident_stream;
-
-    if (peer_session->user_code_handler_call.size() > 0)
-    {
-        try
-        {
-            std::unique_lock<std::mutex> lock(peer_session->pop_user_handleer_mutex);
-            if (peer_session->user_code_handler_call.size() > 0)
-            {
-                auto ex = asio::get_associated_executor(peer_session->user_code_handler_call.front());
-                asio::dispatch(ex,
-                               [handler = std::move(peer_session->user_code_handler_call.front())]() mutable -> void
-                               {
-                                   /////////////
-                                   handler(1);
-                                   //////////
-                               });
-                peer_session->user_code_handler_call.pop_front();
-            }
-        }
-        catch (const std::exception &e)
-        {
-            LOG_OUT << "winupdate promise" << LOG_END;
-        }
-    }
 }
 //
 void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
 {
     if (flag_type == 0x01)
     {
-        DEBUG_LOG("readping ack %d",blocklength);
+        DEBUG_LOG("readping ack %d", blocklength);
         readoffset += blocklength;
         return;
     }
@@ -2366,7 +2396,8 @@ void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
     processheader = 0;
     readoffset += blocklength;
     //peer_session->send_data(_recvack, 17);
-    peer_session->http2_send_data(std::string_view((char *)_recvack, 17));
+    //peer_session->http2_send_data(std::string_view((char *)_recvack, 17));
+    peer_session->http2_send_queue_add(_recvack, 17);
 }
 void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
@@ -3626,11 +3657,11 @@ void http2parse::data_process()
             error = 403;//now ruturn?
         }
         //fix qq weixin browser post data (make a last-ditch attempt) 2024-12-21
-        if(block_data_info_ptr->posttype==0)
+        if (block_data_info_ptr->posttype == 0)
         {
-            if(stream_data_ptr)
+            if (stream_data_ptr)
             {
-                if(stream_data_ptr->size()>j&&stream_data_ptr->at(j)!='-')
+                if (stream_data_ptr->size() > j && stream_data_ptr->at(j) != '-')
                 {
                     block_data_info_ptr->posttype = 1;
                 }
@@ -3639,7 +3670,6 @@ void http2parse::data_process()
                     block_data_info_ptr->posttype = 2;
                 }
             }
-
         }
         switch (block_data_info_ptr->posttype)
         {
