@@ -5,8 +5,6 @@
 #include "httppeer.h"
 
 namespace http
-{
-
-            
+{        
 	std::string testmarkdown2html(std::shared_ptr<httppeer> peer);
 }

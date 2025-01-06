@@ -5,9 +5,7 @@
 #include "httppeer.h"
 
 namespace http
-{
-
-            
+{        
 	std::string admin_login(std::shared_ptr<httppeer> peer);
 	std::string admin_loginpost(std::shared_ptr<httppeer> peer);
 	std::string admin_logout(std::shared_ptr<httppeer> peer);

@@ -2355,7 +2355,7 @@ void http2parse::readcontinuation([[maybe_unused]] const unsigned char *buffer, 
 }
 void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
-    DEBUG_LOG("readwinupdate %ul", buffersize);
+    DEBUG_LOG("readwinupdate %u", buffersize);
     unsigned int ident_stream, j;
     j            = readoffset;
     ident_stream = buffer[j];
@@ -2401,7 +2401,22 @@ void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
 }
 void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
-    DEBUG_LOG("readrst_stream %u %c", buffersize, (buffer[readoffset] ? '0' : '1'));
+    //DEBUG_LOG("readrst_stream %u %c", buffersize, (buffer[readoffset] ? '0' : '1'));
+    unsigned int rst_error_code = 0, j = 0;
+    j = readoffset;
+    if (blocklength == 4 && j + 3 < buffersize)
+    {
+        rst_error_code = buffer[j];
+        j++;
+        rst_error_code = rst_error_code << 8 | buffer[j];
+        j++;
+        rst_error_code = rst_error_code << 8 | buffer[j];
+        j++;
+        rst_error_code = rst_error_code << 8 | buffer[j];
+    }
+
+    DEBUG_LOG("readrst_stream size:%u steam_id:%u code:%u", buffersize, block_steamid, rst_error_code);
+
     readoffset += blocklength;
     processheader = 0;
     if (http_data.contains(block_steamid))

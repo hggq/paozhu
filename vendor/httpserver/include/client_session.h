@@ -83,8 +83,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::string getlocalip();
     unsigned int getlocalport();
 
-    asio::awaitable<void> http2_send_enddata(unsigned int s_stream_id);
+    asio::awaitable<void> co_http2_send_enddata(unsigned int s_stream_id);
+    void http2_send_enddata(unsigned int s_stream_id);
     asio::awaitable<void> co_send_zero_data(unsigned int stream_id);
+    void send_zero_data(unsigned int stream_id);
     asio::awaitable<void> co_send_setting();
 
     bool send_switch101();
@@ -95,6 +97,8 @@ class client_session : public std::enable_shared_from_this<client_session>
     void send_recv_setting();
     void send_window_update(unsigned int, unsigned int streamid = 0);
     void recv_window_update(unsigned int, unsigned int streamid = 0);
+
+    void http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code);
     void stop();
     asio::awaitable<void> co_send_goway();
 
@@ -104,7 +108,7 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     asio::awaitable<void> http2_send_writer(std::string_view msg);
     asio::awaitable<void> http2_send_data_loop_co();
-
+    unsigned int http2_loop_send_queue_add(const std::string &msg);
     asio::awaitable<void> http2_send_queue_add_co(const std::string &msg);
     asio::awaitable<void> http2_send_queue_add_co(const unsigned char *buffer, unsigned int buffersize);
     void http2_send_queue_add(const std::string &msg);
@@ -124,14 +128,15 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     std::unique_ptr<asio::ip::tcp::socket> socket;
     std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket;
-
+    std::atomic<unsigned int> last_time_interval          = 0;
     std::atomic<unsigned long long> window_update_num     = 0;
     std::atomic<unsigned long long> old_window_update_num = 0;
     std::atomic<long long> new_send_balance_num           = 0;
     std::atomic<unsigned long long> has_send_update_num   = 0;
 
     std::mutex http2_loop_send_mutex;
-    std::atomic_bool http_loop_in = false;
+    std::atomic_bool http_loop_in  = false;
+    std::atomic_flag http2_sock_in = ATOMIC_FLAG_INIT;
     std::queue<std::string> http2_send_queue;
 };
 }// namespace http

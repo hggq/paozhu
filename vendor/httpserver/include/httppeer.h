@@ -223,9 +223,18 @@ struct regmethold_t
     std::function<std::string(std::shared_ptr<httppeer>)> pre = nullptr;
     std::function<std::string(std::shared_ptr<httppeer>)> regfun;
 };
+struct regmethold_co_t
+{
+    std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> pre = nullptr;
+    std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> regfun;
+};
 // extern std::map<std::string, std::function<std::string(std::shared_ptr<httppeer>)>> _http_regmethod_table;
 extern std::map<std::string, regmethold_t> _http_regmethod_table;
 extern std::map<std::string, std::map<std::string, regmethold_t>> _domain_regmethod_table;
+
+extern std::map<std::string, regmethold_co_t> _co_http_regmethod_table;
+extern std::map<std::string, std::map<std::string, regmethold_co_t>> _co_domain_regmethod_table;
+
 extern std::map<std::string, std::vector<std::string>> _http_regurlpath_table;
 extern std::map<std::string, std::map<std::string, std::vector<std::string>>> _domain_regurlpath_table;
 void make_404_content(std::shared_ptr<httppeer> peer);

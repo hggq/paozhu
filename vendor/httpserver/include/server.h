@@ -99,6 +99,7 @@ class httpserver
 
     asio::awaitable<void> http2_send_sequence_header(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t>);
     asio::awaitable<void> http2_send_sequence(std::shared_ptr<http2_send_data_t>);
+    bool http2_loop_send_sequence(std::shared_ptr<http2_send_data_t>);
     void http2_send_queue_loop(unsigned char index_id);
     void websocket_loop(int myid);
 

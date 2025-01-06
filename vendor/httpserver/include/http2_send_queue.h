@@ -22,9 +22,11 @@ struct http2_send_data_t
     bool isfinish      = false;
     bool is_sendheader = false;
 
+    unsigned char send_thread_id  = 0;
     unsigned char type            = 0;//1 file 2 not use 3 gip file 4 br file    10 data (php fast-cgi) 11 peer.output  16 compress gzip content 16 compress br content
     std::atomic_bool standby_next = true;
     unsigned int stream_id        = 0;
+
     //unsigned int file_modify_time=0; //modify time
 
     unsigned long long send_data_window_num = 4096;//send data window num max 16384 min 4096

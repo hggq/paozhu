@@ -34,6 +34,9 @@ struct reg_autoitem
     std::string func;
     std::string urlpath;
     std::string domain;
+    std::string func_type;
+    std::string filename;
+    bool is_co = false;
 };
 struct file_regitem
 {
@@ -44,12 +47,12 @@ struct file_regitem
 
 bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length)
 {
-	if(length==0)
-	{
-		length=str2.size();
-	}
+    if (length == 0)
+    {
+        length = str2.size();
+    }
 
-    if(str1.size() < str2.size())
+    if (str1.size() < str2.size())
     {
         return false;
     }
@@ -79,7 +82,8 @@ bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int 
                 }
                 return false;
             }
-        }else
+        }
+        else
         {
             return true;
         }
@@ -286,16 +290,16 @@ class pickcontrol
                 isbegin = false;
                 continue;
             }
-            bool is_match = false;
-            unsigned int offset_temp=0;
-            if(str_casecmp_pre(&filecontent[i],"//@urlpath(",0))
+            bool is_match            = false;
+            unsigned int offset_temp = 0;
+            if (str_casecmp_pre(&filecontent[i], "//@urlpath(", 0))
             {
-                is_match = true;
+                is_match    = true;
                 offset_temp = 11;
             }
-            else if(str_casecmp_pre(&filecontent[i],"// @urlpath(",0))
+            else if (str_casecmp_pre(&filecontent[i], "// @urlpath(", 0))
             {
-                is_match = true;
+                is_match    = true;
                 offset_temp = 12;
             }
 
@@ -329,16 +333,21 @@ class pickcontrol
                     {
                         continue;
                     }
+                    if (filecontent[j] == 0x0d)
+                    {
+                        continue;
+                    }
                     tempname.push_back(filecontent[j]);
                 }
 
                 i = j;
-                std::string linestr;
+                std::string linestr, func_pre_type;
                 if (tempname.empty())
                 {
                     isbegin = false;
                     continue;
                 }
+                //process remaining
                 for (; j < filecontent.size(); j++)
                 {
                     if (filecontent[j] == 0x0A)
@@ -354,6 +363,11 @@ class pickcontrol
                         if (linestr.size() < 2)
                         {
                             linestr.clear();
+                            if (filecontent[j] == 0x0A)
+                            {
+                                continue;
+                            }
+
                             for (; j < filecontent.size(); j++)
                             {
                                 if (filecontent[j] == 0x0A)
@@ -363,7 +377,14 @@ class pickcontrol
                             }
                             continue;
                         }
-                        break;
+                        if (filecontent[j] == '(')
+                        {
+                            break;
+                        }
+                        // func type maybe alone line
+                        func_pre_type = linestr;
+                        linestr.clear();
+                        continue;
                     }
                     else if (filecontent[j] == '/')
                     {
@@ -380,6 +401,7 @@ class pickcontrol
                                     nnn = j + 1;
                                     if (nnn < filecontent.size() && filecontent[nnn] == '/')
                                     {
+                                        j++;
                                         break;
                                     }
                                 }
@@ -401,13 +423,42 @@ class pickcontrol
 
                     if (filecontent[j] == 0x20 || filecontent[j] == '\t')
                     {
+                        unsigned int jj = j + 1;
+                        for (; jj < filecontent.size(); jj++)
+                        {
+                            if (filecontent[jj] == 0x20 || filecontent[jj] == '\t')
+                            {
+                                j++;
+                                continue;
+                            }
+                            break;
+                        }
+                        if (jj < filecontent.size() && filecontent[jj] == '(')
+                        {
+                            break;
+                        }
+                        if (jj < filecontent.size() && filecontent[jj] == 0x0A)
+                        {
+                            continue;
+                        }
+
+                        if (func_pre_type.empty() && linestr.size() > 5)
+                        {
+                            func_pre_type = linestr;
+                        }
                         linestr.clear();
+                        continue;
+                    }
+                    if (filecontent[j] == 0x0d)
+                    {
                         continue;
                     }
                     linestr.push_back(filecontent[j]);
                 }
+
                 if (linestr.size() < 2)
                 {
+                    //again process
                     for (; j < filecontent.size(); j++)
                     {
                         if (filecontent[j] == 0x0A)
@@ -426,21 +477,72 @@ class pickcontrol
 
                         if (filecontent[j] == 0x20 || filecontent[j] == '\t')
                         {
+                            //cut space
+                            unsigned int jj = j + 1;
+                            for (; jj < filecontent.size(); jj++)
+                            {
+                                if (filecontent[jj] == 0x20 || filecontent[jj] == '\t')
+                                {
+                                    j++;
+                                    continue;
+                                }
+                                break;
+                            }
+                            if (jj < filecontent.size() && filecontent[jj] == '(')
+                            {
+                                break;
+                            }
+                            if (func_pre_type.empty() && linestr.size() > 5)
+                            {
+                                func_pre_type = linestr;
+                            }
                             linestr.clear();
                             continue;
                         }
                         linestr.push_back(filecontent[j]);
                     }
                 }
+
                 i       = j;
                 isbegin = false;
                 struct reg_autoitem reg_temp;
                 reg_temp.pre     = prename;
-                reg_temp.func    = linestr;
                 reg_temp.urlpath = tempname;
+                //process left right space
+                prename.clear();
+                for (unsigned int iii = 0; iii < linestr.size(); iii++)
+                {
+                    if (linestr[iii] == ' ' || linestr[iii] == '\t' || linestr[iii] == 0x0D || linestr[iii] == 0x0A)
+                    {
+                        continue;
+                    }
+                    prename.push_back(linestr[iii]);
+                }
+                reg_temp.func = prename;
+
+                //process left right space
+                prename.clear();
+                for (unsigned int iii = 0; iii < func_pre_type.size(); iii++)
+                {
+                    if (func_pre_type[iii] == ' ' || func_pre_type[iii] == '\t' || func_pre_type[iii] == 0x0D || func_pre_type[iii] == 0x0A)
+                    {
+                        continue;
+                    }
+                    prename.push_back(func_pre_type[iii]);
+                }
+                reg_temp.func_type = prename;
+                if (prename == "asio::awaitable<std::string>")
+                {
+                    reg_temp.is_co = true;
+                }
+                else
+                {
+                    reg_temp.is_co = false;
+                }
+
+                reg_temp.filename = methodpathfile;
                 temp.emplace_back(reg_temp);
                 continue;
-                 
             }
         }
 
@@ -462,15 +564,22 @@ class pickcontrol
 #include "httppeer.h"
 
 namespace http
-{
-
-            
+{        
 )";
         for (unsigned int i = 0; i < methodpathfile.size(); i++)
         {
-            header_content.append("\tstd::string ");
-            header_content.append(methodpathfile[i].func);
-            header_content.append("(std::shared_ptr<httppeer> peer);\r\n");
+            if (methodpathfile[i].func_type == "std::string")
+            {
+                header_content.append("\tstd::string ");
+                header_content.append(methodpathfile[i].func);
+                header_content.append("(std::shared_ptr<httppeer> peer);\r\n");
+            }
+            else if (methodpathfile[i].func_type == "asio::awaitable<std::string>")
+            {
+                header_content.append("\tasio::awaitable<std::string> ");
+                header_content.append(methodpathfile[i].func);
+                header_content.append("(std::shared_ptr<httppeer> peer);\r\n");
+            }
         }
         header_content.append("}\r\n");
 

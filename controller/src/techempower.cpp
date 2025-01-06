@@ -14,23 +14,23 @@
 namespace http
 {
 //@urlpath(null,plaintext)
-std::string techempowerplaintext(std::shared_ptr<httppeer> peer)
+asio::awaitable<std::string> techempowerplaintext(std::shared_ptr<httppeer> peer)
 {
     peer->type("text/plain; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
     peer->output = "Hello, World!";
-    return "";
+    co_return "";
 }
 
 //@urlpath(null,json)
-std::string techempowerjson(std::shared_ptr<httppeer> peer)
+asio::awaitable<std::string> techempowerjson(std::shared_ptr<httppeer> peer)
 {
     peer->type("application/json; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
     struct techempower_outjson_t a;
     a.message    = "Hello, World!";
     peer->output = json_encode(a);
-    return "";
+    co_return "";
 }
 
 //@urlpath(null,db)

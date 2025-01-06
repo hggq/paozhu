@@ -5,8 +5,6 @@
 #include "httppeer.h"
 
 namespace http
-{
-
-            
+{        
 	std::string testsoftremove(std::shared_ptr<httppeer> peer);
 }

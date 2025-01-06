@@ -60,8 +60,10 @@ namespace http
 {
 
 std::map<std::string, regmethold_t> _http_regmethod_table;
+std::map<std::string, regmethold_co_t> _co_http_regmethod_table;
 std::map<std::string, std::vector<std::string>> _http_regurlpath_table;
 std::map<std::string, std::map<std::string, regmethold_t>> _domain_regmethod_table;
+std::map<std::string, std::map<std::string, regmethold_co_t>> _co_domain_regmethod_table;
 std::map<std::string, std::map<std::string, std::vector<std::string>>> _domain_regurlpath_table;
 void make_404_content(std::shared_ptr<httppeer> peer)
 {
@@ -751,6 +753,10 @@ unsigned char httppeer::has_urlfileext()
                 {
                     return 4;
                 }
+                else if (_co_http_regmethod_table.contains(sendfilename))
+                {
+                    return 40;
+                }
             }
             if (i > 0)
             {
@@ -839,7 +845,7 @@ unsigned char httppeer::has_urlfileext()
                 }
                 sendfilename.resize(j);
             }
-
+            //file
             if (_http_regmethod_table.contains(sendfilename))
             {
                 temp = 4;
@@ -885,6 +891,54 @@ unsigned char httppeer::has_urlfileext()
                         }
                     }
                 }
+                //end file
+            }
+            else if (_co_http_regmethod_table.contains(sendfilename))
+            {
+                temp = 4;
+                //maybe let urlpath functions read index.html filetime
+                if (pathinfos.size() == 5)
+                {
+                    serverconfig &sysconfigpath = getserversysconfig();
+                    if (sysconfigpath.siteusehtmlchache)
+                    {
+                        memset(&fileinfo, 0, sizeof(fileinfo));
+                        if (sitepath.size() > 0 && sitepath.back() == '/')
+                        {
+                            sendfilename = sitepath + "/" + sendfilename;
+                        }
+                        else
+                        {
+                            if (sysconfigpath.wwwpath.size() > 0 && sitepath.back() == '/')
+                            {
+                                sendfilename = sysconfigpath.wwwpath + sendfilename;
+                            }
+                            else
+                            {
+                                sendfilename = sysconfigpath.wwwpath + "/" + sendfilename;
+                            }
+                        }
+
+                        if (sendfilename.size() > 0 && sendfilename.back() != '/')
+                        {
+                            sendfilename.push_back('/');
+                        }
+                        sendfilename.append(sysconfigpath.map_value["default"]["index"]);
+
+                        if (stat(sendfilename.c_str(), &fileinfo) == 0)
+                        {
+                            if (fileinfo.st_mode & S_IFREG)
+                            {
+                                if (sysconfigpath.siteusehtmlchachetime > 10 &&
+                                    sysconfigpath.siteusehtmlchachetime > (timeid() - (unsigned long)fileinfo.st_mtime))
+                                {
+                                    temp = 5;
+                                }
+                            }
+                        }
+                    }
+                }
+                //end file
             }
         }
     }
@@ -2018,7 +2072,7 @@ void httppeer::clsoesend(asio::io_context &ioc)
                            [handler = std::move(user_code_handler_call.front())]() mutable -> void
                            {
                                /////////////
-                               handler(1);
+                               handler(0);
                                //////////
                            });
             user_code_handler_call.pop_front();

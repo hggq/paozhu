@@ -1604,7 +1604,6 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
     }
     else
     {
-        DEBUG_LOG("---  http1 pool pre --------");
         peer->linktype = 0;
         peer->parse_session();
 
@@ -1613,8 +1612,50 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->etag.clear();
         peer->output.clear();
 
-        sendtype = co_await co_user_task(peer);
-        DEBUG_LOG("---  http1 pool post --------");
+        std::string respcontent;
+        bool not_co_handle = true;
+        DEBUG_LOG("---  http1 co handle --------");
+        auto co_iter = _co_http_regmethod_table.find(peer->sendfilename);
+        if (co_iter != _co_http_regmethod_table.end())
+        {
+            DEBUG_LOG("---  coll %s handle --------", peer->sendfilename.c_str());
+            respcontent   = co_await co_iter->second.regfun(peer);
+            not_co_handle = false;
+
+            for (unsigned int co_loop_num = 0; co_loop_num < 30; ++co_loop_num)
+            {
+                if (respcontent.size() > 0)
+                {
+                    co_iter = _co_http_regmethod_table.find(respcontent);
+                    if (co_iter != _co_http_regmethod_table.end())
+                    {
+                        respcontent = co_await co_iter->second.regfun(peer);
+                    }
+                    else
+                    {
+                        auto iter = _http_regmethod_table.find(respcontent);
+                        if (iter != _http_regmethod_table.end())
+                        {
+                            not_co_handle = true;
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        DEBUG_LOG("---  http1 pool pre --------");
+
+        if (not_co_handle)
+        {
+            sendtype = co_await co_user_task(peer);
+        }
+
+        DEBUG_LOG("---  http1 pool post re_num [%d]--------", sendtype);
         if (peer->get_status() < 100)
         {
             peer->status(200);
@@ -2334,7 +2375,7 @@ asio::awaitable<void> httpserver::http2_send_sequence(std::shared_ptr<http2_send
             per_size = fread(&sq_obj->cache_data[9], 1, vsize_send, sq_obj->fp.get());
             if (per_size == 0 && vsize_send > 0)
             {
-                co_await peer->socket_session->http2_send_enddata(peer->stream_id);
+                co_await peer->socket_session->co_http2_send_enddata(peer->stream_id);
                 peer->issend         = true;
                 sq_obj->standby_next = true;
                 co_return;
@@ -2409,6 +2450,206 @@ asio::awaitable<void> httpserver::http2_send_sequence(std::shared_ptr<http2_send
     sq_obj->last_time    = std::chrono::steady_clock::now();
     co_return;
 }
+
+bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_obj)
+{
+
+    std::shared_ptr<httppeer> peer = sq_obj->peer;
+    if (sq_obj->peer.use_count() == 0)
+    {
+        return false;
+    }
+    if (sq_obj->peer->socket_session.use_count() == 0)
+    {
+        peer->issend = true;
+        return false;
+    }
+
+    unsigned int data_send_id = peer->stream_id;
+
+    if (sq_obj->content_length == 0)
+    {
+        peer->socket_session->send_zero_data(peer->stream_id);
+        peer->issend         = true;
+        sq_obj->standby_next = true;
+        return false;
+    }
+
+    unsigned long long per_size = 0;
+    unsigned int vsize_send     = 8181;
+
+    sq_obj->cache_data.clear();
+
+    if (peer->socket_session->old_window_update_num.load() == 0)
+    {
+        vsize_send = 4096;
+        peer->socket_session->old_window_update_num.store(peer->socket_session->window_update_num.load());
+        peer->socket_session->new_send_balance_num = peer->socket_session->window_update_num.load() / 2;
+    }
+    else
+    {
+        long long temp_num = peer->socket_session->window_update_num.load() - peer->socket_session->old_window_update_num.load();
+
+        if (temp_num > 0)
+        {
+            peer->socket_session->new_send_balance_num += temp_num;
+        }
+        if (temp_num != 0)
+        {
+            peer->socket_session->old_window_update_num.store(peer->socket_session->window_update_num.load());
+        }
+    }
+
+    if (peer->socket_session->new_send_balance_num.load() > 307200)
+    {
+        vsize_send = 16384;
+    }
+    else if (peer->socket_session->new_send_balance_num.load() > 102400)
+    {
+        vsize_send = 8192;
+    }
+    else
+    {
+        vsize_send = 4096;
+    }
+
+    //small file and content
+    if (sq_obj->content_length < 307200)
+    {
+        vsize_send = 16384;
+    }
+    if (sq_obj->content_length > 20971520)
+    {
+        vsize_send = 8192;
+    }
+
+    sq_obj->cache_data.resize(vsize_send);
+
+    vsize_send            = sq_obj->cache_data.size() - 9;
+    sq_obj->cache_data[3] = 0x00;
+    sq_obj->cache_data[4] = 0x00;
+    data_send_id          = peer->stream_id;
+    sq_obj->cache_data[8] = data_send_id & 0xFF;
+    data_send_id          = data_send_id >> 8;
+    sq_obj->cache_data[7] = data_send_id & 0xFF;
+    data_send_id          = data_send_id >> 8;
+    sq_obj->cache_data[6] = data_send_id & 0xFF;
+    data_send_id          = data_send_id >> 8;
+    sq_obj->cache_data[5] = data_send_id & 0x7F;
+
+    if (sq_obj->type == 1)
+    {
+        //send file
+        if (sq_obj->current_num < sq_obj->content_length)
+        {
+            per_size = fread(&sq_obj->cache_data[9], 1, vsize_send, sq_obj->fp.get());
+            if (per_size == 0 && vsize_send > 0)
+            {
+                peer->socket_session->http2_send_enddata(peer->stream_id);
+                peer->issend         = true;
+                sq_obj->standby_next = true;
+                return false;
+            }
+            sq_obj->cache_data.resize(9 + per_size);
+        }
+    }
+    else
+    {
+        per_size = vsize_send;
+        if ((sq_obj->current_num + per_size) > sq_obj->content.size())
+        {
+            per_size = sq_obj->content.size() - sq_obj->current_num;
+        }
+        sq_obj->cache_data.resize(9);
+        sq_obj->cache_data.append(&sq_obj->content[sq_obj->current_num], per_size);
+    }
+    sq_obj->current_num += per_size;
+    if (sq_obj->current_num >= sq_obj->content_length)
+    {
+        sq_obj->cache_data[4] = 0x01;
+    }
+
+    data_send_id          = per_size;
+    sq_obj->cache_data[2] = data_send_id & 0xFF;
+    data_send_id          = data_send_id >> 8;
+    sq_obj->cache_data[1] = data_send_id & 0xFF;
+    data_send_id          = data_send_id >> 8;
+    sq_obj->cache_data[0] = data_send_id & 0xFF;
+
+    data_send_id = peer->socket_session->http2_loop_send_queue_add(sq_obj->cache_data);
+    if (sq_obj->current_num >= sq_obj->content_length)
+    {
+        peer->issend = true;
+    }
+
+    peer->socket_session->has_send_update_num += per_size + 9;
+    peer->socket_session->new_send_balance_num -= (per_size + 9);
+
+    if (data_send_id > 3)
+    {
+        sq_obj->sleep_time = sq_obj->sleep_time * 2 + 1000000;
+
+        if (sq_obj->sleep_time > 10000000000)
+        {
+            if (data_send_id > 5)
+            {
+                peer->socket_session->http2_send_rst_stream(peer->stream_id, 1);
+                peer->isclose = true;
+                peer->issend  = true;
+                return false;
+            }
+            sq_obj->sleep_time = 5000000000;
+        }
+    }
+    else if (data_send_id > 0)
+    {
+        sq_obj->sleep_time = 2000000;
+    }
+    else
+    {
+        sq_obj->sleep_time = 1000000;
+        if (sq_obj->content_length > 16793600)
+        {
+            sq_obj->sleep_time = 1500000;
+        }
+    }
+
+    if (sq_obj->current_num < 20480)
+    {
+        sq_obj->sleep_time = 500000;
+    }
+    //small file and content
+    if (sq_obj->content_length < 307200)
+    {
+        sq_obj->sleep_time = 50000;
+    }
+
+    if (peer->socket_session->new_send_balance_num.load() < 40960)
+    {
+        if (data_send_id < 3)
+        {
+            sq_obj->sleep_time = 200000000;
+        }
+    }
+    else if (peer->socket_session->new_send_balance_num.load() < 81920)
+    {
+        if (data_send_id < 3)
+        {
+            sq_obj->sleep_time = 12000000;
+        }
+    }
+    else if (peer->socket_session->new_send_balance_num.load() < 102400)
+    {
+        if (data_send_id < 3)
+        {
+            sq_obj->sleep_time = 2000000;
+        }
+    }
+    sq_obj->standby_next = true;
+    sq_obj->last_time    = std::chrono::steady_clock::now();
+    return true;
+}
+
 void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
 {
     DEBUG_LOG("http2_send_queue_loop");
@@ -2473,8 +2714,21 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                     if (sp->standby_next && sp->peer->socket_session->window_update_num.load() > sp->peer->socket_session->has_send_update_num.load())
                     {
                         sp->standby_next = false;
-                        co_spawn(this->io_context, http2_send_sequence(sp), asio::detached);
-                        send_count_num_i++;
+
+                        if (http2_loop_send_sequence(sp))
+                        {
+
+                            send_count_num_i++;
+                        }
+                        else
+                        {
+                            thread_sent_data_list.erase(iter++);
+                            http2_send_queue &send_queue_obj = get_http2_send_queue();
+                            send_queue_obj.back_cache_ptr(sp);
+                            continue;
+                        }
+
+                        DEBUG_LOG("http2_loop_send_sequence %llu", sp->sleep_time);
                     }
                 }
                 if (mini_sleep_num > sp->sleep_time)
@@ -2896,7 +3150,8 @@ void httpserver::httpwatch()
         error_loglist.emplace_back(errorstr);
     }
     std::unique_lock<std::mutex> loglock(log_mutex);
-    error_loglist.push_back("------------begin-----------\n");
+    error_loglist.push_back("------------begin-----------");
+    error_loglist.push_back(get_date("%Y-%m-%d %X\n"));
     loglock.unlock();
 
     struct regmethold_t temp;
@@ -3020,7 +3275,7 @@ void httpserver::httpwatch()
     unsigned char cron_day  = 0x00;
     unsigned char cron_hour = 0x00;
 
-    unsigned int clean_cron_min      = 0;
+    unsigned int clean_cron_min      = 60;
     unsigned int clean_cron_time_ago = 0;
 
     unsigned int restart_process_num = 0;
@@ -3795,6 +4050,9 @@ void httpserver::run(const std::string &sysconfpath)
 
         _initauto_domain_httpmethodregto(_domain_regmethod_table);
         _initauto_domain_httprestful_paths(_domain_regurlpath_table);
+
+        _initauto_co_control_httpmethodregto(_co_http_regmethod_table);
+        _initauto_co_domain_httpmethodregto(_co_domain_regmethod_table);
 
         serverconfig &sysconfigpath = getserversysconfig();
         sysconfigpath.init_path();

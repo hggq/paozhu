@@ -5,9 +5,7 @@
 #include "httppeer.h"
 
 namespace http
-{
-
-            
+{        
 	std::string admin_marhome(std::shared_ptr<httppeer> peer);
 	std::string admin_edithomeblockpic(std::shared_ptr<httppeer> peer);
 	std::string admin_updatehomeblocksort(std::shared_ptr<httppeer> peer);

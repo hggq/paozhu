@@ -5,9 +5,7 @@
 #include "httppeer.h"
 
 namespace http
-{
-
-            
+{        
 	std::string attachfile_gateway(std::shared_ptr<httppeer> peer);
 	std::string attachimg_gateway(std::shared_ptr<httppeer> peer);
 	std::string attachfile_delete(std::shared_ptr<httppeer> peer);

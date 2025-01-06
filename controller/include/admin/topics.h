@@ -5,9 +5,7 @@
 #include "httppeer.h"
 
 namespace http
-{
-
-            
+{        
 	std::string admin_addtopic(std::shared_ptr<httppeer> peer);
 	std::string admin_edittopic(std::shared_ptr<httppeer> peer);
 	std::string admin_martopic(std::shared_ptr<httppeer> peer);

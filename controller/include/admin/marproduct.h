@@ -5,9 +5,7 @@
 #include "httppeer.h"
 
 namespace http
-{
-
-            
+{        
 	std::string admin_addproduct(std::shared_ptr<httppeer> peer);
 	std::string admin_addproductpost(std::shared_ptr<httppeer> peer);
 	std::string admin_editproductpost(std::shared_ptr<httppeer> peer);
