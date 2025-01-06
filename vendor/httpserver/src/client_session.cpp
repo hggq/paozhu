@@ -138,7 +138,6 @@ bool client_session::send_switch101()
         }
         else
         {
-
             asio::write(*socket, asio::buffer(tempswitch));
         }
         return true;
@@ -153,7 +152,6 @@ bool client_session::send_switch101()
 
 asio::awaitable<void> client_session::co_send_setting()
 {
-    std::cout << " co_send_setting " << std::endl;
     unsigned char _recvack[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
     co_await http2_send_queue_add_co(_recvack, 21);
     co_return;
@@ -262,7 +260,6 @@ void client_session::send_zero_data(unsigned int stream_id)
 
 asio::awaitable<void> client_session::co_send_goway()
 {
-
     std::string _recvack = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     co_await http2_send_queue_add_co(_recvack);
     co_return;
@@ -270,7 +267,6 @@ asio::awaitable<void> client_session::co_send_goway()
 
 void client_session::send_recv_setting()
 {
-    std::cout << " send_recv_setting " << std::endl;
     unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
     http2_send_queue_add(_recvack, 9);
 }

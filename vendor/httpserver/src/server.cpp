@@ -909,14 +909,55 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             peer->linktype = 0;
             peer->etag.clear();
 
-            sendtype = co_await co_user_task(peer);
-
-            std::string tempcompress;
-
             http2_send_queue &send_queue_obj = get_http2_send_queue();
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
             send_file_obj->cache_data.resize(16384);
             send_file_obj->content.clear();
+            send_file_obj->header.clear();
+            bool not_co_handle = true;
+
+            DEBUG_LOG("---  htttp2 co handle --------");
+            auto co_iter = _co_http_regmethod_table.find(peer->sendfilename);
+            if (co_iter != _co_http_regmethod_table.end())
+            {
+                DEBUG_LOG("---  coll %s handle --------", peer->sendfilename.c_str());
+                send_file_obj->header = co_await co_iter->second.regfun(peer);
+                not_co_handle         = false;
+
+                for (unsigned int co_loop_num = 0; co_loop_num < 30; ++co_loop_num)
+                {
+                    if (send_file_obj->header.size() > 0)
+                    {
+                        co_iter = _co_http_regmethod_table.find(send_file_obj->header);
+                        if (co_iter != _co_http_regmethod_table.end())
+                        {
+                            send_file_obj->header = co_await co_iter->second.regfun(peer);
+                        }
+                        else
+                        {
+                            auto iter = _http_regmethod_table.find(send_file_obj->header);
+                            if (iter != _http_regmethod_table.end())
+                            {
+                                not_co_handle = true;
+                            }
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            send_file_obj->header.clear();
+            if (not_co_handle)
+            {
+                DEBUG_LOG("---  htttp2 pool pre --------");
+                sendtype = co_await co_user_task(peer);
+                DEBUG_LOG("htttp2 pool out [%d]", sendtype);
+            }
+
             peer->compress = 0;
             if (peer->state.gzip || peer->state.br)
             {
@@ -962,15 +1003,13 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             {
                 peer->status(200);
             }
-            DEBUG_LOG("htttp2 pool out");
+
             if (!peer->isset_type())
             {
                 peer->type("text/html; charset=utf-8");
             }
             send_file_obj->header = peer->make_http2_header(0);
 
-            DEBUG_LOG("send http2_send_writer");
-            //co_await peer->socket_session->http2_send_writer(_send_header);
             co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
             DEBUG_LOG("http2_send_content");
 
@@ -1648,14 +1687,13 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             }
         }
 
-        DEBUG_LOG("---  http1 pool pre --------");
-
         if (not_co_handle)
         {
+            DEBUG_LOG("---  http1 pool pre --------");
             sendtype = co_await co_user_task(peer);
+            DEBUG_LOG("---  http1 pool post re_num [%d]--------", sendtype);
         }
 
-        DEBUG_LOG("---  http1 pool post re_num [%d]--------", sendtype);
         if (peer->get_status() < 100)
         {
             peer->status(200);
@@ -1685,6 +1723,7 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                         htmlcontent.append("\r\n");
                         co_await peer_session->co_send_writer(htmlcontent);
                         co_await peer_session->co_send_writer(tempcompress);
+                        DEBUG_LOG("---  http1 compress send --------");
                         co_return;
                     }
                 }
@@ -1693,10 +1732,9 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->length(peer->output.size());
         std::string htmlcontent = peer->make_http1_header();
         htmlcontent.append("\r\n");
-        // htmlcontent.append(&peer->output[0], peer->output.size());
-        //  peer_session->send_data(htmlcontent);
         co_await peer_session->co_send_writer(htmlcontent);
         co_await peer_session->co_send_writer(peer->output);
+        DEBUG_LOG("---  http1 output send --------");
     }
     co_return;
 }
@@ -3740,7 +3778,7 @@ void httpserver::httpwatch()
             }
 
             //clear timeout sock 10 minute
-            if (mysqlpool_time % clean_cron_min == 0)
+            if (clean_cron_min > 0 && mysqlpool_time % clean_cron_min == 0)
             {
                 is_clear_sock = true;
             }
