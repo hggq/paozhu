@@ -64,7 +64,7 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
 {
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(16384);
+    send_file_obj->cache_data.resize(15360);
     send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
 
     DEBUG_LOG("%s", peer->sendfilename.c_str());
@@ -106,8 +106,10 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
         if (peer->state.rangebegin >= send_file_obj->content_length || peer->state.rangeend > send_file_obj->content_length)
         {
             co_await http2_send_status_content(peer, 400, "client range request error!");
-            peer->issend = true;
-            send_queue_obj.back_cache_ptr(send_file_obj);
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(send_file_obj);
+            lock.unlock();
+            send_data_condition.notify_one();
             co_return;
         }
 
@@ -146,9 +148,8 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
         peer->set_header("last-modified", get_gmttime(peer->fileinfo.st_mtime));
 
         peer->set_header("etag", send_file_obj->etag);
-        send_file_obj->header = peer->make_http2_header(0);
-        co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-        send_file_obj->is_sendheader = true;
+        send_file_obj->header        = peer->make_http2_header(0);
+        send_file_obj->is_sendheader = false;
 
         //add send sequence
 
@@ -165,12 +166,13 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
         peer->status(500);
         peer->length(send_file_obj->content.size());
         peer->type("text/html; charset=utf-8");
-        send_file_obj->header = peer->make_http2_header(0);
+        send_file_obj->header        = peer->make_http2_header(0);
+        send_file_obj->is_sendheader = false;
 
-        co_await http2_send_content_append(peer->stream_id, send_file_obj->header, send_file_obj->content, true);
-
-        co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-        peer->issend = true;
+        std::unique_lock<std::mutex> lock(send_data_mutex);
+        sent_data_list.emplace_back(send_file_obj);
+        lock.unlock();
+        send_data_condition.notify_one();
     }
     co_return;
 }
@@ -186,10 +188,10 @@ asio::awaitable<void> httpserver::http2_co_send_304(std::shared_ptr<httppeer> pe
     send_file_obj->header = peer->make_http2_header(0);
     set_http2_headers_flag(send_file_obj->header, HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
 
+    //body size 0 enddata
     send_file_obj->content.clear();
-    co_await http2_send_content_append(peer->stream_id, send_file_obj->header, send_file_obj->content, true);
-    co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-    peer->issend = true;
+    send_file_obj->is_sendheader = false;//usr body not send header
+
     co_return;
 }
 asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t> send_file_obj)
@@ -302,7 +304,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
 {
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(16384);
+    send_file_obj->cache_data.resize(15360);
     send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
 
     DEBUG_LOG("%s", peer->sendfilename.c_str());
@@ -346,7 +348,10 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
         if (peer->etag == send_file_obj->etag)
         {
             co_await http2_co_send_304(peer, send_file_obj);
-            send_queue_obj.back_cache_ptr(send_file_obj);
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(send_file_obj);
+            lock.unlock();
+            send_data_condition.notify_one();
             co_return;
         }
 
@@ -372,19 +377,18 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
     }
     else
     {
-        send_file_obj->type    = 2;
+        send_file_obj->type    = 11;
         send_file_obj->content = "<h3>500 Internal Server Error</h3>";
         send_file_obj->content.append("<hr /><p>File: " + peer->urlpath + " Access is denied!</p>");
         peer->status(500);
         peer->length(send_file_obj->content.size());
         peer->type("text/html; charset=utf-8");
-        send_file_obj->header = peer->make_http2_header(0);
-
-        co_await http2_send_content_append(peer->stream_id, send_file_obj->header, send_file_obj->content, true);
-
-        co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-        peer->issend = true;
-        send_queue_obj.back_cache_ptr(send_file_obj);
+        send_file_obj->header        = peer->make_http2_header(0);
+        send_file_obj->is_sendheader = false;
+        std::unique_lock<std::mutex> lock(send_data_mutex);
+        sent_data_list.emplace_back(send_file_obj);
+        lock.unlock();
+        send_data_condition.notify_one();
     }
     co_return;
 }
@@ -554,13 +558,24 @@ httpserver::http2_send_content_append(unsigned int stream_id, std::string &_send
 
 asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent)
 {
+    http2_send_queue &send_queue_obj = get_http2_send_queue();
+    auto send_file_obj               = send_queue_obj.get_cache_ptr();
+    send_file_obj->cache_data.resize(15360);
+    send_file_obj->content.clear();
+
+    peer->compress = 0;
     peer->status(status_code);
     peer->length(bodycontent.size());
     peer->type("text/html; charset=utf-8");
-    std::string _send_header = peer->make_http2_header(0);
+    send_file_obj->header  = peer->make_http2_header(0);
+    send_file_obj->content = bodycontent;
 
-    co_await http2_send_content_append(peer->stream_id, _send_header, bodycontent, true);
-    co_await peer->socket_session->http2_send_queue_add_co(_send_header);
+    send_file_obj->peer          = peer;
+    send_file_obj->is_sendheader = false;
+    std::unique_lock<std::mutex> lock(send_data_mutex);
+    sent_data_list.emplace_back(send_file_obj);
+    lock.unlock();
+    send_data_condition.notify_one();
 
     co_return;
 }
@@ -580,8 +595,74 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
         }
         else
         {
-            htmlcontent.append(peer->output);
-            co_await http2_send_status_content(peer, 403, htmlcontent);
+            http2_send_queue &send_queue_obj = get_http2_send_queue();
+            auto send_file_obj               = send_queue_obj.get_cache_ptr();
+            send_file_obj->cache_data.resize(15360);
+            send_file_obj->content.clear();
+
+            peer->status(403);
+            if (!peer->isset_type())
+            {
+                peer->type("text/html; charset=utf-8");
+            }
+
+            peer->compress = 0;
+            if (peer->state.gzip || peer->state.br)
+            {
+                if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+                    str_casecmp(peer->content_type, "application/json") ||
+                    str_casecmp(peer->content_type, "text/html") ||
+                    str_casecmp(peer->content_type, "application/json; charset=utf-8"))
+                {
+                    if (peer->output.size() > 100)
+                    {
+
+                        if (peer->state.br)
+                        {
+                            brotli_encode(peer->output, send_file_obj->content);
+                            peer->compress = 2;
+                        }
+                        else if (peer->state.gzip)
+                        {
+                            if (compress(peer->output.data(),
+                                         peer->output.size(),
+                                         send_file_obj->content,
+                                         Z_DEFAULT_COMPRESSION) == Z_OK)
+                            {
+                                peer->compress = 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (peer->compress > 0)
+            {
+                send_file_obj->content_length = send_file_obj->content.size();
+                peer->length(send_file_obj->content.size());
+            }
+            else
+            {
+                send_file_obj->content_length = peer->output.size();
+                peer->length(peer->output.size());
+            }
+
+            send_file_obj->header = peer->make_http2_header(0);
+
+            if (peer->compress == 0)
+            {
+                send_file_obj->content = peer->output;
+            }
+            send_file_obj->peer          = peer;
+            send_file_obj->is_sendheader = false;
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(send_file_obj);
+            lock.unlock();
+            send_data_condition.notify_one();
+
+            peer->output.clear();
+            peer->output.shrink_to_fit();
+
             co_return false;
         }
     }
@@ -616,8 +697,74 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                 }
                 else
                 {
-                    htmlcontent.append(peer->output);
-                    co_await http2_send_status_content(peer, 403, htmlcontent);
+                    http2_send_queue &send_queue_obj = get_http2_send_queue();
+                    auto send_file_obj               = send_queue_obj.get_cache_ptr();
+                    send_file_obj->cache_data.resize(15360);
+                    send_file_obj->content.clear();
+
+                    peer->status(403);
+                    if (!peer->isset_type())
+                    {
+                        peer->type("text/html; charset=utf-8");
+                    }
+
+                    peer->compress = 0;
+                    if (peer->state.gzip || peer->state.br)
+                    {
+                        if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+                            str_casecmp(peer->content_type, "application/json") ||
+                            str_casecmp(peer->content_type, "text/html") ||
+                            str_casecmp(peer->content_type, "application/json; charset=utf-8"))
+                        {
+                            if (peer->output.size() > 100)
+                            {
+
+                                if (peer->state.br)
+                                {
+                                    brotli_encode(peer->output, send_file_obj->content);
+                                    peer->compress = 2;
+                                }
+                                else if (peer->state.gzip)
+                                {
+                                    if (compress(peer->output.data(),
+                                                 peer->output.size(),
+                                                 send_file_obj->content,
+                                                 Z_DEFAULT_COMPRESSION) == Z_OK)
+                                    {
+                                        peer->compress = 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (peer->compress > 0)
+                    {
+                        send_file_obj->content_length = send_file_obj->content.size();
+                        peer->length(send_file_obj->content.size());
+                    }
+                    else
+                    {
+                        send_file_obj->content_length = peer->output.size();
+                        peer->length(peer->output.size());
+                    }
+
+                    send_file_obj->header = peer->make_http2_header(0);
+
+                    if (peer->compress == 0)
+                    {
+                        send_file_obj->content = peer->output;
+                    }
+                    send_file_obj->peer          = peer;
+                    send_file_obj->is_sendheader = false;
+                    std::unique_lock<std::mutex> lock(send_data_mutex);
+                    sent_data_list.emplace_back(send_file_obj);
+                    lock.unlock();
+                    send_data_condition.notify_one();
+
+                    peer->output.clear();
+                    peer->output.shrink_to_fit();
+
                     co_return false;
                 }
             }
@@ -633,7 +780,7 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
 
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(16384);
+    send_file_obj->cache_data.resize(15360);
     send_file_obj->content.clear();
 
     peer->parse_session();
@@ -696,46 +843,23 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
         peer->type("text/html; charset=utf-8");
     }
     send_file_obj->header = peer->make_http2_header(0);
-    co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
 
     DEBUG_LOG("fastcgi send content");
-    if (peer->content_length > 16384)
-    {
-        if (peer->compress == 0)
-        {
-            send_file_obj->content = peer->output;
-        }
-        send_file_obj->peer          = peer;
-        send_file_obj->is_sendheader = true;
-        std::unique_lock<std::mutex> lock(send_data_mutex);
-        sent_data_list.emplace_back(send_file_obj);
-        lock.unlock();
-        send_data_condition.notify_one();
 
-        peer->output.clear();
-        peer->output.shrink_to_fit();
-        send_queue_obj.back_cache_ptr(send_file_obj);
-        co_return;
+    if (peer->compress == 0)
+    {
+        send_file_obj->content = peer->output;
     }
+    send_file_obj->peer          = peer;
+    send_file_obj->is_sendheader = false;
+    std::unique_lock<std::mutex> lock(send_data_mutex);
+    sent_data_list.emplace_back(send_file_obj);
+    lock.unlock();
+    send_data_condition.notify_one();
 
-    if (peer->compress > 0)
-    {
-        send_file_obj->header.clear();
-        co_await http2_send_content(peer->stream_id, send_file_obj->header, send_file_obj->content, true);
-        co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-    }
-    else
-    {
-        send_file_obj->header.clear();
-        co_await http2_send_content(peer->stream_id, send_file_obj->header, peer->output, true);
-        co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-    }
-    send_file_obj->header.clear();
-    send_file_obj->header.shrink_to_fit();
     peer->output.clear();
     peer->output.shrink_to_fit();
-    peer->issend = true;
-    send_queue_obj.back_cache_ptr(send_file_obj);
+
     co_return;
 }
 asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
@@ -773,7 +897,6 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 }
                 else
                 {
-                    peer->issend = true;
                     co_return;
                 }
             }
@@ -791,16 +914,16 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         }
         else if (sendtype == 2 && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
         {
-            std::string htmlcontent = displaydirectory(peer->sendfilename,
-                                                       peer->urlpath,
-                                                       peer->get["sort"].as_string(),
-                                                       sysconfigpath.configpath);
+            peer->output = displaydirectory(peer->sendfilename,
+                                            peer->urlpath,
+                                            peer->get["sort"].as_string(),
+                                            sysconfigpath.configpath);
             peer->status(200);
             peer->type("text/html; charset=utf-8");
 
             http2_send_queue &send_queue_obj = get_http2_send_queue();
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
-            send_file_obj->cache_data.resize(16384);
+            send_file_obj->cache_data.resize(15360);
             send_file_obj->content.clear();
             peer->compress = 0;
             if (peer->state.gzip || peer->state.br)
@@ -847,56 +970,27 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             {
                 peer->status(200);
             }
-            DEBUG_LOG("htttp2 pool out");
+            DEBUG_LOG("htttp2 displaydirectory out");
             if (!peer->isset_type())
             {
                 peer->type("text/html; charset=utf-8");
             }
             send_file_obj->header = peer->make_http2_header(0);
 
-            DEBUG_LOG("send http2_send_writer");
-            //co_await peer->socket_session->http2_send_writer(_send_header);
-            co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-            DEBUG_LOG("http2_send_content");
-
-            if (peer->content_length > 16384)
+            if (peer->compress == 0)
             {
-                if (peer->compress == 0)
-                {
-                    send_file_obj->content = peer->output;
-                }
-                send_file_obj->peer          = peer;
-                send_file_obj->is_sendheader = true;
-                std::unique_lock<std::mutex> lock(send_data_mutex);
-                sent_data_list.emplace_back(send_file_obj);
-                lock.unlock();
-                send_data_condition.notify_one();
-
-                peer->output.clear();
-                peer->output.shrink_to_fit();
-                co_return;
+                send_file_obj->content = peer->output;
             }
+            send_file_obj->peer          = peer;
+            send_file_obj->is_sendheader = false;
+            send_file_obj->type          = 11;
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(send_file_obj);
+            lock.unlock();
+            send_data_condition.notify_one();
 
-            if (peer->compress > 0)
-            {
-                send_file_obj->header.clear();
-                co_await http2_send_content(peer->stream_id, send_file_obj->header, send_file_obj->content, true);
-                co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-                //co_await http2_send_content(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
-            }
-            else
-            {
-                send_file_obj->header.clear();
-                co_await http2_send_content(peer->stream_id, send_file_obj->header, peer->output, true);
-                co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-                //co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
-            }
-            send_file_obj->header.clear();
-            send_file_obj->header.shrink_to_fit();
-
+            peer->output.clear();
             peer->output.shrink_to_fit();
-            peer->issend = true;
-            send_queue_obj.back_cache_ptr(send_file_obj);
             co_return;
         }
         else
@@ -911,7 +1005,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             http2_send_queue &send_queue_obj = get_http2_send_queue();
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
-            send_file_obj->cache_data.resize(16384);
+            send_file_obj->cache_data.resize(15360);
             send_file_obj->content.clear();
             send_file_obj->header.clear();
             bool not_co_handle = true;
@@ -956,6 +1050,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 DEBUG_LOG("---  htttp2 pool pre --------");
                 sendtype = co_await co_user_task(peer);
                 DEBUG_LOG("htttp2 pool out [%d]", sendtype);
+                if (sendtype == 0)
+                {
+                    co_return;
+                }
             }
 
             peer->compress = 0;
@@ -1009,49 +1107,23 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 peer->type("text/html; charset=utf-8");
             }
             send_file_obj->header = peer->make_http2_header(0);
-
-            co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
             DEBUG_LOG("http2_send_content");
-
-            if (peer->content_length > 16384)
+            if (peer->compress == 0)
             {
-                if (peer->compress == 0)
-                {
-                    send_file_obj->content = peer->output;
-                }
-                send_file_obj->peer          = peer;
-                send_file_obj->is_sendheader = true;
-                std::unique_lock<std::mutex> lock(send_data_mutex);
-                sent_data_list.emplace_back(send_file_obj);
-                lock.unlock();
-                send_data_condition.notify_one();
+                send_file_obj->content = peer->output;
+            }
+            send_file_obj->peer          = peer;
+            send_file_obj->is_sendheader = false;
+            send_file_obj->type          = 11;
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(send_file_obj);
+            lock.unlock();
+            send_data_condition.notify_one();
 
-                peer->output.clear();
-                peer->output.shrink_to_fit();
-                co_return;
-            }
-
-            if (peer->compress > 0)
-            {
-                send_file_obj->header.clear();
-                co_await http2_send_content(peer->stream_id, send_file_obj->header, send_file_obj->content, true);
-                co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-                //co_await http2_send_content(peer, (const unsigned char *)&tempcompress[0], tempcompress.size());
-            }
-            else
-            {
-                send_file_obj->header.clear();
-                co_await http2_send_content(peer->stream_id, send_file_obj->header, peer->output, true);
-                co_await peer->socket_session->http2_send_queue_add_co(send_file_obj->header);
-                //co_await http2_send_content(peer, (const unsigned char *)&peer->output[0], peer->output.size());
-            }
-            send_file_obj->header.clear();
-            send_file_obj->header.shrink_to_fit();
-            send_queue_obj.back_cache_ptr(send_file_obj);
+            peer->output.clear();
+            peer->output.shrink_to_fit();
+            co_return;
         }
-        peer->output.shrink_to_fit();
-        peer->issend = true;
-
         co_return;
     }
     catch (std::exception &e)
@@ -1099,7 +1171,7 @@ asio::awaitable<void> httpserver::http1_co_send_304(std::shared_ptr<httppeer> pe
     peer->set_header("last-modified", get_gmttime(peer->fileinfo.st_mtime));
     peer->set_header("etag", send_file_obj->etag);
     peer->type(send_file_obj->content_type);
-
+    send_file_obj->only_send_header = true;
     send_file_obj->content.clear();
     send_file_obj->content = peer->make_http1_header();
     send_file_obj->content.append("\r\n");
@@ -1113,7 +1185,7 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
 
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(16384);
+    send_file_obj->cache_data.resize(15360);
     send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
 
     DEBUG_LOG("news http1_send_file %s", peer->sendfilename.c_str());
@@ -1244,7 +1316,7 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
 
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(16384);
+    send_file_obj->cache_data.resize(15360);
     send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
 
     DEBUG_LOG("news http1_send_file_range %s", peer->sendfilename.c_str());
@@ -1482,6 +1554,19 @@ asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer,
     };
     return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
 }
+asio::awaitable<size_t> httpserver::co_client_session_task(std::shared_ptr<client_session> peer_session, asio::use_awaitable_t<> h)
+{
+    auto initiate = [](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
+                       std::shared_ptr<client_session> peer_session) mutable
+    {
+        std::unique_lock lk(peer_session->waituphttp2_mutex);
+        peer_session->user_code_handler_call.push_back(std::move(handler));
+        peer_session->http2_need_wakeup = true;
+        lk.unlock();
+    };
+    return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer_session);
+}
+
 asio::awaitable<size_t> httpserver::co_user_fastcgi_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
 {
     auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
@@ -1692,6 +1777,10 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             DEBUG_LOG("---  http1 pool pre --------");
             sendtype = co_await co_user_task(peer);
             DEBUG_LOG("---  http1 pool post re_num [%d]--------", sendtype);
+            if (sendtype == 0)
+            {
+                co_return;
+            }
         }
 
         if (peer->get_status() < 100)
@@ -1807,11 +1896,11 @@ asio::awaitable<void> httpserver::http2task(std::shared_ptr<http2parse> http2pee
     lk.unlock();
     while (http2peer->http2_loop_in)
     {
+        std::unique_lock lk(http2peer->http2loop_mutex);
         if (isstop)
         {
             break;
         }
-        std::unique_lock lk(http2peer->http2loop_mutex);
         if (http2peer->httppeer_lists.size() > 0)
         {
             auto peer = http2peer->httppeer_lists.front();
@@ -1828,7 +1917,83 @@ asio::awaitable<void> httpserver::http2task(std::shared_ptr<http2parse> http2pee
             http2peer->http2_loop_in = false;
             break;
         }
+        if (isstop)
+        {
+            break;
+        }
     }
+    co_return;
+}
+
+asio::awaitable<void> httpserver::http2_ring_client_server(std::shared_ptr<client_session> peer_session)
+{
+    try
+    {
+        while (peer_session->isclose == false && isstop == false)
+        {
+            std::unique_lock lk(peer_session->http2_ring_queue->http2_queue_send_mutex);
+            unsigned char head = peer_session->http2_ring_queue->head_.load(std::memory_order_acquire);
+            if (head == peer_session->http2_ring_queue->tail_.load(std::memory_order_acquire))
+            {
+                lk.unlock();
+                DEBUG_LOG(" ring wait for wake up ");
+                if (peer_session->half_close)
+                {
+                    DEBUG_LOG(" full close ");
+                    peer_session->isclose = true;
+                    break;
+                }
+
+                co_await co_client_session_task(peer_session);
+            }
+            else
+            {
+                lk.unlock();
+            }
+
+            if (peer_session->isclose || isstop)
+            {
+                DEBUG_LOG("http2_ring_client_server peer_session isclose ");
+                break;
+            }
+            for (;;)
+            {
+                DEBUG_LOG("http2_ring_client_server for loop ");
+                std::unique_lock lk(peer_session->http2_ring_queue->http2_queue_send_mutex);
+                unsigned char head = peer_session->http2_ring_queue->head_.load(std::memory_order_acquire);
+                if (head == peer_session->http2_ring_queue->tail_.load(std::memory_order_acquire))
+                {
+                    lk.unlock();
+                    break;
+                }
+
+                // peer_session->http2_ring_queue_temp = peer_session->http2_ring_queue->data[head];
+                // peer_session->http2_ring_queue->head_.store((head + 1) & (peer_session->http2_ring_queue->capacity_ - 1), std::memory_order_release);
+                lk.unlock();
+
+                std::unique_lock lck(peer_session->http2_sock_mutex);
+                //co_await peer_session->co_send_writer(peer_session->http2_ring_queue_temp);
+                if (peer_session->isssl)
+                {
+                    co_await asio::async_write(*peer_session->sslsocket, asio::buffer(peer_session->http2_ring_queue->data[head]), asio::use_awaitable);
+                }
+                else
+                {
+                    co_await asio::async_write(*peer_session->socket, asio::buffer(peer_session->http2_ring_queue->data[head]), asio::use_awaitable);
+                }
+                lck.unlock();
+                peer_session->http2_ring_queue->head_.store((head + 1) & (peer_session->http2_ring_queue->capacity_ - 1), std::memory_order_release);
+            }
+        }
+        co_return;
+    }
+    catch (const std::exception &e)
+    {
+        DEBUG_LOG("http2_ring_client_server std::exception %s", e.what());
+        peer_session->iserror = true;
+        peer_session->isclose = true;
+    }
+    DEBUG_LOG("http2_ring_client_server exit ");
     co_return;
 }
 
@@ -1922,9 +2087,13 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     }
                     else if (linktype == 4)
                     {
-                        http2pre            = std::make_shared<http2parse>();
+                        http2pre                       = std::make_shared<http2parse>();
+                        auto &cc                       = get_http2_ring_queue_obj();
+                        peer_session->http2_ring_queue = cc.get_cache_ptr();
+                        http2pre->setsession(peer_session);
                         peer_session->httpv = 2;
                         peer->httpv         = 2;
+                        co_spawn(this->io_context, http2_ring_client_server(peer_session), asio::detached);
                     }
                 }
 
@@ -1992,10 +2161,16 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                             peer_session->send_switch101();
                             peer->stream_id = 1;
                             peer->isssl     = isssl ? true : false;
-                            http2pre        = std::make_shared<http2parse>();
+
+                            auto &cc                       = get_http2_ring_queue_obj();
+                            peer_session->http2_ring_queue = cc.get_cache_ptr();
+
+                            http2pre = std::make_shared<http2parse>();
                             http2pre->setsession(peer_session);
                             http2pre->http_data.emplace(1, peer);
                             http2pre->stream_list.emplace(1);
+
+                            co_spawn(this->io_context, http2_ring_client_server(peer_session), asio::detached);
                             continue;
                         }
 
@@ -2125,7 +2300,8 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     linktype  = 3;
                     //peer_session->send_setting();
                     co_await peer_session->co_send_setting();
-                    http2pre->setsession(peer_session);
+
+                    //http2pre->setsession(peer_session);
                 }
 
                 if (linktype == 3)
@@ -2144,6 +2320,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                         DEBUG_LOG("http2 client request error!");
 #endif
                         co_await peer_session->co_send_goway();
+
                         break;
                     }
 
@@ -2228,7 +2405,6 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                             lk.unlock();
                             co_spawn(this->io_context, http2task(http2pre), asio::detached);
                             //co_spawn(this->io_context, http2loop(http2pre->http_data[block_steamid]), asio::detached);
-
                             http2pre->block_steam_httppeer = nullptr;
                             http2pre->stream_list.pop();
                             http2pre->steam_count += 1;
@@ -2239,13 +2415,25 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                         co_await peer_session->co_send_goway();
                         break;
                     }
-                    DEBUG_LOG("client http2 > 2024 stream close %d", http2pre->steam_count);
+
+                    // DEBUG_LOG("client http2 > 2024 stream close %d", http2pre->steam_count);
+
                     if (http2pre->steam_count > 4096)
                     {
                         DEBUG_LOG("client http2 > 2024 stream close ");
-                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
                         co_await peer_session->co_send_goway();
                         break;
+                    }
+
+                    if (http2pre->need_wakeup_send_data)
+                    {
+                        DEBUG_LOG("http2 setting need_wakeup_send_data");
+                        if (peer_session->http2_need_wakeup)
+                        {
+                            peer_session->waituphttp2(this->io_context);
+                        }
+
+                        http2pre->need_wakeup_send_data = false;
                     }
                 }
             }
@@ -2259,13 +2447,11 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             error_loglist.emplace_back(log_item);
             lock.unlock();
         }
-        peer_session->stop();
-        peer_session->isclose = true;
-        peer->isclose         = true;
-
+        peer_session->half_close = true;
         if (linktype == 3)
         {
             DEBUG_LOG("client http2 break");
+            peer_session->waituphttp2(this->io_context);
             http2pre->clsoesend(this->io_context);
         }
         else
@@ -2273,6 +2459,11 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             DEBUG_LOG("client http1 break");
             peer->clsoesend(this->io_context);
         }
+
+        peer_session->stop();
+        peer_session->isclose = true;
+        peer->isclose         = true;
+
         DEBUG_LOG("\033[35mclient run exit:%s\033[0m", peer->client_ip.c_str());
     }
     catch (const std::exception &e)
@@ -2287,15 +2478,6 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
 }
 asio::awaitable<void> httpserver::http2_send_sequence_header(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t> sq_obj)
 {
-    if (peer.use_count() == 0)
-    {
-        co_return;
-    }
-    if (peer->socket_session.use_count() == 0)
-    {
-        peer->issend = true;
-        co_return;
-    }
     peer->status(200);
     peer->length(sq_obj->content_length);
     peer->type(sq_obj->content_type);
@@ -2309,183 +2491,9 @@ asio::awaitable<void> httpserver::http2_send_sequence_header(std::shared_ptr<htt
 
     peer->set_header("etag", sq_obj->etag);
 
-    sq_obj->header = peer->make_http2_header(0);
-    co_await peer->socket_session->http2_send_queue_add_co(sq_obj->header);
-    sq_obj->is_sendheader = true;
-    co_return;
-}
-asio::awaitable<void> httpserver::http2_send_sequence(std::shared_ptr<http2_send_data_t> sq_obj)
-{
+    sq_obj->header        = peer->make_http2_header(0);
+    sq_obj->is_sendheader = false;
 
-    std::shared_ptr<httppeer> peer = sq_obj->peer;
-    if (sq_obj->peer.use_count() == 0)
-    {
-        co_return;
-    }
-    if (sq_obj->peer->socket_session.use_count() == 0)
-    {
-        peer->issend = true;
-        co_return;
-    }
-
-    if (sq_obj->is_sendheader == false)
-    {
-        co_await http2_send_sequence_header(sq_obj->peer, sq_obj);
-    }
-
-    unsigned int data_send_id = peer->stream_id;
-
-    if (sq_obj->content_length == 0)
-    {
-        co_await peer->socket_session->co_send_zero_data(peer->stream_id);
-        peer->issend         = true;
-        sq_obj->standby_next = true;
-        co_return;
-    }
-
-    unsigned long long per_size = 0;
-    unsigned int vsize_send     = 8181;
-
-    sq_obj->cache_data.clear();
-
-    if (peer->socket_session->old_window_update_num.load() == 0)
-    {
-        vsize_send = 4096;
-        peer->socket_session->old_window_update_num.store(peer->socket_session->window_update_num.load());
-        peer->socket_session->new_send_balance_num = peer->socket_session->window_update_num.load() / 2;
-    }
-    else
-    {
-        long long temp_num = peer->socket_session->window_update_num.load() - peer->socket_session->old_window_update_num.load();
-
-        if (temp_num > 0)
-        {
-            peer->socket_session->new_send_balance_num += temp_num;
-        }
-        if (temp_num != 0)
-        {
-            peer->socket_session->old_window_update_num.store(peer->socket_session->window_update_num.load());
-        }
-    }
-
-    if (peer->socket_session->new_send_balance_num.load() > 307200)
-    {
-        vsize_send = 16384;
-    }
-    else if (peer->socket_session->new_send_balance_num.load() > 102400)
-    {
-        vsize_send = 8192;
-    }
-    else
-    {
-        vsize_send = 4096;
-    }
-
-    //small file and content
-    if (sq_obj->content_length < 307200)
-    {
-        vsize_send = 16384;
-    }
-    if (sq_obj->content_length > 20971520)
-    {
-        vsize_send = 8192;
-    }
-
-    sq_obj->cache_data.resize(vsize_send);
-
-    vsize_send            = sq_obj->cache_data.size() - 9;
-    sq_obj->cache_data[3] = 0x00;
-    sq_obj->cache_data[4] = 0x00;
-    data_send_id          = peer->stream_id;
-    sq_obj->cache_data[8] = data_send_id & 0xFF;
-    data_send_id          = data_send_id >> 8;
-    sq_obj->cache_data[7] = data_send_id & 0xFF;
-    data_send_id          = data_send_id >> 8;
-    sq_obj->cache_data[6] = data_send_id & 0xFF;
-    data_send_id          = data_send_id >> 8;
-    sq_obj->cache_data[5] = data_send_id & 0x7F;
-
-    if (sq_obj->type == 1)
-    {
-        //send file
-        if (sq_obj->current_num < sq_obj->content_length)
-        {
-            per_size = fread(&sq_obj->cache_data[9], 1, vsize_send, sq_obj->fp.get());
-            if (per_size == 0 && vsize_send > 0)
-            {
-                co_await peer->socket_session->co_http2_send_enddata(peer->stream_id);
-                peer->issend         = true;
-                sq_obj->standby_next = true;
-                co_return;
-            }
-            sq_obj->cache_data.resize(9 + per_size);
-        }
-    }
-    else
-    {
-        per_size = vsize_send;
-        if ((sq_obj->current_num + per_size) > sq_obj->content.size())
-        {
-            per_size = sq_obj->content.size() - sq_obj->current_num;
-        }
-        sq_obj->cache_data.resize(9);
-        sq_obj->cache_data.append(&sq_obj->content[sq_obj->current_num], per_size);
-    }
-    sq_obj->current_num += per_size;
-    if (sq_obj->current_num >= sq_obj->content_length)
-    {
-        sq_obj->cache_data[4] = 0x01;
-    }
-
-    data_send_id          = per_size;
-    sq_obj->cache_data[2] = data_send_id & 0xFF;
-    data_send_id          = data_send_id >> 8;
-    sq_obj->cache_data[1] = data_send_id & 0xFF;
-    data_send_id          = data_send_id >> 8;
-    sq_obj->cache_data[0] = data_send_id & 0xFF;
-
-    co_await peer->socket_session->http2_send_queue_add_co(sq_obj->cache_data);
-    if (sq_obj->current_num >= sq_obj->content_length)
-    {
-        peer->issend = true;
-    }
-
-    peer->socket_session->has_send_update_num += per_size + 9;
-    peer->socket_session->new_send_balance_num -= (per_size + 9);
-
-    if (sq_obj->content_length > 20971520)
-    {
-        sq_obj->sleep_time = 2000000;
-    }
-    else
-    {
-        sq_obj->sleep_time = 1200000;
-    }
-
-    if (sq_obj->current_num < 20480)
-    {
-        sq_obj->sleep_time = 500000;
-    }
-    //small file and content
-    if (sq_obj->content_length < 307200)
-    {
-        sq_obj->sleep_time = 50000;
-    }
-
-    if (peer->socket_session->new_send_balance_num.load() < 40960)
-    {
-        sq_obj->sleep_time = 200000000;
-    }
-    else if (peer->socket_session->new_send_balance_num.load() < 81920)
-    {
-        sq_obj->sleep_time = 12000000;
-    }
-    else if (peer->socket_session->new_send_balance_num.load() < 102400)
-    {
-        sq_obj->sleep_time = 2000000;
-    }
-    sq_obj->standby_next = true;
-    sq_obj->last_time    = std::chrono::steady_clock::now();
     co_return;
 }
 
@@ -2502,19 +2510,74 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
         peer->issend = true;
         return false;
     }
+    if (sq_obj->peer->isclose)
+    {
+        return false;
+    }
+    if (peer->socket_session->http2_ring_queue->has_size() > 5)
+    {
+        if (sq_obj->sleep_time > 30000000)
+        {
+            sq_obj->sleep_time = 10000000;
+        }
+        if (sq_obj->sleep_time < 3000000)
+        {
+            sq_obj->sleep_time = 3000000;
+        }
+        sq_obj->sleep_time = sq_obj->sleep_time + 2000000;
 
-    unsigned int data_send_id = peer->stream_id;
+        if (sq_obj->sleep_time > 10000000000)
+        {
+            peer->socket_session->http2_send_rst_stream(peer->stream_id, 1);
+            peer->isclose = true;
+            peer->issend  = true;
+            if (peer->socket_session->http2_need_wakeup)
+            {
+                peer->socket_session->waituphttp2(this->io_context);
+            }
+            return false;
+        }
+
+        sq_obj->standby_next = true;
+
+        if (peer->socket_session->http2_need_wakeup)
+        {
+            peer->socket_session->waituphttp2(this->io_context);
+        }
+        return true;
+    }
+    if (sq_obj->is_sendheader == false)
+    {
+        peer->socket_session->http2_ring_queue->push(sq_obj->header);
+        sq_obj->is_sendheader = true;
+        sq_obj->standby_next  = true;
+        if (sq_obj->only_send_header)
+        {
+            // has end stream
+            peer->issend         = true;
+            sq_obj->standby_next = false;
+            return true;
+        }
+        if (peer->socket_session->http2_need_wakeup)
+        {
+            peer->socket_session->waituphttp2(this->io_context);
+        }
+    }
 
     if (sq_obj->content_length == 0)
     {
         peer->socket_session->send_zero_data(peer->stream_id);
         peer->issend         = true;
         sq_obj->standby_next = true;
+        if (peer->socket_session->http2_need_wakeup)
+        {
+            peer->socket_session->waituphttp2(this->io_context);
+        }
         return false;
     }
-
+    unsigned int data_send_id   = peer->stream_id;
     unsigned long long per_size = 0;
-    unsigned int vsize_send     = 8181;
+    unsigned int vsize_send     = 8192;
 
     sq_obj->cache_data.clear();
 
@@ -2540,7 +2603,7 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
 
     if (peer->socket_session->new_send_balance_num.load() > 307200)
     {
-        vsize_send = 16384;
+        vsize_send = 15360;
     }
     else if (peer->socket_session->new_send_balance_num.load() > 102400)
     {
@@ -2554,7 +2617,7 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
     //small file and content
     if (sq_obj->content_length < 307200)
     {
-        vsize_send = 16384;
+        vsize_send = 15360;
     }
     if (sq_obj->content_length > 20971520)
     {
@@ -2586,6 +2649,10 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
                 peer->socket_session->http2_send_enddata(peer->stream_id);
                 peer->issend         = true;
                 sq_obj->standby_next = true;
+                if (peer->socket_session->http2_need_wakeup)
+                {
+                    peer->socket_session->waituphttp2(this->io_context);
+                }
                 return false;
             }
             sq_obj->cache_data.resize(9 + per_size);
@@ -2614,47 +2681,28 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
     data_send_id          = data_send_id >> 8;
     sq_obj->cache_data[0] = data_send_id & 0xFF;
 
-    data_send_id = peer->socket_session->http2_loop_send_queue_add(sq_obj->cache_data);
+    peer->socket_session->http2_ring_queue->push(sq_obj->cache_data);
+
     if (sq_obj->current_num >= sq_obj->content_length)
     {
         peer->issend = true;
     }
-
+    if (peer->socket_session->http2_need_wakeup)
+    {
+        peer->socket_session->waituphttp2(this->io_context);
+    }
     peer->socket_session->has_send_update_num += per_size + 9;
     peer->socket_session->new_send_balance_num -= (per_size + 9);
 
-    if (data_send_id > 3)
+    sq_obj->sleep_time = 1100000;
+    if (sq_obj->content_length > 16793600)
     {
-        sq_obj->sleep_time = sq_obj->sleep_time * 2 + 1000000;
-
-        if (sq_obj->sleep_time > 10000000000)
-        {
-            if (data_send_id > 5)
-            {
-                peer->socket_session->http2_send_rst_stream(peer->stream_id, 1);
-                peer->isclose = true;
-                peer->issend  = true;
-                return false;
-            }
-            sq_obj->sleep_time = 5000000000;
-        }
-    }
-    else if (data_send_id > 0)
-    {
-        sq_obj->sleep_time = 2000000;
-    }
-    else
-    {
-        sq_obj->sleep_time = 1000000;
-        if (sq_obj->content_length > 16793600)
-        {
-            sq_obj->sleep_time = 1500000;
-        }
+        sq_obj->sleep_time = 1500000;
     }
 
     if (sq_obj->current_num < 20480)
     {
-        sq_obj->sleep_time = 500000;
+        sq_obj->sleep_time = 200000;
     }
     //small file and content
     if (sq_obj->content_length < 307200)
@@ -2664,24 +2712,15 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
 
     if (peer->socket_session->new_send_balance_num.load() < 40960)
     {
-        if (data_send_id < 3)
-        {
-            sq_obj->sleep_time = 200000000;
-        }
+        sq_obj->sleep_time = 200000000;
     }
     else if (peer->socket_session->new_send_balance_num.load() < 81920)
     {
-        if (data_send_id < 3)
-        {
-            sq_obj->sleep_time = 12000000;
-        }
+        sq_obj->sleep_time = 12000000;
     }
     else if (peer->socket_session->new_send_balance_num.load() < 102400)
     {
-        if (data_send_id < 3)
-        {
-            sq_obj->sleep_time = 2000000;
-        }
+        sq_obj->sleep_time = 2000000;
     }
     sq_obj->standby_next = true;
     sq_obj->last_time    = std::chrono::steady_clock::now();
@@ -2697,7 +2736,7 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
     unsigned int mini_sleep_num  = 0;
     while (true)
     {
-        DEBUG_LOG("http2_send_queue_loop send_data_mutex");
+        DEBUG_LOG("http2_send_queue_loop begin");
 
         std::unique_lock lk(send_data_mutex);
         send_data_condition.wait(lk, [this]
@@ -2717,17 +2756,18 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
         {
             if (send_loop_count % 13 == 0)
             {
-                std::unique_lock lk(send_data_mutex);
+                std::unique_lock lock_in_loop_two(send_data_mutex);
+
                 if (sent_data_list.size() > 0)
                 {
-                    auto tpsend = sent_data_list.front();
+                    auto temp_get_send_obj = sent_data_list.front();
                     sent_data_list.pop_front();
-                    lk.unlock();
-                    thread_sent_data_list.emplace_back(tpsend);
+                    lock_in_loop_two.unlock();
+                    thread_sent_data_list.emplace_back(temp_get_send_obj);
                 }
                 else
                 {
-                    lk.unlock();
+                    lock_in_loop_two.unlock();
                 }
             }
             mini_sleep_num                = 111222000;
@@ -2740,6 +2780,11 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                 std::shared_ptr<http2_send_data_t> sp = *iter;
                 if (sp->peer->isclose || sp->peer.use_count() == 0 || sp->peer->socket_session.use_count() == 0 || sp->peer->issend || sp->peer->socket_session->isclose)
                 {
+                    DEBUG_LOG("-- get_http2_send_queue -- %d", sp->peer->socket_session->http2_ring_queue->has_size());
+                    if (sp->peer->socket_session->http2_ring_queue->has_size() > 0)
+                    {
+                        sp->peer->socket_session->waituphttp2(this->io_context);
+                    }
                     thread_sent_data_list.erase(iter++);
                     http2_send_queue &send_queue_obj = get_http2_send_queue();
                     send_queue_obj.back_cache_ptr(sp);
@@ -2753,9 +2798,9 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                     {
                         sp->standby_next = false;
 
+                        DEBUG_LOG("-- http2_loop_send_sequence -- begin");
                         if (http2_loop_send_sequence(sp))
                         {
-
                             send_count_num_i++;
                         }
                         else
@@ -2765,7 +2810,6 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                             send_queue_obj.back_cache_ptr(sp);
                             continue;
                         }
-
                         DEBUG_LOG("http2_loop_send_sequence %llu", sp->sleep_time);
                     }
                 }
@@ -2774,6 +2818,11 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                     mini_sleep_num = sp->sleep_time;
                 }
                 iter++;
+
+                if (sp->peer->socket_session->http2_need_wakeup)
+                {
+                    sp->peer->socket_session->waituphttp2(this->io_context);
+                }
             }
             if (thread_sent_data_list.size() == 0)
             {
@@ -2787,9 +2836,14 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
 
             mini_sleep_num = std::ceil((double)mini_sleep_num / 1000);
             std::this_thread::sleep_for(std::chrono::microseconds(mini_sleep_num));
+            if (isstop)
+            {
+                break;
+            }
         }
     }
 }
+
 void httpserver::websocket_loop(int fps)
 {
 
@@ -2943,7 +2997,7 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
         if (ec_error)
         {
             std::unique_lock<std::mutex> lock(log_mutex);
-            error_loglist.emplace_back(ec_error.message());
+            error_loglist.emplace_back(ec_error.message() + " " + peer_session->getremoteip() + "\n");
             lock.unlock();
             DEBUG_LOG(" handshake ec_error ! %s\n", ec_error.message().c_str());
 
@@ -2967,7 +3021,6 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
                 DEBUG_LOG(" h2 ");
             }
         }
-
 #endif
 
         co_spawn(this->io_context, clientpeerfun(peer_session, true), asio::detached);
@@ -3043,9 +3096,6 @@ void httpserver::listeners()
         error_loglist.emplace_back(ERR_error_string(ERR_get_error(), nullptr));
         lock.unlock();
     }
-
-    // std::vector<unsigned char> next_proto;
-    // next_proto = get_default_alpn();
 
     unsigned int protos_len;
     const char *protos;
@@ -3393,7 +3443,7 @@ void httpserver::httpwatch()
 
     if (sysconfigpath.map_value["default"]["clean_cron"].size() > 3)
     {
-
+        clean_cron_min = 0;
         if (sysconfigpath.map_value["default"]["clean_cron"][0] == 'M' || sysconfigpath.map_value["default"]["clean_cron"][0] == 'm')
         {
             for (unsigned int i = 1; i < sysconfigpath.map_value["default"]["clean_cron"].size(); ++i)
@@ -3778,7 +3828,7 @@ void httpserver::httpwatch()
             }
 
             //clear timeout sock 10 minute
-            if (clean_cron_min > 0 && mysqlpool_time % clean_cron_min == 0)
+            if (mysqlpool_time % (clean_cron_min + 1) == 0)
             {
                 is_clear_sock = true;
             }
@@ -3882,6 +3932,10 @@ void httpserver::httpwatch()
                 error_msg_loop.append(std::to_string(restart_process_time_start));
                 error_msg_loop.push_back(0x20);
                 error_msg_loop.append(std::to_string(restart_process_time_end));
+                error_msg_loop.push_back(0x20);
+                error_msg_loop.append(std::to_string(mysqlpool_time));
+                error_msg_loop.push_back(0x20);
+                error_msg_loop.append(std::to_string(clean_cron_min));
 
                 error_msg_loop.append(" --\n");
                 std::unique_lock<std::mutex> loglock(log_mutex);

@@ -19,9 +19,9 @@ namespace http
 
 struct http2_send_data_t
 {
-    bool isfinish      = false;
-    bool is_sendheader = false;
-
+    bool isfinish                 = false;
+    bool is_sendheader            = false;
+    bool only_send_header         = false;
     unsigned char send_thread_id  = 0;
     unsigned char type            = 0;//1 file 2 not use 3 gip file 4 br file    10 data (php fast-cgi) 11 peer.output  16 compress gzip content 16 compress br content
     std::atomic_bool standby_next = true;
@@ -49,11 +49,12 @@ struct http2_send_data_t
     std::string cache_data;
     void reset()
     {
-        isfinish      = false;
-        standby_next  = true;
-        is_sendheader = false;
-        type          = 0;
-        stream_id     = 0;
+        isfinish         = false;
+        standby_next     = true;
+        is_sendheader    = false;
+        only_send_header = false;
+        type             = 0;
+        stream_id        = 0;
         //        file_modify_time=0;
 
         send_data_window_num = 4096;

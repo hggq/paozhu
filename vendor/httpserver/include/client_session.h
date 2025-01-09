@@ -57,12 +57,14 @@
 #include <stdexcept>
 
 #include <zlib.h>
+
 #include "sendqueue.h"
 #include "http_header.h"
 #include "http_socket.h"
 #include "http2_frame.h"
 #include "cookie.h"
 #include "clientdatacache.h"
+#include "http2_ring_queue.h"
 
 namespace http
 {
@@ -106,23 +108,20 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<void> co_send_writer(const unsigned char *, unsigned int);
     asio::awaitable<bool> read_some(unsigned int &readnum, std::string &log_item);
 
-    asio::awaitable<void> http2_send_writer(std::string_view msg);
-    asio::awaitable<void> http2_send_data_loop_co();
-    unsigned int http2_loop_send_queue_add(const std::string &msg);
-    asio::awaitable<void> http2_send_queue_add_co(const std::string &msg);
-    asio::awaitable<void> http2_send_queue_add_co(const unsigned char *buffer, unsigned int buffersize);
-    void http2_send_queue_add(const std::string &msg);
-    void http2_send_queue_add(const unsigned char *buffer, unsigned int buffersize);
-    asio::awaitable<void> http2_send_queue_co();
+    // void append(const std::string &item);
+    // void append(const unsigned char *buffer, unsigned int buffersize);
+
+    void waituphttp2(asio::io_context &ioc);
 
   public:
     unsigned char *_cache_data  = nullptr;
     std::atomic_uint time_limit = 0;
 
-    bool isssl   = false;
-    bool isgoway = false;
-    bool isclose = false;
-    bool iserror = false;
+    bool isssl      = false;
+    bool isgoway    = false;
+    bool isclose    = false;
+    bool iserror    = false;
+    bool half_close = false;
 
     unsigned char httpv = 0;
 
@@ -135,9 +134,14 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::atomic<unsigned long long> has_send_update_num   = 0;
 
     std::mutex http2_loop_send_mutex;
-    std::atomic_bool http_loop_in  = false;
-    std::atomic_flag http2_sock_in = ATOMIC_FLAG_INIT;
-    std::queue<std::string> http2_send_queue;
+    std::atomic_bool http2_need_wakeup = false;
+    //std::string http2_ring_queue_temp;
+
+    std::mutex http2_sock_mutex;
+    std::unique_ptr<http2_send_queue_cache> http2_ring_queue;
+
+    std::mutex waituphttp2_mutex;
+    std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
 };
 }// namespace http
 

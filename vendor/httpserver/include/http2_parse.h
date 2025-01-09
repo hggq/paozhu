@@ -145,7 +145,9 @@ class http2parse
     std::list<std::pair<std::string, std::string>> dynamic_lists;
     // struct http2_goaway_t goaway_data;
     // unsigned long long content_length;
-    bool ispost = false;
+    bool ispost                            = false;
+    std::atomic_bool task_in               = false;
+    std::atomic_bool need_wakeup_send_data = false;
     std::shared_ptr<client_session> peer_session;
     // const char *hextostr = "0123456789ABCDEF";
     std::atomic<unsigned int> window_update_recv_num;

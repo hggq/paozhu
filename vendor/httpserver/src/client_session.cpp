@@ -10,6 +10,8 @@
 #include "directory_fun.h"
 #include "http_header.h"
 #include "clientdatacache.h"
+#include "http2_ring_queue.h"
+
 namespace http
 {
 client_session::client_session()
@@ -21,10 +23,18 @@ client_session::client_session()
 
 client_session::~client_session()
 {
+    isclose = true;
     if (_cache_data != nullptr)
     {
         auto &cc = get_client_data_cache();
         cc.back_data_ptr(_cache_data);
+    }
+
+    if (http2_ring_queue)
+    {
+        auto &cc = get_http2_ring_queue_obj();
+        cc.back_cache_ptr(std::move(http2_ring_queue));
+        http2_ring_queue = nullptr;
     }
 }
 asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::string &log_item)
@@ -44,7 +54,7 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
     catch (const std::exception &e)
     {
         log_item.append(e.what());
-        DEBUG_LOG("read_some exception");
+        DEBUG_LOG("read_some exception %s", e.what());
         isclose = true;
         iserror = true;
         co_return true;
@@ -153,7 +163,7 @@ bool client_session::send_switch101()
 asio::awaitable<void> client_session::co_send_setting()
 {
     unsigned char _recvack[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
-    co_await http2_send_queue_add_co(_recvack, 21);
+    http2_ring_queue->push(_recvack, 21);
     co_return;
 }
 
@@ -167,7 +177,8 @@ void client_session::http2_send_enddata(unsigned int s_stream_id)
     _recvack[6]              = s_stream_id & 0xFF;
     s_stream_id              = s_stream_id >> 8;
     _recvack[5]              = s_stream_id & 0x7F;
-    http2_send_queue_add(_recvack, 9);
+
+    http2_ring_queue->push(_recvack, 9);
 }
 
 void client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code)
@@ -188,7 +199,8 @@ void client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned in
     _recvack[10]      = stream_error_code & 0xFF;
     stream_error_code = stream_error_code >> 8;
     _recvack[9]       = stream_error_code & 0xFF;
-    http2_send_queue_add(_recvack, 13);
+
+    http2_ring_queue->push(_recvack, 13);
 }
 asio::awaitable<void> client_session::co_http2_send_enddata(unsigned int s_stream_id)
 {
@@ -200,14 +212,16 @@ asio::awaitable<void> client_session::co_http2_send_enddata(unsigned int s_strea
     _recvack[6]              = s_stream_id & 0xFF;
     s_stream_id              = s_stream_id >> 8;
     _recvack[5]              = s_stream_id & 0x7F;
-    co_await http2_send_queue_add_co(_recvack, 9);
+
+    http2_ring_queue->push(_recvack, 9);
     co_return;
 }
 asio::awaitable<void> client_session::http2_send_ping()
 {
     unsigned char _recvack[] =
         {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    co_await http2_send_queue_add_co(_recvack, 17);
+    http2_ring_queue->push(_recvack, 17);
+
     co_return;
 }
 
@@ -215,60 +229,53 @@ void client_session::send_ping()
 {
     unsigned char _recvack[] =
         {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-    http2_send_queue_add(_recvack, 17);
-    if (isssl)
-    {
-        co_spawn(sslsocket->get_executor(), http2_send_queue_co(), asio::detached);
-    }
-    else
-    {
-        co_spawn(socket->get_executor(), http2_send_queue_co(), asio::detached);
-    }
+    http2_ring_queue->push(_recvack, 17);
 }
 
 asio::awaitable<void> client_session::co_send_zero_data(unsigned int stream_id)
 {
+    static std::string _recvack = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
 
-    std::string _recvack = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
-    _recvack[8]          = stream_id & 0xFF;
-    stream_id            = stream_id >> 8;
-    _recvack[7]          = stream_id & 0xFF;
-    stream_id            = stream_id >> 8;
-    _recvack[6]          = stream_id & 0xFF;
-    stream_id            = stream_id >> 8;
-    _recvack[5]          = stream_id & 0x7F;
+    _recvack[8] = stream_id & 0xFF;
+    stream_id   = stream_id >> 8;
+    _recvack[7] = stream_id & 0xFF;
+    stream_id   = stream_id >> 8;
+    _recvack[6] = stream_id & 0xFF;
+    stream_id   = stream_id >> 8;
+    _recvack[5] = stream_id & 0x7F;
 
-    co_await http2_send_queue_add_co(_recvack);
+    http2_ring_queue->push(_recvack);
+
     co_return;
 }
 
 void client_session::send_zero_data(unsigned int stream_id)
 {
+    static std::string _recvack = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
 
-    std::string _recvack = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
-    _recvack[8]          = stream_id & 0xFF;
-    stream_id            = stream_id >> 8;
-    _recvack[7]          = stream_id & 0xFF;
-    stream_id            = stream_id >> 8;
-    _recvack[6]          = stream_id & 0xFF;
-    stream_id            = stream_id >> 8;
-    _recvack[5]          = stream_id & 0x7F;
+    _recvack[8] = stream_id & 0xFF;
+    stream_id   = stream_id >> 8;
+    _recvack[7] = stream_id & 0xFF;
+    stream_id   = stream_id >> 8;
+    _recvack[6] = stream_id & 0xFF;
+    stream_id   = stream_id >> 8;
+    _recvack[5] = stream_id & 0x7F;
 
-    http2_send_queue_add(_recvack);
+    http2_ring_queue->push(_recvack);
 }
 
 asio::awaitable<void> client_session::co_send_goway()
 {
-    std::string _recvack = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    co_await http2_send_queue_add_co(_recvack);
+    const static std::string _recvack = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    http2_ring_queue->push(_recvack);
+
     co_return;
 }
 
 void client_session::send_recv_setting()
 {
     unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
-    http2_send_queue_add(_recvack, 9);
+    http2_ring_queue->push(_recvack, 9);
 }
 void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
 {
@@ -301,7 +308,7 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
     {
         msg.push_back(_recvack[i]);
     }
-    http2_send_queue_add(msg);
+    http2_ring_queue->push(msg);
 }
 void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
 {
@@ -335,7 +342,7 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
     {
         msg.push_back(_recvack[i]);
     }
-    http2_send_queue_add(msg);
+    http2_ring_queue->push(msg);
 }
 
 bool client_session::send_data(const unsigned char *buffer, unsigned int buffersize)
@@ -379,155 +386,46 @@ bool client_session::send_data(const unsigned char *buffer, unsigned int buffers
     }
 }
 
-unsigned int client_session::http2_loop_send_queue_add(const std::string &msg)
-{
-    unsigned int seq_num = 0;
-    std::unique_lock lk(http2_loop_send_mutex);
-    seq_num = http2_send_queue.size();
-    http2_send_queue.push(msg);
-    if (http_loop_in)
-    {
-        lk.unlock();
-        return seq_num;
-    }
-    lk.unlock();
+// void client_session::append(const unsigned char *buffer, unsigned int buffersize)
+// {
+//     std::unique_lock lk(http2_loop_send_mutex);
+//     http2_ring_queue_temp.append(reinterpret_cast<const char *>(buffer), buffersize);
+//     lk.unlock();
+// }
 
-    if (isssl)
-    {
-        co_spawn(sslsocket->get_executor(), http2_send_queue_co(), asio::detached);
-    }
-    else
-    {
-        co_spawn(socket->get_executor(), http2_send_queue_co(), asio::detached);
-    }
-    return seq_num;
-}
+// void client_session::append(const std::string &item)
+// {
+//     std::unique_lock lk(http2_loop_send_mutex);
+//     http2_ring_queue_temp.append(item);
+//     lk.unlock();
+// }
 
-void client_session::http2_send_queue_add(const unsigned char *buffer, unsigned int buffersize)
-{
-    std::string msg;
-    msg.append(reinterpret_cast<const char *>(buffer), buffersize);
-    std::unique_lock lk(http2_loop_send_mutex);
-    http2_send_queue.push(std::move(msg));
-    if (http_loop_in)
-    {
-        lk.unlock();
-        return;
-    }
-    lk.unlock();
-    if (isssl)
-    {
-        co_spawn(sslsocket->get_executor(), http2_send_queue_co(), asio::detached);
-    }
-    else
-    {
-        co_spawn(socket->get_executor(), http2_send_queue_co(), asio::detached);
-    }
-}
-void client_session::http2_send_queue_add(const std::string &msg)
-{
-    std::unique_lock lk(http2_loop_send_mutex);
-    http2_send_queue.push(msg);
-    if (http_loop_in)
-    {
-        lk.unlock();
-        return;
-    }
-    lk.unlock();
-
-    if (isssl)
-    {
-        co_spawn(sslsocket->get_executor(), http2_send_queue_co(), asio::detached);
-    }
-    else
-    {
-        co_spawn(socket->get_executor(), http2_send_queue_co(), asio::detached);
-    }
-}
-
-asio::awaitable<void> client_session::http2_send_queue_add_co(const unsigned char *buffer, unsigned int buffersize)
-{
-    std::string msg;
-    msg.append(reinterpret_cast<const char *>(buffer), buffersize);
-    std::unique_lock lk(http2_loop_send_mutex);
-    http2_send_queue.push(std::move(msg));
-    if (http_loop_in)
-    {
-        lk.unlock();
-        co_return;
-    }
-    lk.unlock();
-    co_await http2_send_queue_co();
-    co_return;
-}
-asio::awaitable<void> client_session::http2_send_queue_add_co(const std::string &msg)
-{
-    std::unique_lock lk(http2_loop_send_mutex);
-    http2_send_queue.push(msg);
-    if (http_loop_in)
-    {
-        lk.unlock();
-        co_return;
-    }
-    lk.unlock();
-    co_await http2_send_queue_co();
-    co_return;
-}
-
-asio::awaitable<void> client_session::http2_send_queue_co()
+void client_session::waituphttp2(asio::io_context &ioc)
 {
     try
     {
-        std::unique_lock lk(http2_loop_send_mutex);
-        if (http_loop_in)
+        std::unique_lock lk(waituphttp2_mutex);
+        http2_need_wakeup = false;
+        if (user_code_handler_call.size() > 0)
         {
-            lk.unlock();
-            co_return;
+            //auto ex = asio::get_associated_executor(user_code_handler_call.front());
+            asio::dispatch(ioc,
+                           [handler = std::move(user_code_handler_call.front())]() mutable -> void
+                           {
+                               /////////////
+                               handler(1);
+                               //////////
+                           });
+            user_code_handler_call.pop_front();
+            DEBUG_LOG("peer_session user_code_handler_call return");
         }
-        http_loop_in = true;
         lk.unlock();
-
-        while (http_loop_in)
-        {
-            if (isclose)
-            {
-                break;
-            }
-            std::unique_lock lk(http2_loop_send_mutex);
-            if (http2_send_queue.size() > 0)
-            {
-                auto buffer = std::move(http2_send_queue.front());
-                http2_send_queue.pop();
-                lk.unlock();
-
-                while (http2_sock_in.test_and_set())
-                    ;
-                if (isssl)
-                {
-                    co_await asio::async_write(*sslsocket, asio::buffer(buffer), asio::use_awaitable);
-                }
-                else
-                {
-                    co_await asio::async_write(*socket, asio::buffer(buffer), asio::use_awaitable);
-                }
-                http2_sock_in.clear();
-            }
-            else
-            {
-                http_loop_in = false;
-                lk.unlock();
-                break;
-            }
-        }
     }
     catch (const std::exception &e)
     {
-        iserror = true;
-        isclose = true;
+        DEBUG_LOG("peer_session user_code_handler_call error");
     }
-    co_return;
 }
-
 asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer, unsigned int buffersize)
 {
     if (isclose)
@@ -554,6 +452,7 @@ asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer
         isclose = true;
         iserror = true;
     }
+    co_return;
 }
 
 asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
@@ -582,6 +481,7 @@ asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
         isclose = true;
         iserror = true;
     }
+    co_return;
 }
 
 void client_session::stop()

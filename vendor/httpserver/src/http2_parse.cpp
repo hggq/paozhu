@@ -196,6 +196,7 @@ void http2parse::clsoesend(asio::io_context &ioc)
         iter++;
     }
 }
+
 void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersize)
 {
     unsigned int buffer_short_length;
@@ -471,6 +472,7 @@ void http2parse::headers_parse()
         DEBUG_LOG("http2 post client: %s %ud", block_steam_httppeer->url.c_str(), block_steamid);
         window_update_recv_num = RECV_WINDOW_UPDATE_NUM;
         peer_session->send_window_update(window_update_recv_num, block_steamid);
+        need_wakeup_send_data               = true;
         block_data_info_ptr->stream_id      = block_steamid;
         block_data_info_ptr->curnum         = 0;
         block_data_info_ptr->length         = 0;
@@ -2280,6 +2282,7 @@ void http2parse::readsetting(const unsigned char *buffer, [[maybe_unused]] unsig
     peer_session->send_recv_setting();
     window_update_recv_num = setting_data.initial_window_size;
     readoffset += blocklength;
+    need_wakeup_send_data = true;
 }
 void http2parse::readpriority(const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
@@ -2395,9 +2398,9 @@ void http2parse::readping(const unsigned char *buffer, unsigned int buffersize)
     }
     processheader = 0;
     readoffset += blocklength;
-    //peer_session->send_data(_recvack, 17);
-    //peer_session->http2_send_data(std::string_view((char *)_recvack, 17));
-    peer_session->http2_send_queue_add(_recvack, 17);
+    peer_session->http2_ring_queue->push(_recvack, 17);
+    need_wakeup_send_data = true;
+    DEBUG_LOG("need ack ping %d", blocklength);
 }
 void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
@@ -3772,6 +3775,7 @@ void http2parse::readdatablock(const unsigned char *buffer, unsigned int buffers
     if (window_update_recv_num * 2 < RECV_WINDOW_UPDATE_NUM)
     {
         peer_session->recv_window_update(RECV_WINDOW_UPDATE_NUM - window_update_recv_num, block_steamid);
+        need_wakeup_send_data  = true;
         window_update_recv_num = RECV_WINDOW_UPDATE_NUM;
     }
     readoffset = readoffset + short_loop_max;

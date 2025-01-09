@@ -98,9 +98,12 @@ class httpserver
     asio::awaitable<void> http1loop(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
 
     asio::awaitable<void> http2_send_sequence_header(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t>);
-    asio::awaitable<void> http2_send_sequence(std::shared_ptr<http2_send_data_t>);
+
     bool http2_loop_send_sequence(std::shared_ptr<http2_send_data_t>);
     void http2_send_queue_loop(unsigned char index_id);
+
+    asio::awaitable<void> http2_ring_client_server(std::shared_ptr<client_session> peer_session);
+
     void websocket_loop(int myid);
 
     void listeners();
@@ -114,6 +117,7 @@ class httpserver
 
     asio::awaitable<size_t> co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
     asio::awaitable<size_t> co_user_fastcgi_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
+    asio::awaitable<size_t> co_client_session_task(std::shared_ptr<client_session> peer, asio::use_awaitable_t<> h = {});
 
     void add_runsocketthread();
     int checkhttp2(std::shared_ptr<client_session> peer_session);
@@ -162,6 +166,7 @@ class httpserver
     std::vector<std::thread> runthreads;
     std::vector<std::thread> websocketthreads;
     std::vector<std::thread> http2_send_data_threads;
+    std::vector<std::thread> http2_ring_send_thread_list;
     std::list<std::weak_ptr<httppeer>> websockettasks;
     std::list<std::pair<std::size_t, std::shared_ptr<httppeer>>> clientlooptasks;
 
@@ -191,8 +196,8 @@ class httpserver
 
     ThreadPool clientrunpool{std::thread::hardware_concurrency() * 2 + 2};
 
-    std::mutex http2_task_mutex;
-    std::list<struct http2sendblock_t> http2send_tasks;
+    // std::mutex http2_task_mutex;
+    // std::list<struct http2sendblock_t> http2send_tasks;
 
     std::mutex websocket_task_mutex;
     std::condition_variable websocketcondition;
