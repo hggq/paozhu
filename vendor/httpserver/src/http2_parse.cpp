@@ -218,7 +218,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
     }
     if (!stream_data_ptr)
     {
-        error = 400;
+        error = 4001;
         return;
     }
     //stream_data[block_steamid].append((const char *)&buffer[readoffset], block_short_length);
@@ -2264,7 +2264,7 @@ void http2parse::readsetting(const unsigned char *buffer, [[maybe_unused]] unsig
     if (pin > buffersize)
     {
         DEBUG_LOG("readsetting FRAME_SIZE_ERROR  :real:%u buffersize:%u", pin, buffersize);
-        error = 400;
+        error = 4002;
         return;
     }
 
@@ -2320,7 +2320,7 @@ void http2parse::readpriority(const unsigned char *buffer, [[maybe_unused]] unsi
     // struct http2_priority_t temp;
     if (!block_data_info_ptr)
     {
-        error = 400;
+        error = 4003;
         return;
     }
     for (unsigned int n = readoffset; n < pin; n += 5)
@@ -2373,7 +2373,7 @@ void http2parse::readgoaway([[maybe_unused]] const unsigned char *buffer, [[mayb
     unsigned int j = buffersize - readoffset;
     if (blocklength > j)
     {
-        error = 400;
+        error = 4004;
         return;
     }
     readoffset += blocklength;
@@ -2406,7 +2406,7 @@ void http2parse::readcontinuation([[maybe_unused]] const unsigned char *buffer, 
     {
         readoffset += blocklength;
     }
-    error = 400;
+    error = 4005;
 
     processheader = 0;
 }
@@ -2416,9 +2416,9 @@ void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] uns
     unsigned int ident_stream, j;
     j = readoffset;
 
-    if (j + 4 < buffersize)
+    if ((j + 4) > buffersize)
     {
-        error = 400;
+        error = 4006;
         return;
     }
     ident_stream = buffer[j];
@@ -3710,7 +3710,7 @@ void http2parse::data_process()
             w_size -= 1;
             if (w_size < block_data_info_ptr->pad_length)
             {
-                error = 400;
+                error = 4007;
                 return;
             }
             w_size -= block_data_info_ptr->pad_length;
@@ -3719,7 +3719,7 @@ void http2parse::data_process()
 
     if (!block_steam_httppeer)
     {
-        error = 400;
+        error = 4008;
         return;
     }
 
@@ -3840,7 +3840,7 @@ void http2parse::readdatablock(const unsigned char *buffer, unsigned int buffers
     //stream_data[block_steamid].append((const char *)&buffer[j], short_loop_max);
     if (!stream_data_ptr)
     {
-        error = 400;
+        error = 4009;
         return;
     }
 

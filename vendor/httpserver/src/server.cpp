@@ -1859,7 +1859,6 @@ asio::awaitable<void> httpserver::http1_send_bad_request(unsigned int error_code
 
 int httpserver::checkhttp2(std::shared_ptr<client_session> peer_session)
 {
-
     if (peer_session->_cache_data[0] == 0x50 && peer_session->_cache_data[1] == 0x52 &&
         peer_session->_cache_data[2] == 0x49 && peer_session->_cache_data[3] == 0x20 &&
         peer_session->_cache_data[4] == 0x2A && peer_session->_cache_data[5] == 0x20)
@@ -2107,7 +2106,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     if (http1pre->error > 0)
                     {
 #ifdef DEBUG
-                        DEBUG_LOG("http1 client request error!");
+                        DEBUG_LOG("http1 client request error! linktype:%d", linktype);
 #endif
                         co_await http1_send_bad_request(http1pre->error, peer_session);
                         break;
@@ -2318,9 +2317,9 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     }
                     if (http2pre->error > 0)
                     {
-                        co_await http2_send_status_content(peer, 403, "client request error!");
+                        co_await http2_send_status_content(peer, 403, "client request error %d;");
 #ifdef DEBUG
-                        DEBUG_LOG("http2 client request error!");
+                        DEBUG_LOG("http2 client request error %d ", http2pre->error);
 #endif
                         co_await peer_session->co_send_goway();
 
@@ -2536,12 +2535,11 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
         if (sq_obj->sleep_time > 10000000000)
         {
             peer->socket_session->http2_send_rst_stream(peer->stream_id, 1);
-            peer->isclose = true;
-            peer->issend  = true;
             if (peer->socket_session->http2_need_wakeup)
             {
                 peer->socket_session->waituphttp2(this->io_context);
             }
+            peer->issend = true;
             return false;
         }
 
@@ -2558,16 +2556,15 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
         peer->socket_session->http2_ring_queue->push(sq_obj->header);
         sq_obj->is_sendheader = true;
         sq_obj->standby_next  = true;
-        if (sq_obj->only_send_header)
-        {
-            // has end stream
-            peer->issend         = true;
-            sq_obj->standby_next = false;
-            return true;
-        }
         if (peer->socket_session->http2_need_wakeup)
         {
             peer->socket_session->waituphttp2(this->io_context);
+        }
+        if (sq_obj->only_send_header)
+        {
+            // has end stream
+            peer->issend = true;
+            return true;
         }
     }
 
@@ -2791,6 +2788,8 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                     if (sp->peer->socket_session->http2_ring_queue->has_size() > 0)
                     {
                         sp->peer->socket_session->waituphttp2(this->io_context);
+                        iter++;
+                        continue;
                     }
                     thread_sent_data_list.erase(iter++);
                     http2_send_queue &send_queue_obj = get_http2_send_queue();
