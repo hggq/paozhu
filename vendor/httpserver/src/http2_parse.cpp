@@ -3824,14 +3824,7 @@ void http2parse::readdatablock(const unsigned char *buffer, unsigned int buffers
     unsigned int block_short_length;
     unsigned int short_loop_max;
 
-    if (flag_type == 0x01)
-    {
-        if (http_data.contains(block_steamid))
-        {
-            http_data[block_steamid]->isclose = true;
-        }
-    }
-
+    //flag_type == 0x01
     buffer_short_length = buffersize - readoffset;
     block_short_length  = block_data_info_ptr->length - block_data_info_ptr->curnum;
 
