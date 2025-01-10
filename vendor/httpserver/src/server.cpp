@@ -2782,14 +2782,17 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
             for (auto iter = thread_sent_data_list.begin(); iter != thread_sent_data_list.end();)
             {
                 std::shared_ptr<http2_send_data_t> sp = *iter;
-                if (sp->peer->isclose || sp->peer.use_count() == 0 || sp->peer->socket_session.use_count() == 0 || sp->peer->issend || sp->peer->socket_session->isclose)
+                if (sp->peer->isclose || sp->peer->issend || sp->peer->socket_session->isclose)
                 {
                     DEBUG_LOG("-- get_http2_send_queue -- %d", sp->peer->socket_session->http2_ring_queue->has_size());
                     if (sp->peer->socket_session->http2_ring_queue->has_size() > 0)
                     {
-                        sp->peer->socket_session->waituphttp2(this->io_context);
-                        iter++;
-                        continue;
+                        if (!sp->peer->socket_session->isclose)
+                        {
+                            sp->peer->socket_session->waituphttp2(this->io_context);
+                            iter++;
+                            continue;
+                        }
                     }
                     thread_sent_data_list.erase(iter++);
                     http2_send_queue &send_queue_obj = get_http2_send_queue();
