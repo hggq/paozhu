@@ -2261,7 +2261,7 @@ void http2parse::readsetting(const unsigned char *buffer, [[maybe_unused]] unsig
     unsigned int pin;
     pin = readoffset + blocklength;
 
-    if (pin < buffersize)
+    if (pin > buffersize)
     {
         DEBUG_LOG("readsetting FRAME_SIZE_ERROR  :real:%u buffersize:%u", pin, buffersize);
         error = 400;
