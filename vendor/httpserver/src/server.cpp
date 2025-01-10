@@ -2016,7 +2016,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
 
         peer_session->time_limit.store(timeid());
         peer->client_ip = peer_session->getremoteip();
-
+#ifndef BENCHMARK
         log_item.append("client in ");
         log_item.append(peer->client_ip);
         log_item.append(" ");
@@ -2027,7 +2027,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
         access_loglist.emplace_back(log_item);
         lock.unlock();
         log_item.clear();
-
+#endif
         try
         {
             if (peer_session->_cache_data == nullptr)
@@ -2040,6 +2040,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             {
                 co_return;
             }
+#ifndef BENCHMARK
 #ifdef DEBUG
             {
                 DEBUG_LOG("new client in");
@@ -2051,7 +2052,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                 DEBUG_LOG("\033[31mclient thread:%s\033[0m", tempthread.c_str());
             }
 #endif
-
+#endif
             peer->isssl            = isssl ? true : false;
             peer->socket_session   = peer_session;
             unsigned int offsetnum = 0, readnum = 0;
@@ -2061,6 +2062,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                 bool is_error = co_await peer_session->read_some(readnum, log_item);
                 if (is_error)
                 {
+#ifndef BENCHMARK
                     DEBUG_LOG("read_some error");
                     log_item.push_back(0x20);
                     log_item.append(peer->client_ip);
@@ -2072,6 +2074,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     std::unique_lock<std::mutex> lock(log_mutex);
                     error_loglist.emplace_back(log_item);
                     lock.unlock();
+#endif
                     break;
                 }
 
@@ -2129,7 +2132,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                             peer->client_port    = peer_session->getremoteport();
                             peer->server_port    = peer_session->getlocalport();
                         }
-
+#ifndef BENCHMARK
                         {
                             log_item.clear();
                             log_item.append(peer->client_ip);
@@ -2148,7 +2151,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                             access_loglist.emplace_back(log_item);
                             lock.unlock();
                         }
-
+#endif
                         if (peer->state.h2c)
                         {
                             linktype = 4;
@@ -2350,7 +2353,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                                 http2pre->http_data[block_steamid]->client_port = peer_session->getremoteport();
                                 http2pre->http_data[block_steamid]->server_port = peer_session->getlocalport();
                             }
-
+#ifndef BENCHMARK
                             {
                                 log_item.clear();
                                 log_item.append(http2pre->http_data[block_steamid]->client_ip);
@@ -2369,6 +2372,8 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                                 access_loglist.emplace_back(log_item);
                                 lock.unlock();
                             }
+#endif
+
 #ifdef DEBUG
                             DEBUG_LOG("http2parse begin");
                             DEBUG_LOG("urlpath:%s", http2pre->http_data[block_steamid]->urlpath.c_str());
@@ -2380,7 +2385,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
 
                             // clientrunpool.addclient(http2pre->http_data[block_steamid]);
                             //co_spawn(this->io_context, http2loop(http2pre->http_data[block_steamid]), asio::detached);
-
+#ifndef BENCHMARK
                             //traffic save
                             if (istraffic && http2pre->http_data[block_steamid]->method < 3)
                             {
@@ -2399,12 +2404,12 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                                     lock.unlock();
                                 }
                             }
-
-                            std::unique_lock lk(http2pre->http2loop_mutex);
-                            http2pre->httppeer_lists.push(http2pre->http_data[block_steamid]);
-                            lk.unlock();
-                            co_spawn(this->io_context, http2task(http2pre), asio::detached);
-                            //co_spawn(this->io_context, http2loop(http2pre->http_data[block_steamid]), asio::detached);
+#endif
+                            // std::unique_lock lk(http2pre->http2loop_mutex);
+                            // http2pre->httppeer_lists.push(http2pre->http_data[block_steamid]);
+                            // lk.unlock();
+                            // co_spawn(this->io_context, http2task(http2pre), asio::detached);
+                            co_spawn(this->io_context, http2loop(http2pre->http_data[block_steamid]), asio::detached);
                             http2pre->block_steam_httppeer = nullptr;
                             http2pre->stream_list.pop();
                             http2pre->steam_count += 1;
@@ -2417,14 +2422,14 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     }
 
                     // DEBUG_LOG("client http2 > 2024 stream close %d", http2pre->steam_count);
-
+#ifndef BENCHMARK
                     if (http2pre->steam_count > 4096)
                     {
                         DEBUG_LOG("client http2 > 2024 stream close ");
                         co_await peer_session->co_send_goway();
                         break;
                     }
-
+#endif
                     if (http2pre->need_wakeup_send_data)
                     {
                         DEBUG_LOG("http2 setting need_wakeup_send_data");
@@ -2440,14 +2445,16 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
         }
         catch (std::exception &e)
         {
+#ifndef BENCHMARK
             log_item.clear();
             log_item.append(" client thread exception  ");
             log_item.append(e.what());
             std::unique_lock<std::mutex> lock(log_mutex);
             error_loglist.emplace_back(log_item);
             lock.unlock();
+#endif
         }
-        peer_session->half_close = true;
+        peer_session->half_stop();
         if (linktype == 3)
         {
             DEBUG_LOG("client http2 break");
@@ -2996,11 +3003,12 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
         peer_session->sslsocket->handshake(asio::ssl::stream_base::server, ec_error);
         if (ec_error)
         {
+#ifndef BENCHMARK
             std::unique_lock<std::mutex> lock(log_mutex);
             error_loglist.emplace_back(ec_error.message() + " " + peer_session->getremoteip() + "\n");
             lock.unlock();
             DEBUG_LOG(" handshake ec_error ! %s\n", ec_error.message().c_str());
-
+#endif
             peer_session->sslsocket->shutdown(ec_error);
             if (peer_session->sslsocket->lowest_layer().is_open())
             {
@@ -3009,8 +3017,7 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
             co_return;
         }
 
-#ifndef DEBUG
-
+#ifdef DEBUG
         const unsigned char *for_next_proto = nullptr;
         unsigned int next_proto_len         = 0;
         SSL_get0_alpn_selected(peer_session->sslsocket->native_handle(), &for_next_proto, &next_proto_len);
@@ -3129,10 +3136,11 @@ void httpserver::listeners()
                 std::this_thread::sleep_for(std::chrono::nanoseconds(200));
                 continue;
             }
+#ifndef BENCHMARK
             std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
             socket_session_lists.push_back(peer_session);
             lock_sock.unlock();
-
+#endif
             total_http2_count++;
             co_spawn(this->io_context, sslhandshake(peer_session), asio::detached);
         }
@@ -3195,10 +3203,11 @@ void httpserver::listener()
                 std::this_thread::sleep_for(std::chrono::nanoseconds(200));
                 continue;
             }
+#ifndef BENCHMARK
             std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
             socket_session_lists.push_back(peer_session);
             lock_sock.unlock();
-
+#endif
             total_http1_count++;
             co_spawn(this->io_context, clientpeerfun(peer_session, false), asio::detached);
         }

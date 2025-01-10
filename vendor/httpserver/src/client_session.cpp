@@ -483,7 +483,14 @@ asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
     }
     co_return;
 }
-
+void client_session::half_stop()
+{
+    half_close = true;
+    if (iserror)
+    {
+        isclose = true;
+    }
+}
 void client_session::stop()
 {
     DEBUG_LOG("socket stop");

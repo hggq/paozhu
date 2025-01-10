@@ -102,6 +102,7 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     void http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code);
     void stop();
+    void half_stop();
     asio::awaitable<void> co_send_goway();
 
     asio::awaitable<void> co_send_writer(const std::string &msg);
