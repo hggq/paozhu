@@ -55,7 +55,14 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
 {
     blocklength    = 0;
     unsigned int j = readoffset;
-    blocklength    = (unsigned char)buffer[j];
+
+    if (j + 9 > buffersize)
+    {
+        frame_type = 0x07;
+        error      = 400;
+        return;
+    }
+    blocklength = (unsigned char)buffer[j];
 
     j++;
     blocklength = blocklength << 8 | (unsigned char)buffer[j];
@@ -209,7 +216,11 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
     {
         block_short_length = buffer_short_length;
     }
-
+    if (!stream_data_ptr)
+    {
+        error = 400;
+        return;
+    }
     //stream_data[block_steamid].append((const char *)&buffer[readoffset], block_short_length);
     stream_data_ptr->append((const char *)&buffer[readoffset], block_short_length);
     block_data_info_ptr->curnum += block_short_length;
@@ -430,6 +441,11 @@ void http2parse::headers_parse()
 
     if (header_flags.data.PADDED)
     {
+        if ((unsigned int)header_info_data[begin] > header_end)
+        {
+            error = 103;
+            return;
+        }
         header_end -= header_info_data[begin];
         begin += 1;
     }
@@ -461,6 +477,10 @@ void http2parse::headers_parse()
         else
         {
             error = 102;
+            return;
+        }
+        if (error > 0)
+        {
             return;
         }
     }
@@ -2241,6 +2261,13 @@ void http2parse::readsetting(const unsigned char *buffer, [[maybe_unused]] unsig
     unsigned int pin;
     pin = readoffset + blocklength;
 
+    if (pin < buffersize)
+    {
+        DEBUG_LOG("readsetting FRAME_SIZE_ERROR  :real:%u buffersize:%u", pin, buffersize);
+        error = 400;
+        return;
+    }
+
     unsigned short ident_type;
     unsigned int ident_value;
     peer_session->window_update_num = 65535;
@@ -2291,6 +2318,11 @@ void http2parse::readpriority(const unsigned char *buffer, [[maybe_unused]] unsi
     DEBUG_LOG("readpriority %ul", buffersize);
     unsigned int ident_stream;
     // struct http2_priority_t temp;
+    if (!block_data_info_ptr)
+    {
+        error = 400;
+        return;
+    }
     for (unsigned int n = readoffset; n < pin; n += 5)
     {
         ident_stream = buffer[n + 4];//buffer[n];
@@ -2338,7 +2370,12 @@ void http2parse::readgoaway([[maybe_unused]] const unsigned char *buffer, [[mayb
     // {
     //     goaway_data.data.push_back(buffer[j]);
     // }
-
+    unsigned int j = buffersize - readoffset;
+    if (blocklength > j)
+    {
+        error = 400;
+        return;
+    }
     readoffset += blocklength;
     processheader         = 0;
     peer_session->isgoway = true;
@@ -2347,20 +2384,43 @@ void http2parse::readgoaway([[maybe_unused]] const unsigned char *buffer, [[mayb
 void http2parse::readsubdata([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readsubdata %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
-    readoffset += blocklength;
+    if (buffersize < blocklength)
+    {
+        readoffset += buffersize;
+    }
+    else
+    {
+        readoffset += blocklength;
+    }
     processheader = 0;
 }
 void http2parse::readcontinuation([[maybe_unused]] const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readcontinuation %ul %c", buffersize, (buffer[readoffset] ? '0' : '1'));
-    readoffset += blocklength;
+
+    if (buffersize < blocklength)
+    {
+        readoffset += buffersize;
+    }
+    else
+    {
+        readoffset += blocklength;
+    }
+    error = 400;
+
     processheader = 0;
 }
 void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] unsigned int buffersize)
 {
     DEBUG_LOG("readwinupdate %u", buffersize);
     unsigned int ident_stream, j;
-    j            = readoffset;
+    j = readoffset;
+
+    if (j + 4 < buffersize)
+    {
+        error = 400;
+        return;
+    }
     ident_stream = buffer[j];
     ident_stream = ident_stream << 8 | buffer[j + 1];
     ident_stream = ident_stream << 8 | buffer[j + 2];
@@ -3641,7 +3701,6 @@ void http2parse::readrawfileformdata(const unsigned char *buffer, unsigned int b
 
 void http2parse::data_process()
 {
-    //unsigned int j = 0, w_size = stream_data[block_steamid].size();
     unsigned int j = 0, w_size = stream_data_ptr->size();
     if (block_data_info_ptr->padded)
     {
@@ -3649,8 +3708,19 @@ void http2parse::data_process()
         if (w_size > 0)
         {
             w_size -= 1;
+            if (w_size < block_data_info_ptr->pad_length)
+            {
+                error = 400;
+                return;
+            }
             w_size -= block_data_info_ptr->pad_length;
         }
+    }
+
+    if (!block_steam_httppeer)
+    {
+        error = 400;
+        return;
     }
 
     if (block_steam_httppeer->compress == 10)
@@ -3754,6 +3824,14 @@ void http2parse::readdatablock(const unsigned char *buffer, unsigned int buffers
     unsigned int block_short_length;
     unsigned int short_loop_max;
 
+    if (flag_type == 0x01)
+    {
+        if (http_data.contains(block_steamid))
+        {
+            http_data[block_steamid]->isclose = true;
+        }
+    }
+
     buffer_short_length = buffersize - readoffset;
     block_short_length  = block_data_info_ptr->length - block_data_info_ptr->curnum;
 
@@ -3767,7 +3845,16 @@ void http2parse::readdatablock(const unsigned char *buffer, unsigned int buffers
     }
 
     //stream_data[block_steamid].append((const char *)&buffer[j], short_loop_max);
-    stream_data_ptr->append((const char *)&buffer[j], short_loop_max);
+    if (!stream_data_ptr)
+    {
+        error = 400;
+        return;
+    }
+
+    stream_data_ptr->resize(stream_data_ptr->size() + short_loop_max);
+    memcpy(stream_data_ptr->data() + stream_data_ptr->size() - short_loop_max, &buffer[j], short_loop_max);
+    //stream_data_ptr->append((const char *)&buffer[j], short_loop_max);
+
     block_data_info_ptr->curnum += short_loop_max;
 
     window_update_recv_num -= short_loop_max;
