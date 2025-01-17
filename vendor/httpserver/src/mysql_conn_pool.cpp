@@ -9,7 +9,8 @@
 #include <list>
 #include <array>
 #include <vector>
-
+#include <openssl/sha.h>
+#include <openssl/evp.h>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>

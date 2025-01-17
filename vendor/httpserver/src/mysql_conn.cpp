@@ -1,12 +1,13 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <openssl/sha.h>
+#include <openssl/evp.h>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>
 #include "mysql_conn.h"
-#include <openssl/sha.h>
-#include <openssl/evp.h>
+
 namespace orm
 {
 mysql_conn_base::mysql_conn_base(asio::io_context &ioc) : io_ctx(&ioc)
@@ -97,7 +98,6 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
         pack_info.current_length = pack_info.current_length + pack_length;
         pack_info.data.append((char *)&data[begin_length], pack_length);
         offset = offset + pack_length;
-        std::cout << "-----continue pack-----" << std::endl;
     }
     else
     {
@@ -123,13 +123,10 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
         pack_info.current_length = pack_length;
         if (offset > total_num)
         {
-            std::cout << "-----offset>total_num-----" << std::endl;
             pack_info.current_length = total_num - begin_length - 4;
             pack_length              = total_num - begin_length - 4;
         }
-        // dump_data((const unsigned char *)&data[begin_length], pack_length + 4);
-        //  dump_data((const unsigned char*)&data[begin_length+4],pack_length);
-        //  std::cout<<"-----pack leng----- :"<<  pack_info.length<<std::endl;
+
         pack_info.data.clear();
         pack_info.data.append((char *)&data[begin_length + 4], pack_length);
     }
