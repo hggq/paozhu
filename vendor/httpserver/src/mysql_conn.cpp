@@ -6,7 +6,7 @@
 #include <asio/io_context.hpp>
 #include "mysql_conn.h"
 #include <openssl/sha.h>
-
+#include <openssl/evp.h>
 namespace orm
 {
 mysql_conn_base::mysql_conn_base(asio::io_context &ioc) : io_ctx(&ioc)
