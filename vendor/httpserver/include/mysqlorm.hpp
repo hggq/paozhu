@@ -2388,13 +2388,13 @@ class mysql_orm : public base
                 iserror   = true;
                 co_return 0;
             }
-            //auto conn = co_await conn_obj->async_get_select_conn();
-            auto conn     = co_await conn_obj->async_add_select_connect();
+            auto conn = co_await conn_obj->async_get_select_conn();
+            //auto conn     = co_await conn_obj->async_add_select_connect();
             std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(querysql), asio::use_awaitable);
             unsigned char result_data[4096];
             std::memset(result_data, 0x00, 4096);
 
-            asio::error_code ec;
+            // asio::error_code ec;
 
             // 就是查出原始表字段
             pack_info_t temp_pack_data;
@@ -2480,7 +2480,7 @@ class mysql_orm : public base
                     }
                 }
             }
-            //conn_obj->back_select_conn(conn);
+            conn_obj->back_select_conn(conn);
 
             if (iscache)
             {
@@ -2740,14 +2740,14 @@ class mysql_orm : public base
                 iserror   = true;
                 co_return 0;
             }
-            //auto conn = co_await conn_obj->async_get_select_conn();
-            auto conn = co_await conn_obj->async_add_select_connect();
+            auto conn = co_await conn_obj->async_get_select_conn();
+            //auto conn = co_await conn_obj->async_add_select_connect();
 
             std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(querysql), asio::use_awaitable);
             unsigned char result_data[4096];
             std::memset(result_data, 0x00, 4096);
 
-            asio::error_code ec;
+            // asio::error_code ec;
 
             // 就是查出原始表字段
             pack_info_t temp_pack_data;
@@ -2833,7 +2833,7 @@ class mysql_orm : public base
                     }
                 }
             }
-            //conn_obj->back_select_conn(conn);
+            conn_obj->back_select_conn(conn);
 
             if (iscache)
             {
@@ -3096,8 +3096,8 @@ class mysql_orm : public base
                 iserror   = true;
                 co_return 0;
             }
-            //auto conn = co_await conn_obj->async_get_select_conn();
-            auto conn = co_await conn_obj->async_add_select_connect();
+            auto conn = co_await conn_obj->async_get_select_conn();
+            //auto conn = co_await conn_obj->async_add_select_connect();
 
             std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(querysql), asio::use_awaitable);
             unsigned char result_data[4096];
@@ -3203,7 +3203,7 @@ class mysql_orm : public base
                 }
             }
 
-            //conn_obj->back_select_conn(conn);
+            conn_obj->back_select_conn(conn);
 
             if (iscache)
             {
@@ -3844,8 +3844,8 @@ class mysql_orm : public base
                 iserror = true;
                 co_return 0;
             }
-            //auto conn = co_await conn_obj->async_get_edit_conn();
-            auto conn = co_await conn_obj->async_add_edit_connect();
+            auto conn = co_await conn_obj->async_get_edit_conn();
+            //auto conn = co_await conn_obj->async_add_edit_connect();
 
             std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(querysql), asio::use_awaitable);
             unsigned char result_data[4096];
@@ -3854,7 +3854,7 @@ class mysql_orm : public base
             asio::error_code ec;
             unsigned int offset = 0;
             n                   = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
-            //conn_obj->back_edit_conn(conn);
+            conn_obj->back_edit_conn(conn);
             if (ec)
             {
                 error_msg = "read error !";
