@@ -11,6 +11,7 @@ set_encodings("utf-8")
 
 if is_plat("windows") then 
     add_defines("WIN32")
+    add_defines("_WIN32_WINDOWS")
     add_defines("WIN32_LEAN_AND_MEAN")
     add_syslinks("advapi32")
     set_runtimes("MD")
@@ -21,6 +22,7 @@ if is_plat("windows") then
 end
 
 if is_plat("mingw") then 
+    add_defines("_WIN32_WINDOWS")
     add_defines("WIN32_LEAN_AND_MEAN")
 end
 
