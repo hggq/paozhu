@@ -10,7 +10,6 @@
     defined(HAVE_OPENSSL_APPLINK_C)
 #include <openssl/applink.c>
 #endif
-
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>
@@ -131,6 +130,7 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
         pack_info.current_length = pack_length;
         if (offset > total_num)
         {
+
             pack_info.current_length = total_num - begin_length - 4;
             pack_length              = total_num - begin_length - 4;
         }

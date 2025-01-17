@@ -11,6 +11,13 @@
 #include <vector>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
+#if defined(_WIN32) && !defined(_OPENSSL_Applink) && \
+    defined(HAVE_OPENSSL_APPLINK_C)
+#include <openssl/applink.c>
+#endif
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>

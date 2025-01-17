@@ -340,7 +340,6 @@ class mysql_orm : public base
             pack_info.current_length = pack_info.current_length + pack_length;
             pack_info.data.append((char *)&data[begin_length], pack_length);
             offset = offset + pack_length;
-            // std::cout << "-----continue pack-----" << std::endl;
         }
         else
         {
@@ -366,13 +365,11 @@ class mysql_orm : public base
             pack_info.current_length = pack_length;
             if (offset > total_num)
             {
-                // std::cout << "-----offset>total_num-----" << std::endl;
+
                 pack_info.current_length = total_num - begin_length - 4;
                 pack_length              = total_num - begin_length - 4;
             }
-            // dump_data((const unsigned char *)&data[begin_length], pack_length + 4);
-            //  dump_data((const unsigned char*)&data[begin_length+4],pack_length);
-            //  std::cout<<"-----pack leng----- :"<<  pack_info.length<<std::endl;
+
             pack_info.data.clear();
             pack_info.data.append((char *)&data[begin_length + 4], pack_length);
         }
@@ -385,12 +382,12 @@ class mysql_orm : public base
         pack_length = (data[offset] & 0xFF);
         if (pack_length < 251)
         {
-            // std::cout << "251 num " << std::to_string(pack_length) << std::endl;
+
             offset++;
         }
         else if (pack_length == 251)
         {
-            // std::cout << "251 num " << std::to_string(pack_length) << std::endl;
+
             pack_length = 0;
             offset++;
         }
@@ -399,7 +396,7 @@ class mysql_orm : public base
             offset++;
             pack_length = (data[offset + 1] & 0xFF);
             pack_length = pack_length << 8 | (data[offset] & 0xFF);
-            // std::cout << "252 num " << std::to_string(pack_length) << std::endl;
+
             offset += 2;
         }
         else if (pack_length == 253)
@@ -408,7 +405,7 @@ class mysql_orm : public base
             pack_length = (data[offset + 2] & 0xFF);
             pack_length = pack_length << 8 | (data[offset + 1] & 0xFF);
             pack_length = pack_length << 8 | (data[offset] & 0xFF);
-            // std::cout << "253 num " << std::to_string(pack_length) << std::endl;
+
             offset += 3;
         }
         else if (pack_length == 254)
@@ -423,7 +420,6 @@ class mysql_orm : public base
             pack_length = pack_length << 8 | (data[offset + 1] & 0xFF);
             pack_length = pack_length << 8 | (data[offset] & 0xFF);
 
-            // std::cout << "254 num " << std::to_string(pack_length) << std::endl;
             offset += 8;
         }
         return pack_length;
@@ -2725,6 +2721,7 @@ class mysql_orm : public base
 
         try
         {
+            effect_num = 0;
             //sqlstring[0], sqlstring.size()
             unsigned int querysql_len = sqlstring.length() + 1;
             std::string querysql;
@@ -2819,6 +2816,7 @@ class mysql_orm : public base
                                 base::assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                 tempnum = tempnum + name_length;
                             }
+                            effect_num++;
                             base::record.emplace_back(std::move(data_temp));
                         }
                     }
@@ -3078,6 +3076,7 @@ class mysql_orm : public base
 
         try
         {
+            effect_num = 0;
             //sqlstring[0], sqlstring.size()
             unsigned int querysql_len = sqlstring.length() + 1;
             std::string querysql;
@@ -3186,6 +3185,7 @@ class mysql_orm : public base
                                     base::assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, base::data);
                                     tempnum = tempnum + name_length;
                                 }
+                                effect_num++;
                             }
                         }
                     }
@@ -3825,6 +3825,7 @@ class mysql_orm : public base
         }
         try
         {
+
             unsigned int querysql_len = sqlstring.length() + 1;
             std::string querysql;
             querysql.clear();
@@ -3867,15 +3868,12 @@ class mysql_orm : public base
             }
             else if ((unsigned char)temp_pack_data.data[0] == 0x00)
             {
-                unsigned int effected_rows = 0;
-                unsigned int d_offset      = 1;
-                effected_rows              = 0;
-                //long long insertid         = 0;
 
-                effected_rows = pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                unsigned int d_offset = 1;
+                effect_num            = pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                 //insertid      = pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
 
-                co_return effected_rows;
+                co_return effect_num;
             }
             co_return 0;
         }
