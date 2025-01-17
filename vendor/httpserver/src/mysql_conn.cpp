@@ -364,7 +364,7 @@ bool mysql_conn_base::connect(const std::string &host, const std::string &port, 
         EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
         BIO_free(bio);
 
-        std::size_t server_public_key_len = EVP_PKEY_get_size(public_key);
+        std::size_t server_public_key_len = 0;// EVP_PKEY_get_size(public_key);
         std::string public_key_str(256, 0x00);
         // see sql-common/client_authenthication.cc line 144 or 968 php-src ext/mysqlnd/mysqlnd_auth.c
         EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(public_key, NULL);
@@ -714,7 +714,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const std::string &host, co
         EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
         BIO_free(bio);
 
-        std::size_t server_public_key_len = EVP_PKEY_get_size(public_key);
+        std::size_t server_public_key_len = 0;// EVP_PKEY_get_size(public_key);
         std::string public_key_str(256, 0x00);
         // see sql-common/client_authenthication.cc line 144 or 968 php-src ext/mysqlnd/mysqlnd_auth.c
         EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(public_key, NULL);
