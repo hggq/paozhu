@@ -22,8 +22,10 @@
 #include "http2_send_queue.h"
 #include "httphook.h"
 #include "func.h"
-#include "mysqlconfig.h"
-#include "mysqlpool.h"
+
+#include "mysql_conn.h"
+#include "mysql_conn_pool.h"
+
 #include "autocontrolmethod.hpp"
 #include "reghttpmethod.hpp"
 #include "reghttpmethod_pre.hpp"
@@ -3238,16 +3240,7 @@ void httpserver::add_runsocketthread()
 void httpserver::httpwatch()
 {
     serverconfig &sysconfigpath = getserversysconfig();
-    try
-    {
-        mysqlconfig_init_link();
-    }
-    catch (const char *e)
-    {
-        std::string errorstr(e);
-        errorstr.push_back('\n');
-        error_loglist.emplace_back(errorstr);
-    }
+
     std::unique_lock<std::mutex> loglock(log_mutex);
     error_loglist.push_back("------------begin-----------");
     error_loglist.push_back(get_date("%Y-%m-%d %X\n"));
@@ -3280,15 +3273,15 @@ void httpserver::httpwatch()
                 client << " ";
                 try
                 {
-                    std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
-                    isshow                                                                         = 0;
-                    for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
-                    {
-                        client << " [db:" << iter->second->select_link.db
-                               << " select:" << std::to_string(iter->second->select_current_num);
-                        client << " edit:" << std::to_string(iter->second->edit_current_num);
-                        ++isshow;
-                    }
+                    //std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                    // isshow                                                                         = 0;
+                    // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+                    // {
+                    //     client << " [db:" << iter->second->select_link.db
+                    //            << " select:" << std::to_string(iter->second->select_current_num);
+                    //     client << " edit:" << std::to_string(iter->second->edit_current_num);
+                    //     ++isshow;
+                    // }
                     client << "]</p>";
                     client << self->clientrunpool.printthreads(true);
                 }
@@ -3350,6 +3343,24 @@ void httpserver::httpwatch()
     std::string error_msg_loop;
     std::string traffic_switch_file;
 
+    try
+    {
+        currentpath = sysconfigpath.configpath;
+
+        if (currentpath.size() > 0 && currentpath.back() != '/')
+        {
+            currentpath.push_back('/');
+        }
+        currentpath.append("orm.conf");
+        orm::init_orm_conn_pool(io_context, currentpath);
+    }
+    catch (const char *e)
+    {
+        std::string errorstr(e);
+        errorstr.push_back('\n');
+        error_loglist.emplace_back(errorstr);
+    }
+
     server_loaclvar &static_server_var = get_server_global_var();
     currentpath                        = static_server_var.log_path;
 
@@ -3357,6 +3368,7 @@ void httpserver::httpwatch()
     {
         currentpath.push_back('/');
     }
+
     error_path          = currentpath;
     traffic_switch_file = currentpath;
     currentpath.append("access.log");
@@ -3733,24 +3745,40 @@ void httpserver::httpwatch()
             {
                 if (total_count.load() == old_total_count)
                 {
-                    std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                    std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
                     for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                     {
-                        iter->second->clearpool();
-                        iter->second->addpool_select_connect();
-                        iter->second->addpool_edit_connect();
+                        iter->second->clear_select_conn();
+                        // iter->second->addpool_select_connect();
+                        // iter->second->addpool_edit_connect();
                         DEBUG_LOG("mysql pool clearpoool ");
                     }
+                    // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                    // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+                    // {
+                    //     iter->second->clearpool();
+                    //     iter->second->addpool_select_connect();
+                    //     iter->second->addpool_edit_connect();
+                    //     DEBUG_LOG("mysql pool clearpoool ");
+                    // }
                 }
             }
 
             if (now->tm_hour < 3 && mysqlpool_time > 82800)
             {
-                std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
                 for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                 {
-                    iter->second->clearpool();
+                    iter->second->clear_select_conn();
+                    // iter->second->addpool_select_connect();
+                    // iter->second->addpool_edit_connect();
+                    DEBUG_LOG("mysql pool clearpoool ");
                 }
+                // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+                // {
+                //     iter->second->clearpool();
+                // }
                 mysqlpool_time = 1;
             }
 

@@ -16,24 +16,24 @@ std::string testormclient(std::shared_ptr<httppeer> peer)
 
     try
     {
-        auto dbclient = std::make_shared<orm::get_orm_client>("cms");
+        // auto dbclient = std::make_shared<orm::get_orm_client>("cms");
 
-        auto [colname, results] = dbclient->query("show databases;");
-        client << "<p>show databases;</p>";
-        if (results.empty())
-        {
-            client << "<p>empty</p>";
-        }
-        else
-        {
-            for (unsigned int i = 0; i < results.size(); i++)
-            {
-                if (results[i].size() > 0)
-                {
-                    client << "<p>" << (i + 1) << ". " << results[i][0] << "</p>";
-                }
-            }
-        }
+        // auto [colname, results] = dbclient->query("show databases;");
+        // client << "<p>show databases;</p>";
+        // if (results.empty())
+        // {
+        //     client << "<p>empty</p>";
+        // }
+        // else
+        // {
+        //     for (unsigned int i = 0; i < results.size(); i++)
+        //     {
+        //         if (results[i].size() > 0)
+        //         {
+        //             client << "<p>" << (i + 1) << ". " << results[i][0] << "</p>";
+        //         }
+        //     }
+        // }
     }
     catch (std::exception &e)
     {
