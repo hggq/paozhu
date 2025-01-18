@@ -2372,16 +2372,7 @@ class mysql_orm : public base
         {
             base::record.clear();
             //sqlstring[0], sqlstring.size()
-            unsigned int querysql_len = sqlstring.length() + 1;
-            std::string querysql;
-            querysql.clear();
 
-            querysql.push_back((querysql_len & 0xFF));
-            querysql.push_back((querysql_len >> 8 & 0xFF));
-            querysql.push_back((querysql_len >> 16 & 0xFF));
-            querysql.push_back(0x00);
-            querysql.push_back(0x03);
-            querysql.append(sqlstring);
             if (!conn_obj)
             {
                 error_msg = "conn_obj is null";
@@ -2389,12 +2380,19 @@ class mysql_orm : public base
                 co_return 0;
             }
             auto conn = co_await conn_obj->async_get_select_conn();
-            //auto conn     = co_await conn_obj->async_add_select_connect();
-            std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(querysql), asio::use_awaitable);
-            unsigned char result_data[4096];
-            std::memset(result_data, 0x00, 4096);
 
-            // asio::error_code ec;
+            unsigned int querysql_len = sqlstring.length() + 1;
+
+            conn->send_data.clear();
+
+            conn->send_data.push_back((querysql_len & 0xFF));
+            conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+            conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+            conn->send_data.push_back(0x00);
+            conn->send_data.push_back(0x03);
+            conn->send_data.append(sqlstring);
+
+            std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
             // 就是查出原始表字段
             pack_info_t temp_pack_data;
@@ -2413,12 +2411,13 @@ class mysql_orm : public base
 
             for (; is_sql_item == false;)
             {
-                std::memset(result_data, 0x00, 4096);
-                n      = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
+                // std::memset(result_data, 0x00, 4096);
+                // n      = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
+                n      = co_await conn->async_read_loop();
                 offset = 0;
                 for (; offset < n;)
                 {
-                    read_field_pack(result_data, n, offset, temp_pack_data);
+                    read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
                     if (temp_pack_data.length == temp_pack_data.current_length)
                     {
                         if (pack_eof_check(temp_pack_data))
@@ -2724,16 +2723,7 @@ class mysql_orm : public base
         {
             effect_num = 0;
             //sqlstring[0], sqlstring.size()
-            unsigned int querysql_len = sqlstring.length() + 1;
-            std::string querysql;
-            querysql.clear();
 
-            querysql.push_back((querysql_len & 0xFF));
-            querysql.push_back((querysql_len >> 8 & 0xFF));
-            querysql.push_back((querysql_len >> 16 & 0xFF));
-            querysql.push_back(0x00);
-            querysql.push_back(0x03);
-            querysql.append(sqlstring);
             if (!conn_obj)
             {
                 error_msg = "conn_obj is null";
@@ -2741,11 +2731,19 @@ class mysql_orm : public base
                 co_return 0;
             }
             auto conn = co_await conn_obj->async_get_select_conn();
-            //auto conn = co_await conn_obj->async_add_select_connect();
 
-            std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(querysql), asio::use_awaitable);
-            unsigned char result_data[4096];
-            std::memset(result_data, 0x00, 4096);
+            unsigned int querysql_len = sqlstring.length() + 1;
+
+            conn->send_data.clear();
+
+            conn->send_data.push_back((querysql_len & 0xFF));
+            conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+            conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+            conn->send_data.push_back(0x00);
+            conn->send_data.push_back(0x03);
+            conn->send_data.append(sqlstring);
+
+            std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
             // asio::error_code ec;
 
@@ -2766,12 +2764,13 @@ class mysql_orm : public base
 
             for (; is_sql_item == false;)
             {
-                std::memset(result_data, 0x00, 4096);
-                n      = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
+                // std::memset(result_data, 0x00, 4096);
+                // n      = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
+                n      = co_await conn->async_read_loop();
                 offset = 0;
                 for (; offset < n;)
                 {
-                    read_field_pack(result_data, n, offset, temp_pack_data);
+                    read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
                     if (temp_pack_data.length == temp_pack_data.current_length)
                     {
                         if (pack_eof_check(temp_pack_data))
@@ -2861,7 +2860,7 @@ class mysql_orm : public base
         }
         co_return 0;
     }
-    model &fetch_one(bool isappend = false)
+    unsigned int fetch_one(bool isappend = false)
     {
         effect_num = 0;
         if (selectsql.empty())
@@ -2903,100 +2902,147 @@ class mysql_orm : public base
             if (get_cacherecord(sqlhashid))
             {
                 iscache = false;
-                return *mod;
+                return 0;
             }
         }
 
         base::data_reset();
         if (iserror)
         {
-            return *mod;
+            return 0;
         }
-        // std::unique_ptr<MYSQL, decltype(&mysql_close)> conn(NULL, &mysql_close);
-        // try
-        // {
-        //     conn = linkconn->get_select_connect();
-        // }
-        // catch (const char *e)
-        // {
-        //     error_msg = std::string(e);
-        //     return *mod;
-        // }
 
         try
         {
-            // MYSQL_RES *resultall    = nullptr;
-            // unsigned int num_fields = 0;
-            // error_msg.clear();
-            // for (unsigned int i = 0; i < 2; i++)
+            effect_num = 0;
+            // //sqlstring[0], sqlstring.size()
+
+            // if (!conn_obj)
             // {
-            //     num_fields = mysql_real_query(conn.get(), &sqlstring[0], sqlstring.size());
-            //     if (num_fields == 2013)
+            //     error_msg = "conn_obj is null";
+            //     iserror   = true;
+            //     return 0;
+            // }
+            // auto conn = conn_obj->get_select_conn();
+
+            // unsigned int querysql_len = sqlstring.length() + 1;
+
+            // conn->send_data.clear();
+            // conn->send_data.push_back((querysql_len & 0xFF));
+            // conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+            // conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+            // conn->send_data.push_back(0x00);
+            // conn->send_data.push_back(0x03);
+            // conn->send_data.append(sqlstring);
+
+            // std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
+
+            // // unsigned char result_data[4096];
+            // // std::memset(result_data, 0x00, 4096);
+
+            // // 就是查出原始表字段
+            // pack_info_t temp_pack_data;
+            // temp_pack_data.seq_id = 1;
+            // bool is_sql_item      = false;
+            // std::vector<field_info_t> field_array;
+            // // std::vector<std::vector<std::string>> field_value;
+
+            // unsigned char action_setup = 0;
+            // unsigned int column_num    = 0;
+
+            // unsigned int offset = 0;
+
+            // std::vector<unsigned char> field_pos;
+            // // std::map<unsigned char, std::string> other_col;
+
+            // for (; is_sql_item == false;)
+            // {
+            //     //std::memset(result_data, 0x00, 4096);
+            //     //n      = conn->socket->read_some(asio::buffer(result_data), ec);
+            //     n      = conn->read_loop();
+            //     offset = 0;
+            //     for (; offset < n;)
             //     {
-            //         if (error_msg.size() > 0)
+            //         read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
+            //         if (temp_pack_data.length == temp_pack_data.current_length)
             //         {
-            //             return *mod;
+            //             if (pack_eof_check(temp_pack_data))
+            //             {
+            //                 is_sql_item = true;
+            //                 break;
+            //             }
+
+            //             if (action_setup == 0)
+            //             {
+            //                 if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+            //                 {
+            //                     action_setup = 1;
+            //                     column_num   = (unsigned char)temp_pack_data.data[0];
+            //                 }
+            //             }
+            //             else if (action_setup == 1)
+            //             {
+            //                 field_info_t temp_filed_col;
+            //                 read_col_info(temp_pack_data.data, temp_filed_col);
+
+            //                 field_array.emplace_back(std::move(temp_filed_col));
+            //                 column_num--;
+            //                 if (column_num == 0)
+            //                 {
+            //                     action_setup = 2;
+            //                     for (unsigned int ii = 0; ii < field_array.size(); ii++)
+            //                     {
+            //                         field_pos.push_back(base::findcolpos(field_array[ii].org_name));
+            //                     }
+            //                 }
+            //             }
+            //             else if (action_setup == 2)
+            //             {
+            //                 unsigned int column_num = field_array.size();
+            //                 unsigned int tempnum    = 0;
+
+            //                 if (isappend)
+            //                 {
+            //                     typename base::meta data_temp;
+            //                     for (unsigned int ij = 0; ij < column_num; ij++)
+            //                     {
+            //                         unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
+            //                         name_length                    = pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+
+            //                         base::assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
+            //                         tempnum = tempnum + name_length;
+            //                     }
+            //                     base::record.emplace_back(std::move(data_temp));
+            //                     effect_num++;
+            //                 }
+            //                 else
+            //                 {
+            //                     for (unsigned int ij = 0; ij < column_num; ij++)
+            //                     {
+            //                         unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
+            //                         name_length                    = pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+
+            //                         base::assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, base::data);
+            //                         tempnum = tempnum + name_length;
+            //                     }
+            //                     effect_num++;
+            //                 }
+            //             }
             //         }
-            //         error_msg = std::string(mysql_error(conn.get()));
-            //         mysql_close(conn.get());
-            //         conn.reset();
-            //         try
+            //         else
             //         {
-            //             conn = linkconn->add_select_connect();
+            //             if (offset >= n)
+            //             {
+            //                 break;
+            //             }
+            //             is_sql_item = true;
+            //             break;
             //         }
-            //         catch (const char *e)
-            //         {
-            //             error_msg = std::string(e);
-            //             return *mod;
-            //         }
-            //         continue;
-            //     }
-            //     else if (num_fields != 0)
-            //     {
-            //         error_msg = std::string(mysql_error(conn.get()));
-            //         mysql_close(conn.get());
-            //         conn.reset();
-            //         return *mod;
-            //     }
-            //     break;
-            // }
-
-            // resultall = mysql_store_result(conn.get());
-            // linkconn->back_select_connect(std::move(conn));
-
-            // num_fields = mysql_num_fields(resultall);
-
-            // base::_keypos.clear();
-            // if (selectsql.empty())
-            // {
-            //     for (unsigned char index = 0; index < num_fields; index++)
-            //     {
-            //         base::_keypos.emplace_back(index);
-            //     }
-            // }
-            // else
-            // {
-            //     MYSQL_FIELD *fields;
-            //     fields = mysql_fetch_fields(resultall);
-            //     std::string type_temp;
-            //     for (unsigned char index = 0; index < num_fields; index++)
-            //     {
-            //         type_temp = std::string(fields[index].name);
-            //         base::_keypos.emplace_back(base::findcolpos(type_temp));
             //     }
             // }
 
-            // if ((base::_row = mysql_fetch_row(resultall)))
-            // {
-            //     base::_setColnamevalue();
-            //     if (isappend)
-            //     {
-            //         base::record.emplace_back(base::data);
-            //     }
-            //     effect_num++;
-            // }
+            // conn_obj->back_select_conn(conn);
 
-            // mysql_free_result(resultall);
             if (iscache)
             {
                 if (exptime > 0)
@@ -3006,22 +3052,22 @@ class mysql_orm : public base
                     iscache = false;
                 }
             }
-            return *mod;
+            return effect_num;
         }
         catch (const std::exception &e)
         {
             error_msg = std::string(e.what());
-            return *mod;
+            return 0;
         }
         catch (const char *e)
         {
             error_msg = std::string(e);
-            return *mod;
+            return 0;
         }
         catch (...)
         {
         }
-        return *mod;
+        return 0;
     }
 
     asio::awaitable<unsigned int> async_fetch_one(bool isappend = false)
@@ -3080,16 +3126,7 @@ class mysql_orm : public base
         {
             effect_num = 0;
             //sqlstring[0], sqlstring.size()
-            unsigned int querysql_len = sqlstring.length() + 1;
-            std::string querysql;
-            querysql.clear();
 
-            querysql.push_back((querysql_len & 0xFF));
-            querysql.push_back((querysql_len >> 8 & 0xFF));
-            querysql.push_back((querysql_len >> 16 & 0xFF));
-            querysql.push_back(0x00);
-            querysql.push_back(0x03);
-            querysql.append(sqlstring);
             if (!conn_obj)
             {
                 error_msg = "conn_obj is null";
@@ -3097,11 +3134,18 @@ class mysql_orm : public base
                 co_return 0;
             }
             auto conn = co_await conn_obj->async_get_select_conn();
-            //auto conn = co_await conn_obj->async_add_select_connect();
 
-            std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(querysql), asio::use_awaitable);
-            unsigned char result_data[4096];
-            std::memset(result_data, 0x00, 4096);
+            unsigned int querysql_len = sqlstring.length() + 1;
+
+            conn->send_data.clear();
+            conn->send_data.push_back((querysql_len & 0xFF));
+            conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+            conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+            conn->send_data.push_back(0x00);
+            conn->send_data.push_back(0x03);
+            conn->send_data.append(sqlstring);
+
+            std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
             // 就是查出原始表字段
             pack_info_t temp_pack_data;
@@ -3120,12 +3164,11 @@ class mysql_orm : public base
 
             for (; is_sql_item == false;)
             {
-                std::memset(result_data, 0x00, 4096);
-                n      = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
+                n      = co_await conn->async_read_loop();
                 offset = 0;
                 for (; offset < n;)
                 {
-                    read_field_pack(result_data, n, offset, temp_pack_data);
+                    read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
                     if (temp_pack_data.length == temp_pack_data.current_length)
                     {
                         if (pack_eof_check(temp_pack_data))
@@ -3829,40 +3872,35 @@ class mysql_orm : public base
         try
         {
 
-            unsigned int querysql_len = sqlstring.length() + 1;
-            std::string querysql;
-            querysql.clear();
-
-            querysql.push_back((querysql_len & 0xFF));
-            querysql.push_back((querysql_len >> 8 & 0xFF));
-            querysql.push_back((querysql_len >> 16 & 0xFF));
-            querysql.push_back(0x00);
-            querysql.push_back(0x03);
-            querysql.append(sqlstring);
             if (!conn_obj)
             {
                 iserror = true;
                 co_return 0;
             }
             auto conn = co_await conn_obj->async_get_edit_conn();
-            //auto conn = co_await conn_obj->async_add_edit_connect();
 
-            std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(querysql), asio::use_awaitable);
-            unsigned char result_data[4096];
-            std::memset(result_data, 0x00, 4096);
+            unsigned int querysql_len = sqlstring.length() + 1;
 
-            asio::error_code ec;
+            conn->send_data.clear();
+            conn->send_data.push_back((querysql_len & 0xFF));
+            conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+            conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+            conn->send_data.push_back(0x00);
+            conn->send_data.push_back(0x03);
+            conn->send_data.append(sqlstring);
+
+            std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
+
             unsigned int offset = 0;
-            n                   = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
-            conn_obj->back_edit_conn(conn);
-            if (ec)
-            {
-                error_msg = "read error !";
-                co_return 0;
-            }
+
+            //n                   = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
+            n = co_await conn->async_read_loop();
+
             pack_info_t temp_pack_data;
             temp_pack_data.seq_id = 1;
-            read_field_pack(result_data, n, offset, temp_pack_data);
+            read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
+
+            conn_obj->back_edit_conn(conn);
 
             if ((unsigned char)temp_pack_data.data[0] == 0xFF)
             {

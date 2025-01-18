@@ -113,8 +113,16 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                     {
                         // 保存当前配置到列表中
                         myconfig.push_back(mysqlconf);
-                        typeone        = strval;
-                        mysqlconf.type = strval;
+                        typeone = strval;
+                        //mysqlconf.type = strval;
+                        if (strval == "main")
+                        {
+                            mysqlconf.link_type = 0;
+                        }
+                        else
+                        {
+                            mysqlconf.link_type = 1;
+                        }
                         mysqlconf.host.clear();
                         mysqlconf.port.clear();
                         mysqlconf.dbname.clear();
@@ -125,11 +133,11 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                         mysqlconf.tag = keyname;
                         mysqlconf.dbtype.clear();
 
-                        mysqlconf.max_pool  = 0;
-                        mysqlconf.min_pool  = 0;
-                        mysqlconf.issock    = false;
-                        mysqlconf.isssl     = false;
-                        mysqlconf.link_type = 0;
+                        mysqlconf.max_pool = 0;
+                        mysqlconf.min_pool = 0;
+                        mysqlconf.issock   = false;
+                        mysqlconf.isssl    = false;
+                        //mysqlconf.link_type = 0;
                     }
                 }
             }
@@ -160,13 +168,32 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                     {
                         typeone       = strval;
                         mysqlconf.tag = keyname;
+
+                        if (strval == "main")
+                        {
+                            mysqlconf.link_type = 0;
+                        }
+                        else
+                        {
+                            mysqlconf.link_type = 1;
+                        }
                     }
                     else
                     {
                         // 保存当前配置到列表中
                         myconfig.push_back(mysqlconf);
-                        typeone        = strval;
-                        mysqlconf.type = strval;
+                        typeone = strval;
+
+                        if (strval == "main")
+                        {
+                            mysqlconf.link_type = 0;
+                        }
+                        else
+                        {
+                            mysqlconf.link_type = 1;
+                        }
+
+                        //mysqlconf.type = strval;
                         mysqlconf.host.clear();
                         mysqlconf.port.clear();
                         mysqlconf.dbname.clear();
@@ -175,12 +202,12 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                         mysqlconf.pretable.clear();
                         mysqlconf.charset.clear();
 
-                        mysqlconf.max_pool  = 0;
-                        mysqlconf.min_pool  = 0;
-                        mysqlconf.tag       = keyname;
-                        mysqlconf.issock    = false;
-                        mysqlconf.isssl     = false;
-                        mysqlconf.link_type = 0;
+                        mysqlconf.max_pool = 0;
+                        mysqlconf.min_pool = 0;
+                        mysqlconf.tag      = keyname;
+                        mysqlconf.issock   = false;
+                        mysqlconf.isssl    = false;
+                        //mysqlconf.link_type = 0;
                     }
                 }
                 // 处理各个配置项
@@ -347,6 +374,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
         }
         if (str_casecmp(linestr, "dbtype"))
         {
+
             mysqlconf.dbtype = strval;
         }
         mysqlconf.tag = keyname;
@@ -364,7 +392,7 @@ void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_fil
     for (auto &item : myconfig)
     {
 
-        if (item.type == "main")
+        if (item.link_type == 0)
         {
             auto iter = int_pool.find(item.tag);
             if (item.min_pool < 1)
@@ -394,7 +422,7 @@ void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_fil
                 int_pool.emplace(item.tag, conn);
             }
         }
-        else if (item.type == "second")
+        else if (item.link_type == 1)
         {
             auto iter = int_pool.find(item.tag);
             if (item.min_pool < 1)
@@ -478,7 +506,7 @@ unsigned int orm_conn_pool::init_edit_conn(unsigned char n)
         }
         catch (const std::exception &e)
         {
-            std::cerr << e.what() << '\n';
+            error_msg.append(e.what());
         }
 
         return i;
@@ -528,11 +556,10 @@ unsigned int orm_conn_pool::init_select_conn(unsigned char n)
         }
         catch (const std::exception &e)
         {
-            std::cerr << e.what() << '\n';
+            error_msg.append(e.what());
         }
         return i;
     }
-
     return n;
 }
 void orm_conn_pool::back_select_conn(std::shared_ptr<mysql_conn_base> conn)
@@ -565,7 +592,21 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_edit_
     auto temp = std::move(conn_edit_pool.front());
     conn_edit_pool.pop_front();
     lock.unlock();
-
+    if (temp->is_closed())
+    {
+        try
+        {
+            co_return co_await async_add_edit_connect();
+        }
+        catch (const char *e)
+        {
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            throw e;
+        }
+    }
     co_return temp;
 }
 
@@ -592,7 +633,21 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_edit_conn()
     auto temp = std::move(conn_edit_pool.front());
     conn_edit_pool.pop_front();
     lock.unlock();
-
+    if (temp->is_closed())
+    {
+        try
+        {
+            return add_edit_connect();
+        }
+        catch (const char *e)
+        {
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            throw e;
+        }
+    }
     return temp;
 }
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_select_conn()
@@ -619,6 +674,22 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_selec
     conn_select_pool.pop_front();
     lock.unlock();
 
+    if (temp->is_closed())
+    {
+        try
+        {
+            co_return co_await async_add_select_connect();
+        }
+        catch (const char *e)
+        {
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            throw e;
+        }
+    }
+
     co_return temp;
 }
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_select_conn()
@@ -644,7 +715,21 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_select_conn()
     auto temp = std::move(conn_select_pool.front());
     conn_select_pool.pop_front();
     lock.unlock();
-
+    if (temp->is_closed())
+    {
+        try
+        {
+            return add_select_connect();
+        }
+        catch (const char *e)
+        {
+            throw e;
+        }
+        catch (const std::string &e)
+        {
+            throw e;
+        }
+    }
     return temp;
 }
 unsigned int orm_conn_pool::clear_select_conn()
@@ -657,7 +742,7 @@ unsigned int orm_conn_pool::clear_select_conn()
         conn_select_pool.pop_front();
         temp->close();
         n++;
-        if (n > 1)
+        if (n > 5)
         {
             break;
         }
@@ -675,7 +760,7 @@ unsigned int orm_conn_pool::clear_edit_conn()
         conn_edit_pool.pop_front();
         temp->close();
         n++;
-        if (n > 1)
+        if (n > 5)
         {
             break;
         }

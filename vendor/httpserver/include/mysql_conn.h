@@ -1,6 +1,9 @@
 #ifndef _MYSQL_CONN_BASE_H
 #define _MYSQL_CONN_BASE_H
-
+/*
+ * @Author: 黄自权 Huang ziqun
+ * @Date:   2025-01-16
+ */
 #include <iostream>
 #include <memory>
 #include <string>
@@ -124,19 +127,23 @@ class mysql_conn_base
   public:
     mysql_conn_base(asio::io_context &ioc);
     ~mysql_conn_base();
+    void read_server_hello(unsigned int offset, unsigned int length);
+    bool server_public_key_encrypt(const std::string &password, unsigned char *data, unsigned int length);
     bool connect(const std::string &host, const std::string &port, const std::string &user, const std::string &password, const std::string &dbname, bool ssl = false);
     asio::awaitable<bool> async_connect(const std::string &host, const std::string &port, const std::string &user, const std::string &password, const std::string &dbname, bool ssl = false);
 
-    void print_hex(const std::string &data);
-    void print_hex(unsigned int data);
     void mysqlnd_xor_string(char *dst, const size_t dst_len, const char *xor_str, const size_t xor_str_len);
     unsigned int read_pack(unsigned char *data, unsigned int offset);
     void read_field_pack(unsigned char *data, unsigned int total_num, unsigned int &offset, pack_info_t &pack_info);
     bool ping();
     bool close();
+    asio::awaitable<unsigned int> async_read_loop();
+    unsigned int read_loop();
+    bool is_closed();
 
   public:
-    char data[1024];
+    unsigned char *_cache_data = nullptr;
+
     bool isclose            = false;
     unsigned char sock_type = 0;
     unsigned char seq_next_id;
@@ -144,8 +151,9 @@ class mysql_conn_base
     asio::error_code ec;
     unsigned int client_flags = 0;
 
+    std::string send_data;
     std::string error_msg;
-    std::string server_public_key;
+    //std::string server_public_key;
     std::unique_ptr<asio::ip::tcp::socket> socket;
     std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket;
     std::unique_ptr<asio::local::stream_protocol::socket> localsocket;

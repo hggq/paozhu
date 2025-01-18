@@ -20,7 +20,7 @@ namespace orm
 {
 struct orm_conn_t
 {
-    std::string type;
+    // std::string type;
     std::string host;
     std::string port;
     std::string dbname;
