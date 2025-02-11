@@ -12,7 +12,7 @@
 #include <iostream>
 #include <string>
 #include <asio.hpp>
-// #include <asio/ssl.hpp>
+
 #include <thread>
 #include <cstdlib>
 #include <fstream>
@@ -25,7 +25,7 @@
 #include <cstdio>
 #include <iostream>
 #include <ctime>
-#include <map>
+#include <list>
 #include <string>
 
 #include <atomic>
@@ -91,6 +91,7 @@ class ThreadPool
 
   public:
     asio::io_context *io_context = nullptr;
+    std::string error_message;
 
   private:
     bool isstop;
@@ -100,10 +101,10 @@ class ThreadPool
     std::mutex queue_mutex;
     std::condition_variable condition;
 
-    std::atomic<unsigned int> pooltotalnum, mixthreads;
+    std::atomic<unsigned int> mixthreads;
     std::atomic<unsigned int> livethreadcount;
 
-    std::map<unsigned int, std::shared_ptr<threadinfo_t>> thread_arrays;
+    std::list<std::shared_ptr<threadinfo_t>> thread_arrays;
 };
 
 }// namespace http

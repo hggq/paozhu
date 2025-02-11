@@ -491,6 +491,36 @@ void client_session::half_stop()
         isclose = true;
     }
 }
+asio::awaitable<void> client_session::async_stop()
+{
+    DEBUG_LOG("socket async_stop");
+    isclose = true;
+    if (iserror)
+    {
+        co_return;
+    }
+    try
+    {
+        if (isssl)
+        {
+            co_await sslsocket->async_shutdown(asio::use_awaitable);
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().close();
+            }
+        }
+        else
+        {
+            socket->close();
+        }
+    }
+    catch (...)
+    {
+        DEBUG_LOG("socket exp ");
+    }
+    // timer_.cancel();
+}
+
 void client_session::stop()
 {
     DEBUG_LOG("socket stop");

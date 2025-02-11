@@ -13,11 +13,16 @@
 #include "httppeer.h"
 
 namespace http
-{   
-    extern std::map<std::string,bool> _block_ip_tables;
-    extern std::map<std::string,bool> _block_host_tables;
-    bool check_blockip(const std::string &);
-    bool hook_host_http1(std::shared_ptr<httppeer> peer);
-    bool hook_host_http2(std::shared_ptr<httppeer> peer);
-}
+{
+extern std::map<std::string, bool> _block_ip_tables;
+extern std::map<std::string, bool> _block_host_tables;
+
+extern std::map<std::string, bool> _passport_ip_tables;
+extern std::map<std::string, bool> _passport_host_tables;
+
+bool check_blockip(std::shared_ptr<client_session> peer_session);
+bool check_pressl_blockip(std::shared_ptr<client_session> peer_session);
+bool hook_host_http1(std::shared_ptr<httppeer> peer);
+bool hook_host_http2(std::shared_ptr<httppeer> peer);
+}// namespace http
 #endif

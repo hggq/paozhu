@@ -34,21 +34,19 @@ asio::awaitable<std::string> techempowerjson(std::shared_ptr<httppeer> peer)
 }
 
 //@urlpath(null,db)
-asio::awaitable<std::string> techempowerdb(std::shared_ptr<httppeer> peer)
+std::string techempowerdb(std::shared_ptr<httppeer> peer)
 {
     peer->type("application/json; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
     auto myworld        = orm::World();
     unsigned int rd_num = rand_range(1, 10000);
-    myworld.where("id", rd_num);
-    myworld.limit(1);
-    co_await myworld.async_fetch_one();
+    myworld.where("id", rd_num).limit(1).fetch_one();
     peer->output = myworld.data_tojson();
-    co_return "";
+    return "";
 }
 
 //@urlpath(null,queries)
-asio::awaitable<std::string> techempowerqueries(std::shared_ptr<httppeer> peer)
+std::string techempowerqueries(std::shared_ptr<httppeer> peer)
 {
     peer->type("application/json; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
@@ -68,22 +66,21 @@ asio::awaitable<std::string> techempowerqueries(std::shared_ptr<httppeer> peer)
     {
         myworld.wheresql.clear();
         unsigned int rd_num = rand_range(1, 10000);
-        myworld.where("id", rd_num);
-        co_await myworld.async_fetch_append();
+        myworld.where("id", rd_num).fetch_append();
     }
 
     peer->output = myworld.to_json();
-    co_return "";
+    return "";
 }
 
 //@urlpath(null,fortunes)
-asio::awaitable<std::string> techempowerfortunes(std::shared_ptr<httppeer> peer)
+std::string techempowerfortunes(std::shared_ptr<httppeer> peer)
 {
     peer->type("text/html; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
 
     auto myfortune = orm::Fortune();
-    co_await myfortune.async_fetch();
+    myfortune.fetch();
     myfortune.data.id      = 0;
     myfortune.data.message = "Additional fortune added at request time.";
     myfortune.record.push_back(myfortune.data);
@@ -105,11 +102,11 @@ asio::awaitable<std::string> techempowerfortunes(std::shared_ptr<httppeer> peer)
     //     peer->output += "<tr><td>" + std::to_string(myfortune.record[i].id) + "</td><td>" + html_encode(myfortune.record[i].message) + "</td></tr>";
     // }
     // peer->output += "</table></body></html>";
-    co_return "";
+    return "";
 }
 
 //@urlpath(null,updates)
-asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
+std::string techempowerupdates(std::shared_ptr<httppeer> peer)
 {
     peer->type("application/json; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
@@ -129,22 +126,21 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
     for (unsigned int i = 0; i < get_num; i++)
     {
         myworld.wheresql.clear();
-        myworld.where("id", rand_range(1, 10000));
-        co_await myworld.async_fetch_append();
+        myworld.where("id", rand_range(1, 10000)).fetch_append();
         if (myworld.effect() > 0)
         {
             unsigned int j                 = myworld.record.size() - 1;
             myworld.data.randomnumber      = rand_range(1, 10000);
             myworld.record[j].randomnumber = myworld.data.randomnumber;
-            co_await myworld.async_update("randomnumber");
+            myworld.update("randomnumber");
         }
     }
     peer->output = myworld.to_json();
-    co_return "";
+    return "";
 }
 
 //@urlpath(null,cached-queries)
-asio::awaitable<std::string> techempowercached_queries(std::shared_ptr<httppeer> peer)
+std::string techempowercached_queries(std::shared_ptr<httppeer> peer)
 {
     peer->type("application/json; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
@@ -201,11 +197,11 @@ asio::awaitable<std::string> techempowercached_queries(std::shared_ptr<httppeer>
     }
 
     peer->output = myworld.to_json();
-    co_return "";
+    return "";
 }
 
 //@urlpath(null,cached-db)
-asio::awaitable<std::string> techempowercached_db(std::shared_ptr<httppeer> peer)
+std::string techempowercached_db(std::shared_ptr<httppeer> peer)
 {
     peer->type("application/json; charset=UTF-8");
     peer->set_header("Date", get_gmttime());
@@ -238,13 +234,12 @@ asio::awaitable<std::string> techempowercached_db(std::shared_ptr<httppeer> peer
         }
 
         std::string sqlstr = array_to_sql(cacheid);
-        myworld.whereIn("id", sqlstr);
-        co_await myworld.async_fetch();
+        myworld.whereIn("id", sqlstr).fetch();
         temp_cache.save(mycacheid, myworld.record, 360);
     }
 
     peer->output = myworld.to_json();
-    co_return "";
+    return "";
 }
 
 }// namespace http

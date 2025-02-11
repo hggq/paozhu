@@ -73,8 +73,8 @@ std::string ThreadPool::printthreads(bool is_onlineout)
     for (auto iter = thread_arrays.begin(); iter != thread_arrays.end(); iter++)
     {
         oss.str("");
-        oss << iter->second->id << " isbusy:" << iter->second->busy << " ip:" << (iter->second->ip)
-            << " url:" << iter->second->url;
+        oss << (*iter)->id << " isbusy:" << (*iter)->busy << " ip:" << ((*iter)->ip)
+            << " url:" << (*iter)->url;
         temp_thread = oss.str();
 #ifdef DEBUG
         INFO("[INFO  ] %s", temp_thread.c_str());
@@ -96,74 +96,81 @@ unsigned int ThreadPool::getpoolthreadnum() { return thread_arrays.size(); }
 
 void ThreadPool::threadloop(std::shared_ptr<threadinfo_t> mythread_info)
 {
-    while (!this->isstop)
+    try
     {
-        std::unique_lock<std::mutex> lock(this->queue_mutex);
-        this->condition.wait(lock,
-                             [&, this]
-                             { return this->isstop || mythread_info->stop || !this->clienttasks.empty(); });
-
-        if (this->isstop && this->clienttasks.empty())
-            break;
-
-        if (mythread_info->stop)
+        while (!this->isstop)
         {
-            break;
+            std::unique_lock<std::mutex> lock(this->queue_mutex);
+            this->condition.wait(lock,
+                                 [&, this]
+                                 { return this->isstop || mythread_info->stop || !this->clienttasks.empty(); });
+
+            if (mythread_info->stop)
+            {
+                break;
+            }
+
+            if (this->isstop && this->clienttasks.empty())
+                break;
+
+            if (this->clienttasks.empty())
+                continue;
+
+            auto task = std::move(this->clienttasks.front());
+            this->clienttasks.pop();
+            lock.unlock();
+
+            mythread_info->begin = time((time_t *)NULL);
+            livethreadcount += 1;
+            mythread_info->busy = true;
+
+            if (task->linktype == 0)
+            {
+                this->http_clientrun(std::move(task), mythread_info);
+            }
+            else if (task->linktype == 3)
+            {
+                this->http_websocketsrun(std::move(task), mythread_info);
+            }
+            else if (task->linktype == 7)
+            {
+                this->timetasks_run(std::move(task), mythread_info);
+            }
+            livethreadcount -= 1;
+            mythread_info->busy = false;
+            mythread_info->end  = time((time_t *)NULL);
         }
 
-        if (this->clienttasks.empty())
-            continue;
-
-        auto task = std::move(this->clienttasks.front());
-        this->clienttasks.pop();
-        lock.unlock();
-
-        mythread_info->begin = time((time_t *)NULL);
-        livethreadcount += 1;
-        mythread_info->busy = true;
-
-        if (task->linktype == 0)
-        {
-            this->http_clientrun(std::move(task), mythread_info);
-        }
-        else if (task->linktype == 3)
-        {
-            this->http_websocketsrun(std::move(task), mythread_info);
-        }
-        else if (task->linktype == 7)
-        {
-            this->timetasks_run(std::move(task), mythread_info);
-        }
-        livethreadcount -= 1;
-        mythread_info->busy = false;
-        mythread_info->end  = time((time_t *)NULL);
+        mythread_info->close = true;
     }
-
-    mythread_info->close = true;
+    catch (const std::exception &e)
+    {
+        mythread_info->close = true;
+        error_message.append(e.what());
+    }
 }
 bool ThreadPool::fixthread()
 {
     unsigned int tempcount = 0;
     for (auto iter = thread_arrays.begin(); iter != thread_arrays.end();)
     {
-        if (iter->second->close == false)
+        if ((*iter)->close == false)
         {
             tempcount++;
         }
         iter++;
     }
 
-    if (tempcount < mixthreads.load())
+    if (tempcount <= ((mixthreads.load() + cpu_threads) / 2))
     {
         return false;
     }
     {
-        std::unique_lock<std::mutex> lock(queue_mutex);
         for (auto iter = thread_arrays.begin(); iter != thread_arrays.end();)
         {
-            if (iter->second->busy == false)
+            if ((*iter)->busy == false)
             {
-                iter->second->stop = true;
+                (*iter)->stop = true;
                 tempcount--;
             }
             if (tempcount <= mixthreads.load())
@@ -172,7 +179,6 @@ bool ThreadPool::fixthread()
             }
             iter++;
         }
-        lock.unlock();
     }
     condition.notify_all();
 
@@ -180,13 +186,12 @@ bool ThreadPool::fixthread()
     std::unique_lock<std::mutex> lock(queue_mutex);
     for (auto iter = thread_arrays.begin(); iter != thread_arrays.end();)
     {
-        if (iter->second->close)
+        if ((*iter)->close)
         {
-            if (iter->second->thread.joinable())
+            if ((*iter)->thread.joinable())
             {
-                iter->second->thread.join();
-                iter->second->close = true;
-                iter                = thread_arrays.erase(iter);
+                (*iter)->thread.join();
+                thread_arrays.erase(iter++);
                 continue;
             }
         }
@@ -204,34 +209,18 @@ bool ThreadPool::addthread(size_t threads)
     {
         return false;
     }
-    index_num = pooltotalnum.load();
-    if (index_num > 4294967294)
-    {
-        index_num = 100;
-    }
+
     for (size_t i = 0; i < threads; ++i)
     {
-
-        if (thread_arrays.contains(index_num))
-        {
-            for (; index_num < 4294967294; index_num++)
-            {
-                if (!thread_arrays.contains(index_num))
-                {
-                    break;
-                }
-            }
-        }
-        std::unique_lock<std::mutex> lock(this->queue_mutex);
         std::shared_ptr<threadinfo_t> tinfo = std::make_shared<threadinfo_t>();
+        tinfo->close                        = false;
         tinfo->thread                       = std::thread(&ThreadPool::threadloop, this, tinfo);
         tinfo->id                           = tinfo->thread.get_id();
-        tinfo->close                        = false;
-        thread_arrays.insert({index_num, std::move(tinfo)});
+        std::unique_lock<std::mutex> lock(this->queue_mutex);
+        thread_arrays.emplace_back(tinfo);
         lock.unlock();
-        index_num++;
     }
-    pooltotalnum = index_num;
+
     return true;
 }
 
@@ -240,20 +229,21 @@ ThreadPool::ThreadPool(size_t threads) : isstop(false)
 {
     isclose_add = true;
     cpu_threads = std::thread::hardware_concurrency();
-    cpu_threads = cpu_threads * 4 + 2;
-    pooltotalnum.store(0);
+    cpu_threads = cpu_threads * 2 + 2;
+    mixthreads.store(cpu_threads);
+    cpu_threads = cpu_threads * 2;
     livethreadcount.store(0);
-    mixthreads.store(16);
+
     for (size_t i = 0; i < threads; ++i)
     {
-        std::unique_lock<std::mutex> lock(this->queue_mutex);
         std::shared_ptr<threadinfo_t> tinfo = std::make_shared<threadinfo_t>();
+        tinfo->close                        = false;
         tinfo->thread                       = std::thread(&ThreadPool::threadloop, this, tinfo);
         tinfo->id                           = tinfo->thread.get_id();
-        tinfo->close                        = false;
-        thread_arrays.insert({pooltotalnum.load(), std::move(tinfo)});
+
+        std::unique_lock<std::mutex> lock(this->queue_mutex);
+        thread_arrays.emplace_back(tinfo);
         lock.unlock();
-        pooltotalnum++;
     }
     isclose_add = false;
 }
@@ -261,18 +251,16 @@ ThreadPool::ThreadPool(size_t threads) : isstop(false)
 // the destructor joins all threads
 ThreadPool::~ThreadPool()
 {
-    {
-        std::unique_lock<std::mutex> lock(queue_mutex);
-        isstop = true;
-    }
+    isstop = true;
     condition.notify_all();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     for (auto iter = thread_arrays.begin(); iter != thread_arrays.end();)
     {
-        if (iter->second->thread.joinable())
+        if ((*iter)->thread.joinable())
         {
-            iter->second->thread.join();
+            (*iter)->thread.join();
         }
+        iter++;
     }
 }
 //
