@@ -21,6 +21,7 @@
 #include <list>
 #include <queue>
 #include <cmath>
+#include <algorithm>
 #include <condition_variable>
 #include <sstream>
 #include "mysqlpool.h"
