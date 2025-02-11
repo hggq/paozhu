@@ -21,10 +21,10 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: download mysql
         run: |
-           powershell Invoke-WebRequest -OutFile mysql.zip https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
+           powershell Invoke-WebRequest -OutFile mysql.zip https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.41-winx64.zip
            unzip mysql.zip
-           Move-Item -Path ./mysql-8.0.35-winx64/include -Destination ./
-           Move-Item -Path ./mysql-8.0.35-winx64/lib -Destination ./ 
+           Move-Item -Path ./mysql-8.0.41-winx64/include -Destination ./
+           Move-Item -Path ./mysql-8.0.41-winx64/lib -Destination ./ 
            ls include
       - name: List files in the repository
         run: |
