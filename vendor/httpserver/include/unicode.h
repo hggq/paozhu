@@ -30,7 +30,7 @@ namespace http
     /*
      *  utf8转jsonstring
      */
-    std::string utf8_to_jsonstring(std::string &source);
+    //std::string utf8_to_jsonstring(std::string &source);
     std::string utf8_to_jsonstring(const std::string &source);
     /*
      *  jsonstring转utf8

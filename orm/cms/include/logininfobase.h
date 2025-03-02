@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 08:24:43 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,6 +14,8 @@
 #include <vector>
 #include <ctime>
 #include <array>
+#include "unicode.h"
+
 namespace orm { 
    
      namespace cms { 
@@ -39,12 +41,12 @@ std::vector<logininfobase::meta>::iterator begin(){     return record.begin(); }
 std::vector<logininfobase::meta>::iterator end(){     return record.end(); }
 std::vector<logininfobase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<logininfobase::meta>::const_iterator end() const{     return record.end(); }
-std::array<std::string,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
-std::array<unsigned char,10> col_types= {3,3,1,253,253,253,253,253,253,253};
-std::array<unsigned char,10> col_length= {0,0,0,40,20,70,70,20,120,120};
-std::array<unsigned char,10> col_decimals= {0,0,0,0,0,0,0,0,0,0};
+static constexpr std::array<std::string_view,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
+static constexpr std::array<unsigned char,10> col_types={3,3,1,253,253,253,253,253,253,253};
+static constexpr std::array<unsigned char,10> col_length={0,0,0,40,20,70,70,20,120,120};
+static constexpr std::array<unsigned char,10> col_decimals={0,0,0,0,0,0,0,0,0,0};
 std::string tablename="logininfo";
-std::string modelname="Logininfo";
+static constexpr std::string_view modelname="Logininfo";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

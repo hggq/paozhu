@@ -24,3 +24,4 @@ cmake-build-*
 .idea
 .vscode
 www/default/upload
+orm/_rawsqlfile

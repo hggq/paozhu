@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEPERMSBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 08:24:44 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,6 +14,8 @@
 #include <vector>
 #include <ctime>
 #include <array>
+#include "unicode.h"
+
 namespace orm { 
    
      namespace cms { 
@@ -34,12 +36,12 @@ std::vector<sysrolepermsbase::meta>::iterator begin(){     return record.begin()
 std::vector<sysrolepermsbase::meta>::iterator end(){     return record.end(); }
 std::vector<sysrolepermsbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<sysrolepermsbase::meta>::const_iterator end() const{     return record.end(); }
-std::array<std::string,5> col_names={"rolepermsid","userid","roleid","permsid","sortid"};
-std::array<unsigned char,5> col_types= {3,3,3,3,3};
-std::array<unsigned char,5> col_length= {0,0,0,0,0};
-std::array<unsigned char,5> col_decimals= {0,0,0,0,0};
+static constexpr std::array<std::string_view,5> col_names={"rolepermsid","userid","roleid","permsid","sortid"};
+static constexpr std::array<unsigned char,5> col_types={3,3,3,3,3};
+static constexpr std::array<unsigned char,5> col_length={0,0,0,0,0};
+static constexpr std::array<unsigned char,5> col_decimals={0,0,0,0,0};
 std::string tablename="sysroleperms";
-std::string modelname="Sysroleperms";
+static constexpr std::string_view modelname="Sysroleperms";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

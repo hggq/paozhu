@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 08:24:43 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,6 +14,8 @@
 #include <vector>
 #include <ctime>
 #include <array>
+#include "unicode.h"
+
 namespace orm { 
    
      namespace cms { 
@@ -50,12 +52,12 @@ std::vector<cataloguebase::meta>::iterator begin(){     return record.begin(); }
 std::vector<cataloguebase::meta>::iterator end(){     return record.end(); }
 std::vector<cataloguebase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<cataloguebase::meta>::const_iterator end() const{     return record.end(); }
-std::array<std::string,8> col_names={"cid","userid","level","parentid","name","isview","sortid","imgurl"};
-std::array<unsigned char,8> col_types= {3,3,3,3,253,1,3,253};
-std::array<unsigned char,8> col_length= {0,0,0,0,64,0,0,254};
-std::array<unsigned char,8> col_decimals= {0,0,0,0,0,0,0,0};
+static constexpr std::array<std::string_view,8> col_names={"cid","userid","level","parentid","name","isview","sortid","imgurl"};
+static constexpr std::array<unsigned char,8> col_types={3,3,3,3,253,1,3,253};
+static constexpr std::array<unsigned char,8> col_length={0,0,0,0,64,0,0,254};
+static constexpr std::array<unsigned char,8> col_decimals={0,0,0,0,0,0,0,0};
 std::string tablename="catalogue";
-std::string modelname="Catalogue";
+static constexpr std::string_view modelname="Catalogue";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

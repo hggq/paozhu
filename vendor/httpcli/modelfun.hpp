@@ -5252,6 +5252,11 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     std::string filebasefilename;
     std::string basefilepath;
     std::string model_name_obj=model_name;
+    // std::string conststatic_init_var;
+    // std::string conststatic_init_var_pre;
+    // std::string conststatic_init_var_filename;
+
+    // conststatic_init_var_filename.append("models/");
     colname_first_touper(model_name_obj);
     filebasefilename.resize(model_name.size());
 
@@ -5302,6 +5307,8 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     {
         modelspath.append(rmstag);
         modelspath.push_back('/');
+        // conststatic_init_var_filename.append(rmstag);
+        // conststatic_init_var_filename.push_back('/');
     }
 
     fs::path paths = modelspath;
@@ -5728,6 +5735,12 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
         filemodelstremcpp << tablenamebase << "base.h\"\n";
+
+        // conststatic_init_var+="#include \"";
+        // conststatic_init_var+=rmstag;
+        // conststatic_init_var+="/include/";
+        // conststatic_init_var+=tablenamebase;
+        // conststatic_init_var+="base.h\"\n";
     }
     else
     {
@@ -5735,15 +5748,27 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << model_name;
         filemodelstremcpp << "_mysql.h\" \n#include \"";
         filemodelstremcpp << tablenamebase << "base.h\"\n";
+
+        // conststatic_init_var+="#include \"";
+        // conststatic_init_var+=tablenamebase;
+        // conststatic_init_var+="base.h\"\n";
+
     }
     filemodelstremcpp << "\n/* 如果此文件存在不会自动覆盖，没有则会自动生成。\n*If this file exists, it will not be "
                          "overwritten automatically. If not, it will be generated automatically. */\n";
     filemodelstremcpp << "\n namespace orm {\n";
+
+    // conststatic_init_var+="\n namespace orm {\n";
+
     if (rmstag != "default")
     {
         filemodelstremcpp << "\tnamespace ";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << " { \n";
+
+        // conststatic_init_var+="\tnamespace ";
+        // conststatic_init_var+=rmstag;
+        // conststatic_init_var+=" { \n";
     }
     filemodelstremcpp << "\t\tclass " << model_name_obj << " : public "
                       << model_name << "_mysql<" << model_name_obj << ","
@@ -5823,6 +5848,8 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 #include <vector>
 #include <ctime>
 #include <array>
+#include "unicode.h"
+
 namespace orm { 
    
     )";
@@ -5832,6 +5859,9 @@ namespace orm {
         headtxt.append(rmstag);
         headtxt.append(" { \n");
     }
+    // conststatic_init_var_pre=tablenamebase+"base::";
+    // conststatic_init_var_filename.append(tablenamebase);
+    // conststatic_init_var_filename.append("base.cpp");
     headtxt += R"(
 struct )";
     headtxt.append(tablenamebase);
@@ -5874,60 +5904,98 @@ struct )";
                    << "base::meta>::const_iterator end() const{     return record.end(); }\n";
 
     // may be used to optimize the const static std::array<std::string,N> col_names={"xxx"};
-    filemodelstrem << "std::array<std::string," << std::to_string(table_column_info_lists.size()) << "> col_names={";
+    filemodelstrem << "static constexpr std::array<std::string_view," << std::to_string(table_column_info_lists.size()) << "> col_names={";
 
+    // conststatic_init_var+="const std::array<std::string,";
+    // conststatic_init_var+=std::to_string(table_column_info_lists.size());
+    // conststatic_init_var+="> ";
+    // conststatic_init_var+=conststatic_init_var_pre;
+    // conststatic_init_var+="col_names={";
+    
     for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
     {
         if (j > 0)
         {
             filemodelstrem << ",";
+            //conststatic_init_var+= ",";
         }
         filemodelstrem << "\"" << table_column_info_lists[j].col_name << "\"";
+        // conststatic_init_var+= "\"";
+        // conststatic_init_var+= table_column_info_lists[j].col_name;
+        // conststatic_init_var+= "\"";
     }
     filemodelstrem << "};\r\n";
+    //conststatic_init_var+= "};\r\n";
 
-    filemodelstrem << "std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_types= {";
+    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_types={";
+
+    // conststatic_init_var+="const std::array<unsigned char,";
+    // conststatic_init_var+=std::to_string(table_column_info_lists.size());
+    // conststatic_init_var+="> ";
+    // conststatic_init_var+=conststatic_init_var_pre;
+    // conststatic_init_var+="col_types={";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
         if (j > 0)
         {
             filemodelstrem << ",";
+            //conststatic_init_var+= ",";
         }
         filemodelstrem << std::to_string(table_column_info_lists[j].col_type);
+        //conststatic_init_var+= std::to_string(table_column_info_lists[j].col_type);
     }
     filemodelstrem << "};\r\n";
+    //conststatic_init_var+= "};\r\n";
 
-    filemodelstrem << "std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_length= {";
+    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_length={";
+
+    // conststatic_init_var+="const std::array<unsigned char,";
+    // conststatic_init_var+=std::to_string(table_column_info_lists.size());
+    // conststatic_init_var+="> ";
+    // conststatic_init_var+=conststatic_init_var_pre;
+    // conststatic_init_var+="col_length={";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
         if (j > 0)
         {
             filemodelstrem << ",";
+            //conststatic_init_var+= ",";
         }
         if(table_column_info_lists[j].col_length>255)
         {
-            filemodelstrem << "0";  
+            filemodelstrem << "0";
+            //conststatic_init_var+= "0";  
         }
         else
         {
             filemodelstrem << std::to_string(table_column_info_lists[j].col_length);
+            //conststatic_init_var+= std::to_string(table_column_info_lists[j].col_length);
         }
     }
     filemodelstrem << "};\r\n";
+    //conststatic_init_var+= "};\r\n";
 
-    filemodelstrem << "std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_decimals= {";
+    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_decimals={";
+    // conststatic_init_var+="const std::array<unsigned char,";
+    // conststatic_init_var+=std::to_string(table_column_info_lists.size());
+    // conststatic_init_var+="> ";
+    // conststatic_init_var+=conststatic_init_var_pre;
+    // conststatic_init_var+="col_decimals={";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
         if (j > 0)
         {
             filemodelstrem << ",";
+            //conststatic_init_var+= ",";  
         }
         filemodelstrem << std::to_string(table_column_info_lists[j].decimals);
+        //conststatic_init_var+= std::to_string(table_column_info_lists[j].decimals);
     }
     filemodelstrem << "};\r\n";
+    //conststatic_init_var+= "};\r\n";
 
     headtxt.append(filemodelstrem.str());
     filemodelstrem.str("");
@@ -5938,7 +6006,7 @@ struct )";
     headtxt = "std::string tablename=\"";
     headtxt.append(table_name);
     headtxt += "\";\n";
-    headtxt.append("std::string modelname=\"");
+    headtxt.append("static constexpr std::string_view modelname=\"");
     headtxt.append(model_name_obj);
     headtxt.append("\";\n");
 
@@ -12839,6 +12907,15 @@ struct )";
 
     fclose(f);
 
+    // if (rmstag != "default")
+    // {
+    //     conststatic_init_var.append("\n } \n");
+    // }
+    // conststatic_init_var.append("\n} \n");
+
+    // f=fopen(conststatic_init_var_filename.c_str(),"wb");
+    // fwrite(&conststatic_init_var[0], conststatic_init_var.size(), 1, f);
+    // fclose(f);
     std::cout << " create table metainfo file: \033[1m\033[31m" << filebasename << "\033[0m" << std::endl;
     return 0;
 }

@@ -2,7 +2,7 @@
 #define ORM_CMS_BRANDBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 08:24:43 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,6 +14,8 @@
 #include <vector>
 #include <ctime>
 #include <array>
+#include "unicode.h"
+
 namespace orm { 
    
      namespace cms { 
@@ -38,12 +40,12 @@ std::vector<brandbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<brandbase::meta>::iterator end(){     return record.end(); }
 std::vector<brandbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<brandbase::meta>::const_iterator end() const{     return record.end(); }
-std::array<std::string,9> col_names={"brandid","userid","topicid","sortid","logo","title","name","introduce","detailcontent"};
-std::array<unsigned char,9> col_types= {3,3,3,3,253,253,253,252,252};
-std::array<unsigned char,9> col_length= {0,0,0,0,0,160,160,0,0};
-std::array<unsigned char,9> col_decimals= {0,0,0,0,0,0,0,0,0};
+static constexpr std::array<std::string_view,9> col_names={"brandid","userid","topicid","sortid","logo","title","name","introduce","detailcontent"};
+static constexpr std::array<unsigned char,9> col_types={3,3,3,3,253,253,253,252,252};
+static constexpr std::array<unsigned char,9> col_length={0,0,0,0,0,160,160,0,0};
+static constexpr std::array<unsigned char,9> col_decimals={0,0,0,0,0,0,0,0,0};
 std::string tablename="brand";
-std::string modelname="Brand";
+static constexpr std::string_view modelname="Brand";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

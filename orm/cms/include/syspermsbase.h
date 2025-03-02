@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 08:24:43 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,6 +14,8 @@
 #include <vector>
 #include <ctime>
 #include <array>
+#include "unicode.h"
+
 namespace orm { 
    
      namespace cms { 
@@ -60,12 +62,12 @@ std::vector<syspermsbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<syspermsbase::meta>::iterator end(){     return record.end(); }
 std::vector<syspermsbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<syspermsbase::meta>::const_iterator end() const{     return record.end(); }
-std::array<std::string,13> col_names={"permsid","parentid","userid","urlpath","urlname","name","status","permscode","readonly","created_time","updated_time","created_user","updated_user"};
-std::array<unsigned char,13> col_types= {3,3,3,253,253,253,1,3,1,3,3,3,3};
-std::array<unsigned char,13> col_length= {0,0,0,120,60,60,0,0,0,0,0,0,0};
-std::array<unsigned char,13> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0};
+static constexpr std::array<std::string_view,13> col_names={"permsid","parentid","userid","urlpath","urlname","name","status","permscode","readonly","created_time","updated_time","created_user","updated_user"};
+static constexpr std::array<unsigned char,13> col_types={3,3,3,253,253,253,1,3,1,3,3,3,3};
+static constexpr std::array<unsigned char,13> col_length={0,0,0,120,60,60,0,0,0,0,0,0,0};
+static constexpr std::array<unsigned char,13> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="sysperms";
-std::string modelname="Sysperms";
+static constexpr std::string_view modelname="Sysperms";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

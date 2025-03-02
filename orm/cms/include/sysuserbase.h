@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 08:24:44 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,6 +14,8 @@
 #include <vector>
 #include <ctime>
 #include <array>
+#include "unicode.h"
+
 namespace orm { 
    
      namespace cms { 
@@ -50,12 +52,12 @@ std::vector<sysuserbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<sysuserbase::meta>::iterator end(){     return record.end(); }
 std::vector<sysuserbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<sysuserbase::meta>::const_iterator end() const{     return record.end(); }
-std::array<std::string,21> col_names={"adminid","name","password","textword","isopen","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid"};
-std::array<unsigned char,21> col_types= {3,253,253,253,1,3,3,3,3,3,3,3,3,3,1,253,253,253,253,253,253};
-std::array<unsigned char,21> col_length= {0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,60,40,0,40,60,40};
-std::array<unsigned char,21> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static constexpr std::array<std::string_view,21> col_names={"adminid","name","password","textword","isopen","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid"};
+static constexpr std::array<unsigned char,21> col_types={3,253,253,253,1,3,3,3,3,3,3,3,3,3,1,253,253,253,253,253,253};
+static constexpr std::array<unsigned char,21> col_length={0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,60,40,0,40,60,40};
+static constexpr std::array<unsigned char,21> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="sysuser";
-std::string modelname="Sysuser";
+static constexpr std::string_view modelname="Sysuser";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
