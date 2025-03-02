@@ -5873,7 +5873,8 @@ struct )";
     filemodelstrem << "std::vector<" << tablenamebase
                    << "base::meta>::const_iterator end() const{     return record.end(); }\n";
 
-    filemodelstrem << "static constexpr std::array<std::string," << std::to_string(table_column_info_lists.size()) << "> col_names={";
+    // may be used to optimize the const static std::array<std::string,N> col_names={"xxx"};
+    filemodelstrem << "std::array<std::string," << std::to_string(table_column_info_lists.size()) << "> col_names={";
 
     for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
     {
@@ -5885,7 +5886,7 @@ struct )";
     }
     filemodelstrem << "};\r\n";
 
-    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_types= {";
+    filemodelstrem << "std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_types= {";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
@@ -5897,7 +5898,7 @@ struct )";
     }
     filemodelstrem << "};\r\n";
 
-    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_length= {";
+    filemodelstrem << "std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_length= {";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
@@ -5916,7 +5917,7 @@ struct )";
     }
     filemodelstrem << "};\r\n";
 
-    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_decimals= {";
+    filemodelstrem << "std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_decimals= {";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
@@ -5937,7 +5938,7 @@ struct )";
     headtxt = "std::string tablename=\"";
     headtxt.append(table_name);
     headtxt += "\";\n";
-    headtxt.append("static constexpr std::string modelname=\"");
+    headtxt.append("std::string modelname=\"");
     headtxt.append(model_name_obj);
     headtxt.append("\";\n");
 

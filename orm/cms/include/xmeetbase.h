@@ -2,7 +2,7 @@
 #define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:21 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -49,12 +49,12 @@ std::vector<xmeetbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<xmeetbase::meta>::iterator end(){     return record.end(); }
 std::vector<xmeetbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<xmeetbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,20> col_names={"xmeetid","userid","xpjid","xtaskid","adminid","title","zhuchi","jilu","meetnotice","meetfiles","address","meettime","regdate","expecttime","endtime","presents","content","postresult","postfiles","jiluphoto"};
-static constexpr std::array<unsigned char,20> col_types= {3,3,3,3,3,253,253,253,252,253,253,253,3,3,3,253,252,252,252,253};
-static constexpr std::array<unsigned char,20> col_length= {0,0,0,0,0,120,120,120,0,0,120,120,0,0,0,0,0,0,0,0};
-static constexpr std::array<unsigned char,20> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+std::array<std::string,20> col_names={"xmeetid","userid","xpjid","xtaskid","adminid","title","zhuchi","jilu","meetnotice","meetfiles","address","meettime","regdate","expecttime","endtime","presents","content","postresult","postfiles","jiluphoto"};
+std::array<unsigned char,20> col_types= {3,3,3,3,3,253,253,253,252,253,253,253,3,3,3,253,252,252,252,253};
+std::array<unsigned char,20> col_length= {0,0,0,0,0,120,120,120,0,0,120,120,0,0,0,0,0,0,0,0};
+std::array<unsigned char,20> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="xmeet";
-static constexpr std::string modelname="Xmeet";
+std::string modelname="Xmeet";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

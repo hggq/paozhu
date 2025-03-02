@@ -53,7 +53,7 @@ add_includedirs("libs/pinyin")
 
 --download https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
 --copy include lib to current workspace
-add_includedirs("include", "include/mysql")
+--add_includedirs("include", "include/mysql")
 
 for _, dir in ipairs(os.dirs("$(buildir)/libs/**")) do
     add_includedirs(dir)
@@ -98,7 +98,7 @@ target("paozhu")
 --    add_packages("libqrencode")
 --    add_packages("libpng")
 --    add_packages("freetype")
-    add_packages("mysql")
+--    add_packages("mysql")
     add_packages("brotli")
     add_files("models/**.cpp")
     add_files("vendor/httpserver/**.cpp")
@@ -120,7 +120,7 @@ target("paozhu")
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
-                        target:add("links", "mysqlclient")
+                        -- target:add("links", "mysqlclient")
                     end
                 end
             end 
@@ -141,9 +141,13 @@ target("paozhu_empty")
 
 target("paozhu_cli")
     set_kind("binary")
+    add_packages("openssl")
     add_files("vendor/httpcli/http_cli.cpp")
+    add_files("vendor/httpserver/mysql_conn.cpp")
+    add_files("vendor/httpserver/mysql_conn_pool.cpp")
+    add_files("vendor/httpserver/clientdatacache.cpp")
 
-    add_packages("mysql")
+--    add_packages("mysql")
     on_load(function (target)
         if is_plat("windows") then
             target:add("links", "ws2_32")
@@ -154,7 +158,7 @@ target("paozhu_cli")
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
-                        target:add("links", "mysqlclient")
+                        -- target:add("links", "mysqlclient")
                     end
                 end
             end 

@@ -1,12 +1,9 @@
 {
     "name": "paozhu",
-    "version": "1.5.3",
+    "version": "1.8.0",
     "dependencies": [
         {
             "name": "openssl"
-        },
-        {
-            "name": "libmariadb"
         },
         {
             "name": "brotli"

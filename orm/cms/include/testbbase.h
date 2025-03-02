@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:21 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -32,12 +32,12 @@ std::vector<testbbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<testbbase::meta>::iterator end(){     return record.end(); }
 std::vector<testbbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<testbbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,3> col_names={"tid","score","name"};
-static constexpr std::array<unsigned char,3> col_types= {3,8,253};
-static constexpr std::array<unsigned char,3> col_length= {0,0,30};
-static constexpr std::array<unsigned char,3> col_decimals= {0,0,0};
+std::array<std::string,3> col_names={"tid","score","name"};
+std::array<unsigned char,3> col_types= {3,8,253};
+std::array<unsigned char,3> col_length= {0,0,30};
+std::array<unsigned char,3> col_decimals= {0,0,0};
 std::string tablename="testb";
-static constexpr std::string modelname="Testb";
+std::string modelname="Testb";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

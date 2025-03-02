@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTPARAMBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -56,12 +56,12 @@ std::vector<productparambase::meta>::iterator begin(){     return record.begin()
 std::vector<productparambase::meta>::iterator end(){     return record.end(); }
 std::vector<productparambase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<productparambase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,11> col_names={"ppid","userid","pid","imgurl","price","attachfiles","name","attachdate","sortid","filesize","fileext"};
-static constexpr std::array<unsigned char,11> col_types= {3,3,3,253,8,253,253,253,3,3,253};
-static constexpr std::array<unsigned char,11> col_length= {0,0,0,254,0,254,160,20,0,0,20};
-static constexpr std::array<unsigned char,11> col_decimals= {0,0,0,0,0,0,0,0,0,0,0};
+std::array<std::string,11> col_names={"ppid","userid","pid","imgurl","price","attachfiles","name","attachdate","sortid","filesize","fileext"};
+std::array<unsigned char,11> col_types= {3,3,3,253,8,253,253,253,3,3,253};
+std::array<unsigned char,11> col_length= {0,0,0,254,0,254,160,20,0,0,20};
+std::array<unsigned char,11> col_decimals= {0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="productparam";
-static constexpr std::string modelname="Productparam";
+std::string modelname="Productparam";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

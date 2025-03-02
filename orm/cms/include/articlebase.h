@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -56,12 +56,12 @@ std::vector<articlebase::meta>::iterator begin(){     return record.begin(); }
 std::vector<articlebase::meta>::iterator end(){     return record.end(); }
 std::vector<articlebase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<articlebase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
-static constexpr std::array<unsigned char,27> col_types= {3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
-static constexpr std::array<unsigned char,27> col_length= {0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,0};
-static constexpr std::array<unsigned char,27> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+std::array<std::string,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
+std::array<unsigned char,27> col_types= {3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
+std::array<unsigned char,27> col_length= {0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,0};
+std::array<unsigned char,27> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="article";
-static constexpr std::string modelname="Article";
+std::string modelname="Article";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

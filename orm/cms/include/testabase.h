@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:21 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -46,12 +46,12 @@ std::vector<testabase::meta>::iterator begin(){     return record.begin(); }
 std::vector<testabase::meta>::iterator end(){     return record.end(); }
 std::vector<testabase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<testabase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,6> col_names={"id","parentid","value_id","content","deleted","deletetime"};
-static constexpr std::array<unsigned char,6> col_types= {3,3,1,253,1,3};
-static constexpr std::array<unsigned char,6> col_length= {0,0,0,200,0,0};
-static constexpr std::array<unsigned char,6> col_decimals= {0,0,0,0,0,0};
+std::array<std::string,6> col_names={"id","parentid","value_id","content","deleted","deletetime"};
+std::array<unsigned char,6> col_types= {3,3,1,253,1,3};
+std::array<unsigned char,6> col_length= {0,0,0,200,0,0};
+std::array<unsigned char,6> col_decimals= {0,0,0,0,0,0};
 std::string tablename="testa";
-static constexpr std::string modelname="Testa";
+std::string modelname="Testa";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:21 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -94,12 +94,12 @@ std::vector<xtaskbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<xtaskbase::meta>::iterator end(){     return record.end(); }
 std::vector<xtaskbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<xtaskbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,30> col_names={"xtaskid","userid","xpjid","adminid","parentid","begindate","enddate","expectbegindate","expectenddate","milestone","subxpjid","depxtaskid","referdocid","isfinish","updatedate","finishdate","iscore","xvalue","expectday","realday","pricevalue","title","introduce","xlogo","xcolor","pullurl","pulltitle","pullauthor","note","itemnote"};
-static constexpr std::array<unsigned char,30> col_types= {3,3,3,3,3,3,3,3,3,3,3,3,3,1,3,3,3,5,4,4,4,253,252,253,253,253,253,253,252,252};
-static constexpr std::array<unsigned char,30> col_length= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,60,0,0};
-static constexpr std::array<unsigned char,30> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+std::array<std::string,30> col_names={"xtaskid","userid","xpjid","adminid","parentid","begindate","enddate","expectbegindate","expectenddate","milestone","subxpjid","depxtaskid","referdocid","isfinish","updatedate","finishdate","iscore","xvalue","expectday","realday","pricevalue","title","introduce","xlogo","xcolor","pullurl","pulltitle","pullauthor","note","itemnote"};
+std::array<unsigned char,30> col_types= {3,3,3,3,3,3,3,3,3,3,3,3,3,1,3,3,3,5,4,4,4,253,252,253,253,253,253,253,252,252};
+std::array<unsigned char,30> col_length= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,60,0,0};
+std::array<unsigned char,30> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="xtask";
-static constexpr std::string modelname="Xtask";
+std::string modelname="Xtask";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

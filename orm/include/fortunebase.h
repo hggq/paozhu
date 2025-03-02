@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Fri, 28 Feb 2025 17:20:17 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:04 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -30,12 +30,12 @@ std::vector<fortunebase::meta>::iterator begin(){     return record.begin(); }
 std::vector<fortunebase::meta>::iterator end(){     return record.end(); }
 std::vector<fortunebase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<fortunebase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,2> col_names={"id","message"};
-static constexpr std::array<unsigned char,2> col_types= {3,253};
-static constexpr std::array<unsigned char,2> col_length= {0,0};
-static constexpr std::array<unsigned char,2> col_decimals= {0,0};
+std::array<std::string,2> col_names={"id","message"};
+std::array<unsigned char,2> col_types= {3,253};
+std::array<unsigned char,2> col_length= {0,0};
+std::array<unsigned char,2> col_decimals= {0,0};
 std::string tablename="fortune";
-static constexpr std::string modelname="Fortune";
+std::string modelname="Fortune";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

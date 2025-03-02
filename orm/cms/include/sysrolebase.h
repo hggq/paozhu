@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -36,12 +36,12 @@ std::vector<sysrolebase::meta>::iterator begin(){     return record.begin(); }
 std::vector<sysrolebase::meta>::iterator end(){     return record.end(); }
 std::vector<sysrolebase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<sysrolebase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,7> col_names={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
-static constexpr std::array<unsigned char,7> col_types= {3,3,253,1,8,3,3};
-static constexpr std::array<unsigned char,7> col_length= {0,0,60,0,0,0,0};
-static constexpr std::array<unsigned char,7> col_decimals= {0,0,0,0,0,0,0};
+std::array<std::string,7> col_names={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
+std::array<unsigned char,7> col_types= {3,3,253,1,8,3,3};
+std::array<unsigned char,7> col_length= {0,0,60,0,0,0,0};
+std::array<unsigned char,7> col_decimals= {0,0,0,0,0,0,0};
 std::string tablename="sysrole";
-static constexpr std::string modelname="Sysrole";
+std::string modelname="Sysrole";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

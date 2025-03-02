@@ -2,7 +2,7 @@
 #define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -41,12 +41,12 @@ std::vector<homeblockbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<homeblockbase::meta>::iterator end(){     return record.end(); }
 std::vector<homeblockbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<homeblockbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,12> col_names={"hbid","userid","title","content","jsonconfig","viewtype","gettype","rownum","width","height","strlength","sortid"};
-static constexpr std::array<unsigned char,12> col_types= {3,3,253,252,252,1,1,3,3,3,3,3};
-static constexpr std::array<unsigned char,12> col_length= {0,0,120,0,0,0,0,0,0,0,0,0};
-static constexpr std::array<unsigned char,12> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0};
+std::array<std::string,12> col_names={"hbid","userid","title","content","jsonconfig","viewtype","gettype","rownum","width","height","strlength","sortid"};
+std::array<unsigned char,12> col_types= {3,3,253,252,252,1,1,3,3,3,3,3};
+std::array<unsigned char,12> col_length= {0,0,120,0,0,0,0,0,0,0,0,0};
+std::array<unsigned char,12> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="homeblock";
-static constexpr std::string modelname="Homeblock";
+std::string modelname="Homeblock";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -43,12 +43,12 @@ std::vector<superadminbase::meta>::iterator begin(){     return record.begin(); 
 std::vector<superadminbase::meta>::iterator end(){     return record.end(); }
 std::vector<superadminbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<superadminbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,14> col_names={"adminid","name","password","nickname","isopen","begindate","enddate","regdate","mobile","email","loginnum","qrtemp","wxuuid","basesitepath"};
-static constexpr std::array<unsigned char,14> col_types= {3,253,253,253,1,3,3,253,253,253,3,3,253,253};
-static constexpr std::array<unsigned char,14> col_length= {0,40,40,30,0,0,0,30,40,40,0,0,40,0};
-static constexpr std::array<unsigned char,14> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+std::array<std::string,14> col_names={"adminid","name","password","nickname","isopen","begindate","enddate","regdate","mobile","email","loginnum","qrtemp","wxuuid","basesitepath"};
+std::array<unsigned char,14> col_types= {3,253,253,253,1,3,3,253,253,253,3,3,253,253};
+std::array<unsigned char,14> col_length= {0,40,40,30,0,0,0,30,40,40,0,0,40,0};
+std::array<unsigned char,14> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="superadmin";
-static constexpr std::string modelname="Superadmin";
+std::string modelname="Superadmin";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

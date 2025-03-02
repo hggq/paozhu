@@ -25,10 +25,13 @@
 #include "struct_reflectfile.hpp"
 
 namespace fs = std::filesystem;
-// macos  g++ vendor/httpserver/cli/http_cli.cpp -o clihttp -std=c++20
-// -Ivendor/httpserver/include -lmysqlcppconn8 ubuntu20.04  g++-11
-// vendor/httpserver/cli/http_cli.cpp -o clihttp -std=c++20
-// -Ivendor/httpserver/include -lmysqlcppconn8 -I/usr/include/mysql-cppconn-8
+/*
+g++ http_cli.cpp -std=c++20 -I /Users/hzq/cpp/benchmarks/vendor/httpserver/include \
+ /Users/hzq/cpp/benchmarks/vendor/httpserver/src/mysql_conn.cpp \
+ /Users/hzq/cpp/benchmarks/vendor/httpserver/src/mysql_conn_pool.cpp \
+ -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lz \
+ /Users/hzq/cpp/benchmarks/vendor/httpserver/src/clientdatacache.cpp -g -fsanitize=address
+*/ 
 int main(int argc, char *argv[])
 {
     std::string commandstr;

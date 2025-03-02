@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 04:53:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -66,12 +66,12 @@ std::vector<departmentbase::meta>::iterator begin(){     return record.begin(); 
 std::vector<departmentbase::meta>::iterator end(){     return record.end(); }
 std::vector<departmentbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<departmentbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string,16> col_names={"dpid","userid","parentid","name","depart_code","bianzhi_num","real_num","quan_weight","isopen","memo","created_time","created_user","updated_time","updated_user","isvirtual","linkdpid"};
-static constexpr std::array<unsigned char,16> col_types= {3,3,3,253,253,3,3,3,1,252,3,3,3,3,1,253};
-static constexpr std::array<unsigned char,16> col_length= {0,0,0,40,20,0,0,0,0,0,0,0,0,0,0,0};
-static constexpr std::array<unsigned char,16> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+std::array<std::string,16> col_names={"dpid","userid","parentid","name","depart_code","bianzhi_num","real_num","quan_weight","isopen","memo","created_time","created_user","updated_time","updated_user","isvirtual","linkdpid"};
+std::array<unsigned char,16> col_types= {3,3,3,253,253,3,3,3,1,252,3,3,3,3,1,253};
+std::array<unsigned char,16> col_length= {0,0,0,40,20,0,0,0,0,0,0,0,0,0,0,0};
+std::array<unsigned char,16> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="department";
-static constexpr std::string modelname="Department";
+std::string modelname="Department";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)

@@ -5292,7 +5292,7 @@ M_MODEL& or_leRandomnumber(T val)
             {
                 if (conn_empty())
                 {
-                    return 0;
+                    return *mod;
                 }
                 auto conn = conn_obj->get_select_conn();
 
@@ -5313,7 +5313,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     error_msg = conn->ec.message();
                     iserror   = true;
-                    return 0;
+                    return *mod;
                 }
                 
                 pack_info_t temp_pack_data;
