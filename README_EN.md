@@ -376,14 +376,14 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 
 ### 10.Roadmap
 
-* [ ] 1.Improved http features, Full testing HTTP/2, Resist hackers scanning websites
+* [x] ~~1.Improved http features, Full testing HTTP/2, Resist hackers scanning websites~~
 * [ ] 2.Use C++ parse JSX file , Server Side Rendering
 * [ ] 3.Httpclient Improved,Support Protocol forwarding
 * [ ] 4.Websocket client  
 * [x] ~~5.Support windows~~  
 * [ ] 6.Postgres,sqlite ORM
 * [x] ~~7.Support php-fpm  backend~~  
-* [ ] 8.Parsing MySQL Protocol for ORM
+* [x] ~~8.Parsing MySQL Protocol for ORM~~  
 
 
 ### 11.Contribute👏👋
