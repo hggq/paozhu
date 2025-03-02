@@ -240,6 +240,9 @@ if (ENABLE_VCPKG)
     # target_include_directories(paozhu PUBLIC ${MYSQL_ROOT_DIR}/mysql)
     # target_include_directories(paozhu_cli PUBLIC ${MYSQL_ROOT_DIR}/mysql)
 
+    target_link_libraries(paozhu_cli asio::asio)
+    target_link_libraries(paozhu_cli OpenSSL::Crypto OpenSSL::SSL)
+
     if (ENABLE_GD STREQUAL "ON")
         find_package(PkgConfig)
         pkg_check_modules(LIBGD REQUIRED IMPORTED_TARGET gdlib)
