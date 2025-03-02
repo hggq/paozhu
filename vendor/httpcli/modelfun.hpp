@@ -5236,6 +5236,14 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         template_file.push_back('/');
     }
     template_file.append("orm/");
+
+    if (db_tag != "default")
+    {
+        template_file.append(db_tag);
+        template_file.push_back('/');
+    }
+
+    template_file.append("include/");
     template_file.append(table_name);
     template_file.append("_mysql");
     template_file.append(".h");

@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sun, 02 Mar 2025 08:24:43 GMT
+*本文件为自动生成 Sun, 02 Mar 2025 10:54:33 GMT
 ***/
 #include <iostream>
 #include <cstdio>
