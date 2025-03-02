@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 10 Dec 2024 07:41:52 GMT
+*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,7 +14,6 @@
 #include <vector>
 #include <ctime>
 #include <array>
-#include "mysql.h"
 namespace orm { 
    
      namespace cms { 
@@ -22,26 +21,27 @@ namespace orm {
 struct sysrolebase
 {
     struct meta{
-    unsigned  int roleid= 0; //
-unsigned  int userid= 0; //
- std::string name=""; //
-unsigned  char status=0; //
-unsigned  long long rolecode=0; //
- int sortid= 0; //
-unsigned  int rolevalue= 0; //
+     unsigned  int  roleid = 0; ///**/
+ unsigned  int  userid = 0; ///**/
+ std::string  name = ""; ///**/
+ unsigned  char  status = 0; ///**/
+ unsigned  long long  rolecode = 0; ///**/
+ int  sortid = 0; ///**/
+ unsigned  int  rolevalue = 0; ///**/
  } data;
  std::vector<sysrolebase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-std::vector<unsigned char> _keypos{0x00};
-MYSQL_ROW _row;
+unsigned int _offset=0;
 std::vector<sysrolebase::meta>::iterator begin(){     return record.begin(); }
 std::vector<sysrolebase::meta>::iterator end(){     return record.end(); }
 std::vector<sysrolebase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<sysrolebase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,7> colnames={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
-const std::array<unsigned char,7> colnamestype= {3,3,253,1,8,3,3};
+static constexpr std::array<std::string,7> col_names={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
+static constexpr std::array<unsigned char,7> col_types= {3,3,253,1,8,3,3};
+static constexpr std::array<unsigned char,7> col_length= {0,0,60,0,0,0,0};
+static constexpr std::array<unsigned char,7> col_decimals= {0,0,0,0,0,0,0};
 std::string tablename="sysrole";
-std::string modelname="Sysrole";
+static constexpr std::string modelname="Sysrole";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -111,140 +111,9 @@ break;
      
          return temp;
      }
-     void _setColnamevalue()
-      {
-        for(unsigned char i=0;i<_keypos.size();i++)
-        {
-            switch(_keypos[i]){
-        	case 0:
-		 try{
-			data.roleid=std::stoul(_row[i]);
-		}catch (...) { 
-			data.roleid=0;
-			 }
-			break;
-	case 1:
-		 try{
-			data.userid=std::stoul(_row[i]);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-	case 2:
-		 try{
-			data.name.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-	case 3:
-		 try{
-			data.status=std::stoi(_row[i]);
-		}catch (...) { 
-			data.status=0;
-			 }
-			break;
-	case 4:
-		 try{
-			data.rolecode=std::stoull(_row[i]);
-		}catch (...) { 
-			data.rolecode=0;
-			 }
-			break;
-	case 5:
-		 try{
-			data.sortid=std::stoi(_row[i]);
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-	case 6:
-		 try{
-			data.rolevalue=std::stoul(_row[i]);
-		}catch (...) { 
-			data.rolevalue=0;
-			 }
-			break;
-	default:
-		 { }
-			
+     
 
-                 }
-
-                 if(i>210){
-                     break;
-                 }
-          }
-   } 
-         void _addnewrowvalue(){
-           sysrolebase::meta metatemp;   
-
-          for(unsigned char i=0;i<_keypos.size();i++){
- 
-                 switch(_keypos[i]){
-
-        	case 0:
-		 try{
-			metatemp.roleid=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.roleid=0;
-			 }
-			break;
-	case 1:
-		 try{
-			metatemp.userid=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.userid=0;
-			 }
-			break;
-	case 2:
-		 try{
-			metatemp.name.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.name.clear();
-			 }
-			break;
-	case 3:
-		 try{
-			metatemp.status=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.status=0;
-			 }
-			break;
-	case 4:
-		 try{
-			metatemp.rolecode=std::stoull(_row[i]);
-		}catch (...) { 
-			metatemp.rolecode=0;
-			 }
-			break;
-	case 5:
-		 try{
-			metatemp.sortid=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.sortid=0;
-			 }
-			break;
-	case 6:
-		 try{
-			metatemp.rolevalue=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.rolevalue=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-                  }
-                 if(i>210){
-                     break;
-                 }
-          }
-           record.emplace_back(std::move(metatemp)); 
-   } 
-
-  inline  std::string stringaddslash(std::string &content){
+  inline  std::string stringaddslash(const std::string &content){
         std::string temp;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
@@ -261,7 +130,7 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(std::string &content){
+  inline  std::string jsonaddslash(const std::string &content){
         std::string temp;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
@@ -278,23 +147,23 @@ break;
    }  
 
    std::string _makeinsertsql(){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES (";
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES (";
 
         if(data.roleid==0){
 tempsql<<"null";
@@ -333,24 +202,24 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql( meta &insert_data){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES (";
+      std::string _makerecordinsertsql(const meta &insert_data){
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES (";
 
         if(insert_data.roleid==0){
 tempsql<<"null";
@@ -389,35 +258,35 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-      std::string _makerecordinsertsql( std::vector<meta> &insert_data){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES ";
+    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES ";
 
-    for(unsigned int i=0;i<insert_data.size();i++)
-    {
-		if(i>0)
-		{
-			tempsql<<",";	
-		}
-		tempsql<<"(";
+        for(unsigned int i=0;i<insert_data.size();i++)
+        {
+            if(i>0)
+            {
+                tempsql<<",";	
+            }
+            tempsql<<"(";
 
 
-        	if(insert_data[i].roleid==0){
+            	if(insert_data[i].roleid==0){
 	tempsql<<"null";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].roleid);
@@ -456,17 +325,16 @@ tempsql<<")";
    } 
        
     std::string _makeupdatesql(const std::string &fileld){
-       //int j=0;
-            std::ostringstream tempsql;
-                 tempsql<<"UPDATE ";
-                 tempsql<<tablename;
-                 tempsql<<" SET ";
+        std::ostringstream tempsql;
+        tempsql<<"UPDATE ";
+        tempsql<<tablename;
+        tempsql<<" SET ";
 
-            bool isall=false;
-            if(fileld.empty()){
-                isall=true;
-            }
-            if(isall){
+        bool isall=false;
+        if(fileld.empty()){
+            isall=true;
+        }
+        if(isall){
 
         if(data.roleid==0){
 	tempsql<<"`roleid`=0";
@@ -510,7 +378,7 @@ if(data.rolevalue==0){
                                 unsigned char bpos_i=findcolpos(keyname);
                                keypos.emplace_back(bpos_i); 
 #ifdef DEBUG
-                    if (bpos_i == 254)
+                    if (bpos_i == 255)
                     {
                         std::cout << "\033[1m\033[31m-----------\n"
                                   << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
@@ -530,7 +398,7 @@ if(data.rolevalue==0){
                  if(keyname.size()>0){
                                 unsigned char bpos_i=findcolpos(keyname);
  #ifdef DEBUG
-                    if (bpos_i == 254)
+                    if (bpos_i == 255)
                     {
                         std::cout << "\033[1m\033[31m-----------\n"
                                   << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
@@ -614,7 +482,7 @@ if(data.rolevalue==0){
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < colnames.size(); j++)
+        for (; j < col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -624,7 +492,7 @@ if(data.rolevalue==0){
             {
                 tempsql << "`";
             }
-            tempsql << colnames[j];
+            tempsql << col_names[j];
         }
         if (j > 0)
         {
@@ -683,7 +551,7 @@ if(data.rolevalue==0){
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < colnames.size(); j++)
+        for (; j < col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -693,7 +561,7 @@ if(data.rolevalue==0){
             {
                 tempsql << "`";
             }
-            tempsql << colnames[j];
+            tempsql << col_names[j];
         }
         if (j > 0)
         {
@@ -744,33 +612,12 @@ if(data.rolevalue==0){
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
 
      
-    std::string keyname;
-    unsigned char jj=0;
-    j=0;
-     if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                    if(fileld[jj]==','){
-                        if(findcolpos(keyname)<255)
-                        {
-                            if(j>0)
-                            {
-                                tempsql<<",";
-                            }
-                            tempsql<<keyname;
-                            tempsql<<"=new.";
-                            tempsql<<keyname;
-                             
-                        }
-                        continue;   
-                    }
-                    if(fileld[jj]==0x20){
-
-                        continue;   
-                    }
-                    keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
+        std::string keyname;
+        unsigned char jj=0;
+        j=0;
+        if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
                 if(findcolpos(keyname)<255)
                 {
                     if(j>0)
@@ -780,10 +627,30 @@ if(data.rolevalue==0){
                     tempsql<<keyname;
                     tempsql<<"=new.";
                     tempsql<<keyname;
-                    
                 }
+                continue;   
             }
-        } 
+            if(fileld[jj]==0x20){
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
+
+        }  
+        if(keyname.size()>0){
+            if(findcolpos(keyname)<255)
+            {
+                if(j>0)
+                {
+                    tempsql<<",";
+                }
+                tempsql<<keyname;
+                tempsql<<"=new.";
+                tempsql<<keyname;
+                
+            }
+        }
+
+    } 
  
  return tempsql.str();
 }
@@ -795,30 +662,30 @@ if(data.rolevalue==0){
         std::vector<unsigned char> keypos;
         if(fileld.size()>1){
             for(;jj<fileld.size();jj++){
-                    if(fileld[jj]==','){
-                        keypos.emplace_back(findcolpos(keyname)); 
-                        keyname.clear();
-                        continue;   
-                    }
-                    if(fileld[jj]==0x20){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
 
-                        continue;   
-                    }
-                    keyname.push_back(fileld[jj]);
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
 
             }  
             if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
             }
         }else{
-            for(jj=0;jj<colnames.size();jj++){
+            for(jj=0;jj<col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
                
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+            for(jj=0;jj<keypos.size();jj++){
+                switch(keypos[jj]){
          case 0:
 if(data.roleid==0){
 	temparray.push_back("0");
@@ -875,35 +742,35 @@ if(data.rolevalue==0){
    
    std::map<std::string,std::string> data_tomap(std::string fileld=""){
        std::map<std::string,std::string> tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>1){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>1){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
 if(data.roleid==0){
 	tempsql.insert({"roleid","0"});
@@ -1001,36 +868,36 @@ tempsql<<"}";
    }   
    
    std::string data_tojson(std::string fileld){
-       std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                 tempsql<<"{";
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"{";
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.roleid==0){
@@ -1510,43 +1377,43 @@ if(data.rolevalue==0){
    } 
     
    std::string to_json(std::string fileld=""){
-       std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+    std::ostringstream tempsql;
+    std::string keyname;
+    unsigned char jj=0;
+    std::vector<unsigned char> keypos;
+    if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                tempsql<<"[";
-              for(size_t n=0;n<record.size();n++){
-                  if(n>0){
-                      tempsql<<",{";
-                  }else{
-                      tempsql<<"{";
-                  }  
-                 
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+    }else{
+        for(jj=0;jj<col_names.size();jj++){
+            keypos.emplace_back(jj); 
+        }
+    }
+    tempsql<<"[";
+    for(size_t n=0;n<record.size();n++){
+        if(n>0){
+            tempsql<<",{";
+        }else{
+            tempsql<<"{";
+        }  
+    
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(record[n].roleid==0){
@@ -1612,49 +1479,49 @@ if(record[n].rolevalue==0){
    
    std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                tempsql<<"[";
-              for(size_t n=0;n<record.size();n++){
-                 keyname.clear();
-                 if(func(keyname,record[n])){ 
-                            if(n>0){
-                                tempsql<<",{";
-                            }else{
-                                tempsql<<"{";
-                            } 
-                            tempsql<<keyname;
-                 }else{
-                    continue;
-                 } 
-                  
-                 for(jj=0;jj<keypos.size();jj++){
-                        
-                       switch(keypos[jj]){
+            }  
+            if(keyname.size()>0){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<record.size();n++){
+            keyname.clear();
+            if(func(keyname,record[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+            }else{
+            continue;
+            } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(record[n].roleid==0){
@@ -1719,28 +1586,28 @@ if(record[n].rolevalue==0){
    }   
    long long getPK(){  return data.roleid; } 
  void setPK(long long val){  data.roleid=val;} 
-unsigned  int  getRoleid(){  return data.roleid; } 
- void setRoleid(unsigned  int  val){  data.roleid=val;} 
+ unsigned  int  getRoleid(){  return data.roleid; } 
+ void setRoleid( unsigned  int  val){  data.roleid=val;} 
 
-unsigned  int  getUserid(){  return data.userid; } 
- void setUserid(unsigned  int  val){  data.userid=val;} 
+ unsigned  int  getUserid(){  return data.userid; } 
+ void setUserid( unsigned  int  val){  data.userid=val;} 
 
-std::string getName(){  return data.name; } 
-std::string& getRefName(){  return std::ref(data.name); } 
- void setName(std::string &val){  data.name=val;} 
+ std::string  getName(){  return data.name; } 
+ std::string & getRefName(){  return std::ref(data.name); } 
+ void setName( std::string  &val){  data.name=val;} 
  void setName(std::string_view val){  data.name=val;} 
 
-unsigned  int  getStatus(){  return data.status; } 
- void setStatus(unsigned  int  val){  data.status=val;} 
+ unsigned  char  getStatus(){  return data.status; } 
+ void setStatus( unsigned  char  val){  data.status=val;} 
 
-unsigned  long long  getRolecode(){  return data.rolecode; } 
- void setRolecode(unsigned  long long  val){  data.rolecode=val;} 
+ unsigned  long long  getRolecode(){  return data.rolecode; } 
+ void setRolecode( unsigned  long long  val){  data.rolecode=val;} 
 
  int  getSortid(){  return data.sortid; } 
  void setSortid( int  val){  data.sortid=val;} 
 
-unsigned  int  getRolevalue(){  return data.rolevalue; } 
- void setRolevalue(unsigned  int  val){  data.rolevalue=val;} 
+ unsigned  int  getRolevalue(){  return data.rolevalue; } 
+ void setRolevalue( unsigned  int  val){  data.rolevalue=val;} 
 
 sysrolebase::meta getnewData(){
  	 struct meta newdata;

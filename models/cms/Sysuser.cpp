@@ -1,7 +1,8 @@
 
-#include "mysqlmodel.hpp" 
+#include "sysuser_mysql.h"
 #include "cms/include/sysuserbase.h"
 #include "cms/include/Sysuser.h"
+#include "cms/include/Article.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。
 *If this file exists, it will not be overwritten automatically. If not, it will be generated automatically. */
@@ -9,9 +10,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Sysuser::Sysuser(std::string dbtag):mysqlclientDB(dbtag){}
-			 Sysuser::Sysuser():mysqlclientDB(){}
+			 Sysuser::Sysuser(std::string dbtag):sysuser_mysql(dbtag){ mod=this; }
+			 Sysuser::Sysuser():sysuser_mysql(){ mod=this; }
 
 			std::vector<orm::cms::articlebase::meta> Sysuser::gettoparticle(int userid)
 			{

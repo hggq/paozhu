@@ -22,8 +22,10 @@
 #include "http2_send_queue.h"
 #include "httphook.h"
 #include "func.h"
-#include "mysqlconfig.h"
-#include "mysqlpool.h"
+
+#include "mysql_conn.h"
+#include "mysql_conn_pool.h"
+
 #include "autocontrolmethod.hpp"
 #include "reghttpmethod.hpp"
 #include "reghttpmethod_pre.hpp"
@@ -1571,10 +1573,10 @@ namespace http
         auto initiate = [](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
                            std::shared_ptr<client_session> peer_session) mutable
         {
-            std::unique_lock lk(peer_session->waituphttp2_mutex);
+            //std::unique_lock lk(peer_session->waituphttp2_mutex);
             peer_session->user_code_handler_call.push_back(std::move(handler));
             peer_session->http2_need_wakeup = true;
-            lk.unlock();
+            //lk.unlock();
         };
         return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer_session);
     }
@@ -1979,7 +1981,12 @@ namespace http
         DEBUG_LOG("http2_ring_client_server exit ");
         co_return;
     }
-
+    
+    asio::awaitable<void> httpserver::clientpeerstop(std::shared_ptr<client_session> peer_session)
+    {
+        co_await peer_session->async_stop();
+        co_return;
+    }
     asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> peer_session, bool isssl)
     {
         try
@@ -2955,44 +2962,45 @@ namespace http
                     }
                 }
 
-                if (fps % 13 == 0)
-                {
-                    unsigned int session_num = 0;
+                // if (fps % 13 == 0)
+                // {
+                //     unsigned int session_num = 0;
 
-                    std::unique_lock lk(wait_clear_mutex);
-                    session_num = socket_session_wait_clear.size();
-                    lk.unlock();
+                //     std::unique_lock lk(wait_clear_mutex);
+                //     session_num = socket_session_wait_clear.size();
+                //     lk.unlock();
 
-                    if (session_num > 0)
-                    {
-                        log_item.clear();
-                        log_item.append("-- clear sock num ");
-                        log_item.append(std::to_string(session_num));
-                        log_item.append(" --\n");
-                        std::unique_lock<std::mutex> lock(log_mutex);
-                        error_loglist.emplace_back(log_item);
-                        lock.unlock();
+                //     if (session_num > 0)
+                //     {
+                //         log_item.clear();
+                //         log_item.append("-- clear sock num ");
+                //         log_item.append(std::to_string(session_num));
+                //         log_item.append(" --\n");
+                //         std::unique_lock<std::mutex> lock(log_mutex);
+                //         error_loglist.emplace_back(log_item);
+                //         lock.unlock();
 
-                        for (unsigned int i = 0; i < 100; i++)
-                        {
-                            std::unique_lock lk(wait_clear_mutex);
-                            if (socket_session_wait_clear.size() > 0)
-                            {
-                                auto p_sock_session = std::move(socket_session_wait_clear.front());
-                                socket_session_wait_clear.pop_front();
-                                lk.unlock();
-                                p_sock_session->stop();
-                            }
-                            else
-                            {
-                                lk.unlock();
-                                break;
-                            }
+                //         for (unsigned int i = 0; i < 100; i++)
+                //         {
+                //             std::unique_lock lk(wait_clear_mutex);
+                //             if (socket_session_wait_clear.size() > 0)
+                //             {
+                //                 auto p_sock_session = std::move(socket_session_wait_clear.front());
+                //                 socket_session_wait_clear.pop_front();
+                //                 lk.unlock();
+                //                 //p_sock_session->stop();
+                //                 co_spawn(this->io_context, clientpeerstop(p_sock_session), asio::detached);
+                //             }
+                //             else
+                //             {
+                //                 lk.unlock();
+                //                 break;
+                //             }
 
-                            DEBUG_LOG("socket_session_wait_clear stop");
-                        }
-                    }
-                }
+                //             DEBUG_LOG("socket_session_wait_clear stop");
+                //         }
+                //     }
+                // }
 
                 if (fps > 31536000)
                 {
@@ -3289,16 +3297,7 @@ namespace http
     void httpserver::httpwatch()
     {
         serverconfig &sysconfigpath = getserversysconfig();
-        try
-        {
-            mysqlconfig_init_link();
-        }
-        catch (const char *e)
-        {
-            std::string errorstr(e);
-            errorstr.push_back('\n');
-            error_loglist.emplace_back(errorstr);
-        }
+
         std::unique_lock<std::mutex> loglock(log_mutex);
         error_loglist.push_back("------------begin-----------");
         error_loglist.push_back(get_date("%Y-%m-%d %X\n"));
@@ -3331,15 +3330,15 @@ namespace http
                     client << " ";
                     try
                     {
-                        std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                        //std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
                         isshow = 0;
-                        for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
-                        {
-                            client << " [db:" << iter->second->select_link.db
-                                   << " select:" << std::to_string(iter->second->select_current_num);
-                            client << " edit:" << std::to_string(iter->second->edit_current_num);
-                            ++isshow;
-                        }
+                        // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+                        // {
+                        //     client << " [db:" << iter->second->select_link.db
+                        //            << " select:" << std::to_string(iter->second->select_current_num);
+                        //     client << " edit:" << std::to_string(iter->second->edit_current_num);
+                        //     ++isshow;
+                        // }
                         client << "]</p>";
                         client << self->clientrunpool.printthreads(true);
                     }
@@ -3401,6 +3400,23 @@ namespace http
         std::string error_msg_loop;
         std::string traffic_switch_file;
         std::string restart_file;
+        std::string restart_ssl_file;
+        try
+        {
+            currentpath = sysconfigpath.configpath;
+            if (currentpath.size() > 0 && currentpath.back() != '/')
+            {
+                currentpath.push_back('/');
+            }
+            currentpath.append("orm.conf");
+            orm::init_orm_conn_pool(io_context, currentpath);
+        }
+        catch (const char *e)
+        {
+            std::string errorstr(e);
+            errorstr.push_back('\n');
+            error_loglist.emplace_back(errorstr);
+        }
 
         server_loaclvar &static_server_var = get_server_global_var();
         currentpath = static_server_var.log_path;
@@ -3412,11 +3428,13 @@ namespace http
         error_path = currentpath;
         traffic_switch_file = currentpath;
         restart_file = currentpath;
+        restart_ssl_file = currentpath;
 
         currentpath.append("access.log");
         error_path.append("error.log");
         traffic_switch_file.append("traffic_switch_file");
         restart_file.append("restart_server");
+        restart_ssl_file.append("restart_ssl_config");
 
         unsigned int mysqlpool_time = 1;
         unsigned int remove_linknum = 0;
@@ -3796,24 +3814,40 @@ namespace http
                 {
                     if (total_count.load() == old_total_count)
                     {
-                        std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                        std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
                         for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                         {
-                            iter->second->clearpool();
-                            iter->second->addpool_select_connect();
-                            iter->second->addpool_edit_connect();
+                            iter->second->clear_select_conn();
+                            // iter->second->addpool_select_connect();
+                            // iter->second->addpool_edit_connect();
                             DEBUG_LOG("mysql pool clearpoool ");
                         }
+                        // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                        // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+                        // {
+                        //     iter->second->clearpool();
+                        //     iter->second->addpool_select_connect();
+                        //     iter->second->addpool_edit_connect();
+                        //     DEBUG_LOG("mysql pool clearpoool ");
+                        // }
                     }
                 }
 
                 if (now->tm_hour < 3 && mysqlpool_time > 82800)
                 {
-                    std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                    std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
                     for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                     {
-                        iter->second->clearpool();
+                        iter->second->clear_select_conn();
+                        // iter->second->addpool_select_connect();
+                        // iter->second->addpool_edit_connect();
+                        DEBUG_LOG("mysql pool clearpoool ");
                     }
+                    // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
+                    // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+                    // {
+                    //     iter->second->clearpool();
+                    // }
                     mysqlpool_time = 1;
                 }
 
@@ -3934,10 +3968,11 @@ namespace http
                             {
                                 if (p_session->time_limit.load() > 100 && p_session->time_limit.load() < nowtimeid)
                                 {
-                                    std::unique_lock lk(wait_clear_mutex);
-                                    socket_session_wait_clear.push_back(std::move(p_session));
-                                    lk.unlock();
-                                    DEBUG_LOG("socket_session_wait_clear push_back");
+                                    co_spawn(this->io_context, clientpeerstop(p_session), asio::detached);
+                                    // std::unique_lock lk(wait_clear_mutex);
+                                    // socket_session_wait_clear.push_back(std::move(p_session));
+                                    // lk.unlock();
+                                    DEBUG_LOG("socket_session_wait_clear co_spawn");
                                     socket_session_lists.erase(iter++);
                                     erase_count_num++;
                                 }
@@ -4038,8 +4073,25 @@ namespace http
                     if (fs::exists(restart_file))
                     {
                         isstop = true;
+                        if(remove(restart_file.c_str())==0)
+                        {
+                            DEBUG_LOG(" -- remove restart_file -- ");
+                        }
                     }
                 }
+                if (mysqlpool_time % 13 == 0)
+                {
+                    if (fs::exists(restart_ssl_file))
+                    {
+                        DEBUG_LOG(" -- clearctx-- ");
+                        sysconfigpath.clearctx();
+                        if(remove(restart_ssl_file.c_str())==0)
+                        {
+                            DEBUG_LOG(" -- remove restart_ssl_file -- ");
+                        }
+                    }
+                }
+                
                 // may be asio post pool is die;
                 if (total_http2_count.load() > 4)
                 {

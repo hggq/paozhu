@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "sysperms_mysql.h"
 #include "cms/include/syspermsbase.h"
 #include "cms/include/Sysperms.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Sysperms::Sysperms(std::string dbtag):mysqlclientDB(dbtag){}
-			 Sysperms::Sysperms():mysqlclientDB(){}
+			 Sysperms::Sysperms(std::string dbtag):sysperms_mysql(dbtag){ mod=this; }
+			 Sysperms::Sysperms():sysperms_mysql(){ mod=this; }
 
 
 		} 

@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "testa_mysql.h"
 #include "cms/include/testabase.h"
 #include "cms/include/Testa.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Testa::Testa(std::string dbtag):mysqlclientDB(dbtag){}
-			 Testa::Testa():mysqlclientDB(){}
+			 Testa::Testa(std::string dbtag):testa_mysql(dbtag){ mod=this; }
+			 Testa::Testa():testa_mysql(){ mod=this; }
 
 
 		} 

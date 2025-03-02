@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 10 Dec 2024 07:41:37 GMT
+*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,7 +14,6 @@
 #include <vector>
 #include <ctime>
 #include <array>
-#include "mysql.h"
 namespace orm { 
    
      namespace cms { 
@@ -22,46 +21,47 @@ namespace orm {
 struct articlebase
 {
     struct meta{
-    unsigned  int aid= 0; //
-unsigned  int topicid= 0; //栏目id
-unsigned  int classtype= 0; //
-unsigned  int userid= 0; //
- int sortid= 0; //排序
- std::string topicname=""; //
- std::string title=""; //
- std::string keywords=""; //关键字
- std::string fromsource=""; //文章来源
- std::string author=""; //文章作者
- std::string addip=""; //
- std::string createtime=""; //显示的创建时间
-unsigned  long long addtime=0; //添加或修改时间
- int readnum= 0; //
- int review= 0; //
- std::string icoimg=""; //列表图片
- std::string content=""; //
- std::string mdcontent=""; //markdown content
- char isopen=0; //是否开放
- char ishome=0; //show homepage
- char iscomment=0; //是否可以评论
- char showtype=0; //art content display type
- std::string fromlocal=""; //发表地址
- std::string texturl=""; //url用英文代替
- std::string summary=""; //文章摘要
- std::string editauthor=""; //文章编辑
- std::string relatecontent=""; //相关内容
+     unsigned  int  aid = 0; ///**/
+ unsigned  int  topicid = 0; ///*栏目id*/
+ unsigned  int  classtype = 0; ///**/
+ unsigned  int  userid = 0; ///**/
+ int  sortid = 0; ///*排序*/
+ std::string  topicname = ""; ///**/
+ std::string  title = ""; ///**/
+ std::string  keywords = ""; ///*关键字*/
+ std::string  fromsource = ""; ///*文章来源*/
+ std::string  author = ""; ///*文章作者*/
+ std::string  addip = ""; ///**/
+ std::string  createtime = ""; ///*显示的创建时间*/
+ unsigned  long long  addtime = 0; ///*添加或修改时间*/
+ int  readnum = 0; ///**/
+ int  review = 0; ///**/
+ std::string  icoimg = ""; ///*列表图片*/
+ std::string  content = ""; ///**/
+ std::string  mdcontent = ""; ///*markdown content*/
+ char  isopen = 0; ///*是否开放*/
+ char  ishome = 0; ///*show homepage*/
+ char  iscomment = 0; ///*是否可以评论*/
+ char  showtype = 0; ///*art content display type*/
+ std::string  fromlocal = ""; ///*发表地址*/
+ std::string  texturl = ""; ///*url用英文代替*/
+ std::string  summary = ""; ///*文章摘要*/
+ std::string  editauthor = ""; ///*文章编辑*/
+ std::string  relatecontent = ""; ///*相关内容*/
  } data;
  std::vector<articlebase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-std::vector<unsigned char> _keypos{0x00};
-MYSQL_ROW _row;
+unsigned int _offset=0;
 std::vector<articlebase::meta>::iterator begin(){     return record.begin(); }
 std::vector<articlebase::meta>::iterator end(){     return record.end(); }
 std::vector<articlebase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<articlebase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,27> colnames={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
-const std::array<unsigned char,27> colnamestype= {3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
+static constexpr std::array<std::string,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
+static constexpr std::array<unsigned char,27> col_types= {3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
+static constexpr std::array<unsigned char,27> col_length= {0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,0};
+static constexpr std::array<unsigned char,27> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="article";
-std::string modelname="Article";
+static constexpr std::string modelname="Article";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -209,420 +209,9 @@ break;
      
          return temp;
      }
-     void _setColnamevalue()
-      {
-        for(unsigned char i=0;i<_keypos.size();i++)
-        {
-            switch(_keypos[i]){
-        	case 0:
-		 try{
-			data.aid=std::stoul(_row[i]);
-		}catch (...) { 
-			data.aid=0;
-			 }
-			break;
-	case 1:
-		 try{
-			data.topicid=std::stoul(_row[i]);
-		}catch (...) { 
-			data.topicid=0;
-			 }
-			break;
-	case 2:
-		 try{
-			data.classtype=std::stoul(_row[i]);
-		}catch (...) { 
-			data.classtype=0;
-			 }
-			break;
-	case 3:
-		 try{
-			data.userid=std::stoul(_row[i]);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-	case 4:
-		 try{
-			data.sortid=std::stoi(_row[i]);
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-	case 5:
-		 try{
-			data.topicname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.topicname.clear();
-			 }
-			break;
-	case 6:
-		 try{
-			data.title.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-	case 7:
-		 try{
-			data.keywords.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.keywords.clear();
-			 }
-			break;
-	case 8:
-		 try{
-			data.fromsource.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.fromsource.clear();
-			 }
-			break;
-	case 9:
-		 try{
-			data.author.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.author.clear();
-			 }
-			break;
-	case 10:
-		 try{
-			data.addip.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.addip.clear();
-			 }
-			break;
-	case 11:
-		 try{
-			data.createtime.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.createtime.clear();
-			 }
-			break;
-	case 12:
-		 try{
-			data.addtime=std::stoull(_row[i]);
-		}catch (...) { 
-			data.addtime=0;
-			 }
-			break;
-	case 13:
-		 try{
-			data.readnum=std::stoi(_row[i]);
-		}catch (...) { 
-			data.readnum=0;
-			 }
-			break;
-	case 14:
-		 try{
-			data.review=std::stoi(_row[i]);
-		}catch (...) { 
-			data.review=0;
-			 }
-			break;
-	case 15:
-		 try{
-			data.icoimg.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.icoimg.clear();
-			 }
-			break;
-	case 16:
-		 try{
-			data.content.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
-	case 17:
-		 try{
-			data.mdcontent.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.mdcontent.clear();
-			 }
-			break;
-	case 18:
-		 try{
-			data.isopen=std::stoi(_row[i]);
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-	case 19:
-		 try{
-			data.ishome=std::stoi(_row[i]);
-		}catch (...) { 
-			data.ishome=0;
-			 }
-			break;
-	case 20:
-		 try{
-			data.iscomment=std::stoi(_row[i]);
-		}catch (...) { 
-			data.iscomment=0;
-			 }
-			break;
-	case 21:
-		 try{
-			data.showtype=std::stoi(_row[i]);
-		}catch (...) { 
-			data.showtype=0;
-			 }
-			break;
-	case 22:
-		 try{
-			data.fromlocal.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.fromlocal.clear();
-			 }
-			break;
-	case 23:
-		 try{
-			data.texturl.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.texturl.clear();
-			 }
-			break;
-	case 24:
-		 try{
-			data.summary.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.summary.clear();
-			 }
-			break;
-	case 25:
-		 try{
-			data.editauthor.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.editauthor.clear();
-			 }
-			break;
-	case 26:
-		 try{
-			data.relatecontent.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.relatecontent.clear();
-			 }
-			break;
-	default:
-		 { }
-			
+     
 
-                 }
-
-                 if(i>210){
-                     break;
-                 }
-          }
-   } 
-         void _addnewrowvalue(){
-           articlebase::meta metatemp;   
-
-          for(unsigned char i=0;i<_keypos.size();i++){
- 
-                 switch(_keypos[i]){
-
-        	case 0:
-		 try{
-			metatemp.aid=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.aid=0;
-			 }
-			break;
-	case 1:
-		 try{
-			metatemp.topicid=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.topicid=0;
-			 }
-			break;
-	case 2:
-		 try{
-			metatemp.classtype=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.classtype=0;
-			 }
-			break;
-	case 3:
-		 try{
-			metatemp.userid=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.userid=0;
-			 }
-			break;
-	case 4:
-		 try{
-			metatemp.sortid=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.sortid=0;
-			 }
-			break;
-	case 5:
-		 try{
-			metatemp.topicname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.topicname.clear();
-			 }
-			break;
-	case 6:
-		 try{
-			metatemp.title.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.title.clear();
-			 }
-			break;
-	case 7:
-		 try{
-			metatemp.keywords.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.keywords.clear();
-			 }
-			break;
-	case 8:
-		 try{
-			metatemp.fromsource.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.fromsource.clear();
-			 }
-			break;
-	case 9:
-		 try{
-			metatemp.author.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.author.clear();
-			 }
-			break;
-	case 10:
-		 try{
-			metatemp.addip.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.addip.clear();
-			 }
-			break;
-	case 11:
-		 try{
-			metatemp.createtime.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.createtime.clear();
-			 }
-			break;
-	case 12:
-		 try{
-			metatemp.addtime=std::stoull(_row[i]);
-		}catch (...) { 
-			metatemp.addtime=0;
-			 }
-			break;
-	case 13:
-		 try{
-			metatemp.readnum=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.readnum=0;
-			 }
-			break;
-	case 14:
-		 try{
-			metatemp.review=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.review=0;
-			 }
-			break;
-	case 15:
-		 try{
-			metatemp.icoimg.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.icoimg.clear();
-			 }
-			break;
-	case 16:
-		 try{
-			metatemp.content.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.content.clear();
-			 }
-			break;
-	case 17:
-		 try{
-			metatemp.mdcontent.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.mdcontent.clear();
-			 }
-			break;
-	case 18:
-		 try{
-			metatemp.isopen=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.isopen=0;
-			 }
-			break;
-	case 19:
-		 try{
-			metatemp.ishome=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.ishome=0;
-			 }
-			break;
-	case 20:
-		 try{
-			metatemp.iscomment=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.iscomment=0;
-			 }
-			break;
-	case 21:
-		 try{
-			metatemp.showtype=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.showtype=0;
-			 }
-			break;
-	case 22:
-		 try{
-			metatemp.fromlocal.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.fromlocal.clear();
-			 }
-			break;
-	case 23:
-		 try{
-			metatemp.texturl.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.texturl.clear();
-			 }
-			break;
-	case 24:
-		 try{
-			metatemp.summary.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.summary.clear();
-			 }
-			break;
-	case 25:
-		 try{
-			metatemp.editauthor.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.editauthor.clear();
-			 }
-			break;
-	case 26:
-		 try{
-			metatemp.relatecontent.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.relatecontent.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-                  }
-                 if(i>210){
-                     break;
-                 }
-          }
-           record.emplace_back(std::move(metatemp)); 
-   } 
-
-  inline  std::string stringaddslash(std::string &content){
+  inline  std::string stringaddslash(const std::string &content){
         std::string temp;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
@@ -639,7 +228,7 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(std::string &content){
+  inline  std::string jsonaddslash(const std::string &content){
         std::string temp;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
@@ -656,23 +245,23 @@ break;
    }  
 
    std::string _makeinsertsql(){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES (";
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES (";
 
         if(data.aid==0){
 tempsql<<"null";
@@ -755,24 +344,24 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql( meta &insert_data){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES (";
+      std::string _makerecordinsertsql(const meta &insert_data){
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES (";
 
         if(insert_data.aid==0){
 tempsql<<"null";
@@ -855,35 +444,35 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-      std::string _makerecordinsertsql( std::vector<meta> &insert_data){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES ";
+    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES ";
 
-    for(unsigned int i=0;i<insert_data.size();i++)
-    {
-		if(i>0)
-		{
-			tempsql<<",";	
-		}
-		tempsql<<"(";
+        for(unsigned int i=0;i<insert_data.size();i++)
+        {
+            if(i>0)
+            {
+                tempsql<<",";	
+            }
+            tempsql<<"(";
 
 
-        	if(insert_data[i].aid==0){
+            	if(insert_data[i].aid==0){
 	tempsql<<"null";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].aid);
@@ -966,17 +555,16 @@ tempsql<<")";
    } 
        
     std::string _makeupdatesql(const std::string &fileld){
-       //int j=0;
-            std::ostringstream tempsql;
-                 tempsql<<"UPDATE ";
-                 tempsql<<tablename;
-                 tempsql<<" SET ";
+        std::ostringstream tempsql;
+        tempsql<<"UPDATE ";
+        tempsql<<tablename;
+        tempsql<<" SET ";
 
-            bool isall=false;
-            if(fileld.empty()){
-                isall=true;
-            }
-            if(isall){
+        bool isall=false;
+        if(fileld.empty()){
+            isall=true;
+        }
+        if(isall){
 
         if(data.aid==0){
 	tempsql<<"`aid`=0";
@@ -1064,7 +652,7 @@ tempsql<<",`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
                                 unsigned char bpos_i=findcolpos(keyname);
                                keypos.emplace_back(bpos_i); 
 #ifdef DEBUG
-                    if (bpos_i == 254)
+                    if (bpos_i == 255)
                     {
                         std::cout << "\033[1m\033[31m-----------\n"
                                   << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
@@ -1084,7 +672,7 @@ tempsql<<",`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
                  if(keyname.size()>0){
                                 unsigned char bpos_i=findcolpos(keyname);
  #ifdef DEBUG
-                    if (bpos_i == 254)
+                    if (bpos_i == 255)
                     {
                         std::cout << "\033[1m\033[31m-----------\n"
                                   << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
@@ -1272,7 +860,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < colnames.size(); j++)
+        for (; j < col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -1282,7 +870,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << colnames[j];
+            tempsql << col_names[j];
         }
         if (j > 0)
         {
@@ -1385,7 +973,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < colnames.size(); j++)
+        for (; j < col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -1395,7 +983,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << colnames[j];
+            tempsql << col_names[j];
         }
         if (j > 0)
         {
@@ -1490,33 +1078,12 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
 
      
-    std::string keyname;
-    unsigned char jj=0;
-    j=0;
-     if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                    if(fileld[jj]==','){
-                        if(findcolpos(keyname)<255)
-                        {
-                            if(j>0)
-                            {
-                                tempsql<<",";
-                            }
-                            tempsql<<keyname;
-                            tempsql<<"=new.";
-                            tempsql<<keyname;
-                             
-                        }
-                        continue;   
-                    }
-                    if(fileld[jj]==0x20){
-
-                        continue;   
-                    }
-                    keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
+        std::string keyname;
+        unsigned char jj=0;
+        j=0;
+        if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
                 if(findcolpos(keyname)<255)
                 {
                     if(j>0)
@@ -1526,10 +1093,30 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
                     tempsql<<keyname;
                     tempsql<<"=new.";
                     tempsql<<keyname;
-                    
                 }
+                continue;   
             }
-        } 
+            if(fileld[jj]==0x20){
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
+
+        }  
+        if(keyname.size()>0){
+            if(findcolpos(keyname)<255)
+            {
+                if(j>0)
+                {
+                    tempsql<<",";
+                }
+                tempsql<<keyname;
+                tempsql<<"=new.";
+                tempsql<<keyname;
+                
+            }
+        }
+
+    } 
  
  return tempsql.str();
 }
@@ -1541,30 +1128,30 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
         std::vector<unsigned char> keypos;
         if(fileld.size()>1){
             for(;jj<fileld.size();jj++){
-                    if(fileld[jj]==','){
-                        keypos.emplace_back(findcolpos(keyname)); 
-                        keyname.clear();
-                        continue;   
-                    }
-                    if(fileld[jj]==0x20){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
 
-                        continue;   
-                    }
-                    keyname.push_back(fileld[jj]);
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
 
             }  
             if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
             }
         }else{
-            for(jj=0;jj<colnames.size();jj++){
+            for(jj=0;jj<col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
                
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+            for(jj=0;jj<keypos.size();jj++){
+                switch(keypos[jj]){
          case 0:
 if(data.aid==0){
 	temparray.push_back("0");
@@ -1705,35 +1292,35 @@ if(data.showtype==0){
    
    std::map<std::string,std::string> data_tomap(std::string fileld=""){
        std::map<std::string,std::string> tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>1){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>1){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
 if(data.aid==0){
 	tempsql.insert({"aid","0"});
@@ -1973,36 +1560,36 @@ tempsql<<"}";
    }   
    
    std::string data_tojson(std::string fileld){
-       std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                 tempsql<<"{";
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"{";
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.aid==0){
@@ -3006,43 +2593,43 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(data.relatecontent)<<"
    } 
     
    std::string to_json(std::string fileld=""){
-       std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+    std::ostringstream tempsql;
+    std::string keyname;
+    unsigned char jj=0;
+    std::vector<unsigned char> keypos;
+    if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                tempsql<<"[";
-              for(size_t n=0;n<record.size();n++){
-                  if(n>0){
-                      tempsql<<",{";
-                  }else{
-                      tempsql<<"{";
-                  }  
-                 
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+    }else{
+        for(jj=0;jj<col_names.size();jj++){
+            keypos.emplace_back(jj); 
+        }
+    }
+    tempsql<<"[";
+    for(size_t n=0;n<record.size();n++){
+        if(n>0){
+            tempsql<<",{";
+        }else{
+            tempsql<<"{";
+        }  
+    
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(record[n].aid==0){
@@ -3212,49 +2799,49 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relateconten
    
    std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                tempsql<<"[";
-              for(size_t n=0;n<record.size();n++){
-                 keyname.clear();
-                 if(func(keyname,record[n])){ 
-                            if(n>0){
-                                tempsql<<",{";
-                            }else{
-                                tempsql<<"{";
-                            } 
-                            tempsql<<keyname;
-                 }else{
-                    continue;
-                 } 
-                  
-                 for(jj=0;jj<keypos.size();jj++){
-                        
-                       switch(keypos[jj]){
+            }  
+            if(keyname.size()>0){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<record.size();n++){
+            keyname.clear();
+            if(func(keyname,record[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+            }else{
+            continue;
+            } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(record[n].aid==0){
@@ -3423,58 +3010,58 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relateconten
    }   
    long long getPK(){  return data.aid; } 
  void setPK(long long val){  data.aid=val;} 
-unsigned  int  getAid(){  return data.aid; } 
- void setAid(unsigned  int  val){  data.aid=val;} 
+ unsigned  int  getAid(){  return data.aid; } 
+ void setAid( unsigned  int  val){  data.aid=val;} 
 
-unsigned  int  getTopicid(){  return data.topicid; } 
- void setTopicid(unsigned  int  val){  data.topicid=val;} 
+ unsigned  int  getTopicid(){  return data.topicid; } 
+ void setTopicid( unsigned  int  val){  data.topicid=val;} 
 
-unsigned  int  getClasstype(){  return data.classtype; } 
- void setClasstype(unsigned  int  val){  data.classtype=val;} 
+ unsigned  int  getClasstype(){  return data.classtype; } 
+ void setClasstype( unsigned  int  val){  data.classtype=val;} 
 
-unsigned  int  getUserid(){  return data.userid; } 
- void setUserid(unsigned  int  val){  data.userid=val;} 
+ unsigned  int  getUserid(){  return data.userid; } 
+ void setUserid( unsigned  int  val){  data.userid=val;} 
 
  int  getSortid(){  return data.sortid; } 
  void setSortid( int  val){  data.sortid=val;} 
 
-std::string getTopicname(){  return data.topicname; } 
-std::string& getRefTopicname(){  return std::ref(data.topicname); } 
- void setTopicname(std::string &val){  data.topicname=val;} 
+ std::string  getTopicname(){  return data.topicname; } 
+ std::string & getRefTopicname(){  return std::ref(data.topicname); } 
+ void setTopicname( std::string  &val){  data.topicname=val;} 
  void setTopicname(std::string_view val){  data.topicname=val;} 
 
-std::string getTitle(){  return data.title; } 
-std::string& getRefTitle(){  return std::ref(data.title); } 
- void setTitle(std::string &val){  data.title=val;} 
+ std::string  getTitle(){  return data.title; } 
+ std::string & getRefTitle(){  return std::ref(data.title); } 
+ void setTitle( std::string  &val){  data.title=val;} 
  void setTitle(std::string_view val){  data.title=val;} 
 
-std::string getKeywords(){  return data.keywords; } 
-std::string& getRefKeywords(){  return std::ref(data.keywords); } 
- void setKeywords(std::string &val){  data.keywords=val;} 
+ std::string  getKeywords(){  return data.keywords; } 
+ std::string & getRefKeywords(){  return std::ref(data.keywords); } 
+ void setKeywords( std::string  &val){  data.keywords=val;} 
  void setKeywords(std::string_view val){  data.keywords=val;} 
 
-std::string getFromsource(){  return data.fromsource; } 
-std::string& getRefFromsource(){  return std::ref(data.fromsource); } 
- void setFromsource(std::string &val){  data.fromsource=val;} 
+ std::string  getFromsource(){  return data.fromsource; } 
+ std::string & getRefFromsource(){  return std::ref(data.fromsource); } 
+ void setFromsource( std::string  &val){  data.fromsource=val;} 
  void setFromsource(std::string_view val){  data.fromsource=val;} 
 
-std::string getAuthor(){  return data.author; } 
-std::string& getRefAuthor(){  return std::ref(data.author); } 
- void setAuthor(std::string &val){  data.author=val;} 
+ std::string  getAuthor(){  return data.author; } 
+ std::string & getRefAuthor(){  return std::ref(data.author); } 
+ void setAuthor( std::string  &val){  data.author=val;} 
  void setAuthor(std::string_view val){  data.author=val;} 
 
-std::string getAddip(){  return data.addip; } 
-std::string& getRefAddip(){  return std::ref(data.addip); } 
- void setAddip(std::string &val){  data.addip=val;} 
+ std::string  getAddip(){  return data.addip; } 
+ std::string & getRefAddip(){  return std::ref(data.addip); } 
+ void setAddip( std::string  &val){  data.addip=val;} 
  void setAddip(std::string_view val){  data.addip=val;} 
 
-std::string getCreatetime(){  return data.createtime; } 
-std::string& getRefCreatetime(){  return std::ref(data.createtime); } 
- void setCreatetime(std::string &val){  data.createtime=val;} 
+ std::string  getCreatetime(){  return data.createtime; } 
+ std::string & getRefCreatetime(){  return std::ref(data.createtime); } 
+ void setCreatetime( std::string  &val){  data.createtime=val;} 
  void setCreatetime(std::string_view val){  data.createtime=val;} 
 
-unsigned  long long  getAddtime(){  return data.addtime; } 
- void setAddtime(unsigned  long long  val){  data.addtime=val;} 
+ unsigned  long long  getAddtime(){  return data.addtime; } 
+ void setAddtime( unsigned  long long  val){  data.addtime=val;} 
 
  int  getReadnum(){  return data.readnum; } 
  void setReadnum( int  val){  data.readnum=val;} 
@@ -3482,56 +3069,56 @@ unsigned  long long  getAddtime(){  return data.addtime; }
  int  getReview(){  return data.review; } 
  void setReview( int  val){  data.review=val;} 
 
-std::string getIcoimg(){  return data.icoimg; } 
-std::string& getRefIcoimg(){  return std::ref(data.icoimg); } 
- void setIcoimg(std::string &val){  data.icoimg=val;} 
+ std::string  getIcoimg(){  return data.icoimg; } 
+ std::string & getRefIcoimg(){  return std::ref(data.icoimg); } 
+ void setIcoimg( std::string  &val){  data.icoimg=val;} 
  void setIcoimg(std::string_view val){  data.icoimg=val;} 
 
-std::string getContent(){  return data.content; } 
-std::string& getRefContent(){  return std::ref(data.content); } 
- void setContent(std::string &val){  data.content=val;} 
+ std::string  getContent(){  return data.content; } 
+ std::string & getRefContent(){  return std::ref(data.content); } 
+ void setContent( std::string  &val){  data.content=val;} 
  void setContent(std::string_view val){  data.content=val;} 
 
-std::string getMdcontent(){  return data.mdcontent; } 
-std::string& getRefMdcontent(){  return std::ref(data.mdcontent); } 
- void setMdcontent(std::string &val){  data.mdcontent=val;} 
+ std::string  getMdcontent(){  return data.mdcontent; } 
+ std::string & getRefMdcontent(){  return std::ref(data.mdcontent); } 
+ void setMdcontent( std::string  &val){  data.mdcontent=val;} 
  void setMdcontent(std::string_view val){  data.mdcontent=val;} 
 
- int  getIsopen(){  return data.isopen; } 
- void setIsopen( int  val){  data.isopen=val;} 
+ char  getIsopen(){  return data.isopen; } 
+ void setIsopen( char  val){  data.isopen=val;} 
 
- int  getIshome(){  return data.ishome; } 
- void setIshome( int  val){  data.ishome=val;} 
+ char  getIshome(){  return data.ishome; } 
+ void setIshome( char  val){  data.ishome=val;} 
 
- int  getIscomment(){  return data.iscomment; } 
- void setIscomment( int  val){  data.iscomment=val;} 
+ char  getIscomment(){  return data.iscomment; } 
+ void setIscomment( char  val){  data.iscomment=val;} 
 
- int  getShowtype(){  return data.showtype; } 
- void setShowtype( int  val){  data.showtype=val;} 
+ char  getShowtype(){  return data.showtype; } 
+ void setShowtype( char  val){  data.showtype=val;} 
 
-std::string getFromlocal(){  return data.fromlocal; } 
-std::string& getRefFromlocal(){  return std::ref(data.fromlocal); } 
- void setFromlocal(std::string &val){  data.fromlocal=val;} 
+ std::string  getFromlocal(){  return data.fromlocal; } 
+ std::string & getRefFromlocal(){  return std::ref(data.fromlocal); } 
+ void setFromlocal( std::string  &val){  data.fromlocal=val;} 
  void setFromlocal(std::string_view val){  data.fromlocal=val;} 
 
-std::string getTexturl(){  return data.texturl; } 
-std::string& getRefTexturl(){  return std::ref(data.texturl); } 
- void setTexturl(std::string &val){  data.texturl=val;} 
+ std::string  getTexturl(){  return data.texturl; } 
+ std::string & getRefTexturl(){  return std::ref(data.texturl); } 
+ void setTexturl( std::string  &val){  data.texturl=val;} 
  void setTexturl(std::string_view val){  data.texturl=val;} 
 
-std::string getSummary(){  return data.summary; } 
-std::string& getRefSummary(){  return std::ref(data.summary); } 
- void setSummary(std::string &val){  data.summary=val;} 
+ std::string  getSummary(){  return data.summary; } 
+ std::string & getRefSummary(){  return std::ref(data.summary); } 
+ void setSummary( std::string  &val){  data.summary=val;} 
  void setSummary(std::string_view val){  data.summary=val;} 
 
-std::string getEditauthor(){  return data.editauthor; } 
-std::string& getRefEditauthor(){  return std::ref(data.editauthor); } 
- void setEditauthor(std::string &val){  data.editauthor=val;} 
+ std::string  getEditauthor(){  return data.editauthor; } 
+ std::string & getRefEditauthor(){  return std::ref(data.editauthor); } 
+ void setEditauthor( std::string  &val){  data.editauthor=val;} 
  void setEditauthor(std::string_view val){  data.editauthor=val;} 
 
-std::string getRelatecontent(){  return data.relatecontent; } 
-std::string& getRefRelatecontent(){  return std::ref(data.relatecontent); } 
- void setRelatecontent(std::string &val){  data.relatecontent=val;} 
+ std::string  getRelatecontent(){  return data.relatecontent; } 
+ std::string & getRefRelatecontent(){  return std::ref(data.relatecontent); } 
+ void setRelatecontent( std::string  &val){  data.relatecontent=val;} 
  void setRelatecontent(std::string_view val){  data.relatecontent=val;} 
 
 articlebase::meta getnewData(){

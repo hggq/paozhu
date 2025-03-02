@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "product_mysql.h"
 #include "cms/include/productbase.h"
 #include "cms/include/Product.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Product::Product(std::string dbtag):mysqlclientDB(dbtag){}
-			 Product::Product():mysqlclientDB(){}
+			 Product::Product(std::string dbtag):product_mysql(dbtag){ mod=this; }
+			 Product::Product():product_mysql(){ mod=this; }
 
 
 		} 

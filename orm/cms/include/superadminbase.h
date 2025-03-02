@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 10 Dec 2024 07:41:52 GMT
+*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,7 +14,6 @@
 #include <vector>
 #include <ctime>
 #include <array>
-#include "mysql.h"
 namespace orm { 
    
      namespace cms { 
@@ -22,33 +21,34 @@ namespace orm {
 struct superadminbase
 {
     struct meta{
-    unsigned  int adminid= 0; //
- std::string name=""; //
- std::string password=""; //
- std::string nickname=""; //
- char isopen=0; //
-unsigned  int begindate= 0; //
-unsigned  int enddate= 0; //
- std::string regdate=""; //
- std::string mobile=""; //
- std::string email=""; //
-unsigned  int loginnum= 0; //
-unsigned  int qrtemp= 0; //
- std::string wxuuid=""; //
- std::string basesitepath=""; //
+     unsigned  int  adminid = 0; ///**/
+ std::string  name = ""; ///**/
+ std::string  password = ""; ///**/
+ std::string  nickname = ""; ///**/
+ char  isopen = 0; ///**/
+ unsigned  int  begindate = 0; ///**/
+ unsigned  int  enddate = 0; ///**/
+ std::string  regdate = ""; ///**/
+ std::string  mobile = ""; ///**/
+ std::string  email = ""; ///**/
+ unsigned  int  loginnum = 0; ///**/
+ unsigned  int  qrtemp = 0; ///**/
+ std::string  wxuuid = ""; ///**/
+ std::string  basesitepath = ""; ///**/
  } data;
  std::vector<superadminbase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-std::vector<unsigned char> _keypos{0x00};
-MYSQL_ROW _row;
+unsigned int _offset=0;
 std::vector<superadminbase::meta>::iterator begin(){     return record.begin(); }
 std::vector<superadminbase::meta>::iterator end(){     return record.end(); }
 std::vector<superadminbase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<superadminbase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,14> colnames={"adminid","name","password","nickname","isopen","begindate","enddate","regdate","mobile","email","loginnum","qrtemp","wxuuid","basesitepath"};
-const std::array<unsigned char,14> colnamestype= {3,253,253,253,1,3,3,253,253,253,3,3,253,253};
+static constexpr std::array<std::string,14> col_names={"adminid","name","password","nickname","isopen","begindate","enddate","regdate","mobile","email","loginnum","qrtemp","wxuuid","basesitepath"};
+static constexpr std::array<unsigned char,14> col_types= {3,253,253,253,1,3,3,253,253,253,3,3,253,253};
+static constexpr std::array<unsigned char,14> col_length= {0,40,40,30,0,0,0,30,40,40,0,0,40,0};
+static constexpr std::array<unsigned char,14> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="superadmin";
-std::string modelname="Superadmin";
+static constexpr std::string modelname="Superadmin";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -143,238 +143,9 @@ break;
      
          return temp;
      }
-     void _setColnamevalue()
-      {
-        for(unsigned char i=0;i<_keypos.size();i++)
-        {
-            switch(_keypos[i]){
-        	case 0:
-		 try{
-			data.adminid=std::stoul(_row[i]);
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-	case 1:
-		 try{
-			data.name.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-	case 2:
-		 try{
-			data.password.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.password.clear();
-			 }
-			break;
-	case 3:
-		 try{
-			data.nickname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.nickname.clear();
-			 }
-			break;
-	case 4:
-		 try{
-			data.isopen=std::stoi(_row[i]);
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-	case 5:
-		 try{
-			data.begindate=std::stoul(_row[i]);
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-	case 6:
-		 try{
-			data.enddate=std::stoul(_row[i]);
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-	case 7:
-		 try{
-			data.regdate.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.regdate.clear();
-			 }
-			break;
-	case 8:
-		 try{
-			data.mobile.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-	case 9:
-		 try{
-			data.email.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-	case 10:
-		 try{
-			data.loginnum=std::stoul(_row[i]);
-		}catch (...) { 
-			data.loginnum=0;
-			 }
-			break;
-	case 11:
-		 try{
-			data.qrtemp=std::stoul(_row[i]);
-		}catch (...) { 
-			data.qrtemp=0;
-			 }
-			break;
-	case 12:
-		 try{
-			data.wxuuid.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.wxuuid.clear();
-			 }
-			break;
-	case 13:
-		 try{
-			data.basesitepath.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.basesitepath.clear();
-			 }
-			break;
-	default:
-		 { }
-			
+     
 
-                 }
-
-                 if(i>210){
-                     break;
-                 }
-          }
-   } 
-         void _addnewrowvalue(){
-           superadminbase::meta metatemp;   
-
-          for(unsigned char i=0;i<_keypos.size();i++){
- 
-                 switch(_keypos[i]){
-
-        	case 0:
-		 try{
-			metatemp.adminid=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.adminid=0;
-			 }
-			break;
-	case 1:
-		 try{
-			metatemp.name.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.name.clear();
-			 }
-			break;
-	case 2:
-		 try{
-			metatemp.password.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.password.clear();
-			 }
-			break;
-	case 3:
-		 try{
-			metatemp.nickname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.nickname.clear();
-			 }
-			break;
-	case 4:
-		 try{
-			metatemp.isopen=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.isopen=0;
-			 }
-			break;
-	case 5:
-		 try{
-			metatemp.begindate=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.begindate=0;
-			 }
-			break;
-	case 6:
-		 try{
-			metatemp.enddate=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.enddate=0;
-			 }
-			break;
-	case 7:
-		 try{
-			metatemp.regdate.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.regdate.clear();
-			 }
-			break;
-	case 8:
-		 try{
-			metatemp.mobile.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.mobile.clear();
-			 }
-			break;
-	case 9:
-		 try{
-			metatemp.email.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.email.clear();
-			 }
-			break;
-	case 10:
-		 try{
-			metatemp.loginnum=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.loginnum=0;
-			 }
-			break;
-	case 11:
-		 try{
-			metatemp.qrtemp=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.qrtemp=0;
-			 }
-			break;
-	case 12:
-		 try{
-			metatemp.wxuuid.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.wxuuid.clear();
-			 }
-			break;
-	case 13:
-		 try{
-			metatemp.basesitepath.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.basesitepath.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-                  }
-                 if(i>210){
-                     break;
-                 }
-          }
-           record.emplace_back(std::move(metatemp)); 
-   } 
-
-  inline  std::string stringaddslash(std::string &content){
+  inline  std::string stringaddslash(const std::string &content){
         std::string temp;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
@@ -391,7 +162,7 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(std::string &content){
+  inline  std::string jsonaddslash(const std::string &content){
         std::string temp;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
@@ -408,23 +179,23 @@ break;
    }  
 
    std::string _makeinsertsql(){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES (";
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES (";
 
         if(data.adminid==0){
 tempsql<<"null";
@@ -470,24 +241,24 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql( meta &insert_data){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES (";
+      std::string _makerecordinsertsql(const meta &insert_data){
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES (";
 
         if(insert_data.adminid==0){
 tempsql<<"null";
@@ -533,35 +304,35 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-      std::string _makerecordinsertsql( std::vector<meta> &insert_data){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES ";
+    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES ";
 
-    for(unsigned int i=0;i<insert_data.size();i++)
-    {
-		if(i>0)
-		{
-			tempsql<<",";	
-		}
-		tempsql<<"(";
+        for(unsigned int i=0;i<insert_data.size();i++)
+        {
+            if(i>0)
+            {
+                tempsql<<",";	
+            }
+            tempsql<<"(";
 
 
-        	if(insert_data[i].adminid==0){
+            	if(insert_data[i].adminid==0){
 	tempsql<<"null";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].adminid);
@@ -607,17 +378,16 @@ tempsql<<")";
    } 
        
     std::string _makeupdatesql(const std::string &fileld){
-       //int j=0;
-            std::ostringstream tempsql;
-                 tempsql<<"UPDATE ";
-                 tempsql<<tablename;
-                 tempsql<<" SET ";
+        std::ostringstream tempsql;
+        tempsql<<"UPDATE ";
+        tempsql<<tablename;
+        tempsql<<" SET ";
 
-            bool isall=false;
-            if(fileld.empty()){
-                isall=true;
-            }
-            if(isall){
+        bool isall=false;
+        if(fileld.empty()){
+            isall=true;
+        }
+        if(isall){
 
         if(data.adminid==0){
 	tempsql<<"`adminid`=0";
@@ -668,7 +438,7 @@ tempsql<<",`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
                                 unsigned char bpos_i=findcolpos(keyname);
                                keypos.emplace_back(bpos_i); 
 #ifdef DEBUG
-                    if (bpos_i == 254)
+                    if (bpos_i == 255)
                     {
                         std::cout << "\033[1m\033[31m-----------\n"
                                   << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
@@ -688,7 +458,7 @@ tempsql<<",`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
                  if(keyname.size()>0){
                                 unsigned char bpos_i=findcolpos(keyname);
  #ifdef DEBUG
-                    if (bpos_i == 254)
+                    if (bpos_i == 255)
                     {
                         std::cout << "\033[1m\033[31m-----------\n"
                                   << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
@@ -800,7 +570,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < colnames.size(); j++)
+        for (; j < col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -810,7 +580,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << colnames[j];
+            tempsql << col_names[j];
         }
         if (j > 0)
         {
@@ -876,7 +646,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < colnames.size(); j++)
+        for (; j < col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -886,7 +656,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << colnames[j];
+            tempsql << col_names[j];
         }
         if (j > 0)
         {
@@ -944,33 +714,12 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
 
      
-    std::string keyname;
-    unsigned char jj=0;
-    j=0;
-     if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                    if(fileld[jj]==','){
-                        if(findcolpos(keyname)<255)
-                        {
-                            if(j>0)
-                            {
-                                tempsql<<",";
-                            }
-                            tempsql<<keyname;
-                            tempsql<<"=new.";
-                            tempsql<<keyname;
-                             
-                        }
-                        continue;   
-                    }
-                    if(fileld[jj]==0x20){
-
-                        continue;   
-                    }
-                    keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
+        std::string keyname;
+        unsigned char jj=0;
+        j=0;
+        if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
                 if(findcolpos(keyname)<255)
                 {
                     if(j>0)
@@ -980,10 +729,30 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
                     tempsql<<keyname;
                     tempsql<<"=new.";
                     tempsql<<keyname;
-                    
                 }
+                continue;   
             }
-        } 
+            if(fileld[jj]==0x20){
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
+
+        }  
+        if(keyname.size()>0){
+            if(findcolpos(keyname)<255)
+            {
+                if(j>0)
+                {
+                    tempsql<<",";
+                }
+                tempsql<<keyname;
+                tempsql<<"=new.";
+                tempsql<<keyname;
+                
+            }
+        }
+
+    } 
  
  return tempsql.str();
 }
@@ -995,30 +764,30 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
         std::vector<unsigned char> keypos;
         if(fileld.size()>1){
             for(;jj<fileld.size();jj++){
-                    if(fileld[jj]==','){
-                        keypos.emplace_back(findcolpos(keyname)); 
-                        keyname.clear();
-                        continue;   
-                    }
-                    if(fileld[jj]==0x20){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
 
-                        continue;   
-                    }
-                    keyname.push_back(fileld[jj]);
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
 
             }  
             if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
             }
         }else{
-            for(jj=0;jj<colnames.size();jj++){
+            for(jj=0;jj<col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
                
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+            for(jj=0;jj<keypos.size();jj++){
+                switch(keypos[jj]){
          case 0:
 if(data.adminid==0){
 	temparray.push_back("0");
@@ -1096,35 +865,35 @@ if(data.qrtemp==0){
    
    std::map<std::string,std::string> data_tomap(std::string fileld=""){
        std::map<std::string,std::string> tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>1){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>1){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
 if(data.adminid==0){
 	tempsql.insert({"adminid","0"});
@@ -1257,36 +1026,36 @@ tempsql<<"}";
    }   
    
    std::string data_tojson(std::string fileld){
-       std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                 tempsql<<"{";
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"{";
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.adminid==0){
@@ -1941,43 +1710,43 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
    } 
     
    std::string to_json(std::string fileld=""){
-       std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+    std::ostringstream tempsql;
+    std::string keyname;
+    unsigned char jj=0;
+    std::vector<unsigned char> keypos;
+    if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                tempsql<<"[";
-              for(size_t n=0;n<record.size();n++){
-                  if(n>0){
-                      tempsql<<",{";
-                  }else{
-                      tempsql<<"{";
-                  }  
-                 
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+    }else{
+        for(jj=0;jj<col_names.size();jj++){
+            keypos.emplace_back(jj); 
+        }
+    }
+    tempsql<<"[";
+    for(size_t n=0;n<record.size();n++){
+        if(n>0){
+            tempsql<<",{";
+        }else{
+            tempsql<<"{";
+        }  
+    
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(record[n].adminid==0){
@@ -2071,49 +1840,49 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(record[n].basesitepath)
    
    std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                tempsql<<"[";
-              for(size_t n=0;n<record.size();n++){
-                 keyname.clear();
-                 if(func(keyname,record[n])){ 
-                            if(n>0){
-                                tempsql<<",{";
-                            }else{
-                                tempsql<<"{";
-                            } 
-                            tempsql<<keyname;
-                 }else{
-                    continue;
-                 } 
-                  
-                 for(jj=0;jj<keypos.size();jj++){
-                        
-                       switch(keypos[jj]){
+            }  
+            if(keyname.size()>0){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<record.size();n++){
+            keyname.clear();
+            if(func(keyname,record[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+            }else{
+            continue;
+            } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(record[n].adminid==0){
@@ -2206,62 +1975,62 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(record[n].basesitepath)
    }   
    long long getPK(){  return data.adminid; } 
  void setPK(long long val){  data.adminid=val;} 
-unsigned  int  getAdminid(){  return data.adminid; } 
- void setAdminid(unsigned  int  val){  data.adminid=val;} 
+ unsigned  int  getAdminid(){  return data.adminid; } 
+ void setAdminid( unsigned  int  val){  data.adminid=val;} 
 
-std::string getName(){  return data.name; } 
-std::string& getRefName(){  return std::ref(data.name); } 
- void setName(std::string &val){  data.name=val;} 
+ std::string  getName(){  return data.name; } 
+ std::string & getRefName(){  return std::ref(data.name); } 
+ void setName( std::string  &val){  data.name=val;} 
  void setName(std::string_view val){  data.name=val;} 
 
-std::string getPassword(){  return data.password; } 
-std::string& getRefPassword(){  return std::ref(data.password); } 
- void setPassword(std::string &val){  data.password=val;} 
+ std::string  getPassword(){  return data.password; } 
+ std::string & getRefPassword(){  return std::ref(data.password); } 
+ void setPassword( std::string  &val){  data.password=val;} 
  void setPassword(std::string_view val){  data.password=val;} 
 
-std::string getNickname(){  return data.nickname; } 
-std::string& getRefNickname(){  return std::ref(data.nickname); } 
- void setNickname(std::string &val){  data.nickname=val;} 
+ std::string  getNickname(){  return data.nickname; } 
+ std::string & getRefNickname(){  return std::ref(data.nickname); } 
+ void setNickname( std::string  &val){  data.nickname=val;} 
  void setNickname(std::string_view val){  data.nickname=val;} 
 
- int  getIsopen(){  return data.isopen; } 
- void setIsopen( int  val){  data.isopen=val;} 
+ char  getIsopen(){  return data.isopen; } 
+ void setIsopen( char  val){  data.isopen=val;} 
 
-unsigned  int  getBegindate(){  return data.begindate; } 
- void setBegindate(unsigned  int  val){  data.begindate=val;} 
+ unsigned  int  getBegindate(){  return data.begindate; } 
+ void setBegindate( unsigned  int  val){  data.begindate=val;} 
 
-unsigned  int  getEnddate(){  return data.enddate; } 
- void setEnddate(unsigned  int  val){  data.enddate=val;} 
+ unsigned  int  getEnddate(){  return data.enddate; } 
+ void setEnddate( unsigned  int  val){  data.enddate=val;} 
 
-std::string getRegdate(){  return data.regdate; } 
-std::string& getRefRegdate(){  return std::ref(data.regdate); } 
- void setRegdate(std::string &val){  data.regdate=val;} 
+ std::string  getRegdate(){  return data.regdate; } 
+ std::string & getRefRegdate(){  return std::ref(data.regdate); } 
+ void setRegdate( std::string  &val){  data.regdate=val;} 
  void setRegdate(std::string_view val){  data.regdate=val;} 
 
-std::string getMobile(){  return data.mobile; } 
-std::string& getRefMobile(){  return std::ref(data.mobile); } 
- void setMobile(std::string &val){  data.mobile=val;} 
+ std::string  getMobile(){  return data.mobile; } 
+ std::string & getRefMobile(){  return std::ref(data.mobile); } 
+ void setMobile( std::string  &val){  data.mobile=val;} 
  void setMobile(std::string_view val){  data.mobile=val;} 
 
-std::string getEmail(){  return data.email; } 
-std::string& getRefEmail(){  return std::ref(data.email); } 
- void setEmail(std::string &val){  data.email=val;} 
+ std::string  getEmail(){  return data.email; } 
+ std::string & getRefEmail(){  return std::ref(data.email); } 
+ void setEmail( std::string  &val){  data.email=val;} 
  void setEmail(std::string_view val){  data.email=val;} 
 
-unsigned  int  getLoginnum(){  return data.loginnum; } 
- void setLoginnum(unsigned  int  val){  data.loginnum=val;} 
+ unsigned  int  getLoginnum(){  return data.loginnum; } 
+ void setLoginnum( unsigned  int  val){  data.loginnum=val;} 
 
-unsigned  int  getQrtemp(){  return data.qrtemp; } 
- void setQrtemp(unsigned  int  val){  data.qrtemp=val;} 
+ unsigned  int  getQrtemp(){  return data.qrtemp; } 
+ void setQrtemp( unsigned  int  val){  data.qrtemp=val;} 
 
-std::string getWxuuid(){  return data.wxuuid; } 
-std::string& getRefWxuuid(){  return std::ref(data.wxuuid); } 
- void setWxuuid(std::string &val){  data.wxuuid=val;} 
+ std::string  getWxuuid(){  return data.wxuuid; } 
+ std::string & getRefWxuuid(){  return std::ref(data.wxuuid); } 
+ void setWxuuid( std::string  &val){  data.wxuuid=val;} 
  void setWxuuid(std::string_view val){  data.wxuuid=val;} 
 
-std::string getBasesitepath(){  return data.basesitepath; } 
-std::string& getRefBasesitepath(){  return std::ref(data.basesitepath); } 
- void setBasesitepath(std::string &val){  data.basesitepath=val;} 
+ std::string  getBasesitepath(){  return data.basesitepath; } 
+ std::string & getRefBasesitepath(){  return std::ref(data.basesitepath); } 
+ void setBasesitepath( std::string  &val){  data.basesitepath=val;} 
  void setBasesitepath(std::string_view val){  data.basesitepath=val;} 
 
 superadminbase::meta getnewData(){

@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "siteinfo_mysql.h"
 #include "cms/include/siteinfobase.h"
 #include "cms/include/Siteinfo.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Siteinfo::Siteinfo(std::string dbtag):mysqlclientDB(dbtag){}
-			 Siteinfo::Siteinfo():mysqlclientDB(){}
+			 Siteinfo::Siteinfo(std::string dbtag):siteinfo_mysql(dbtag){ mod=this; }
+			 Siteinfo::Siteinfo():siteinfo_mysql(){ mod=this; }
 
 
 		} 

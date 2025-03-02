@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "testb_mysql.h"
 #include "cms/include/testbbase.h"
 #include "cms/include/Testb.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Testb::Testb(std::string dbtag):mysqlclientDB(dbtag){}
-			 Testb::Testb():mysqlclientDB(){}
+			 Testb::Testb(std::string dbtag):testb_mysql(dbtag){ mod=this; }
+			 Testb::Testb():testb_mysql(){ mod=this; }
 
 
 		} 

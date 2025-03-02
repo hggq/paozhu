@@ -1,0 +1,18 @@
+
+#include "xmeet_mysql.h"
+#include "cms/include/xmeetbase.h"
+#include "cms/include/Xmeet.h"
+
+/* 如果此文件存在不会自动覆盖，没有则会自动生成。
+*If this file exists, it will not be overwritten automatically. If not, it will be generated automatically. */
+
+	 
+ namespace orm{
+	 namespace cms{  
+			 Xmeet::Xmeet(std::string dbtag):xmeet_mysql(dbtag){ mod=this; }
+			 Xmeet::Xmeet():xmeet_mysql(){ mod=this; }
+
+
+		} 
+
+	  }

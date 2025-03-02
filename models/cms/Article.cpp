@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "article_mysql.h"
 #include "cms/include/articlebase.h"
 #include "cms/include/Article.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Article::Article(std::string dbtag):mysqlclientDB(dbtag){}
-			 Article::Article():mysqlclientDB(){}
+			 Article::Article(std::string dbtag):article_mysql(dbtag){ mod=this; }
+			 Article::Article():article_mysql(){ mod=this; }
 
 
 		} 

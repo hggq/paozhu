@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "sysrole_mysql.h"
 #include "cms/include/sysrolebase.h"
 #include "cms/include/Sysrole.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Sysrole::Sysrole(std::string dbtag):mysqlclientDB(dbtag){}
-			 Sysrole::Sysrole():mysqlclientDB(){}
+			 Sysrole::Sysrole(std::string dbtag):sysrole_mysql(dbtag){ mod=this; }
+			 Sysrole::Sysrole():sysrole_mysql(){ mod=this; }
 
 
 		} 

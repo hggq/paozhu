@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "department_mysql.h"
 #include "cms/include/departmentbase.h"
 #include "cms/include/Department.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Department::Department(std::string dbtag):mysqlclientDB(dbtag){}
-			 Department::Department():mysqlclientDB(){}
+			 Department::Department(std::string dbtag):department_mysql(dbtag){ mod=this; }
+			 Department::Department():department_mysql(){ mod=this; }
 
 
 		} 

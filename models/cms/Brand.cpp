@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "brand_mysql.h"
 #include "cms/include/brandbase.h"
 #include "cms/include/Brand.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Brand::Brand(std::string dbtag):mysqlclientDB(dbtag){}
-			 Brand::Brand():mysqlclientDB(){}
+			 Brand::Brand(std::string dbtag):brand_mysql(dbtag){ mod=this; }
+			 Brand::Brand():brand_mysql(){ mod=this; }
 
 
 		} 

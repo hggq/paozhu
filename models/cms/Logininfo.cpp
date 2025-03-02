@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "logininfo_mysql.h"
 #include "cms/include/logininfobase.h"
 #include "cms/include/Logininfo.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Logininfo::Logininfo(std::string dbtag):mysqlclientDB(dbtag){}
-			 Logininfo::Logininfo():mysqlclientDB(){}
+			 Logininfo::Logininfo(std::string dbtag):logininfo_mysql(dbtag){ mod=this; }
+			 Logininfo::Logininfo():logininfo_mysql(){ mod=this; }
 
 
 		} 

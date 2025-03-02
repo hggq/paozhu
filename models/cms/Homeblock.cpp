@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "homeblock_mysql.h"
 #include "cms/include/homeblockbase.h"
 #include "cms/include/Homeblock.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Homeblock::Homeblock(std::string dbtag):mysqlclientDB(dbtag){}
-			 Homeblock::Homeblock():mysqlclientDB(){}
+			 Homeblock::Homeblock(std::string dbtag):homeblock_mysql(dbtag){ mod=this; }
+			 Homeblock::Homeblock():homeblock_mysql(){ mod=this; }
 
 
 		} 

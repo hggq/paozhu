@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Tue, 10 Dec 2024 07:41:52 GMT
+*本文件为自动生成 Sat, 01 Mar 2025 06:42:20 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,7 +14,6 @@
 #include <vector>
 #include <ctime>
 #include <array>
-#include "mysql.h"
 namespace orm { 
    
      namespace cms { 
@@ -22,51 +21,52 @@ namespace orm {
 struct siteinfobase
 {
     struct meta{
-     int sid= 0; //
- int userid= 0; //
-unsigned  int agentid= 0; //
-unsigned  int languagetype= 0; //语言类型
- std::string sitename=""; //
- std::string sitedomain=""; //
- std::string metakeys=""; //
- std::string metadesc=""; //
- std::string copyright=""; //
- std::string beiansn=""; //备案号
- std::string footscript=""; //底部脚本
- std::string headscript=""; //头部script
- std::string introduce=""; //
- std::string sitelogo=""; //logo url
- std::string contactman=""; //
- std::string phone=""; //
- std::string mobile=""; //
- std::string email=""; //
- std::string bankname=""; //
- std::string banksn=""; //
- std::string address=""; //
- std::string zipnum=""; //
- std::string taxsn=""; //
- std::string companyname=""; //
- std::string linkname=""; //
- std::string linkmobile=""; //
- std::string linkaddress=""; //
- std::string theme=""; //
- std::string sitepath=""; //
-unsigned  char isopen=0; //
-unsigned  int created_at= 0; //
-unsigned  int enddate= 0; //
+     int  sid = 0; ///**/
+ int  userid = 0; ///**/
+ unsigned  int  agentid = 0; ///**/
+ unsigned  int  languagetype = 0; ///*语言类型*/
+ std::string  sitename = ""; ///**/
+ std::string  sitedomain = ""; ///**/
+ std::string  metakeys = ""; ///**/
+ std::string  metadesc = ""; ///**/
+ std::string  copyright = ""; ///**/
+ std::string  beiansn = ""; ///*备案号*/
+ std::string  footscript = ""; ///*底部脚本*/
+ std::string  headscript = ""; ///*头部script*/
+ std::string  introduce = ""; ///**/
+ std::string  sitelogo = ""; ///*logo url*/
+ std::string  contactman = ""; ///**/
+ std::string  phone = ""; ///**/
+ std::string  mobile = ""; ///**/
+ std::string  email = ""; ///**/
+ std::string  bankname = ""; ///**/
+ std::string  banksn = ""; ///**/
+ std::string  address = ""; ///**/
+ std::string  zipnum = ""; ///**/
+ std::string  taxsn = ""; ///**/
+ std::string  companyname = ""; ///**/
+ std::string  linkname = ""; ///**/
+ std::string  linkmobile = ""; ///**/
+ std::string  linkaddress = ""; ///**/
+ std::string  theme = ""; ///**/
+ std::string  sitepath = ""; ///**/
+ unsigned  char  isopen = 0; ///**/
+ unsigned  int  created_at = 0; ///**/
+ unsigned  int  enddate = 0; ///**/
  } data;
  std::vector<siteinfobase::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-std::vector<unsigned char> _keypos{0x00};
-MYSQL_ROW _row;
+unsigned int _offset=0;
 std::vector<siteinfobase::meta>::iterator begin(){     return record.begin(); }
 std::vector<siteinfobase::meta>::iterator end(){     return record.end(); }
 std::vector<siteinfobase::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<siteinfobase::meta>::const_iterator end() const{     return record.end(); }
-const std::array<std::string,32> colnames={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
-const std::array<unsigned char,32> colnamestype= {3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
+static constexpr std::array<std::string,32> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
+static constexpr std::array<unsigned char,32> col_types= {3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
+static constexpr std::array<unsigned char,32> col_length= {0,0,0,0,120,120,0,0,0,0,0,0,0,0,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
+static constexpr std::array<unsigned char,32> col_decimals= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="siteinfo";
-std::string modelname="Siteinfo";
+static constexpr std::string modelname="Siteinfo";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -237,490 +237,9 @@ break;
      
          return temp;
      }
-     void _setColnamevalue()
-      {
-        for(unsigned char i=0;i<_keypos.size();i++)
-        {
-            switch(_keypos[i]){
-        	case 0:
-		 try{
-			data.sid=std::stoi(_row[i]);
-		}catch (...) { 
-			data.sid=0;
-			 }
-			break;
-	case 1:
-		 try{
-			data.userid=std::stoi(_row[i]);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-	case 2:
-		 try{
-			data.agentid=std::stoul(_row[i]);
-		}catch (...) { 
-			data.agentid=0;
-			 }
-			break;
-	case 3:
-		 try{
-			data.languagetype=std::stoul(_row[i]);
-		}catch (...) { 
-			data.languagetype=0;
-			 }
-			break;
-	case 4:
-		 try{
-			data.sitename.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.sitename.clear();
-			 }
-			break;
-	case 5:
-		 try{
-			data.sitedomain.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.sitedomain.clear();
-			 }
-			break;
-	case 6:
-		 try{
-			data.metakeys.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.metakeys.clear();
-			 }
-			break;
-	case 7:
-		 try{
-			data.metadesc.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.metadesc.clear();
-			 }
-			break;
-	case 8:
-		 try{
-			data.copyright.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.copyright.clear();
-			 }
-			break;
-	case 9:
-		 try{
-			data.beiansn.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.beiansn.clear();
-			 }
-			break;
-	case 10:
-		 try{
-			data.footscript.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.footscript.clear();
-			 }
-			break;
-	case 11:
-		 try{
-			data.headscript.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.headscript.clear();
-			 }
-			break;
-	case 12:
-		 try{
-			data.introduce.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
-	case 13:
-		 try{
-			data.sitelogo.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.sitelogo.clear();
-			 }
-			break;
-	case 14:
-		 try{
-			data.contactman.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.contactman.clear();
-			 }
-			break;
-	case 15:
-		 try{
-			data.phone.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.phone.clear();
-			 }
-			break;
-	case 16:
-		 try{
-			data.mobile.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-	case 17:
-		 try{
-			data.email.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-	case 18:
-		 try{
-			data.bankname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.bankname.clear();
-			 }
-			break;
-	case 19:
-		 try{
-			data.banksn.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.banksn.clear();
-			 }
-			break;
-	case 20:
-		 try{
-			data.address.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
-	case 21:
-		 try{
-			data.zipnum.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.zipnum.clear();
-			 }
-			break;
-	case 22:
-		 try{
-			data.taxsn.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.taxsn.clear();
-			 }
-			break;
-	case 23:
-		 try{
-			data.companyname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.companyname.clear();
-			 }
-			break;
-	case 24:
-		 try{
-			data.linkname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.linkname.clear();
-			 }
-			break;
-	case 25:
-		 try{
-			data.linkmobile.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.linkmobile.clear();
-			 }
-			break;
-	case 26:
-		 try{
-			data.linkaddress.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.linkaddress.clear();
-			 }
-			break;
-	case 27:
-		 try{
-			data.theme.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.theme.clear();
-			 }
-			break;
-	case 28:
-		 try{
-			data.sitepath.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			data.sitepath.clear();
-			 }
-			break;
-	case 29:
-		 try{
-			data.isopen=std::stoi(_row[i]);
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-	case 30:
-		 try{
-			data.created_at=std::stoul(_row[i]);
-		}catch (...) { 
-			data.created_at=0;
-			 }
-			break;
-	case 31:
-		 try{
-			data.enddate=std::stoul(_row[i]);
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-	default:
-		 { }
-			
+     
 
-                 }
-
-                 if(i>210){
-                     break;
-                 }
-          }
-   } 
-         void _addnewrowvalue(){
-           siteinfobase::meta metatemp;   
-
-          for(unsigned char i=0;i<_keypos.size();i++){
- 
-                 switch(_keypos[i]){
-
-        	case 0:
-		 try{
-			metatemp.sid=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.sid=0;
-			 }
-			break;
-	case 1:
-		 try{
-			metatemp.userid=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.userid=0;
-			 }
-			break;
-	case 2:
-		 try{
-			metatemp.agentid=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.agentid=0;
-			 }
-			break;
-	case 3:
-		 try{
-			metatemp.languagetype=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.languagetype=0;
-			 }
-			break;
-	case 4:
-		 try{
-			metatemp.sitename.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.sitename.clear();
-			 }
-			break;
-	case 5:
-		 try{
-			metatemp.sitedomain.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.sitedomain.clear();
-			 }
-			break;
-	case 6:
-		 try{
-			metatemp.metakeys.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.metakeys.clear();
-			 }
-			break;
-	case 7:
-		 try{
-			metatemp.metadesc.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.metadesc.clear();
-			 }
-			break;
-	case 8:
-		 try{
-			metatemp.copyright.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.copyright.clear();
-			 }
-			break;
-	case 9:
-		 try{
-			metatemp.beiansn.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.beiansn.clear();
-			 }
-			break;
-	case 10:
-		 try{
-			metatemp.footscript.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.footscript.clear();
-			 }
-			break;
-	case 11:
-		 try{
-			metatemp.headscript.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.headscript.clear();
-			 }
-			break;
-	case 12:
-		 try{
-			metatemp.introduce.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.introduce.clear();
-			 }
-			break;
-	case 13:
-		 try{
-			metatemp.sitelogo.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.sitelogo.clear();
-			 }
-			break;
-	case 14:
-		 try{
-			metatemp.contactman.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.contactman.clear();
-			 }
-			break;
-	case 15:
-		 try{
-			metatemp.phone.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.phone.clear();
-			 }
-			break;
-	case 16:
-		 try{
-			metatemp.mobile.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.mobile.clear();
-			 }
-			break;
-	case 17:
-		 try{
-			metatemp.email.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.email.clear();
-			 }
-			break;
-	case 18:
-		 try{
-			metatemp.bankname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.bankname.clear();
-			 }
-			break;
-	case 19:
-		 try{
-			metatemp.banksn.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.banksn.clear();
-			 }
-			break;
-	case 20:
-		 try{
-			metatemp.address.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.address.clear();
-			 }
-			break;
-	case 21:
-		 try{
-			metatemp.zipnum.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.zipnum.clear();
-			 }
-			break;
-	case 22:
-		 try{
-			metatemp.taxsn.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.taxsn.clear();
-			 }
-			break;
-	case 23:
-		 try{
-			metatemp.companyname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.companyname.clear();
-			 }
-			break;
-	case 24:
-		 try{
-			metatemp.linkname.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.linkname.clear();
-			 }
-			break;
-	case 25:
-		 try{
-			metatemp.linkmobile.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.linkmobile.clear();
-			 }
-			break;
-	case 26:
-		 try{
-			metatemp.linkaddress.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.linkaddress.clear();
-			 }
-			break;
-	case 27:
-		 try{
-			metatemp.theme.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.theme.clear();
-			 }
-			break;
-	case 28:
-		 try{
-			metatemp.sitepath.append((_row[i]==NULL?"":_row[i]));
-		}catch (...) { 
-			metatemp.sitepath.clear();
-			 }
-			break;
-	case 29:
-		 try{
-			metatemp.isopen=std::stoi(_row[i]);
-		}catch (...) { 
-			metatemp.isopen=0;
-			 }
-			break;
-	case 30:
-		 try{
-			metatemp.created_at=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.created_at=0;
-			 }
-			break;
-	case 31:
-		 try{
-			metatemp.enddate=std::stoul(_row[i]);
-		}catch (...) { 
-			metatemp.enddate=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-                  }
-                 if(i>210){
-                     break;
-                 }
-          }
-           record.emplace_back(std::move(metatemp)); 
-   } 
-
-  inline  std::string stringaddslash(std::string &content){
+  inline  std::string stringaddslash(const std::string &content){
         std::string temp;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
@@ -737,7 +256,7 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(std::string &content){
+  inline  std::string jsonaddslash(const std::string &content){
         std::string temp;
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
@@ -754,23 +273,23 @@ break;
    }  
 
    std::string _makeinsertsql(){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES (";
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES (";
 
         if(data.sid==0){
 tempsql<<"null";
@@ -838,24 +357,24 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql( meta &insert_data){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES (";
+      std::string _makerecordinsertsql(const meta &insert_data){
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES (";
 
         if(insert_data.sid==0){
 tempsql<<"null";
@@ -923,35 +442,35 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-      std::string _makerecordinsertsql( std::vector<meta> &insert_data){
-      unsigned int j=0;
-                std::ostringstream tempsql;
-                tempsql<<"INSERT INTO ";
-                    tempsql<<tablename;
-                   tempsql<<" (";
-                    for(;j<colnames.size();j++){
-                            if(j>0){
-                                tempsql<<"`,`";
-                            }else{
-                                tempsql<<"`";
-                            }
-                            tempsql<<colnames[j];
-                    }
-                    if(j>0){
-                        tempsql<<"`";
-                    }
-            tempsql<<") VALUES ";
+    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+        unsigned int j=0;
+        std::ostringstream tempsql;
+        tempsql<<"INSERT INTO ";
+        tempsql<<tablename;
+        tempsql<<" (";
+        for(;j<col_names.size();j++){
+                if(j>0){
+                    tempsql<<"`,`";
+                }else{
+                    tempsql<<"`";
+                }
+                tempsql<<col_names[j];
+        }
+        if(j>0){
+            tempsql<<"`";
+        }
+        tempsql<<") VALUES ";
 
-    for(unsigned int i=0;i<insert_data.size();i++)
-    {
-		if(i>0)
-		{
-			tempsql<<",";	
-		}
-		tempsql<<"(";
+        for(unsigned int i=0;i<insert_data.size();i++)
+        {
+            if(i>0)
+            {
+                tempsql<<",";	
+            }
+            tempsql<<"(";
 
 
-        	if(insert_data[i].sid==0){
+            	if(insert_data[i].sid==0){
 	tempsql<<"null";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].sid);
@@ -1019,17 +538,16 @@ tempsql<<")";
    } 
        
     std::string _makeupdatesql(const std::string &fileld){
-       //int j=0;
-            std::ostringstream tempsql;
-                 tempsql<<"UPDATE ";
-                 tempsql<<tablename;
-                 tempsql<<" SET ";
+        std::ostringstream tempsql;
+        tempsql<<"UPDATE ";
+        tempsql<<tablename;
+        tempsql<<" SET ";
 
-            bool isall=false;
-            if(fileld.empty()){
-                isall=true;
-            }
-            if(isall){
+        bool isall=false;
+        if(fileld.empty()){
+            isall=true;
+        }
+        if(isall){
 
         if(data.sid==0){
 	tempsql<<"`sid`=0";
@@ -1102,7 +620,7 @@ if(data.enddate==0){
                                 unsigned char bpos_i=findcolpos(keyname);
                                keypos.emplace_back(bpos_i); 
 #ifdef DEBUG
-                    if (bpos_i == 254)
+                    if (bpos_i == 255)
                     {
                         std::cout << "\033[1m\033[31m-----------\n"
                                   << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
@@ -1122,7 +640,7 @@ if(data.enddate==0){
                  if(keyname.size()>0){
                                 unsigned char bpos_i=findcolpos(keyname);
  #ifdef DEBUG
-                    if (bpos_i == 254)
+                    if (bpos_i == 255)
                     {
                         std::cout << "\033[1m\033[31m-----------\n"
                                   << keyname << " not in " << tablename << " table Field.\n-----------\033[0m"
@@ -1310,7 +828,7 @@ if(data.enddate==0){
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < colnames.size(); j++)
+        for (; j < col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -1320,7 +838,7 @@ if(data.enddate==0){
             {
                 tempsql << "`";
             }
-            tempsql << colnames[j];
+            tempsql << col_names[j];
         }
         if (j > 0)
         {
@@ -1408,7 +926,7 @@ if(data.enddate==0){
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < colnames.size(); j++)
+        for (; j < col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -1418,7 +936,7 @@ if(data.enddate==0){
             {
                 tempsql << "`";
             }
-            tempsql << colnames[j];
+            tempsql << col_names[j];
         }
         if (j > 0)
         {
@@ -1498,33 +1016,12 @@ if(data.enddate==0){
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
 
      
-    std::string keyname;
-    unsigned char jj=0;
-    j=0;
-     if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                    if(fileld[jj]==','){
-                        if(findcolpos(keyname)<255)
-                        {
-                            if(j>0)
-                            {
-                                tempsql<<",";
-                            }
-                            tempsql<<keyname;
-                            tempsql<<"=new.";
-                            tempsql<<keyname;
-                             
-                        }
-                        continue;   
-                    }
-                    if(fileld[jj]==0x20){
-
-                        continue;   
-                    }
-                    keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
+        std::string keyname;
+        unsigned char jj=0;
+        j=0;
+        if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
                 if(findcolpos(keyname)<255)
                 {
                     if(j>0)
@@ -1534,10 +1031,30 @@ if(data.enddate==0){
                     tempsql<<keyname;
                     tempsql<<"=new.";
                     tempsql<<keyname;
-                    
                 }
+                continue;   
             }
-        } 
+            if(fileld[jj]==0x20){
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
+
+        }  
+        if(keyname.size()>0){
+            if(findcolpos(keyname)<255)
+            {
+                if(j>0)
+                {
+                    tempsql<<",";
+                }
+                tempsql<<keyname;
+                tempsql<<"=new.";
+                tempsql<<keyname;
+                
+            }
+        }
+
+    } 
  
  return tempsql.str();
 }
@@ -1549,30 +1066,30 @@ if(data.enddate==0){
         std::vector<unsigned char> keypos;
         if(fileld.size()>1){
             for(;jj<fileld.size();jj++){
-                    if(fileld[jj]==','){
-                        keypos.emplace_back(findcolpos(keyname)); 
-                        keyname.clear();
-                        continue;   
-                    }
-                    if(fileld[jj]==0x20){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
 
-                        continue;   
-                    }
-                    keyname.push_back(fileld[jj]);
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
 
             }  
             if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
             }
         }else{
-            for(jj=0;jj<colnames.size();jj++){
+            for(jj=0;jj<col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
                
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+            for(jj=0;jj<keypos.size();jj++){
+                switch(keypos[jj]){
          case 0:
 if(data.sid==0){
 	temparray.push_back("0");
@@ -1708,35 +1225,35 @@ if(data.enddate==0){
    
    std::map<std::string,std::string> data_tomap(std::string fileld=""){
        std::map<std::string,std::string> tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>1){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>1){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
 if(data.sid==0){
 	tempsql.insert({"sid","0"});
@@ -1966,36 +1483,36 @@ tempsql<<"}";
    }   
    
    std::string data_tojson(std::string fileld){
-       std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                 tempsql<<"{";
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"{";
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.sid==0){
@@ -3104,43 +2621,43 @@ if(data.enddate==0){
    } 
     
    std::string to_json(std::string fileld=""){
-       std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+    std::ostringstream tempsql;
+    std::string keyname;
+    unsigned char jj=0;
+    std::vector<unsigned char> keypos;
+    if(fileld.size()>0){
+        for(;jj<fileld.size();jj++){
+            if(fileld[jj]==','){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+                continue;   
+            }
+            if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                continue;   
+            }
+            keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                tempsql<<"[";
-              for(size_t n=0;n<record.size();n++){
-                  if(n>0){
-                      tempsql<<",{";
-                  }else{
-                      tempsql<<"{";
-                  }  
-                 
-                 for(jj=0;jj<keypos.size();jj++){
-                       switch(keypos[jj]){
+        }  
+        if(keyname.size()>0){
+            keypos.emplace_back(findcolpos(keyname)); 
+            keyname.clear();
+        }
+    }else{
+        for(jj=0;jj<col_names.size();jj++){
+            keypos.emplace_back(jj); 
+        }
+    }
+    tempsql<<"[";
+    for(size_t n=0;n<record.size();n++){
+        if(n>0){
+            tempsql<<",{";
+        }else{
+            tempsql<<"{";
+        }  
+    
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(record[n].sid==0){
@@ -3310,49 +2827,49 @@ if(record[n].enddate==0){
    
    std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
-            std::string keyname;
-            unsigned char jj=0;
-                  std::vector<unsigned char> keypos;
-                  if(fileld.size()>0){
-                    for(;jj<fileld.size();jj++){
-                            if(fileld[jj]==','){
-                                keypos.emplace_back(findcolpos(keyname)); 
-                                keyname.clear();
-                                continue;   
-                            }
-                            if(fileld[jj]==0x20){
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
 
-                                continue;   
-                            }
-                            keyname.push_back(fileld[jj]);
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
 
-                    }  
-                    if(keyname.size()>0){
-                                    keypos.emplace_back(findcolpos(keyname)); 
-                                    keyname.clear();
-                    }
-                 }else{
-                     for(jj=0;jj<colnames.size();jj++){
-                         keypos.emplace_back(jj); 
-                     }
-                 }
-                tempsql<<"[";
-              for(size_t n=0;n<record.size();n++){
-                 keyname.clear();
-                 if(func(keyname,record[n])){ 
-                            if(n>0){
-                                tempsql<<",{";
-                            }else{
-                                tempsql<<"{";
-                            } 
-                            tempsql<<keyname;
-                 }else{
-                    continue;
-                 } 
-                  
-                 for(jj=0;jj<keypos.size();jj++){
-                        
-                       switch(keypos[jj]){
+            }  
+            if(keyname.size()>0){
+                keypos.emplace_back(findcolpos(keyname)); 
+                keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<record.size();n++){
+            keyname.clear();
+            if(func(keyname,record[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+            }else{
+            continue;
+            } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(record[n].sid==0){
@@ -3527,145 +3044,145 @@ if(record[n].enddate==0){
  int  getUserid(){  return data.userid; } 
  void setUserid( int  val){  data.userid=val;} 
 
-unsigned  int  getAgentid(){  return data.agentid; } 
- void setAgentid(unsigned  int  val){  data.agentid=val;} 
+ unsigned  int  getAgentid(){  return data.agentid; } 
+ void setAgentid( unsigned  int  val){  data.agentid=val;} 
 
-unsigned  int  getLanguagetype(){  return data.languagetype; } 
- void setLanguagetype(unsigned  int  val){  data.languagetype=val;} 
+ unsigned  int  getLanguagetype(){  return data.languagetype; } 
+ void setLanguagetype( unsigned  int  val){  data.languagetype=val;} 
 
-std::string getSitename(){  return data.sitename; } 
-std::string& getRefSitename(){  return std::ref(data.sitename); } 
- void setSitename(std::string &val){  data.sitename=val;} 
+ std::string  getSitename(){  return data.sitename; } 
+ std::string & getRefSitename(){  return std::ref(data.sitename); } 
+ void setSitename( std::string  &val){  data.sitename=val;} 
  void setSitename(std::string_view val){  data.sitename=val;} 
 
-std::string getSitedomain(){  return data.sitedomain; } 
-std::string& getRefSitedomain(){  return std::ref(data.sitedomain); } 
- void setSitedomain(std::string &val){  data.sitedomain=val;} 
+ std::string  getSitedomain(){  return data.sitedomain; } 
+ std::string & getRefSitedomain(){  return std::ref(data.sitedomain); } 
+ void setSitedomain( std::string  &val){  data.sitedomain=val;} 
  void setSitedomain(std::string_view val){  data.sitedomain=val;} 
 
-std::string getMetakeys(){  return data.metakeys; } 
-std::string& getRefMetakeys(){  return std::ref(data.metakeys); } 
- void setMetakeys(std::string &val){  data.metakeys=val;} 
+ std::string  getMetakeys(){  return data.metakeys; } 
+ std::string & getRefMetakeys(){  return std::ref(data.metakeys); } 
+ void setMetakeys( std::string  &val){  data.metakeys=val;} 
  void setMetakeys(std::string_view val){  data.metakeys=val;} 
 
-std::string getMetadesc(){  return data.metadesc; } 
-std::string& getRefMetadesc(){  return std::ref(data.metadesc); } 
- void setMetadesc(std::string &val){  data.metadesc=val;} 
+ std::string  getMetadesc(){  return data.metadesc; } 
+ std::string & getRefMetadesc(){  return std::ref(data.metadesc); } 
+ void setMetadesc( std::string  &val){  data.metadesc=val;} 
  void setMetadesc(std::string_view val){  data.metadesc=val;} 
 
-std::string getCopyright(){  return data.copyright; } 
-std::string& getRefCopyright(){  return std::ref(data.copyright); } 
- void setCopyright(std::string &val){  data.copyright=val;} 
+ std::string  getCopyright(){  return data.copyright; } 
+ std::string & getRefCopyright(){  return std::ref(data.copyright); } 
+ void setCopyright( std::string  &val){  data.copyright=val;} 
  void setCopyright(std::string_view val){  data.copyright=val;} 
 
-std::string getBeiansn(){  return data.beiansn; } 
-std::string& getRefBeiansn(){  return std::ref(data.beiansn); } 
- void setBeiansn(std::string &val){  data.beiansn=val;} 
+ std::string  getBeiansn(){  return data.beiansn; } 
+ std::string & getRefBeiansn(){  return std::ref(data.beiansn); } 
+ void setBeiansn( std::string  &val){  data.beiansn=val;} 
  void setBeiansn(std::string_view val){  data.beiansn=val;} 
 
-std::string getFootscript(){  return data.footscript; } 
-std::string& getRefFootscript(){  return std::ref(data.footscript); } 
- void setFootscript(std::string &val){  data.footscript=val;} 
+ std::string  getFootscript(){  return data.footscript; } 
+ std::string & getRefFootscript(){  return std::ref(data.footscript); } 
+ void setFootscript( std::string  &val){  data.footscript=val;} 
  void setFootscript(std::string_view val){  data.footscript=val;} 
 
-std::string getHeadscript(){  return data.headscript; } 
-std::string& getRefHeadscript(){  return std::ref(data.headscript); } 
- void setHeadscript(std::string &val){  data.headscript=val;} 
+ std::string  getHeadscript(){  return data.headscript; } 
+ std::string & getRefHeadscript(){  return std::ref(data.headscript); } 
+ void setHeadscript( std::string  &val){  data.headscript=val;} 
  void setHeadscript(std::string_view val){  data.headscript=val;} 
 
-std::string getIntroduce(){  return data.introduce; } 
-std::string& getRefIntroduce(){  return std::ref(data.introduce); } 
- void setIntroduce(std::string &val){  data.introduce=val;} 
+ std::string  getIntroduce(){  return data.introduce; } 
+ std::string & getRefIntroduce(){  return std::ref(data.introduce); } 
+ void setIntroduce( std::string  &val){  data.introduce=val;} 
  void setIntroduce(std::string_view val){  data.introduce=val;} 
 
-std::string getSitelogo(){  return data.sitelogo; } 
-std::string& getRefSitelogo(){  return std::ref(data.sitelogo); } 
- void setSitelogo(std::string &val){  data.sitelogo=val;} 
+ std::string  getSitelogo(){  return data.sitelogo; } 
+ std::string & getRefSitelogo(){  return std::ref(data.sitelogo); } 
+ void setSitelogo( std::string  &val){  data.sitelogo=val;} 
  void setSitelogo(std::string_view val){  data.sitelogo=val;} 
 
-std::string getContactman(){  return data.contactman; } 
-std::string& getRefContactman(){  return std::ref(data.contactman); } 
- void setContactman(std::string &val){  data.contactman=val;} 
+ std::string  getContactman(){  return data.contactman; } 
+ std::string & getRefContactman(){  return std::ref(data.contactman); } 
+ void setContactman( std::string  &val){  data.contactman=val;} 
  void setContactman(std::string_view val){  data.contactman=val;} 
 
-std::string getPhone(){  return data.phone; } 
-std::string& getRefPhone(){  return std::ref(data.phone); } 
- void setPhone(std::string &val){  data.phone=val;} 
+ std::string  getPhone(){  return data.phone; } 
+ std::string & getRefPhone(){  return std::ref(data.phone); } 
+ void setPhone( std::string  &val){  data.phone=val;} 
  void setPhone(std::string_view val){  data.phone=val;} 
 
-std::string getMobile(){  return data.mobile; } 
-std::string& getRefMobile(){  return std::ref(data.mobile); } 
- void setMobile(std::string &val){  data.mobile=val;} 
+ std::string  getMobile(){  return data.mobile; } 
+ std::string & getRefMobile(){  return std::ref(data.mobile); } 
+ void setMobile( std::string  &val){  data.mobile=val;} 
  void setMobile(std::string_view val){  data.mobile=val;} 
 
-std::string getEmail(){  return data.email; } 
-std::string& getRefEmail(){  return std::ref(data.email); } 
- void setEmail(std::string &val){  data.email=val;} 
+ std::string  getEmail(){  return data.email; } 
+ std::string & getRefEmail(){  return std::ref(data.email); } 
+ void setEmail( std::string  &val){  data.email=val;} 
  void setEmail(std::string_view val){  data.email=val;} 
 
-std::string getBankname(){  return data.bankname; } 
-std::string& getRefBankname(){  return std::ref(data.bankname); } 
- void setBankname(std::string &val){  data.bankname=val;} 
+ std::string  getBankname(){  return data.bankname; } 
+ std::string & getRefBankname(){  return std::ref(data.bankname); } 
+ void setBankname( std::string  &val){  data.bankname=val;} 
  void setBankname(std::string_view val){  data.bankname=val;} 
 
-std::string getBanksn(){  return data.banksn; } 
-std::string& getRefBanksn(){  return std::ref(data.banksn); } 
- void setBanksn(std::string &val){  data.banksn=val;} 
+ std::string  getBanksn(){  return data.banksn; } 
+ std::string & getRefBanksn(){  return std::ref(data.banksn); } 
+ void setBanksn( std::string  &val){  data.banksn=val;} 
  void setBanksn(std::string_view val){  data.banksn=val;} 
 
-std::string getAddress(){  return data.address; } 
-std::string& getRefAddress(){  return std::ref(data.address); } 
- void setAddress(std::string &val){  data.address=val;} 
+ std::string  getAddress(){  return data.address; } 
+ std::string & getRefAddress(){  return std::ref(data.address); } 
+ void setAddress( std::string  &val){  data.address=val;} 
  void setAddress(std::string_view val){  data.address=val;} 
 
-std::string getZipnum(){  return data.zipnum; } 
-std::string& getRefZipnum(){  return std::ref(data.zipnum); } 
- void setZipnum(std::string &val){  data.zipnum=val;} 
+ std::string  getZipnum(){  return data.zipnum; } 
+ std::string & getRefZipnum(){  return std::ref(data.zipnum); } 
+ void setZipnum( std::string  &val){  data.zipnum=val;} 
  void setZipnum(std::string_view val){  data.zipnum=val;} 
 
-std::string getTaxsn(){  return data.taxsn; } 
-std::string& getRefTaxsn(){  return std::ref(data.taxsn); } 
- void setTaxsn(std::string &val){  data.taxsn=val;} 
+ std::string  getTaxsn(){  return data.taxsn; } 
+ std::string & getRefTaxsn(){  return std::ref(data.taxsn); } 
+ void setTaxsn( std::string  &val){  data.taxsn=val;} 
  void setTaxsn(std::string_view val){  data.taxsn=val;} 
 
-std::string getCompanyname(){  return data.companyname; } 
-std::string& getRefCompanyname(){  return std::ref(data.companyname); } 
- void setCompanyname(std::string &val){  data.companyname=val;} 
+ std::string  getCompanyname(){  return data.companyname; } 
+ std::string & getRefCompanyname(){  return std::ref(data.companyname); } 
+ void setCompanyname( std::string  &val){  data.companyname=val;} 
  void setCompanyname(std::string_view val){  data.companyname=val;} 
 
-std::string getLinkname(){  return data.linkname; } 
-std::string& getRefLinkname(){  return std::ref(data.linkname); } 
- void setLinkname(std::string &val){  data.linkname=val;} 
+ std::string  getLinkname(){  return data.linkname; } 
+ std::string & getRefLinkname(){  return std::ref(data.linkname); } 
+ void setLinkname( std::string  &val){  data.linkname=val;} 
  void setLinkname(std::string_view val){  data.linkname=val;} 
 
-std::string getLinkmobile(){  return data.linkmobile; } 
-std::string& getRefLinkmobile(){  return std::ref(data.linkmobile); } 
- void setLinkmobile(std::string &val){  data.linkmobile=val;} 
+ std::string  getLinkmobile(){  return data.linkmobile; } 
+ std::string & getRefLinkmobile(){  return std::ref(data.linkmobile); } 
+ void setLinkmobile( std::string  &val){  data.linkmobile=val;} 
  void setLinkmobile(std::string_view val){  data.linkmobile=val;} 
 
-std::string getLinkaddress(){  return data.linkaddress; } 
-std::string& getRefLinkaddress(){  return std::ref(data.linkaddress); } 
- void setLinkaddress(std::string &val){  data.linkaddress=val;} 
+ std::string  getLinkaddress(){  return data.linkaddress; } 
+ std::string & getRefLinkaddress(){  return std::ref(data.linkaddress); } 
+ void setLinkaddress( std::string  &val){  data.linkaddress=val;} 
  void setLinkaddress(std::string_view val){  data.linkaddress=val;} 
 
-std::string getTheme(){  return data.theme; } 
-std::string& getRefTheme(){  return std::ref(data.theme); } 
- void setTheme(std::string &val){  data.theme=val;} 
+ std::string  getTheme(){  return data.theme; } 
+ std::string & getRefTheme(){  return std::ref(data.theme); } 
+ void setTheme( std::string  &val){  data.theme=val;} 
  void setTheme(std::string_view val){  data.theme=val;} 
 
-std::string getSitepath(){  return data.sitepath; } 
-std::string& getRefSitepath(){  return std::ref(data.sitepath); } 
- void setSitepath(std::string &val){  data.sitepath=val;} 
+ std::string  getSitepath(){  return data.sitepath; } 
+ std::string & getRefSitepath(){  return std::ref(data.sitepath); } 
+ void setSitepath( std::string  &val){  data.sitepath=val;} 
  void setSitepath(std::string_view val){  data.sitepath=val;} 
 
-unsigned  int  getIsopen(){  return data.isopen; } 
- void setIsopen(unsigned  int  val){  data.isopen=val;} 
+ unsigned  char  getIsopen(){  return data.isopen; } 
+ void setIsopen( unsigned  char  val){  data.isopen=val;} 
 
-unsigned  int  getCreatedAt(){  return data.created_at; } 
- void setCreatedAt(unsigned  int  val){  data.created_at=val;} 
+ unsigned  int  getCreatedAt(){  return data.created_at; } 
+ void setCreatedAt( unsigned  int  val){  data.created_at=val;} 
 
-unsigned  int  getEnddate(){  return data.enddate; } 
- void setEnddate(unsigned  int  val){  data.enddate=val;} 
+ unsigned  int  getEnddate(){  return data.enddate; } 
+ void setEnddate( unsigned  int  val){  data.enddate=val;} 
 
 siteinfobase::meta getnewData(){
  	 struct meta newdata;

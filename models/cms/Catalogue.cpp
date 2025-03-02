@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "catalogue_mysql.h"
 #include "cms/include/cataloguebase.h"
 #include "cms/include/Catalogue.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Catalogue::Catalogue(std::string dbtag):mysqlclientDB(dbtag){}
-			 Catalogue::Catalogue():mysqlclientDB(){}
+			 Catalogue::Catalogue(std::string dbtag):catalogue_mysql(dbtag){ mod=this; }
+			 Catalogue::Catalogue():catalogue_mysql(){ mod=this; }
 
 
 		} 

@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "topic_mysql.h"
 #include "cms/include/topicbase.h"
 #include "cms/include/Topic.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Topic::Topic(std::string dbtag):mysqlclientDB(dbtag){}
-			 Topic::Topic():mysqlclientDB(){}
+			 Topic::Topic(std::string dbtag):topic_mysql(dbtag){ mod=this; }
+			 Topic::Topic():topic_mysql(){ mod=this; }
 
 
 		} 

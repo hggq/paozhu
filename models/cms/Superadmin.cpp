@@ -1,5 +1,5 @@
 
-#include "mysqlmodel.hpp" 
+#include "superadmin_mysql.h"
 #include "cms/include/superadminbase.h"
 #include "cms/include/Superadmin.h"
 
@@ -9,9 +9,8 @@
 	 
  namespace orm{
 	 namespace cms{  
-
-			 Superadmin::Superadmin(std::string dbtag):mysqlclientDB(dbtag){}
-			 Superadmin::Superadmin():mysqlclientDB(){}
+			 Superadmin::Superadmin(std::string dbtag):superadmin_mysql(dbtag){ mod=this; }
+			 Superadmin::Superadmin():superadmin_mysql(){ mod=this; }
 
 
 		} 

@@ -27,7 +27,7 @@ std::string testmysqlinsert(std::shared_ptr<httppeer> peer)
         a_data.addip        = client.client_ip;
         a_data.content      = content;
 
-        auto [effect_num, insertid] = articles.insert(a_data);
+        auto insertid = articles.insert(a_data);
         client << "<p>" << std::to_string(insertid) << "</p>";
 
         for (int i = 0; i < 10; i++)
@@ -35,7 +35,7 @@ std::string testmysqlinsert(std::shared_ptr<httppeer> peer)
             a_data.title = "aabb" + std::to_string(rand_range(1000, 9999));
             l_data.emplace_back(a_data);
         }
-        auto [effect_num1, insertid1] = articles.insert(l_data);
+        auto insertid1= articles.insert(l_data);
         client << "<p>" << std::to_string(insertid1) << "</p>";
     }
     catch (std::exception &e)
