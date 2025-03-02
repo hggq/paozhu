@@ -19,11 +19,11 @@ jobs:
           xmake-version: branch@dev
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: download mysql
-          #  powershell Invoke-WebRequest -OutFile mysql.zip https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.41-winx64.zip
-          #  unzip mysql.zip
-          #  Move-Item -Path ./mysql-8.0.41-winx64/include -Destination ./
-          #  Move-Item -Path ./mysql-8.0.41-winx64/lib -Destination ./ 
+        #- name: download mysql
+        #  powershell Invoke-WebRequest -OutFile mysql.zip https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.41-winx64.zip
+        #  unzip mysql.zip
+        #  Move-Item -Path ./mysql-8.0.41-winx64/include -Destination ./
+        #  Move-Item -Path ./mysql-8.0.41-winx64/lib -Destination ./ 
         # run: |
         #    ls include
       - name: List files in the repository
