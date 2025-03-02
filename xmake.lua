@@ -50,7 +50,7 @@ add_includedirs("libs/types")
 add_includedirs("libs/ipdata")
 add_includedirs("libs/markdown")
 add_includedirs("libs/pinyin")
-
+add_includedirs("asio")
 --download https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
 --copy include lib to current workspace
 --add_includedirs("include", "include/mysql")
@@ -142,6 +142,7 @@ target("paozhu_empty")
 target("paozhu_cli")
     set_kind("binary")
     add_packages("openssl")
+    add_packages("asio")
     add_files("vendor/httpcli/http_cli.cpp")
     add_files("vendor/httpserver/mysql_conn.cpp")
     add_files("vendor/httpserver/mysql_conn_pool.cpp")
