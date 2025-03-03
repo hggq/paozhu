@@ -35400,7 +35400,7 @@ M_MODEL& or_ltRealday(T val)
 
                 std::size_t n = co_await conn->async_write_sql(sqlstring);
                 
-                if (n == 0)
+                if(n==0)
                 {
                     error_msg = conn->error_msg;
                     co_return 0;
@@ -35968,24 +35968,31 @@ M_MODEL& or_ltRealday(T val)
                 }
                 auto conn = conn_obj->get_select_conn();
 
-                unsigned int querysql_len = sqlstring.length() + 1;
-
-                conn->send_data.clear();
-                conn->send_data.push_back((querysql_len & 0xFF));
-                conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-                conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-                conn->send_data.push_back(0x00);
-                conn->send_data.push_back(0x03);
-                conn->send_data.append(sqlstring);
-
-                std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
-                
-                if(conn->ec)
+                std::size_t n = conn->write_sql(sqlstring);
+                if(n==0)
                 {
-                    error_msg = conn->ec.message();
-                    iserror   = true;
+                    error_msg = conn->error_msg;
                     return 0;
                 }
+
+                // unsigned int querysql_len = sqlstring.length() + 1;
+
+                // conn->send_data.clear();
+                // conn->send_data.push_back((querysql_len & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+                // conn->send_data.push_back(0x00);
+                // conn->send_data.push_back(0x03);
+                // conn->send_data.append(sqlstring);
+
+                // std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
+                
+                // if(conn->ec)
+                // {
+                //     error_msg = conn->ec.message();
+                //     iserror   = true;
+                //     return 0;
+                // }
 
                 
                 pack_info_t temp_pack_data;
@@ -36172,17 +36179,25 @@ M_MODEL& or_ltRealday(T val)
                 }
                 auto conn = co_await conn_obj->async_get_select_conn();
 
-                unsigned int querysql_len = sqlstring.length() + 1;
+                std::size_t n = co_await conn->async_write_sql(sqlstring);
+                
+                if (n==0)
+                {
+                    error_msg = conn->error_msg;
+                    co_return 0;
+                }
 
-                conn->send_data.clear();
-                conn->send_data.push_back((querysql_len & 0xFF));
-                conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-                conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-                conn->send_data.push_back(0x00);
-                conn->send_data.push_back(0x03);
-                conn->send_data.append(sqlstring);
+                // unsigned int querysql_len = sqlstring.length() + 1;
 
-                std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
+                // conn->send_data.clear();
+                // conn->send_data.push_back((querysql_len & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+                // conn->send_data.push_back(0x00);
+                // conn->send_data.push_back(0x03);
+                // conn->send_data.append(sqlstring);
+
+                // std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
                 
                 pack_info_t temp_pack_data;
