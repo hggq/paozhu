@@ -58,6 +58,50 @@ std::string testhttpclient_cowait_body(std::shared_ptr<httppeer> peer)
     return "";
 }
 
+//@urlpath(null,testcowaitclient21)
+asio::awaitable<std::string> testhttpclient21_cowait_body(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "hello world! co_await test testhttpclient_cowait_body";
+    //client_context &temp_io_context = get_client_context_obj();
+
+    std::shared_ptr<http::client> a = std::make_shared<http::client>();
+
+    a->get("https://gcc.gnu.org/gcc-12/changes.html");
+    co_await a->async_send();
+    if (a->getStatus() == 200)
+    {
+        client << a->getBody();
+    }
+    else
+    {
+        client << "+++++not content++++";
+    }
+    co_return "";
+}
+
+//@urlpath(null,testcowaitclient22)
+asio::awaitable<std::string> testhttpclient22_cowait_body(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "hello world! co_await test localhost http://127.0.0.1addpost.html ";
+    //client_context &temp_io_context = get_client_context_obj();
+
+    std::shared_ptr<http::client> a = std::make_shared<http::client>();
+
+    a->get("http://127.0.0.1/addpost.html");
+    co_await a->async_send();
+    if (a->getStatus() == 200)
+    {
+        client << a->getBody();
+    }
+    else
+    {
+        client << "+++++not content++++";
+    }
+    co_return "";
+}
+
 //@urlpath(null,testcowaitclient5)
 std::string testhttpclient_cowait_post(std::shared_ptr<httppeer> peer)
 {
@@ -160,10 +204,10 @@ std::string testhttpclient_cowait_spawn(std::shared_ptr<httppeer> peer)
                       << a->host << std::endl;
         };
         co_spawn(
-            client_context.ioc,
+            client_context.get_ctx(),
             [](std::shared_ptr<http::client> a) -> asio::awaitable<void>
             {
-                co_await a->co_send();
+                co_await a->async_send();
             }(a),
             asio::detached);
     }
@@ -204,7 +248,7 @@ std::string testhttpclient_get_range(std::shared_ptr<httppeer> peer)
         //     client_context.ioc,
         //     [](std::shared_ptr<http::client> a) -> asio::awaitable<void>
         //     {
-        //         co_await a->co_send();
+        //         co_await a->async_send();
         //     }(a),
         //     asio::detached);
         client_context.add_http_task(a);

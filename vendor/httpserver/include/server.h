@@ -144,6 +144,7 @@ class httpserver
 
     void save_traffic_arrays();
     void stop();
+    asio::io_context& get_ctx();
     ~httpserver()
     {
         std::printf("~httpserver\n");

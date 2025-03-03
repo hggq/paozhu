@@ -98,7 +98,7 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
     co_return true;
 }
 
-asio::awaitable<void> fastcgi::co_send()
+asio::awaitable<void> fastcgi::async_send()
 {
     std::shared_ptr<httppeer> peer = peer_ptr.lock();
     if (sock == nullptr && socklocal == nullptr)

@@ -46,9 +46,9 @@ bool send_email::sendssldata()
         client_context &temp_io_context = get_client_context_obj();
         asio::ssl::context ssl_context(asio::ssl::context::sslv23);
 
-        asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
+        asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.get_ctx(), ssl_context);
         ssl_context.set_default_verify_paths();
-        asio::ip::tcp::resolver resolver(temp_io_context.ioc);
+        asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
         auto endpoints = resolver.resolve(smpturl.c_str(), std::to_string(port));
 
         SSL_set_tlsext_host_name(socket.native_handle(), smpturl.c_str());
@@ -409,8 +409,8 @@ bool send_email::senddata()
         // signals.async_wait([&](auto, auto)
         //                    { clientio_context.stop(); });
 
-        asio::ip::tcp::socket socket(temp_io_context.ioc);
-        asio::ip::tcp::resolver resolver(temp_io_context.ioc);
+        asio::ip::tcp::socket socket(temp_io_context.get_ctx());
+        asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
 
         asio::ip::tcp::resolver::query checkquery(smpturl, std::to_string(port));
         asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);

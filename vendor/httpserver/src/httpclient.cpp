@@ -227,7 +227,7 @@ client &client::send()
     return *this;
 }
 
-asio::awaitable<void> client::co_send()
+asio::awaitable<void> client::async_send()
 {
 
     if (requesttype == 1)
@@ -250,7 +250,7 @@ asio::awaitable<void> client::co_send()
 
     co_return;
 }
-asio::awaitable<void> client::co_send(http::OBJ_VALUE param)
+asio::awaitable<void> client::async_send(http::OBJ_VALUE param)
 {
     data = std::move(param);
     if (requesttype == 1)
@@ -392,8 +392,8 @@ bool client::init_http_sock()
 {
     error_msg.clear();
     client_context &temp_io_context = get_client_context_obj();
-    sock                            = std::make_shared<asio::ip::tcp::socket>(temp_io_context.ioc);
-    asio::ip::tcp::resolver resolver(temp_io_context.ioc);
+    sock                            = std::make_shared<asio::ip::tcp::socket>(temp_io_context.get_ctx());
+    asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
 
     asio::ip::tcp::resolver::query checkquery(host, port);
     asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
@@ -820,11 +820,11 @@ bool client::init_https_sock()
     //asio::ssl::context ssl_context(asio::ssl::context::sslv23);
     ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
     //std::shared_ptr<httpclient_t> clientpeer = std::make_shared<httpclient_t>();
-    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(temp_io_context.ioc, *ssl_context);
+    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(temp_io_context.get_ctx(), *ssl_context);
 
     //asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
     ssl_context->set_default_verify_paths();
-    asio::ip::tcp::resolver resolver(temp_io_context.ioc);
+    asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
     auto endpoints = resolver.resolve(host.c_str(), port);
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
@@ -907,8 +907,8 @@ asio::awaitable<void> client::co_sendssldatato()
             sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
             ssl_context->set_verify_mode(asio::ssl::verify_peer);
             ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
-
-            sslsock->handshake(asio::ssl::stream_base::client, ec);
+             
+            std::tie(ec)  = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
             if (ec)
             {
                 error_msg = host + " handshake error! ";

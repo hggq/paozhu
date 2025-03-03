@@ -35,14 +35,14 @@
 
 namespace http
 {
-client_context &get_client_context_obj()
+client_context &get_client_context_obj(asio::io_context *io_context)
 {
-    static client_context instance;
+    static client_context instance(io_context);
     return instance;
 }
 client_context::~client_context()
 {
-    ioc.stop();
+    ioc->stop();
     condition.notify_all();
     timeout_condition.notify_all();
     for (unsigned int i = 0; i < httptask_th.size(); i++)
@@ -153,18 +153,18 @@ void client_context::time_out_loop()
 }
 void client_context::run()
 {
-    worker = std::unique_ptr<asio::io_context::work>(new asio::io_context::work(ioc));
-    // 创建thread
-    for (unsigned int i = 0; i < thread_size; i++)
-    {
-        threads.emplace_back([this]()
-                             {
-                                 std::ostringstream oss;
-                                 oss << std::this_thread::get_id();
-                                 std::string tempthread = oss.str();
-                                 DEBUG_LOG("frame thread:%s", tempthread.c_str());
-                                 this->ioc.run(); });
-    }
+    // worker = std::unique_ptr<asio::io_context::work>(new asio::io_context::work(*ioc));
+    // // 创建thread
+    // for (unsigned int i = 0; i < thread_size; i++)
+    // {
+    //     threads.emplace_back([this]()
+    //                          {
+    //                              std::ostringstream oss;
+    //                              oss << std::this_thread::get_id();
+    //                              std::string tempthread = oss.str();
+    //                              DEBUG_LOG("frame thread:%s", tempthread.c_str());
+    //                              this->ioc->run(); });
+    // }
     // std::this_thread::sleep_for(std::chrono::seconds(1));
     httptask_th.emplace_back(std::bind(&client_context::taskloop, this));
 }
@@ -187,11 +187,11 @@ void client_context::taskloop()
                 lock.unlock();
                 if (task->linktype == 0)
                 {
-                    co_spawn(this->ioc, http_client_task(std::move(task)), asio::detached);
+                    co_spawn(*this->ioc, http_client_task(std::move(task)), asio::detached);
                 }
                 else if (task->linktype == 1)
                 {
-                    co_spawn(this->ioc, websocket_client_task(std::move(task)), asio::detached);
+                    co_spawn(*this->ioc, websocket_client_task(std::move(task)), asio::detached);
                 }
             }
             else if (this->cgitasks.size() > 0)
@@ -199,7 +199,7 @@ void client_context::taskloop()
                 auto task = std::move(this->cgitasks.front());
                 this->cgitasks.pop();
                 lock.unlock();
-                co_spawn(this->ioc, fastcgi_client_task(std::move(task)), asio::detached);
+                co_spawn(*this->ioc, fastcgi_client_task(std::move(task)), asio::detached);
             }
             else
             {
@@ -228,7 +228,7 @@ asio::awaitable<void> client_context::fastcgi_client_task(std::shared_ptr<fastcg
 
     if (clientpeer->host.size() > 0)
     {
-        co_await clientpeer->co_send();
+        co_await clientpeer->async_send();
     }
     co_return;
 }
@@ -243,7 +243,7 @@ asio::awaitable<void> client_context::http_client_task(std::shared_ptr<client> c
 #endif
     if (clientpeer->host.size() > 0)
     {
-        co_await clientpeer->co_send();
+        co_await clientpeer->async_send();
     }
     co_return;
 }
@@ -258,9 +258,14 @@ asio::awaitable<void> client_context::websocket_client_task(std::shared_ptr<clie
 #endif
     if (clientpeer->host.size() > 0)
     {
-        co_await clientpeer->co_send();
+        co_await clientpeer->async_send();
     }
     co_return;
+}
+
+asio::io_context& client_context::get_ctx()
+{
+     return *ioc;
 }
 
 void client_context::stop()
@@ -268,7 +273,7 @@ void client_context::stop()
     isstop = true;
     condition.notify_all();
     timeout_condition.notify_all();
-    ioc.stop();
+    // ioc->stop();
 }
 
 }// namespace http

@@ -605,6 +605,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_co_handle;
 		methodcallback.emplace("testcohandle",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient21_cowait_body;
+		methodcallback.emplace("testcowaitclient21",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient22_cowait_body;
+		methodcallback.emplace("testcowaitclient22",temp);
 
 
     }

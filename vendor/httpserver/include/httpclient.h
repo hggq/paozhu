@@ -60,8 +60,8 @@ class client : public std::enable_shared_from_this<client>
     client &send();
     client &send(http::OBJ_VALUE parmter);
 
-    asio::awaitable<void> co_send();
-    asio::awaitable<void> co_send(http::OBJ_VALUE parmter);
+    asio::awaitable<void> async_send();
+    asio::awaitable<void> async_send(http::OBJ_VALUE parmter);
 
     client &senddatato();
     client &sendssldatato();

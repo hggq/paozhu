@@ -28,7 +28,7 @@ namespace http
 class client_context
 {
   public:
-    client_context() : time_out_loop_th(std::bind(&client_context::time_out_loop, this)) {}
+    client_context(asio::io_context *io_context): ioc(io_context) , time_out_loop_th(std::bind(&client_context::time_out_loop, this)) {}
     void run();
     void time_out_loop();
     void taskloop();
@@ -38,13 +38,15 @@ class client_context
     void add_http_task(std::shared_ptr<client>);
     void add_fastcgi_task(std::shared_ptr<fastcgi>);
     void stop();
+    asio::io_context& get_ctx();
     ~client_context();
 
   public:
     unsigned int thread_size      = 3;
     unsigned int thread_task_size = 1;
-    asio::io_context ioc;
-    std::unique_ptr<asio::io_context::work> worker;
+    asio::io_context *ioc = nullptr;;
+
+    // std::unique_ptr<asio::io_context::work> worker;
     std::vector<std::thread> threads;
     std::vector<std::thread> httptask_th;
     std::thread time_out_loop_th;
@@ -59,7 +61,7 @@ class client_context
     std::condition_variable timeout_condition;
     std::list<std::weak_ptr<client>> timeout_lists;
 };
-client_context &get_client_context_obj();
+client_context &get_client_context_obj(asio::io_context *io_context=nullptr);
 
 }// namespace http
 #endif

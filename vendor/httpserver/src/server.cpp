@@ -4207,6 +4207,8 @@ namespace http
             }
         }
         // std::abort();
+        stop();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         std::terminate();
     }
 
@@ -4338,7 +4340,7 @@ namespace http
             if (total_count < std::thread::hardware_concurrency())
             {
                 total_count = std::thread::hardware_concurrency();
-                total_count += 2;
+                total_count += 4;
             }
             if (total_count < 8)
             {
@@ -4368,7 +4370,7 @@ namespace http
             std::thread http(std::bind(&httpserver::listener, this));
 
             {
-                client_context &client_context = get_client_context_obj();
+                client_context &client_context = get_client_context_obj(&io_context);
                 client_context.run();
             }
 
@@ -4410,6 +4412,10 @@ namespace http
             LOG_ERROR << " httpserver Exception " << e.what() << LOG_END;
         }
         DEBUG_LOG("httpserver exit!");
+    }
+    asio::io_context& httpserver::get_ctx()
+    {
+        return io_context;
     }
     void httpserver::stop()
     {

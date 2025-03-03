@@ -99,7 +99,7 @@ class fastcgi
     void make_Header(FASTCGI_Header &, int type, int requestId, int contentLength, int paddingLength);
     void make_BeginRequestBody(FASTCGI_BeginRequestBody &, int role, int keepConnection);
     asio::awaitable<bool> co_init_http_sock();
-    asio::awaitable<void> co_send();
+    asio::awaitable<void> async_send();
     asio::awaitable<void> send_postbody(std::shared_ptr<httppeer> peer);
     asio::awaitable<void> send_endheader();
     asio::awaitable<void> send_startheader();
