@@ -12376,25 +12376,32 @@ M_MODEL& or_leRolevalue(T val)
                 }
                 auto conn = conn_obj->get_select_conn();
 
-                unsigned int querysql_len = sqlstring.length() + 1;
-
-                conn->send_data.clear();
-
-                conn->send_data.push_back((querysql_len & 0xFF));
-                conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-                conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-                conn->send_data.push_back(0x00);
-                conn->send_data.push_back(0x03);
-                conn->send_data.append(sqlstring);
-
-                std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
-                
-                if(conn->ec)
+                std::size_t n = conn->write_sql(sqlstring);
+                if(n==0)
                 {
-                    error_msg = conn->ec.message();
-                    iserror   = true;
+                    error_msg = conn->error_msg;
                     return *mod;
                 }
+
+                //unsigned int querysql_len = sqlstring.length() + 1;
+
+                // conn->send_data.clear();
+
+                // conn->send_data.push_back((querysql_len & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+                // conn->send_data.push_back(0x00);
+                // conn->send_data.push_back(0x03);
+                // conn->send_data.append(sqlstring);
+
+                // std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
+                
+                // if(conn->ec)
+                // {
+                //     error_msg = conn->ec.message();
+                //     iserror   = true;
+                //     return *mod;
+                // }
                 
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -12566,18 +12573,26 @@ M_MODEL& or_leRolevalue(T val)
                 }
                 auto conn = co_await conn_obj->async_get_select_conn();
 
-                unsigned int querysql_len = sqlstring.length() + 1;
+                std::size_t n = co_await conn->async_write_sql(sqlstring);
+                
+                if (n == 0)
+                {
+                    error_msg = conn->error_msg;
+                    co_return 0;
+                }
 
-                conn->send_data.clear();
+                // unsigned int querysql_len = sqlstring.length() + 1;
 
-                conn->send_data.push_back((querysql_len & 0xFF));
-                conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-                conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-                conn->send_data.push_back(0x00);
-                conn->send_data.push_back(0x03);
-                conn->send_data.append(sqlstring);
+                // conn->send_data.clear();
 
-                std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
+                // conn->send_data.push_back((querysql_len & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+                // conn->send_data.push_back(0x00);
+                // conn->send_data.push_back(0x03);
+                // conn->send_data.append(sqlstring);
+
+                // std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
                 
                 pack_info_t temp_pack_data;
@@ -14453,24 +14468,31 @@ M_MODEL& or_leRolevalue(T val)
                 }
                 auto conn = conn_obj->get_edit_conn();
 
-                unsigned int querysql_len = sqlstring.length() + 1;
-
-                conn->send_data.clear();
-                conn->send_data.push_back((querysql_len & 0xFF));
-                conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-                conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-                conn->send_data.push_back(0x00);
-                conn->send_data.push_back(0x03);
-                conn->send_data.append(sqlstring);
-
-                std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
-                
-                if(conn->ec)
+                std::size_t n = conn->write_sql(sqlstring);
+                if(n==0)
                 {
-                    error_msg = conn->ec.message();
-                    iserror   = true;
+                    error_msg = conn->error_msg;
                     return 0;
                 }
+
+                // unsigned int querysql_len = sqlstring.length() + 1;
+
+                // conn->send_data.clear();
+                // conn->send_data.push_back((querysql_len & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+                // conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+                // conn->send_data.push_back(0x00);
+                // conn->send_data.push_back(0x03);
+                // conn->send_data.append(sqlstring);
+
+                // std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
+                
+                // if(conn->ec)
+                // {
+                //     error_msg = conn->ec.message();
+                //     iserror   = true;
+                //     return 0;
+                // }
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
@@ -16701,6 +16723,8 @@ M_MODEL& or_leRolevalue(T val)
 
         M_MODEL *mod;
 
+        std::shared_ptr<mysql_conn_base> select_conn;
+        std::shared_ptr<mysql_conn_base> edit_conn;
         std::shared_ptr<orm_conn_pool> conn_obj;
     };
 } /*tagnamespace_replace*/

@@ -164,6 +164,13 @@ class mysql_conn_base
     bool close();
     asio::awaitable<unsigned int> async_read_loop();
     unsigned int read_loop();
+
+    unsigned int write();
+    asio::awaitable<unsigned int> async_write();
+
+    unsigned int write_sql(const std::string &sql);
+    asio::awaitable<unsigned int> async_write_sql(const std::string &sql);
+
     bool is_closed();
 
   public:

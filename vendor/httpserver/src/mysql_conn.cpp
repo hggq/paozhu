@@ -854,6 +854,103 @@ unsigned int mysql_conn_base::read_loop()
     }
     return 0;
 }
+
+unsigned int mysql_conn_base::write_sql(const std::string &sql)
+{
+    unsigned int n=0;
+
+    n = sql.length() + 1;
+
+    send_data.clear();
+    send_data.push_back((n & 0xFF));
+    send_data.push_back((n >> 8 & 0xFF));
+    send_data.push_back((n >> 16 & 0xFF));
+    send_data.push_back(0x00);
+    send_data.push_back(0x03);
+    send_data.append(sql);
+
+    n=0;
+    if(sock_type==0)
+    {
+        n = asio::write(*socket, asio::buffer(send_data),ec);
+    }
+    
+    if(ec)
+    {
+        error_code         = 20;
+        error_msg = ec.message();
+        return 0;
+    }
+    return n;
+}
+
+unsigned int mysql_conn_base::write()
+{
+    unsigned int n=0;
+    if(sock_type==0)
+    {
+        n = asio::write(*socket, asio::buffer(send_data),ec);
+    }
+    
+    if(ec)
+    {
+        error_code         = 20;
+        error_msg = ec.message();
+        return 0;
+    }
+    return n;
+}
+
+asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string &sql)
+{
+    unsigned int n=0;
+
+    n = sql.length() + 1;
+
+    send_data.clear();
+    send_data.push_back((n & 0xFF));
+    send_data.push_back((n >> 8 & 0xFF));
+    send_data.push_back((n >> 16 & 0xFF));
+    send_data.push_back(0x00);
+    send_data.push_back(0x03);
+    send_data.append(sql);
+
+    n=0;
+    try 
+    {
+        if(sock_type==0)
+        {
+            n = co_await asio::async_write(*socket, asio::buffer(send_data), asio::use_awaitable);
+        }
+    } 
+    catch (std::exception &e)
+    {
+        error_code         = 20;
+        error_msg = ec.message();
+        co_return 0;
+    }
+    co_return n;
+}
+
+asio::awaitable<unsigned int> mysql_conn_base::async_write()
+{
+    unsigned int n=0;
+    try 
+    {
+        if(sock_type==0)
+        {
+            n = co_await asio::async_write(*socket, asio::buffer(send_data), asio::use_awaitable);
+        }
+    } 
+    catch (std::exception &e)
+    {
+        error_code         = 20;
+        error_msg = ec.message();
+        co_return 0;
+    }
+    co_return n;
+}
+
 bool mysql_conn_base::ping()
 {
     char data_send[16] = {0x01, 0x00, 0x00, 0x00, 0x0E, 0x00};
