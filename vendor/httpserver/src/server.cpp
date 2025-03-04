@@ -2867,9 +2867,7 @@ namespace http
             catch (const std::exception &e)
             {
                 std::unique_lock<std::mutex> lock(log_mutex);
-                error_loglist.emplace_back("++++++++++++ ");
                 error_loglist.emplace_back(e.what());
-                error_loglist.emplace_back(" ++++++++++++\n");
                 lock.unlock();
             }
         }
@@ -4207,7 +4205,8 @@ namespace http
             }
         }
         // std::abort();
-        stop();
+        std::thread hardexit(std::bind(&httpserver::stop, this));  
+        hardexit.detach();  
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::terminate();
     }
@@ -4426,5 +4425,6 @@ namespace http
         send_data_condition.notify_all();
         clientrunpool.stop();
         io_context.stop();
+        DEBUG_LOG("httpserver stop!");
     }
 } // namespace http
