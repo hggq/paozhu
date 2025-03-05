@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Mon, 03 Mar 2025 03:53:04 GMT
+*本文件为自动生成 Wed, 05 Mar 2025 07:37:54 GMT
 ***/
 #include <iostream>
 #include <cstdio>

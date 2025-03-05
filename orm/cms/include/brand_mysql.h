@@ -168,6 +168,11 @@ namespace cms
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -371,6 +376,10 @@ namespace cms
                 {
                     n      = co_await conn->async_read_loop();
                     offset = 0;
+                    if (n==0)
+                    {
+                        co_return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -601,7 +610,11 @@ namespace cms
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -730,7 +743,10 @@ namespace cms
 
                 unsigned int offset = 0;
                 n                   = co_await conn->async_read_loop();
-
+                if (n==0)
+                {
+                    co_return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -848,7 +864,11 @@ namespace cms
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -15395,6 +15415,11 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return temprecord;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -15610,6 +15635,11 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -15827,6 +15857,11 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return *mod;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -16019,6 +16054,10 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = co_await conn->async_read_loop();
                     offset = 0;
+                    if (n==0)
+                    {
+                        co_return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -16208,6 +16247,11 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -16399,6 +16443,10 @@ M_MODEL& or_leDetailcontent(T val)
                     // n      = co_await conn->socket->async_read_some(asio::buffer(result_data), asio::use_awaitable);
                     n      = co_await conn->async_read_loop();
                     offset = 0;
+                    if (n==0)
+                    {
+                        co_return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -16592,6 +16640,11 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -16801,6 +16854,10 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = co_await conn->async_read_loop();
                     offset = 0;
+                    if (n==0)
+                    {
+                        co_return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -17111,6 +17168,11 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -17281,6 +17343,10 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = co_await conn->async_read_loop();
                     offset = 0;
+                    if (n==0)
+                    {
+                        co_return valuetemp;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -17451,6 +17517,11 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -17618,6 +17689,10 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = co_await conn->async_read_loop();
                     offset = 0;
+                    if (n==0)
+                    {
+                        co_return 0;
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -17792,7 +17867,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }    
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -17919,7 +17998,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18033,7 +18116,10 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = co_await conn->async_read_loop();
-
+                if (n==0)
+                {
+                    co_return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18148,7 +18234,10 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = co_await conn->async_read_loop();
-
+                if (n==0)
+                {
+                    co_return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18236,7 +18325,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18357,7 +18450,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18472,7 +18569,10 @@ M_MODEL& or_leDetailcontent(T val)
                 
                 unsigned int offset = 0;
                 n                   = co_await conn->async_read_loop();
-
+                if (n==0)
+                {
+                    co_return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18559,7 +18659,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18639,7 +18743,10 @@ M_MODEL& or_leDetailcontent(T val)
                 
                 unsigned int offset = 0;
                 n                   = co_await conn->async_read_loop();
-
+                if (n==0)
+                {
+                    co_return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18764,7 +18871,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18896,7 +19007,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -18975,7 +19090,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19048,7 +19167,10 @@ M_MODEL& or_leDetailcontent(T val)
                 
                 unsigned int offset = 0;
                 n                   = co_await conn->async_read_loop();
-
+                if (n==0)
+                {
+                    co_return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19128,7 +19250,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19201,7 +19327,10 @@ M_MODEL& or_leDetailcontent(T val)
                 
                 unsigned int offset = 0;
                 n                   = co_await conn->async_read_loop();
-
+                if (n==0)
+                {
+                    co_return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19281,7 +19410,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19353,7 +19486,10 @@ M_MODEL& or_leDetailcontent(T val)
                 
                 unsigned int offset = 0;
                 n                   = co_await conn->async_read_loop();
-
+                if (n==0)
+                {
+                    co_return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19464,7 +19600,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19514,7 +19654,11 @@ M_MODEL& or_leDetailcontent(T val)
 
                 unsigned int offset = 0;
                 n                   = conn->read_loop();
-
+                if(n==0)
+                {
+                    error_msg = conn->error_msg;
+                    return 0;
+                }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19609,7 +19753,10 @@ M_MODEL& or_leDetailcontent(T val)
 
                     unsigned int offset = 0;
                     n                   = co_await conn->async_read_loop();
-
+                    if (n==0)
+                    {
+                        co_return 0;
+                    }
                     pack_info_t temp_pack_data;
                     temp_pack_data.seq_id = 1;
                     conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19671,7 +19818,10 @@ M_MODEL& or_leDetailcontent(T val)
                     
                     unsigned int offset = 0;
                     n                   = co_await conn->async_read_loop();
-
+                    if (n==0)
+                    {
+                        co_return 0;
+                    }
                     pack_info_t temp_pack_data;
                     temp_pack_data.seq_id = 1;
                     conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19794,6 +19944,11 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = conn->read_loop();
                     offset = 0;
+                    if(n==0)
+                    {
+                        error_msg = conn->error_msg;
+                        return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
@@ -19959,6 +20114,10 @@ M_MODEL& or_leDetailcontent(T val)
                 {
                     n      = co_await conn->async_read_loop();
                     offset = 0;
+                    if (n==0)
+                    {
+                        co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                    }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);

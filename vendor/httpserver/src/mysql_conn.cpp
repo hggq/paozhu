@@ -843,6 +843,7 @@ unsigned int mysql_conn_base::read_loop()
         if (ec)
         {
             error_code = 1;
+            error_msg = ec.message();
             return 0;
         }
         return n;
