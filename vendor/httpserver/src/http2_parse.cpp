@@ -801,6 +801,7 @@ namespace http
         bool isgroup = true;
         if(block_data_info_ptr->buffer_key.length() > 72)
         {
+            error = 40011;
             return;
         }
         for (unsigned int j = 0; j < block_data_info_ptr->buffer_key.length(); j++)
@@ -2581,6 +2582,7 @@ namespace http
         bool isgroup = true;
         if(block_data_info_ptr->buffer_key.length() > 72)
         {
+            error = 40011;
             return;
         }
         for (unsigned int j = 0; j < block_data_info_ptr->buffer_key.length(); j++)
@@ -3916,10 +3918,18 @@ namespace http
                     readformurlencoded();
                     block_data_info_ptr->buffer_value.clear();
                 }
+                if(error > 0)
+                {
+                    return;
+                }
                 break;
             case 2:
                 // multipart/form-data
                 readmultipartformdata((const unsigned char *)stream_data_ptr->data() + j, w_size);
+                if(error > 0)
+                {
+                    return;
+                }
                 break;
             case 3:
                 // json

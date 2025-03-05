@@ -105,6 +105,7 @@ namespace http
         bool isgroup = true;
         if(header_temp.length() > 72)
         {
+            error = 400;
             return;
         }
         for (unsigned int j = 0; j < header_temp.length(); j++)
@@ -254,6 +255,7 @@ namespace http
         bool isgroup = true;
         if(header_temp.length() > 72)
         {
+            error = 400;
             return;
         }
         for (unsigned int j = 0; j < header_temp.length(); j++)
@@ -2902,10 +2904,18 @@ namespace http
                     case 1:
                         // x-www-form-urlencoded
                         readformurlencoded(buffer, buffersize);
+                        if(error > 0)
+                        {
+                            return;
+                        }
                         break;
                     case 2:
                         // multipart/form-data-
                         readmultipartformdata(buffer, buffersize);
+                        if(error > 0)
+                        {
+                            return;
+                        }
                         break;
                     case 3:
                         // json
