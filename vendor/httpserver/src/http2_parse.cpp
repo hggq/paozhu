@@ -799,6 +799,10 @@ namespace http
     {
         std::string objname;
         bool isgroup = true;
+        if(block_data_info_ptr->buffer_key.length() > 72)
+        {
+            return;
+        }
         for (unsigned int j = 0; j < block_data_info_ptr->buffer_key.length(); j++)
         {
             if (block_data_info_ptr->buffer_key[j] == '[')
@@ -2575,7 +2579,10 @@ namespace http
     {
         std::string objname;
         bool isgroup = true;
-
+        if(block_data_info_ptr->buffer_key.length() > 72)
+        {
+            return;
+        }
         for (unsigned int j = 0; j < block_data_info_ptr->buffer_key.length(); j++)
         {
             if (block_data_info_ptr->buffer_key[j] == '[')

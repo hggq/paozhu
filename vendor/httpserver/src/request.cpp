@@ -61,6 +61,10 @@ unsigned long long hash_objkey(const std::string &key)
             n = 8;
         }
         n--;
+        if(i > 72)
+        {
+            break;
+        }
     }
     if (isnum)
     {

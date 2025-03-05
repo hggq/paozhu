@@ -103,6 +103,10 @@ namespace http
     {
         std::string objname;
         bool isgroup = true;
+        if(header_temp.length() > 72)
+        {
+            return;
+        }
         for (unsigned int j = 0; j < header_temp.length(); j++)
         {
             if (header_temp[j] == '[')
@@ -248,6 +252,10 @@ namespace http
     {
         std::string objname;
         bool isgroup = true;
+        if(header_temp.length() > 72)
+        {
+            return;
+        }
         for (unsigned int j = 0; j < header_temp.length(); j++)
         {
             if (header_temp[j] == '[')
