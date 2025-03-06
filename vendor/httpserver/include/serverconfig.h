@@ -74,6 +74,7 @@ class serverconfig
     SSL_CTX *getctx(std::string filename);
     SSL_CTX *getdefaultctx();
     unsigned int get_hostindex(const std::string &host);
+    void clearctx();
   public:
     std::string serverpath;
     std::string wwwpath;
@@ -84,6 +85,7 @@ class serverconfig
     std::string configfile;
     std::string configpath;
     std::map<std::string, std::map<std::string, std::string>> map_value;
+    bool clear_ctx = false;
     bool reloadmysql                   = true;
     bool reloadserverconfig            = true;
     bool siteusehtmlchache             = false;

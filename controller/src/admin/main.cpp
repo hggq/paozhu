@@ -247,8 +247,8 @@ std::string admin_siteinfopost(std::shared_ptr<httppeer> peer)
 
         if (sid > 0)
         {
-            stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int());
+            //stinfo.setPK(sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
 
             int result_status = stinfo.update("sitename,metakeys,metadesc");
             if (result_status > 0)

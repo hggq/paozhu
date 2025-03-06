@@ -946,7 +946,7 @@ int createtabletoorm(std::string ormfilepath,
             outlist.append(" float ");
 
             outlist.append(bb);
-            if (tableinfo[bb]["default"] == "<null>" || tableinfo[bb]["default"] == "null")
+            if (tableinfo[bb]["default"] == "<null>" || tableinfo[bb]["default"] == "null" || tableinfo[bb]["default"] == "")
             {
                 outlist.append("=0.0; //");
             }
@@ -971,7 +971,7 @@ int createtabletoorm(std::string ormfilepath,
             outlist.append(" double ");
 
             outlist.append(bb);
-            if (tableinfo[bb]["default"] == "<null>" || tableinfo[bb]["default"] == "null")
+            if (tableinfo[bb]["default"] == "<null>" || tableinfo[bb]["default"] == "null" || tableinfo[bb]["default"] == "")
             {
                 outlist.append("=0.0; //");
             }
@@ -996,7 +996,7 @@ int createtabletoorm(std::string ormfilepath,
             outlist.append(" double ");
 
             outlist.append(bb);
-            if (tableinfo[bb]["default"] == "<null>" || tableinfo[bb]["default"] == "null")
+            if (tableinfo[bb]["default"] == "<null>" || tableinfo[bb]["default"] == "null" || tableinfo[bb]["default"] == "")
             {
                 outlist.append("=0.0; //");
             }

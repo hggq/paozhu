@@ -229,7 +229,7 @@ unsigned int serverconfig::get_hostindex(const std::string &host)
 }
 std::string serverconfig::getsitepath(const std::string &host)
 {
-
+    clear_ctx = false;
     std::string sitepath;
     bool isnothost = true;
 
@@ -1631,17 +1631,23 @@ SSL_CTX *serverconfig::getdefaultctx()
 SSL_CTX *serverconfig::getctx(std::string filename)
 {
     SSL_CTX *ctx         = NULL;
-    std::string filepath = configpath;
-    if (filepath.empty())
+    
+    if(clear_ctx)
     {
-        filepath = "conf/";
+       return ctx;
     }
+
     if (g_ctxMap.find(filename) != g_ctxMap.end())
     {
         ctx = g_ctxMap[filename];
     }
     else
     {
+        std::string filepath = configpath;
+        if (filepath.empty())
+        {
+            filepath = "conf/";
+        }
         g_ctxMap[filename] = SSL_CTX_new(SSLv23_server_method());
         ctx                = g_ctxMap[filename];
         // filename.append(".pem");
@@ -1717,6 +1723,16 @@ SSL_CTX *serverconfig::getctx(std::string filename)
         }
     }
     return ctx;
+}
+void serverconfig::clearctx()
+{
+    clear_ctx = true;
+    for (auto i = g_ctxMap.begin(); i != g_ctxMap.end(); ++i)
+    {
+        SSL_CTX_free(i->second);
+    }
+    g_ctxMap.clear();
+    clear_ctx = false;
 }
 
 }// namespace http

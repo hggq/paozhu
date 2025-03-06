@@ -34,7 +34,7 @@ struct http2_send_data_t
     unsigned long long content_length = 0;//content_length
     unsigned long long current_num    = 0;
 
-    std::chrono::time_point<std::chrono::steady_clock> last_time;
+    std::chrono::time_point<std::chrono::steady_clock> last_time=std::chrono::steady_clock::now();
     long long sleep_time = 0;//duartion time  milliseconds * 1 = microseconds * 1000 = nanoseconds * 1000 * 1000
 
     std::unique_ptr<std::FILE, int (*)(FILE *)> fp = {nullptr, std::fclose};

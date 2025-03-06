@@ -104,6 +104,7 @@ class httpserver
     asio::awaitable<void> http2_ring_client_server(std::shared_ptr<client_session> peer_session);
 
     void websocket_loop(int myid);
+    asio::awaitable<void> clientpeerstop(std::shared_ptr<client_session> peer_session);
 
     void listeners();
     void listener();
@@ -143,6 +144,7 @@ class httpserver
 
     void save_traffic_arrays();
     void stop();
+    asio::io_context& get_ctx();
     ~httpserver()
     {
         std::printf("~httpserver\n");
@@ -181,7 +183,7 @@ class httpserver
 
     std::mutex socket_session_lists_mutex;
     std::list<std::weak_ptr<client_session>> socket_session_lists;
-    std::list<std::shared_ptr<client_session>> socket_session_wait_clear;
+    //std::list<std::shared_ptr<client_session>> socket_session_wait_clear;
 
     std::condition_variable send_data_condition;
 
