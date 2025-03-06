@@ -22,4 +22,5 @@ namespace http
 	std::string admin_edithomeblocktext(std::shared_ptr<httppeer> peer);
 	std::string admin_deletehomeblock(std::shared_ptr<httppeer> peer);
 	std::string admin_homedesign(std::shared_ptr<httppeer> peer);
+	std::string admin_edithomeblockmulit(std::shared_ptr<httppeer> peer);
 }

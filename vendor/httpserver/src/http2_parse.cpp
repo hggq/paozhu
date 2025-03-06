@@ -701,6 +701,7 @@ namespace http
 
             block_data_info_ptr->buffer_key.clear();
             block_data_info_ptr->buffer_value.clear();
+            unsigned int jj = 0;
             for (; ioffset < linesize; ioffset++)
             {
                 if (header_value[ioffset] == 0x3D)
@@ -721,6 +722,7 @@ namespace http
                                                                        block_data_info_ptr->buffer_value.length());
                     block_data_info_ptr->buffer_value.clear();
                     headerstep = 1;
+                    jj = 0;
                     continue;
                 }
                 else if (header_value[ioffset] == 0x26)
@@ -750,9 +752,21 @@ namespace http
                     block_data_info_ptr->buffer_key.clear();
                     block_data_info_ptr->buffer_value.clear();
                     headerstep = 2;
+                    jj = 0;
                     continue;
                 }
                 block_data_info_ptr->buffer_value.push_back(header_value[ioffset]);
+
+                if(headerstep == 0 || headerstep == 2)
+                {
+                    //key name too long
+                    if(jj >72)
+                    {
+                        error = 159;
+                        return;
+                    }
+                }
+                jj++;
             }
 
             if (headerstep == 1)
@@ -762,7 +776,7 @@ namespace http
                                                                      block_data_info_ptr->buffer_value.length());
                 if (block_data_info_ptr->buffer_key.size() > 48)
                 {
-                    error = 155;
+                    error = 156;
                     return;
                 }
                 procssparamter();
@@ -775,7 +789,7 @@ namespace http
                 block_data_info_ptr->buffer_value.clear();
                 if (block_data_info_ptr->buffer_key.size() > 48)
                 {
-                    error = 155;
+                    error = 157;
                     return;
                 }
                 procssparamter();
@@ -788,7 +802,7 @@ namespace http
                 block_data_info_ptr->buffer_value.clear();
                 if (block_data_info_ptr->buffer_key.size() > 48)
                 {
-                    error = 155;
+                    error = 158;
                     return;
                 }
                 procssparamter();
@@ -2735,6 +2749,7 @@ namespace http
         unsigned int qsize = block_data_info_ptr->buffer_value.size();
         unsigned char partype = 0;
         unsigned int j = 0;
+        unsigned int jj = 0;
         for (j = 0; j < qsize; j++)
         {
             if (block_data_info_ptr->buffer_value[j] == 0x3D)
@@ -2742,6 +2757,7 @@ namespace http
                 block_data_info_ptr->buffer_key = http::url_decode(temp_value.data(), temp_value.length());
                 temp_value.clear();
                 partype = 1;
+                jj = 0;
                 continue;
             }
             else if (block_data_info_ptr->buffer_value[j] == 0x26)
@@ -2756,9 +2772,21 @@ namespace http
                 temp_value.clear();
                 block_data_info_ptr->field_value.clear();
                 partype = 2;
+                jj = 0;
                 continue;
             }
             temp_value.push_back(block_data_info_ptr->buffer_value[j]);
+
+            if(partype == 0 || partype == 2)
+            {
+                //key name too long
+                if(jj >72)
+                {
+                    error = 40001;
+                    return;
+                }
+            }
+            jj++;
         }
         if (partype == 1)
         {

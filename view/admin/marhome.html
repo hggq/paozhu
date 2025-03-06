@@ -60,7 +60,9 @@
                             case 4:
                                  echo<<"内容提取";
                                  break;
-               
+                            case 5:
+                                 echo<<"多块图文";
+                                 break;               
                       }
                   %>
                 </td>
@@ -87,6 +89,8 @@
                              break;   
                         case 4:
                              echo<<"hot";
+                        case 5:
+                             echo<<"content";     
                              break;
            
                   }
@@ -116,6 +120,7 @@
           <option  value="2">栏目列表</option>
           <option  value="3">栏目内容</option>
           <option  value="4">内容提取</option>
+          <option  value="5">多块图文</option>
         </select>  
       </div>
       <div class="col-5">
@@ -151,6 +156,9 @@
         case "4":
           window.location.href="/admin/addhomehot";
           break;
+        case "5":
+          window.location.href="/admin/edithomeblockmulit";
+          break;          
         default:
           window.location.href="/admin/addhometext";
       }   

@@ -26,6 +26,7 @@ namespace admin{
 	std::string addtopic(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string copyright(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string editarticle(const struct view_param &vinfo,http::OBJ_VALUE &obj);
+	std::string edithomeblockmulit(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string edithomecontent(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string edithomehot(const struct view_param &vinfo,http::OBJ_VALUE &obj);
 	std::string edithomepic(const struct view_param &vinfo,http::OBJ_VALUE &obj);

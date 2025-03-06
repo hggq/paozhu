@@ -740,6 +740,7 @@ namespace http
             header_input.clear();
             unsigned int qsize = header_key.size();
             unsigned char partype = 0;
+            unsigned int jj = 0;
             for (j = 0; j < qsize; j++)
             {
                 if (header_key[j] == 0x3D)
@@ -759,6 +760,7 @@ namespace http
                     header_temp = http::url_decode(header_value.data(), header_value.length());
                     header_value.clear();
                     partype = 1;
+                    jj = 0;
                     continue;
                 }
                 else if (header_key[j] == 0x26)
@@ -779,15 +781,27 @@ namespace http
 
                     if (header_temp.size() > 48)
                     {
-                        error = 7;
+                        error = 6;
                         return;
                     }
                     procssparamter();
                     header_value.clear();
                     partype = 2;
+                    jj = 0;
                     continue;
                 }
                 header_value.push_back(header_key[j]);
+
+                if(partype == 0 || partype == 2)
+                {
+                    //key name too long
+                    if(jj >72)
+                    {
+                        error = 40001;
+                        return;
+                    }
+                }
+                jj++;
             }
             if (partype == 1)
             {
@@ -805,7 +819,7 @@ namespace http
                 header_input.clear();
                 if (header_temp.size() > 48)
                 {
-                    error = 7;
+                    error = 8;
                     return;
                 }
                 procssparamter();
@@ -816,7 +830,7 @@ namespace http
                 header_input.clear();
                 if (header_temp.size() > 48)
                 {
-                    error = 7;
+                    error = 9;
                     return;
                 }
                 procssparamter();
@@ -2680,6 +2694,7 @@ namespace http
             unsigned int qsize = buffer_value.size();
             unsigned char partype = 0;
             unsigned int j = 0;
+            unsigned int jj = 0;
             for (j = 0; j < qsize; j++)
             {
                 if (buffer_value[j] == 0x3D)
@@ -2687,6 +2702,7 @@ namespace http
                     header_temp = http::url_decode(header_value.data(), header_value.length());
                     header_value.clear();
                     partype = 1;
+                    jj = 0;
                     continue;
                 }
                 else if (buffer_value[j] == 0x26)
@@ -2700,9 +2716,21 @@ namespace http
                     procssxformurlencoded();
                     header_value.clear();
                     partype = 2;
+                    jj = 0;
                     continue;
                 }
                 header_value.push_back(buffer_value[j]);
+                
+                if(partype == 0 || partype == 2)
+                {
+                    //key name too long
+                    if(jj >72)
+                    {
+                        error = 4001;
+                        return;
+                    }
+                }
+                jj++;
             }
             if (partype == 1)
             {

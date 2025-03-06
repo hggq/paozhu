@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2024-12-27 06:14:35
--- 服务器版本： 8.0.37
--- PHP 版本： 8.3.13
+-- 生成日期： 2025-03-05 09:19:28
+-- 服务器版本： 8.4.4
+-- PHP 版本： 8.4.3
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -159,9 +159,9 @@ INSERT INTO `department` (`dpid`, `userid`, `parentid`, `name`, `depart_code`, `
 CREATE TABLE `homeblock` (
   `hbid` int UNSIGNED NOT NULL,
   `userid` int UNSIGNED NOT NULL,
-  `title` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `content` text COLLATE utf8mb4_general_ci NOT NULL,
-  `jsonconfig` text COLLATE utf8mb4_general_ci NOT NULL,
+  `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `jsonconfig` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `viewtype` tinyint UNSIGNED NOT NULL COMMENT 'display type sample or list',
   `gettype` tinyint UNSIGNED NOT NULL,
   `rownum` int UNSIGNED NOT NULL,
@@ -186,8 +186,8 @@ CREATE TABLE `logininfo` (
   `addip` varchar(70) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录ip',
   `addregion` varchar(70) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录地区',
   `loginstate` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '登录状态',
-  `agent` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `urlpath` varchar(120) COLLATE utf8mb4_general_ci NOT NULL
+  `agent` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `urlpath` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录';
 
 --
@@ -195,23 +195,7 @@ CREATE TABLE `logininfo` (
 --
 
 INSERT INTO `logininfo` (`lgid`, `userid`, `logtype`, `username`, `addtime`, `addip`, `addregion`, `loginstate`, `agent`, `urlpath`) VALUES
-(1, 1, 0, 'admin', '2024-11-28 22:49:44', '127.0.0.1', '', '成功default', '', ''),
-(2, 1, 0, 'admin', '2024-11-28 23:10:55', '127.0.0.1', '', '成功default', '', ''),
-(3, 0, 0, 'admin', '2024-12-10 16:42:52', '127.0.0.1', '', '失败', '', ''),
-(4, 10000, 0, 'admin', '2024-12-10 16:42:59', '127.0.0.1', '', '成功default', '', ''),
-(5, 10000, 0, 'admin', '2024-12-10 16:46:00', '127.0.0.1', '', '成功default', '', ''),
-(6, 10000, 0, 'admin', '2024-12-10 16:56:54', '127.0.0.1', '', '成功default', '', ''),
-(7, 0, 0, 'admin', '2024-12-25 23:03:22', '127.0.0.1', '', '失败', '', ''),
-(8, 0, 0, 'admin', '2024-12-25 23:04:23', '127.0.0.1', '', '失败', '', ''),
-(9, 0, 0, 'admin', '2024-12-25 23:04:31', '127.0.0.1', '', '失败', '', ''),
-(10, 10000, 0, 'admin', '2024-12-25 23:04:48', '127.0.0.1', '', '成功default', '', ''),
-(11, 0, 0, 'admin', '2024-12-25 23:20:14', '127.0.0.1', '', '失败', '', ''),
-(12, 10000, 0, 'admin', '2024-12-25 23:20:22', '127.0.0.1', '', '成功default', '', ''),
-(13, 0, 0, 'admin', '2024-12-26 08:55:58', '127.0.0.1', '', '失败', '', ''),
-(14, 10000, 0, 'admin', '2024-12-26 08:56:07', '127.0.0.1', '', '成功default', '', ''),
-(15, 10000, 0, 'admin', '2024-12-26 10:56:44', '127.0.0.1', '', '成功default', '', ''),
-(16, 10000, 0, 'admin', '2024-12-26 11:32:29', '127.0.0.1', '', '成功default', '', ''),
-(17, 10000, 0, 'admin', '2024-12-26 12:27:42', '127.0.0.1', '', '成功default', '', '');
+(1, 10000, 0, 'admin', '2025-03-05 17:19:12', '127.0.0.1', '', '成功default', '', '');
 
 -- --------------------------------------------------------
 
@@ -282,26 +266,26 @@ CREATE TABLE `siteinfo` (
   `metakeys` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `metadesc` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `copyright` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `beiansn` varchar(256) COLLATE utf8mb4_general_ci NOT NULL COMMENT '备案号',
-  `footscript` text COLLATE utf8mb4_general_ci NOT NULL COMMENT '底部脚本',
-  `headscript` text COLLATE utf8mb4_general_ci NOT NULL COMMENT '头部script',
-  `introduce` text COLLATE utf8mb4_general_ci NOT NULL,
-  `sitelogo` varchar(256) COLLATE utf8mb4_general_ci NOT NULL COMMENT 'logo url',
-  `contactman` varchar(30) COLLATE utf8mb4_general_ci NOT NULL,
-  `phone` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `mobile` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `email` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `bankname` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `banksn` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `address` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
-  `zipnum` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
-  `taxsn` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `companyname` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
-  `linkname` varchar(30) COLLATE utf8mb4_general_ci NOT NULL,
-  `linkmobile` varchar(30) COLLATE utf8mb4_general_ci NOT NULL,
-  `linkaddress` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
-  `theme` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `sitepath` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
+  `beiansn` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '备案号',
+  `footscript` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '底部脚本',
+  `headscript` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '头部script',
+  `introduce` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `sitelogo` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'logo url',
+  `contactman` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `phone` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `mobile` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `bankname` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `banksn` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `address` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `zipnum` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `taxsn` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `companyname` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `linkname` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `linkmobile` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `linkaddress` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `theme` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `sitepath` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `isopen` tinyint UNSIGNED NOT NULL,
   `created_at` int UNSIGNED NOT NULL,
   `enddate` int UNSIGNED NOT NULL
@@ -312,7 +296,7 @@ CREATE TABLE `siteinfo` (
 --
 
 INSERT INTO `siteinfo` (`sid`, `userid`, `agentid`, `languagetype`, `sitename`, `sitedomain`, `metakeys`, `metadesc`, `copyright`, `beiansn`, `footscript`, `headscript`, `introduce`, `sitelogo`, `contactman`, `phone`, `mobile`, `email`, `bankname`, `banksn`, `address`, `zipnum`, `taxsn`, `companyname`, `linkname`, `linkmobile`, `linkaddress`, `theme`, `sitepath`, `isopen`, `created_at`, `enddate`) VALUES
-(1, 1, 1, 0, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'default', 0, 0, 0);
+(1, 1, 1, 0, '名称名称名称', '', 'META关键词aaayyy', 'META描述cccfddd\r\n', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'default', 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -324,17 +308,17 @@ CREATE TABLE `superadmin` (
   `adminid` int UNSIGNED NOT NULL,
   `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `password` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `nickname` varchar(30) COLLATE utf8mb4_general_ci NOT NULL,
+  `nickname` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `isopen` tinyint NOT NULL,
   `begindate` int UNSIGNED NOT NULL,
   `enddate` int UNSIGNED NOT NULL,
-  `regdate` varchar(30) COLLATE utf8mb4_general_ci NOT NULL,
-  `mobile` varchar(40) COLLATE utf8mb4_general_ci NOT NULL,
-  `email` varchar(40) COLLATE utf8mb4_general_ci NOT NULL,
+  `regdate` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `mobile` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `loginnum` int UNSIGNED NOT NULL,
   `qrtemp` int UNSIGNED NOT NULL,
-  `wxuuid` varchar(40) COLLATE utf8mb4_general_ci NOT NULL,
-  `basesitepath` varchar(256) COLLATE utf8mb4_general_ci NOT NULL
+  `wxuuid` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `basesitepath` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Super administrator';
 
 --
@@ -354,9 +338,9 @@ CREATE TABLE `sysperms` (
   `permsid` int UNSIGNED NOT NULL,
   `parentid` int UNSIGNED NOT NULL,
   `userid` int UNSIGNED NOT NULL,
-  `urlpath` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `urlname` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
+  `urlpath` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `urlname` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `status` tinyint UNSIGNED NOT NULL,
   `permscode` int UNSIGNED NOT NULL,
   `readonly` tinyint UNSIGNED NOT NULL,
@@ -375,7 +359,7 @@ CREATE TABLE `sysperms` (
 CREATE TABLE `sysrole` (
   `roleid` int UNSIGNED NOT NULL,
   `userid` int UNSIGNED NOT NULL,
-  `name` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `status` tinyint UNSIGNED NOT NULL,
   `rolecode` bigint UNSIGNED NOT NULL,
   `sortid` int NOT NULL,
@@ -406,7 +390,7 @@ CREATE TABLE `sysuser` (
   `adminid` int UNSIGNED NOT NULL,
   `name` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `password` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `textword` varchar(40) COLLATE utf8mb4_general_ci NOT NULL,
+  `textword` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `isopen` tinyint(1) NOT NULL,
   `level` int NOT NULL,
   `companyid` int UNSIGNED NOT NULL COMMENT '所属企业',
@@ -418,12 +402,12 @@ CREATE TABLE `sysuser` (
   `enddate` int UNSIGNED NOT NULL,
   `qrtemp` int UNSIGNED NOT NULL,
   `gender` tinyint UNSIGNED NOT NULL,
-  `nickname` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `realname` varchar(40) COLLATE utf8mb4_general_ci NOT NULL,
-  `avatar` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
-  `mobile` varchar(40) COLLATE utf8mb4_general_ci NOT NULL,
-  `email` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `wxuuid` varchar(40) COLLATE utf8mb4_general_ci NOT NULL
+  `nickname` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `realname` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `avatar` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `mobile` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `wxuuid` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -469,14 +453,6 @@ CREATE TABLE `testb` (
   `score` bigint NOT NULL DEFAULT '0' COMMENT '分数[num*100]',
   `name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- 转存表中的数据 `testb`
---
-
-INSERT INTO `testb` (`tid`, `score`, `name`) VALUES
-(4, 89, 'caname'),
-
 
 -- --------------------------------------------------------
 
@@ -524,21 +500,21 @@ CREATE TABLE `xmeet` (
   `xpjid` int UNSIGNED NOT NULL,
   `xtaskid` int UNSIGNED NOT NULL,
   `adminid` int UNSIGNED NOT NULL,
-  `title` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `zhuchi` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `jilu` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `meetnotice` text COLLATE utf8mb4_general_ci NOT NULL,
-  `meetfiles` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
-  `address` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
-  `meettime` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
+  `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `zhuchi` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `jilu` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `meetnotice` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `meetfiles` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `address` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `meettime` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `regdate` int UNSIGNED NOT NULL,
   `expecttime` int UNSIGNED NOT NULL,
   `endtime` int UNSIGNED NOT NULL,
-  `presents` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
-  `content` text COLLATE utf8mb4_general_ci NOT NULL,
-  `postresult` text COLLATE utf8mb4_general_ci NOT NULL,
-  `postfiles` text COLLATE utf8mb4_general_ci NOT NULL,
-  `jiluphoto` varchar(256) COLLATE utf8mb4_general_ci NOT NULL
+  `presents` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `postresult` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `postfiles` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `jiluphoto` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='会议纪要';
 
 -- --------------------------------------------------------
@@ -553,7 +529,7 @@ CREATE TABLE `xproject` (
   `prexpjid` int UNSIGNED NOT NULL,
   `dpid` int UNSIGNED NOT NULL,
   `grouptype` int UNSIGNED NOT NULL,
-  `title` varchar(120) COLLATE utf8mb4_general_ci NOT NULL,
+  `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `adminuserid` int UNSIGNED NOT NULL,
   `regdate` int UNSIGNED NOT NULL,
   `begindate` int UNSIGNED NOT NULL,
@@ -565,11 +541,11 @@ CREATE TABLE `xproject` (
   `xtheme` int UNSIGNED NOT NULL,
   `xlogo` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `introduce` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `giturl` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
-  `gitname` text COLLATE utf8mb4_general_ci NOT NULL,
-  `gitpwd` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
+  `giturl` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `gitname` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `gitpwd` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `xcolor` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `fupan` text COLLATE utf8mb4_general_ci NOT NULL,
+  `fupan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `totalvalue` double NOT NULL,
   `expectday` float NOT NULL,
   `realday` float NOT NULL
@@ -587,7 +563,7 @@ CREATE TABLE `xtalk` (
   `adminid` int UNSIGNED NOT NULL,
   `taskid` int UNSIGNED NOT NULL,
   `projectid` int UNSIGNED NOT NULL,
-  `content` text COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `isdelete` tinyint UNSIGNED NOT NULL,
   `addtime` int UNSIGNED NOT NULL,
   `update_at` int UNSIGNED NOT NULL,
@@ -623,15 +599,15 @@ CREATE TABLE `xtask` (
   `expectday` float NOT NULL,
   `realday` float NOT NULL,
   `pricevalue` float NOT NULL,
-  `title` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
-  `introduce` text COLLATE utf8mb4_general_ci NOT NULL,
-  `xlogo` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
+  `title` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `introduce` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `xlogo` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `xcolor` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `pullurl` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
-  `pulltitle` varchar(256) COLLATE utf8mb4_general_ci NOT NULL,
-  `pullauthor` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
-  `note` text COLLATE utf8mb4_general_ci NOT NULL,
-  `itemnote` text COLLATE utf8mb4_general_ci NOT NULL
+  `pullurl` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `pulltitle` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `pullauthor` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `itemnote` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='项目任务表';
 
 --
@@ -686,7 +662,8 @@ ALTER TABLE `logininfo`
 --
 ALTER TABLE `product`
   ADD PRIMARY KEY (`pid`),
-  ADD KEY `userid` (`userid`);
+  ADD KEY `userid` (`userid`),
+  ADD KEY `sortid` (`sortid`);
 
 --
 -- 表的索引 `productparam`
@@ -741,13 +718,6 @@ ALTER TABLE `testa`
 --
 ALTER TABLE `testb`
   ADD PRIMARY KEY (`tid`);
-
---
--- 表的索引 `topic`
---
-ALTER TABLE `topic`
-  ADD PRIMARY KEY (`topicid`),
-  ADD KEY `userid` (`userid`);
 
 --
 -- 表的索引 `xmeet`
@@ -821,7 +791,7 @@ ALTER TABLE `homeblock`
 -- 使用表AUTO_INCREMENT `logininfo`
 --
 ALTER TABLE `logininfo`
-  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- 使用表AUTO_INCREMENT `product`
@@ -882,12 +852,6 @@ ALTER TABLE `testa`
 --
 ALTER TABLE `testb`
   MODIFY `tid` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=120;
-
---
--- 使用表AUTO_INCREMENT `topic`
---
-ALTER TABLE `topic`
-  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=136;
 
 --
 -- 使用表AUTO_INCREMENT `xmeet`

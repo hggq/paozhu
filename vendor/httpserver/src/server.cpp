@@ -2317,7 +2317,6 @@ namespace http
                             DEBUG_LOG("http2 client request error %d ", http2pre->error);
 #endif
                             co_await peer_session->co_send_goway();
-
                             break;
                         }
 

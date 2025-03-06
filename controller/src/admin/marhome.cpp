@@ -467,5 +467,11 @@ std::string admin_homedesign(std::shared_ptr<httppeer> peer)
     peer->view("admin/homedesign");
     return "";
 }
+//@urlpath(admin_islogin,admin/edithomeblockmulit)
+std::string admin_edithomeblockmulit(std::shared_ptr<httppeer> peer)
+{
+    peer->view("admin/edithomeblockmulit");
+    return "";
+}
 
 }// namespace http

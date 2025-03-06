@@ -376,6 +376,9 @@ namespace http
 		temp.pre = admin_islogin;
 		temp.regfun = admin_homedesign;
 		methodcallback.emplace("admin/homedesign",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_edithomeblockmulit;
+		methodcallback.emplace("admin/edithomeblockmulit",temp);
 		temp.pre = nullptr;
 		temp.regfun = admin_login;
 		methodcallback.emplace("admin/login",temp);

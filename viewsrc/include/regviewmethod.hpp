@@ -17,7 +17,7 @@ namespace http
 {
   void _initview_method_regto(VIEW_REG  &_viewmetholdreg)
   {
-            	 //create time: Tue, 10 Dec 2024 07:43:57 GMT
+            	 //create time: Wed, 05 Mar 2025 12:22:47 GMT
 
 	_viewmetholdreg.emplace("admin/addarticle",http::view::admin::addarticle);
 	_viewmetholdreg.emplace("admin/addhomecontent",http::view::admin::addhomecontent);
@@ -29,6 +29,7 @@ namespace http
 	_viewmetholdreg.emplace("admin/addtopic",http::view::admin::addtopic);
 	_viewmetholdreg.emplace("admin/copyright",http::view::admin::copyright);
 	_viewmetholdreg.emplace("admin/editarticle",http::view::admin::editarticle);
+	_viewmetholdreg.emplace("admin/edithomeblockmulit",http::view::admin::edithomeblockmulit);
 	_viewmetholdreg.emplace("admin/edithomecontent",http::view::admin::edithomecontent);
 	_viewmetholdreg.emplace("admin/edithomehot",http::view::admin::edithomehot);
 	_viewmetholdreg.emplace("admin/edithomepic",http::view::admin::edithomepic);

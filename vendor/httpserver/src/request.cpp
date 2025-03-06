@@ -313,9 +313,7 @@ OBJ_VALUE &OBJ_VALUE::operator=(OBJ_VALUE &&v)
 
 OBJ_VALUE &OBJ_VALUE::operator[](const std::string &key)
 {
-
     unsigned long long temp;
-
     temp = hash_objkey(key);
 
     if (array_v.isset(temp))
@@ -333,9 +331,7 @@ OBJ_VALUE &OBJ_VALUE::operator[](const std::string &key)
 }
 OBJ_VALUE &OBJ_VALUE::operator[](const std::string &&key)
 {
-
     unsigned long long temp;
-
     temp = hash_objkey(key);
 
     if (array_v.isset(temp))

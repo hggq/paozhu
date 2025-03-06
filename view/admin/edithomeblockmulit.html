@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>显示栏目</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/libs/tree/select-tree.css">
+ 
+  <link href="/css/dashboard.css" rel="stylesheet">
+  <script src="/js/jquery.min.js"></script>
+  <script src="/libs/tree/select-tree.js"></script>
+</head>
+
+<body>
+
+  <div class="container">
+    <form class="g-3 mt-1" id="form" method="post">
+      <h3>显示内容块</h3>
+      <div class="row">
+        <div class="col-md-6">
+          <label for="title" class="form-label">模块名称</label>
+          <input type="text" class="form-control" id="title" name="title" value="<% echo<<obj["info"]["title"].to_string(); %>">
+        </div>
+      </div>  
+      <div class="row">
+        <div class="col-md-4">
+          <label for="title" class="form-label">显示列数</label>
+          <input type="text" class="form-control" id="rownum" name="rownum" value="<% echo<<obj["info"]["rownum"].to_string(); %>">
+        </div>
+        <div class="col-md-4">
+          <label for="title" class="form-label">宽度</label>
+          <input type="text" class="form-control" id="width" name="width" value="<% echo<<obj["info"]["width"].to_string(); %>">
+        </div>
+        <div class="col-md-4">
+          <label for="title" class="form-label">高度</label>
+          <input type="text" class="form-control" id="height" name="height" value="<% echo<<obj["info"]["height"].to_string(); %>">
+        </div>
+      </div>  
+
+      <div class="row">
+        <input type="hidden" id="hbid" name="hbid" value="<% echo<<obj["info"]["hbid"].to_string(); %>" />
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+
+      <div class="row">
+        <%c for(auto &a:obj["list"].as_array()){ %>
+          <div class="row g-3 mt-1">
+                <div class="col-md-2">
+                  <% echo<<a.second["title"].to_string(); %>
+              </div>
+              <div class="col-md-2">
+                <a href="/admin/marbrand?id=<%c echo<<a.second["id"].to_string(); %>">编辑</a>｜<a href="/admin/deletebrand?id=<%c echo<<a.second["id"].to_string(); %>" onclick="return confirm('确定删除吗？')">删除</a>
+             </div>
+          </div>
+           <%c } %> 
+ 
+      </div>  
+       
+    </form>
+
+
+    <form class="g-3 mt-1" id="form" method="post" action="/admin/brandaddpost" >
+      <div class="row p-3">
+    <div class="col-md-6">
+      <label for="newtitle" class="form-label">标题</label>
+      <input type="text" class="form-control" id="newtitle" name="newtitle" value="<% echo<<obj["info"]["title"].to_string(); %>">
+    </div>
+    
+    </div>
+  
+              <div class="row p-3">
+          <label for="editor" class="col-md-2 col-form-label text-sm-end">自定义内容</label>
+          <div class="col-md-10">
+            <textarea class="form-control" id="editor" rows="4" name="content"
+              placeholder=""><% echo<<obj["info"]["detailcontent"].to_string(); %></textarea>
+          </div>
+        </div>
+
+        
+    <div class="col-12">
+      <input type="hidden" id="hbid" name="hbid" value="<% echo<<obj["info"]["hbid"].to_string(); %>" />
+      <button type="submit" class="btn btn-primary">提交</button>
+    </div>
+  </form>
+
+
+  </div>
+  
+ 
+ 
+  <div class="modal fade" id="myfiletobigModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="staticBackdropLabel">提示</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+           文件太大了，请传4M以下的文件！
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+           
+        </div>
+      </div>
+    </div>
+  </div>  
+  
+  <div class="modal fade" id="myfilesuccessModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="myfilesuccess" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="myfilesuccess">提示</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+           上传成功！
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">确定</button>
+           
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <script lang="javascript">
+   bkLib.onDomLoaded(function() {
+	  new nicEditor({fullPanel : true,iconsPath : '/nicedit/nicEditorIcons.gif'}).panelInstance('editor');
+    });
+
+     function gotourl()
+    {
+        window.location.href='/admin/marhome';
+    }
+    $("#form").on("submit", function (event) {
+      event.preventDefault();
+      var data = $(this).serialize();
+
+      var obj=this;  
+      //得到序列化数据
+      $.ajax({
+        url: "/admin/edithomeblockpost",
+        method: 'post',
+        contentType:"application/x-www-form-urlencoded",
+        data: data,
+        dataType: "json"
+        }).done(function(data) {
+          if(data.code==0)
+          {
+             setTimeout("gotourl()",500 );  
+          }
+        });
+    });
+    
+    
+
+    $(document).ready(function(e) {
+        $("#relate-icoimg").change(function(){
+            var fd=new FormData();
+            if($(this).get(0).files[0].size>4596640){
+                $('#myfiletobigModal').modal('show');
+                return false;
+            }
+            fd.append("upfile",$(this).get(0).files[0]);
+            $("#progress-bar-show").show();
+            $("#progress-bar-result").hide();
+            $.ajax({
+                url:"/imageapi/upload?action=uploadimage",
+                type:"POST",
+                processData: false,
+                contentType:false,
+                data: fd,
+                dataType: "json",
+                xhr: function() {  // custom xhr
+                    myXhr = $.ajaxSettings.xhr();
+                    if(myXhr.upload){ // check if upload property exists
+                        myXhr.upload.addEventListener('progress',function(evt){
+                            var percentComplete = Math.round(evt.loaded*100 / evt.total);
+                            $( "#progress-bar").css("width",percentComplete*2);
+                            $( "#progress-bar").html(percentComplete+'%');
+                        }, false); // for handling the progress of the upload
+                    }
+                    return myXhr;
+                },
+                success:function(data){
+                    if(data.state=="SUCCESS"){
+                      $("#progress-bar-show").hide();
+                      $("#progress-bar-result").show();
+                      $("#icoimg").val(data.url);
+                      $("#progress-bar-result").html("<a href='"+data.url+"' target=_blank><img height=\"50\" width=\"50\"  src=\""+data.url+"\"/></a>");
+                      $('#myfilesuccessModal').modal('show');
+                    }
+                     
+                }
+            });
+        });
+    });	  
+  </script>
+</body>
+
+</html>

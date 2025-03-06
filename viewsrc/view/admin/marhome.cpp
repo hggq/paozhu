@@ -54,7 +54,9 @@ namespace view {
                             case 4:
                                  echo<<"内容提取";
                                  break;
-               
+                            case 5:
+                                 echo<<"多块图文";
+                                 break;               
                       }
                   
  			 echo<<"                </td>\n                <td>\n                  <input type=\"text\" class=\"form-inline topicsort col-md-3\" id=\"title_";
@@ -83,6 +85,8 @@ namespace view {
                              break;   
                         case 4:
                              echo<<"hot";
+                        case 5:
+                             echo<<"content";     
                              break;
            
                   }
@@ -95,7 +99,7 @@ namespace view {
  echo<<a.second["id"].to_string(); 
  			 echo<<")\">删除</a>\n                </td>\n              </tr>\n              ";
  } 
- 			 echo<<"          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n    <div class=\"row p-3\">\n      <div class=\"col-md-4\">\n        <label for=\"viewtype\" class=\"form-label\">模块类型</label> \n      </div>\n    </div> \n    <div class=\"row p-3\">\n      <div class=\"col-md-4\">\n        <select id=\"viewtype\" class=\"form-select\" name=\"viewtype\">\n          <option  value=\"0\">图文内容</option>\n          <option  value=\"1\">图片轮播</option>\n          <option  value=\"2\">栏目列表</option>\n          <option  value=\"3\">栏目内容</option>\n          <option  value=\"4\">内容提取</option>\n        </select>  \n      </div>\n      <div class=\"col-5\">\n\n          <a href=\"/admin/addhomeblock\" class=\"btn btn-primary\" onclick=\"return addblcok();\">添加模块内容</a>\n \n        \n      </div>\n    </div> \n\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n  \n  <script lang=\"javascript\">\n      function addblcok()\n    {\n      var blid=jQuery('#viewtype').val();\n      switch(blid)\n      {\n        case \"0\":\n          window.location.href=\"/admin/addhometext\";\n          break;\n        case \"1\":\n          window.location.href=\"/admin/addhomepic\";\n          break;\n        case \"2\":\n          window.location.href=\"/admin/addhometopic\";\n          break;\n        case \"3\":\n          window.location.href=\"/admin/addhomecontent\";\n          break;\n        case \"4\":\n          window.location.href=\"/admin/addhomehot\";\n          break;\n        default:\n          window.location.href=\"/admin/addhometext\";\n      }   \n      return false;\n    }\n\n    function deletehomeblock(id)\n    {\n      if(confirm('是否删除?'))\n      {          \n          $.getJSON(\"/admin/deletehomeblock?id=\"+id,function(result){\n                if(result.code==0)\n                {\n                \n                     $(\"#topicid_\"+id).remove();\n                }\n                \n          });\n\n      }\n      return false;\n    }\n      function updatehomeblocksort(id,sortid)\n    {\n       $.getJSON(\"/admin/updatehomeblocksort?id=\"+id+\"&sortid=\"+sortid,function(result){\n                               \n       });\n    }\n\n  </script>\n</body>\n\n</html>";
+ 			 echo<<"          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n    <div class=\"row p-3\">\n      <div class=\"col-md-4\">\n        <label for=\"viewtype\" class=\"form-label\">模块类型</label> \n      </div>\n    </div> \n    <div class=\"row p-3\">\n      <div class=\"col-md-4\">\n        <select id=\"viewtype\" class=\"form-select\" name=\"viewtype\">\n          <option  value=\"0\">图文内容</option>\n          <option  value=\"1\">图片轮播</option>\n          <option  value=\"2\">栏目列表</option>\n          <option  value=\"3\">栏目内容</option>\n          <option  value=\"4\">内容提取</option>\n          <option  value=\"5\">多块图文</option>\n        </select>  \n      </div>\n      <div class=\"col-5\">\n\n          <a href=\"/admin/addhomeblock\" class=\"btn btn-primary\" onclick=\"return addblcok();\">添加模块内容</a>\n \n        \n      </div>\n    </div> \n\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n  \n  <script lang=\"javascript\">\n      function addblcok()\n    {\n      var blid=jQuery('#viewtype').val();\n      switch(blid)\n      {\n        case \"0\":\n          window.location.href=\"/admin/addhometext\";\n          break;\n        case \"1\":\n          window.location.href=\"/admin/addhomepic\";\n          break;\n        case \"2\":\n          window.location.href=\"/admin/addhometopic\";\n          break;\n        case \"3\":\n          window.location.href=\"/admin/addhomecontent\";\n          break;\n        case \"4\":\n          window.location.href=\"/admin/addhomehot\";\n          break;\n        case \"5\":\n          window.location.href=\"/admin/edithomeblockmulit\";\n          break;          \n        default:\n          window.location.href=\"/admin/addhometext\";\n      }   \n      return false;\n    }\n\n    function deletehomeblock(id)\n    {\n      if(confirm('是否删除?'))\n      {          \n          $.getJSON(\"/admin/deletehomeblock?id=\"+id,function(result){\n                if(result.code==0)\n                {\n                \n                     $(\"#topicid_\"+id).remove();\n                }\n                \n          });\n\n      }\n      return false;\n    }\n      function updatehomeblocksort(id,sortid)\n    {\n       $.getJSON(\"/admin/updatehomeblocksort?id=\"+id+\"&sortid=\"+sortid,function(result){\n                               \n       });\n    }\n\n  </script>\n</body>\n\n</html>";
 
                   return echo.str();
              }
