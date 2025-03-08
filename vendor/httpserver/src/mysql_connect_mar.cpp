@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <ctime>
+#include <cmath>
 #include "terminal_color.h"
 #include <openssl/sha.h>
 #include <openssl/evp.h>
