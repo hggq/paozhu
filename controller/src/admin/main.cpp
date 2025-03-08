@@ -323,8 +323,8 @@ std::string admin_footscriptpost(std::shared_ptr<httppeer> peer)
 
         if (sid > 0)
         {
-            stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int());
+            //stinfo.setPK(sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
 
             int result_status = stinfo.update("footscript");
             if (result_status > 0)
@@ -387,8 +387,8 @@ std::string admin_copyrightpost(std::shared_ptr<httppeer> peer)
 
         if (sid > 0)
         {
-            stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int());
+            //stinfo.setPK(sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
 
             int result_status = stinfo.update("copyright");
             if (result_status > 0)
@@ -451,8 +451,8 @@ std::string admin_sitelogopost(std::shared_ptr<httppeer> peer)
 
         if (sid > 0)
         {
-            stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int());
+            //stinfo.setPK(sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
 
             int result_status = stinfo.update("sitelogo");
             if (result_status > 0)
@@ -485,9 +485,9 @@ std::string admin_sitelogopost(std::shared_ptr<httppeer> peer)
                 {
                     if (stinfo.data.sitelogo[4] == ':' || stinfo.data.sitelogo[5] == ':')
                     {
-                        if (stinfo.data.sitelogo.size() > 6)
+                        if (stinfo.data.sitelogo.size() > 8)
                         {
-                            for (unsigned int i = 7; i < stinfo.data.sitelogo.size(); i++)
+                            for (unsigned int i = 8; i < stinfo.data.sitelogo.size(); i++)
                             {
                                 if (stinfo.data.sitelogo[i] == '/')
                                 {
