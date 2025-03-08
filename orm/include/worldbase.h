@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Sat, 08 Mar 2025 07:46:32 GMT
+*本文件为自动生成 Sat, 08 Mar 2025 07:54:07 GMT
 ***/
 #include <iostream>
 #include <cstdio>

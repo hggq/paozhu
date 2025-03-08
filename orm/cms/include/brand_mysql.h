@@ -15611,7 +15611,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -15820,7 +15820,7 @@ M_MODEL& or_leDetailcontent(T val)
                 auto conn = conn_obj->get_select_conn();
                 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = conn->write_sql(sqlstring);
@@ -16232,7 +16232,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -16613,7 +16613,7 @@ M_MODEL& or_leDetailcontent(T val)
                 auto conn = conn_obj->get_select_conn();
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = conn->write_sql(sqlstring);
@@ -17162,7 +17162,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -17514,7 +17514,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -17882,7 +17882,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -18000,7 +18000,7 @@ M_MODEL& or_leDetailcontent(T val)
                 auto conn = conn_obj->get_edit_conn();
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = conn->write_sql(sqlstring);
@@ -18348,7 +18348,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -18477,7 +18477,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -18690,7 +18690,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -18906,7 +18906,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -19046,7 +19046,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -19133,7 +19133,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -19297,7 +19297,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -19461,7 +19461,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -19655,7 +19655,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -19713,7 +19713,7 @@ M_MODEL& or_leDetailcontent(T val)
                 conn->send_data.append(sqlstring);
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
@@ -19994,7 +19994,7 @@ M_MODEL& or_leDetailcontent(T val)
 
 
                 conn->issynch = true;
-                orm::orm_connect_mar_t watch_conn =  get_orm_connect_mar();
+                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                 watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
