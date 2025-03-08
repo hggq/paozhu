@@ -2749,7 +2749,7 @@ namespace http
                 for (;;)
                 {
                     send_loop_count++;
-                    if (send_loop_count % 7 == 0)
+                    if (send_loop_count % 4 == 0)
                     {
                         std::unique_lock lock_in_loop_two(send_data_mutex);
                         if (sent_data_list.size() > 0)
@@ -2797,7 +2797,7 @@ namespace http
                         }
 
                         long long sq_obj_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(sq_start - sp->last_time).count();
-                        if (sq_obj_duration > sp->sleep_time || sp->current_num == 0)
+                        if (sq_obj_duration > sp->sleep_time || sp->current_num < 2)
                         {
                             if (sp->standby_next && sp->peer->socket_session->window_update_num.load() > sp->peer->socket_session->has_send_update_num.load())
                             {
@@ -2829,6 +2829,7 @@ namespace http
                         }
                         iter++;
                     }
+
                     if (thread_sent_data_list.size() == 0)
                     {
                         break;
@@ -2842,8 +2843,21 @@ namespace http
                     {
                         mini_sleep_num = 100000000;
                     }
-                    mini_sleep_num = std::ceil((double)mini_sleep_num / 1000);
-                    std::this_thread::sleep_for(std::chrono::microseconds(mini_sleep_num));
+
+                    const std::chrono::time_point<std::chrono::steady_clock> sq_end = std::chrono::steady_clock::now();
+                    unsigned int sq_for_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(sq_end - sq_start).count();   
+
+                    //maybe not need to sleep
+                    if(sq_for_duration < 1100000) 
+                    {
+                        if(mini_sleep_num > 1100000)
+                        {
+                            mini_sleep_num = 1100000;
+                        }
+                        mini_sleep_num = std::ceil((double)mini_sleep_num / 1000);
+                        std::this_thread::sleep_for(std::chrono::microseconds(mini_sleep_num));
+                    }
+
                     if (isstop)
                     {
                         break;
@@ -4310,7 +4324,7 @@ namespace http
             if (total_count < std::thread::hardware_concurrency())
             {
                 total_count = std::thread::hardware_concurrency();
-                total_count += 2;
+                total_count += 4;
             }
             if (total_count < 8)
             {
