@@ -23,6 +23,7 @@
 #include <asio/io_context.hpp>
 #include "mysql_conn.h"
 #include "mysql_conn_pool.h"
+#include "cost_define.h"
 
 namespace orm
 {
@@ -482,6 +483,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_edit_connect()
 }
 void orm_conn_pool::back_edit_conn(std::shared_ptr<mysql_conn_base> conn)
 {
+    conn->issynch = false;
     std::unique_lock<std::mutex> lock(conn_edit_mutex);
     conn_edit_pool.emplace_back(conn);
     lock.unlock();
@@ -564,6 +566,7 @@ unsigned int orm_conn_pool::init_select_conn(unsigned char n)
 }
 void orm_conn_pool::back_select_conn(std::shared_ptr<mysql_conn_base> conn)
 {
+    conn->issynch = false;
     std::unique_lock<std::mutex> lock(conn_select_mutex);
     conn_select_pool.emplace_back(conn);
     lock.unlock();
@@ -732,6 +735,77 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_select_conn()
     }
     return temp;
 }
+
+asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
+{
+    unsigned int nowtimeid = time((time_t *)NULL);
+    if(nowtimeid > CONST_ORM_CLEAR_TIME)
+    {
+        nowtimeid = nowtimeid-CONST_ORM_CLEAR_TIME;
+    }
+    std::unique_lock<std::mutex> lock(conn_select_mutex);
+    if(conn_select_pool.size()>0)
+    {
+        auto temp = std::move(conn_select_pool.front());
+        conn_select_pool.pop_front();
+
+        if(temp->time_start < nowtimeid)
+        {
+            lock.unlock();
+            co_await  temp->async_close();
+            co_return true;
+        }
+        else if(temp->query_num > CONST_ORM_CLEAR_NUMBER)
+        {
+            lock.unlock();
+            co_await  temp->async_close();
+            co_return true;
+        }
+        else 
+        {
+            conn_select_pool.emplace_back(temp);
+        }
+    }
+    lock.unlock();
+ 
+    co_return false;
+}
+
+asio::awaitable<bool> orm_conn_pool::clear_edit_conn_2hour()
+{
+    unsigned int nowtimeid = time((time_t *)NULL);
+    if(nowtimeid > CONST_ORM_CLEAR_TIME)
+    {
+        nowtimeid = nowtimeid - CONST_ORM_CLEAR_TIME;
+    }
+    std::unique_lock<std::mutex> lock(conn_edit_mutex);
+    if(conn_edit_pool.size()>0)
+    {
+        auto temp = std::move(conn_edit_pool.front());
+        conn_edit_pool.pop_front();
+
+        if(temp->time_start < nowtimeid)
+        {
+            lock.unlock();
+            co_await  temp->async_close();
+            co_return true;
+        }
+        else if(temp->query_num > CONST_ORM_CLEAR_NUMBER)
+        {
+            lock.unlock();
+            co_await  temp->async_close();
+            co_return true;
+        }
+        else 
+        {
+            conn_edit_pool.emplace_back(temp);
+        }
+    }
+    lock.unlock();
+ 
+    co_return false;
+}
+
 unsigned int orm_conn_pool::clear_select_conn()
 {
     std::unique_lock<std::mutex> lock(conn_select_mutex);

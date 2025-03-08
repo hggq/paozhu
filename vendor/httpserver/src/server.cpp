@@ -25,6 +25,7 @@
 
 #include "mysql_conn.h"
 #include "mysql_conn_pool.h"
+#include "mysql_connect_mar.h"
 
 #include "autocontrolmethod.hpp"
 #include "reghttpmethod.hpp"
@@ -1987,6 +1988,14 @@ namespace http
         co_await peer_session->async_stop();
         co_return;
     }
+    asio::awaitable<void> httpserver::orm_connect_clear(std::shared_ptr<orm::orm_conn_pool> peer_connect)
+    {
+        co_await peer_connect->clear_edit_conn_2hour();
+        co_await peer_connect->clear_select_conn_2hour();
+        co_return;
+    }
+
+
     asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> peer_session, bool isssl)
     {
         try
@@ -2751,7 +2760,7 @@ namespace http
                 for (;;)
                 {
                     send_loop_count++;
-                    if (send_loop_count % 7 == 0)
+                    if (send_loop_count % 4 == 0)
                     {
                         std::unique_lock lock_in_loop_two(send_data_mutex);
                         if (sent_data_list.size() > 0)
@@ -2799,7 +2808,7 @@ namespace http
                         }
 
                         long long sq_obj_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(sq_start - sp->last_time).count();
-                        if (sq_obj_duration > sp->sleep_time || sp->current_num == 0)
+                        if (sq_obj_duration > sp->sleep_time || sp->current_num < 2)
                         {
                             if (sp->standby_next && sp->peer->socket_session->window_update_num.load() > sp->peer->socket_session->has_send_update_num.load())
                             {
@@ -2831,6 +2840,7 @@ namespace http
                         }
                         iter++;
                     }
+
                     if (thread_sent_data_list.size() == 0)
                     {
                         break;
@@ -2844,8 +2854,21 @@ namespace http
                     {
                         mini_sleep_num = 100000000;
                     }
-                    mini_sleep_num = std::ceil((double)mini_sleep_num / 1000);
-                    std::this_thread::sleep_for(std::chrono::microseconds(mini_sleep_num));
+
+                    const std::chrono::time_point<std::chrono::steady_clock> sq_end = std::chrono::steady_clock::now();
+                    unsigned int sq_for_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(sq_end - sq_start).count();   
+
+                    //maybe not need to sleep
+                    if(sq_for_duration < 1100000) 
+                    {
+                        if(mini_sleep_num > 1100000)
+                        {
+                            mini_sleep_num = 1100000;
+                        }
+                        mini_sleep_num = std::ceil((double)mini_sleep_num / 1000);
+                        std::this_thread::sleep_for(std::chrono::microseconds(mini_sleep_num));
+                    }
+
                     if (isstop)
                     {
                         break;
@@ -2884,6 +2907,7 @@ namespace http
         fps = 0;
         std::string log_item;
         // unsigned frame_count_per_second = 0;
+        orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
 
         for (;;)
         {
@@ -3013,6 +3037,11 @@ namespace http
                     std::unique_lock<std::mutex> lock(log_mutex);
                     error_loglist.emplace_back(log_item);
                     lock.unlock();
+                }
+
+                if (fps % 29 == 0)
+                {
+                    watch_conn.clear_connect();
                 }
             }
             std::this_thread::sleep_until(m_EndFrame);
@@ -4017,6 +4046,16 @@ namespace http
                     std::unique_lock<std::mutex> loglock(log_mutex);
                     error_loglist.push_back(error_msg_loop);
                     loglock.unlock();
+
+
+                    //clear mysql connect
+                    std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
+                    for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+                    {
+                        co_spawn(this->io_context, orm_connect_clear(iter->second), asio::detached);    
+                        DEBUG_LOG("mysql connect clear 1024q or 2hour ");
+                    }
+
                     is_clear_sock = false;
                 }
                 //

@@ -61,6 +61,8 @@
 #include "httppeer.h"
 #include "http2_flow.h"
 #include "http2_send_queue.h"
+#include "mysql_conn.h"
+#include "mysql_conn_pool.h"
 // #include "http_domain.h"
 // namespace this_coro = asio::this_coro;
 
@@ -105,6 +107,7 @@ class httpserver
 
     void websocket_loop(int myid);
     asio::awaitable<void> clientpeerstop(std::shared_ptr<client_session> peer_session);
+    asio::awaitable<void> orm_connect_clear(std::shared_ptr<orm::orm_conn_pool> peer_connect);
 
     void listeners();
     void listener();

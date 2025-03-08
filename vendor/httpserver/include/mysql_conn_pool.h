@@ -41,6 +41,10 @@ class orm_conn_pool
     asio::awaitable<std::shared_ptr<mysql_conn_base>> async_add_select_connect();
     asio::awaitable<std::shared_ptr<mysql_conn_base>> async_get_select_conn();
 
+
+    asio::awaitable<bool> clear_edit_conn_2hour();
+    asio::awaitable<bool> clear_select_conn_2hour();
+
   public:
     std::list<std::shared_ptr<mysql_conn_base>> conn_edit_pool;
     std::list<std::shared_ptr<mysql_conn_base>> conn_select_pool;
@@ -52,6 +56,7 @@ class orm_conn_pool
 };
 std::vector<orm_conn_t> get_orm_config_file(const std::string &filename);
 std::map<std::string, std::shared_ptr<orm_conn_pool>> &get_orm_conn_pool_obj();
+
 void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file);
 }// namespace orm
 #endif

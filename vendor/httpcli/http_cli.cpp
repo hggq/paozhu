@@ -26,11 +26,11 @@
 
 namespace fs = std::filesystem;
 /*
-g++ http_cli.cpp -std=c++20 -I /Users/hzq/cpp/benchmarks/vendor/httpserver/include \
- /Users/hzq/cpp/benchmarks/vendor/httpserver/src/mysql_conn.cpp \
- /Users/hzq/cpp/benchmarks/vendor/httpserver/src/mysql_conn_pool.cpp \
+g++ http_cli.cpp -std=c++20 -I../httpserver/include -I../../common \
+ ../httpserver/src/mysql_conn.cpp \
+ ../httpserver/src/mysql_conn_pool.cpp \
  -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lz \
- /Users/hzq/cpp/benchmarks/vendor/httpserver/src/clientdatacache.cpp -g -fsanitize=address
+ ../httpserver/src/clientdatacache.cpp -g -fsanitize=address
 */ 
 int main(int argc, char *argv[])
 {

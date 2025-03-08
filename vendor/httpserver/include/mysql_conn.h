@@ -162,6 +162,8 @@ class mysql_conn_base
 
     bool ping();
     bool close();
+    bool hard_close();
+    asio::awaitable<bool> async_close();
     asio::awaitable<unsigned int> async_read_loop();
     unsigned int read_loop();
 
@@ -177,11 +179,15 @@ class mysql_conn_base
     unsigned char *_cache_data = nullptr;
 
     bool isclose            = false;
+    std::atomic_bool  issynch = false;
     unsigned char sock_type = 0;
     unsigned char seq_next_id;
     unsigned short error_code = 0;
     asio::error_code ec;
     unsigned int client_flags = 0;
+    unsigned int time_start = 0;
+    unsigned int query_num = 0;
+    std::atomic_uint time_count = 0;
 
     std::string send_data;
     std::string error_msg;

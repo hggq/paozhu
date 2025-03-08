@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <ctime>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -28,6 +29,8 @@ mysql_conn_base::mysql_conn_base(asio::io_context &ioc) : io_ctx(&ioc)
     error_code  = 0;
     auto &cc    = http::get_client_data_cache();
     _cache_data = cc.get_data_ptr();
+    time_start = time((time_t *)NULL);
+    query_num = 0;
 }
 mysql_conn_base::~mysql_conn_base()
 {
@@ -818,6 +821,10 @@ asio::awaitable<unsigned int> mysql_conn_base::async_read_loop()
 {
     try
     {
+        if(isclose)
+        {
+            co_return 0;
+        }
         std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
         std::size_t n = co_await socket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
         if (n == 0)
@@ -838,7 +845,12 @@ unsigned int mysql_conn_base::read_loop()
 {
     try
     {
+        if(isclose)
+        {
+            return 0;
+        }
         std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+        time_count = time((time_t *)NULL);
         std::size_t n = socket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), ec);
         if (ec)
         {
@@ -871,6 +883,13 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
     send_data.append(sql);
 
     n=0;
+    time_count = time((time_t *)NULL);
+
+    if(isclose)
+    {
+        return 0;
+    }
+
     if(sock_type==0)
     {
         n = asio::write(*socket, asio::buffer(send_data),ec);
@@ -882,12 +901,18 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
         error_msg = ec.message();
         return 0;
     }
+    query_num ++ ;
     return n;
 }
 
 unsigned int mysql_conn_base::write()
 {
     unsigned int n=0;
+    time_count = time((time_t *)NULL);
+    if(isclose)
+    {
+        return 0;
+    }
     if(sock_type==0)
     {
         n = asio::write(*socket, asio::buffer(send_data),ec);
@@ -899,6 +924,7 @@ unsigned int mysql_conn_base::write()
         error_msg = ec.message();
         return 0;
     }
+    query_num ++ ;
     return n;
 }
 
@@ -919,6 +945,10 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string
     n=0;
     try 
     {
+        if(isclose)
+        {
+            co_return 0;
+        }
         if(sock_type==0)
         {
             n = co_await asio::async_write(*socket, asio::buffer(send_data), asio::use_awaitable);
@@ -930,6 +960,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string
         error_msg = ec.message();
         co_return 0;
     }
+    query_num ++ ;
     co_return n;
 }
 
@@ -938,6 +969,10 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write()
     unsigned int n=0;
     try 
     {
+        if(isclose)
+        {
+            co_return 0;
+        }
         if(sock_type==0)
         {
             n = co_await asio::async_write(*socket, asio::buffer(send_data), asio::use_awaitable);
@@ -949,6 +984,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write()
         error_msg = ec.message();
         co_return 0;
     }
+    query_num ++ ;
     co_return n;
 }
 
@@ -959,6 +995,10 @@ bool mysql_conn_base::ping()
     error_msg.clear();
     try
     {
+        if(isclose)
+        {
+            return false;
+        }
         asio::write(*socket, asio::buffer(data_send, 5), ec);
         socket->read_some(asio::buffer(data_send, 16), ec);
 
@@ -978,7 +1018,7 @@ bool mysql_conn_base::close()
     error_msg.clear();
     try
     {
-        isclose = false;
+        isclose = true;
         asio::write(*socket, asio::buffer(data_send, 5), ec);
         socket->close();
         return true;
@@ -990,6 +1030,42 @@ bool mysql_conn_base::close()
         return false;
     }
 }
+asio::awaitable<bool> mysql_conn_base::async_close()
+{
+    char data_send[6] = {0x01, 0x00, 0x00, 0x00, 0x01, 0x00};
+    error_code        = 0;
+    error_msg.clear();
+    try
+    {
+        isclose = true;
+        co_await asio::async_write(*socket, asio::buffer(data_send, 5), asio::use_awaitable);
+        socket->close();
+        co_return true;
+    }
+    catch (std::exception &e)
+    {
+        error_code = 2;
+        error_msg.append(e.what());
+        co_return false;
+    }
+}
+
+bool mysql_conn_base::hard_close()
+{
+    try
+    {
+        isclose = true;
+        socket->close();
+    }
+    catch (std::exception &e)
+    {
+        error_code = 2;
+        error_msg.append(e.what());
+        return false;
+    }
+    return true;
+}
+
 bool mysql_conn_base::is_closed()
 {
     try
