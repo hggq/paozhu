@@ -177,7 +177,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -384,7 +384,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -2161,7 +2161,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -2385,7 +2385,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -2611,7 +2611,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -2807,7 +2807,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -3005,7 +3005,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -3200,7 +3200,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -3402,7 +3402,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -3615,7 +3615,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -3934,7 +3934,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -4108,7 +4108,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -4287,7 +4287,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -4458,7 +4458,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -6767,7 +6767,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -6936,7 +6936,7 @@ namespace orm
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {

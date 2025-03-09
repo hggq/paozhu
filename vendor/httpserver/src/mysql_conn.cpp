@@ -1104,6 +1104,11 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
     {
         pack_info.length         = 0;
         pack_info.current_length = 0;
+        pack_info.data.clear();
+        if(offset + 4 > total_num)
+        {
+            return;
+        }
         pack_length              = (data[offset + 2] & 0xFF);
         pack_length              = pack_length << 8 | (data[offset + 1] & 0xFF);
         pack_length              = pack_length << 8 | (data[offset] & 0xFF);
@@ -1128,8 +1133,6 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
             pack_info.current_length = total_num - begin_length - 4;
             pack_length              = total_num - begin_length - 4;
         }
-
-        pack_info.data.clear();
         pack_info.data.append((char *)&data[begin_length + 4], pack_length);
     }
 }
