@@ -1298,6 +1298,11 @@ void mysql_conn_base::read_col_info(const std::string &pack_info, field_info_t &
 }
 bool mysql_conn_base::pack_eof_check(const pack_info_t &temp_pack_data)
 {
+    if(temp_pack_data.data.size()==0)
+    {
+        return true;
+    }
+
     if ((unsigned char)temp_pack_data.data[0] == 0xFF)
     {
         error_msg = temp_pack_data.data.substr(3);
