@@ -41,12 +41,10 @@ void orm_connect_mar_t::watch_connect(std::weak_ptr<mysql_conn_base> conn)
 }
 void orm_connect_mar_t::clear_connect()
 {
-    unsigned int nowtimeid = time((time_t *)NULL);
+    const std::chrono::time_point<std::chrono::steady_clock> end_time = std::chrono::steady_clock::now();
+    unsigned int nowtimeid =0;
     unsigned int total_connect=0;
-    if(nowtimeid >CONST_ORM_QUERY_CONNECT_TIMEOUT)
-    {
-        nowtimeid = nowtimeid - CONST_ORM_QUERY_CONNECT_TIMEOUT;
-    }
+
     std::unique_lock lk(connect_mutex);
     total_connect = conn_list.size();
     lk.unlock();
@@ -70,7 +68,9 @@ void orm_connect_mar_t::clear_connect()
             {
                 if(p_session->issynch)
                 {
-                    if(p_session->time_count.load() < nowtimeid)
+                    nowtimeid = std::chrono::duration_cast<std::chrono::seconds>(end_time - p_session->time_begin).count();   
+
+                    if(nowtimeid > CONST_ORM_QUERY_CONNECT_TIMEOUT)
                     {
                         p_session->hard_close();
                         conn_list.erase(iter++);

@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <ctime>
+#include <chrono>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -850,7 +851,6 @@ unsigned int mysql_conn_base::read_loop()
             return 0;
         }
         std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
-        time_count = time((time_t *)NULL);
         std::size_t n = socket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), ec);
         if (ec)
         {
@@ -868,6 +868,15 @@ unsigned int mysql_conn_base::read_loop()
     return 0;
 }
 
+void mysql_conn_base::begin_time()
+{
+    time_begin = std::chrono::steady_clock::now();
+}
+void mysql_conn_base::finish_time()
+{
+    time_finish = std::chrono::steady_clock::now();
+}
+
 unsigned int mysql_conn_base::write_sql(const std::string &sql)
 {
     unsigned int n=0;
@@ -883,7 +892,7 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
     send_data.append(sql);
 
     n=0;
-    time_count = time((time_t *)NULL);
+    
 
     if(isclose)
     {
@@ -908,7 +917,6 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
 unsigned int mysql_conn_base::write()
 {
     unsigned int n=0;
-    time_count = time((time_t *)NULL);
     if(isclose)
     {
         return 0;
@@ -1105,15 +1113,43 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
         pack_info.length         = 0;
         pack_info.current_length = 0;
         pack_info.data.clear();
-        if(offset + 4 > total_num)
+        if(offset + 4 >= total_num)
         {
+            pack_info.padd_length=0;
+            for (;offset < total_num; offset++)
+            {
+                pack_info.padd_str[pack_info.padd_length]=data[offset]; 
+                pack_info.padd_length+=1;   //not enough pack
+            }
             return;
         }
-        pack_length              = (data[offset + 2] & 0xFF);
-        pack_length              = pack_length << 8 | (data[offset + 1] & 0xFF);
-        pack_length              = pack_length << 8 | (data[offset] & 0xFF);
-        offset                   = offset + 3;
-        unsigned char seq_id     = data[offset];
+        unsigned char seq_id=0; 
+        if(pack_info.padd_length > 0)
+        {
+
+            for (;pack_info.padd_length < 4; pack_info.padd_length++)
+            {
+                pack_info.padd_str[pack_info.padd_length]=data[offset]; 
+                offset+=1;   //padding 4 char
+            }
+
+            pack_length              = (pack_info.padd_str[seq_id + 2] & 0xFF);
+            pack_length              = pack_length << 8 | (pack_info.padd_str[seq_id + 1] & 0xFF);
+            pack_length              = pack_length << 8 | (pack_info.padd_str[seq_id] & 0xFF);
+            seq_id = pack_info.padd_str[seq_id + 3];
+            pack_info.padd_length =0;
+            begin_length+=offset;
+        }
+        else 
+        {
+            pack_length              = (data[offset + 2] & 0xFF);
+            pack_length              = pack_length << 8 | (data[offset + 1] & 0xFF);
+            pack_length              = pack_length << 8 | (data[offset] & 0xFF);
+            offset                   = offset + 3;
+            seq_id = data[offset];
+            offset++;
+            begin_length+=4;
+        }
 
         if (seq_id != pack_info.seq_id)
         {
@@ -1122,7 +1158,6 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
             return;
         }
         pack_info.seq_id = (pack_info.seq_id + 1) % 256;
-        offset++;
         offset = offset + pack_length;
 
         pack_info.length         = pack_length;
@@ -1130,10 +1165,10 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
         if (offset > total_num)
         {
 
-            pack_info.current_length = total_num - begin_length - 4;
-            pack_length              = total_num - begin_length - 4;
+            pack_info.current_length = total_num - begin_length;
+            pack_length              = total_num - begin_length;
         }
-        pack_info.data.append((char *)&data[begin_length + 4], pack_length);
+        pack_info.data.append((char *)&data[begin_length], pack_length);
     }
 }
 

@@ -475,6 +475,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_edit_connect()
     bool isok                             = conn->connect(conf_data[0].host, conf_data[0].port, conf_data[0].user, conf_data[0].password, conf_data[0].dbname, false);
     if (isok)
     {
+        conn->issynch = true;
         return conn;
     }
     error_msg.append(" add_edit_connect failed for tag " + conf_data[0].tag);
@@ -521,6 +522,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_select_connect()
     bool isok                             = conn->connect(conf_data[1].host, conf_data[1].port, conf_data[1].user, conf_data[1].password, conf_data[1].dbname, false);
     if (isok)
     {
+        conn->issynch = true;
         return conn;
     }
     error_msg.append(" add_select_connect failed for tag " + conf_data[1].tag);
@@ -636,6 +638,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_edit_conn()
     auto temp = std::move(conn_edit_pool.front());
     conn_edit_pool.pop_front();
     lock.unlock();
+    temp->issynch = true;
     if (temp->is_closed())
     {
         try
@@ -718,6 +721,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_select_conn()
     auto temp = std::move(conn_select_pool.front());
     conn_select_pool.pop_front();
     lock.unlock();
+    temp->issynch=true;
     if (temp->is_closed())
     {
         try

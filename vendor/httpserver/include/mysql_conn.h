@@ -105,6 +105,8 @@ struct pack_info_t
     unsigned int current_length = 0;
     unsigned char seq_id        = 0;
     unsigned char error         = 0;
+    unsigned char padd_length   = 0;
+    unsigned char padd_str[5]   ={0x00};
     std::string data;
 };
 
@@ -175,6 +177,9 @@ class mysql_conn_base
 
     bool is_closed();
 
+    void begin_time();
+    void finish_time();
+
   public:
     unsigned char *_cache_data = nullptr;
 
@@ -187,8 +192,8 @@ class mysql_conn_base
     unsigned int client_flags = 0;
     unsigned int time_start = 0;
     unsigned int query_num = 0;
-    std::atomic_uint time_count = 0;
-
+    std::chrono::time_point<std::chrono::steady_clock> time_begin;
+    std::chrono::time_point<std::chrono::steady_clock> time_finish;
     std::string send_data;
     std::string error_msg;
     //std::string server_public_key;

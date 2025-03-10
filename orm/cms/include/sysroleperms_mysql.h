@@ -177,7 +177,13 @@ namespace cms
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -384,7 +390,13 @@ namespace cms
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            co_return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -9088,7 +9100,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return temprecord;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -9274,10 +9292,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -9312,7 +9326,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -9483,10 +9503,6 @@ M_MODEL& or_leSortid(T val)
                 }
                 auto conn = conn_obj->get_select_conn();
                 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = conn->write_sql(sqlstring);
                 if(n==0)
                 {
@@ -9532,13 +9548,20 @@ M_MODEL& or_leSortid(T val)
                     offset = 0;
                     if(n==0)
                     {
+                        iserror = true;
                         error_msg = conn->error_msg;
                         return *mod;
                     }
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return *mod;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -9734,7 +9757,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            co_return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -9895,10 +9924,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -9932,7 +9957,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -10127,7 +10158,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            co_return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -10276,10 +10313,6 @@ M_MODEL& or_leSortid(T val)
                 }
                 auto conn = conn_obj->get_select_conn();
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = conn->write_sql(sqlstring);
                 if(n==0)
                 {
@@ -10329,7 +10362,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -10542,7 +10581,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            co_return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -10825,10 +10870,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -10861,7 +10902,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -11035,7 +11082,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            co_return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -11177,10 +11230,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -11214,7 +11263,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -11385,7 +11440,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            co_return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -11545,10 +11606,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -11662,10 +11719,6 @@ M_MODEL& or_leSortid(T val)
                     return 0;
                 }
                 auto conn = conn_obj->get_edit_conn();
-
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
 
                 std::size_t n = conn->write_sql(sqlstring);
                 if(n==0)
@@ -12011,10 +12064,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -12139,10 +12188,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
-
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
@@ -12352,10 +12397,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
-
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
@@ -12569,10 +12610,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -12709,10 +12746,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -12795,10 +12828,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
-
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
@@ -12960,10 +12989,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -13123,10 +13148,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
-
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
@@ -13318,10 +13339,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -13375,10 +13392,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
-
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
@@ -13656,11 +13669,6 @@ M_MODEL& or_leSortid(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(rawsql);
 
-
-                conn->issynch = true;
-                orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
-                watch_conn.watch_connect(conn);
-
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -13694,7 +13702,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
@@ -13863,7 +13877,13 @@ M_MODEL& or_leSortid(T val)
                     for (; offset < n;)
                     {
                         conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-                        if (temp_pack_data.length == temp_pack_data.current_length)
+                        if(temp_pack_data.error > 0)
+                        {
+                            iserror = true;
+                            error_msg =temp_pack_data.data;
+                            co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
                             if (conn->pack_eof_check(temp_pack_data))
                             {
