@@ -409,19 +409,25 @@ void client_session::waituphttp2(asio::io_context &ioc)
         if (user_code_handler_call.size() > 0)
         {
             //auto ex = asio::get_associated_executor(user_code_handler_call.front());
+            auto handle = std::move(user_code_handler_call.front());
+            user_code_handler_call.pop_front();
+            lk.unlock();
             asio::dispatch(ioc,
-                           [handler = std::move(user_code_handler_call.front())]() mutable -> void
+                           [handler =std::move(handle) ]() mutable -> void
                            {
                                /////////////
                                handler(1);
                                //////////
                            });
-            user_code_handler_call.pop_front();
+            
             DEBUG_LOG("peer_session user_code_handler_call return");
         }
-        lk.unlock();
+        else
+        {
+            lk.unlock();
+        }
     }
-    catch (const std::exception &e)
+    catch (...)
     {
         DEBUG_LOG("peer_session user_code_handler_call error");
     }
