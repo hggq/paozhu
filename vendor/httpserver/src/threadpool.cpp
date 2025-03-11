@@ -422,14 +422,20 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                             std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
                             if (peer->user_code_handler_call.size() > 0)
                             {
+                                auto handle = std::move(peer->user_code_handler_call.front());
+                                peer->user_code_handler_call.pop_front();
+                                lock.unlock();
                                 asio::dispatch(*io_context,
-                                               [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                                               [handler = std::move(handle)]() mutable -> void
                                                {
                                                    handler(1);
                                                });
-                                peer->user_code_handler_call.pop_front();
+                                
                             }
-                            lock.unlock();
+                            else 
+                            {
+                                lock.unlock();
+                            }
                             return;
                         }
                     }
@@ -622,16 +628,20 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
         if (peer->user_code_handler_call.size() > 0)
         {
-            asio::dispatch(*io_context,
-                           [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
-                           {
-                               /////////////
-                               handler(1);
-                               //////////
-                           });
+            auto handle = std::move(peer->user_code_handler_call.front());
             peer->user_code_handler_call.pop_front();
+            lock.unlock();
+            asio::dispatch(*io_context,
+                           [handler = std::move(handle)]() mutable -> void
+                           {
+                               handler(1);
+                           });
+            
         }
-        lock.unlock();
+        else 
+        {
+            lock.unlock();
+        }
         DEBUG_LOG("leave pool");
     }
     catch (std::exception &e)
@@ -639,14 +649,15 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         DEBUG_LOG("catch exception");
         if (peer->user_code_handler_call.size() > 0)
         {
+            auto handle = std::move(peer->user_code_handler_call.front());
+            peer->user_code_handler_call.pop_front();
             asio::dispatch(*io_context,
-                           [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                           [handler = std::move(handle)]() mutable -> void
                            {
                                /////////////
                                handler(1);
                                //////////
                            });
-            peer->user_code_handler_call.pop_front();
         }
     }
     catch (...)
@@ -654,14 +665,15 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         DEBUG_LOG("catch ... ");
         if (peer->user_code_handler_call.size() > 0)
         {
+            auto handle = std::move(peer->user_code_handler_call.front());
+            peer->user_code_handler_call.pop_front();
             asio::dispatch(*io_context,
-                           [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                           [handler = std::move(handle)]() mutable -> void
                            {
                                /////////////
                                handler(1);
                                //////////
                            });
-            peer->user_code_handler_call.pop_front();
         }
     }
 }

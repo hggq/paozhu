@@ -662,14 +662,20 @@ asio::awaitable<void> fastcgi::send_exit(std::shared_ptr<httppeer> peer)
     std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
     if (peer->user_code_handler_call.size() > 0)
     {
+        auto handle = std::move(peer->user_code_handler_call.front());
+        peer->user_code_handler_call.pop_front();
+        lock.unlock();
         asio::dispatch(*server_ioc,
-                       [handler = std::move(peer->user_code_handler_call.front())]() mutable -> void
+                       [handler = std::move(handle)]() mutable -> void
                        {
                            /////////////
                            handler(1);
                            //////////
                        });
-        peer->user_code_handler_call.pop_front();
+    }
+    else 
+    {
+        lock.unlock();
     }
     peer->compress = 0;
     peer->linktype = 0;
