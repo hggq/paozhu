@@ -2,7 +2,7 @@
 #define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Mon, 10 Mar 2025 03:03:52 GMT
+*本文件为自动生成 Tue, 11 Mar 2025 10:32:42 GMT
 ***/
 #include <iostream>
 #include <cstdio>

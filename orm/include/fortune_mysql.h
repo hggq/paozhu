@@ -152,6 +152,11 @@ namespace orm
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(countsql);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
 
                 
@@ -240,6 +245,13 @@ namespace orm
                     }
                 }
 
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(countsql,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 if (iscache)
@@ -366,6 +378,11 @@ namespace orm
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(countsql);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
                 
@@ -453,6 +470,13 @@ namespace orm
                     }
                 }
 
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(countsql,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 if (iscache)
@@ -619,6 +643,11 @@ namespace orm
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(countsql);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
 
                 unsigned int offset = 0;
@@ -631,7 +660,13 @@ namespace orm
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(countsql,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -752,6 +787,10 @@ namespace orm
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(countsql);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
                 unsigned int offset = 0;
@@ -763,7 +802,13 @@ namespace orm
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(countsql,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -873,6 +918,10 @@ namespace orm
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(countsql);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
 
                 unsigned int offset = 0;
@@ -885,7 +934,13 @@ namespace orm
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(countsql,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -5076,6 +5131,10 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                                 
                 if(conn->ec)
@@ -5186,7 +5245,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 if (iscache)
@@ -5300,6 +5365,10 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -5405,9 +5474,14 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
-
-                
 
                 if (iscache)
                 {
@@ -5511,6 +5585,11 @@ M_MODEL& or_leMessage(T val)
                 }
                 auto conn = conn_obj->get_select_conn();
                 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = conn->write_sql(sqlstring);
                 if(n==0)
                 {
@@ -5630,6 +5709,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 if (iscache)
@@ -5719,6 +5805,11 @@ M_MODEL& or_leMessage(T val)
                     co_return 0;
                 }
                 auto conn = co_await conn_obj->async_get_select_conn();
+
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
 
                 std::size_t n = co_await conn->async_write_sql(sqlstring);
                 
@@ -5832,6 +5923,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 if (iscache)
@@ -5932,6 +6030,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -6031,6 +6134,13 @@ M_MODEL& or_leMessage(T val)
                             break;
                         }
                     }
+                }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
                 }
                 conn_obj->back_select_conn(conn);
                 
@@ -6134,6 +6244,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
                 // asio::error_code ec;
@@ -6233,6 +6348,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 if (iscache)
@@ -6320,6 +6442,11 @@ M_MODEL& or_leMessage(T val)
                     return 0;
                 }
                 auto conn = conn_obj->get_select_conn();
+
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
 
                 std::size_t n = conn->write_sql(sqlstring);
                 if(n==0)
@@ -6452,7 +6579,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 if (iscache)
@@ -6542,6 +6675,11 @@ M_MODEL& or_leMessage(T val)
                     co_return 0;
                 }
                 auto conn = co_await conn_obj->async_get_select_conn();
+
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
 
                 std::size_t n = co_await conn->async_write_sql(sqlstring);
                 
@@ -6671,7 +6809,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 if (iscache)
@@ -6878,6 +7022,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -6984,6 +7133,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
             }
@@ -7064,6 +7220,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
+
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
 
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                 
@@ -7164,6 +7325,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
             }
@@ -7237,6 +7405,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
+
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
@@ -7337,6 +7510,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);               
 
                 if (iscache)
@@ -7421,6 +7601,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
+
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
 
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                 
@@ -7513,6 +7698,13 @@ M_MODEL& or_leMessage(T val)
                             break;
                         }
                     }
+                }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
                 }
                 conn_obj->back_select_conn(conn);               
 
@@ -7614,6 +7806,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -7634,6 +7831,13 @@ M_MODEL& or_leMessage(T val)
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
 
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -7728,6 +7932,11 @@ M_MODEL& or_leMessage(T val)
                 }
                 auto conn = conn_obj->get_edit_conn();
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = conn->write_sql(sqlstring);
                 if(n==0)
                 {
@@ -7765,6 +7974,13 @@ M_MODEL& or_leMessage(T val)
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
 
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -7870,6 +8086,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
                 unsigned int offset = 0;
@@ -7881,7 +8102,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -7988,6 +8215,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
                 unsigned int offset = 0;
@@ -7999,7 +8231,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8072,6 +8310,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -8091,7 +8334,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8197,6 +8446,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -8216,7 +8470,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8323,6 +8583,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                 
                 unsigned int offset = 0;
@@ -8334,7 +8599,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8406,6 +8677,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -8425,7 +8701,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8497,6 +8779,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                 
                 unsigned int offset = 0;
@@ -8508,7 +8795,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8618,6 +8911,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -8637,7 +8935,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8754,6 +9058,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -8773,7 +9082,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8837,6 +9152,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -8856,7 +9176,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8921,6 +9247,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                 
                 unsigned int offset = 0;
@@ -8932,7 +9263,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -8997,6 +9334,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -9016,7 +9358,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -9081,6 +9429,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                 
                 unsigned int offset = 0;
@@ -9092,7 +9445,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -9157,6 +9516,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -9176,7 +9540,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -9240,6 +9610,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                 
                 unsigned int offset = 0;
@@ -9251,7 +9626,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -9347,6 +9728,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -9366,7 +9752,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -9401,6 +9793,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(sqlstring);
 
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
+
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
                 if(conn->ec)
@@ -9420,7 +9817,13 @@ M_MODEL& or_leMessage(T val)
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
                 conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(sqlstring,std::to_string(du_time));
+                }
                 conn_obj->back_edit_conn(conn);
 
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -9507,6 +9910,11 @@ M_MODEL& or_leMessage(T val)
                     conn->send_data.push_back(0x03);
                     conn->send_data.append(sqlstring);
 
+                    if(conn->isdebug)
+                    {
+                        conn->begin_time();
+                    }
+
                     std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
 
                     unsigned int offset = 0;
@@ -9518,7 +9926,13 @@ M_MODEL& or_leMessage(T val)
                     pack_info_t temp_pack_data;
                     temp_pack_data.seq_id = 1;
                     conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                    if(conn->isdebug)
+                    {
+                        conn->finish_time();
+                        auto &conn_mar = get_orm_connect_mar();
+                        long long du_time= conn->count_time();
+                        conn_mar.push_log(sqlstring,std::to_string(du_time));
+                    }
                     conn_obj->back_edit_conn(conn);
 
                     if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -9572,6 +9986,11 @@ M_MODEL& or_leMessage(T val)
                     conn->send_data.push_back(0x03);
                     conn->send_data.append(sqlstring);
 
+                    if(conn->isdebug)
+                    {
+                        conn->begin_time();
+                    }
+
                     std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                     
                     unsigned int offset = 0;
@@ -9583,7 +10002,13 @@ M_MODEL& or_leMessage(T val)
                     pack_info_t temp_pack_data;
                     temp_pack_data.seq_id = 1;
                     conn->read_field_pack(conn->_cache_data, n, offset, temp_pack_data);
-
+                    if(conn->isdebug)
+                    {
+                        conn->finish_time();
+                        auto &conn_mar = get_orm_connect_mar();
+                        long long du_time= conn->count_time();
+                        conn_mar.push_log(sqlstring,std::to_string(du_time));
+                    }
                     conn_obj->back_edit_conn(conn);
 
                     if ((unsigned char)temp_pack_data.data[0] == 0xFF)
@@ -9676,6 +10101,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(rawsql);
+
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
 
                 std::size_t n = asio::write(*conn->socket, asio::buffer(conn->send_data), conn->ec);
                 
@@ -9781,6 +10211,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(rawsql,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 return std::make_tuple(std::move(table_fieldname), std::move(table_fieldmap), std::move(temprecord));
@@ -9858,6 +10295,11 @@ M_MODEL& or_leMessage(T val)
                 conn->send_data.push_back(0x00);
                 conn->send_data.push_back(0x03);
                 conn->send_data.append(rawsql);
+
+                if(conn->isdebug)
+                {
+                    conn->begin_time();
+                }
 
                 std::size_t n = co_await asio::async_write(*conn->socket, asio::buffer(conn->send_data), asio::use_awaitable);
                 
@@ -9956,6 +10398,13 @@ M_MODEL& or_leMessage(T val)
                         }
                     }
                 }
+                if(conn->isdebug)
+                {
+                    conn->finish_time();
+                    auto &conn_mar = get_orm_connect_mar();
+                    long long du_time= conn->count_time();
+                    conn_mar.push_log(rawsql,std::to_string(du_time));
+                }
                 conn_obj->back_select_conn(conn);
 
                 co_return std::make_tuple(std::move(table_fieldname), std::move(table_fieldmap), std::move(temprecord));
@@ -9996,6 +10445,7 @@ M_MODEL& or_leMessage(T val)
             ishascontent = false;
             iscommit     = false;
             iscache      = false;
+            iserror      = false;
             effect_num   = 0;
             if (both)
             {
@@ -10017,6 +10467,7 @@ M_MODEL& or_leMessage(T val)
             ishascontent = false;
             iscommit     = false;
             iscache      = false;
+            iserror      = false;
             effect_num   = 0;
             return *mod;
         }

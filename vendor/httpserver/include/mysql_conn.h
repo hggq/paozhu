@@ -140,6 +140,7 @@ struct orm_conn_t
 
     bool isssl              = false;
     bool issock             = false;
+    bool isdebug            = false;
     unsigned char link_type = 0;// 0 edit 1 select 2 backup
     unsigned char max_pool  = 0;
     unsigned char min_pool  = 0;
@@ -179,11 +180,12 @@ class mysql_conn_base
 
     void begin_time();
     void finish_time();
-
+    long long count_time();
   public:
     unsigned char *_cache_data = nullptr;
 
     bool isclose            = false;
+    bool isdebug            = false;
     std::atomic_bool  issynch = false;
     unsigned char sock_type = 0;
     unsigned char seq_next_id;

@@ -138,6 +138,7 @@ void mysql_conn_base::read_server_hello(unsigned int offset, unsigned int length
 }
 bool mysql_conn_base::connect(const std::string &host, const std::string &port, const std::string &user, const std::string &password, const std::string &dbname, bool ssl_flag)
 {
+    error_msg.clear();
     socket = std::make_unique<asio::ip::tcp::socket>(*io_ctx);
     asio::ip::tcp::resolver resolver(*io_ctx);
 
@@ -483,6 +484,7 @@ bool mysql_conn_base::server_public_key_encrypt(const std::string &password, uns
 }
 asio::awaitable<bool> mysql_conn_base::async_connect(const std::string &host, const std::string &port, const std::string &user, const std::string &password, const std::string &dbname, bool ssl_flag)
 {
+    error_msg.clear();
     socket = std::make_unique<asio::ip::tcp::socket>(*io_ctx);
     asio::ip::tcp::resolver resolver(*io_ctx);
 
@@ -876,6 +878,11 @@ void mysql_conn_base::finish_time()
 {
     time_finish = std::chrono::steady_clock::now();
 }
+long long mysql_conn_base::count_time()
+{
+    long long time_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(time_finish - time_begin).count();
+    return time_duration;
+}
 
 unsigned int mysql_conn_base::write_sql(const std::string &sql)
 {
@@ -893,7 +900,6 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
 
     n=0;
     
-
     if(isclose)
     {
         return 0;

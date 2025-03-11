@@ -33,6 +33,120 @@ orm_connect_mar_t &get_orm_connect_mar()
     static orm_connect_mar_t instance;
     return instance;
 }
+void orm_connect_mar_t::push_log(const std::string &str1,const std::string &str2,const std::string &str3)
+{
+    std::unique_lock lk(log_mutex);
+    if(log_content.size() > 2097152)
+    {
+        lk.unlock();
+        return;
+    }
+    log_content.push_back(0x0A);
+    log_content.append(str1);
+    log_content.push_back(0x20);
+    log_content.append(str2);
+    log_content.push_back(0x20);
+    log_content.append(str3);
+    lk.unlock();
+}
+void orm_connect_mar_t::push_log(const std::string &str1,const std::string &str2)
+{
+    std::unique_lock lk(log_mutex);
+    if(log_content.size() > 2097152)
+    {
+        lk.unlock();
+        return;
+    }
+    log_content.push_back(0x0A);
+    log_content.append(str1);
+    log_content.push_back(0x20);
+    log_content.append(str2);
+    lk.unlock();
+}
+void orm_connect_mar_t::push_log(const std::string &str)
+{
+    std::unique_lock lk(log_mutex);
+    if(log_content.size() > 2097152)
+    {
+        lk.unlock();
+        return;
+    }
+    log_content.push_back(0x0A);
+    log_content.append(str);
+    lk.unlock();
+}
+
+void orm_connect_mar_t::save_log(const std::string &filename)
+{
+    std::string temp_file_content;
+    std::unique_lock lk(log_mutex);
+    temp_file_content = log_content; 
+    log_content.clear();
+    lk.unlock();
+
+    if(temp_file_content.size()==0)
+    {
+        return;
+    }
+
+    #ifndef _WIN32
+            struct flock lockstr = {};
+    #endif
+
+    #ifndef _MSC_VER
+            int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+            if (fd == -1)
+            {
+                return;
+            }
+
+            #ifndef _WIN32
+                        lockstr.l_type = F_WRLCK;
+                        lockstr.l_whence = SEEK_END;
+                        lockstr.l_start = 0;
+                        lockstr.l_len = 0;
+
+                        lockstr.l_pid = 0;
+
+                        if (fcntl(fd, F_SETLK, &lockstr) == -1)
+                        {
+                            close(fd);
+                            return;
+                        }
+            #else
+                        auto native_handle = (HANDLE)_get_osfhandle(fd);
+                        auto file_size = GetFileSize(native_handle, nullptr);
+                        if (!LockFile(native_handle, file_size, 0, file_size, 0))
+                        {
+                            close(fd);
+                            return;
+                        }
+            #endif
+            std::size_t n_write = write(fd, temp_file_content.data(), temp_file_content.size());
+            // not use
+            if (true || n_write > 0)
+            {
+                n_write = 0;
+            }
+
+            #ifndef _WIN32
+                        lockstr.l_type = F_UNLCK;
+                        if (fcntl(fd, F_SETLK, &lockstr) == -1)
+                        {
+                            close(fd);
+                            return;
+                        }
+            #else
+                        if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
+                        {
+                            close(fd);
+                            return;
+                        }
+            #endif
+            close(fd);
+#endif
+
+}
 void orm_connect_mar_t::watch_connect(std::weak_ptr<mysql_conn_base> conn)
 {
     std::unique_lock lk(connect_mutex);

@@ -138,6 +138,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                         mysqlconf.min_pool = 0;
                         mysqlconf.issock   = false;
                         mysqlconf.isssl    = false;
+                        mysqlconf.isdebug  = false;
                         //mysqlconf.link_type = 0;
                     }
                 }
@@ -208,6 +209,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                         mysqlconf.tag      = keyname;
                         mysqlconf.issock   = false;
                         mysqlconf.isssl    = false;
+                        mysqlconf.isdebug  = false;
                         //mysqlconf.link_type = 0;
                     }
                 }
@@ -254,9 +256,16 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 }
                 if (str_casecmp(linestr, "ssl"))
                 {
-                    if (strval == "1" || strval == "true" || strval == "On" || strval == "ON")
+                    if (strval == "1" || strval == "true"  || strval == "True" || strval == "TRUE"|| strval == "On" || strval == "ON")
                     {
                         mysqlconf.isssl = true;
+                    }
+                }
+                if (str_casecmp(linestr, "debug"))
+                {
+                    if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
+                    {
+                        mysqlconf.isdebug = true;
                     }
                 }
                 if (str_casecmp(linestr, "dbtype"))
@@ -368,9 +377,16 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
         }
         if (str_casecmp(linestr, "ssl"))
         {
-            if (strval == "1" || strval == "true" || strval == "On" || strval == "ON")
+            if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
             {
                 mysqlconf.isssl = true;
+            }
+        }
+        if (str_casecmp(linestr, "debug"))
+        {
+            if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
+            {
+                mysqlconf.isdebug = true;
             }
         }
         if (str_casecmp(linestr, "dbtype"))
@@ -462,11 +478,13 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_edit_
     bool isok                             = co_await conn->async_connect(conf_data[0].host, conf_data[0].port, conf_data[0].user, conf_data[0].password, conf_data[0].dbname, false);
     if (isok)
     {
+        if(conf_data[0].isdebug)
+        {
+            conn->isdebug = true;
+        }
         co_return conn;
     }
-    error_msg.append(" add_edit_connect failed for tag " + conf_data[0].tag);
-    conn->error_msg.append(" add_edit_connect failed for tag " + conf_data[0].tag);
-    throw conn->error_msg;
+    throw " add_edit_connect failed for tag ";
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_edit_connect()
@@ -475,12 +493,14 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_edit_connect()
     bool isok                             = conn->connect(conf_data[0].host, conf_data[0].port, conf_data[0].user, conf_data[0].password, conf_data[0].dbname, false);
     if (isok)
     {
+        if(conf_data[0].isdebug)
+        {
+            conn->isdebug = true;
+        }
         conn->issynch = true;
         return conn;
     }
-    error_msg.append(" add_edit_connect failed for tag " + conf_data[0].tag);
-    conn->error_msg.append(" add_edit_connect failed for tag " + conf_data[0].tag);
-    throw conn->error_msg;
+    throw " add_edit_connect failed for tag ";
 }
 void orm_conn_pool::back_edit_conn(std::shared_ptr<mysql_conn_base> conn)
 {
@@ -499,13 +519,15 @@ unsigned int orm_conn_pool::init_edit_conn(unsigned char n)
             bool isok                             = conn->connect(conf_data[0].host, conf_data[0].port, conf_data[0].user, conf_data[0].password, conf_data[0].dbname, false);
             if (isok)
             {
+                if(conf_data[0].isdebug)
+                {
+                    conn->isdebug = true;
+                }
                 std::unique_lock<std::mutex> lock(conn_edit_mutex);
                 conn_edit_pool.emplace_back(conn);
                 lock.unlock();
                 continue;
             }
-            error_msg.append(" add_select_connect failed for tag " + conf_data[0].tag);
-            conn->error_msg.append(" add_select_connect failed for tag " + conf_data[0].tag);
         }
         catch (const std::exception &e)
         {
@@ -522,12 +544,14 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_select_connect()
     bool isok                             = conn->connect(conf_data[1].host, conf_data[1].port, conf_data[1].user, conf_data[1].password, conf_data[1].dbname, false);
     if (isok)
     {
+        if(conf_data[1].isdebug)
+        {
+            conn->isdebug = true;
+        }
         conn->issynch = true;
         return conn;
     }
-    error_msg.append(" add_select_connect failed for tag " + conf_data[1].tag);
-    conn->error_msg.append(" add_select_connect failed for tag " + conf_data[1].tag);
-    throw conn->error_msg;
+    throw " add_select_connect failed for tag ";
 }
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_select_connect()
 {
@@ -535,11 +559,13 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_selec
     bool isok                             = co_await conn->async_connect(conf_data[1].host, conf_data[1].port, conf_data[1].user, conf_data[1].password, conf_data[1].dbname, false);
     if (isok)
     {
+        if(conf_data[1].isdebug)
+        {
+            conn->isdebug = true;
+        }
         co_return conn;
     }
-    error_msg.append(" add_select_connect failed for tag " + conf_data[1].tag);
-    conn->error_msg.append(" add_select_connect failed for tag " + conf_data[1].tag);
-    throw conn->error_msg;
+    throw " add_select_connect failed for tag ";
 }
 unsigned int orm_conn_pool::init_select_conn(unsigned char n)
 {
@@ -551,12 +577,14 @@ unsigned int orm_conn_pool::init_select_conn(unsigned char n)
             bool isok                             = conn->connect(conf_data[1].host, conf_data[1].port, conf_data[1].user, conf_data[1].password, conf_data[1].dbname, false);
             if (isok)
             {
+                if(conf_data[1].isdebug)
+                {
+                    conn->isdebug = true;
+                }
                 std::unique_lock<std::mutex> lock(conn_edit_mutex);
                 conn_select_pool.emplace_back(conn);
                 lock.unlock();
             }
-            error_msg.append(" add_select_connect failed for tag " + conf_data[1].tag);
-            conn->error_msg.append(" add_select_connect failed for tag " + conf_data[1].tag);
         }
         catch (const std::exception &e)
         {

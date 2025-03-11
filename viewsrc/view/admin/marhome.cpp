@@ -85,6 +85,7 @@ namespace view {
                              break;   
                         case 4:
                              echo<<"hot";
+                             break;
                         case 5:
                              echo<<"content";     
                              break;

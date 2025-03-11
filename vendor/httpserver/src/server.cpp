@@ -26,6 +26,7 @@
 #include "mysql_conn.h"
 #include "mysql_conn_pool.h"
 #include "mysql_connect_mar.h"
+#include "cost_define.h"
 
 #include "autocontrolmethod.hpp"
 #include "reghttpmethod.hpp"
@@ -2694,7 +2695,7 @@ namespace http
         peer->socket_session->has_send_update_num += per_size + 9;
         peer->socket_session->new_send_balance_num -= (per_size + 9);
 
-        sq_obj->sleep_time = 1100000;
+        sq_obj->sleep_time = CONST_HTTP2_SlEEP_MIN_TIME;
         if (sq_obj->content_length > 16793600)
         {
             sq_obj->sleep_time = 1500000;
@@ -2859,11 +2860,11 @@ namespace http
                     unsigned int sq_for_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(sq_end - sq_start).count();   
 
                     //maybe not need to sleep
-                    if(sq_for_duration < 1100000) 
+                    if(sq_for_duration < CONST_HTTP2_SlEEP_MIN_TIME) 
                     {
-                        if(mini_sleep_num > 1100000)
+                        if(mini_sleep_num > CONST_HTTP2_SlEEP_MIN_TIME)
                         {
-                            mini_sleep_num = 1100000;
+                            mini_sleep_num = CONST_HTTP2_SlEEP_MIN_TIME;
                         }
                         mini_sleep_num = std::ceil((double)mini_sleep_num / 1000);
                         std::this_thread::sleep_for(std::chrono::microseconds(mini_sleep_num));
@@ -3427,6 +3428,7 @@ namespace http
         std::string traffic_switch_file;
         std::string restart_file;
         std::string restart_ssl_file;
+        std::string orm_log_file;
         try
         {
             currentpath = sysconfigpath.configpath;
@@ -3455,12 +3457,14 @@ namespace http
         traffic_switch_file = currentpath;
         restart_file = currentpath;
         restart_ssl_file = currentpath;
+        orm_log_file = currentpath;
 
         currentpath.append("access.log");
         error_path.append("error.log");
         traffic_switch_file.append("traffic_switch_file");
         restart_file.append("restart_server");
         restart_ssl_file.append("restart_ssl_config");
+        orm_log_file.append("orm_debug.log");
 
         unsigned int mysqlpool_time = 1;
         unsigned int remove_linknum = 0;
@@ -4085,6 +4089,15 @@ namespace http
                     error_msg_loop.append(" --\n");
                     std::unique_lock<std::mutex> loglock(log_mutex);
                     error_loglist.push_back(error_msg_loop);
+                    loglock.unlock();
+                }
+
+                if (mysqlpool_time % (CONST_ORM_QUERY_LOG_TIME+1) == 0)
+                {
+                    orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
+                    watch_conn.save_log(orm_log_file);
+                    std::unique_lock<std::mutex> loglock(log_mutex);
+                    error_loglist.push_back("orm_query_log save");
                     loglock.unlock();
                 }
 
