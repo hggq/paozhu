@@ -361,6 +361,46 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 
 ```
 
+C++ ORM Coroutines,Only supports MySQL,URL request is completed throughout the entire coroutine function
+
+
+```C++
+//@urlpath(null,updates)
+asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
+{
+    peer->type("application/json; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+    unsigned int get_num = peer->get["queries"].to_int();
+
+    if (get_num == 0)
+    {
+        get_num = 1;
+    }
+    else if (get_num > 500)
+    {
+        get_num = 500;
+    }
+    auto myworld = orm::World();
+    myworld.record.clear();
+    myworld.record.reserve(get_num);
+    for (unsigned int i = 0; i < get_num; i++)
+    {
+        myworld.wheresql.clear();
+        myworld.where("id", rand_range(1, 10000));
+        co_await myworld.async_fetch_append();
+        if (myworld.effect() > 0)
+        {
+            unsigned int j                 = myworld.record.size() - 1;
+            myworld.data.randomnumber      = rand_range(1, 10000);
+            myworld.record[j].randomnumber = myworld.data.randomnumber;
+            co_await myworld.async_update("randomnumber");
+        }
+    }
+    peer->output = myworld.to_json();
+    co_return "";
+}
+```
+
 
 ###  9.Related tutorial
 
