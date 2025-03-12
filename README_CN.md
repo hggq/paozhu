@@ -360,7 +360,8 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 
 ```
 
-ORM 支持协程方式，目前仅支持MySQL，整个URL请求都走协程，注意注册函数也是协程函数
+ORM 支持协程方式，目前仅支持MySQL，整个URL请求都走协程，注意注册函数也是协程函数  
+来源框架自带演示文件 controller/src/techempower.cpp
 
 
 ```C++

@@ -361,8 +361,8 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 
 ```
 
-C++ ORM Coroutines,Only supports MySQL,URL request is completed throughout the entire coroutine function
-
+C++ ORM Coroutines,Only supports MySQL,URL request is completed throughout the entire coroutine function  
+From admin demo file controller/src/techempower.cpp
 
 ```C++
 //@urlpath(null,updates)
