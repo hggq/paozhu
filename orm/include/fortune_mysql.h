@@ -10045,7 +10045,7 @@ M_MODEL& or_leMessage(T val)
         std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>>
         query(const std::string &rawsql)
         {
-
+            effect_num = 0;
             std::vector<std::vector<std::string>> temprecord;
             std::vector<std::string> table_fieldname;
             std::map<std::string, unsigned int> table_fieldmap;
@@ -10239,7 +10239,7 @@ M_MODEL& or_leMessage(T val)
         asio::awaitable<std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>>>
         async_query(const std::string &rawsql)
         {
-
+            effect_num = 0;
             std::vector<std::vector<std::string>> temprecord;
             std::vector<std::string> table_fieldname;
             std::map<std::string, unsigned int> table_fieldmap;
