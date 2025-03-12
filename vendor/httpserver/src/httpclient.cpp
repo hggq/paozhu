@@ -126,7 +126,7 @@ client &client::post(std::string_view url, http::OBJ_VALUE param)
     return *this;
 }
 
-client &client::getjson(std::string_view url)
+client &client::get_json(std::string_view url)
 {
     requesttype = 0;
     parsetojson = 1;
@@ -143,7 +143,7 @@ client &client::getjson(std::string_view url)
     }
     return *this;
 }
-client &client::getjson(std::string_view url, http::OBJ_VALUE param)
+client &client::get_json(std::string_view url, http::OBJ_VALUE param)
 {
     requesttype = 0;
     parsetojson = 1;
@@ -162,7 +162,7 @@ client &client::getjson(std::string_view url, http::OBJ_VALUE param)
     return *this;
 }
 
-client &client::postjson(std::string_view url)
+client &client::post_json(std::string_view url)
 {
     header.clear();
     senddata.clear();
@@ -180,7 +180,7 @@ client &client::postjson(std::string_view url)
     }
     return *this;
 }
-client &client::postjson(std::string_view url, http::OBJ_VALUE param)
+client &client::post_json(std::string_view url, http::OBJ_VALUE param)
 {
     header.clear();
     senddata.clear();
@@ -217,11 +217,11 @@ client &client::send()
 
     if (scheme == "https")
     {
-        sendssldatato();
+        send_ssl_data();
     }
     else
     {
-        senddatato();
+        send_data();
     }
 
     return *this;
@@ -241,11 +241,11 @@ asio::awaitable<void> client::async_send()
     }
     if (scheme == "https")
     {
-        co_await co_sendssldatato();
+        co_await async_send_ssl_data();
     }
     else
     {
-        co_await co_senddatato();
+        co_await async_send_data();
     }
 
     co_return;
@@ -264,11 +264,11 @@ asio::awaitable<void> client::async_send(http::OBJ_VALUE param)
     }
     if (scheme == "https")
     {
-        co_await co_sendssldatato();
+        co_await async_send_ssl_data();
     }
     else
     {
-        co_await co_senddatato();
+        co_await async_send_data();
     }
     co_return;
 }
@@ -287,15 +287,15 @@ client &client::send(http::OBJ_VALUE param)
     }
     if (scheme == "https")
     {
-        sendssldatato();
+        send_ssl_data();
     }
     else
     {
-        senddatato();
+        send_data();
     }
     return *this;
 }
-asio::awaitable<bool> client::co_init_http_sock()
+asio::awaitable<bool> client::async_init_http_sock()
 {
     error_msg.clear();
     auto executor = co_await asio::this_coro::executor;
@@ -337,7 +337,7 @@ asio::awaitable<bool> client::co_init_http_sock()
     }
     co_return true;
 }
-asio::awaitable<bool> client::co_init_https_sock()
+asio::awaitable<bool> client::async_init_https_sock()
 {
     error_msg.clear();
     auto executor = co_await asio::this_coro::executor;
@@ -378,7 +378,8 @@ asio::awaitable<bool> client::co_init_https_sock()
     ssl_context->set_verify_mode(asio::ssl::verify_peer);
     ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
 
-    sslsock->handshake(asio::ssl::stream_base::client, ec);
+    //sslsock->handshake(asio::ssl::stream_base::client, ec);
+    std::tie(ec)  = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
     if (ec)
     {
         error_msg = host + " handshake error! ";
@@ -427,7 +428,7 @@ bool client::init_http_sock()
     return true;
 }
 
-asio::awaitable<void> client::co_senddatato()
+asio::awaitable<void> client::async_send_data()
 {
     try
     {
@@ -456,7 +457,7 @@ asio::awaitable<void> client::co_senddatato()
 
         if (!sock)
         {
-            bool isinit = co_await co_init_http_sock();
+            bool isinit = co_await async_init_http_sock();
             if (!isinit)
             {
                 co_return;
@@ -608,7 +609,7 @@ asio::awaitable<void> client::co_senddatato()
     co_return;
 }
 
-client &client::senddatato()
+client &client::send_data()
 {
     try
     {
@@ -828,7 +829,7 @@ bool client::init_https_sock()
     auto endpoints = resolver.resolve(host.c_str(), port);
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
-
+    
     asio::connect(sslsock->lowest_layer(), endpoints);
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
 
@@ -846,7 +847,7 @@ bool client::init_https_sock()
     return true;
 }
 
-asio::awaitable<void> client::co_sendssldatato()
+asio::awaitable<void> client::async_send_ssl_data()
 {
     // ssl请求
     try
@@ -1061,7 +1062,7 @@ asio::awaitable<void> client::co_sendssldatato()
     }
     co_return;
 }
-client &client::sendssldatato()
+client &client::send_ssl_data()
 {
     // ssl请求
     try
@@ -1710,19 +1711,19 @@ void client::responseheader(std::string_view key, std::string_view value)
         break;
     }
 }
-unsigned int client::getLength() { return state.page.size; }
-unsigned int client::getStatus() { return state.code; }
-std::string client::getStatus_msg() { return state.codemessage; }
-std::string client::getHeader() { return response_header; }
-std::string client::getTempfile() { return state.page.tempfile; }
-std::map<std::string, std::string> client::getHeaders() { return state.header; }
-std::string client::getType() { return state.page.type; }
-client &client::setBody(const std::string &a)
+unsigned int client::get_length() { return state.page.size; }
+unsigned int client::get_status() { return state.code; }
+std::string client::get_status_msg() { return state.codemessage; }
+std::string client::get_header() { return response_header; }
+std::string client::get_tempfile() { return state.page.tempfile; }
+std::map<std::string, std::string> client::get_headers() { return state.header; }
+std::string client::get_type() { return state.page.type; }
+client &client::set_body(const std::string &a)
 {
     state.content = a;
     return *this;
 }
-std::string client::getBody()
+std::string client::get_body()
 {
     if (state.istxt)
     {
@@ -1748,7 +1749,7 @@ std::string client::getBody()
     }
     return state.content;
 }
-Cookie client::getCookie() { return state.cookie; }
+Cookie client::get_cookie() { return state.cookie; }
 http::OBJ_VALUE client::json() { return state.json; }
 void client::respreadtocontent(const char *buffer, unsigned int buffersize)
 {
@@ -1954,7 +1955,7 @@ void client::process(const char *buffer, unsigned int buffersize)
         }
     }
 }
-client &client::datatype(std::string str = "")
+client &client::data_type(std::string str = "")
 {
 
     if (str.empty())
@@ -1970,7 +1971,7 @@ client &client::datatype(std::string str = "")
     }
     return *this;
 }
-client &client::posttype(std::string str = "")
+client &client::post_type(std::string str = "")
 {
 
     if (str.empty())
@@ -2018,19 +2019,19 @@ client &client::save(std::string path = "")
     return *this;
 }
 
-client &client::setheader(std::string key, std::string value)
+client &client::set_header(std::string key, std::string value)
 {
 
     header[key] = value;
     return *this;
 }
-client &client::addheader(std::string key, std::string value)
+client &client::add_header(std::string key, std::string value)
 {
 
     header[key] = value;
     return *this;
 }
-client &client::addheader(std::string vvalue)
+client &client::add_header(std::string vvalue)
 {
     std::string key;
     std::string value;
@@ -2422,18 +2423,18 @@ void client::buildheader()
 
     request.append("\r\n");
 }
-client &client::addcookie(const std::string &k, const std::string &v)
+client &client::add_cookie(const std::string &k, const std::string &v)
 {
     cookie[k] = v;
     return *this;
 }
-client &client::addfile(std::string filename)
+client &client::add_file(std::string filename)
 {
     std::string key = "upfile[]";
     assign_file(std::move(key), std::move(filename));
     return *this;
 }
-client &client::addfile(std::string key, std::string filename)
+client &client::add_file(std::string key, std::string filename)
 {
 
     assign_file(std::move(key), std::move(filename));

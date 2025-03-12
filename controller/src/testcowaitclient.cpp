@@ -15,19 +15,19 @@ std::string testhttpclient_cowait_php(std::shared_ptr<httppeer> peer)
     std::shared_ptr<http::client> a = std::make_shared<http::client>();
 
     a->get("https://www.php.net/docs.php");
-    a->addheader("Connection", "keep-alive");
+    a->add_header("Connection", "keep-alive");
     a->send();
-    client << a->getHeader();
-    if (a->getStatus() == 200)
+    client << a->get_header();
+    if (a->get_status() == 200)
     {
         //  client << a->getBody();
         std::cout << "https://www.php.net/manual/zh/copyright.php" << std::endl;
         a->get("https://www.php.net/manual/zh/copyright.php");
-        a->addheader("Connection", "Close");
+        a->add_header("Connection", "Close");
         a->send();
-        if (a->getStatus() == 200)
+        if (a->get_status() == 200)
         {
-            client << a->getBody();
+            client << a->get_body();
         }
     }
     else
@@ -47,9 +47,9 @@ std::string testhttpclient_cowait_body(std::shared_ptr<httppeer> peer)
 
     a->get("https://gcc.gnu.org/gcc-12/changes.html");
     a->send();
-    if (a->getStatus() == 200)
+    if (a->get_status() == 200)
     {
-        client << a->getBody();
+        client << a->get_body();
     }
     else
     {
@@ -69,9 +69,9 @@ asio::awaitable<std::string> testhttpclient21_cowait_body(std::shared_ptr<httppe
 
     a->get("https://gcc.gnu.org/gcc-12/changes.html");
     co_await a->async_send();
-    if (a->getStatus() == 200)
+    if (a->get_status() == 200)
     {
-        client << a->getBody();
+        client << a->get_body();
     }
     else
     {
@@ -91,9 +91,9 @@ asio::awaitable<std::string> testhttpclient22_cowait_body(std::shared_ptr<httppe
 
     a->get("http://127.0.0.1/addpost.html");
     co_await a->async_send();
-    if (a->getStatus() == 200)
+    if (a->get_status() == 200)
     {
-        client << a->getBody();
+        client << a->get_body();
     }
     else
     {
@@ -112,31 +112,31 @@ std::string testhttpclient_cowait_post(std::shared_ptr<httppeer> peer)
     std::shared_ptr<http::client> a = std::make_shared<http::client>();
 
     a->get("http://www.xxxxxx.net/");
-    a->addheader("Connection", "keep-alive");
+    a->add_header("Connection", "keep-alive");
     a->send();
-    if (a->getStatus() == 200)
+    if (a->get_status() == 200)
     {
         //  client << a->getBody();
         std::cout << "http://www.xxxxxx.net/login.php" << std::endl;
         a->post("http://www.xxxxxx.net/login.php");
-        a->addheader("Connection", "keep-alive");
+        a->add_header("Connection", "keep-alive");
         a->data["user_name"] = "admin";
         a->data["user_pass"] = "123456";
         a->data["action"]    = "login";
         a->send();
-        if (a->getStatus() == 200)
+        if (a->get_status() == 200)
         {
             //client << a->getBody();
             std::cout << "http://www.xxxxxx.net/main.php" << std::endl;
             a->get("http://www.xxxxxx.net/main.php");
             a->requst_clear();
-            a->addcookie("PHPSESSID", a->state.cookie["PHPSESSID"]);
-            a->addheader("Connection", "Close");
+            a->add_cookie("PHPSESSID", a->state.cookie["PHPSESSID"]);
+            a->add_header("Connection", "Close");
 
             a->send();
-            if (a->getStatus() == 200)
+            if (a->get_status() == 200)
             {
-                std::cout << a->getBody() << std::endl;
+                std::cout << a->get_body() << std::endl;
                 //client << a->getBody();
             }
         }
@@ -165,7 +165,7 @@ std::string testhttpclient_cowait_urls(std::shared_ptr<httppeer> peer)
         a->get(urls[i]);
         if (a->host == "www.php.net")
         {
-            a->addheader("Connection", "keep-alive");
+            a->add_header("Connection", "keep-alive");
         }
         a->onload = [](const std::string &respbody, std::shared_ptr<http::client> a) -> void
         {
@@ -173,7 +173,7 @@ std::string testhttpclient_cowait_urls(std::shared_ptr<httppeer> peer)
             {
                 a->get("https://www.php.net/manual/zh/copyright.php");
                 http::client_context &client_context_in = get_client_context_obj();
-                a->addheader("Connection", "Close");
+                a->add_header("Connection", "Close");
                 client_context_in.add_http_task(a);
             }
             else if (a->host == "www.php.net" && a->path == "/manual/zh/copyright.php")
@@ -238,7 +238,7 @@ std::string testhttpclient_get_range(std::shared_ptr<httppeer> peer)
     {
         std::shared_ptr<http::client> a = std::make_shared<http::client>();
         a->get(urls[i]);
-        a->addheader("Range", "bytes=100-13919154");
+        a->add_header("Range", "bytes=100-13919154");
         client << "<p>" << i << "</p>";
         a->onload = [](const std::string &respbody, std::shared_ptr<http::client> a) -> void
         {

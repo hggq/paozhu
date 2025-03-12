@@ -44,19 +44,19 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
         {
             if (hkey == "Content-Type")
             {
-                a->setheader("Content-Type", vvalue);
+                a->set_header("Content-Type", vvalue);
             }
             else if (hkey == "Post-Type")
             {
-                a->posttype(vvalue);
+                a->post_type(vvalue);
             }
             else if (hkey == "User-Agent")
             {
-                a->setheader("User-Agent", vvalue);
+                a->set_header("User-Agent", vvalue);
             }
             else if (hkey == "Accept")
             {
-                a->setheader("Accept", vvalue);
+                a->set_header("Accept", vvalue);
                 isaccept = true;
             }
             else if (hkey == "method")
@@ -68,7 +68,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
             }
             else if (hkey == "header-content")
             {
-                a->addheader(vvalue);
+                a->add_header(vvalue);
             }
             else
             {
@@ -78,7 +78,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
 
         if (!isaccept)
         {
-            a->setheader("Accept",
+            a->set_header("Accept",
                          "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8");
         }
         if (isget)
@@ -96,23 +96,23 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
         }
         // a->data=parameter;
         a->send();
-        parabody["state"]           = std::to_string(a->getStatus());
-        parabody["response-header"] = a->getHeader();
-        parabody["content-length"]  = std::to_string(a->getLength());
-        if (a->getStatus() == 200)
+        parabody["state"]           = std::to_string(a->get_status());
+        parabody["response-header"] = a->get_header();
+        parabody["content-length"]  = std::to_string(a->get_length());
+        if (a->get_status() == 200)
         {
-            if (a->getLength() < 33554432)
+            if (a->get_length() < 33554432)
             {
-                return a->getBody();
+                return a->get_body();
             }
             else
             {
-                return a->getTempfile();
+                return a->get_tempfile();
             }
         }
         else
         {
-            return a->getBody();
+            return a->get_body();
         }
     }
     else
@@ -162,20 +162,20 @@ std::string file_get_contents(std::string str, unsigned int timeoutnum)
             a->timeout(timeoutnum);
         }
         a->send();
-        if (a->getStatus() == 200)
+        if (a->get_status() == 200)
         {
-            if (a->getLength() < 33554432)
+            if (a->get_length() < 33554432)
             {
-                return a->getBody();
+                return a->get_body();
             }
             else
             {
-                return a->getTempfile();
+                return a->get_tempfile();
             }
         }
         else
         {
-            return a->getHeader();
+            return a->get_header();
         }
     }
     else

@@ -38,33 +38,33 @@ class client : public std::enable_shared_from_this<client>
     client &get(std::string_view url);
     client &post(std::string_view url, http::OBJ_VALUE parmter);
     client &post(std::string_view url);
-    client &getjson(std::string_view url, http::OBJ_VALUE parmter);
-    client &getjson(std::string_view url);
-    client &postjson(std::string_view url, http::OBJ_VALUE parmter);
-    client &postjson(std::string_view url);
+    client &get_json(std::string_view url, http::OBJ_VALUE parmter);
+    client &get_json(std::string_view url);
+    client &post_json(std::string_view url, http::OBJ_VALUE parmter);
+    client &post_json(std::string_view url);
 
-    client &setcookie(std::string, std::string);
-    client &setheader(std::string, std::string);
-    client &addheader(std::string, std::string);
-    client &addheader(std::string);
-    client &setBody(const std::string &);
+    client &set_cookie(std::string, std::string);
+    client &set_header(std::string, std::string);
+    client &add_header(std::string, std::string);
+    client &add_header(std::string);
+    client &set_body(const std::string &);
 
-    client &addcookie(const std::string &k, const std::string &v);
+    client &add_cookie(const std::string &k, const std::string &v);
     client &requst_clear();
 
-    client &addfile(std::string);
-    client &addfile(std::string, std::string);
+    client &add_file(std::string);
+    client &add_file(std::string, std::string);
     void assign_file(std::string, std::string);
-    client &posttype(std::string);
-    client &datatype(std::string);
+    client &post_type(std::string);
+    client &data_type(std::string);
     client &send();
     client &send(http::OBJ_VALUE parmter);
 
     asio::awaitable<void> async_send();
     asio::awaitable<void> async_send(http::OBJ_VALUE parmter);
 
-    client &senddatato();
-    client &sendssldatato();
+    client &send_data();
+    client &send_ssl_data();
     client &save(std::string);
 
     client &build_query(http::OBJ_VALUE parmter);
@@ -88,25 +88,25 @@ class client : public std::enable_shared_from_this<client>
     void buildcontent();
     void timeout(unsigned int t) { exptime = t; };
     unsigned int timeout() { return exptime; };
-    bool isfile() { return !state.istxt; };
-    bool isjson() { return state.isjson; };
+    bool is_file() { return !state.istxt; };
+    bool is_json() { return state.isjson; };
     bool init_http_sock();
     bool init_https_sock();
 
-    asio::awaitable<bool> co_init_http_sock();
-    asio::awaitable<bool> co_init_https_sock();
-    asio::awaitable<void> co_senddatato();
-    asio::awaitable<void> co_sendssldatato();
+    asio::awaitable<bool> async_init_http_sock();
+    asio::awaitable<bool> async_init_https_sock();
+    asio::awaitable<void> async_send_data();
+    asio::awaitable<void> async_send_ssl_data();
     bool parse();
-    std::string getBody();
-    std::string getHeader();
-    std::string getTempfile();
-    std::map<std::string, std::string> getHeaders();
-    std::string getType();
-    unsigned int getLength();
-    unsigned int getStatus();
-    std::string getStatus_msg();
-    Cookie getCookie();
+    std::string get_body();
+    std::string get_header();
+    std::string get_tempfile();
+    std::map<std::string, std::string> get_headers();
+    std::string get_type();
+    unsigned int get_length();
+    unsigned int get_status();
+    std::string get_status_msg();
+    Cookie get_cookie();
     http::OBJ_VALUE json();
 
   public:
