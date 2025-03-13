@@ -331,7 +331,16 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                         }
                     }
                     mysqlconf.host = strval;
+                    if (str_casecmp(strval, "127.0.0.1"))
+                    {
+                        mysqlconf.islocal = true;
+                    }
+                    if (str_casecmp(strval, "localhost"))
+                    {
+                        mysqlconf.islocal = true;
+                    }
                 }
+
                 if (str_casecmp(linestr, "port"))
                 {
                     mysqlconf.port = strval;
@@ -452,6 +461,14 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 }
             }
             mysqlconf.host = strval;
+            if (str_casecmp(strval, "127.0.0.1"))
+            {
+                mysqlconf.islocal = true;
+            }
+            if (str_casecmp(strval, "localhost"))
+            {
+                mysqlconf.islocal = true;
+            }
         }
         if (str_casecmp(linestr, "port"))
         {

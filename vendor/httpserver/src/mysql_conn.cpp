@@ -257,7 +257,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     sock_type = 1;
     if(conn_config.isssl && server_enable_ssl)
     {
-        //if(conn_config.host !="127.0.0.1" && conn_config.host !="localhost")
+        if(!conn_config.islocal)
         {
             //.sock please use localsocket
             send_data[0]=32;
@@ -742,10 +742,10 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     send_data.push_back(0x00);
 
     send_data[0] = send_data.size() - 4;
-
+    sock_type = 1;
     if(conn_config.isssl && server_enable_ssl)
     {
-        //if(conn_config.host !="127.0.0.1" && conn_config.host !="localhost")
+        if(!conn_config.islocal)
         {
             //.sock please use localsocket
             send_data[0]=32;

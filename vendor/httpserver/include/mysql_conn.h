@@ -146,7 +146,7 @@ struct orm_conn_t
     bool isssl              = false;
     bool issock             = false;
     bool isdebug            = false;
-    
+    bool islocal            = false;
     unsigned char link_type = 0;// 0 edit 1 select 2 backup
     unsigned char max_pool  = 0;
     unsigned char min_pool  = 0;
