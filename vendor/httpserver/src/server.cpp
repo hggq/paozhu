@@ -3437,7 +3437,9 @@ namespace http
                 currentpath.push_back('/');
             }
             currentpath.append("orm.conf");
-            orm::init_orm_conn_pool(io_context, currentpath);
+            orm_log_file=orm::init_orm_conn_pool(io_context, currentpath);
+            error_loglist.emplace_back(orm_log_file);
+            orm_log_file.clear();
         }
         catch (const char *e)
         {

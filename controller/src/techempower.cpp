@@ -43,6 +43,7 @@ asio::awaitable<std::string> techempowerdb(std::shared_ptr<httppeer> peer)
     myworld.where("id", rd_num);
     myworld.limit(1);
     co_await myworld.async_fetch_one();
+
     peer->output = myworld.data_tojson();
     co_return "";
 }
@@ -64,6 +65,7 @@ asio::awaitable<std::string> techempowerqueries(std::shared_ptr<httppeer> peer)
     }
     auto myworld = orm::World();
     myworld.record.reserve(get_num);
+    myworld.lock_conn();
     for (unsigned int i = 0; i < get_num; i++)
     {
         myworld.wheresql.clear();
@@ -71,7 +73,7 @@ asio::awaitable<std::string> techempowerqueries(std::shared_ptr<httppeer> peer)
         myworld.where("id", rd_num);
         co_await myworld.async_fetch_append();
     }
-
+    myworld.unlock_conn();
     peer->output = myworld.to_json();
     co_return "";
 }
@@ -126,6 +128,7 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
     auto myworld = orm::World();
     myworld.record.clear();
     myworld.record.reserve(get_num);
+    myworld.lock_conn();
     for (unsigned int i = 0; i < get_num; i++)
     {
         myworld.wheresql.clear();
@@ -139,6 +142,7 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
             co_await myworld.async_update("randomnumber");
         }
     }
+    myworld.unlock_conn();
     peer->output = myworld.to_json();
     co_return "";
 }

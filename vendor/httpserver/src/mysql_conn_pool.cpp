@@ -550,11 +550,12 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
     return myconfig;
 }
 
-void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file)
+std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file)
 {
     std::map<std::string, std::shared_ptr<orm_conn_pool>> &int_pool = get_orm_conn_pool_obj();
     std::vector<orm_conn_t> myconfig                                = get_orm_config_file(orm_config_file);
-
+    std::string error_log;
+    error_log.append("-- begin init_orm_conn_pool -- \n");
     for (auto &item : myconfig)
     {
 
@@ -568,7 +569,19 @@ void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_fil
             if (iter != int_pool.end())
             {
                 iter->second->conf_data[0] = item;
-                unsigned int n             = iter->second->init_edit_conn(item.min_pool);
+                unsigned int n  =0;
+                try 
+                {
+                    n             = iter->second->init_edit_conn(item.min_pool);
+                } 
+                catch (const std::string &error) 
+                {
+                    error_log.append(error);
+                }
+                catch (std::exception &e)
+                {
+                    error_log.append(e.what());
+                }
                 if (n == 0)
                 {
                     iter->second->error_msg.append(" int_pool.init_edit_conn failed for tag " + item.tag);
@@ -580,7 +593,19 @@ void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_fil
                 std::shared_ptr<orm_conn_pool> conn = std::make_shared<orm_conn_pool>();
                 conn->io_context                    = &ioc;
                 conn->conf_data[0]                  = item;
-                unsigned int n                      = conn->init_edit_conn(item.min_pool);
+                unsigned int n  =0;
+                try 
+                {
+                    n             = conn->init_edit_conn(item.min_pool);
+                } 
+                catch (const std::string &error) 
+                {
+                    error_log.append(error);
+                }
+                catch (std::exception &e)
+                {
+                    error_log.append(e.what());
+                }
                 if (n == 0)
                 {
                     conn->error_msg.append(" int_pool.init_edit_conn failed for tag " + item.tag);
@@ -598,7 +623,19 @@ void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_fil
             if (iter != int_pool.end())
             {
                 iter->second->conf_data[1] = item;
-                unsigned int n             = iter->second->init_select_conn(item.min_pool);
+                unsigned int n  =0;
+                try 
+                {
+                    n             = iter->second->init_select_conn(item.min_pool);
+                } 
+                catch (const std::string &error) 
+                {
+                    error_log.append(error);
+                }
+                catch (std::exception &e)
+                {
+                    error_log.append(e.what());
+                }
                 if (n == 0)
                 {
                     iter->second->error_msg.append(" int_pool.init_select_conn failed for tag " + item.tag);
@@ -610,7 +647,19 @@ void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_fil
                 std::shared_ptr<orm_conn_pool> conn = std::make_shared<orm_conn_pool>();
                 conn->io_context                    = &ioc;
                 conn->conf_data[1]                  = item;
-                unsigned int n                      = conn->init_select_conn(item.min_pool);
+                unsigned int n                      = 0;
+                try 
+                {
+                    n             = conn->init_select_conn(item.min_pool);
+                } 
+                catch (const std::string &error) 
+                {
+                    error_log.append(error);
+                }
+                catch (std::exception &e)
+                {
+                    error_log.append(e.what());
+                }
                 if (n == 0)
                 {
                     conn->error_msg.append(" int_pool.init_select_conn failed for tag " + item.tag);
@@ -619,6 +668,8 @@ void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_fil
             }
         }
     }
+    error_log.append("\n-- end init_orm_conn_pool -- \n");
+    return error_log;
 }
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_edit_connect()
@@ -660,7 +711,8 @@ void orm_conn_pool::back_edit_conn(std::shared_ptr<mysql_conn_base> conn)
 }
 unsigned int orm_conn_pool::init_edit_conn(unsigned char n)
 {
-    for (unsigned char i = 0; i < n; ++i)
+    unsigned char i = 0;
+    for (; i < n; ++i)
     {
         try
         {
@@ -677,15 +729,15 @@ unsigned int orm_conn_pool::init_edit_conn(unsigned char n)
                 lock.unlock();
                 continue;
             }
+            error_msg = conn->error_msg;
+            throw error_msg;
         }
         catch (const std::exception &e)
         {
             error_msg.append(e.what());
         }
-
-        return i;
     }
-    return n;
+    return i;
 }
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_select_connect()
 {
@@ -718,7 +770,8 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_selec
 }
 unsigned int orm_conn_pool::init_select_conn(unsigned char n)
 {
-    for (unsigned char i = 0; i < n; ++i)
+    unsigned char i = 0;
+    for (; i < n; ++i)
     {
         try
         {
@@ -734,14 +787,15 @@ unsigned int orm_conn_pool::init_select_conn(unsigned char n)
                 conn_select_pool.emplace_back(conn);
                 lock.unlock();
             }
+            error_msg = conn->error_msg;
+            throw error_msg;
         }
         catch (const std::exception &e)
         {
             error_msg.append(e.what());
         }
-        return i;
     }
-    return n;
+    return i;
 }
 void orm_conn_pool::back_select_conn(std::shared_ptr<mysql_conn_base> conn)
 {
