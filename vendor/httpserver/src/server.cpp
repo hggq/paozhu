@@ -4098,9 +4098,6 @@ namespace http
                 {
                     orm::orm_connect_mar_t &watch_conn =  orm::get_orm_connect_mar();
                     watch_conn.save_log(orm_log_file);
-                    std::unique_lock<std::mutex> loglock(log_mutex);
-                    error_loglist.push_back("orm_query_log save");
-                    loglock.unlock();
                 }
 
                 if (mysqlpool_time % 4 == 0)
