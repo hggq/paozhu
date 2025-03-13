@@ -108,7 +108,33 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                     if (typeone.empty())
                     {
                         typeone       = strval;
-                        mysqlconf.tag = keyname;
+                        //mysqlconf.tag = keyname;
+
+                        mysqlconf.tag.clear();
+                        for(unsigned int jj=0;jj< keyname.size(); jj++)
+                        {
+                            if(keyname[jj]>='0'&&keyname[jj]<='9')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+                            else if(keyname[jj]=='_')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+                            else if(keyname[jj]>='A'&&keyname[jj]<='Z')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]+32);
+                            }
+                            else if(keyname[jj]>='a'&&keyname[jj]<='z')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+
+                            if(jj > 20)
+                            {
+                                break;
+                            }
+                        }
                     }
                     else
                     {
@@ -131,7 +157,34 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                         mysqlconf.password.clear();
                         mysqlconf.pretable.clear();
 
-                        mysqlconf.tag = keyname;
+                        //mysqlconf.tag = keyname;
+
+                        mysqlconf.tag.clear();
+                        for(unsigned int jj=0;jj< keyname.size(); jj++)
+                        {
+                            if(keyname[jj]>='0'&&keyname[jj]<='9')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+                            else if(keyname[jj]=='_')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+                            else if(keyname[jj]>='A'&&keyname[jj]<='Z')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]+32);
+                            }
+                            else if(keyname[jj]>='a'&&keyname[jj]<='z')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+
+                            if(jj > 20)
+                            {
+                                break;
+                            }
+                        }     
+
                         mysqlconf.dbtype.clear();
 
                         mysqlconf.max_pool = 0;
@@ -169,7 +222,33 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                     if (typeone.empty())
                     {
                         typeone       = strval;
-                        mysqlconf.tag = keyname;
+                        //mysqlconf.tag = keyname;
+
+                        mysqlconf.tag.clear();
+                        for(unsigned int jj=0;jj< keyname.size(); jj++)
+                        {
+                            if(keyname[jj]>='0'&&keyname[jj]<='9')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+                            else if(keyname[jj]=='_')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+                            else if(keyname[jj]>='A'&&keyname[jj]<='Z')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]+32);
+                            }
+                            else if(keyname[jj]>='a'&&keyname[jj]<='z')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+
+                            if(jj > 20)
+                            {
+                                break;
+                            }
+                        }
 
                         if (strval == "main")
                         {
@@ -206,7 +285,34 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
 
                         mysqlconf.max_pool = 0;
                         mysqlconf.min_pool = 0;
-                        mysqlconf.tag      = keyname;
+                        //mysqlconf.tag      = keyname;
+
+                        mysqlconf.tag.clear();
+                        for(unsigned int jj=0;jj< keyname.size(); jj++)
+                        {
+                            if(keyname[jj]>='0'&&keyname[jj]<='9')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+                            else if(keyname[jj]=='_')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+                            else if(keyname[jj]>='A'&&keyname[jj]<='Z')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]+32);
+                            }
+                            else if(keyname[jj]>='a'&&keyname[jj]<='z')
+                            {
+                                mysqlconf.tag.push_back(keyname[jj]);
+                            }
+
+                            if(jj > 20)
+                            {
+                                break;
+                            }
+                        }
+
                         mysqlconf.issock   = false;
                         mysqlconf.isssl    = false;
                         mysqlconf.isdebug  = false;
@@ -248,11 +354,11 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 }
                 if (str_casecmp(linestr, "maxpool"))
                 {
-                    mysqlconf.max_pool = std::stoi(strval);
+                    mysqlconf.max_pool = std::stoi(strval) % 256;
                 }
                 if (str_casecmp(linestr, "minpool"))
                 {
-                    mysqlconf.min_pool = std::stoi(strval);
+                    mysqlconf.min_pool = std::stoi(strval) % 256;
                 }
                 if (str_casecmp(linestr, "ssl"))
                 {
@@ -369,11 +475,11 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
         }
         if (str_casecmp(linestr, "maxpool"))
         {
-            mysqlconf.max_pool = std::stoi(strval);
+            mysqlconf.max_pool = std::stoi(strval) % 256;
         }
         if (str_casecmp(linestr, "minpool"))
         {
-            mysqlconf.min_pool = std::stoi(strval);
+            mysqlconf.min_pool = std::stoi(strval) % 256;
         }
         if (str_casecmp(linestr, "ssl"))
         {
@@ -394,7 +500,33 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
 
             mysqlconf.dbtype = strval;
         }
-        mysqlconf.tag = keyname;
+        //mysqlconf.tag = keyname;
+        mysqlconf.tag.clear();
+        for(unsigned int jj=0;jj< keyname.size(); jj++)
+        {
+            if(keyname[jj]>='0'&&keyname[jj]<='9')
+            {
+                mysqlconf.tag.push_back(keyname[jj]);
+            }
+            else if(keyname[jj]=='_')
+            {
+                mysqlconf.tag.push_back(keyname[jj]);
+            }
+            else if(keyname[jj]>='A'&&keyname[jj]<='Z')
+            {
+                mysqlconf.tag.push_back(keyname[jj]+32);
+            }
+            else if(keyname[jj]>='a'&&keyname[jj]<='z')
+            {
+                mysqlconf.tag.push_back(keyname[jj]);
+            }
+
+            if(jj > 20)
+            {
+                break;
+            }
+        }    
+
         myconfig.push_back(mysqlconf);
     }
 
@@ -475,7 +607,7 @@ void init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_fil
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_edit_connect()
 {
     std::shared_ptr<mysql_conn_base> conn = std::make_shared<mysql_conn_base>(*io_context);
-    bool isok                             = co_await conn->async_connect(conf_data[0].host, conf_data[0].port, conf_data[0].user, conf_data[0].password, conf_data[0].dbname, false);
+    bool isok                             = co_await conn->async_connect(conf_data[0]);
     if (isok)
     {
         if(conf_data[0].isdebug)
@@ -490,7 +622,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_edit_
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_edit_connect()
 {
     std::shared_ptr<mysql_conn_base> conn = std::make_shared<mysql_conn_base>(*io_context);
-    bool isok                             = conn->connect(conf_data[0].host, conf_data[0].port, conf_data[0].user, conf_data[0].password, conf_data[0].dbname, false);
+    bool isok                             = conn->connect(conf_data[0]);
     if (isok)
     {
         if(conf_data[0].isdebug)
@@ -516,7 +648,7 @@ unsigned int orm_conn_pool::init_edit_conn(unsigned char n)
         try
         {
             std::shared_ptr<mysql_conn_base> conn = std::make_shared<mysql_conn_base>(*io_context);
-            bool isok                             = conn->connect(conf_data[0].host, conf_data[0].port, conf_data[0].user, conf_data[0].password, conf_data[0].dbname, false);
+            bool isok                             = conn->connect(conf_data[0]);
             if (isok)
             {
                 if(conf_data[0].isdebug)
@@ -541,7 +673,7 @@ unsigned int orm_conn_pool::init_edit_conn(unsigned char n)
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_select_connect()
 {
     std::shared_ptr<mysql_conn_base> conn = std::make_shared<mysql_conn_base>(*io_context);
-    bool isok                             = conn->connect(conf_data[1].host, conf_data[1].port, conf_data[1].user, conf_data[1].password, conf_data[1].dbname, false);
+    bool isok                             = conn->connect(conf_data[1]);
     if (isok)
     {
         if(conf_data[1].isdebug)
@@ -556,7 +688,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_select_connect()
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_select_connect()
 {
     std::shared_ptr<mysql_conn_base> conn = std::make_shared<mysql_conn_base>(*io_context);
-    bool isok                             = co_await conn->async_connect(conf_data[1].host, conf_data[1].port, conf_data[1].user, conf_data[1].password, conf_data[1].dbname, false);
+    bool isok                             = co_await conn->async_connect(conf_data[1]);
     if (isok)
     {
         if(conf_data[1].isdebug)
@@ -574,7 +706,7 @@ unsigned int orm_conn_pool::init_select_conn(unsigned char n)
         try
         {
             std::shared_ptr<mysql_conn_base> conn = std::make_shared<mysql_conn_base>(*io_context);
-            bool isok                             = conn->connect(conf_data[1].host, conf_data[1].port, conf_data[1].user, conf_data[1].password, conf_data[1].dbname, false);
+            bool isok                             = conn->connect(conf_data[1]);
             if (isok)
             {
                 if(conf_data[1].isdebug)
@@ -627,20 +759,21 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_edit_
     lock.unlock();
     if (temp->is_closed())
     {
-        try
-        {
-            co_return co_await async_add_edit_connect();
-        }
-        catch (const char *e)
-        {
-            throw e;
-        }
-        catch (const std::string &e)
-        {
-            throw e;
-        }
+        co_return temp;
     }
-    co_return temp;
+    try
+    {
+        co_return co_await async_add_edit_connect();
+    }
+    catch (const char *e)
+    {
+        throw e;
+    }
+    catch (const std::string &e)
+    {
+        throw e;
+    }
+    
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_edit_conn()
@@ -667,22 +800,23 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_edit_conn()
     conn_edit_pool.pop_front();
     lock.unlock();
     temp->issynch = true;
+
     if (temp->is_closed())
     {
-        try
-        {
-            return add_edit_connect();
-        }
-        catch (const char *e)
-        {
-            throw e;
-        }
-        catch (const std::string &e)
-        {
-            throw e;
-        }
+        return temp;
     }
-    return temp;
+    try
+    {
+        return add_edit_connect();
+    }
+    catch (const char *e)
+    {
+        throw e;
+    }
+    catch (const std::string &e)
+    {
+        throw e;
+    }
 }
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_select_conn()
 {
@@ -703,28 +837,27 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_selec
             throw e;
         }
     };
-
     auto temp = std::move(conn_select_pool.front());
     conn_select_pool.pop_front();
     lock.unlock();
 
     if (temp->is_closed())
     {
-        try
-        {
-            co_return co_await async_add_select_connect();
-        }
-        catch (const char *e)
-        {
-            throw e;
-        }
-        catch (const std::string &e)
-        {
-            throw e;
-        }
+        co_return temp;
     }
-
-    co_return temp;
+    try
+    {
+        co_return co_await async_add_select_connect();
+    }
+    catch (const char *e)
+    {
+        throw e;
+    }
+    catch (const std::string &e)
+    {
+        throw e;
+    }
+    
 }
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_select_conn()
 {
@@ -752,20 +885,21 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_select_conn()
     temp->issynch=true;
     if (temp->is_closed())
     {
-        try
-        {
-            return add_select_connect();
-        }
-        catch (const char *e)
-        {
-            throw e;
-        }
-        catch (const std::string &e)
-        {
-            throw e;
-        }
+        return temp;
     }
-    return temp;
+    try
+    {
+        return add_select_connect();
+    }
+    catch (const char *e)
+    {
+        throw e;
+    }
+    catch (const std::string &e)
+    {
+        throw e;
+    }
+    
 }
 
 asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()

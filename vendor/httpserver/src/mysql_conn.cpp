@@ -2,6 +2,7 @@
  * @Author: 黄自权 Huang ziqun
  * @Date:   2025-01-16
  */
+#include <cstddef>
 #include <cstdio>
 #include <iostream>
 #include <memory>
@@ -107,6 +108,11 @@ void mysql_conn_base::read_server_hello(unsigned int offset, unsigned int length
     server_hello.capability_flags_high = server_hello.capability_flags_high << 8 | (_cache_data[offset] & 0xFF);
     offset += 2;
 
+    if((CLIENT_SSL & server_hello.capability_flags_low ) == CLIENT_SSL)
+    {
+        server_enable_ssl = true;
+    }
+
     server_hello.auth_plugin_data_len = _cache_data[offset];
     offset++;
 
@@ -136,13 +142,13 @@ void mysql_conn_base::read_server_hello(unsigned int offset, unsigned int length
         }
     }
 }
-bool mysql_conn_base::connect(const std::string &host, const std::string &port, const std::string &user, const std::string &password, const std::string &dbname, bool ssl_flag)
+bool mysql_conn_base::connect(const orm_conn_t &conn_config)
 {
     error_msg.clear();
     socket = std::make_unique<asio::ip::tcp::socket>(*io_ctx);
     asio::ip::tcp::resolver resolver(*io_ctx);
 
-    asio::ip::tcp::resolver::query checkquery(host, port);
+    asio::ip::tcp::resolver::query checkquery(conn_config.host, conn_config.port);
     asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
     asio::ip::tcp::resolver::iterator end;
     asio::ip::tcp::endpoint endpoint;
@@ -185,6 +191,7 @@ bool mysql_conn_base::connect(const std::string &host, const std::string &port, 
         error_code = 1;
         return false;
     }
+
     read_server_hello(0, n);
 
     constexpr std::size_t challenge_length = 20;
@@ -193,7 +200,7 @@ bool mysql_conn_base::connect(const std::string &host, const std::string &port, 
     using sha_buffer = std::uint8_t[response_length];
     sha_buffer password_sha;
 
-    SHA256(reinterpret_cast<const unsigned char *>(password.data()), password.size(), password_sha);
+    SHA256(reinterpret_cast<const unsigned char *>(conn_config.password.data()), conn_config.password.size(), password_sha);
 
     std::memset(_cache_data, 0x00, (response_length + challenge_length));
     SHA256(password_sha, response_length, _cache_data);
@@ -210,7 +217,7 @@ bool mysql_conn_base::connect(const std::string &host, const std::string &port, 
     }
 
     client_flags = CLIENT_PZORM_FLAGS;
-
+    seq_next_id=0;
     seq_next_id++;
     send_data.clear();
 
@@ -234,55 +241,196 @@ bool mysql_conn_base::connect(const std::string &host, const std::string &port, 
     {
         send_data.push_back(0x00);
     }
-    send_data.append(user);
+    send_data.append(conn_config.user);
     send_data.push_back(0x00);
     send_data.push_back(0x20);
     for (unsigned i = 0; i < response_length; ++i)
     {
         send_data.push_back(_cache_data[i]);
     }
-    send_data.append(dbname);
+    send_data.append(conn_config.dbname);
     send_data.push_back(0x00);
     send_data.append("caching_sha2_password");
     send_data.push_back(0x00);
 
     send_data[0] = send_data.size() - 4;
-
-    if(ssl_flag)
+    sock_type = 1;
+    if(conn_config.isssl && server_enable_ssl)
     {
-        if(host !="127.0.0.1" && host !="localhost")
+        //if(conn_config.host !="127.0.0.1" && conn_config.host !="localhost")
         {
             //.sock please use localsocket
-            // send_data[0]=32;
+            send_data[0]=32;
+            client_flags = CLIENT_PZORM_SSL_FLAGS;
+            send_data[4]=client_flags & 0xFF;
+            send_data[5]=client_flags >> 8 & 0xFF;
+            send_data[6]=client_flags >> 16 & 0xFF;
+            send_data[7]=client_flags >> 24 & 0xFF;
 
-            // asio::write(*socket, asio::buffer(send_data.substr(0,36)), ec);
-            // if (ec)
-            // {
-            //     error_msg.append("ssl connect handshake error! ");
-            //     error_msg.append(ec.message());
-            //     error_code = 1;
-            //     return false;
-            // }
-            // asio::ssl::context ssl_context(asio::ssl::context::tls_client);
-            // asio::ssl::stream<asio::ip::tcp::socket> sslsocket(*socket, ssl_context);
+            try 
+            {
+                n = asio::write(*socket,asio::buffer(send_data.substr(0,36)));
+            } 
+            catch (std::exception &e) 
+            {
+                error_msg=e.what();
+                error_code = 1;
+                return false;
+            }
+
+            ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::tls_client);
+            asio::ssl::stream<asio::ip::tcp::socket> ssl_temp_socket(std::move(*socket.release()), *ssl_context);
+            //std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket=std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(ssl_temp_socket));
+            sslsocket=std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(ssl_temp_socket));
+
+            ssl_context->set_default_verify_paths();
+            SSL_set_tlsext_host_name(sslsocket->native_handle(), "mysql");
     
-            // ssl_context.set_default_verify_paths();
-            // SSL_set_tlsext_host_name(sslsocket.native_handle(), "mysql");
+            sslsocket->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
     
-            // sslsocket.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+            ssl_context->set_verify_mode(asio::ssl::verify_peer);
+            ssl_context->set_verify_callback(asio::ssl::host_name_verification("mysql"));
+            sslsocket->handshake(asio::ssl::stream_base::client, ec);
+            sock_type = 2;
+            if (ec)
+            {
+                error_msg = ec.message();
+                error_code = 2;
+                return false;
+            }
+
+            send_data[0] = send_data.size() - 4;
+            seq_next_id+=1;
+            send_data[3] = seq_next_id;
+
+            try 
+            {
+                n = asio::write(*sslsocket,asio::buffer(send_data));
+            } 
+            catch (std::exception &e) 
+            {
+                error_msg=e.what();
+                error_code = 1;
+                return false;
+            }
+
+            std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+            try
+            {
+                n =sslsocket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH));
+            }
+            catch (std::exception &e)
+            {
+                error_msg.append(e.what());
+                return false;
+            }
+
+            if (_cache_data[0] == 0x02 && _cache_data[4] == 0x01 && _cache_data[5] == 0x04)
+            {
+                send_data.clear();
+                seq_next_id+=1;
+                send_data.push_back(0x00);
+                send_data.push_back(0x00);
+                send_data.push_back(0x00);
+                send_data.push_back(0x00);
+                send_data.append(conn_config.password);
+                send_data.push_back(0x00);
+                send_data[0] = (send_data.size() & 0xFF) - 4;
+                try 
+                {
+                    n = asio::write(*sslsocket,asio::buffer(send_data));
+                } 
+                catch (std::exception &e) 
+                {
+                    error_msg=e.what();
+                    error_code = 1;
+                    return false;
+                }
     
-            // ssl_context.set_verify_mode(asio::ssl::verify_peer);
-            // ssl_context.set_verify_callback(asio::ssl::host_name_verification("mysql"));
-    
-            // sslsocket.handshake(asio::ssl::stream_base::client, ec);
-    
-            // if (ec)
-            // {
-            //     error_msg.append("ssl connect handshake error! ");
-            //     error_msg.append(ec.message());
-            //     error_code = 2;
-            //     return false;
-            // }
+                std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+                try
+                {
+                    n = sslsocket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH));
+                }
+                catch (std::exception &e)
+                {
+                    error_msg.append(e.what());
+                    return false;
+                }   
+            }
+            //feedback
+            if ((unsigned char)_cache_data[4] == 0xFE)
+            {
+                for (unsigned int i = 5; i < n; i++)
+                {
+                    error_msg.push_back(_cache_data[i]);
+                }
+                error_code = 2;
+                return false;
+            }
+            else if ((unsigned char)_cache_data[4] == 0xFF)
+            {
+                for (unsigned int i = 5; i < n; i++)
+                {
+                    error_msg.push_back(_cache_data[i]);
+                }
+                error_code = 6;
+                return false;
+            }
+            else if ((unsigned char)_cache_data[5] == 0x03)
+            {
+                unsigned int pack_length = _cache_data[2];
+                pack_length = pack_length << 8 | (_cache_data[1]);
+                pack_length = pack_length << 8 | (_cache_data[0]);
+                unsigned int offset =  pack_length + 4;    
+        
+                if(n > offset)
+                {
+                    pack_length = _cache_data[offset+2];
+                    pack_length = pack_length << 8 | (_cache_data[offset+1]);
+                    pack_length = pack_length << 8 | (_cache_data[offset]);
+        
+                    if(pack_length < 5)
+                    {
+                        error_msg =" connect fail! server status error! ";
+                        error_code = 8;
+                        return false;
+                    }
+        
+                    if(_cache_data[offset+4]!=0x00)   
+                    {
+                        error_msg =" connect fail! ";
+                        error_code = 8;
+                        return false;
+                    }  
+                }else {
+                    std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+                    n = sslsocket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), ec);
+
+                    if ((unsigned char)_cache_data[4] == 0xFF)
+                    {
+                        for (unsigned int i = 5; i < n; i++)
+                        {
+                            error_msg.push_back(_cache_data[i]);
+                        }
+                        error_code = 8;
+                        return false;
+                    }
+                    else if ((unsigned char)_cache_data[4] == 0x00)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else
+            {   
+                error_msg =" connect fail! ";
+                error_code = 8;
+                return false;
+            }
+
+            seq_next_id = 0;
+            return true;
         }
     }
 
@@ -324,7 +472,7 @@ bool mysql_conn_base::connect(const std::string &host, const std::string &port, 
         }
 
         seq_next_id = (_cache_data[3] & 0xFF) + 1;
-        bool isok   = server_public_key_encrypt(password, &_cache_data[5], n - 5);
+        bool isok   = server_public_key_encrypt(conn_config.password, &_cache_data[5], n - 5);
         if (isok == false)
         {
             return false;
@@ -482,13 +630,13 @@ bool mysql_conn_base::server_public_key_encrypt(const std::string &password, uns
     }
     return true;
 }
-asio::awaitable<bool> mysql_conn_base::async_connect(const std::string &host, const std::string &port, const std::string &user, const std::string &password, const std::string &dbname, bool ssl_flag)
+asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_config)
 {
     error_msg.clear();
     socket = std::make_unique<asio::ip::tcp::socket>(*io_ctx);
     asio::ip::tcp::resolver resolver(*io_ctx);
 
-    asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+    asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(conn_config.host, conn_config.port, asio::use_awaitable);
     asio::ip::tcp::resolver::iterator end;
     asio::ip::tcp::endpoint endpoint;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
@@ -531,6 +679,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const std::string &host, co
         error_code = 255;
         co_return false;
     }
+
     read_server_hello(0, n);
 
     constexpr std::size_t challenge_length = 20;
@@ -539,7 +688,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const std::string &host, co
     using sha_buffer = std::uint8_t[response_length];
     sha_buffer password_sha;
 
-    SHA256(reinterpret_cast<const unsigned char *>(password.data()), password.size(), password_sha);
+    SHA256(reinterpret_cast<const unsigned char *>(conn_config.password.data()), conn_config.password.size(), password_sha);
 
     std::memset(_cache_data, 0x00, (response_length + challenge_length));
     SHA256(password_sha, response_length, _cache_data);
@@ -556,7 +705,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const std::string &host, co
     }
 
     client_flags = CLIENT_PZORM_FLAGS;
-
+    seq_next_id=0;
     seq_next_id++;
     send_data.clear();
 
@@ -580,56 +729,212 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const std::string &host, co
     {
         send_data.push_back(0x00);
     }
-    send_data.append(user);
+    send_data.append(conn_config.user);
     send_data.push_back(0x00);
     send_data.push_back(0x20);
     for (unsigned i = 0; i < response_length; ++i)
     {
         send_data.push_back(_cache_data[i]);
     }
-    send_data.append(dbname);
+    send_data.append(conn_config.dbname);
     send_data.push_back(0x00);
     send_data.append("caching_sha2_password");
     send_data.push_back(0x00);
 
     send_data[0] = send_data.size() - 4;
 
-    if(ssl_flag)
+    if(conn_config.isssl && server_enable_ssl)
     {
-        if(host !="127.0.0.1" && host !="localhost")
+        //if(conn_config.host !="127.0.0.1" && conn_config.host !="localhost")
         {
             //.sock please use localsocket
-            // send_data[0]=32;
+            send_data[0]=32;
+            client_flags = CLIENT_PZORM_SSL_FLAGS;
+            send_data[4]=client_flags & 0xFF;
+            send_data[5]=client_flags >> 8 & 0xFF;
+            send_data[6]=client_flags >> 16 & 0xFF;
+            send_data[7]=client_flags >> 24 & 0xFF;
 
-            // asio::write(*socket, asio::buffer(send_data.substr(0,36)), ec);
-            // if (ec)
-            // {
-            //     error_msg.append("ssl connect handshake error! ");
-            //     error_msg.append(ec.message());
-            //     error_code = 1;
-            //     return false;
-            // }
-            // asio::ssl::context ssl_context(asio::ssl::context::tls_client);
-            // asio::ssl::stream<asio::ip::tcp::socket> sslsocket(*socket, ssl_context);
+            try 
+            {
+                n = co_await asio::async_write(*socket,asio::buffer(send_data.substr(0,36)), asio::use_awaitable);
+            } 
+            catch (std::exception &e) 
+            {
+                error_msg=e.what();
+                error_code = 1;
+                co_return false;
+            }
+
+            ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::tls_client);
+            asio::ssl::stream<asio::ip::tcp::socket> ssl_temp_socket(std::move(*socket.release()), *ssl_context);
+            //std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket=std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(ssl_temp_socket));
+            sslsocket=std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(ssl_temp_socket));
+
+            ssl_context->set_default_verify_paths();
+            SSL_set_tlsext_host_name(sslsocket->native_handle(), "mysql");
     
-            // ssl_context.set_default_verify_paths();
-            // SSL_set_tlsext_host_name(sslsocket.native_handle(), "mysql");
+            sslsocket->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
     
-            // sslsocket.lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+            ssl_context->set_verify_mode(asio::ssl::verify_peer);
+            ssl_context->set_verify_callback(asio::ssl::host_name_verification("mysql"));
+            std::tie(ec) = co_await sslsocket->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
+            sock_type = 2;
+            if (ec)
+            {
+                error_msg = ec.message();
+                error_code = 2;
+                co_return false;
+            }
+
+            send_data[0] = send_data.size() - 4;
+            seq_next_id+=1;
+            send_data[3] = seq_next_id;
+
+            try 
+            {
+                n = co_await asio::async_write(*sslsocket,asio::buffer(send_data), asio::use_awaitable);
+            } 
+            catch (std::exception &e) 
+            {
+                error_msg=e.what();
+                error_code = 1;
+                co_return false;
+            }
+
+            std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+            try
+            {
+                n = co_await sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
+            }
+            catch (std::exception &e)
+            {
+                error_msg.append(e.what());
+                co_return false;
+            }
+            if (_cache_data[0] == 0x02 && _cache_data[4] == 0x01 && _cache_data[5] == 0x04)
+            {
+                send_data.clear();
+                seq_next_id+=1;
+                send_data.push_back(0x00);
+                send_data.push_back(0x00);
+                send_data.push_back(0x00);
+                send_data.push_back(seq_next_id);
+                send_data.append(conn_config.password);
+                send_data.push_back(0x00);
+                send_data[0] = (send_data.size() & 0xFF) - 4;
+
+                try 
+                {
+                    n = co_await asio::async_write(*sslsocket,asio::buffer(send_data), asio::use_awaitable);
+                } 
+                catch (std::exception &e) 
+                {
+                    error_msg=e.what();
+                    error_code = 1;
+                    co_return false;
+                }
     
-            // ssl_context.set_verify_mode(asio::ssl::verify_peer);
-            // ssl_context.set_verify_callback(asio::ssl::host_name_verification("mysql"));
-    
-            //constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-            //std::tie(ec) = co_await sslsocket.async_handshake(asio::ssl::stream_base::server, tuple_awaitable);
-    
-            // if (ec)
-            // {
-            //     error_msg.append("ssl connect handshake error! ");
-            //     error_msg.append(ec.message());
-            //     error_code = 2;
-            //     return false;
-            // }
+                std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+                try
+                {
+                    n = co_await sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
+                }
+                catch (std::exception &e)
+                {
+                    error_msg.append(e.what());
+                    co_return false;
+                }
+ 
+            }
+            //feedback
+            if ((unsigned char)_cache_data[4] == 0xFE)
+            {
+                for (unsigned int i = 5; i < n; i++)
+                {
+                    error_msg.push_back(_cache_data[i]);
+                }
+                error_code = 2;
+                co_return false;
+            }
+            else if ((unsigned char)_cache_data[4] == 0xFF)
+            {
+                for (unsigned int i = 5; i < n; i++)
+                {
+                    error_msg.push_back(_cache_data[i]);
+                }
+                error_code = 6;
+                co_return false;
+            }
+            else if ((unsigned char)_cache_data[5] == 0x03)
+            {
+                unsigned int pack_length = _cache_data[2];
+                pack_length = pack_length << 8 | (_cache_data[1]);
+                pack_length = pack_length << 8 | (_cache_data[0]);
+                unsigned int offset =  pack_length + 4;    
+                if(n > offset)
+                {
+                    pack_length = _cache_data[offset+2];
+                    pack_length = pack_length << 8 | (_cache_data[offset+1]);
+                    pack_length = pack_length << 8 | (_cache_data[offset]);
+                    if(pack_length < 5)
+                    {
+                        error_msg =" connect fail! server status error! ";
+                        error_code = 8;
+                        co_return false;
+                    }
+
+                    if(_cache_data[offset+4]==0x00)   
+                    {
+                        co_return true;
+                    }
+                    else 
+                    {
+                        error_msg =" connect fail! ";
+                        error_code = 8;
+                        co_return false;
+                    }  
+                }else {
+                    std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+                    try
+                    {
+                        n = co_await sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);// socket->read_some(asio::buffer(data), ec);
+                    }
+                    catch (std::exception &e)
+                    {
+                        error_msg.append(e.what());
+                        co_return false;
+                    }
+                    if ((unsigned char)_cache_data[4] == 0xFF)
+                    {
+                        for (unsigned int i = 5; i < n; i++)
+                        {
+                            error_msg.push_back(_cache_data[i]);
+                        }
+                        error_code = 7;
+                        co_return false;
+                    }
+                    else if ((unsigned char)_cache_data[4] == 0x00)
+                    {
+                        co_return true;
+                    }
+                    else 
+                    {
+                        error_msg =" async read status connect fail! ";
+                        error_code = 9;
+                        co_return false;
+                    }
+                }
+            }
+            else
+            {   
+                error_msg =" connect fail! ";
+                error_code = 8;
+                co_return false;
+            }
+
+            seq_next_id = 0;
+            co_return false;
         }
     }
 
@@ -695,7 +1000,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const std::string &host, co
         }
 
         seq_next_id = (_cache_data[3] & 0xFF) + 1;
-        bool isok   = server_public_key_encrypt(password, &_cache_data[5], n - 5);
+        bool isok   = server_public_key_encrypt(conn_config.password, &_cache_data[5], n - 5);
         if (isok == false)
         {
 
@@ -829,7 +1134,15 @@ asio::awaitable<unsigned int> mysql_conn_base::async_read_loop()
             co_return 0;
         }
         std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
-        std::size_t n = co_await socket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
+        std::size_t n=0;
+        if(sock_type == 1)
+        {
+            n = co_await socket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
+        }
+        else if(sock_type == 2)
+        {
+            n = co_await sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
+        }
         if (n == 0)
         {
             error_code = 1;
@@ -853,7 +1166,16 @@ unsigned int mysql_conn_base::read_loop()
             return 0;
         }
         std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
-        std::size_t n = socket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), ec);
+        std::size_t n=0;
+        if(sock_type == 1)
+        {
+            n = socket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), ec);
+        }
+        else if(sock_type == 2)
+        {
+            n = sslsocket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), ec);
+        }
+
         if (ec)
         {
             error_code = 1;
@@ -904,13 +1226,26 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
     {
         return 0;
     }
-
-    if(sock_type==0)
+    try 
     {
-        n = asio::write(*socket, asio::buffer(send_data),ec);
+
+        if(sock_type == 1)
+        {
+            n = asio::write(*socket, asio::buffer(send_data),ec);
+        }
+        else if(sock_type == 2)
+        {
+            //n = asio::write(*sslsocket, asio::buffer(send_data),ec);
+            n = asio::write(*sslsocket,asio::buffer(send_data),ec);
+        }
+        if(ec)
+        {
+            error_code         = 20;
+            error_msg = ec.message();
+            return 0;
+        }
     }
-    
-    if(ec)
+    catch (std::exception &e)
     {
         error_code         = 20;
         error_msg = ec.message();
@@ -927,12 +1262,24 @@ unsigned int mysql_conn_base::write()
     {
         return 0;
     }
-    if(sock_type==0)
+    try
     {
-        n = asio::write(*socket, asio::buffer(send_data),ec);
+        if(sock_type == 1)
+        {
+            n = asio::write(*socket, asio::buffer(send_data),ec);
+        }
+        else if(sock_type == 2)
+        {
+            n = asio::write(*sslsocket, asio::buffer(send_data),ec);
+        }
+        if(ec)
+        {
+            error_code         = 20;
+            error_msg = ec.message();
+            return 0;
+        }
     }
-    
-    if(ec)
+    catch (std::exception &e)
     {
         error_code         = 20;
         error_msg = ec.message();
@@ -963,9 +1310,14 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string
         {
             co_return 0;
         }
-        if(sock_type==0)
+
+        if(sock_type == 1)
         {
             n = co_await asio::async_write(*socket, asio::buffer(send_data), asio::use_awaitable);
+        }
+        else if(sock_type == 2)
+        {
+            n = co_await asio::async_write(*sslsocket, asio::buffer(send_data), asio::use_awaitable);
         }
     } 
     catch (std::exception &e)
@@ -987,9 +1339,14 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write()
         {
             co_return 0;
         }
-        if(sock_type==0)
+ 
+        if(sock_type == 1)
         {
             n = co_await asio::async_write(*socket, asio::buffer(send_data), asio::use_awaitable);
+        }
+        else if(sock_type == 2)
+        {
+            n = co_await asio::async_write(*sslsocket, asio::buffer(send_data), asio::use_awaitable);
         }
     } 
     catch (std::exception &e)
@@ -1013,8 +1370,17 @@ bool mysql_conn_base::ping()
         {
             return false;
         }
-        asio::write(*socket, asio::buffer(data_send, 5), ec);
-        socket->read_some(asio::buffer(data_send, 16), ec);
+
+        if(sock_type == 1)
+        {
+            asio::write(*socket, asio::buffer(data_send, 5), ec);
+            socket->read_some(asio::buffer(data_send, 16), ec);
+        }
+        else if(sock_type == 2)
+        {
+            asio::write(*sslsocket, asio::buffer(data_send, 5), ec);
+            sslsocket->read_some(asio::buffer(data_send, 16), ec);
+        }
 
         return true;
     }
@@ -1033,8 +1399,20 @@ bool mysql_conn_base::close()
     try
     {
         isclose = true;
-        asio::write(*socket, asio::buffer(data_send, 5), ec);
-        socket->close();
+
+        if(sock_type == 1)
+        {
+            asio::write(*socket, asio::buffer(data_send, 5), ec);
+            socket->close();
+        }
+        else if(sock_type == 2)
+        {
+            sslsocket->shutdown(ec);
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().close();
+            }
+        }
         return true;
     }
     catch (std::exception &e)
@@ -1052,8 +1430,22 @@ asio::awaitable<bool> mysql_conn_base::async_close()
     try
     {
         isclose = true;
-        co_await asio::async_write(*socket, asio::buffer(data_send, 5), asio::use_awaitable);
-        socket->close();
+
+        if(sock_type == 1)
+        {
+            co_await asio::async_write(*socket, asio::buffer(data_send, 5), asio::use_awaitable);
+            socket->close();
+        }
+        else if(sock_type == 2)
+        {
+            co_await asio::async_write(*sslsocket, asio::buffer(data_send, 5), asio::use_awaitable);
+            co_await sslsocket->async_shutdown(asio::use_awaitable);
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().close();
+            }
+        }
+
         co_return true;
     }
     catch (std::exception &e)
@@ -1069,7 +1461,18 @@ bool mysql_conn_base::hard_close()
     try
     {
         isclose = true;
-        socket->close();
+        if(sock_type == 1)
+        {
+            socket->close();
+        }
+        else if(sock_type == 2)
+        {
+            sslsocket->shutdown(ec);
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().close();
+            }
+        }
     }
     catch (std::exception &e)
     {
@@ -1084,9 +1487,19 @@ bool mysql_conn_base::is_closed()
 {
     try
     {
-        if (socket->is_open())
+        if(sock_type == 1)
         {
-            return true;
+            if (socket->is_open())
+            {
+                return true;
+            }
+        }
+        else if(sock_type == 2)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+                return true;
+            }
         }
         return false;
     }

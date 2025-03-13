@@ -8934,7 +8934,6 @@ struct )";
     update2strem.str("");
     ///////////////////////////////////////////////////////
     // mete_tree to json
-    std::cout<<" mete_tree to json "<<ismeta_tree<<" size: "<< tablefieldtree.size() <<std::endl;
 
     headtxt.clear();
     if (ismeta_tree || tablefieldtree.size() > 0)
@@ -9212,7 +9211,7 @@ struct )";
 
     ///////////////////////////////////////////////////////
     // record to tree
-    std::cout<< " tablefieldtree "<<tablefieldtree.size()<<std::endl;
+
     if (tablefieldtree.size() > 0)
     {
         auto iter = tablefieldtree.begin();
@@ -13122,6 +13121,11 @@ dbtype=mysql
         std::cerr <<" error_msg "<< e << '\n';
         return 0;
     }
+    catch (char const* e)
+    {
+        std::cerr <<" error_msg "<< e << '\n';
+        return 0;
+    }
     //create tag directories
     if (rmstag != "default")
     {
@@ -13180,18 +13184,19 @@ dbtype=mysql
     }
 
     std::string sqlstring     = "show tables;";
-    unsigned int querysql_len = sqlstring.length() + 1;
-    std::cout<<sqlstring <<std::endl;
-    db_conn->send_data.clear();
+    //unsigned int querysql_len = sqlstring.length() + 1;
+    //std::cout<<sqlstring <<std::endl;
+    // db_conn->send_data.clear();
 
-    db_conn->send_data.push_back((querysql_len & 0xFF));
-    db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-    db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-    db_conn->send_data.push_back(0x00);
-    db_conn->send_data.push_back(0x03);
-    db_conn->send_data.append(sqlstring);
+    // db_conn->send_data.push_back((querysql_len & 0xFF));
+    // db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+    // db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+    // db_conn->send_data.push_back(0x00);
+    // db_conn->send_data.push_back(0x03);
+    // db_conn->send_data.append(sqlstring);
 
-    std::size_t n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
+    std::size_t n = db_conn->write_sql(sqlstring);
+    //std::size_t n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
 
     orm::pack_info_t temp_pack_data;
     temp_pack_data.seq_id = 1;
@@ -13274,18 +13279,18 @@ dbtype=mysql
         sqlstring.append(table_lists[i_table]);
         sqlstring.append(";");
 
-        querysql_len = sqlstring.length() + 1;
+        // querysql_len = sqlstring.length() + 1;
 
-        db_conn->send_data.clear();
+        // db_conn->send_data.clear();
 
-        db_conn->send_data.push_back((querysql_len & 0xFF));
-        db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-        db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-        db_conn->send_data.push_back(0x00);
-        db_conn->send_data.push_back(0x03);
-        db_conn->send_data.append(sqlstring);
-
-        n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
+        // db_conn->send_data.push_back((querysql_len & 0xFF));
+        // db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+        // db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+        // db_conn->send_data.push_back(0x00);
+        // db_conn->send_data.push_back(0x03);
+        // db_conn->send_data.append(sqlstring);
+        n = db_conn->write_sql(sqlstring);
+        //n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
 
         temp_pack_data.length         = 0;
         temp_pack_data.current_length = 0;
@@ -13424,17 +13429,18 @@ dbtype=mysql
             sqlstring.append(table_lists[i_table]);
             sqlstring.append(";");
 
-            querysql_len = sqlstring.length() + 1;
-            db_conn->send_data.clear();
+            // querysql_len = sqlstring.length() + 1;
+            // db_conn->send_data.clear();
 
-            db_conn->send_data.push_back((querysql_len & 0xFF));
-            db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-            db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-            db_conn->send_data.push_back(0x00);
-            db_conn->send_data.push_back(0x03);
-            db_conn->send_data.append(sqlstring);
+            // db_conn->send_data.push_back((querysql_len & 0xFF));
+            // db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+            // db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+            // db_conn->send_data.push_back(0x00);
+            // db_conn->send_data.push_back(0x03);
+            // db_conn->send_data.append(sqlstring);
+            n = db_conn->write_sql(sqlstring);
 
-            n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
+            //n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
 
             temp_pack_data.length         = 0;
             temp_pack_data.current_length = 0;
@@ -13532,18 +13538,19 @@ dbtype=mysql
             sqlstring.append(table_lists[i_table]);
             sqlstring.append(" where 0;");
 
-            querysql_len = sqlstring.length() + 1;
+            // querysql_len = sqlstring.length() + 1;
 
-            db_conn->send_data.clear();
+            // db_conn->send_data.clear();
 
-            db_conn->send_data.push_back((querysql_len & 0xFF));
-            db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-            db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-            db_conn->send_data.push_back(0x00);
-            db_conn->send_data.push_back(0x03);
-            db_conn->send_data.append(sqlstring);
+            // db_conn->send_data.push_back((querysql_len & 0xFF));
+            // db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
+            // db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
+            // db_conn->send_data.push_back(0x00);
+            // db_conn->send_data.push_back(0x03);
+            // db_conn->send_data.append(sqlstring);
 
-            n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
+            n = db_conn->write_sql(sqlstring);
+            //n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
 
             temp_pack_data.length         = 0;
             temp_pack_data.current_length = 0;

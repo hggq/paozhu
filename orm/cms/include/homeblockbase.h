@@ -2,7 +2,7 @@
 #define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 12 Mar 2025 10:17:50 GMT
+*本文件为自动生成 Thu, 13 Mar 2025 03:28:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>

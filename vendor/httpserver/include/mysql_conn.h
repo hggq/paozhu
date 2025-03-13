@@ -84,6 +84,11 @@ enum enum_field_types
      CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | \
      CLIENT_MULTI_RESULTS | CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF | CLIENT_OPTIONAL_RESULTSET_METADATA)
 
+#define CLIENT_PZORM_SSL_FLAGS                                               \
+    (CLIENT_LONG_PASSWORD | CLIENT_FOUND_ROWS | CLIENT_LONG_FLAG | CLIENT_SSL | \
+      CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | \
+      CLIENT_MULTI_RESULTS | CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF | CLIENT_OPTIONAL_RESULTSET_METADATA)     
+
 struct mysql_server_hello_data_t
 {
     unsigned char protocol_version = 0;
@@ -141,6 +146,7 @@ struct orm_conn_t
     bool isssl              = false;
     bool issock             = false;
     bool isdebug            = false;
+    
     unsigned char link_type = 0;// 0 edit 1 select 2 backup
     unsigned char max_pool  = 0;
     unsigned char min_pool  = 0;
@@ -153,8 +159,8 @@ class mysql_conn_base
     ~mysql_conn_base();
     void read_server_hello(unsigned int offset, unsigned int length);
     bool server_public_key_encrypt(const std::string &password, unsigned char *data, unsigned int length);
-    bool connect(const std::string &host, const std::string &port, const std::string &user, const std::string &password, const std::string &dbname, bool ssl = false);
-    asio::awaitable<bool> async_connect(const std::string &host, const std::string &port, const std::string &user, const std::string &password, const std::string &dbname, bool ssl = false);
+    bool connect(const orm_conn_t &conn_config);
+    asio::awaitable<bool> async_connect(const orm_conn_t &conn_config);
 
     void mysqlnd_xor_string(char *dst, const size_t dst_len, const char *xor_str, const size_t xor_str_len);
     unsigned int read_pack(unsigned char *data, unsigned int offset);
@@ -184,13 +190,13 @@ class mysql_conn_base
   public:
     unsigned char *_cache_data = nullptr;
 
+    bool server_enable_ssl  = false;
     bool isclose            = false;
     bool isdebug            = false;
     std::atomic_bool  issynch = false;
     unsigned char sock_type = 0;
     unsigned char seq_next_id;
     unsigned short error_code = 0;
-    asio::error_code ec;
     unsigned int client_flags = 0;
     unsigned int time_start = 0;
     unsigned int query_num = 0;
@@ -202,6 +208,8 @@ class mysql_conn_base
     std::unique_ptr<asio::ip::tcp::socket> socket;
     std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket;
     std::unique_ptr<asio::local::stream_protocol::socket> localsocket;
+    std::shared_ptr<asio::ssl::context> ssl_context;
+    asio::error_code ec;
     asio::io_context *io_ctx = nullptr;
     mysql_server_hello_data_t server_hello;
 };
