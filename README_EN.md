@@ -202,7 +202,7 @@ Use h2load and ab testing
 ```
 
 ```shell
- ./webbench -c 300 -t 59 https://www.xxx.com/cms/list  
+ ./webbench -c 300 -t 59 http://www.xxx.com/cms/list  
 ```
 
 ###  8.1 Sample Hello world

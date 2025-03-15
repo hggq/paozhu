@@ -202,7 +202,7 @@ sudo ./bin/paozhu
 ```
 
 ```shell
- ./webbench -c 300 -t 59 https://www.xxx.com/cms/list  
+ ./webbench -c 300 -t 59 http://www.xxx.com/cms/list  
 ```
 
 ###  8.1代码例子 Hello world
