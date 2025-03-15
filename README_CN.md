@@ -193,9 +193,17 @@ sudo ./bin/paozhu
 
 使用 h2load 和 ab 测试
 
+```shell
  ab -n 120000 -c 20 http://www.xxx.com  
- h2load -n 12000 -c 100 -m 10 https://www.xxx.com 
- ./webbench -c 300 -t 59 https://www.xxx.com/cms/list 
+```
+
+```shell
+ h2load -n 12000 -c 100 -m 10 https://www.xxx.com  
+```
+
+```shell
+ ./webbench -c 300 -t 59 https://www.xxx.com/cms/list  
+```
 
 ###  8.1代码例子 Hello world
 

@@ -193,9 +193,17 @@ for more details, please see the source code under the `controller` directory, w
 
 Use h2load and ab testing
 
+```shell
  ab -n 120000 -c 20 http://www.xxx.com  
+```
+
+```shell
  h2load -n 12000 -c 100 -m 10 https://www.xxx.com  
+```
+
+```shell
  ./webbench -c 300 -t 59 https://www.xxx.com/cms/list  
+```
 
 ###  8.1 Sample Hello world
 
