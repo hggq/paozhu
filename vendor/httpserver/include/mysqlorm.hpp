@@ -7322,6 +7322,7 @@ namespace orm
                     //must be select
                     if(rawsql[i]!='s' && rawsql[i]!='S')
                     {
+                        error_msg = "Query sql string must be select.";
                         iserror = true;   
                     }
                 }
@@ -7518,6 +7519,7 @@ namespace orm
                     //must be select
                     if(rawsql[i]!='s' && rawsql[i]!='S')
                     {
+                        error_msg = "Query sql string must be select.";
                         iserror = true;   
                     }
                 }

@@ -20,7 +20,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ✅ 5. 支持websocket服务端  
 ✅ 6. 框架自带websocket推送，支持定时推送到webscoket客户端  
 ✅ 7. 支持httpclient get post，同步异步、协程模式，数据采集  
-✅ 8. 框架自带ORM,使用链接池方式，目前支持mysql  
+✅ 8. 框架自带ORM,使用链接池方式，目前支持MySQL，支持协程和同步模式  
 ✅ 9. 框架自带线程池，和用户代码运行的线程池  
 ✅10. 框架使用asio自带的协程  
 ✅11. 框架特色是I/O 使用协程池 用户代码运行使用线程池,类似GO那种调度，只是针对http请求调度  
@@ -38,7 +38,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ### 2.运行环境
 
 - C++ standard request c++20
-- asio mysql libmysqlclient-dev zlib brotli(br) [可选](gd qrencode)
+- asio openssl zlib brotli [可选](gd qrencode)
   
 
 ### 3.环境配置
@@ -56,7 +56,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ```bash
 brew install asio
 brew install mysql
-brew install mysql-client
+brew install openssl
 brew install zlib
 brew install brotli
 
@@ -79,9 +79,7 @@ sudo apt-get install libgd-dev
 sudo apt-get install qrencode libqrencode-dev
 sudo apt-get install openssl libssl-dev
 sudo apt-get install mysql-server
-sudo apt-get install mysql-common
-sudo apt-get install mysql-client
-sudo apt-get install libmysqlclient-dev
+ 
 ```
 
 **注意：** 需要gcc11支持，安装详情请查看
@@ -180,19 +178,13 @@ sudo ./bin/paozhu
 
 打开浏览器，在地址栏输入`http://localhost` 或 `http://www.869869.com`
 
-
-<div align="center">
-<img src="https://hggq.github.io/paozhu/images/home.png">
-</div>
+ 
 
 <div align="center">
 <img src="https://hggq.github.io/paozhu/images/xmake_demo.jpg">
 </div>
 
-<div align="center">
-<img src="https://hggq.github.io/paozhu/images/admin.png">
-</div>
-
+ 
 
 更多细节请查看`controller`目录下源码，包含`CRUD`示例
 
@@ -201,11 +193,9 @@ sudo ./bin/paozhu
 
 使用 h2load 和 ab 测试
 
-![ApacheBench test](https://hggq.github.io/paozhu/images/ab_stress_test.png "ApacheBench test")  
-
-![h2load test](https://hggq.github.io/paozhu/images/h2load_stress_test.png "h2load test")  
-
-![webbench test](https://hggq.github.io/paozhu/images/webbench_stress.png "webbench test")  
+ ab -n 120000 -c 20 http://www.xxx.com  
+ h2load -n 12000 -c 100 -m 10 https://www.xxx.com 
+ ./webbench -c 300 -t 59 https://www.xxx.com/cms/list 
 
 ###  8.1代码例子 Hello world
 

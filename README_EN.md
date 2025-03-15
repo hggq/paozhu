@@ -23,7 +23,7 @@ Discussing the joy of C++ web development with community developers.
 ✅ 5. Support WebSocket server  
 ✅ 6. The framework comes with websocket push, which supports regular push to websocket client  
 ✅ 7. Support httpclient get or post  
-✅ 8. The framework comes with an ORM. It uses the link pool method and currently supports MySQL  
+✅ 8. Built in ORM, currently only supports MySQL, providing coroutine and connection pooling functionality  
 ✅ 9. Framework has two thread pool,framework thread pool,user program runing thread pool  
 ✅10. The framework uses asio Coroutines  
 ✅11. The framework features that I/O uses the coroutine pool to run and thread pool to run  
@@ -41,7 +41,7 @@ Discussing the joy of C++ web development with community developers.
 ### 2.Runtime environment
 
 C++ standard request c++20   
-asio mysql libmysqlclient-dev zlib brotli(br) [options](gd qrencode)
+asio openssl zlib brotli [options](gd qrencode)
 
 
 
@@ -58,7 +58,7 @@ asio mysql libmysqlclient-dev zlib brotli(br) [options](gd qrencode)
 ```bash
 brew install asio
 brew install mysql
-brew install mysql-client
+brew install openssl
 brew install zlib
 brew install brotli
 
@@ -81,9 +81,7 @@ sudo apt-get install libgd-dev
 sudo apt-get install qrencode libqrencode-dev
 sudo apt-get install openssl libssl-dev
 sudo apt-get install mysql-server
-sudo apt-get install mysql-common
-sudo apt-get install mysql-client
-sudo apt-get install libmysqlclient-dev
+ 
 ```
 
 **Notice：** Requires gcc11 support. For more installation details, please see 
@@ -183,16 +181,10 @@ open the browser and enter `http://localhost` or `http://www.869869.com` in the 
 
 
 <div align="center">
-<img src="https://hggq.github.io/paozhu/images/home.png">
-</div>
-
-<div align="center">
 <img src="https://hggq.github.io/paozhu/images/xmake_demo.jpg">
 </div>
 
-<div align="center">
-<img src="https://hggq.github.io/paozhu/images/admin.png">
-</div>
+ 
 
 
 for more details, please see the source code under the `controller` directory, which includes `CRUD` examples.
@@ -201,11 +193,9 @@ for more details, please see the source code under the `controller` directory, w
 
 Use h2load and ab testing
 
-![ApacheBench test](https://hggq.github.io/paozhu/images/ab_stress_test.png "ApacheBench test")  
-
-![h2load test](https://hggq.github.io/paozhu/images/h2load_stress_test.png "h2load test")  
-
-![h2load test](https://hggq.github.io/paozhu/images/webbench_stress.png "webbench test")  
+ ab -n 120000 -c 20 http://www.xxx.com  
+ h2load -n 12000 -c 100 -m 10 https://www.xxx.com  
+ ./webbench -c 300 -t 59 https://www.xxx.com/cms/list  
 
 ###  8.1 Sample Hello world
 
