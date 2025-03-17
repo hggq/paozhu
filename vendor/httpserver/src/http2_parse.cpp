@@ -594,7 +594,8 @@ namespace http
         unsigned char headerstep = 0;
         block_steam_httppeer->pathinfos.clear();
         unsigned int ioffset = 0, linesize = header_value.size();
-        block_steam_httppeer->url = http::url_decode(header_value.data(), header_value.length());
+        block_steam_httppeer->url.clear();
+        unsigned int p_begin=ioffset;
         for (; ioffset < linesize; ioffset++)
         {
             if (header_value[ioffset] == 0x3F)
@@ -604,6 +605,12 @@ namespace http
             }
             if (header_value[ioffset] == 0x2F)
             {
+                if (block_data_info_ptr->buffer_key.size() > 255 )
+                {
+                    error = 40007;
+                    return;
+                }
+
                 if (block_data_info_ptr->buffer_key.size() > 0)
                 {
                     if (block_data_info_ptr->buffer_key.size() == 2 && block_data_info_ptr->buffer_key[0] == '.' &&
@@ -631,11 +638,15 @@ namespace http
             {
                 block_data_info_ptr->buffer_key.push_back(header_value[ioffset]);
             }
-            block_data_info_ptr->buffer_value.push_back(header_value[ioffset]);
         }
 
         if (block_data_info_ptr->buffer_key.size() > 0)
         {
+            if (block_data_info_ptr->buffer_key.size() > 255 )
+            {
+                error = 40007;
+                return;
+            }
             if (block_data_info_ptr->buffer_key.size() == 2 && block_data_info_ptr->buffer_key[0] == '.' &&
                 block_data_info_ptr->buffer_key[1] == '.')
             {
@@ -655,32 +666,30 @@ namespace http
             }
         }
 
-        if (headerstep == 6)
+        
+        unsigned int p_pos_offset=ioffset-p_begin;
+        block_steam_httppeer->header["urlpath"] = header_value.substr(p_begin,p_pos_offset);
+        if(block_steam_httppeer->pathinfos.size()>0)
         {
-            block_steam_httppeer->header["urlpath"] = block_data_info_ptr->buffer_value;
-            block_steam_httppeer->urlpath = http::url_decode(block_data_info_ptr->buffer_value.data(),
-                                                             block_data_info_ptr->buffer_value.length());
+            block_steam_httppeer->urlpath.clear();
+            block_steam_httppeer->urlpath.reserve(p_pos_offset);
+            for(unsigned int nn=0;nn< block_steam_httppeer->pathinfos.size();nn++)
+            {
+                block_steam_httppeer->urlpath.push_back('/');
+                block_steam_httppeer->urlpath.append(block_steam_httppeer->pathinfos[nn]);
+            }
+            if(block_steam_httppeer->urlpath.size()==0)
+            {
+                block_steam_httppeer->urlpath = "/"; 
+            }
         }
-        else
+        else 
         {
-            block_steam_httppeer->header["urlpath"] = block_data_info_ptr->buffer_value;
-            block_steam_httppeer->urlpath = block_steam_httppeer->url;
+            block_steam_httppeer->urlpath.clear();
+            block_steam_httppeer->urlpath = "/";
         }
 
-        // if (http_data[block_steamid]->pathinfos.size() > 0)
-        // {
-        //     http_data[block_steamid]->urlpath.clear();
-        //     for (unsigned int i = 0; i < http_data[block_steamid]->pathinfos.size(); i++)
-        //     {
-        //         http_data[block_steamid]->urlpath.push_back('/');
-        //         http_data[block_steamid]->urlpath.append(http_data[block_steamid]->pathinfos[i]);
-        //     }
-        // }
-        // else
-        // {
-        //     http_data[block_steamid]->header["urlpath"] = "/";
-        //     http_data[block_steamid]->urlpath           = "/";
-        // }
+        block_steam_httppeer->url = block_steam_httppeer->urlpath;
 
         block_data_info_ptr->buffer_key.clear();
         if (headerstep == 6)
@@ -694,11 +703,13 @@ namespace http
                 break;
             }
             headerstep = 0;
-            block_data_info_ptr->buffer_key.append(&header_value[ioffset], (linesize - ioffset));
-            // http_data[block_steamid]->header["querystring"] = data_info[block_steamid].buffer_key;
-            block_steam_httppeer->querystring =
-                http::url_decode(block_data_info_ptr->buffer_key.data(), block_data_info_ptr->buffer_key.length());
+ 
+            http_data[block_steamid]->header["querystring"].clear();
+            http_data[block_steamid]->header["querystring"].append(&header_value[ioffset], (linesize - ioffset));
+            block_steam_httppeer->querystring = http::url_decode(&header_value[ioffset], (linesize - ioffset));
 
+            block_steam_httppeer->url.push_back(0x3F);
+            block_steam_httppeer->url.append(block_steam_httppeer->querystring);
             block_data_info_ptr->buffer_key.clear();
             block_data_info_ptr->buffer_value.clear();
             unsigned int jj = 0;

@@ -623,6 +623,7 @@ namespace http
         // pathinfo.clear();
         //  url.clear();
         peer->pathinfos.clear();
+        unsigned int p_begin=ioffset;
         for (; ioffset < linesize; ioffset++)
         {
             if (contentline[ioffset] == 0x20)
@@ -640,6 +641,11 @@ namespace http
             }
             if (contentline[ioffset] == 0x2F)
             {
+                if (buffer_key.size() > 255 )
+                {
+                    error = 40007;
+                    return;
+                }
                 if (buffer_key.size() > 0)
                 {
                     if (buffer_key.size() == 2 && buffer_key[0] == '.' && buffer_key[1] == '.')
@@ -663,11 +669,14 @@ namespace http
             {
                 buffer_key.push_back(contentline[ioffset]);
             }
-            header_key.push_back(contentline[ioffset]);
-            header_value.push_back(contentline[ioffset]);
         }
         if (buffer_key.size() > 0)
         {
+            if (buffer_key.size() > 255 )
+            {
+                error = 40007;
+                return;
+            }
             if (buffer_key.size() == 2 && buffer_key[0] == '.' && buffer_key[1] == '.')
             {
                 if (peer->pathinfos.size() > 0)
@@ -683,22 +692,28 @@ namespace http
                 peer->pathinfos.emplace_back(http::url_decode(buffer_key.data(), buffer_key.length()));
             }
         }
-        peer->header["urlpath"] = header_key;
-        if (header_key.size() > 0)
+        unsigned int p_pos_offset=ioffset-p_begin;
+        peer->header["urlpath"] = contentline.substr(p_begin,p_pos_offset);
+        if(peer->pathinfos.size()>0)
         {
-            if (header_key.size() == 1 && header_key[0] == '/')
+            peer->urlpath.clear();
+            peer->urlpath.reserve(p_pos_offset);
+            for(unsigned int nn=0;nn< peer->pathinfos.size();nn++)
             {
-                peer->urlpath = "/";
+                peer->urlpath.push_back('/');
+                peer->urlpath.append(peer->pathinfos[nn]);
             }
-            else
+            if(peer->urlpath.size()==0)
             {
-                peer->urlpath = http::url_decode(header_key.data(), header_key.length());
+                peer->urlpath = "/"; 
             }
         }
-        else
+        else 
         {
+            peer->urlpath.clear();
             peer->urlpath = "/";
         }
+
         header_key.clear();
         if (headerstep == 6)
         {
@@ -710,27 +725,29 @@ namespace http
                 }
                 break;
             }
-            header_value.push_back(0x3F);
+            p_pos_offset = ioffset;
             for (; ioffset < linesize; ioffset++)
             {
                 if (contentline[ioffset] == 0x20)
                 {
-
                     if ((ioffset + 10) >= linesize)
                     {
                         headerstep = 7;
                         break;
                     }
                 }
-                header_key.push_back(contentline[ioffset]);
-                header_value.push_back(contentline[ioffset]);
             }
+            header_key = contentline.substr(p_pos_offset,ioffset - p_pos_offset);
+            peer->url = peer->urlpath;
+            peer->url.push_back(0x3F);
+            peer->querystring = http::url_decode(header_key.data(), header_key.length());
+            peer->url.append(peer->querystring);
         }
-
-        peer->header["url"] = header_value;
-        peer->header["querystring"] = header_key;
-        peer->url = http::url_decode(header_value.data(), header_value.length());
-        peer->querystring = http::url_decode(header_key.data(), header_key.length());
+        else 
+        {
+            peer->url = peer->urlpath;
+            peer->querystring.clear();
+        }
 
         if (headerstep == 7)
         {
@@ -836,26 +853,7 @@ namespace http
                 procssparamter();
             }
         }
-        // peer->httpv = 1;
-        // for (; ioffset < linesize; ioffset++)
-        // {
-        //       if (contentline[ioffset] == 0x20)
-        //       {
-        //             continue;
-        //       }
-        //       break;
-        // }
-        // httpversion = 0;
-        // version.clear();
-        // for (; ioffset < linesize; ioffset++)
-        // {
-        //       if (contentline[ioffset] >= '0' && contentline[ioffset] <= '9')
-        //       {
-        //             if (httpversion < 25)
-        //                   httpversion = httpversion * 10 + (contentline[ioffset] - '0');
-        //       }
-        //       //version.push_back(contentline[ioffset]);
-        // }
+
         headerstep = 8;
     }
     void httpparse::callposttype()

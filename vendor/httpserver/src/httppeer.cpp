@@ -743,10 +743,6 @@ unsigned char httppeer::has_urlfileext()
         sendfilename.clear();
         for (unsigned int i = 0; i < pathinfos.size(); i++)
         {
-            // if (pathinfos[i].size() > 0 && pathinfos[i][0] == '{')
-            // {
-            //     break;
-            // }
             if (i > 0 && i < pathinfos.size())
             {
                 if (_http_regmethod_table.contains(sendfilename))
