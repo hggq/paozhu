@@ -27,7 +27,7 @@ namespace http
             return 0;
         }
         unsigned int temp_length    = 0;
-        unsigned long long pos = 0;
+        unsigned int pos = 0;
 
         for (; pos < length; pos++)
         {
@@ -69,15 +69,41 @@ namespace http
         {
             return temp;
         }
-        temp.reserve(cut_size);
+
         int str_length = 0;
+
+        if(cut_size > 16)
+        {
+            temp.reserve(cut_size);
+        }
+        else if(cut_size == 0)
+        {
+            if(begin_pos>0)
+            {
+                str_length = length - begin_pos;
+                if(str_length>0 && str_length>16)
+                {
+                    temp.reserve(str_length);
+                }
+            }
+            else 
+            {
+                str_length = length + begin_pos;
+                if(str_length>0 && str_length>16)
+                {
+                    temp.reserve(str_length);
+                }
+            }
+        }
+        
+        str_length = mb_strlen();
+ 
         // int spacenum = 0;
         unsigned char c;
         if (begin_pos < 0)
         {
             if (cut_size == 0)
             {
-                str_length = mb_strlen();
                 int n     = str_length + begin_pos;
                 if (n > str_length)
                 {
@@ -155,7 +181,6 @@ namespace http
             }
             else if (cut_size < 0)
             {
-                str_length = mb_strlen();
                 int j     = str_length + cut_size;
                 if (j > str_length)
                 {
@@ -249,8 +274,6 @@ namespace http
             }
             else
             {
-                str_length = mb_strlen();
-
                 int n = str_length + begin_pos;
                 if (n > str_length)
                 {
@@ -349,7 +372,6 @@ namespace http
         {
             if (cut_size == 0)
             {
-
                 int offsetnum = 0;
                 int n         = begin_pos;
                 for (unsigned int pos = 0; pos < length; pos++)
@@ -418,7 +440,6 @@ namespace http
             }
             else if (cut_size < 0)
             {
-                str_length = mb_strlen();
                 int j     = str_length + cut_size;
                 if (j < 0)
                 {
@@ -503,8 +524,6 @@ namespace http
             }
             else
             {
-                str_length = mb_strlen();
-
                 if (begin_pos > str_length)
                 {
                     begin_pos = str_length;
