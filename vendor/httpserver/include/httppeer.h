@@ -154,7 +154,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     http::obj_val files;
     http::obj_val json;
     http::obj_val val;
-    cookie cookie;
+    http::cookie cookie;
     std::vector<std::string> pathinfos;
 
     bool issendheader = false;
