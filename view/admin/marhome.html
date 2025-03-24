@@ -34,16 +34,16 @@
           </thead>
           <tbody>
             <%c for(auto &a:obj["list"].as_array()){ %>
-              <tr id="topicid_<%c echo<<a.second["id"].to_string(); %>">
+              <tr id="topicid_<%c echo<<a["id"].to_string(); %>">
                 <td>
-                  <%c echo<<a.second["id"].to_string(); %>
+                  <%c echo<<a["id"].to_string(); %>
                 </td>
                 <td>
-                  <%c echo<<a.second["title"].as_string(); %>
+                  <%c echo<<a["title"].as_string(); %>
                 </td>
                 <td>
                   <%c 
-                      switch(a.second["viewtype"].to_int())
+                      switch(a["viewtype"].to_int())
                       {
                             case 0:
                                  echo<<"图文内容";
@@ -67,13 +67,13 @@
                   %>
                 </td>
                 <td>
-                  <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatehomeblocksort(<%c echo<<a.second["id"].to_string(); %>,this.value)">
+                  <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a["id"].to_string(); %>" name="title_<%c echo<<a["id"].to_string(); %>" value="<%c echo<<a["sortid"].to_string(); %>" onchange="updatehomeblocksort(<%c echo<<a["id"].to_string(); %>,this.value)">
                 </td>
                 </td>
                 <td>
 
                   <a href="/admin/edithomeblock<%c 
-                  switch(a.second["viewtype"].to_int())
+                  switch(a["viewtype"].to_int())
                   {
                         case 0:
                              echo<<"text";
@@ -95,10 +95,10 @@
                              break;
            
                   }
-              %>?id=<%c echo<<a.second["id"].to_string(); %>">编辑</a>
+              %>?id=<%c echo<<a["id"].to_string(); %>">编辑</a>
                   
                   ｜
-                  <a href="/admin/deletehomeblock?id=<%c echo<<a.second["id"].to_string(); %>" onclick="return deletehomeblock(<%c echo<<a.second["id"].to_string(); %>)">删除</a>
+                  <a href="/admin/deletehomeblock?id=<%c echo<<a["id"].to_string(); %>" onclick="return deletehomeblock(<%c echo<<a["id"].to_string(); %>)">删除</a>
                 </td>
               </tr>
               <%c } %>

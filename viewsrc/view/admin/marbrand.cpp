@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace admin{
- 		 std::string marbrand([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string marbrand([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -30,41 +30,41 @@ namespace view {
  			 echo<<"<!doctype html>\n<html lang=\"en\" data-bs-theme=\"auto\">\n\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"\">\n  <title>分类管理</title>\n\n  <link href=\"/assets/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link rel=\"stylesheet\" href=\"/assets/icons/font/bootstrap-icons.css\">\n  <link rel=\"stylesheet\" href=\"/libs/tree/select-tree.css\">\n  \n  <link href=\"/css/dashboard.css\" rel=\"stylesheet\">\n  <script src=\"/js/jquery.min.js\"></script>\n  <script src=\"/libs/tree/select-tree.js\"></script>\n</head>\n\n<body>\n\n  <div class=\"container\">\n  <h5>分类管理</h5>\n  <hr>\n  <div class=\"row p-3\">\n      <div class=\"col-10\">\n        <table class=\"table table-bordered\">\n          <thead>\n            <tr>\n              <th scope=\"col\">#</th>\n              <th scope=\"col\">分类</th>\n              <th scope=\"col\">名称</th>\n              <th scope=\"col\">Logo</th>\n              <th scope=\"col\">排序</th>\n              <th scope=\"col\">编辑</th>\n            </tr>\n          </thead>\n          <tbody>\n            ";
  for(auto &a:obj["list"].as_array()){ 
  			 echo<<"              <tr id=\"topicid_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\">\n                <td>\n                  ";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"                </td>\n                <td>\n                  ";
- echo<<a.second["cname"].as_string(); 
+ echo<<a["cname"].as_string(); 
  			 echo<<"                </td>\n                <td>\n                  ";
- echo<<a.second["name"].as_string(); 
+ echo<<a["name"].as_string(); 
  			 echo<<"                </td>\n                \n                <td>\n                  <img src=\"";
- echo<<a.second["logo"].as_string(); 
+ echo<<a["logo"].as_string(); 
  			 echo<<"\" width=\"60\" height=\"60\" />  <a href=\"";
- echo<<a.second["logo"].as_string(); 
+ echo<<a["logo"].as_string(); 
  			 echo<<"\" target=_blank>View</a>\n                </td>\n                <td>\n                  <input type=\"text\" class=\"form-inline topicsort col-md-2\" id=\"title_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" name=\"title_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" value=\"";
- echo<<a.second["sortid"].to_string(); 
+ echo<<a["sortid"].to_string(); 
  			 echo<<"\" onchange=\"updatebrandsort(";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<",this.value)\">\n                </td>\n                <td>\n                  <a href=\"/admin/marbrand?id=";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\">编辑</a>｜\n                  <a href=\"/admin/deletebrand?id=";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" onclick=\"return confirm('确定删除吗？')\">删除</a>\n                </td>\n              </tr>\n              ";
  } 
  			 echo<<"          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n\n    <form class=\"g-3 mt-1\" id=\"form\" method=\"post\" action=\"/admin/brandaddpost\" >\n        <div class=\"row p-3\">\n      <div class=\"col-md-6\">\n        <label for=\"topicid\" class=\"form-label\">栏目</label>\n        <select class=\"form-select\" id=\"topicid\" name=\"topicid\">\n        <option value=\"0\">无分类</option>\n        ";
  for(auto &a:obj["topiclist"].as_array()){ 
  			 echo<<"        <option value=\"";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" ";
- if(obj["topicid"].to_int()==a.second["id"].to_int()){ 
+ if(obj["topicid"].to_int()==a["id"].to_int()){ 
  			 echo<<"selected";
  } 
  			 echo<<">";
- echo<<a.second["name"].to_string(); 
+ echo<<a["name"].to_string(); 
  			 echo<<"</option>\n        ";
  } 
  			 echo<<"        </select>\n      </div>\n      <div class=\"col-md-6\">\n        <label for=\"topicname\" class=\"form-label\">名称</label>\n        <input type=\"text\" class=\"form-control\" id=\"topicname\" name=\"topicname\" value=\"";

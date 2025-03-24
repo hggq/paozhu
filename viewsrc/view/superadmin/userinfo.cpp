@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace superadmin{
- 		 std::string userinfo([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string userinfo([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -34,15 +34,15 @@ echo << obj["info"]["level"].to_string();
  			 echo<<"            </div>\n          </div>\n\n      </div>\n    </div>\n    \n    <h5 class=\"card-title mt-2\">登录记录</h5>\n    <hr>\n    <div class=\"row\">\n      <div class=\"col-12\">\n   \n           <table class=\"table\">\n              <thead>\n                <tr>\n                  <th scope=\"col\">#</th>\n                  <th scope=\"col\">日期</th>\n                  <th scope=\"col\">地区</th>\n                  <th scope=\"col\">IP</th>\n                  <th scope=\"col\">状态</th>\n                </tr>\n              </thead>\n              <tbody>\n                ";
  for(auto &a:obj["loginlist"].as_array()){ 
  			 echo<<"                <tr>\n                  <th scope=\"row\">";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"</th>\n                  <td>";
- echo<<a.second["addtime"].to_string(); 
+ echo<<a["addtime"].to_string(); 
  			 echo<<"</td>\n                  <td>";
- echo<<a.second["addregion"].to_string(); 
+ echo<<a["addregion"].to_string(); 
  			 echo<<"</td>\n                  <td>";
- echo<<a.second["addip"].to_string(); 
+ echo<<a["addip"].to_string(); 
  			 echo<<"</td>\n                  <td>";
- echo<<a.second["loginstate"].to_string(); 
+ echo<<a["loginstate"].to_string(); 
  			 echo<<"</td>\n                </tr>\n                ";
  } 
  			 echo<<"              </tbody>\n            </table>\n\n      </div>\n    </div>\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n</body>\n\n</html>";

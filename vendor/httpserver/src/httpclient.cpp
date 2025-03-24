@@ -76,7 +76,7 @@ client &client::get(std::string_view url)
     }
     return *this;
 }
-client &client::get(std::string_view url, http::OBJ_VALUE param)
+client &client::get(std::string_view url, http::obj_val param)
 {
     requesttype = 0;
     senddata.clear();
@@ -109,7 +109,7 @@ client &client::post(std::string_view url)
     }
     return *this;
 }
-client &client::post(std::string_view url, http::OBJ_VALUE param)
+client &client::post(std::string_view url, http::obj_val param)
 {
     requesttype = 1;
     senddata.clear();
@@ -143,7 +143,7 @@ client &client::get_json(std::string_view url)
     }
     return *this;
 }
-client &client::get_json(std::string_view url, http::OBJ_VALUE param)
+client &client::get_json(std::string_view url, http::obj_val param)
 {
     requesttype = 0;
     parsetojson = 1;
@@ -180,7 +180,7 @@ client &client::post_json(std::string_view url)
     }
     return *this;
 }
-client &client::post_json(std::string_view url, http::OBJ_VALUE param)
+client &client::post_json(std::string_view url, http::obj_val param)
 {
     header.clear();
     senddata.clear();
@@ -250,7 +250,7 @@ asio::awaitable<void> client::async_send()
 
     co_return;
 }
-asio::awaitable<void> client::async_send(http::OBJ_VALUE param)
+asio::awaitable<void> client::async_send(http::obj_val param)
 {
     data = std::move(param);
     if (requesttype == 1)
@@ -273,7 +273,7 @@ asio::awaitable<void> client::async_send(http::OBJ_VALUE param)
     co_return;
 }
 
-client &client::send(http::OBJ_VALUE param)
+client &client::send(http::obj_val param)
 {
     data = std::move(param);
     if (requesttype == 1)
@@ -1749,8 +1749,8 @@ std::string client::get_body()
     }
     return state.content;
 }
-Cookie client::get_cookie() { return state.cookie; }
-http::OBJ_VALUE client::json() { return state.json; }
+http::cookie client::get_cookie() { return state.cookie; }
+http::obj_val client::json() { return state.json; }
 void client::respreadtocontent(const char *buffer, unsigned int buffersize)
 {
     unsigned int i = readoffset;
@@ -2217,11 +2217,11 @@ client &client::build_query(const std::map<std::string, std::string> &param)
     return *this;
 }
 
-client &client::build_query(http::OBJ_VALUE param)
+client &client::build_query(http::obj_val param)
 {
     bool isfirst = true;
     std::string tempport;
-    for (auto [first, second] : param.as_array())
+    for (auto &[first, second] : param.as_object())
     {
         if (isfirst)
         {
@@ -2237,7 +2237,7 @@ client &client::build_query(http::OBJ_VALUE param)
         }
         if (!second.is_array())
         {
-            tempport = param.get_keyname(first);
+            tempport = first;
             tempport = url_encode(tempport.data(), tempport.size());
             query.append(tempport);
             tempport = second.to_string();
@@ -2274,7 +2274,7 @@ void client::buildheader()
         {
 
             bool isfirst = true;
-            for (auto [first, second] : data.as_array())
+            for (auto &[first, second] : data.as_object())
             {
                 if (isfirst)
                 {
@@ -2287,7 +2287,7 @@ void client::buildheader()
                 }
                 if (!second.is_array())
                 {
-                    tempport = data.get_keyname(first);
+                    tempport = first;
                     tempport = url_encode(tempport.data(), tempport.size());
                     request.append(tempport);
                     tempport = second.to_string();
@@ -2302,12 +2302,12 @@ void client::buildheader()
         {
             request.push_back('?');
             request.append(query);
-            for (auto [first, second] : data.as_array())
+            for (auto &[first, second] : data.as_object())
             {
                 request.push_back('&');
                 if (!second.is_array())
                 {
-                    tempport = data.get_keyname(first);
+                    tempport = first;
                     tempport = url_encode(tempport.data(), tempport.size());
                     request.append(tempport);
                     tempport = second.to_string();
@@ -2389,11 +2389,11 @@ void client::buildheader()
         header["Accept"] = "text/html, application/xhtml+xml, application/json, application/xml;q=0.9, */*;q=0.8";
     }
 
-    for (auto [first, second] : header.as_array())
+    for (auto &[first, second] : header.as_object())
     {
         if (!second.is_array())
         {
-            request.append(header.get_keyname(first));
+            request.append(first);
             request.append(": ");
             request.append(second.to_string());
             request.append("\r\n");
@@ -2534,7 +2534,7 @@ void client::buildcontent()
         ptemp.size = 0;
         ptemp.type.clear();
 
-        for (auto [first, second] : data.as_array())
+        for (auto &[first, second] : data.as_object())
         {
 
             // ptemp.error=3;
@@ -2547,7 +2547,7 @@ void client::buildcontent()
             {
                 ptemp.tempfile.push_back('&');
             }
-            tempstr = data.get_keyname(first);
+            tempstr = first;
             tempstr = url_encode(tempstr.data(), tempstr.size());
             // ptemp.name=tempstr;
             ptemp.tempfile.append(tempstr);
@@ -2562,29 +2562,13 @@ void client::buildcontent()
         }
         beginpos = 0;
 
-        for (auto [first, second] : parameter.as_array())
+        for (auto &[first, second] : parameter.as_object())
         {
-            // ptemp.error=3;
-            // ptemp.tempfile.clear();
-            // ptemp.filename.clear();
-            // ptemp.name.clear();
-            // ptemp.size=0;
-            // ptemp.type.clear();
-            // tempstr=parameter.get_keyname(first);
-            // tempstr=url_encode(tempstr.data(),tempstr.size());
-            // ptemp.name=tempstr;
-            // tempstr=second.to_string();
-            // tempstr=url_encode(tempstr.data(),tempstr.size());
-            // ptemp.tempfile=tempstr;
-            // contentlength+=ptemp.name.size()+1+ptemp.tempfile.size();
-            // senddata.push_back(ptemp);
-            // beginpos++;
-
             if (beginpos > 0)
             {
                 ptemp.tempfile.push_back('&');
             }
-            tempstr = parameter.get_keyname(first);
+            tempstr = first;
             tempstr = url_encode(tempstr.data(), tempstr.size());
 
             ptemp.tempfile.append(tempstr);
@@ -2653,7 +2637,7 @@ void client::buildcontent()
                 }
                 else
                 {
-                    for (auto [first, second] : data.as_array())
+                    for (auto &[first, second] : data.as_object())
                     {
                         if (!second.is_array())
                         {
@@ -2675,7 +2659,7 @@ void client::buildcontent()
         {
 
             contentlength = 0;
-            for (auto [first, second] : data.as_array())
+            for (auto &[first, second] : data.as_object())
             {
 
                 ptemp.error = 0;
@@ -2689,7 +2673,7 @@ void client::buildcontent()
                 ptemp.tempfile.append("\r\n");
 
                 ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
-                ptemp.tempfile.append(data.get_keyname(first));
+                ptemp.tempfile.append(first);
                 ptemp.tempfile.append("\"\r\n\r\n");
 
                 if (!second.is_array())
@@ -2708,7 +2692,7 @@ void client::buildcontent()
                 senddata.push_back(ptemp);
             }
 
-            for (auto [first, second] : parameter.as_array())
+            for (auto &[first, second] : parameter.as_object())
             {
 
                 ptemp.error = 0;
@@ -2722,7 +2706,7 @@ void client::buildcontent()
                 ptemp.tempfile.append("\r\n");
 
                 ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
-                ptemp.tempfile.append(parameter.get_keyname(first));
+                ptemp.tempfile.append(first);
                 ptemp.tempfile.append("\"\r\n\r\n");
 
                 if (!second.is_array())
@@ -2957,15 +2941,15 @@ void client::buildcontent()
             ptemp.name.clear();
             ptemp.size = 0;
             ptemp.type.clear();
-            if (!data.is_array())
+            if (!data.is_array()&&!data.is_object())
             {
                 ptemp.tempfile = data.to_string();
             }
             else
             {
-                for (auto [first, second] : data.as_array())
+                for (auto [first, second] : data.as_object())
                 {
-                    if (!second.is_array())
+                    if (!second.is_array()&&!second.is_object())
                     {
                         ptemp.tempfile = second.to_string();
                         break;

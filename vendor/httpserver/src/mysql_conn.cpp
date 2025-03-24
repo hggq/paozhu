@@ -4,6 +4,7 @@
  */
 #include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -1481,6 +1482,11 @@ bool mysql_conn_base::hard_close()
         return false;
     }
     return true;
+}
+
+void mysql_conn_base::reset_data()
+{
+    std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
 }
 
 bool mysql_conn_base::is_closed()

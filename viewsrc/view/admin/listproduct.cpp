@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace admin{
- 		 std::string listproduct([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string listproduct([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -32,53 +32,53 @@ namespace view {
  			 echo<<"\" placeholder=\"\">\n          <button class=\"btn btn-outline-secondary\" type=\"button\" id=\"button-addon2\" onclick=\"searcharticle()\">搜索</button>\n        </div> \n      </div>  \n    </div>  \n    <div class=\"row p-3\">\n      <div class=\"col-10\">\n        <table class=\"table table-bordered\">\n          <thead>\n            <tr>\n              <th scope=\"col\">#</th>\n              <th scope=\"col\">分类</th>\n              <th scope=\"col\">标题</th>\n              <th scope=\"col\">图片</th>\n              <th scope=\"col\">排序</th>\n              <th scope=\"col\">显示</th>\n              <th scope=\"col\">精品</th>\n              <th scope=\"col\">首页</th>\n              <th scope=\"col\">操作</th>\n            </tr>\n          </thead>\n          <tbody>\n            ";
  for(auto &a:obj["alist"].as_array()){ 
  			 echo<<"            <tr id=\"article_";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\">\n              <td>";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"</td>\n              <td>";
- echo<<a.second["cname"].to_string(); 
+ echo<<a["cname"].to_string(); 
  			 echo<<"</td>\n              <td>";
- echo<<a.second["name"].to_string(); 
+ echo<<a["name"].to_string(); 
  			 echo<<"</td>\n              <td><img src=\"";
- echo<<a.second["bigimg"].to_string(); 
+ echo<<a["bigimg"].to_string(); 
  			 echo<<"\" width=\"60\" height=\"60\"/></td>\n              <td>\n              <input type=\"text\" class=\"form-inline topicsort col-md-2\" id=\"title_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" name=\"title_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" value=\"";
- echo<<a.second["sortid"].to_string(); 
+ echo<<a["sortid"].to_string(); 
  			 echo<<"\" onchange=\"updatearticlesort(";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<",this.value)\">\n              </td>\n              <td><input class=\"form-check-input\" type=\"checkbox\" value=\"";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\" id=\"art_";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\" onclick=\"artupdateview(this)\" ";
- if(a.second["isview"].to_int()==1){ 
+ if(a["isview"].to_int()==1){ 
  			 echo<<"checked";
  } 
  			 echo<<" >\n</td>\n<td><input class=\"form-check-input\" type=\"checkbox\" value=\"";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\" id=\"art_";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\" onclick=\"artupdateisstore(this)\" ";
- if(a.second["isstore"].to_int()==1){ 
+ if(a["isstore"].to_int()==1){ 
  			 echo<<"checked";
  } 
  			 echo<<" >\n</td>\n</td>\n<td><input class=\"form-check-input\" type=\"checkbox\" value=\"";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\" id=\"home_";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\" onclick=\"homeupdateisstore(this)\" ";
- if(a.second["ishome"].to_int()==1){ 
+ if(a["ishome"].to_int()==1){ 
  			 echo<<"checked";
  } 
  			 echo<<" >\n</td>\n              <td>\n              <a href=\"/admin/editproduct?id=";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\">编辑</a>｜\n                  <a href=\"/admin/deleteproduct?id=";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<"\" onclick=\"return deletearticle(";
- echo<<a.second["pid"].to_string(); 
+ echo<<a["pid"].to_string(); 
  			 echo<<")\">删除</a></td>\n            </tr>\n            ";
  } 
  			 echo<<"\n          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n    <div class=\"row p-3\">\n      <div class=\"col-10\">\n        <nav aria-label=\"Page navigation example\">\n          <ul class=\"pagination\">\n          ";

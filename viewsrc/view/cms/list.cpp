@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace cms{
- 		 std::string list([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string list([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -36,17 +36,17 @@ namespace view {
       for(auto &a:obj["list"].as_array()){
       
  			 echo<<"      <div class=\"list-group-item list-group-item-action d-flex gap-3 py-3\" aria-current=\"true\">\n        <img src=\"#\" alt=\"Icon\" class=\"rounded-circle flex-shrink-0\" width=\"32\" height=\"32\">\n        <div class=\"d-flex gap-2 w-100 justify-content-between\">\n          <div>\n            <h6 class=\"mb-0\"><a href=\"/cms/show?id=";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\">";
- echo<<a.second["title"].as_string(); 
+ echo<<a["title"].as_string(); 
  			 echo<<"</a></h6>\n            <p class=\"mb-0 opacity-75\">";
- echo<<a.second["summary"].as_string(); 
+ echo<<a["summary"].as_string(); 
  			 echo<<"</p>\n          </div>\n          <small class=\"opacity-50 text-nowrap\">";
- echo<<a.second["createtime"].as_string(); 
+ echo<<a["createtime"].as_string(); 
  			 echo<<"</small>\n\n          <small class=\"opacity-50 text-nowrap\"><a href=\"/cms/edit?id=";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\">编辑(edit)</a></small>\n          <small class=\"opacity-50 text-nowrap\"><a href=\"/cms/delete?id=";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\">删除(Delete)</a></small>\n        </div>\n      </div>\n      ";
 
       }

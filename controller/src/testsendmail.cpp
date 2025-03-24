@@ -13,7 +13,7 @@ std::string testsendmaildo(std::shared_ptr<httppeer> peer)
     client << "<p>";
     client << (unsigned int)client.post.size();
     client << "</p>";
-    for (auto [first, second] : client.post.as_array())
+    for (auto &[first, second] : client.post.as_object())
     {
         client << "<p>";
         client << client.post[first];

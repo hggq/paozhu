@@ -6,6 +6,7 @@
 #include <chrono>
 #include "httppeer.h"
 #include "techempower.h"
+#include "request.h"
 #include "techempower_json.h"
 #include "datetime.h"
 #include "func.h"
@@ -93,7 +94,7 @@ asio::awaitable<std::string> techempowerfortunes(std::shared_ptr<httppeer> peer)
     std::sort(myfortune.record.begin(), myfortune.record.end(), [](const auto &lhs, const auto &rhs)
               { return lhs.message < rhs.message; });
     peer->val["list"].set_array();
-    OBJ_ARRAY item;
+    obj_val item;
     for (unsigned int i = 0; i < myfortune.record.size(); i++)
     {
         item["id"]      = myfortune.record[i].id;

@@ -10,14 +10,14 @@ namespace http
 {
     struct view_param
     {
-        view_param(OBJ_VALUE &a,OBJ_VALUE &b,Cookie &c,OBJ_VALUE &d):get(a),post(b),cookie(c),session(d)
+        view_param(obj_val &a,obj_val &b,cookie &c,obj_val &d):get(a),post(b),cookie(c),session(d)
         {
 
         }
-        OBJ_VALUE &get;
-        OBJ_VALUE &post;
-        Cookie &cookie;
-        OBJ_VALUE &session;
+        obj_val &get;
+        obj_val &post;
+        cookie &cookie;
+        obj_val &session;
         std::string viewsopath;
     };
 }

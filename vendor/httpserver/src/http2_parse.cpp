@@ -903,33 +903,100 @@ namespace http
                         {
                             if (key2name.empty())
                             {
-                                http::OBJ_ARRAY objtemp;
-                                objtemp.push(block_data_info_ptr->buffer_value);
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                block_steam_httppeer->get[objname].push(std::move(objtemp1));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                block_steam_httppeer->get[objname].set_object();
+                                unsigned int iii=block_steam_httppeer->get[objname].size();
+                                key1name = std::to_string(iii);
+                                block_steam_httppeer->get[objname][key1name].set_object();
+
+                                iii=block_steam_httppeer->get[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp=block_data_info_ptr->buffer_value;
+
+                                block_steam_httppeer->get[objname][key1name].push(key2name, std::move(objtemp)); 
                             }
                             else
                             {
-                                http::OBJ_VALUE objtemp;
-                                objtemp[key2name] = block_data_info_ptr->buffer_value;
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                block_steam_httppeer->get[objname].push(std::move(objtemp1));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                block_steam_httppeer->get[objname].set_object();
+                                unsigned int iii=block_steam_httppeer->get[objname].size();
+                                key1name = std::to_string(iii);
+                                block_steam_httppeer->get[objname][key1name].set_object();
+
+                                http::obj_val objtemp;
+                                objtemp=block_data_info_ptr->buffer_value;
+
+                                block_steam_httppeer->get[objname][key1name].push(key2name, std::move(objtemp)); 
+
                             }
                         }
                         else
                         {
                             if (key2name.empty())
                             {
-                                block_steam_httppeer->get[objname][key1name].set_array();
-                                block_steam_httppeer->get[objname][key1name] = block_data_info_ptr->buffer_value;
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                block_steam_httppeer->get[objname].set_object();
+                                block_steam_httppeer->get[objname][key1name].set_object();
+                                unsigned int iii=block_steam_httppeer->get[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp=block_data_info_ptr->buffer_value;
+
+                                block_steam_httppeer->get[objname][key1name].push(key2name, std::move(objtemp)); 
+                                
                             }
                             else
                             {
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                block_steam_httppeer->get[objname].set_object();
+                                block_steam_httppeer->get[objname][key1name].set_object();
 
-                                block_steam_httppeer->get[objname][key1name][key2name] =
-                                    block_data_info_ptr->buffer_value;
+                                http::obj_val objtemp;
+                                objtemp=block_data_info_ptr->buffer_value;
+
+                                block_steam_httppeer->get[objname][key1name].push(key2name, std::move(objtemp)); 
                             }
                         }
                         j = m;
@@ -940,12 +1007,39 @@ namespace http
                         // 只有一个
                         if (key1name.empty())
                         {
-                            block_steam_httppeer->get[objname].set_array();
-                            block_steam_httppeer->get[objname].push(block_data_info_ptr->buffer_value);
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            block_steam_httppeer->get[objname].set_object();
+                            unsigned int iii=block_steam_httppeer->get[objname].size();
+                            key1name = std::to_string(iii);
+
+                            http::obj_val objtemp;
+                            objtemp=block_data_info_ptr->buffer_value;
+
+                            block_steam_httppeer->get[objname].push(key1name, std::move(objtemp)); 
                         }
                         else
                         {
-                            block_steam_httppeer->get[objname].push(key1name, block_data_info_ptr->buffer_value);
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if(key1name.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            block_steam_httppeer->get[objname].set_object();
+
+                            http::obj_val objtemp;
+                            objtemp=block_data_info_ptr->buffer_value;
+                            block_steam_httppeer->get[objname].push(key1name, std::move(objtemp)); 
                         }
                         j = n;
                         isgroup = false;
@@ -2684,33 +2778,103 @@ namespace http
                         {
                             if (key2name.empty())
                             {
-                                http::OBJ_ARRAY objtemp;
-                                objtemp.push(block_data_info_ptr->field_value);
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                block_steam_httppeer->post[objname].push(std::move(objtemp1));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                block_steam_httppeer->post[objname].set_object();
+                                unsigned int iii=block_steam_httppeer->post[objname].size();
+                                key1name = std::to_string(iii);
+                                block_steam_httppeer->post[objname][key1name].set_object();
+
+                                iii=block_steam_httppeer->post[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp=block_data_info_ptr->field_value;
+
+                                block_steam_httppeer->post[objname][key1name].push(key2name, std::move(objtemp)); 
+
                             }
                             else
                             {
-                                http::OBJ_VALUE objtemp;
-                                objtemp[key2name] = block_data_info_ptr->field_value;
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                block_steam_httppeer->post[objname].push(std::move(objtemp1));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                block_steam_httppeer->post[objname].set_object();
+                                unsigned int iii=block_steam_httppeer->post[objname].size();
+                                key1name = std::to_string(iii);
+                                block_steam_httppeer->post[objname][key1name].set_object();
+
+                                http::obj_val objtemp;
+                                objtemp=block_data_info_ptr->field_value;
+
+                                block_steam_httppeer->post[objname][key1name].push(key2name, std::move(objtemp)); 
                             }
                         }
                         else
                         {
                             if (key2name.empty())
                             {
-                                block_steam_httppeer->post[objname][key1name].set_array();
-                                block_steam_httppeer->post[objname][key1name] = block_data_info_ptr->field_value;
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                block_steam_httppeer->post[objname].set_object();
+                                block_steam_httppeer->post[objname][key1name].set_object();
+
+                                unsigned int iii=block_steam_httppeer->post[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp=block_data_info_ptr->field_value;
+
+                                block_steam_httppeer->post[objname][key1name].push(key2name, std::move(objtemp)); 
+
                             }
                             else
                             {
 
-                                block_steam_httppeer->post[objname][key1name][key2name] =
-                                    block_data_info_ptr->field_value;
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                block_steam_httppeer->post[objname].set_object();
+                                block_steam_httppeer->post[objname][key1name].set_object();
+
+                                http::obj_val objtemp;
+                                objtemp=block_data_info_ptr->field_value;
+
+                                block_steam_httppeer->post[objname][key1name].push(key2name, std::move(objtemp)); 
                             }
                         }
                         j = m;
@@ -2721,12 +2885,39 @@ namespace http
                         // 只有一个
                         if (key1name.empty())
                         {
-                            block_steam_httppeer->post[objname].set_array();
-                            block_steam_httppeer->post[objname].push(block_data_info_ptr->field_value);
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            block_steam_httppeer->post[objname].set_object();
+                            unsigned int iii=block_steam_httppeer->post[objname].size();
+                            key1name = std::to_string(iii);
+
+                            http::obj_val objtemp;
+                            objtemp=block_data_info_ptr->field_value;
+
+                            block_steam_httppeer->post[objname].push(key1name, std::move(objtemp)); 
                         }
                         else
                         {
-                            block_steam_httppeer->post[objname].push(key1name, block_data_info_ptr->field_value);
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if(key1name.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            block_steam_httppeer->post[objname].set_object();
+
+                            http::obj_val objtemp;
+                            objtemp=block_data_info_ptr->field_value;
+
+                            block_steam_httppeer->post[objname].push(key1name, std::move(objtemp)); 
                         }
                         j = n;
                         isgroup = false;
@@ -2915,9 +3106,22 @@ namespace http
                         {
                             if (key2name.empty())
                             {
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
 
-                                http::OBJ_VALUE objtemp;
-                                objtemp.set_array();
+                                block_steam_httppeer->files[objname].set_object();
+                                unsigned int iii=block_steam_httppeer->files[objname].size();
+                                key1name = std::to_string(iii);
+                                block_steam_httppeer->files[objname][key1name].set_object();
+
+                                iii=block_steam_httppeer->files[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp.set_object();
                                 objtemp["filename"] = block_data_info_ptr->upfile->filename;
                                 objtemp["name"] = block_data_info_ptr->upfile->name;
                                 objtemp["tempfile"] = block_data_info_ptr->upfile->tempfile;
@@ -2925,33 +3129,62 @@ namespace http
                                 objtemp["size"] = block_data_info_ptr->upfile->size;
                                 objtemp["error"] = block_data_info_ptr->upfile->error;
 
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                block_steam_httppeer->files[objname].push(std::move(objtemp1));
+                                block_steam_httppeer->files[objname][key1name].push(key2name, std::move(objtemp)); 
+
                             }
                             else
                             {
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                
+                                block_steam_httppeer->files[objname].set_object();
+                                unsigned int iii=block_steam_httppeer->files[objname].size();
+                                key1name = std::to_string(iii);
+                                block_steam_httppeer->files[objname][key1name].set_object();
 
-                                http::OBJ_VALUE objtemp;
-                                objtemp[key2name].set_array();
-                                objtemp[key2name]["filename"] = block_data_info_ptr->upfile->filename;
-                                objtemp[key2name]["name"] = block_data_info_ptr->upfile->name;
-                                objtemp[key2name]["tempfile"] = block_data_info_ptr->upfile->tempfile;
-                                objtemp[key2name]["type"] = block_data_info_ptr->upfile->type;
-                                objtemp[key2name]["size"] = block_data_info_ptr->upfile->size;
-                                objtemp[key2name]["error"] = block_data_info_ptr->upfile->error;
-                                block_steam_httppeer->files[objname].set_array();
-                                block_steam_httppeer->files[objname].push(std::move(objtemp));
+                                http::obj_val objtemp;
+                                objtemp.set_object();
+                                objtemp["filename"] = block_data_info_ptr->upfile->filename;
+                                objtemp["name"] = block_data_info_ptr->upfile->name;
+                                objtemp["tempfile"] = block_data_info_ptr->upfile->tempfile;
+                                objtemp["type"] = block_data_info_ptr->upfile->type;
+                                objtemp["size"] = block_data_info_ptr->upfile->size;
+                                objtemp["error"] = block_data_info_ptr->upfile->error;
+
+                                block_steam_httppeer->files[objname][key1name].push(key2name, std::move(objtemp)); 
                             }
                         }
                         else
                         {
                             if (key2name.empty())
                             {
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
 
-                                block_steam_httppeer->files[objname][key1name].set_array();
-                                http::OBJ_VALUE objtemp;
-                                objtemp.set_array();
+                                block_steam_httppeer->files[objname].set_object();
+                                block_steam_httppeer->files[objname][key1name].set_object();
+
+                                unsigned iii=block_steam_httppeer->files[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp.set_object();
                                 objtemp["filename"] = block_data_info_ptr->upfile->filename;
                                 objtemp["name"] = block_data_info_ptr->upfile->name;
                                 objtemp["tempfile"] = block_data_info_ptr->upfile->tempfile;
@@ -2959,24 +3192,41 @@ namespace http
                                 objtemp["size"] = block_data_info_ptr->upfile->size;
                                 objtemp["error"] = block_data_info_ptr->upfile->error;
 
-                                block_steam_httppeer->files[objname][key1name] = objtemp;
+                                block_steam_httppeer->files[objname][key1name].push(key2name, std::move(objtemp)); 
+
                             }
                             else
                             {
 
-                                block_steam_httppeer->files[objname][key1name][key2name].set_array();
-                                block_steam_httppeer->files[objname][key1name][key2name]["filename"] =
-                                    block_data_info_ptr->upfile->filename;
-                                block_steam_httppeer->files[objname][key1name][key2name]["name"] =
-                                    block_data_info_ptr->upfile->name;
-                                block_steam_httppeer->files[objname][key1name][key2name]["tempfile"] =
-                                    block_data_info_ptr->upfile->tempfile;
-                                block_steam_httppeer->files[objname][key1name][key2name]["type"] =
-                                    block_data_info_ptr->upfile->type;
-                                block_steam_httppeer->files[objname][key1name][key2name]["size"] =
-                                    block_data_info_ptr->upfile->size;
-                                block_steam_httppeer->files[objname][key1name][key2name]["error"] =
-                                    block_data_info_ptr->upfile->error;
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                block_steam_httppeer->files[objname].set_object();
+                                block_steam_httppeer->files[objname][key1name].set_object();
+
+                                http::obj_val objtemp;
+                                objtemp.set_object();
+                                objtemp["filename"] = block_data_info_ptr->upfile->filename;
+                                objtemp["name"] = block_data_info_ptr->upfile->name;
+                                objtemp["tempfile"] = block_data_info_ptr->upfile->tempfile;
+                                objtemp["type"] = block_data_info_ptr->upfile->type;
+                                objtemp["size"] = block_data_info_ptr->upfile->size;
+                                objtemp["error"] = block_data_info_ptr->upfile->error;
+
+                                block_steam_httppeer->files[objname][key1name].push(key2name, std::move(objtemp)); 
                             }
                         }
                         j = m;
@@ -2987,33 +3237,51 @@ namespace http
                         // 只有一个
                         if (key1name.empty())
                         {
-                            block_steam_httppeer->files[objname].set_array();
-                            http::OBJ_VALUE objtemp;
-                            objtemp.set_array();
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            block_steam_httppeer->files[objname].set_object();
+                            unsigned iii=block_steam_httppeer->files[objname].size();
+                            key1name = std::to_string(iii);
+
+                            http::obj_val objtemp;
+                            objtemp.set_object();
                             objtemp["filename"] = block_data_info_ptr->upfile->filename;
                             objtemp["name"] = block_data_info_ptr->upfile->name;
                             objtemp["tempfile"] = block_data_info_ptr->upfile->tempfile;
                             objtemp["type"] = block_data_info_ptr->upfile->type;
                             objtemp["size"] = block_data_info_ptr->upfile->size;
                             objtemp["error"] = block_data_info_ptr->upfile->error;
-                            block_steam_httppeer->files[objname] = objtemp;
+
+                            block_steam_httppeer->files[objname].push(key1name, std::move(objtemp)); 
                         }
                         else
                         {
-                            // files[objname].push(key1name,"");
-                            block_steam_httppeer->files[objname][key1name].set_array();
-                            block_steam_httppeer->files[objname][key1name]["filename"] =
-                                block_data_info_ptr->upfile->filename;
-                            block_steam_httppeer->files[objname][key1name]["name"] =
-                                block_data_info_ptr->upfile->name;
-                            block_steam_httppeer->files[objname][key1name]["tempfile"] =
-                                block_data_info_ptr->upfile->tempfile;
-                            block_steam_httppeer->files[objname][key1name]["type"] =
-                                block_data_info_ptr->upfile->type;
-                            block_steam_httppeer->files[objname][key1name]["size"] =
-                                block_data_info_ptr->upfile->size;
-                            block_steam_httppeer->files[objname][key1name]["error"] =
-                                block_data_info_ptr->upfile->error;
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if(key1name.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            block_steam_httppeer->files[objname].set_object();
+
+                            http::obj_val objtemp;
+                            objtemp.set_object();
+                            objtemp["filename"] = block_data_info_ptr->upfile->filename;
+                            objtemp["name"] = block_data_info_ptr->upfile->name;
+                            objtemp["tempfile"] = block_data_info_ptr->upfile->tempfile;
+                            objtemp["type"] = block_data_info_ptr->upfile->type;
+                            objtemp["size"] = block_data_info_ptr->upfile->size;
+                            objtemp["error"] = block_data_info_ptr->upfile->error;
+
+                            block_steam_httppeer->files[objname].push(key1name, std::move(objtemp)); 
                         }
                         j = n;
                         isgroup = false;

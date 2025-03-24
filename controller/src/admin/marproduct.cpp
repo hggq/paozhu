@@ -6,6 +6,7 @@
 #include "marproduct.h"
 #include "json_reflect_headers.h"
 #include "array_to_tree.h"
+#include "request.h"
 #include "upload_images.h"
 #include "directory_fun.h"
 namespace http
@@ -25,7 +26,7 @@ std::string admin_addproduct(std::shared_ptr<httppeer> peer)
     cata.tree_torecord(treedata);
 
     client.val["categorylist"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     std::vector<unsigned int> levelnum;
     for (unsigned int i = 0; i < cata.record.size(); i++)
     {
@@ -46,7 +47,7 @@ std::string admin_addproduct(std::shared_ptr<httppeer> peer)
     client.val["topicid"] = topicid;
 
     client.val["topiclist"].set_array();
-    OBJ_ARRAY topictemp;
+    obj_val topictemp;
 
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
@@ -62,7 +63,7 @@ std::string admin_addproduct(std::shared_ptr<httppeer> peer)
     brand.fetch();
 
     client.val["brandlist"].set_array();
-    OBJ_ARRAY btemp;
+    obj_val btemp;
     for (unsigned int i = 0; i < brand.record.size(); i++)
     {
         btemp["id"]   = brand.record[i].brandid;
@@ -96,8 +97,8 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
     pro.data.samepro     = client.post["relatecontent"].to_string();
     pro.data.adddate     = get_date("%Y-%m-%d %X");
     pro.data.showtype    = 0;
-    OBJ_VALUE urltemp_array;
-    OBJ_ARRAY objtemp;
+    obj_val urltemp_array;
+    obj_val objtemp;
 
     urltemp_array.set_array();
     if (client.post["attach_urlpath"].is_array())
@@ -109,11 +110,12 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
         {
             objtemp["url"]  = "";
             objtemp["name"] = "";
-            if (tempurls.isset(j))
-            {
-                objtemp["url"] = tempurls[j];
-            }
-            if (client.post["attach_name"].isset(j))
+            objtemp["url"] = tempurls[j];
+            // if (tempurls.isset(j))
+            // {
+            //     objtemp["url"] = tempurls[j];
+            // }
+            if (j< client.post["attach_name"].size())
             {
                 objtemp["name"] = client.post["attach_name"][j];
             }
@@ -159,8 +161,8 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
     pro.data.samepro     = client.post["relatecontent"].to_string();
     pro.data.editdate    = get_date("%Y-%m-%d %X");
 
-    OBJ_VALUE urltemp_array;
-    OBJ_ARRAY objtemp;
+    obj_val urltemp_array;
+    obj_val objtemp;
 
     urltemp_array.set_array();
     if (client.post["attach_urlpath"].is_array())
@@ -172,11 +174,12 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
         {
             objtemp["url"]  = "";
             objtemp["name"] = "";
-            if (tempurls.isset(j))
-            {
-                objtemp["url"] = tempurls[j];
-            }
-            if (client.post["attach_name"].isset(j))
+            objtemp["url"] = tempurls[j];
+            // if (tempurls.isset(j))
+            // {
+            //     objtemp["url"] = tempurls[j];
+            // }
+            if (j<client.post["attach_name"].size())
             {
                 objtemp["name"] = client.post["attach_name"][j];
             }
@@ -241,7 +244,7 @@ std::string admin_getcategorytopproduct(std::shared_ptr<httppeer> peer)
     pro.desc("pid").fetch();
     client.val["alist"].set_array();
 
-    OBJ_ARRAY tempa;
+    obj_val tempa;
 
     if (pro.size() > 0)
     {
@@ -300,7 +303,7 @@ std::string admin_editproduct(std::shared_ptr<httppeer> peer)
     cata.tree_torecord(treedata);
 
     client.val["categorylist"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     std::vector<unsigned int> levelnum;
     for (unsigned int i = 0; i < cata.record.size(); i++)
     {
@@ -316,7 +319,7 @@ std::string admin_editproduct(std::shared_ptr<httppeer> peer)
 
     topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
     client.val["topiclist"].set_array();
-    OBJ_ARRAY topictemp;
+    obj_val topictemp;
 
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
@@ -332,7 +335,7 @@ std::string admin_editproduct(std::shared_ptr<httppeer> peer)
     brand.fetch();
 
     client.val["brandlist"].set_array();
-    OBJ_ARRAY btemp;
+    obj_val btemp;
     for (unsigned int i = 0; i < brand.record.size(); i++)
     {
         btemp["id"]   = brand.record[i].brandid;
@@ -363,7 +366,7 @@ std::string admin_listproduct(std::shared_ptr<httppeer> peer)
 
     client.val["categoryid"] = categoryid;
     client.val["categorylist"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
 
     std::map<unsigned int, std::string> categorykv;
     for (unsigned int i = 0; i < cata.record.size(); i++)
@@ -404,7 +407,7 @@ std::string admin_listproduct(std::shared_ptr<httppeer> peer)
 
     pro.select("pid,smallid,name,bigimg,isview,isstore,ishome,sortid").desc("pid").fetch();
     client.val["alist"].set_array();
-    OBJ_ARRAY tempa;
+    obj_val tempa;
 
     if (pro.size() > 0)
     {
@@ -443,7 +446,7 @@ std::string admin_marproductattach(std::shared_ptr<httppeer> peer)
 
     client.val["categoryid"] = categoryid;
     client.val["categorylist"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
 
     std::map<unsigned int, std::string> categorykv;
     for (unsigned int i = 0; i < cata.record.size(); i++)
@@ -484,7 +487,7 @@ std::string admin_marproductattach(std::shared_ptr<httppeer> peer)
 
     pro.select("pid,smallid,name,isview,isstore,ishome,sortid,attatchfiles").desc("pid").fetch();
     client.val["alist"].set_array();
-    OBJ_ARRAY tempa;
+    obj_val tempa;
 
     if (pro.size() > 0)
     {

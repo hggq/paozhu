@@ -1,5 +1,5 @@
-#ifndef HTTP_COOKIE_HPP
-#define HTTP_COOKIE_HPP
+#ifndef HTTP_cookie_HPP
+#define HTTP_cookie_HPP
 
 #include <string>
 #include <vector>
@@ -9,19 +9,19 @@
 
 namespace http
 {
-    class Cookie
+    class cookie
     {
 
     public:
-        Cookie();
-        Cookie *set(std::string key, std::string val, unsigned long exptime = 0,std::string path = "", std::string domain = "",  bool secure = false, bool httponly = true, std::string issamesite = "");
-        Cookie *opt(std::string key);
-        Cookie *domain(std::string d);
-        Cookie *expires(unsigned long e);
-        Cookie *path(std::string p);
-        Cookie *secure(unsigned char p);
-        Cookie *httponly(unsigned char p);
-        Cookie *samesite(std::string p);
+        cookie();
+        cookie *set(std::string key, std::string val, unsigned long exptime = 0,std::string path = "", std::string domain = "",  bool secure = false, bool httponly = true, std::string issamesite = "");
+        cookie *opt(std::string key);
+        cookie *domain(std::string d);
+        cookie *expires(unsigned long e);
+        cookie *path(std::string p);
+        cookie *secure(unsigned char p);
+        cookie *httponly(unsigned char p);
+        cookie *samesite(std::string p);
         std::string get(std::string key);
         std::string &operator[](std::string key);
         std::map<std::string, std::string>::const_iterator begin() const;

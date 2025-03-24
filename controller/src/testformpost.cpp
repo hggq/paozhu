@@ -28,17 +28,25 @@ std::string testurlencoded(std::shared_ptr<httppeer> peer)
         client << "<p>" << e.what() << "</p>";
         return "";
     }
+    catch (const char *e)
+    {
+        client << "<p>" << e<< "</p>";
+        return "";
+    }
     return "";
 }
 //@urlpath(null,tfilepost)
 std::string testformmultipart(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client << "hello world!  multipart/form-data ";
+    client << "hello world! multipart/form-data ";
 
     try
     {
         client << "<p>--------------</p>";
+        client << "<p>";
+        client << client.post.to_json();
+        client << "</p>";
         client << "<p>textfield:" << client.post["textfield"] << "</p>";
         client << "<p>aa[]:" << client.post["aa"][0] << "</p>";
         client << "<p>aa[]:" << client.post["aa"][1] << "</p>";
@@ -52,12 +60,16 @@ std::string testformmultipart(std::shared_ptr<httppeer> peer)
         client << "<p>fileField:error:" << client.files["fileField"]["error"] << "</p>";
 
         client << "<p>submit:" << client.post["submit"] << "</p>";
-
         client << "<p>--------------</p>";
     }
     catch (std::exception &e)
     {
         client << "<p>" << e.what() << "</p>";
+        return "";
+    }
+    catch (const char *e)
+    {
+        client << "<p>" << e<< "</p>";
         return "";
     }
     return "";
@@ -80,6 +92,11 @@ std::string testformjsonpost(std::shared_ptr<httppeer> peer)
     catch (std::exception &e)
     {
         client << "<p>" << e.what() << "</p>";
+        return "";
+    }
+    catch (const char *e)
+    {
+        client << "<p>" << e<< "</p>";
         return "";
     }
     return "";
@@ -284,6 +301,11 @@ std::string testuploadpostfile(std::shared_ptr<httppeer> peer)
     catch (std::exception &e)
     {
         client << "<p>" << e.what() << "</p>";
+        return "";
+    }
+    catch (const char *e)
+    {
+        client << "<p>" << e<< "</p>";
         return "";
     }
     return "";

@@ -51,10 +51,10 @@
         <%c for(auto &a:obj["list"].as_array()){ %>
           <div class="row g-3 mt-1">
                 <div class="col-md-2">
-                  <% echo<<a.second["title"].to_string(); %>
+                  <% echo<<a["title"].to_string(); %>
               </div>
               <div class="col-md-2">
-                <a href="/admin/marbrand?id=<%c echo<<a.second["id"].to_string(); %>">编辑</a>｜<a href="/admin/deletebrand?id=<%c echo<<a.second["id"].to_string(); %>" onclick="return confirm('确定删除吗？')">删除</a>
+                <a href="/admin/marbrand?id=<%c echo<<a["id"].to_string(); %>">编辑</a>｜<a href="/admin/deletebrand?id=<%c echo<<a["id"].to_string(); %>" onclick="return confirm('确定删除吗？')">删除</a>
              </div>
           </div>
            <%c } %> 

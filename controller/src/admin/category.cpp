@@ -23,7 +23,7 @@ std::string admin_marcatalogue(std::shared_ptr<httppeer> peer)
     cata.tree_torecord(treedata);
 
     client.val["list"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
 
     for (unsigned int i = 0; i < cata.record.size(); i++)
     {
@@ -57,7 +57,7 @@ std::string admin_addcataloguepost(std::shared_ptr<httppeer> peer)
     cata.tree_torecord(treedata);
 
     client.val["list"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     std::vector<unsigned int> levelnum;
     for (unsigned int i = 0; i < cata.record.size(); i++)
     {

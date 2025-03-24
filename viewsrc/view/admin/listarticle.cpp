@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace admin{
- 		 std::string listarticle([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string listarticle([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -32,45 +32,45 @@ namespace view {
  			 echo<<"\" placeholder=\"\">\n      <button class=\"btn btn-outline-secondary\" type=\"button\" id=\"button-addon2\" onclick=\"searcharticle()\">搜索</button>\n    </div> \n    </div>  \n    </div>  \n    <div class=\"row p-3\">\n      <div class=\"col-10\">\n        <table class=\"table table-bordered\">\n          <thead>\n            <tr>\n              <th scope=\"col\">#</th>\n              <th scope=\"col\">栏目</th>\n              <th scope=\"col\">标题</th>\n              <th scope=\"col\">日期</th>\n              <th scope=\"col\">排序</th>\n              <th scope=\"col\">显示</th>\n              <th scope=\"col\">首页</th>\n              <th scope=\"col\">操作</th>\n            </tr>\n          </thead>\n          <tbody>\n            ";
  for(auto &a:obj["alist"].as_array()){ 
  			 echo<<"            <tr id=\"article_";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\">\n              <td>";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"</td>\n              <td>";
- echo<<a.second["topicname"].to_string(); 
+ echo<<a["topicname"].to_string(); 
  			 echo<<"</td>\n              <td>";
- echo<<a.second["title"].to_string(); 
+ echo<<a["title"].to_string(); 
  			 echo<<"</td>\n              <td>";
- echo<<a.second["date"].to_string(); 
+ echo<<a["date"].to_string(); 
  			 echo<<"</td>\n              <td>\n              <input type=\"text\" class=\"form-inline topicsort col-md-2\" id=\"title_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" name=\"title_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" value=\"";
- echo<<a.second["sortid"].to_string(); 
+ echo<<a["sortid"].to_string(); 
  			 echo<<"\" onchange=\"updatearticlesort(";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<",this.value)\">\n              </td>\n              <td><input class=\"form-check-input\" type=\"checkbox\" value=\"";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\" id=\"art_";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\" onclick=\"artupdateview(this)\" ";
- if(a.second["isopen"].to_int()==1){ 
+ if(a["isopen"].to_int()==1){ 
  			 echo<<"checked";
  } 
  			 echo<<" >\n</td>\n              <td><input class=\"form-check-input\" type=\"checkbox\" value=\"";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\" id=\"ishome_";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\" onclick=\"artupdateishome(this)\" ";
- if(a.second["ishome"].to_int()==1){ 
+ if(a["ishome"].to_int()==1){ 
  			 echo<<"checked";
  } 
  			 echo<<" >\n</td>\n              <td>\n              <a href=\"/admin/editarticle?id=";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\">编辑</a>｜\n                  <a href=\"/admin/deletearticle?id=";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<"\" onclick=\"return deletearticle(";
- echo<<a.second["aid"].to_string(); 
+ echo<<a["aid"].to_string(); 
  			 echo<<")\">删除</a></td>\n            </tr>\n            ";
  } 
  			 echo<<"\n          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n    <div class=\"row p-3\">\n      <div class=\"col-10\">\n        <nav aria-label=\"Page navigation example\">\n          <ul class=\"pagination\">\n          ";

@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace admin{
- 		 std::string edithomeblockmulit([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string edithomeblockmulit([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -40,11 +40,11 @@ echo<<obj["info"]["hbid"].to_string();
  			 echo<<"\" />\n        <button type=\"submit\" class=\"btn btn-primary\">保存</button>\n      </div>\n\n      <div class=\"row\">\n        ";
  for(auto &a:obj["list"].as_array()){ 
  			 echo<<"          <div class=\"row g-3 mt-1\">\n                <div class=\"col-md-2\">\n                  ";
-echo<<a.second["title"].to_string(); 
+echo<<a["title"].to_string(); 
  			 echo<<"              </div>\n              <div class=\"col-md-2\">\n                <a href=\"/admin/marbrand?id=";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\">编辑</a>｜<a href=\"/admin/deletebrand?id=";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" onclick=\"return confirm('确定删除吗？')\">删除</a>\n             </div>\n          </div>\n           ";
  } 
  			 echo<<" \n \n      </div>  \n       \n    </form>\n\n\n    <form class=\"g-3 mt-1\" id=\"form\" method=\"post\" action=\"/admin/brandaddpost\" >\n      <div class=\"row p-3\">\n    <div class=\"col-md-6\">\n      <label for=\"newtitle\" class=\"form-label\">标题</label>\n      <input type=\"text\" class=\"form-control\" id=\"newtitle\" name=\"newtitle\" value=\"";

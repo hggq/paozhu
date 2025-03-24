@@ -22,13 +22,13 @@
         <img src="#" alt="Icon" class="rounded-circle flex-shrink-0" width="32" height="32">
         <div class="d-flex gap-2 w-100 justify-content-between">
           <div>
-            <h6 class="mb-0"><a href="/cms/show?id=<%c echo<<a.second["aid"].to_string(); %>"><%c echo<<a.second["title"].as_string(); %></a></h6>
-            <p class="mb-0 opacity-75"><%c echo<<a.second["summary"].as_string(); %></p>
+            <h6 class="mb-0"><a href="/cms/show?id=<%c echo<<a["aid"].to_string(); %>"><%c echo<<a["title"].as_string(); %></a></h6>
+            <p class="mb-0 opacity-75"><%c echo<<a["summary"].as_string(); %></p>
           </div>
-          <small class="opacity-50 text-nowrap"><%c echo<<a.second["createtime"].as_string(); %></small>
+          <small class="opacity-50 text-nowrap"><%c echo<<a["createtime"].as_string(); %></small>
 
-          <small class="opacity-50 text-nowrap"><a href="/cms/edit?id=<%c echo<<a.second["aid"].to_string(); %>">编辑(edit)</a></small>
-          <small class="opacity-50 text-nowrap"><a href="/cms/delete?id=<%c echo<<a.second["aid"].to_string(); %>">删除(Delete)</a></small>
+          <small class="opacity-50 text-nowrap"><a href="/cms/edit?id=<%c echo<<a["aid"].to_string(); %>">编辑(edit)</a></small>
+          <small class="opacity-50 text-nowrap"><a href="/cms/delete?id=<%c echo<<a["aid"].to_string(); %>">删除(Delete)</a></small>
         </div>
       </div>
       <%c

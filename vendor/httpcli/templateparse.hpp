@@ -423,7 +423,7 @@ class viewtemplate
         headtxt            = R"(
   namespace http {
        
-        std::string view(struct view_param vinfo,http::OBJ_VALUE &obj){
+        std::string view(struct view_param vinfo,http::obj_val &obj){
             std::ostringstream echo;
 
         )";

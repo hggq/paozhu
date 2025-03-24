@@ -182,32 +182,104 @@ namespace http
                         {
                             if (key2name.empty())
                             {
-                                http::OBJ_ARRAY objtemp;
-                                objtemp.push(header_input);
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                peer->get[objname].push(std::move(objtemp1));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                peer->get[objname].set_object();
+                                unsigned int iii=peer->get[objname].size();
+                                key1name = std::to_string(iii);
+                                peer->get[objname][key1name].set_object();
+
+                                iii=peer->get[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp=header_input;
+
+                                peer->get[objname][key1name].push(key2name, std::move(objtemp));
                             }
                             else
                             {
-                                http::OBJ_VALUE objtemp;
-                                objtemp[key2name] = header_input;
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                peer->get[objname].push(std::move(objtemp1));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                peer->get[objname].set_object();
+                                unsigned int iii=peer->get[objname].size();
+                                key1name = std::to_string(iii);
+                                peer->get[objname][key1name].set_object();
+
+                                http::obj_val objtemp;
+                                objtemp=header_input;
+
+                                peer->get[objname][key1name].push(key2name, std::move(objtemp));
+
                             }
                         }
                         else
                         {
                             if (key2name.empty())
                             {
-                                peer->get[objname][key1name].set_array();
-                                peer->get[objname][key1name] = header_input;
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                peer->get[objname].set_object();
+                                peer->get[objname][key1name].set_object();
+
+                                unsigned iii=peer->get[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp=header_input;
+
+                                peer->get[objname][key1name].push(key2name, std::move(objtemp));
                             }
                             else
                             {
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
 
-                                peer->get[objname][key1name][key2name] = header_input;
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                peer->get[objname].set_object();
+                                peer->get[objname][key1name].set_object();
+
+                                http::obj_val objtemp;
+                                objtemp=header_input;
+                                peer->get[objname][key1name].push(key2name, std::move(objtemp));
                             }
                         }
                         j = m;
@@ -218,12 +290,37 @@ namespace http
                         // 只有一个
                         if (key1name.empty())
                         {
-                            peer->get[objname].set_array();
-                            peer->get[objname].push(header_input);
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            peer->get[objname].set_object();
+                            unsigned int iii=peer->get[objname].size();
+                            key1name = std::to_string(iii);
+
+                            http::obj_val objtemp;
+                            objtemp=header_input;
+                            peer->get[objname].push(key1name, std::move(objtemp));
+
                         }
                         else
                         {
-                            peer->get[objname].push(key1name, header_input);
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if(key1name.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            peer->get[objname].set_object();
+                            http::obj_val objtemp;
+                            objtemp=header_input;
+                            peer->get[objname].push(key1name, std::move(objtemp));
                         }
                         j = n;
                         isgroup = false;
@@ -258,6 +355,7 @@ namespace http
             error = 400;
             return;
         }
+
         for (unsigned int j = 0; j < header_temp.length(); j++)
         {
             if (header_temp[j] == '[')
@@ -332,32 +430,97 @@ namespace http
                         {
                             if (key2name.empty())
                             {
-                                http::OBJ_ARRAY objtemp;
-                                objtemp.push(header_input);
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                peer->post[objname].push(std::move(objtemp1));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                peer->post[objname].set_object();
+                                unsigned int iii=peer->post[objname].size();
+                                key1name = std::to_string(iii);
+                                peer->post[objname][key1name].set_object();
+
+                                iii=peer->post[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp=header_input;
+
+                                peer->post[objname][key1name].push(key2name, std::move(objtemp));
                             }
                             else
                             {
-                                http::OBJ_VALUE objtemp;
-                                objtemp[key2name] = header_input;
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                peer->post[objname].push(std::move(objtemp1));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                peer->post[objname].set_object();
+                                unsigned int iii=peer->post[objname].size();
+                                key1name = std::to_string(iii);
+                                peer->post[objname][key1name].set_object();
+
+                                http::obj_val objtemp;
+                                objtemp=header_input;
+                                peer->post[objname][key1name].push(key2name, std::move(objtemp));
+
                             }
                         }
                         else
                         {
                             if (key2name.empty())
                             {
-                                peer->post[objname][key1name].set_array();
-                                peer->post[objname][key1name] = header_input;
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                peer->post[objname].set_object();
+                                peer->post[objname][key1name].set_object();
+                                unsigned int iii=peer->post[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                http::obj_val objtemp;
+                                objtemp=header_input;
+                                peer->post[objname][key1name].push(key2name, std::move(objtemp));
                             }
                             else
                             {
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
 
-                                peer->post[objname][key1name][key2name] = header_input;
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                http::obj_val objtemp;
+                                objtemp=header_input;
+                                peer->post[objname][key1name].push(key2name, std::move(objtemp));
                             }
                         }
                         j = m;
@@ -367,13 +530,38 @@ namespace http
                     {
                         // 只有一个
                         if (key1name.empty())
-                        {
-                            peer->post[objname].set_array();
-                            peer->post[objname].push(header_input);
+                        { 
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            peer->post[objname].set_object();
+                            unsigned int iii=peer->post[objname].size();
+                            key1name = std::to_string(iii);
+
+                            http::obj_val objtemp;
+                            objtemp=header_input;
+                            peer->post[objname].push(key1name, std::move(objtemp));
+
                         }
                         else
                         {
-                            peer->post[objname].push(key1name, header_input);
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if(key1name.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            peer->post[objname].set_object();
+                            http::obj_val objtemp;
+                            objtemp=header_input;
+                            peer->post[objname].push(key1name, std::move(objtemp));
                         }
                         j = n;
                         isgroup = false;
@@ -2276,7 +2464,7 @@ namespace http
                         key1name.push_back(upfile->name[n]);
                     }
                 }
-
+ 
                 std::string key2name;
                 if (ishaskey)
                 {
@@ -2315,7 +2503,7 @@ namespace http
                             }
                         }
                     }
-
+  
                     if (ishaskey2)
                     {
                         // 双数组
@@ -2323,9 +2511,14 @@ namespace http
                         {
                             if (key2name.empty())
                             {
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
 
-                                http::OBJ_VALUE objtemp;
-                                objtemp.set_array();
+                                http::obj_val objtemp;
+                                objtemp.set_object();
                                 objtemp["name"] = upfile->name;
                                 objtemp["filename"] = upfile->filename;
                                 objtemp["tempfile"] = upfile->tempfile;
@@ -2333,23 +2526,48 @@ namespace http
                                 objtemp["size"] = upfile->size;
                                 objtemp["error"] = upfile->error;
 
-                                http::OBJ_ARRAY objtemp1;
-                                objtemp1.push(std::move(objtemp));
-                                peer->files[objname].push(std::move(objtemp1));
+                                peer->files[objname].set_object();
+                                unsigned int iii=peer->files[objname].size();
+                                key1name = std::to_string(iii);
+                                peer->files[objname][key1name].set_object();
+
+                                iii=peer->files[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                peer->files[objname][key1name].push(key2name, std::move(objtemp));
+
                             }
                             else
                             {
 
-                                http::OBJ_VALUE objtemp;
-                                objtemp[key2name].set_array();
-                                objtemp[key2name]["name"] = upfile->name;
-                                objtemp[key2name]["filename"] = upfile->filename;
-                                objtemp[key2name]["tempfile"] = upfile->tempfile;
-                                objtemp[key2name]["type"] = upfile->type;
-                                objtemp[key2name]["size"] = upfile->size;
-                                objtemp[key2name]["error"] = upfile->error;
-                                peer->files[objname].set_array();
-                                peer->files[objname].push(std::move(objtemp));
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                http::obj_val objtemp;
+                                objtemp.set_object();
+                                objtemp["name"] = upfile->name;
+                                objtemp["filename"] = upfile->filename;
+                                objtemp["tempfile"] = upfile->tempfile;
+                                objtemp["type"] = upfile->type;
+                                objtemp["size"] = upfile->size;
+                                objtemp["error"] = upfile->error;
+
+                                peer->files[objname].set_object();
+                                unsigned int iii=peer->files[objname].size();
+                                key1name = std::to_string(iii);
+                                peer->files[objname][key1name].set_object();
+
+                                peer->files[objname][key1name].push(key2name, std::move(objtemp));
+
                             }
                         }
                         else
@@ -2357,9 +2575,20 @@ namespace http
                             if (key2name.empty())
                             {
 
-                                peer->files[objname][key1name].set_array();
-                                http::OBJ_VALUE objtemp;
-                                objtemp.set_array();
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                http::obj_val objtemp;
+                                objtemp.set_object();
                                 objtemp["name"] = upfile->name;
                                 objtemp["filename"] = upfile->filename;
                                 objtemp["tempfile"] = upfile->tempfile;
@@ -2367,18 +2596,48 @@ namespace http
                                 objtemp["size"] = upfile->size;
                                 objtemp["error"] = upfile->error;
 
-                                peer->files[objname][key1name] = objtemp;
+                                peer->files[objname].set_object();
+                                peer->files[objname][key1name].set_object();
+
+                                unsigned int iii=peer->files[objname][key1name].size();
+                                key2name = std::to_string(iii);
+
+                                peer->files[objname][key1name].push(key2name, std::move(objtemp));
                             }
                             else
                             {
+                                if(objname.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
 
-                                peer->files[objname][key1name][key2name].set_array();
-                                peer->files[objname][key1name][key2name]["name"] = upfile->name;
-                                peer->files[objname][key1name][key2name]["filename"] = upfile->filename;
-                                peer->files[objname][key1name][key2name]["tempfile"] = upfile->tempfile;
-                                peer->files[objname][key1name][key2name]["type"] = upfile->type;
-                                peer->files[objname][key1name][key2name]["size"] = upfile->size;
-                                peer->files[objname][key1name][key2name]["error"] = upfile->error;
+                                if(key1name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                if(key2name.size()>48)
+                                {
+                                    error = 400000;
+                                    return;
+                                }
+
+                                http::obj_val objtemp;
+                                objtemp.set_object();
+                                objtemp["name"] = upfile->name;
+                                objtemp["filename"] = upfile->filename;
+                                objtemp["tempfile"] = upfile->tempfile;
+                                objtemp["type"] = upfile->type;
+                                objtemp["size"] = upfile->size;
+                                objtemp["error"] = upfile->error;
+
+                                peer->files[objname].set_object();
+                                peer->files[objname][key1name].set_object();
+
+                                peer->files[objname][key1name].push(key2name, std::move(objtemp));
+
                             }
                         }
                         j = m;
@@ -2389,27 +2648,50 @@ namespace http
                         // 只有一个
                         if (key1name.empty())
                         {
-                            peer->files[objname].set_array();
-                            http::OBJ_VALUE objtemp;
-                            objtemp.set_array();
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            http::obj_val objtemp;
+                            objtemp.set_object();
                             objtemp["name"] = upfile->name;
                             objtemp["filename"] = upfile->filename;
                             objtemp["tempfile"] = upfile->tempfile;
                             objtemp["type"] = upfile->type;
                             objtemp["size"] = upfile->size;
                             objtemp["error"] = upfile->error;
-                            peer->files[objname] = objtemp;
+
+                            peer->files[objname].set_object();
+                            unsigned int iii=peer->files[objname].size();
+                            key1name = std::to_string(iii);
+
+                            peer->files[objname].push(key1name, std::move(objtemp));
                         }
                         else
                         {
-                            // files[objname].push(key1name,"");
-                            peer->files[objname][key1name].set_array();
-                            peer->files[objname][key1name]["name"] = upfile->name;
-                            peer->files[objname][key1name]["filename"] = upfile->filename;
-                            peer->files[objname][key1name]["tempfile"] = upfile->tempfile;
-                            peer->files[objname][key1name]["type"] = upfile->type;
-                            peer->files[objname][key1name]["size"] = upfile->size;
-                            peer->files[objname][key1name]["error"] = upfile->error;
+                            if(objname.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if(key1name.size()>48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            http::obj_val objtemp;
+                            objtemp.set_object();
+                            objtemp["name"] = upfile->name;
+                            objtemp["filename"] = upfile->filename;
+                            objtemp["tempfile"] = upfile->tempfile;
+                            objtemp["type"] = upfile->type;
+                            objtemp["size"] = upfile->size;
+                            objtemp["error"] = upfile->error;
+
+                            peer->files[objname].set_object();
+                            peer->files[objname].push(key1name, std::move(objtemp));
                         }
                         j = n;
                         isgroup = false;
@@ -2433,7 +2715,7 @@ namespace http
         if (isgroup)
         {
             // files[upfile.name]=buffer_value;
-            peer->files[upfile->name].set_array();
+            peer->files[upfile->name].set_object();
             peer->files[upfile->name]["name"] = upfile->name;
             peer->files[upfile->name]["filename"] = upfile->filename;
             peer->files[upfile->name]["tempfile"] = upfile->tempfile;

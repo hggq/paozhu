@@ -44,7 +44,7 @@ namespace http
             file_runtime_pathname = logpath + "access.log";
             file_error_pathname = logpath + "error.log";
         }
-        debug_log &operator<<(http::OBJ_VALUE &a)
+        debug_log &operator<<(http::obj_val &a)
         {
             this->output.append(a.to_string());
             return *this;

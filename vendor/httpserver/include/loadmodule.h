@@ -17,15 +17,15 @@ typedef boost::function<void()> callback_t;
 typedef boost::function<void(std::string)> echo_callback_t;
 typedef boost::function<void(std::string &)> echo_callbackand_t;
 typedef boost::function<bool(std::list<std::string> &, size_t)> mysql_callbacksql_rollback;
-typedef boost::function<std::string(OBJ_VALUE &)> method_callback_t;
+typedef boost::function<std::string(obj_val &)> method_callback_t;
 typedef boost::function<std::string(std::shared_ptr<httppeer>)> www_method_call;
-typedef boost::function<boost::function<std::string(OBJ_VALUE &)>(std::string)> modulemethod_callback_t;
+typedef boost::function<boost::function<std::string(obj_val &)>(std::string)> modulemethod_callback_t;
 typedef boost::function<boost::function<std::string(std::shared_ptr<httppeer>)>(std::string)> module_method_call;
 
-typedef boost::function<std::string(OBJ_VALUE &)> method_callback_t;
+typedef boost::function<std::string(obj_val &)> method_callback_t;
 typedef std::map<std::size_t, method_callback_t> so_cachepath_t;
 
-std::string httpempty(OBJ_VALUE &a);
+std::string httpempty(obj_val &a);
 method_callback_t viewmodulecreate(std::string module, std::string name);
 method_callback_t loadview(std::string modulemethod);
 www_method_call controlmodulecreate(std::string module, std::string name, size_t tt);

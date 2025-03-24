@@ -31,7 +31,6 @@
 
 namespace http
 {
-#define COOKIE_SESSION_NAME "PHPSESSID"
 template <typename T>
 concept VALNUM_T = std::is_floating_point_v<T> || std::is_integral_v<T>;
 
@@ -86,14 +85,14 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void save_session_file(std::string &sessionfile);
 
     void view(const std::string &a);
-    void view(const std::string &a, OBJ_VALUE &b);
+    void view(const std::string &a, obj_val &b);
     std::string fetchview(const std::string &a);
-    std::string fetchview(const std::string &a, OBJ_VALUE &b);
+    std::string fetchview(const std::string &a, obj_val &b);
     void send(const std::string &a);
     httppeer &out(std::string);
     httppeer &out(const std::string &a);
 
-    httppeer &operator<<(OBJ_VALUE &a);
+    httppeer &operator<<(obj_val &a);
     httppeer &operator<<(std::string &&a);
     httppeer &operator<<(std::string &a);
     httppeer &operator<<(std::string_view a);
@@ -118,7 +117,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     httppeer &operator<<(T *a);
 
     httppeer &get_peer();
-    void out_json(OBJ_VALUE &a);
+    void out_json(obj_val &a);
     void out_json();
     void json_type();
 
@@ -150,12 +149,12 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string rawheader;
     std::string rawcontent;
     std::map<std::string, std::string> header;
-    http::OBJ_VALUE get;
-    http::OBJ_VALUE post;
-    http::OBJ_VALUE files;
-    http::OBJ_VALUE json;
-    http::OBJ_VALUE val;
-    Cookie cookie;
+    http::obj_val get;
+    http::obj_val post;
+    http::obj_val files;
+    http::obj_val json;
+    http::obj_val val;
+    cookie cookie;
     std::vector<std::string> pathinfos;
 
     bool issendheader = false;
@@ -187,9 +186,9 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::unique_ptr<websocketparse> ws;
     std::shared_ptr<websockets_api> websockets;
 
-    http::OBJ_VALUE session;
+    http::obj_val session;
 
-    //Cookie send_cookie;
+    //cookie send_cookie;
     std::list<std::string> send_cookie_lists;
     std::map<std::string, std::string> send_header;
     std::map<unsigned char, std::string> http2_send_header;

@@ -19,7 +19,7 @@ std::string admin_marbrand(std::shared_ptr<httppeer> peer)
     brand.fetch();
 
     client.val["list"].set_array();
-    OBJ_ARRAY btemp;
+    obj_val btemp;
     unsigned int editid  = client.get["id"].to_int();
     unsigned int topicid = 0;
 
@@ -30,7 +30,7 @@ std::string admin_marbrand(std::shared_ptr<httppeer> peer)
     topicm.where("userid", client.session["userid"].to_int()).where("cateid", 24).asc("parentid").fetch();
 
     client.val["topiclist"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
         temp["id"]   = topicm.record[i].topicid;

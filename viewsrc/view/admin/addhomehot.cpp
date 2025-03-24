@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace admin{
- 		 std::string addhomehot([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string addhomehot([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -36,11 +36,11 @@ echo<<obj["info"]["content"].to_string();
  			 echo<<"\">\n        </div>\n      </div>  \n      <div class=\"row\">\n        ";
  for(auto &a:obj["list"].as_array()){ 
  			 echo<<"          <div class=\"row g-3 mt-1\">\n                <div class=\"col-md-2\">\n                  ";
-echo<<a.second["title"].to_string(); 
+echo<<a["title"].to_string(); 
  			 echo<<"              </div>\n              <div class=\"col-md-2\">\n                <input class=\"form-check-input topicidlist\" type=\"checkbox\" role=\"switch\" name=\"topicid[]\" id=\"topicid_";
-echo<<a.second["topicid"].to_string(); 
+echo<<a["topicid"].to_string(); 
  			 echo<<"\" onclick=\"checktopicinsert(this)\" value=\"";
-echo<<a.second["topicid"].to_string(); 
+echo<<a["topicid"].to_string(); 
  			 echo<<"\">\n              </div>\n              \n          </div>\n           ";
  } 
  			 echo<<" \n \n      </div>  \n       \n      <div class=\"row\" style=\"margin-top: 20px;\">\n        <div class=\"col-md-6\">\n        <br />\n        <input type=\"hidden\" name=\"hbid\" value=\"";

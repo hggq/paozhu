@@ -4,6 +4,7 @@
 #include "md5.h"
 #include "func.h"
 #include "httppeer.h"
+#include "request.h"
 #include "testcrud.h"
 namespace http
 {
@@ -83,9 +84,9 @@ std::string articlelist(std::shared_ptr<httppeer> peer)
         client.val["list"].set_array();
         if (articles.size() > 0)
         {
+            obj_val item;
             for (auto &bb : articles)
             {
-                OBJ_ARRAY item;
                 item["aid"]        = bb.aid;
                 item["title"]      = bb.title;
                 item["createtime"] = bb.createtime;

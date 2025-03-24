@@ -182,6 +182,7 @@ class mysql_conn_base
     unsigned int write_sql(const std::string &sql);
     asio::awaitable<unsigned int> async_write_sql(const std::string &sql);
 
+    void reset_data();
     bool is_closed();
 
     void begin_time();

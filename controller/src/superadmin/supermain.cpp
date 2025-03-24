@@ -5,6 +5,7 @@
 #include "func.h"
 #include "supermain.h"
 #include "md5.h"
+#include "request.h"
 #include <filesystem>
 namespace http
 {
@@ -427,7 +428,7 @@ std::string superadmin_welcome(std::shared_ptr<httppeer> peer)
         stinfo.where("agentid", client.session["superid"].to_int()).desc("sid").fetch();
 
         client.val["infos"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
         for (unsigned int i = 0; i < stinfo.record.size(); ++i)
         {
             temp["sid"]         = stinfo.record[i].sid;
@@ -462,14 +463,14 @@ std::string superadmin_listuser(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    client.val["info"].set_array();
+    client.val["info"].set_object();
     client.val["info"]["sitename"] = stinfo.data.sitename;
     client.val["info"]["sid"]      = stinfo.data.sid;
 
     auto uinfo = orm::cms::Sysuser();
     uinfo.where("companyid", sid).desc("adminid").fetch();
     client.val["infos"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < uinfo.record.size(); ++i)
     {
         temp["nickname"] = uinfo.record[i].nickname;
@@ -504,7 +505,7 @@ std::string superadmin_edituser(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    client.val["info"].set_array();
+    client.val["info"].set_object();
     client.val["info"]["sitename"] = stinfo.data.sitename;
     client.val["info"]["sid"]      = stinfo.data.sid;
 
@@ -535,7 +536,7 @@ std::string superadmin_adduser(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    client.val["info"].set_array();
+    client.val["info"].set_object();
     client.val["info"]["sitename"] = stinfo.data.sitename;
     client.val["info"]["sid"]      = stinfo.data.sid;
     client.val["info"]["userid"]   = stinfo.data.userid;
@@ -741,7 +742,7 @@ std::string superadmin_userinfo(std::shared_ptr<httppeer> peer)
         auto stuser = orm::cms::Superadmin();
         stuser.where("adminid", client.session["superid"].to_int()).fetch_one();
 
-        client.val["info"].set_array();
+        client.val["info"].set_object();
 
         client.val["info"]["userid"] = stuser.getAdminid();
         client.val["info"]["name"]   = stuser.getName();
@@ -751,7 +752,7 @@ std::string superadmin_userinfo(std::shared_ptr<httppeer> peer)
         loginfo.where("logtype", 1).where("adminid", stuser.getAdminid()).desc("lgid").limit(10).fetch();
 
         client.val["loginlist"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
         for (unsigned int i = 0; i < loginfo.record.size(); i++)
         {
 

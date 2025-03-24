@@ -35,7 +35,7 @@
 #ifdef WIN32
 #define stat _stat
 #endif
-
+#include "cost_define.h"
 #include "request.h"
 #include "datetime.h"
 #include "client_session.h"
@@ -45,6 +45,7 @@
 #include "http2_frame.h"
 #include "http2_huffman.h"
 #include "terminal_color.h"
+
 #ifdef ENABLE_BOOST
 #include "loadmodule.h"
 #include "loadviewso.h"
@@ -229,7 +230,7 @@ void httppeer::parse_session_file(std::string &sessionfile)
 }
 void httppeer::parse_session_memory(std::string &sessionfile_id)
 {
-    pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
+    pzcache<obj_val> &temp_cache = pzcache<obj_val>::conn();
     temp_cache.update(sessionfile_id, 30000);
     session = temp_cache.get(sessionfile_id);
 }
@@ -329,7 +330,7 @@ void httppeer::save_session()
 }
 void httppeer::save_session_memory(std::string &sessionfile)
 {
-    pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
+    pzcache<obj_val> &temp_cache = pzcache<obj_val>::conn();
     temp_cache.save(sessionfile, session, 30000, true);
 }
 void httppeer::save_session_file(std::string &sessionfile)
@@ -415,7 +416,7 @@ void httppeer::clear_session()
         }
         if (localvar.session_type == 1)
         {
-            pzcache<OBJ_VALUE> &temp_cache = pzcache<OBJ_VALUE>::conn();
+            pzcache<obj_val> &temp_cache = pzcache<obj_val>::conn();
             temp_cache.remove(sessionfile);
             return;
         }
@@ -1534,7 +1535,7 @@ void httppeer::goto_url(const std::string &url, unsigned char second, const std:
     output.append("</body></html>");
 }
 
-httppeer &httppeer::operator<<(OBJ_VALUE &a)
+httppeer &httppeer::operator<<(obj_val &a)
 {
     output.append(a.to_string());
     return *this;
@@ -1719,7 +1720,7 @@ void httppeer::view(const std::string &a)
 #endif
     return;
 }
-void httppeer::view(const std::string &a, OBJ_VALUE &b)
+void httppeer::view(const std::string &a, obj_val &b)
 {
     struct view_param tempvp(get, post, cookie, session);
     if (!isso)
@@ -1874,7 +1875,7 @@ std::string httppeer::fetchview(const std::string &a)
 #endif
     return "";
 }
-std::string httppeer::fetchview(const std::string &a, OBJ_VALUE &b)
+std::string httppeer::fetchview(const std::string &a, obj_val &b)
 {
     struct view_param tempvp(get, post, cookie, session);
     if (!isso)
@@ -1950,7 +1951,7 @@ std::string httppeer::fetchview(const std::string &a, OBJ_VALUE &b)
 #endif
     return "";
 }
-void httppeer::out_json(OBJ_VALUE &a)
+void httppeer::out_json(obj_val &a)
 {
     content_type = "application/json";
     output       = a.to_json();

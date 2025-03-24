@@ -56,11 +56,11 @@
               <tbody>
                 <%c for(auto &a:obj["loginlist"].as_array()){ %>
                 <tr>
-                  <th scope="row"><%c echo<<a.second["id"].to_string(); %></th>
-                  <td><%c echo<<a.second["addtime"].to_string(); %></td>
-                  <td><%c echo<<a.second["addregion"].to_string(); %></td>
-                  <td><%c echo<<a.second["addip"].to_string(); %></td>
-                  <td><%c echo<<a.second["loginstate"].to_string(); %></td>
+                  <th scope="row"><%c echo<<a["id"].to_string(); %></th>
+                  <td><%c echo<<a["addtime"].to_string(); %></td>
+                  <td><%c echo<<a["addregion"].to_string(); %></td>
+                  <td><%c echo<<a["addip"].to_string(); %></td>
+                  <td><%c echo<<a["loginstate"].to_string(); %></td>
                 </tr>
                 <%c } %>
               </tbody>

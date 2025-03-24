@@ -34,13 +34,13 @@ class client : public std::enable_shared_from_this<client>
     client() : rawfile(nullptr, std::fclose){};
     ~client();
     client(std::string_view url) : _url(url), rawfile(nullptr, std::fclose){};
-    client &get(std::string_view url, http::OBJ_VALUE parmter);
+    client &get(std::string_view url, http::obj_val parmter);
     client &get(std::string_view url);
-    client &post(std::string_view url, http::OBJ_VALUE parmter);
+    client &post(std::string_view url, http::obj_val parmter);
     client &post(std::string_view url);
-    client &get_json(std::string_view url, http::OBJ_VALUE parmter);
+    client &get_json(std::string_view url, http::obj_val parmter);
     client &get_json(std::string_view url);
-    client &post_json(std::string_view url, http::OBJ_VALUE parmter);
+    client &post_json(std::string_view url, http::obj_val parmter);
     client &post_json(std::string_view url);
 
     client &set_cookie(std::string, std::string);
@@ -58,16 +58,16 @@ class client : public std::enable_shared_from_this<client>
     client &post_type(std::string);
     client &data_type(std::string);
     client &send();
-    client &send(http::OBJ_VALUE parmter);
+    client &send(http::obj_val parmter);
 
     asio::awaitable<void> async_send();
-    asio::awaitable<void> async_send(http::OBJ_VALUE parmter);
+    asio::awaitable<void> async_send(http::obj_val parmter);
 
     client &send_data();
     client &send_ssl_data();
     client &save(std::string);
 
-    client &build_query(http::OBJ_VALUE parmter);
+    client &build_query(http::obj_val parmter);
     client &build_query(const std::string &a);
     client &build_query(const std::map<std::string, std::string> &);
     std::string get_query();
@@ -106,14 +106,14 @@ class client : public std::enable_shared_from_this<client>
     unsigned int get_length();
     unsigned int get_status();
     std::string get_status_msg();
-    Cookie get_cookie();
-    http::OBJ_VALUE json();
+    cookie get_cookie();
+    http::obj_val json();
 
   public:
-    http::OBJ_VALUE header;
+    http::obj_val header;
     std::map<std::string, std::string> cookie;
-    http::OBJ_VALUE parameter;
-    http::OBJ_VALUE data;
+    http::obj_val parameter;
+    http::obj_val data;
     std::string scheme;
     std::string host;
     std::string path;
@@ -149,9 +149,9 @@ class client : public std::enable_shared_from_this<client>
         std::string content;
         std::string codemessage;
         std::map<std::string, std::string> header;
-        Cookie cookie;
+        http::cookie cookie;
         upload_file page;
-        http::OBJ_VALUE json;
+        http::obj_val json;
     } state;
 
     std::shared_ptr<asio::ip::tcp::socket> sock                       = {nullptr};

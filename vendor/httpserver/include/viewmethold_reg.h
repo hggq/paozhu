@@ -8,7 +8,7 @@
 #include "viewso_param.h"
 namespace http
 {
-  typedef std::map<std::string,std::function<std::string(const struct view_param&,http::OBJ_VALUE &)>> VIEW_REG;
+  typedef std::map<std::string,std::function<std::string(const struct view_param&,http::obj_val &)>> VIEW_REG;
 
 void _run_view_reg_to();
   VIEW_REG &get_viewmetholdreg();

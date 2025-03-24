@@ -3878,7 +3878,7 @@ M_MODEL& or_leRandomnumber(T val)
             return *mod;
         }
 
-        M_MODEL &where(const std::string &wq, char bi, http::OBJ_VALUE &obj)
+        M_MODEL &where(const std::string &wq, char bi, http::obj_val &obj)
         {
             if (wheresql.empty())
             {
@@ -3916,7 +3916,7 @@ M_MODEL& or_leRandomnumber(T val)
             }
             return *mod;
         }
-        M_MODEL &where(const std::string &wq, http::OBJ_VALUE &obj)
+        M_MODEL &where(const std::string &wq, http::obj_val &obj)
         {
             if (wheresql.empty())
             {
@@ -6862,7 +6862,7 @@ M_MODEL& or_leRandomnumber(T val)
                 return true;
             }
         }
-        http::OBJ_VALUE fetch_json()
+        http::obj_val fetch_json()
         {
             effect_num = 0;
             if (selectsql.empty())
@@ -6900,7 +6900,7 @@ M_MODEL& or_leRandomnumber(T val)
                 sqlstring.append(limitsql);
             }
 
-            http::OBJ_VALUE valuetemp;
+            http::obj_val valuetemp;
             valuetemp.set_array();
 
             if (iserror)
@@ -7004,7 +7004,7 @@ M_MODEL& or_leRandomnumber(T val)
                                 unsigned int column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
-                                http::OBJ_VALUE json_temp_v;  
+                                http::obj_val json_temp_v;  
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
@@ -7066,7 +7066,7 @@ M_MODEL& or_leRandomnumber(T val)
             return valuetemp;
         }
 
-        asio::awaitable<http::OBJ_VALUE> async_fetch_json()
+        asio::awaitable<http::obj_val> async_fetch_json()
         {
             effect_num = 0;
             if (selectsql.empty())
@@ -7104,7 +7104,7 @@ M_MODEL& or_leRandomnumber(T val)
                 sqlstring.append(limitsql);
             }
 
-            http::OBJ_VALUE valuetemp;
+            http::obj_val valuetemp;
             valuetemp.set_array();
 
             if (iserror)
@@ -7206,7 +7206,7 @@ M_MODEL& or_leRandomnumber(T val)
                                 unsigned int column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
-                                http::OBJ_VALUE json_temp_v;  
+                                http::obj_val json_temp_v;  
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
@@ -10097,6 +10097,7 @@ M_MODEL& or_leRandomnumber(T val)
                     //must be select
                     if(rawsql[i]!='s' && rawsql[i]!='S')
                     {
+                        error_msg = "Query sql string must be select.";
                         iserror = true;   
                     }
                 }
@@ -10293,6 +10294,7 @@ M_MODEL& or_leRandomnumber(T val)
                     //must be select
                     if(rawsql[i]!='s' && rawsql[i]!='S')
                     {
+                        error_msg = "Query sql string must be select.";
                         iserror = true;   
                     }
                 }

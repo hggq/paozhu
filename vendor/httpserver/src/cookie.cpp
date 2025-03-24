@@ -8,8 +8,8 @@
 namespace http
 {
 
-Cookie::Cookie() {}
-Cookie *Cookie::set(std::string key,
+cookie::cookie() {}
+cookie *cookie::set(std::string key,
                     std::string val,
                     unsigned long exptime,
                     std::string path,
@@ -48,12 +48,12 @@ Cookie *Cookie::set(std::string key,
     }
     return this;
 }
-Cookie *Cookie::opt(std::string key)
+cookie *cookie::opt(std::string key)
 {
     curkey = key;
     return this;
 }
-Cookie *Cookie::domain(std::string d)
+cookie *cookie::domain(std::string d)
 {
     if (curkey.empty())
     {
@@ -62,7 +62,7 @@ Cookie *Cookie::domain(std::string d)
     _domain[curkey] = d;
     return this;
 }
-Cookie *Cookie::expires(unsigned long e)
+cookie *cookie::expires(unsigned long e)
 {
     if (curkey.empty())
     {
@@ -72,7 +72,7 @@ Cookie *Cookie::expires(unsigned long e)
     _set[curkey]     = true;
     return this;
 }
-Cookie *Cookie::path(std::string p)
+cookie *cookie::path(std::string p)
 {
     if (curkey.empty())
     {
@@ -81,7 +81,7 @@ Cookie *Cookie::path(std::string p)
     _path[curkey] = p;
     return this;
 }
-Cookie *Cookie::secure(unsigned char p)
+cookie *cookie::secure(unsigned char p)
 {
     if (curkey.empty())
     {
@@ -91,7 +91,7 @@ Cookie *Cookie::secure(unsigned char p)
     _secure[curkey] = p;
     return this;
 }
-Cookie *Cookie::httponly(unsigned char p)
+cookie *cookie::httponly(unsigned char p)
 {
     if (curkey.empty())
     {
@@ -101,7 +101,7 @@ Cookie *Cookie::httponly(unsigned char p)
     _httponly[curkey] = p;
     return this;
 }
-Cookie *Cookie::samesite(std::string p)
+cookie *cookie::samesite(std::string p)
 {
     if (curkey.empty())
     {
@@ -111,24 +111,24 @@ Cookie *Cookie::samesite(std::string p)
     _samesite[curkey] = p;
     return this;
 }
-std::string Cookie::get(std::string key) { return _val[key]; }
-std::string &Cookie::operator[](std::string key) { return _val[key]; }
+std::string cookie::get(std::string key) { return _val[key]; }
+std::string &cookie::operator[](std::string key) { return _val[key]; }
 
-std::map<std::string, std::string>::const_iterator Cookie::begin() const { return _val.begin(); }
+std::map<std::string, std::string>::const_iterator cookie::begin() const { return _val.begin(); }
 
-std::map<std::string, std::string>::const_iterator Cookie::end() const { return _val.end(); }
+std::map<std::string, std::string>::const_iterator cookie::end() const { return _val.end(); }
 
-std::map<std::string, std::string>::iterator Cookie::begin() { return _val.begin(); }
+std::map<std::string, std::string>::iterator cookie::begin() { return _val.begin(); }
 
-std::map<std::string, std::string>::iterator Cookie::end() { return _val.end(); }
+std::map<std::string, std::string>::iterator cookie::end() { return _val.end(); }
 
-std::map<std::string, std::string> Cookie::getAll() { return _val; }
-std::string Cookie::makeheader(std::string key)
+std::map<std::string, std::string> cookie::getAll() { return _val; }
+std::string cookie::makeheader(std::string key)
 {
     std::string tempc;
     if (_val.find(key) != _val.end())
     {
-        tempc.append("Set-Cookie: ");
+        tempc.append("Set-cookie: ");
         tempc.append(http::url_encode(key.data(), key.size()));
         tempc.push_back('=');
         tempc.append(http::url_encode(_val[key].data(), _val[key].size()));
@@ -157,7 +157,7 @@ std::string Cookie::makeheader(std::string key)
         return tempc;
     }
 }
-void Cookie::clear()
+void cookie::clear()
 {
     _val.clear();
     _domain.clear();
@@ -168,7 +168,7 @@ void Cookie::clear()
     _set.clear();
     _samesite.clear();
 }
-bool Cookie::check(std::string key)
+bool cookie::check(std::string key)
 {
     if (_val.find(key) != _val.end())
     {
@@ -180,7 +180,7 @@ bool Cookie::check(std::string key)
     }
 }
 
-std::string Cookie::getDomain(std::string key)
+std::string cookie::getDomain(std::string key)
 {
     if (_domain.find(key) != _domain.end())
     {
@@ -191,7 +191,7 @@ std::string Cookie::getDomain(std::string key)
         return "";
     }
 }
-std::string Cookie::getPath(std::string key)
+std::string cookie::getPath(std::string key)
 {
     if (_path.find(key) != _path.end())
     {
@@ -202,7 +202,7 @@ std::string Cookie::getPath(std::string key)
         return "";
     }
 }
-unsigned long Cookie::getExpires(std::string key)
+unsigned long cookie::getExpires(std::string key)
 {
     if (_expires.find(key) != _expires.end())
     {
@@ -213,7 +213,7 @@ unsigned long Cookie::getExpires(std::string key)
         return 0;
     }
 }
-unsigned char Cookie::getSecure(std::string key)
+unsigned char cookie::getSecure(std::string key)
 {
     if (_secure.find(key) != _secure.end())
     {
@@ -224,7 +224,7 @@ unsigned char Cookie::getSecure(std::string key)
         return 0;
     }
 }
-unsigned char Cookie::getHttponly(std::string key)
+unsigned char cookie::getHttponly(std::string key)
 {
     if (_httponly.find(key) != _httponly.end())
     {
@@ -235,7 +235,7 @@ unsigned char Cookie::getHttponly(std::string key)
         return 0;
     }
 }
-std::string Cookie::getSamesite(std::string key)
+std::string cookie::getSamesite(std::string key)
 {
     if (_samesite.find(key) != _samesite.end())
     {

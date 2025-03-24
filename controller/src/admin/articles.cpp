@@ -24,7 +24,7 @@ std::string admin_addarticle(std::shared_ptr<httppeer> peer)
         client.val["topicid"] = topicid;
 
         client.val["list"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
 
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
@@ -114,7 +114,7 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
         client.val["topicid"] = topicid;
 
         client.val["list"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
 
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
@@ -124,7 +124,7 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
             temp["value"]    = topicm.record[i].title;
             client.val["list"].push(temp);
         }
-        client.val["info"].set_array();
+        client.val["info"].set_object();
 
         client.val["info"]["aid"]           = artmodel.getAid();
         client.val["info"]["title"]         = artmodel.getTitle();
@@ -283,7 +283,7 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
         artmodel.desc("aid").fetch();
 
         client.val["alist"].set_array();
-        OBJ_ARRAY tempa;
+        obj_val tempa;
 
         if (artmodel.size() > 0)
         {
@@ -388,7 +388,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         client.val["topicid"]  = topicid;
 
         client.val["list"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
 
         std::map<unsigned int, std::string> topickv;
         std::vector<unsigned int> topic_id_array;//articles under this topic and sub topics
@@ -437,7 +437,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         }
         auto [bar_min, bar_max, current_page, total_page] = artmodel.page(page, 10, 5);
 
-        client.val["pageinfo"].set_array();
+        client.val["pageinfo"].set_object();
         client.val["pageinfo"]["min"]     = bar_min;
         client.val["pageinfo"]["max"]     = bar_max;
         client.val["pageinfo"]["current"] = current_page;
@@ -445,7 +445,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
 
         artmodel.select("aid,topicid,title,createtime,sortid,isopen,ishome").desc("aid").fetch();
         client.val["alist"].set_array();
-        OBJ_ARRAY tempa;
+        obj_val tempa;
 
         if (artmodel.size() > 0)
         {

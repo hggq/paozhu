@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace superadmin{
- 		 std::string edituser([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string edituser([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;

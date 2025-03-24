@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace superadmin{
- 		 std::string listuser([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string listuser([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -34,21 +34,21 @@ echo<<obj["info"]["sid"].to_string();
  			 echo<<"\">添加用户</a>\n      </div>\n    </div>      \n    <div class=\"row p-3\">\n      <div class=\"col-10\">\n        <table class=\"table table-bordered\">\n\n          <tbody>\n            <tr>\n              <th>#</th>\n              <th>昵称</th>\n              <th>登录名</th>\n              <th>状态</th>\n              <th>操作</th>\n            </tr>\n            ";
  for(auto &a:obj["infos"].as_array()){ 
  			 echo<<"            <tr>\n              <td>";
- echo<<a.second["userid"].to_string(); 
+ echo<<a["userid"].to_string(); 
  			 echo<<"</td>\n              <td>";
- echo<<a.second["nickname"].to_string(); 
+ echo<<a["nickname"].to_string(); 
  			 echo<<"</td>\n              <td>";
- echo<<a.second["name"].to_string(); 
+ echo<<a["name"].to_string(); 
  			 echo<<"</td>\n              <td>";
- if(a.second["isopen"].to_int()==1){ 
+ if(a["isopen"].to_int()==1){ 
  			 echo<<"启用";
  }else{ 
  			 echo<<"关闭";
  } 
  			 echo<<"</td>\n              <td><a href=\"/superadmin/edituser?userid=";
- echo<<a.second["userid"].to_string(); 
+ echo<<a["userid"].to_string(); 
  			 echo<<"\">编辑</a> | <a href=\"/superadmin/deleteuser?userid=";
- echo<<a.second["userid"].to_string(); 
+ echo<<a["userid"].to_string(); 
  			 echo<<"\" onclick=\"return confirm('确定删除？');\">删除</a></td>\n            </tr>\n            ";
  } 
  			 echo<<"          </tbody>\n\n        </table>\n      </div>\n    </div>\n    <div class=\"row p-3\">\n      <div class=\"col-10\">\n         <a href=\"/superadmin/welcome\" class=\"btn btn-link rounded-pill px-3\">返回</a>\n      </div>\n    </div>\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n</body>\n\n</html>";

@@ -33,17 +33,17 @@
           </thead>
           <tbody>
             <%c for(auto &a:obj["list"].as_array()){ %>
-              <tr id="topicid_<%c echo<<a.second["id"].to_string(); %>">
+              <tr id="topicid_<%c echo<<a["id"].to_string(); %>">
                 <td>
-                  <%c echo<<a.second["id"].to_string(); %>
+                  <%c echo<<a["id"].to_string(); %>
                 </td>
-                <td <%c if(a.second["parentid"].to_int()>0){ %>style="padding-left:<%c echo<<(a.second["level"].to_int()*15+15); %>px"<%c } %>  id="itemid_<%c echo<<a.second["id"].to_string(); %>">
-                  <%c echo<<a.second["value"].as_string(); %>
+                <td <%c if(a["parentid"].to_int()>0){ %>style="padding-left:<%c echo<<(a["level"].to_int()*15+15); %>px"<%c } %>  id="itemid_<%c echo<<a["id"].to_string(); %>">
+                  <%c echo<<a["value"].as_string(); %>
                 </td>
                  
                 <td>
-                  <a href="javascript:void()" data-cid="<%c echo<<a.second["id"].to_string(); %>"  data-pid="<%c echo<<a.second["parentid"].to_string(); %>" data-title="<%c echo<<a.second["value"].as_string(); %>" data-bs-toggle="modal" data-bs-target="#staticBackdrop">编辑</a>｜
-                  <a href="/admin/deletecatalogue?id=<%c echo<<a.second["id"].to_string(); %>" onclick="return deletecatalogue(<%c echo<<a.second["id"].to_string(); %>)">删除</a>
+                  <a href="javascript:void()" data-cid="<%c echo<<a["id"].to_string(); %>"  data-pid="<%c echo<<a["parentid"].to_string(); %>" data-title="<%c echo<<a["value"].as_string(); %>" data-bs-toggle="modal" data-bs-target="#staticBackdrop">编辑</a>｜
+                  <a href="/admin/deletecatalogue?id=<%c echo<<a["id"].to_string(); %>" onclick="return deletecatalogue(<%c echo<<a["id"].to_string(); %>)">删除</a>
                 </td>
               </tr>
               <%c } %>

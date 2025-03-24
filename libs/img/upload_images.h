@@ -36,7 +36,7 @@ class upload_images
     std::string configpath;
     std::string sitepath;
     httppeer &client;
-    OBJ_VALUE config_json;
+    obj_val config_json;
     struct
     {
         std::string state;

@@ -20,7 +20,7 @@ std::string admin_marhome(std::shared_ptr<httppeer> peer)
 
     client.val["list"].set_array();
 
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < homeblock.record.size(); i++)
     {
         temp["id"]       = homeblock.record[i].hbid;
@@ -109,7 +109,7 @@ std::string admin_addhometopic(std::shared_ptr<httppeer> peer)
     topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
     client.val["list"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
 
@@ -132,7 +132,7 @@ std::string admin_addhomecontent(std::shared_ptr<httppeer> peer)
     topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
     client.val["list"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
 
@@ -166,7 +166,7 @@ std::string admin_edithomeblockcontent(std::shared_ptr<httppeer> peer)
     topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
     client.val["list"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
 
@@ -215,7 +215,7 @@ std::string admin_edithomeblocktopic(std::shared_ptr<httppeer> peer)
     topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
     client.val["list"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
 
@@ -249,8 +249,8 @@ std::string admin_edithomeblockpost(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
 
     unsigned int imgnum = client.post["header_urlpath"].size();
-    OBJ_ARRAY temp;
-    OBJ_ARRAY headerimgobj;
+    obj_val temp;
+    obj_val headerimgobj;
     std::string title = client.post["title"].to_string();
     std::string tstr;
     unsigned int id = client.post["hbid"].to_int();
@@ -298,8 +298,8 @@ std::string admin_addhomeblockpost(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
 
     unsigned int imgnum = client.post["header_urlpath"].size();
-    OBJ_ARRAY temp;
-    OBJ_ARRAY headerimgobj;
+    obj_val temp;
+    obj_val headerimgobj;
     std::string title = client.post["title"].to_string();
     std::string tstr;
     //For safety reasons, do not directly client.post.to_json();
@@ -355,7 +355,7 @@ std::string admin_addhomehot(std::shared_ptr<httppeer> peer)
     topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
     client.val["list"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
 
@@ -389,7 +389,7 @@ std::string admin_edithomeblockhot(std::shared_ptr<httppeer> peer)
     topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
     client.val["list"].set_array();
-    OBJ_ARRAY temp;
+    obj_val temp;
     for (unsigned int i = 0; i < topicm.record.size(); i++)
     {
 

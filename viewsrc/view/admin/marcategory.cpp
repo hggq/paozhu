@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace admin{
- 		 std::string marcategory([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string marcategory([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -30,29 +30,29 @@ namespace view {
  			 echo<<"<!doctype html>\n<html lang=\"en\" data-bs-theme=\"auto\">\n\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"\">\n  <title>分类管理</title>\n\n  <link href=\"/assets/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link rel=\"stylesheet\" href=\"/assets/icons/font/bootstrap-icons.css\">\n  <link rel=\"stylesheet\" href=\"/libs/tree/select-tree.css\">\n  \n  <link href=\"/css/dashboard.css\" rel=\"stylesheet\">\n  <script src=\"/js/jquery.min.js\"></script>\n  <script src=\"/libs/tree/select-tree.js\"></script>\n</head>\n\n<body>\n\n  <div class=\"container\">\n  <h5>分类管理</h5>\n  <hr>\n  <div class=\"row p-3\">\n      <div class=\"col-10\">\n        <table class=\"table table-bordered\">\n          <thead>\n            <tr>\n              <th scope=\"col\">#</th>\n              <th scope=\"col\">名称</th>\n              <th scope=\"col\">编辑</th>\n            </tr>\n          </thead>\n          <tbody>\n            ";
  for(auto &a:obj["list"].as_array()){ 
  			 echo<<"              <tr id=\"topicid_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\">\n                <td>\n                  ";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"                </td>\n                <td ";
- if(a.second["parentid"].to_int()>0){ 
+ if(a["parentid"].to_int()>0){ 
  			 echo<<"style=\"padding-left:";
- echo<<(a.second["level"].to_int()*15+15); 
+ echo<<(a["level"].to_int()*15+15); 
  			 echo<<"px\"";
  } 
  			 echo<<"  id=\"itemid_";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\">\n                  ";
- echo<<a.second["value"].as_string(); 
+ echo<<a["value"].as_string(); 
  			 echo<<"                </td>\n                 \n                <td>\n                  <a href=\"javascript:void()\" data-cid=\"";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\"  data-pid=\"";
- echo<<a.second["parentid"].to_string(); 
+ echo<<a["parentid"].to_string(); 
  			 echo<<"\" data-title=\"";
- echo<<a.second["value"].as_string(); 
+ echo<<a["value"].as_string(); 
  			 echo<<"\" data-bs-toggle=\"modal\" data-bs-target=\"#staticBackdrop\">编辑</a>｜\n                  <a href=\"/admin/deletecatalogue?id=";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" onclick=\"return deletecatalogue(";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<")\">删除</a>\n                </td>\n              </tr>\n              ";
  } 
  			 echo<<"          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n\n    <form class=\"row g-3 mt-1\" id=\"form\" method=\"post\">\n      \n      <div class=\"col-md-6\">\n        <label for=\"parentid\" class=\"form-label\">父类别</label>\n        <select class=\"form-select\" id=\"parentid\" name=\"parentid\">\n        </select>\n      </div>\n      <div class=\"col-md-6\">\n        <label for=\"topicname\" class=\"form-label\">名称</label>\n        <input type=\"text\" class=\"form-control\" id=\"topicname\" name=\"topicname\">\n      </div>\n      <div class=\"col-12\">\n        <button type=\"submit\" class=\"btn btn-primary\">提交</button>\n      </div>\n    </form>\n\n  </div>\n  \n  \n   <div class=\"modal fade\" id=\"staticBackdrop\" tabindex=\"-1\" aria-labelledby=\"exampleModalLabel\" aria-hidden=\"true\">\n  <div class=\"modal-dialog modal-lg modal-dialog-centered\">\n    <div class=\"modal-content\">\n      <div class=\"modal-header\">\n        <h1 class=\"modal-title fs-5\" id=\"exampleModalLabel\">编辑名称</h1>\n        <button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>\n      </div>\n      <div class=\"modal-body\">\n      <form id=\"editcategory\" method=\"post\" enctype=\"application/x-www-form-urlencoded\">\n       <div class=\"col-md-6\">\n        <label for=\"editparentid\" class=\"form-label\">父类别</label>\n        <select class=\"form-select\" id=\"editparentid\" name=\"editparentid\">\n        </select>\n      </div>\n      <div class=\"col-md-6\">\n        <label for=\"editname\" class=\"form-label\">名称</label>\n        <input type=\"text\" class=\"form-control\" id=\"editname\" name=\"editname\">\n        <input type=\"hidden\" id=\"cid\" name=\"cid\" value=\"0\" />\n      </div>\n      </form>\n      </div>\n      <div class=\"modal-footer\">\n        <button type=\"button\" class=\"btn btn-secondary\" data-bs-dismiss=\"modal\">Close</button>\n        <button type=\"button\" class=\"btn btn-primary\" onclick=\"typepost()\">Save</button>\n      </div>\n    </div>\n  </div>\n</div>\n  \n  \n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n  <script lang=\"javascript\">\n\n    var topic_json = ";

@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace admin{
- 		 std::string addhomepic([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string addhomepic([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -32,11 +32,11 @@ echo<<obj["info"]["title"].to_string();
  			 echo<<"\">\n        </div>\n      </div>  \n    \n      <div class=\"row\">\n        ";
  for(auto &a:obj["infotopimgs"].as_array()){ 
  			 echo<<"          <div class=\"row g-3 mt-1\">\n                <div class=\"col-md-2\">\n                <input type=\"text\" class=\"form-control\"  name=\"header_title[]\" placeholder=\"头图标题\" value=\"";
-echo<<a.second["header_title"].to_string(); 
+echo<<a["header_title"].to_string(); 
  			 echo<<"\">\n              </div>\n              <div class=\"col-md-2\">\n                <input type=\"text\" class=\"form-control\"  name=\"header_content[]\"  placeholder=\"头图说明\" value=\"";
-echo<<a.second["header_content"].to_string(); 
+echo<<a["header_content"].to_string(); 
  			 echo<<"\">\n              </div>\n              <div class=\"col-md-6\">\n                <div class=\"input-group row\">\n                  <input type=\"file\" class=\"form-control uploadfile col-md-4\"  accept=\".jpg,.png,.jpeg\"  aria-describedby=\"inputGroupFileAddon04\" aria-label=\"Upload\">\n                  <input type=\"text\" class=\"form-control col-md-8\"  name=\"header_urlpath[]\"  placeholder=\"图片地址\" value=\"";
-echo<<a.second["header_urlpath"].to_string(); 
+echo<<a["header_urlpath"].to_string(); 
  			 echo<<"\">\n                </div>\n              </div>\n              <div class=\"col-md-2\">\n                 <button type=\"button\" class=\"btn btn-outline-info\" onclick=\"additem(this)\">+</button>\n                 <button type=\"button\" class=\"btn btn-outline-danger\" onclick=\"removeitem(this)\">-</button>\n              </div>\n          </div>\n           ";
  } 
  			 echo<<" \n           ";

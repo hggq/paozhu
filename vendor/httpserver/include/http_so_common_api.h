@@ -27,7 +27,7 @@ class BOOST_SYMBOL_VISIBLE clientapi
     typedef boost::function<void(std::string &)> echo_callbackand_t;
     typedef boost::function<int(const char *, int)> webscoket_callback_t;// websocket send
 
-    typedef boost::function<boost::function<std::string(struct view_param, http::OBJ_VALUE &)>(std::string)> viewmethod_callback_t;
+    typedef boost::function<boost::function<std::string(struct view_param, http::obj_val &)>(std::string)> viewmethod_callback_t;
     typedef boost::function<boost::function<std::string(std::shared_ptr<http::httppeer> peer)>(const std::string &, const std::string &)> modulemethod_callback_t;
 
     typedef boost::function<std::unique_ptr<MYSQL, decltype(&mysql_close)>(size_t)> mysql_callbackand_t;

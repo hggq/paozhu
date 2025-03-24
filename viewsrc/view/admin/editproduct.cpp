@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace admin{
- 		 std::string editproduct([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string editproduct([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -34,13 +34,13 @@ echo << obj["info"]["sntype"].to_string();
  			 echo<<"\">\n            </div>\n          </div>\n           <div class=\"row mb-3\">\n            <label for=\"smallid\" class=\"col-sm-2 col-form-label text-sm-end\">分类</label>\n            <div class=\"col-sm-10\">\n              <select class=\"form-select\" id=\"smallid\" name=\"smallid\"></select>\n            </div>\n          </div>\n          <div class=\"row mb-3\">\n            <label for=\"brandid\" class=\"col-sm-2 col-form-label text-sm-end\">品牌</label>\n            <div class=\"col-sm-10\">\n              <select class=\"form-select\" id=\"brandid\" name=\"brandid\">\n                <option value=\"0\">无品牌</option>  \n                ";
  for(auto &a:obj["brandlist"].as_array()){ 
  			 echo<<"                <option value=\"";
- echo<<a.second["id"].to_string(); 
+ echo<<a["id"].to_string(); 
  			 echo<<"\" ";
- if(a.second["id"].to_int()==obj["info"]["brandid"].to_int()){ 
+ if(a["id"].to_int()==obj["info"]["brandid"].to_int()){ 
  			 echo<<"selected";
  } 
  			 echo<<">";
- echo<<a.second["name"].as_string(); 
+ echo<<a["name"].as_string(); 
  			 echo<<"</option>  \n                ";
  } 
  			 echo<<"  \n              </select>\n            </div>\n          </div>  \n\n\n         <div class=\"row mb-3\">\n            <label for=\"icoimg\" class=\"col-sm-2 col-form-label text-sm-end\">产品头图</label>\n            <div class=\"col-sm-6\">\n              <div class=\"input-group mb-3\">\n              <input type=\"text\" class=\"form-control\" id=\"icoimg\" name=\"icoimg\" value=\"";
@@ -57,7 +57,7 @@ echo << obj["info"]["bigimg"].to_string();
  			 echo<<"</div>  \n            </div>\n          </div> \n\n\n\n          <div class=\"row mb-3\">\n            <label for=\"keywords\" class=\"col-sm-2 col-form-label text-sm-end\">产品图片</label>\n            <div class=\"col-sm-10\">\n\n              ";
  unsigned int tempcout=0; for(auto &a:obj["proimglist"].as_array()){ 
  			 echo<<"              <div class=\"row\" style=\"margin-left: unset;margin-bottom: 5px;\">\n                <div class=\"col-md-8\">\n                  <div class=\"input-group row\">\n                    <input type=\"text\" class=\"form-control col-md-8\"  name=\"header_urlpath[]\"  placeholder=\"图片地址\" value=\"";
- echo<<a.second.to_string(); 
+ echo<<a.to_string(); 
  			 echo<<"\">\n                    <input type=\"file\" class=\"form-control uploadfile col-md-4\"  accept=\".jpg,.png,.jpeg\"  aria-describedby=\"inputGroupFileAddon04\" aria-label=\"Upload\">\n                  </div>\n                </div>\n                <div class=\"col-md-4\">\n                  <button type=\"button\" class=\"btn btn-outline-info\" onclick=\"additem(this)\">+</button>\n                  <button type=\"button\" class=\"btn btn-outline-danger\" onclick=\"removeitem(this)\">-</button>\n                </div>\n              </div>\n              ";
  tempcout+=1; } 
  			 echo<<"    \n              ";
@@ -75,9 +75,9 @@ echo << obj["info"]["samepro"].to_string();
  			 echo<<"\" placeholder=\"选择相关产品\" aria-label=\"相关产品\" aria-describedby=\"relate-addon\">\n  <button class=\"btn btn-outline-secondary\" type=\"button\" id=\"relate-addon\" data-bs-toggle=\"modal\" data-bs-target=\"#exampleModal\">选择</button>\n</div>\n\n\n            </div>\n          </div>\n\n          <div class=\"row mb-3\">\n            <label for=\"relateattach\" class=\"col-sm-2 col-form-label text-sm-end\">产品附件</label>\n            <div class=\"col-sm-10\">\n              ";
  unsigned int tempbcout=0; for(auto &a:obj["profilelist"].as_array()){ 
  			 echo<<"              <div class=\"row\" style=\"margin-left: unset;margin-bottom: 5px;\">\n                <div class=\"col-md-8\">\n                  <div class=\"input-group row\">\n                    <input type=\"text\" class=\"form-control col-md-5\"  name=\"attach_name[]\"  placeholder=\"附件显示名称\" value=\"";
- echo<<a.second["name"].to_string(); 
+ echo<<a["name"].to_string(); 
  			 echo<<"\">\n                    <input type=\"text\" class=\"form-control col-md-5\"  name=\"attach_urlpath[]\"  placeholder=\"附件地址\" value=\"";
- echo<<a.second["url"].to_string(); 
+ echo<<a["url"].to_string(); 
  			 echo<<"\">\n                    <button class=\"btn btn-outline-secondary selectattach col-md-2\" type=\"button\"  data-bs-toggle=\"modal\" data-bs-target=\"#attachModal\">选择文件</button>\n                  </div>\n                </div>\n                <div class=\"col-md-4\">\n                  <button type=\"button\" class=\"btn btn-outline-info\" onclick=\"addattachitem(this)\">+</button>\n                  <button type=\"button\" class=\"btn btn-outline-danger\" onclick=\"removeattachitem(this)\">-</button>\n                </div>\n              </div>\n              ";
  tempbcout+=1; } 
  			 echo<<" \n              ";

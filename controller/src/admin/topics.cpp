@@ -23,7 +23,7 @@ std::string admin_addtopic(std::shared_ptr<httppeer> peer)
         topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         client.val["list"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
 
@@ -56,7 +56,7 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
         topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
 
         client.val["list"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
             temp["id"]       = topicm.record[i].topicid;
@@ -126,7 +126,7 @@ std::string admin_martopic(std::shared_ptr<httppeer> peer)
         tree_to_array<psy::topics_tree_outjson_t>(list_data, topiclists_data);
 
         client.val["list"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
         for (unsigned int i = 0; i < list_data.size(); i++)
         {
             temp["id"]       = list_data[i].id;
@@ -230,7 +230,7 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
         topicm.clear(true);
         topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
         client.val["list"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
 
@@ -375,7 +375,7 @@ std::string admin_edittopicpost(std::shared_ptr<httppeer> peer)
         // topicm.clear(true);
         // topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
         // client.val["list"].set_array();
-        // OBJ_ARRAY temp;
+        // obj_val temp;
         // for (unsigned int i = 0; i < topicm.record.size(); i++)
         // {
 
@@ -432,10 +432,11 @@ std::string admin_topicimgtextupload(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
 
     unsigned int imgnum = client.post["header_urlpath"].size();
-    OBJ_ARRAY temp;
-    OBJ_ARRAY headerimgobj;
+    obj_val temp;
+    obj_val headerimgobj;
     std::string tstr;
 
+    headerimgobj.set_array();
     //For safety reasons, do not directly client.post.to_json();
     for (unsigned int i = 0; i < imgnum; i++)
     {

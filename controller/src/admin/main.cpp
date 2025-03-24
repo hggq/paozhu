@@ -630,7 +630,7 @@ std::string admin_userinfo(std::shared_ptr<httppeer> peer)
         auto stuser = orm::cms::Sysuser();
         stuser.where("adminid", client.session["adminid"].to_int()).fetch_one();
 
-        client.val["info"].set_array();
+        client.val["info"].set_object();
 
         client.val["info"]["adminid"] = stuser.getAdminid();
         client.val["info"]["level"]   = stuser.getLevel();
@@ -641,7 +641,7 @@ std::string admin_userinfo(std::shared_ptr<httppeer> peer)
         loginfo.where("userid", stuser.getAdminid()).desc("lgid").limit(10).fetch();
 
         client.val["loginlist"].set_array();
-        OBJ_ARRAY temp;
+        obj_val temp;
         for (unsigned int i = 0; i < loginfo.record.size(); i++)
         {
 

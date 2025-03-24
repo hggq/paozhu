@@ -32,15 +32,15 @@
         <%c for(auto &a:obj["infotopimgs"].as_array()){ %>
           <div class="row g-3 mt-1">
                 <div class="col-md-2">
-                <input type="text" class="form-control"  name="header_title[]" placeholder="头图标题" value="<% echo<<a.second["header_title"].to_string(); %>">
+                <input type="text" class="form-control"  name="header_title[]" placeholder="头图标题" value="<% echo<<a["header_title"].to_string(); %>">
               </div>
               <div class="col-md-2">
-                <input type="text" class="form-control"  name="header_content[]"  placeholder="头图说明" value="<% echo<<a.second["header_content"].to_string(); %>">
+                <input type="text" class="form-control"  name="header_content[]"  placeholder="头图说明" value="<% echo<<a["header_content"].to_string(); %>">
               </div>
               <div class="col-md-6">
                 <div class="input-group row">
                   <input type="file" class="form-control uploadfile col-md-4"  accept=".jpg,.png,.jpeg"  aria-describedby="inputGroupFileAddon04" aria-label="Upload">
-                  <input type="text" class="form-control col-md-8"  name="header_urlpath[]"  placeholder="图片地址" value="<% echo<<a.second["header_urlpath"].to_string(); %>">
+                  <input type="text" class="form-control col-md-8"  name="header_urlpath[]"  placeholder="图片地址" value="<% echo<<a["header_urlpath"].to_string(); %>">
                 </div>
               </div>
               <div class="col-md-2">

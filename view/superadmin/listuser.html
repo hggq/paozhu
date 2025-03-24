@@ -39,11 +39,11 @@
             </tr>
             <%c for(auto &a:obj["infos"].as_array()){ %>
             <tr>
-              <td><%c echo<<a.second["userid"].to_string(); %></td>
-              <td><%c echo<<a.second["nickname"].to_string(); %></td>
-              <td><%c echo<<a.second["name"].to_string(); %></td>
-              <td><%c if(a.second["isopen"].to_int()==1){ %>启用<%c }else{ %>关闭<%c } %></td>
-              <td><a href="/superadmin/edituser?userid=<%c echo<<a.second["userid"].to_string(); %>">编辑</a> | <a href="/superadmin/deleteuser?userid=<%c echo<<a.second["userid"].to_string(); %>" onclick="return confirm('确定删除？');">删除</a></td>
+              <td><%c echo<<a["userid"].to_string(); %></td>
+              <td><%c echo<<a["nickname"].to_string(); %></td>
+              <td><%c echo<<a["name"].to_string(); %></td>
+              <td><%c if(a["isopen"].to_int()==1){ %>启用<%c }else{ %>关闭<%c } %></td>
+              <td><a href="/superadmin/edituser?userid=<%c echo<<a["userid"].to_string(); %>">编辑</a> | <a href="/superadmin/deleteuser?userid=<%c echo<<a["userid"].to_string(); %>" onclick="return confirm('确定删除？');">删除</a></td>
             </tr>
             <%c } %>
           </tbody>

@@ -12,7 +12,7 @@ std::string testlogin(std::shared_ptr<httppeer> peer)
     // client << client.gethosturl();
     // client<<"<p><a href=\""<<client.gethosturl()<<"/showcookie\">show</a></p>";
 
-    if (client.session["aaa"].as_int() == 0)
+    if (client.session["aaa"].to_int() == 0)
     {
         client << " 必须登录 ";
         client << client.get_hosturl();

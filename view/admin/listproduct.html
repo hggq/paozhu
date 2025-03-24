@@ -53,24 +53,24 @@
           </thead>
           <tbody>
             <%c for(auto &a:obj["alist"].as_array()){ %>
-            <tr id="article_<%c echo<<a.second["pid"].to_string(); %>">
-              <td><%c echo<<a.second["pid"].to_string(); %></td>
-              <td><%c echo<<a.second["cname"].to_string(); %></td>
-              <td><%c echo<<a.second["name"].to_string(); %></td>
-              <td><img src="<%c echo<<a.second["bigimg"].to_string(); %>" width="60" height="60"/></td>
+            <tr id="article_<%c echo<<a["pid"].to_string(); %>">
+              <td><%c echo<<a["pid"].to_string(); %></td>
+              <td><%c echo<<a["cname"].to_string(); %></td>
+              <td><%c echo<<a["name"].to_string(); %></td>
+              <td><img src="<%c echo<<a["bigimg"].to_string(); %>" width="60" height="60"/></td>
               <td>
-              <input type="text" class="form-inline topicsort col-md-2" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatearticlesort(<%c echo<<a.second["pid"].to_string(); %>,this.value)">
+              <input type="text" class="form-inline topicsort col-md-2" id="title_<%c echo<<a["id"].to_string(); %>" name="title_<%c echo<<a["id"].to_string(); %>" value="<%c echo<<a["sortid"].to_string(); %>" onchange="updatearticlesort(<%c echo<<a["pid"].to_string(); %>,this.value)">
               </td>
-              <td><input class="form-check-input" type="checkbox" value="<%c echo<<a.second["pid"].to_string(); %>" id="art_<%c echo<<a.second["pid"].to_string(); %>" onclick="artupdateview(this)" <%c if(a.second["isview"].to_int()==1){ %>checked<%c } %> >
+              <td><input class="form-check-input" type="checkbox" value="<%c echo<<a["pid"].to_string(); %>" id="art_<%c echo<<a["pid"].to_string(); %>" onclick="artupdateview(this)" <%c if(a["isview"].to_int()==1){ %>checked<%c } %> >
 </td>
-<td><input class="form-check-input" type="checkbox" value="<%c echo<<a.second["pid"].to_string(); %>" id="art_<%c echo<<a.second["pid"].to_string(); %>" onclick="artupdateisstore(this)" <%c if(a.second["isstore"].to_int()==1){ %>checked<%c } %> >
+<td><input class="form-check-input" type="checkbox" value="<%c echo<<a["pid"].to_string(); %>" id="art_<%c echo<<a["pid"].to_string(); %>" onclick="artupdateisstore(this)" <%c if(a["isstore"].to_int()==1){ %>checked<%c } %> >
 </td>
 </td>
-<td><input class="form-check-input" type="checkbox" value="<%c echo<<a.second["pid"].to_string(); %>" id="home_<%c echo<<a.second["pid"].to_string(); %>" onclick="homeupdateisstore(this)" <%c if(a.second["ishome"].to_int()==1){ %>checked<%c } %> >
+<td><input class="form-check-input" type="checkbox" value="<%c echo<<a["pid"].to_string(); %>" id="home_<%c echo<<a["pid"].to_string(); %>" onclick="homeupdateisstore(this)" <%c if(a["ishome"].to_int()==1){ %>checked<%c } %> >
 </td>
               <td>
-              <a href="/admin/editproduct?id=<%c echo<<a.second["pid"].to_string(); %>">编辑</a>｜
-                  <a href="/admin/deleteproduct?id=<%c echo<<a.second["pid"].to_string(); %>" onclick="return deletearticle(<%c echo<<a.second["pid"].to_string(); %>)">删除</a></td>
+              <a href="/admin/editproduct?id=<%c echo<<a["pid"].to_string(); %>">编辑</a>｜
+                  <a href="/admin/deleteproduct?id=<%c echo<<a["pid"].to_string(); %>" onclick="return deletearticle(<%c echo<<a["pid"].to_string(); %>)">删除</a></td>
             </tr>
             <%c } %>
 

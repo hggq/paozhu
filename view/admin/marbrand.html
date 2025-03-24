@@ -36,26 +36,26 @@
           </thead>
           <tbody>
             <%c for(auto &a:obj["list"].as_array()){ %>
-              <tr id="topicid_<%c echo<<a.second["id"].to_string(); %>">
+              <tr id="topicid_<%c echo<<a["id"].to_string(); %>">
                 <td>
-                  <%c echo<<a.second["id"].to_string(); %>
+                  <%c echo<<a["id"].to_string(); %>
                 </td>
                 <td>
-                  <%c echo<<a.second["cname"].as_string(); %>
+                  <%c echo<<a["cname"].as_string(); %>
                 </td>
                 <td>
-                  <%c echo<<a.second["name"].as_string(); %>
+                  <%c echo<<a["name"].as_string(); %>
                 </td>
                 
                 <td>
-                  <img src="<%c echo<<a.second["logo"].as_string(); %>" width="60" height="60" />  <a href="<%c echo<<a.second["logo"].as_string(); %>" target=_blank>View</a>
+                  <img src="<%c echo<<a["logo"].as_string(); %>" width="60" height="60" />  <a href="<%c echo<<a["logo"].as_string(); %>" target=_blank>View</a>
                 </td>
                 <td>
-                  <input type="text" class="form-inline topicsort col-md-2" id="title_<%c echo<<a.second["id"].to_string(); %>" name="title_<%c echo<<a.second["id"].to_string(); %>" value="<%c echo<<a.second["sortid"].to_string(); %>" onchange="updatebrandsort(<%c echo<<a.second["id"].to_string(); %>,this.value)">
+                  <input type="text" class="form-inline topicsort col-md-2" id="title_<%c echo<<a["id"].to_string(); %>" name="title_<%c echo<<a["id"].to_string(); %>" value="<%c echo<<a["sortid"].to_string(); %>" onchange="updatebrandsort(<%c echo<<a["id"].to_string(); %>,this.value)">
                 </td>
                 <td>
-                  <a href="/admin/marbrand?id=<%c echo<<a.second["id"].to_string(); %>">编辑</a>｜
-                  <a href="/admin/deletebrand?id=<%c echo<<a.second["id"].to_string(); %>" onclick="return confirm('确定删除吗？')">删除</a>
+                  <a href="/admin/marbrand?id=<%c echo<<a["id"].to_string(); %>">编辑</a>｜
+                  <a href="/admin/deletebrand?id=<%c echo<<a["id"].to_string(); %>" onclick="return confirm('确定删除吗？')">删除</a>
                 </td>
               </tr>
               <%c } %>
@@ -73,7 +73,7 @@
         <select class="form-select" id="topicid" name="topicid">
         <option value="0">无分类</option>
         <%c for(auto &a:obj["topiclist"].as_array()){ %>
-        <option value="<%c echo<<a.second["id"].to_string(); %>" <%c if(obj["topicid"].to_int()==a.second["id"].to_int()){ %>selected<%c } %>><%c echo<<a.second["name"].to_string(); %></option>
+        <option value="<%c echo<<a["id"].to_string(); %>" <%c if(obj["topicid"].to_int()==a["id"].to_int()){ %>selected<%c } %>><%c echo<<a["name"].to_string(); %></option>
         <%c } %>
         </select>
       </div>

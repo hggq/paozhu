@@ -103,10 +103,10 @@ struct httpinfo
     std::string etag;
     std::string accept_language;
     std::map<std::string, std::string> header;
-    http::OBJ_VALUE get;
-    http::OBJ_VALUE post;
-    http::OBJ_VALUE files;
-    http::OBJ_VALUE json;
+    http::obj_val get;
+    http::obj_val post;
+    http::obj_val files;
+    http::obj_val json;
     std::vector<std::string> pathinfos;
     unsigned char posttype      = 0;
     unsigned char changetype    = 0;

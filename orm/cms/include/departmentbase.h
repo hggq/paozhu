@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Thu, 13 Mar 2025 08:50:22 GMT
+*本文件为自动生成 Mon, 24 Mar 2025 06:26:43 GMT
 ***/
 #include <iostream>
 #include <cstdio>

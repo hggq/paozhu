@@ -37,10 +37,10 @@
         <%c for(auto &a:obj["list"].as_array()){ %>
           <div class="row g-3 mt-1">
                 <div class="col-md-2">
-                  <% echo<<a.second["title"].to_string(); %>
+                  <% echo<<a["title"].to_string(); %>
               </div>
               <div class="col-md-2">
-                <input class="form-check-input topicidlist" type="checkbox" role="switch" name="topicid[]" id="topicid_<% echo<<a.second["topicid"].to_string(); %>" onclick="checktopicinsert(this)" value="<% echo<<a.second["topicid"].to_string(); %>" <% echo<<a.second["checked"].to_string(); %>">
+                <input class="form-check-input topicidlist" type="checkbox" role="switch" name="topicid[]" id="topicid_<% echo<<a["topicid"].to_string(); %>" onclick="checktopicinsert(this)" value="<% echo<<a["topicid"].to_string(); %>" <% echo<<a["checked"].to_string(); %>">
               </div>
               
           </div>

@@ -1,395 +1,1007 @@
+/*
+* paozhu micro obj rebuild 
+* author Huang ziquan (黄自权)
+* date 2025-03-21
+*/
 #ifndef HTTP_OBJ_HTTP_H
 #define HTTP_OBJ_HTTP_H
-
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include <memory>
 #include <map>
-#include <vector>
 #include <list>
-#include <functional>
+#include <type_traits>
+#include <utility>
+#include <vector>
+#include <concepts>
+#include <tuple>
+#include <string_view>
 
 namespace http
 {
-enum OBJ_TYPE
+enum class obj_type:unsigned char
 {
-    STRING,
-    INT,
-    FLOAT,
-    ARRAY,
-    BOOL,
-    NIL
+    OBJECT=0,
+    ARRAY=1,
+    BOOL=2,
+    STRING=3,
+    FLOAT=4,
+    DOUBLE=5,
+    INT=6,
+    UINT=7,
+    LONG=8,
+    ULONG=9,
+    link_info  =10, //uid num
+    card_info  =11, //tatal_val item_val
+    list_info  =12, //mid isview ishome isjin istop
+    node_info  =13, //node_id node_num
+    item_info  =14, //project_id tag
+    NIL=15
 };
-union OBJ_KEY
+
+struct obj_array;
+struct obj_t;
+
+struct obj_val
 {
-    unsigned long long ikey = 0;
-    unsigned char ckey[8];
-};
-class OBJ_VALUE;
-class OBJ_ARRAY
-{
-  public:
-    OBJ_ARRAY();
-    ~OBJ_ARRAY();
-    OBJ_ARRAY(const OBJ_ARRAY &a);
-    OBJ_ARRAY(OBJ_ARRAY &&a);
+    union{
+        char * str;
+        char name[8];
+        long long lval;
+        unsigned long long uval;
+        double    dval;
+        unsigned long long mask_val;
+        struct{
+            bool isbool;
+            unsigned short sval;
+            unsigned int uival;
+        };
+        //list_info
+        struct{
+            bool isview;
+            bool ishome;
+            bool isjin;
+            bool istop;
+            unsigned int mid;
+        }; 
+        struct{
+            float fval;
+            int ival;
+        };
+        //link_info
+        struct{
+            unsigned int uid;
+            unsigned int num;
+        };
+        //node_info
+        struct{
+            unsigned int node_num:24;
+            unsigned long long node_id:40;
+        };
+        //item_info
+        struct{
+            unsigned int item_id;
+            unsigned char tag[4];
+        };
+        //card_info
+        struct{
+            float total_val;
+            float item_val;
+        };
+        obj_t *obj;
+        obj_array *array_val;
+    };
+    unsigned int number:24=0;
+    unsigned char cataid=0;
+    unsigned int length:24=0;
+    private:
+    obj_type _val_type:8=obj_type::NIL;
+    public:
+    std::string to_string();
+    bool to_bool();
+    long long to_int();
+    double to_float();
+    obj_type get_type() const;
+    void set_type(obj_type _type);
 
-    // OBJ_ARRAY(std::initializer_list<OBJ_VALUE> nsl);
-    OBJ_ARRAY(std::initializer_list<std::string> nsl);
-    OBJ_ARRAY(std::initializer_list<std::map<unsigned long long, OBJ_VALUE>::value_type> nsl);
+    float str_to_float();
+    double str_to_double();
+    int str_to_int();
+    long long str_to_long();
 
-    OBJ_ARRAY &operator=(const OBJ_ARRAY &a);
-    OBJ_ARRAY &operator=(OBJ_ARRAY &&a);
+    unsigned int str_to_uint();
+    unsigned long long str_to_ulong();
+    
+    obj_val &operator[](const std::string &key);
+    obj_val &operator[](std::string &&key);
 
-    OBJ_VALUE &operator[](const std::string &key);
-    OBJ_VALUE &operator[](const std::string &&key);
-    const OBJ_VALUE &operator[](const std::string &key) const;
+    obj_val &operator[](unsigned int index);
 
-    OBJ_VALUE &operator[](unsigned long long i);
-    // const OBJ_VALUE& operator[] (unsigned long long i) const;
+    unsigned int size();
 
-    OBJ_VALUE operator+(OBJ_VALUE &v);
-    OBJ_VALUE operator+(OBJ_ARRAY &v);
-    OBJ_VALUE operator+(std::string v);
-    OBJ_VALUE operator+(char v);
-    OBJ_VALUE operator+(int v);
-    OBJ_VALUE operator+(float v);
+    void append(const std::string &v);
+    std::string substr(int a,int b);
+    std::string substr(int a);
 
-    OBJ_VALUE operator-(OBJ_VALUE &v);
-    OBJ_VALUE operator-(OBJ_ARRAY &v);
-
-    std::map<unsigned long long, OBJ_VALUE>::iterator begin();
-
-    std::map<unsigned long long, OBJ_VALUE>::iterator end();
-
-    std::map<unsigned long long, OBJ_VALUE>::const_iterator begin() const;
-    std::map<unsigned long long, OBJ_VALUE>::const_iterator end() const;
-
-    void push(unsigned long long, std::string &v);
-    void push(unsigned long long, std::string &&v);
-
-    void push(std::string &, OBJ_VALUE &v);
-    void push(std::string &, OBJ_VALUE &&v);
-    void push(std::string &, OBJ_ARRAY &&v);
-    void push(std::string &&, OBJ_VALUE &v);
-    void push(std::string &&, OBJ_VALUE &&v);
-
-    void push(const OBJ_VALUE &n);
-    void push(const OBJ_VALUE &&n);
-
-    void push(unsigned long long i, const OBJ_VALUE &n);
-
-    size_t size() const;
-    bool isset(unsigned long long n);
-    bool isset(const std::string &key);
-    bool isset(const std::string &&key);
-
-    bool unset(unsigned long long n);
-    bool unset(const std::string &key);
-    bool unset(const std::string &&key);
     void clear();
+    obj_val();
+    obj_val(std::nullptr_t i);
+    obj_val(bool i);
+    obj_val(long long i);
+    obj_val(unsigned long long i);
+    obj_val(short i);
+    obj_val(unsigned short i);
+    obj_val(int i);
+    obj_val(unsigned int i);
+    obj_val(long i);
+    obj_val(unsigned long i);
+    obj_val(float i);
+    obj_val(double i);
+    obj_val(long double i);
+    obj_val(const std::string &_str);
+    obj_val(const char *_str);
+    obj_val(std::string_view _str);
+    obj_val(std::string &&_str);
+    obj_val(const obj_t &v);
+    obj_val(obj_t &&v);
+    obj_val(const obj_val &v);
+    obj_val(obj_val &&v);
 
-    bool is_int() const { return false; }
-    bool is_float() const { return false; }
-    bool is_num() const { return false; }
-    bool is_string() const { return false; }
-    bool is_array() const { return true; }
-    bool is_null() const { return false; }
-    bool is_bool() const { return false; }
-    bool empty() const { return _array.empty(); }
+    obj_val(const obj_array &v);
+    obj_val(obj_array &&v);
+    
 
-    bool isval() const { return false; }
 
-    std::string get_keyname(unsigned long long n) const;
-    bool istag(unsigned long long n) const;
-    bool is_numarray() const;
+    bool operator==(const obj_val &v);
+    bool operator!=(const obj_val &v);
 
-    std::string to_json();
-    // OBJ_VALUE   fromjson(const std::string& v);
-    // OBJ_VALUE   fromjson(const std::string&& v);
-    // protected:
-  public:
-    std::map<unsigned long long, OBJ_VALUE> _array;
-    std::map<unsigned long long, std::string> _tag;
-};
+    bool operator>=(const obj_val &v);
+    bool operator>(const obj_val &v);
 
-class OBJ_VALUE
-{
-  public:
-    OBJ_VALUE();
-    ~OBJ_VALUE();
-    OBJ_VALUE(OBJ_VALUE &&v);
-    OBJ_VALUE(const OBJ_VALUE &v);
+    // bool operator<=(const obj_val &v);
+    // bool operator<(const obj_val &v);
+ 
+    obj_val &operator=(const std::vector<float> &v);
+    obj_val &operator=(const std::vector<long long> &v);
+    obj_val &operator=(const std::vector<std::string> &v);
 
-    OBJ_VALUE(const long long i);
-    OBJ_VALUE(const unsigned long long i);
-    OBJ_VALUE(const long i);
-    OBJ_VALUE(const unsigned int i);
-    OBJ_VALUE(const int i);
-    OBJ_VALUE(const bool i);
-    OBJ_VALUE(const long double f);
-    OBJ_VALUE(const double f);
+    obj_val &operator=(const std::map<std::string,int> &v);
+    obj_val &operator=(const std::map<std::string,unsigned int> &v);
+    obj_val &operator=(const std::map<std::string,std::string> &v);
 
-    OBJ_VALUE(const char *s);
-    OBJ_VALUE(std::string &&s);
-    OBJ_VALUE(const std::string &s);
+    obj_val &operator=(obj_val &&v);
+    obj_val &operator=(const obj_val &v);
+    obj_val &operator=(std::string &&_str);
+    obj_val &operator=(const std::string &_str);
+    obj_val &operator=(std::string_view str);
+    obj_val &operator=(const char *str);
 
-    OBJ_VALUE(const OBJ_ARRAY &a);
-    OBJ_VALUE(OBJ_ARRAY &&a);
+    obj_val &operator=(long long i);
+    obj_val &operator=(unsigned long long i);
+    obj_val &operator=(short i);
+    obj_val &operator=(unsigned short i);
+    obj_val &operator=(int i);
+    obj_val &operator=(unsigned int i);
+    obj_val &operator=(long i);
+    obj_val &operator=(unsigned long i);
+    obj_val &operator=(float i);
+    obj_val &operator=(double i);
+    obj_val &operator=(long double i);
+    obj_val &operator=(bool i);
 
-    OBJ_VALUE(std::initializer_list<std::string> nsl);
-    // OBJ_VALUE(std::initializer_list<std::map<unsigned long long, OBJ_VALUE>::value_type> nsl);
 
-    OBJ_VALUE(std::initializer_list<std::map<unsigned long long, OBJ_VALUE>::value_type> nsl);
-    OBJ_VALUE &operator[](const std::string &key);
-    OBJ_VALUE &operator[](const std::string &&key);
-    const OBJ_VALUE &operator[](const std::string &key) const;
+    obj_val &operator+(const std::string& v);
 
-    OBJ_VALUE &operator[](unsigned long long i);
-    const OBJ_VALUE &operator[](unsigned long long i) const;
+    obj_val &operator+(long long i);
+    obj_val &operator+(unsigned long long i);
+    obj_val &operator+(int i);
+    obj_val &operator+(unsigned int i);
+    obj_val &operator+(long i);
+    obj_val &operator+(unsigned long i);
+    obj_val &operator+(float i);
+    obj_val &operator+(double i);
 
-    OBJ_VALUE &operator=(const OBJ_VALUE &v);
-    OBJ_VALUE &operator=(OBJ_VALUE &&v);
+    obj_val &operator-(long long i);
+    obj_val &operator-(unsigned long long i);
+    obj_val &operator-(int i);
+    obj_val &operator-(unsigned int i);
+    obj_val &operator-(long i);
+    obj_val &operator-(unsigned long i);
+    obj_val &operator-(float i);
+    obj_val &operator-(double i);
 
-    OBJ_VALUE &get_self() { return *this; };
+    obj_val &push(const obj_val &v);
+    obj_val &push(obj_val &&v);
 
-    OBJ_VALUE operator+(OBJ_VALUE &v);
-    OBJ_VALUE operator+(OBJ_ARRAY &v);
-    OBJ_VALUE operator+(std::string v);
-    OBJ_VALUE operator+(char v);
-    OBJ_VALUE operator+(int v);
-    OBJ_VALUE operator+(float v);
+    obj_val &push(const std::string& key,obj_val &&v);
+    obj_val &push(const std::string& key,const obj_val &v);
 
-    OBJ_VALUE operator-(OBJ_VALUE &v);
-    OBJ_VALUE operator-(OBJ_ARRAY &v);
+    obj_val& find(const obj_val &v);
+    obj_val& find(const std::string& v);
 
-    OBJ_TYPE type() const { return type_t; }
+    obj_val &set_array();
+    obj_val &set_obj();
+    obj_val &set_object();
+    obj_val &set_int();
+    obj_val &set_long();
+    obj_val &set_uint();
+    obj_val &set_ulong();
+    obj_val &set_number();
+    obj_val &set_float();
+    obj_val &set_double();
+    obj_val &set_string();
+    obj_val &set_bool();
+    obj_val &set_null();
 
-    /** Cast operator for float */
-    explicit operator long double() const { return float_v; }
-    explicit operator float() const { return float_v; }
-    /** Cast operator for int */
-    explicit operator long long int() const { return int_v; }
-    explicit operator int() const { return int_v; }
-    explicit operator bool() const { return int_v > 0 ? true : false; }
-    /** Cast operator for string */
+    obj_val &set_link_info();
+    obj_val &set_card_info();
+    obj_val &set_list_info();
+    obj_val &set_node_info();
+    obj_val &set_item_info();
+
+
+    bool is_int() const { return _val_type == obj_type::INT; }
+    bool is_uint() const { return _val_type == obj_type::UINT; }
+    bool is_long() const { return _val_type == obj_type::LONG; }
+    bool is_ulong() const { return _val_type == obj_type::ULONG; }
+
+    bool is_integer() const { return _val_type == obj_type::INT || _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG ; }
+
+    bool is_float() const { return _val_type == obj_type::FLOAT; }
+    bool is_double() const { return _val_type == obj_type::DOUBLE; }
+
+    bool is_point() const { return _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE; }
+
+    bool is_num() const { return _val_type == obj_type::INT || _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE ; }
+    bool is_number() const { return _val_type == obj_type::INT || _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE ; }
+    bool is_real() const { return _val_type == obj_type::INT || _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE ; }
+
+    bool is_string() const { return _val_type == obj_type::STRING; }
+    bool is_array() const { return _val_type == obj_type::ARRAY;  }
+    bool is_null() const { return _val_type == obj_type::NIL; }
+    bool is_bool() const { return _val_type == obj_type::BOOL; }
+    bool is_obj() const { return _val_type == obj_type::OBJECT; }
+    bool is_object() const { return _val_type == obj_type::OBJECT; }
+
+    bool is_link_info() const { return _val_type == obj_type::link_info; }
+    bool is_card_info() const { return _val_type == obj_type::card_info; }
+    bool is_list_info() const { return _val_type == obj_type::list_info; }
+    bool is_node_info() const { return _val_type == obj_type::node_info; }
+    bool is_item_info() const { return _val_type == obj_type::item_info; }
+
+
+    explicit operator double() const {
+        switch (_val_type) 
+        {
+            case obj_type::NIL:
+                return 0.0;
+                break;
+            case obj_type::BOOL:
+                return isbool?1:0;
+                break;    
+            case obj_type::STRING:
+                if(length==0)
+                {
+                    return 0.0;
+                } 
+                if(length <9 && length > 4)
+                {
+                    if(name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0.0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0.0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'A' && name[2] == 'L' && name[3] == 'S' && name[4] == 'E')
+                    {
+                        return 0.0;
+                    }
+                    try {
+                       double temp_b = std::stod(name);
+                       return temp_b;
+                    } catch(const std::invalid_argument& e) {
+                        return 0.0;
+                    } catch(const std::out_of_range& e) {
+                        return 0.0;
+                    }
+                    return 0.0; 
+                }
+                else if(length == 1 )
+                {
+                    if(name[0]=='0' || name[0]==0x20 )
+                    {
+                        return 0.0;
+                    }
+                }
+
+                {
+                    try
+                    {
+                        double temp_b = std::stod(str);
+                        return temp_b;
+                    } catch(const std::invalid_argument& e) {
+                        return 0.0;
+                    } catch(const std::out_of_range& e) {
+                        return 0.0;
+                    }
+                    return 0.0;
+                }
+                break;
+            case obj_type::INT:
+                return ival;
+                break;   
+            case obj_type::UINT:
+                return uival;
+                break;  
+            case obj_type::LONG:
+                return lval;
+                break;   
+            case obj_type::ULONG:
+                return uval;
+                break;                
+            case obj_type::FLOAT:
+                return fval;
+                break;   
+            case obj_type::DOUBLE:
+                return dval;
+                break;      
+            case obj_type::OBJECT:
+                return 0.0;
+                break; 
+            case obj_type::ARRAY:
+                return 0;                   
+            default: 
+              return 0.0;                         
+        }
+        return 0.0;
+    }
+    explicit operator float() const 
+    {
+        switch (_val_type) 
+        {
+            case obj_type::NIL:
+                return 0.0;
+                break;
+            case obj_type::BOOL:
+                return isbool?1:0;
+                break;    
+            case obj_type::STRING:
+                if(length==0)
+                {
+                    return 0.0;
+                } 
+                if(length <9 && length > 4)
+                {
+                    if(name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0.0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0.0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'A' && name[2] == 'L' && name[3] == 'S' && name[4] == 'E')
+                    {
+                        return 0.0;
+                    }
+                    try {
+                       double temp_b = std::stod(name);
+                       return temp_b;
+                    } catch(const std::invalid_argument& e) {
+                        return 0.0;
+                    } catch(const std::out_of_range& e) {
+                        return 0.0;
+                    }
+                    return 0.0; 
+                }
+                else if(length == 1 )
+                {
+                    if(name[0]=='0' || name[0]==0x20 )
+                    {
+                        return 0.0;
+                    }
+                }
+
+                {
+                    try
+                    {
+                        double temp_b = std::stod(str);
+                        return temp_b;
+                    } catch(const std::invalid_argument& e) {
+                        return 0.0;
+                    } catch(const std::out_of_range& e) {
+                        return 0.0;
+                    }
+                    return 0.0;
+                }
+                break;
+            case obj_type::INT:
+                return ival;
+                break;   
+            case obj_type::UINT:
+                return uival;
+                break;  
+            case obj_type::LONG:
+                return lval;
+                break;   
+            case obj_type::ULONG:
+                return uval;
+                break;                
+            case obj_type::FLOAT:
+                return fval;
+                break;   
+            case obj_type::DOUBLE:
+                return dval;
+                break;      
+            case obj_type::OBJECT:
+                return 0.0;
+                break; 
+            case obj_type::ARRAY:
+                return 0;    
+                break;                 
+            default: 
+              return 0.0;                         
+        }
+        return 0.0;
+    }
+    explicit operator long long () const
+    {
+        switch (_val_type) 
+        {
+            case obj_type::NIL:
+                return 0;
+                break;
+            case obj_type::BOOL:
+                return isbool?1:0;
+                break;    
+            case obj_type::STRING:
+                if(length==0)
+                {
+                    return 0;
+                } 
+                if(length <9 && length > 4)
+                {
+                    if(name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'A' && name[2] == 'L' && name[3] == 'S' && name[4] == 'E')
+                    {
+                        return 0;
+                    }
+                }
+                else if(length == 1 )
+                {
+                    if(name[0]=='0' || name[0]==0x20 )
+                    {
+                        return 0;
+                    }
+                }
+
+                {
+                    try
+                    {
+                        long long temp_b = std::stoll(str);
+                        return temp_b;
+                    } catch(const std::invalid_argument& e) {
+                        return 0;
+                    } catch(const std::out_of_range& e) {
+                        return 0;
+                    }
+                    return 0;
+                }
+                break;
+            case obj_type::INT:
+                return ival;
+                break;   
+            case obj_type::UINT:
+                return uival;
+                break;  
+            case obj_type::LONG:
+
+                return lval;
+                break;   
+            case obj_type::ULONG:
+                return uval;
+                break;                
+            case obj_type::FLOAT:
+                return fval;
+                break;   
+            case obj_type::DOUBLE:
+                return dval;
+                break;      
+            case obj_type::OBJECT:
+                return 0;
+                break; 
+            case obj_type::ARRAY:
+                return 0;    
+                break;                 
+            default: 
+              return 0;                         
+        }
+        return 0;
+    }
+    explicit operator unsigned long long () const
+    {
+        switch (_val_type) 
+        {
+            case obj_type::NIL:
+                return 0;
+                break;
+            case obj_type::BOOL:
+                return isbool?1:0;
+                break;    
+            case obj_type::STRING:
+                if(length==0)
+                {
+                    return 0;
+                } 
+                if(length <9 && length > 4)
+                {
+                    if(name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'A' && name[2] == 'L' && name[3] == 'S' && name[4] == 'E')
+                    {
+                        return 0;
+                    }
+                }
+                else if(length == 1 )
+                {
+                    if(name[0]=='0' || name[0]==0x20 )
+                    {
+                        return 0;
+                    }
+                }
+
+                {
+                    try
+                    {
+                        long long temp_b = std::stoll(str);
+                        return temp_b;
+                    } catch(const std::invalid_argument& e) {
+                        return 0;
+                    } catch(const std::out_of_range& e) {
+                        return 0;
+                    }
+                    return 0;
+                }
+                break;
+            case obj_type::INT:
+                return ival;
+                break;   
+            case obj_type::UINT:
+                return uival;
+                break;  
+            case obj_type::LONG:
+                return lval;
+                break;   
+            case obj_type::ULONG:
+                return uval;
+                break;                
+            case obj_type::FLOAT:
+                return fval;
+                break;   
+            case obj_type::DOUBLE:
+                return dval;
+                break;      
+            case obj_type::OBJECT:
+                return 0;
+            case obj_type::ARRAY:
+                return 0;    
+                break; 
+            default: 
+              return 0;                         
+        }
+        return 0;
+    }
+    explicit operator int() const 
+    {
+        switch (_val_type) 
+        {
+            case obj_type::NIL:
+                return 0;
+                break;
+            case obj_type::BOOL:
+                return isbool?1:0;
+                break;    
+            case obj_type::STRING:
+                if(length==0)
+                {
+                    return 0;
+                } 
+                if(length <9 && length > 4)
+                {
+                    if(name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'A' && name[2] == 'L' && name[3] == 'S' && name[4] == 'E')
+                    {
+                        return 0;
+                    }
+                }
+                else if(length == 1 )
+                {
+                    if(name[0]=='0' || name[0]==0x20 )
+                    {
+                        return 0;
+                    }
+                }
+
+                {
+                    try
+                    {
+                        long long temp_b = std::stoll(str);
+                        return temp_b;
+                    } catch(const std::invalid_argument& e) {
+                        return 0;
+                    } catch(const std::out_of_range& e) {
+                        return 0;
+                    }
+                    return 0;
+                }
+                break;
+            case obj_type::INT:
+                return ival;
+                break;   
+            case obj_type::UINT:
+                return uival;
+                break;  
+            case obj_type::LONG:
+
+                return lval;
+                break;   
+            case obj_type::ULONG:
+                return uval;
+                break;                
+            case obj_type::FLOAT:
+                return fval;
+                break;   
+            case obj_type::DOUBLE:
+                return dval;
+                break;      
+            case obj_type::OBJECT:
+                return 0;
+                break; 
+            default: 
+              return 0;                         
+        }
+        return 0;
+    }
+    explicit operator unsigned int() const {
+        switch (_val_type) 
+        {
+            case obj_type::NIL:
+                return 0;
+                break;
+            case obj_type::BOOL:
+                return isbool?1:0;
+                break;    
+            case obj_type::STRING:
+                if(length==0)
+                {
+                    return 0;
+                } 
+                if(length <9 && length > 4)
+                {
+                    if(name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return 0;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'A' && name[2] == 'L' && name[3] == 'S' && name[4] == 'E')
+                    {
+                        return 0;
+                    }
+                }
+                else if(length == 1 )
+                {
+                    if(name[0]=='0' || name[0]==0x20 )
+                    {
+                        return 0;
+                    }
+                }
+
+                {
+                    try
+                    {
+                        long long temp_b = std::stoll(str);
+                        return temp_b;
+                    } catch(const std::invalid_argument& e) {
+                        return 0;
+                    } catch(const std::out_of_range& e) {
+                        return 0;
+                    }
+                    return 0;
+                }
+                break;
+            case obj_type::INT:
+                return ival;
+                break;   
+            case obj_type::UINT:
+                return uival;
+                break;  
+            case obj_type::LONG:
+
+                return lval;
+                break;   
+            case obj_type::ULONG:
+                return uval;
+                break;                
+            case obj_type::FLOAT:
+                return fval;
+                break;   
+            case obj_type::DOUBLE:
+                return dval;
+                break;      
+            case obj_type::OBJECT:
+                return 0;
+                break; 
+            default: 
+              return 0;                         
+        }
+        return 0;
+    }
+    explicit operator bool() const 
+    {
+        switch (_val_type) 
+        {
+            case obj_type::NIL:
+                return false;
+                break;
+            case obj_type::BOOL:
+                return isbool;
+                break;    
+            case obj_type::STRING:
+                if(length==0)
+                {
+                    return false;
+                } 
+                if(length < 8 && length > 4)
+                {
+                    if(name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return false;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
+                    {
+                        return false;
+                    }
+                    else if(name[0] == 'F' && name[1] == 'A' && name[2] == 'L' && name[3] == 'S' && name[4] == 'E')
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+                else if(length == 1 )
+                {
+                    if(name[0]=='0' || name[0]==0x20 )
+                    {
+                        return false;
+                    }
+                }
+
+                if(length > 0)
+                {
+                    return true;
+                }
+                return false;
+                break;
+            case obj_type::INT:
+                if(ival>0)
+                {
+                    return true;
+                } 
+                return false;
+                break;   
+            case obj_type::UINT:
+                if(uival>0)
+                {
+                    return true;
+                } 
+                return false;
+                break;  
+            case obj_type::LONG:
+                if(lval>0)
+                {
+                    return true;
+                } 
+                return false;
+                break;   
+            case obj_type::ULONG:
+                if(uval>0)
+                {
+                    return true;
+                } 
+                return false;
+                break;                
+            case obj_type::FLOAT:
+                if(fval > 0)
+                {
+                    return true;
+                } 
+                return false;
+                break;   
+            case obj_type::DOUBLE:
+                if(dval > 0)
+                {
+                    return true;
+                } 
+                return false;
+                break;      
+            case obj_type::OBJECT:
+                return false;
+                break; 
+            case obj_type::ARRAY:
+                return false;
+                break;
+            default: 
+              return false;                         
+        }
+        return false;
+    }
     explicit operator std::string() const
     {
-        switch (type())
+        if(_val_type==obj_type::OBJECT)
         {
-            // case INT:
-            //     return std::to_string(int_v);
-            //     break;
-
-            // case FLOAT:
-            //     return std::to_string(float_v);
-            //     break;
-
-            // case NIL:
-            //     return "";
-            //     break;
-
-            // case STRING:
-            //     return string_v;
-            //     break;
-        case BOOL: return int_v > 0 ? "true" : "false"; break;
-        case ARRAY: return "obj"; break;
-        default: return string_v;
+            return "{}";
         }
-    }
-
-    /** Cast operator for Object */
-    explicit operator OBJ_ARRAY() const { return array_v; }
-
-    /** Cast operator for Object */
-    OBJ_ARRAY as_array() const { return array_v; }
-
-    /** Cast operator for float */
-    long double as_float() const { return float_v; }
-
-    /** Cast operator for int */
-    long long int as_int() const { return int_v; }
-    bool as_bool() const { return int_v > 0 ? true : false; }
-    /** Cast operator for string */
-    std::string as_string() const { return string_v; }
-    std::string *ref_string() { return &string_v; }
-    std::string &ref() { return std::ref(string_v); }
-    std::string to_string() const
-    {
-
-        switch (type())
+        else if(_val_type==obj_type::ARRAY)
         {
-        case INT: return std::to_string(int_v); break;
-
-        case FLOAT: return std::to_string(float_v); break;
-
-        case NIL: return ""; break;
-
-        case STRING: return string_v; break;
-
-        case ARRAY: return "obj"; break;
-        default: return string_v;
+            return "[]";
         }
-    }
-    bool to_bool() const
-    {
-
-        switch (type())
+        else if(_val_type==obj_type::STRING)
         {
-        case INT: return int_v != 0; break;
-
-        case FLOAT: return float_v > 0.0 || float_v < 0.0; break;
-
-        case NIL: return false; break;
-
-        case STRING: return string_v.size() > 0; break;
-
-        case ARRAY: return true; break;
-        default: return string_v.size() > 0;
-        }
-    }
-    long long to_int() const
-    {
-        long long temp = 0;
-        switch (type())
-        {
-        case INT: return int_v; break;
-
-        case FLOAT: return float_v; break;
-
-        case NIL: return 0; break;
-        case BOOL: return int_v; break;
-        case STRING:
-
-            for (std::size_t i = 0; i < string_v.size(); i++)
+            std::string a_temp;
+            if(length < 8)
             {
-                if (string_v[i] == 0x20)
+                for(unsigned int j=0;j<length;j++)
                 {
-                    break;
+                    a_temp.push_back(name[j]);
                 }
-                if (string_v[i] >= '0' && string_v[i] <= '9')
-                {
-                    temp = temp * 10 + (string_v[i] - '0');
-                }
-                else
-                {
-                    break;
-                }
-                if (i > 20)
-                {
-                    break;
-                }
+                return a_temp;
             }
-            return temp;
-            break;
-
-        case ARRAY: return 0; break;
-        default: return 0;
+            a_temp.append(str,length);
+            return a_temp;
         }
+        else if(_val_type==obj_type::BOOL)
+        {
+            if(isbool){
+                return "true";
+            }
+            else {
+                return "false";
+            } 
+        }
+        else if(_val_type==obj_type::INT)
+        {
+            return std::to_string(ival);
+        } 
+        else if(_val_type==obj_type::UINT)
+        {
+            return std::to_string(uival);
+        }  
+        else if(_val_type==obj_type::FLOAT)
+        {
+            return std::to_string(fval);
+        } 
+        else if(_val_type==obj_type::DOUBLE)
+        {
+            return std::to_string(dval);
+        } 
+        else if(_val_type==obj_type::LONG)
+        {
+            return std::to_string(lval);
+        } 
+        else if(_val_type==obj_type::ULONG)
+        {
+            return std::to_string(uval);
+        } 
+        else if(_val_type==obj_type::NIL)
+        {
+            return "null";
+        }  
+        return ""; 
     }
-    bool is_int() const { return type_t == INT; }
-    bool is_float() const { return type_t == FLOAT; }
-    bool is_num() const { return type_t == INT || type_t == FLOAT; }
-    bool is_string() const { return type_t == STRING; }
-    bool is_array() const { return type_t == ARRAY; }
-    bool is_null() const { return type_t == NIL; }
-    bool is_bool() const { return type_t == BOOL; }
-    bool isval() const { return true; }
 
-    OBJ_VALUE &set_float()
-    {
-        type_t = FLOAT;
-        return *this;
-    }
-    OBJ_VALUE &set_int()
-    {
-        type_t = INT;
-        return *this;
-    }
-    OBJ_VALUE &set_string()
-    {
-        type_t = STRING;
-        return *this;
-    }
-    OBJ_VALUE &set_array()
-    {
-        type_t = ARRAY;
-        return *this;
-    }
-    OBJ_VALUE &set_null()
-    {
-        type_t = NIL;
-        return *this;
-    }
-    OBJ_VALUE &set_bool()
-    {
-        type_t = BOOL;
-        return *this;
-    }
-
-    void push(unsigned long long, std::string &v);
-    void push(unsigned long long, std::string &&v);
-
-    void push(std::string &, OBJ_VALUE &v);
-    void push(std::string &, OBJ_VALUE &&v);
-
-    void push(std::string &&, OBJ_VALUE &v);
-    void push(std::string &&, OBJ_VALUE &&v);
-
-    void push(const OBJ_VALUE &n);
-    void push(const OBJ_VALUE &&n);
-
-    void push(unsigned long long i, const OBJ_VALUE &n);
-
-    bool isset(unsigned long long n);
-    bool isset(const std::string &key);
-    bool isset(const std::string &&key);
-
-    bool unset(unsigned long long n);
     bool unset(const std::string &key);
-    bool unset(const std::string &&key);
+    bool erase(const std::string &key);
+    bool erase(const obj_val &key);
 
-    void clear();
+    // void set_keyname(const std::string &key);
+    // std::string get_keyname();
 
-    size_t size() const;
+    obj_val(const std::initializer_list<std::string> nsl);
+    obj_val(const std::initializer_list<double> nsl);
 
-    std::string tag();
-    std::string tag(const std::string &v);
-    std::string tag(const std::string &&v);
-    std::string get_keyname(unsigned long long n);
+    obj_val(const std::initializer_list<std::pair<std::string, double>> nsl);
+
+    std::vector<obj_val>::iterator begin();
+    std::vector<obj_val>::iterator end();
+    std::vector<obj_val>::const_iterator cbegin() const;
+    std::vector<obj_val>::const_iterator cend() const;
+
+    std::vector<std::pair<std::string, obj_val>>::iterator obj_begin();
+    std::vector<std::pair<std::string, obj_val>>::iterator obj_end();
+    std::vector<std::pair<std::string, obj_val>>::const_iterator obj_cbegin() const;
+    std::vector<std::pair<std::string, obj_val>>::const_iterator obj_cend() const;
+
+    std::pair<std::string,obj_val> get_obj_val(unsigned int index);
+    obj_val get_array_val(unsigned int index);
+
+    std::pair<std::string,obj_val>& ref_obj_val(unsigned int index);
+    obj_val& ref_array_val(unsigned int index);
+
+    std::pair<std::string,obj_val>& cref_obj_val(unsigned int index) const;
+    obj_val& cref_array_val(unsigned int index) const;
+
+    std::vector<std::pair<std::string, obj_val>> get_obj();
+    std::vector<obj_val> get_array();
+
+    std::vector<std::pair<std::string, obj_val>> &ref_obj();
+    std::vector<obj_val> &ref_array();
+    std::vector<std::pair<std::string, obj_val>> &cref_obj() const;
+    std::vector<obj_val> &cref_array() const;
+
+    const char * c_str() const;
+    char * str_data();
+    bool reserve(unsigned int resize);
+    unsigned int mb_strlen();
+    std::string mb_substr(int begin_pos, int cut_size=0);
+    std::string_view str_view();
+    std::string_view str_view(int a,int b=0);
+
+    bool isset(const std::string &key);
+
+
+    void from_json(const std::string &json_str);
     std::string to_json();
 
-    void from_json(std::string &v);
-    void from_json(std::string &&v);
+    bool string_casecmp(std::string_view str1, std::string_view str2);
+    std::string JSON_STRING(const std::string &jsonstr, unsigned int &offset);
+    std::string JSON_VALUE(const std::string &jsonstr, unsigned int &offset);
+    int JSON_OBJ(const std::string &json_val, obj_t &obj, unsigned int& offset);
+    int JSON_ARRAY(const std::string &json_val, obj_array &obj, unsigned int& offset);
+    std::string JSON_UTF8_TO_ASCII(const char *str,unsigned int length);
 
-  protected:
-    long double float_v;
-    long long int_v = 0;
-    std::string string_v;
-
-    OBJ_ARRAY array_v;
-
-    OBJ_TYPE type_t;
+    std::vector<std::pair<std::string, obj_val>> &as_object();
+    std::vector<obj_val> &as_array();
+    std::string as_string();
+    
+    ~obj_val();
+};    
+struct obj_t
+{
+    public:
+    std::vector<std::pair<std::string, obj_val>> _data;
 };
-unsigned long long hash_objkey(const std::string &key);
-
-bool save_json(const std::string &filename, const OBJ_VALUE &v);
-bool save_json(const std::string &&filename, const OBJ_VALUE &v);
-bool value_write(FILE *, const OBJ_VALUE &v);
-bool array_write(FILE *, const OBJ_ARRAY &v, unsigned int &length);
-
-// std::string OBJ_ARRAY::tojson();
-
-OBJ_ARRAY from_json(std::string &);
-OBJ_ARRAY from_json(std::string &&);
-std::string JSON_UTF8_TO_ASCII(const std::string &source);
-std::string JSON_STR(std::string &, unsigned int &);
-std::string JSON_VALUE(std::string &, unsigned int &);
-int JSON_OBJ(std::string &, OBJ_ARRAY &, unsigned int);
-int JSON_ARRAY(std::string &, OBJ_ARRAY &, unsigned int);
-
-}// namespace http
-std::ostream &operator<<(std::ostream &, const http::OBJ_VALUE &);
-std::ostream &operator<<(std::ostream &, const http::OBJ_ARRAY &);
+struct obj_array
+{
+    public:
+    std::string key;
+    std::vector<obj_val> _data;
+};
+}
+std::ostream &operator<<(std::ostream &, http::obj_val &);
 #endif

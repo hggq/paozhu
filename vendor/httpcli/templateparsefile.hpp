@@ -155,7 +155,7 @@ class viewtemplatefile
 
                 filename = "\n\tstd::string ";
                 filename.append(filename_methold);
-                filename.append("(const struct view_param &vinfo,http::OBJ_VALUE &obj);");
+                filename.append("(const struct view_param &vinfo,http::obj_val &obj);");
                 // includetemp.append(filename);
                 includelist[filename_namespace].push_back(filename);
 
@@ -686,7 +686,7 @@ namespace http
         headtxt.append("{\n \t\t std::string ");
         headtxt.append(filename_methold);
         headtxt.append(
-            "([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)\n\t\t\t{\n ");
+            "([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)\n\t\t\t{\n ");
 
         fwrite(&headtxt[0], 1, headtxt.size(), f);
 

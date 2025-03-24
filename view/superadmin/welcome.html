@@ -36,13 +36,13 @@
             </tr>
             <%c for(auto &a:obj["infos"].as_array()){ %>
             <tr>
-              <td><%c echo<<a.second["sid"].to_string(); %></td>
-              <td><%c echo<<a.second["companyname"].to_string(); %></td>
-              <td><%c echo<<a.second["sitename"].to_string(); %></td>
-              <td><%c echo<<a.second["sitedomain"].to_string(); %></td>
-              <td><%c if(a.second["isopen"].to_int()==1){ %>启用<%c }else{ %>关闭<%c } %></td>
-              <td><a href="/superadmin/listuser?sid=<%c echo<<a.second["sid"].to_string(); %>">管理账号</a></td>
-              <td><a href="/superadmin/editsiteinfo?sid=<%c echo<<a.second["sid"].to_string(); %>">编辑</a> | <a href="/superadmin/deletesiteinfo?sid=<%c echo<<a.second["sid"].to_string(); %>">删除</a></td>
+              <td><%c echo<<a["sid"].to_string(); %></td>
+              <td><%c echo<<a["companyname"].to_string(); %></td>
+              <td><%c echo<<a["sitename"].to_string(); %></td>
+              <td><%c echo<<a["sitedomain"].to_string(); %></td>
+              <td><%c if(a["isopen"].to_int()==1){ %>启用<%c }else{ %>关闭<%c } %></td>
+              <td><a href="/superadmin/listuser?sid=<%c echo<<a["sid"].to_string(); %>">管理账号</a></td>
+              <td><a href="/superadmin/editsiteinfo?sid=<%c echo<<a["sid"].to_string(); %>">编辑</a> | <a href="/superadmin/deletesiteinfo?sid=<%c echo<<a["sid"].to_string(); %>">删除</a></td>
             </tr>
             <%c } %>
           </tbody>

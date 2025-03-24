@@ -21,7 +21,7 @@ namespace http {
 
 namespace view {
 	namespace cms{
- 		 std::string edit([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::OBJ_VALUE &obj)
+ 		 std::string edit([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)
 			{
  
                      std::ostringstream echo;
@@ -34,9 +34,9 @@ namespace view {
  			 echo<<"</h2>\n          <form action=\"/cms/editpost?id=";
  echo<<obj["aid"].to_string(); 
  			 echo<<"\" method=\"post\">\n\n    <div class=\"mb-3\">\n      <label for=\"title\" class=\"form-label\">内容标题 Title</label>\n      <input type=\"text\" class=\"form-control\" id=\"title\" name=\"title\" placeholder=\"标题 title\" value=\"";
- echo<<obj["title"].as_string(); 
+ echo<<obj["title"].to_string(); 
  			 echo<<"\">\n    </div>\n    <div class=\"mb-3\">\n      <label for=\"content\" class=\"form-label\">内容 Content</label>\n      <textarea class=\"form-control\" id=\"content\" name=\"content\"  rows=\"20\">";
- echo<<obj["content"].as_string(); 
+ echo<<obj["content"].to_string(); 
  			 echo<<"</textarea>\n    </div>\n    <input type=\"hidden\" id=\"aid\" name=\"aid\"  value=\"";
  echo<<obj["aid"].to_string(); 
  			 echo<<"\">\n    <button type=\"submit\" class=\"btn btn-primary\">提交(Submit)</button>\n  </form>\n\n</div>\n\n</div>\n</div>\n\n  </body>\n  </html>";

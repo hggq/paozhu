@@ -25,11 +25,11 @@
 
     <div class="mb-3">
       <label for="title" class="form-label">内容标题 Title</label>
-      <input type="text" class="form-control" id="title" name="title" placeholder="标题 title" value="<%c echo<<obj["title"].as_string(); %>">
+      <input type="text" class="form-control" id="title" name="title" placeholder="标题 title" value="<%c echo<<obj["title"].to_string(); %>">
     </div>
     <div class="mb-3">
       <label for="content" class="form-label">内容 Content</label>
-      <textarea class="form-control" id="content" name="content"  rows="20"><%c echo<<obj["content"].as_string(); %></textarea>
+      <textarea class="form-control" id="content" name="content"  rows="20"><%c echo<<obj["content"].to_string(); %></textarea>
     </div>
     <input type="hidden" id="aid" name="aid"  value="<%c echo<<obj["aid"].to_string(); %>">
     <button type="submit" class="btn btn-primary">提交(Submit)</button>

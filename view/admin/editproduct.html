@@ -78,7 +78,7 @@
               <select class="form-select" id="brandid" name="brandid">
                 <option value="0">无品牌</option>  
                 <%c for(auto &a:obj["brandlist"].as_array()){ %>
-                <option value="<%c echo<<a.second["id"].to_string(); %>" <%c if(a.second["id"].to_int()==obj["info"]["brandid"].to_int()){ %>selected<%c } %>><%c echo<<a.second["name"].as_string(); %></option>  
+                <option value="<%c echo<<a["id"].to_string(); %>" <%c if(a["id"].to_int()==obj["info"]["brandid"].to_int()){ %>selected<%c } %>><%c echo<<a["name"].as_string(); %></option>  
                 <%c } %>  
               </select>
             </div>
@@ -118,7 +118,7 @@
               <div class="row" style="margin-left: unset;margin-bottom: 5px;">
                 <div class="col-md-8">
                   <div class="input-group row">
-                    <input type="text" class="form-control col-md-8"  name="header_urlpath[]"  placeholder="图片地址" value="<%c echo<<a.second.to_string(); %>">
+                    <input type="text" class="form-control col-md-8"  name="header_urlpath[]"  placeholder="图片地址" value="<%c echo<<a.to_string(); %>">
                     <input type="file" class="form-control uploadfile col-md-4"  accept=".jpg,.png,.jpeg"  aria-describedby="inputGroupFileAddon04" aria-label="Upload">
                   </div>
                 </div>
@@ -187,8 +187,8 @@
               <div class="row" style="margin-left: unset;margin-bottom: 5px;">
                 <div class="col-md-8">
                   <div class="input-group row">
-                    <input type="text" class="form-control col-md-5"  name="attach_name[]"  placeholder="附件显示名称" value="<%c echo<<a.second["name"].to_string(); %>">
-                    <input type="text" class="form-control col-md-5"  name="attach_urlpath[]"  placeholder="附件地址" value="<%c echo<<a.second["url"].to_string(); %>">
+                    <input type="text" class="form-control col-md-5"  name="attach_name[]"  placeholder="附件显示名称" value="<%c echo<<a["name"].to_string(); %>">
+                    <input type="text" class="form-control col-md-5"  name="attach_urlpath[]"  placeholder="附件地址" value="<%c echo<<a["url"].to_string(); %>">
                     <button class="btn btn-outline-secondary selectattach col-md-2" type="button"  data-bs-toggle="modal" data-bs-target="#attachModal">选择文件</button>
                   </div>
                 </div>
