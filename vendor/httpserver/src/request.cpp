@@ -2960,6 +2960,7 @@ namespace http
                 case obj_type::OBJECT:
                     clear();
                     lval = 0;
+                    break;
                 case obj_type::ARRAY:
                     clear();
                     lval = 0;                    
