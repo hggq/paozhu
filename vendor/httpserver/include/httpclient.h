@@ -106,7 +106,7 @@ class client : public std::enable_shared_from_this<client>
     unsigned int get_length();
     unsigned int get_status();
     std::string get_status_msg();
-    cookie get_cookie();
+    http::cookie get_cookie();
     http::obj_val json();
 
   public:
