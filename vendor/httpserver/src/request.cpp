@@ -617,7 +617,14 @@ namespace http
     {
         if(_val_type == obj_type::STRING)
         {
-            return str;
+            if(length < 8)
+            {
+                return name;
+            }
+            else 
+            {
+                return str;
+            }
         }
         return nullptr;
     }
@@ -625,7 +632,14 @@ namespace http
     {
         if(_val_type == obj_type::STRING)
         {
-            return str;
+            if(length < 8)
+            {
+                return name;
+            }
+            else 
+            {
+                return str;
+            }
         }
         return nullptr;
     }
@@ -648,64 +662,64 @@ namespace http
 
     std::string_view obj_val::str_view(int a,int b)
     {
-        if(_val_type == obj_type::STRING)
+        if(_val_type != obj_type::STRING)
         {
-            int aa=length,bb=length;
+            return std::string_view(name,0);
+        }
+        int aa=length,bb=length;
 
-            if(a<0)
+        if(a<0)
+        {
+            aa=aa+a;
+            if(aa<0)
             {
-                aa=aa+a;
-                if(aa<0)
-                {
-                    aa=0;
-                }
+                aa=0;
             }
-            else 
+        }
+        else 
+        {
+            if(a<length)
             {
-                if(a<length)
-                {
-                    aa=a;
-                }
+                aa=a;
             }
+        }
 
-            if(b<0)
-            {
-                bb=bb+b;
-                if(bb<0)
-                {
-                    bb=0;
-                }
-            }
-            else 
-            {
-                bb=aa+b;
-                if(bb>=length)
-                {
-                    bb=length;
-                }
-            }
-
-            bb=bb-aa;
+        if(b<0)
+        {
+            bb=bb+b;
             if(bb<0)
             {
                 bb=0;
             }
-
-            if(aa>=bb)
+        }
+        else 
+        {
+            bb=aa+b;
+            if(bb>=length)
             {
-                std::string_view(name,0);;
-            }
-
-            if(length < 8)
-            {
-                return std::string_view(name+aa,bb);
-            }
-            else 
-            {
-                return std::string_view(str+aa,bb);
+                bb=length;
             }
         }
-        return std::string_view(name,0);;
+
+        bb=bb-aa;
+        if(bb<0)
+        {
+            bb=0;
+        }
+
+        if(aa>=bb)
+        {
+            std::string_view(name,0);;
+        }
+
+        if(length < 8)
+        {
+            return std::string_view(name+aa,bb);
+        }
+        else 
+        {
+            return std::string_view(str+aa,bb);
+        }
     }
 
     bool obj_val::reserve(unsigned int resize)
@@ -774,6 +788,10 @@ namespace http
     std::string obj_val::substr(int a,int b)
     {
         std::string temp;
+        if(_val_type != obj_type::STRING)
+        {
+            return temp;
+        }
         int aa=0,bb=0;
         if(a < 0)
         {
@@ -819,14 +837,26 @@ namespace http
             bb=0;
         }
         for(;aa<bb;aa++)
-        {
-            temp.push_back(str[aa]);
+        {   
+            if(length < 8)
+            {
+                temp.push_back(name[aa]);
+            }
+            else 
+            {
+                temp.push_back(str[aa]);
+            }
         }
         return temp;
     }
     std::string obj_val::substr(int a)
     {
         std::string temp;
+        if(_val_type != obj_type::STRING)
+        {
+            return temp;
+        }
+
         int aa=0,bb=length;
         if(a < 0)
         {
@@ -860,21 +890,55 @@ namespace http
         {
             return;
         }
-        if(_val_type == obj_type::STRING)
+        if(_val_type != obj_type::STRING)
         {
-            if((length+v.size()) < 8)
+            return;
+        }
+        
+        if((length+v.size()) < 8)
+        {
+            unsigned int llength=length+v.size();
+            for(unsigned int j=length,jj=0;j<llength;j++,jj++)
             {
-                unsigned int llength=length+v.size();
-                for(unsigned int j=length,jj=0;j<llength;j++,jj++)
+                name[j]=v[jj];
+            }
+            name[llength]=0x00;
+            length = length+v.size();
+        }
+        else 
+        {
+            if(length < 8)
+            {
+                unsigned int jlenth=length+v.size()*2;
+                jlenth=jlenth-jlenth%8+8;
+                if(jlenth >= 0xFFFFFF)
                 {
-                    name[j]=v[jj];
+                    number = 0xFFFFF;
                 }
-                name[llength]=0x00;
-                length = length+v.size();
+                else 
+                {
+                    number = jlenth;
+                }
+                jlenth=v.size();
+                if((jlenth + length) >= 0xFFFFFF)
+                {
+                    jlenth = v.size()-length;
+                }
+                char * tempstr=(char *)std::malloc(number);
+                for(unsigned int jj=0;jj<length;jj++)
+                {
+                    tempstr[jj]=name[jj];
+                }
+
+                std::memcpy(&tempstr[length],v.data(), jlenth );
+                length=v.size()+length;
+                tempstr[length]=0x00;
+                str=tempstr;
+                
             }
             else 
             {
-                if(length < 8)
+                if(number <= (length+v.size()))
                 {
                     unsigned int jlenth=length+v.size()*2;
                     jlenth=jlenth-jlenth%8+8;
@@ -886,64 +950,31 @@ namespace http
                     {
                         number = jlenth;
                     }
+
                     jlenth=v.size();
                     if((jlenth + length) >= 0xFFFFFF)
                     {
                         jlenth = v.size()-length;
                     }
-                    char * tempstr=(char *)std::malloc(number);
-                    for(unsigned int jj=0;jj<length;jj++)
-                    {
-                        tempstr[jj]=name[jj];
-                    }
 
-                    std::memcpy(&tempstr[length],v.data(), jlenth );
+                    char *tempstr=(char *)std::malloc(number);
+                    std::memcpy(tempstr,str, length);
+                    std::memcpy(&tempstr[length],v.data(), jlenth);
                     length=v.size()+length;
                     tempstr[length]=0x00;
+                    free(str);
                     str=tempstr;
-                    
                 }
                 else 
                 {
-                    if(number <= (length+v.size()))
-                    {
-                        unsigned int jlenth=length+v.size()*2;
-                        jlenth=jlenth-jlenth%8+8;
-                        if(jlenth >= 0xFFFFFF)
-                        {
-                            number = 0xFFFFF;
-                        }
-                        else 
-                        {
-                            number = jlenth;
-                        }
-
-                        jlenth=v.size();
-                        if((jlenth + length) >= 0xFFFFFF)
-                        {
-                            jlenth = v.size()-length;
-                        }
-
-                        char *tempstr=(char *)std::malloc(number);
-                        std::memcpy(tempstr,str, length);
-                        std::memcpy(&tempstr[length],v.data(), jlenth);
-                        length=v.size()+length;
-                        tempstr[length]=0x00;
-                        free(str);
-                        str=tempstr;
-                    }
-                    else 
-                    {
-                        std::memcpy(&str[length],v.data(), v.size() );
-                        length=v.size()+length;
-                        str[length]=0x00;
-                    }
-                    
+                    std::memcpy(&str[length],v.data(), v.size() );
+                    length=v.size()+length;
+                    str[length]=0x00;
                 }
                 
             }
+            
         }
-
     }
     unsigned int obj_val::size()
     {
@@ -1858,7 +1889,7 @@ namespace http
             case obj_type::ARRAY:
                 _val_type = obj_type::ARRAY;
                 array_val=new obj_array;
-                array_val->key = v.array_val->key;  
+                // array_val->key = v.array_val->key;  
                 array_val->_data.reserve(v.array_val->_data.size());
                 for (auto iter=v.array_val->_data.begin(); iter!=v.array_val->_data.end(); ) {
                     array_val->_data.push_back(*iter);
@@ -1866,7 +1897,8 @@ namespace http
                 }
                 break;
             default:
-              _val_type = obj_type::NIL;                             
+                _val_type = obj_type::NIL;  
+                /*10-14*/;                             
         }
     }
     obj_val::obj_val(obj_val &&v) { 
@@ -1880,6 +1912,11 @@ namespace http
                 isbool = v.isbool;
                 break;    
             case obj_type::STRING:
+                if(v.length > 0xFFFFFE)
+                {
+                    _val_type = obj_type::NIL;
+                    break;
+                }
                 if(v.length < 8)
                 {
                     std::memcpy( name,v.name, v.length );
@@ -1935,7 +1972,8 @@ namespace http
                 break; 
 
             default:
-              _val_type = obj_type::OBJECT;                             
+            _val_type = obj_type::NIL;  
+            /*10-14*/;                            
         }
     }
     std::string obj_val::to_string()
@@ -2193,6 +2231,10 @@ namespace http
 
     float obj_val::str_to_float()
     {
+        if(_val_type != obj_type::STRING)
+        {
+            return 0;
+        }
         try
         {
             if(length<8)
@@ -2215,6 +2257,10 @@ namespace http
 
     double obj_val::str_to_double()
     {
+        if(_val_type != obj_type::STRING)
+        {
+            return 0;
+        }
         try
         {
             if(length<8)
@@ -2236,6 +2282,10 @@ namespace http
     }
     int obj_val::str_to_int()
     {
+        if(_val_type != obj_type::STRING)
+        {
+            return 0;
+        }
         try
         {
             if(length<8)
@@ -2257,6 +2307,10 @@ namespace http
     }
     long long obj_val::str_to_long()
     {
+        if(_val_type != obj_type::STRING)
+        {
+            return 0;
+        }
         try
         {
             if(length<8)
@@ -2279,6 +2333,10 @@ namespace http
 
     unsigned int obj_val::str_to_uint()
     {
+        if(_val_type != obj_type::STRING)
+        {
+            return 0;
+        }
         try
         {
             if(length<8)
@@ -2300,6 +2358,10 @@ namespace http
     }
     unsigned long long obj_val::str_to_ulong()
     {
+        if(_val_type != obj_type::STRING)
+        {
+            return 0;
+        }
         try
         {
             if(length<8)
@@ -7420,11 +7482,11 @@ namespace http
         }
         else if(_val_type==obj_type::ARRAY)
         {
-            if(array_val->key.size()>0)
-            {
-                os << array_val->key;
-                os << ":";
-            }
+            // if(array_val->key.size()>0)
+            // {
+            //     os << array_val->key;
+            //     os << ":";
+            // }
             os << "[";
             for(unsigned int i=0;i <array_val->_data.size(); i++ )
             {
@@ -7585,11 +7647,11 @@ namespace http
         }
         else if(val.get_type()==http::obj_type::ARRAY)
         {
-            if(val.array_val->key.size()>0)
-            {
-                os << val.array_val->key;
-                os << ":";
-            }
+            // if(val.array_val->key.size()>0)
+            // {
+            //     os << val.array_val->key;
+            //     os << ":";
+            // }
             os << "[";
             for(unsigned int i=0;i <val.array_val->_data.size(); i++ )
             {

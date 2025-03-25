@@ -999,7 +999,7 @@ struct obj_t
 struct obj_array
 {
     public:
-    std::string key;
+    // std::string key;
     std::vector<obj_val> _data;
 };
 }
