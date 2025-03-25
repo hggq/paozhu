@@ -750,7 +750,7 @@ namespace http
             if(length < 8)
             {
                 char * tempstr=(char *)std::malloc(resize);
-                std::memcpy(&tempstr,name, length );
+                std::memcpy(tempstr,name, length );
                 tempstr[length]=0x00;
                 str=tempstr;
                 number = resize;
@@ -758,7 +758,7 @@ namespace http
             else 
             {
                 char * tempstr=(char *)std::malloc(resize);
-                std::memcpy(&tempstr,str, length );
+                std::memcpy(tempstr,str, length );
                 free(str);
                 tempstr[length]=0x00;
                 str=tempstr;
@@ -3417,8 +3417,7 @@ namespace http
                         number = jlenth;
                     }
                     char *temp=(char *)std::malloc(number);
-
-                    std::memcpy(&temp,name, length );
+                    std::memcpy(temp,name, length );
                     std::memcpy(&temp[length],v.data(), v.size() );
                     str=temp;
                     length=v.size()+length;
@@ -3439,7 +3438,7 @@ namespace http
                             number = jlenth;
                         }
                         char *temp=(char *)std::malloc(number);
-                        std::memcpy(&temp,str, length);
+                        std::memcpy(temp,str, length);
                         std::memcpy(&temp[length],v.data(), v.size() );
                         length=v.size()+length;
                         str[length]=0x00;
