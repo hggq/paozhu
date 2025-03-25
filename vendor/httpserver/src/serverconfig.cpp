@@ -1630,11 +1630,11 @@ SSL_CTX *serverconfig::getdefaultctx()
 }
 SSL_CTX *serverconfig::getctx(std::string filename)
 {
-    SSL_CTX *ctx         = NULL;
-    
-    if(clear_ctx)
+    SSL_CTX *ctx = NULL;
+
+    if (clear_ctx)
     {
-       return ctx;
+        return ctx;
     }
 
     if (g_ctxMap.find(filename) != g_ctxMap.end())

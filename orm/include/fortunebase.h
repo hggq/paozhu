@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Mon, 24 Mar 2025 13:58:46 GMT
+*本文件为自动生成 Tue, 25 Mar 2025 02:05:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
