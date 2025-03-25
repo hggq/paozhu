@@ -417,10 +417,10 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 
 * [ ] 1.Improved HTTP features  
 * [ ] 2.Use C++ parse JSX file , Server Side Rendering  
-* [ ] 3.Httpclient Improved,Support Protocol forwarding  
-* [ ] 4.Websocket client  
+* [ ] 3.HttpClient Improved,Support Protocol forwarding  
+* [ ] 4.WebSocket client  
 * [ ] 5.HTTP/2 client  
-* [ ] 6.Postgres,sqlite ORM  
+* [ ] 6.Postgres,SQLite ORM  
 
 
 
