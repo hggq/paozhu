@@ -824,7 +824,7 @@ namespace http
             }
             else
             {
-                bb=b;
+                bb=length;
             }
         }
 
@@ -835,6 +835,10 @@ namespace http
         if(bb<0)
         {
             bb=0;
+        }
+        if(bb>length)
+        {
+            bb=length;
         }
         for(;aa<bb;aa++)
         {   
@@ -857,7 +861,7 @@ namespace http
             return temp;
         }
 
-        int aa=0,bb=length;
+        int aa=0;
         if(a < 0)
         {
             aa=length+a;
@@ -878,9 +882,21 @@ namespace http
             }
         }
        
-        for(;aa<bb;aa++)
+        if(length-a > 32)
         {
-            temp.push_back(str[aa]);
+            temp.reserve(length-a);
+        }
+
+        for(;aa<length;aa++)
+        {
+            if(length < 8)
+            {
+                temp.push_back(name[aa]);
+            }
+            else 
+            {
+                temp.push_back(str[aa]);
+            }
         }
         return temp;
     }
