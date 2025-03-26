@@ -79,10 +79,10 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void clear_session();
     std::string get_session_id();
     void set_session_id(const std::string &a);
-    void parse_session_file(std::string &sessionfile_id);
-    void parse_session_memory(std::string &sessionfile_id);
-    void save_session_memory(std::string &sessionfile);
-    void save_session_file(std::string &sessionfile);
+    void parse_session_file(const std::string &sessionfile_id);
+    void parse_session_memory(const std::string &sessionfile_id);
+    void save_session_memory(const std::string &sessionfile);
+    void save_session_file(const std::string &sessionfile);
 
     void view(const std::string &a);
     void view(const std::string &a, obj_val &b);

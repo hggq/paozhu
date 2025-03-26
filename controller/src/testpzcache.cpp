@@ -55,7 +55,6 @@ std::string testshowcache(std::shared_ptr<httppeer> peer)
     pzcache<std::string> &temp_cache = pzcache<std::string>::conn();
 
     std::string namestring = "testname";
-
     std::string cache_data = temp_cache.get(namestring);
 
     client << " data1: <p>" << cache_data << "</p>";

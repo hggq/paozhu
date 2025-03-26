@@ -30,7 +30,7 @@
 namespace orm
 {
 
-typedef std::vector<std::pair<std::string, std::function<void(long long, long long)>>> commit_lists_callback;
+//typedef std::vector<std::pair<std::string, std::function<void(long long, long long)>>> commit_lists_callback;
 
 template <typename BASE_T>
 std::map<std::size_t, BASE_T> &get_static_model_cache()
@@ -51,16 +51,16 @@ class model_meta_cache
   public:
     struct data_cache_t
     {
-        std::vector<BASE_MODEL> data;
+        BASE_MODEL data;
         unsigned int exptime = 0;
     };
 
   public:
-    void save(std::size_t hashid, BASE_MODEL &data_list, int expnum = 0, bool cover_data = false)
+    void save(std::size_t hashid,const BASE_MODEL &data_list, int expnum = 0, bool cover_data = false)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data.push_back(data_list);
+        temp.data=data_list;
         if (expnum != 0)
         {
             temp.exptime = http::timeid() + expnum;
@@ -83,11 +83,12 @@ class model_meta_cache
             }
         }
     }
-    void save(std::size_t hashid, std::vector<BASE_MODEL> &data_list, int expnum = 0, bool cover_data = false)
+
+    void save(std::size_t hashid,BASE_MODEL &&data_list, int expnum = 0, bool cover_data = false)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data = data_list;
+        temp.data = std::move(data_list);
         if (expnum != 0)
         {
             temp.exptime = http::timeid() + expnum;
@@ -97,7 +98,7 @@ class model_meta_cache
             temp.exptime = 0;
         }
         std::unique_lock<std::mutex> lock(editlock);
-        auto [_, success] = obj.insert({hashid, temp});
+        auto [_, success] = obj.insert({hashid, std::move(temp)});
         if (!success)
         {
             if (cover_data)
@@ -110,6 +111,7 @@ class model_meta_cache
             }
         }
     }
+ 
     bool remove(std::size_t hashid)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
@@ -184,7 +186,7 @@ class model_meta_cache
         }
         return -1;
     }
-    std::vector<BASE_MODEL> get(std::size_t hashid)
+    const BASE_MODEL &get(std::size_t hashid)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
         unsigned int nowtime                     = http::timeid();
@@ -204,44 +206,12 @@ class model_meta_cache
             else
             {
                 obj.erase(iter++);
+                throw "This cache is vector loswer expected time";
             }
         }
-        lock.unlock();
-        std::vector<BASE_MODEL> temp;
-        return temp;
+        throw "Not in this vector cache";
     }
-    BASE_MODEL get_obj(std::size_t hashid)
-    {
-        std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
-        unsigned int nowtime                     = http::timeid();
-        std::unique_lock<std::mutex> lock(editlock);
-        auto iter = obj.find(hashid);
-        if (iter != obj.end())
-        {
-            if (iter->second.exptime == 0)
-            {
-                if (iter->second.data.size() > 0)
-                {
-                    return iter->second.data[0];
-                }
-            }
 
-            if (iter->second.exptime >= nowtime)
-            {
-                if (iter->second.data.size() > 0)
-                {
-                    return iter->second.data[0];
-                }
-            }
-            else
-            {
-                obj.erase(iter++);
-            }
-        }
-        lock.unlock();
-        BASE_MODEL temp;
-        return temp;
-    }
     static model_meta_cache &getinstance()
     {
         static model_meta_cache instance;

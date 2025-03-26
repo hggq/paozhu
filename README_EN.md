@@ -420,7 +420,7 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 * [ ] 3.HttpClient Improved,Support Protocol forwarding  
 * [ ] 4.WebSocket client  
 * [ ] 5.HTTP/2 client  
-* [ ] 6.Postgres,SQLite ORM  
+* [ ] 6.PostgresSQL,SQLite ORM  
 
 
 

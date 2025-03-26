@@ -27,16 +27,16 @@ template <typename BASE_TYPE> class pzcache
   public:
     struct data_cache_t
     {
-        std::vector<BASE_TYPE> data;
+        BASE_TYPE data;
         unsigned int exptime = 0;
     };
 
   public:
-    void save(std::string hashid, BASE_TYPE &data_list, int expnum = 0, bool cover_data = false)
+    void save(const std::string &hashid,const BASE_TYPE &data_list, int expnum = 0, bool cover_data = false)
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data.push_back(data_list);
+        temp.data=data_list;
         if (expnum != 0)
         {
             temp.exptime = http::timeid() + expnum;
@@ -59,11 +59,11 @@ template <typename BASE_TYPE> class pzcache
             }
         }
     }
-    void save(std::string hashid, std::vector<BASE_TYPE> &data_list, int expnum = 0, bool cover_data = false)
+    void save(const std::string &hashid,BASE_TYPE &&data_list, int expnum = 0, bool cover_data = false)
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data = data_list;
+        temp.data=std::move(data_list);
         if (expnum != 0)
         {
             temp.exptime = http::timeid() + expnum;
@@ -73,7 +73,7 @@ template <typename BASE_TYPE> class pzcache
             temp.exptime = 0;
         }
         std::unique_lock<std::mutex> lock(editlock);
-        auto [_, success] = obj.insert({hashid, temp});
+        auto [_, success] = obj.emplace(hashid, std::move(temp));
         if (!success)
         {
             if (cover_data)
@@ -86,7 +86,8 @@ template <typename BASE_TYPE> class pzcache
             }
         }
     }
-    bool remove(std::string hashid)
+
+    bool remove(const std::string &hashid)
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
         std::unique_lock<std::mutex> lock(editlock);
@@ -121,7 +122,7 @@ template <typename BASE_TYPE> class pzcache
         std::unique_lock<std::mutex> lock(editlock);
         obj.clear();
     }
-    int check(std::string hashid)
+    int check(const std::string &hashid)
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
         unsigned int nowtime                     = http::timeid();
@@ -143,7 +144,7 @@ template <typename BASE_TYPE> class pzcache
         return -1;
     }
 
-    int update(std::string hashid, int exptime = 0)
+    int update(const std::string &hashid, int exptime = 0)
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
         unsigned int nowtime                     = http::timeid() + exptime;
@@ -165,7 +166,8 @@ template <typename BASE_TYPE> class pzcache
         }
         return -1;
     }
-    std::vector<BASE_TYPE> get_array(std::string hashid)
+
+    const BASE_TYPE &get(const std::string &hashid)
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
         unsigned int nowtime                     = http::timeid();
@@ -187,41 +189,7 @@ template <typename BASE_TYPE> class pzcache
                 obj.erase(iter++);
             }
         }
-        lock.unlock();
-        std::vector<BASE_TYPE> temp;
-        return temp;
-    }
-    BASE_TYPE get(std::string hashid)
-    {
-        std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
-        unsigned int nowtime                     = http::timeid();
-        std::unique_lock<std::mutex> lock(editlock);
-        auto iter = obj.find(hashid);
-        if (iter != obj.end())
-        {
-            if (iter->second.exptime == 0)
-            {
-                if (iter->second.data.size() > 0)
-                {
-                    return iter->second.data[0];
-                }
-            }
-
-            if (iter->second.exptime >= nowtime)
-            {
-                if (iter->second.data.size() > 0)
-                {
-                    return iter->second.data[0];
-                }
-            }
-            else
-            {
-                obj.erase(iter++);
-            }
-        }
-        lock.unlock();
-        BASE_TYPE temp = {};
-        return temp;
+        throw "Not in Cache";
     }
     static pzcache &conn()
     {

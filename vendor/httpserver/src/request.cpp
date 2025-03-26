@@ -6604,7 +6604,7 @@ obj_val &obj_val::ref_array_val(unsigned int index)
     throw "This not array";
 }
 
-std::pair<std::string, obj_val> &obj_val::cref_obj_val(unsigned int index) const
+const std::pair<std::string, obj_val> &obj_val::cref_obj_val(unsigned int index)
 {
     if (_val_type == obj_type::OBJECT)
     {
@@ -6617,7 +6617,7 @@ std::pair<std::string, obj_val> &obj_val::cref_obj_val(unsigned int index) const
     throw "This not object";
 }
 
-obj_val &obj_val::cref_array_val(unsigned int index) const
+const obj_val &obj_val::cref_array_val(unsigned int index)
 {
     if (_val_type == obj_type::ARRAY)
     {
@@ -6666,7 +6666,7 @@ std::vector<obj_val> &obj_val::ref_array()
     throw "This not array";
 }
 
-std::vector<std::pair<std::string, obj_val>> &obj_val::cref_obj() const
+const std::vector<std::pair<std::string, obj_val>> &obj_val::cref_obj()
 {
     if (_val_type == obj_type::OBJECT)
     {
@@ -6675,7 +6675,7 @@ std::vector<std::pair<std::string, obj_val>> &obj_val::cref_obj() const
     throw "This not object";
 }
 
-std::vector<obj_val> &obj_val::cref_array() const
+const std::vector<obj_val> &obj_val::cref_array()
 {
     if (_val_type == obj_type::ARRAY)
     {

@@ -132,13 +132,14 @@ void httppeer::flush_out()
         return;
     }
 }
-void httppeer::parse_session_file(std::string &sessionfile)
+void httppeer::parse_session_file(const std::string &sessionfile)
 {
-    std::string root_path;
+    std::string root_path,temp_session_file;
     server_loaclvar &localvar = get_server_global_var();
     root_path                 = localvar.temp_path;
-    sessionfile.append("_sess");
+    //sessionfile.append("_sess");
     root_path.append(sessionfile);
+    root_path.append("_sess");
 
     struct stat sessfileinfo;
     unsigned long long tempsesstime = 0;
@@ -157,10 +158,10 @@ void httppeer::parse_session_file(std::string &sessionfile)
 
     if (reseetime > (vistsesstime + 5400))
     {
-        sessionfile = cookie.get(COOKIE_SESSION_NAME);
+        temp_session_file = cookie.get(COOKIE_SESSION_NAME);
         // cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
         // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
-        set_cookie(COOKIE_SESSION_NAME, sessionfile, 30000, host, "/");
+        set_cookie(COOKIE_SESSION_NAME, temp_session_file, 30000, host, "/");
     }
 
     if (tempsesstime > 0 && tempsesstime == sessionfile_time)
@@ -199,14 +200,14 @@ void httppeer::parse_session_file(std::string &sessionfile)
 #endif
 
     int filelen = lseek(fd, 0L, SEEK_END);
-    sessionfile.clear();
-    sessionfile.resize(filelen);
+    temp_session_file.clear();
+    temp_session_file.resize(filelen);
     lseek(fd, 0L, SEEK_SET);
-    int readsize = read(fd, sessionfile.data(), filelen);
+    int readsize = read(fd, temp_session_file.data(), filelen);
     if (readsize > 0)
     {
-        sessionfile.resize(readsize);
-        session.from_json(sessionfile);
+        temp_session_file.resize(readsize);
+        session.from_json(temp_session_file);
     }
 
 #ifndef _WIN32
@@ -228,9 +229,9 @@ void httppeer::parse_session_file(std::string &sessionfile)
 
     sessionfile_time = tempsesstime;
 }
-void httppeer::parse_session_memory(std::string &sessionfile_id)
+void httppeer::parse_session_memory(const std::string &sessionfile_id)
 {
-    pzcache<obj_val> &temp_cache = pzcache<obj_val>::conn();
+    http::pzcache<http::obj_val> &temp_cache = http::pzcache<http::obj_val>::conn();
     temp_cache.update(sessionfile_id, 30000);
     session = temp_cache.get(sessionfile_id);
 }
@@ -328,21 +329,22 @@ void httppeer::save_session()
         save_session_file(sessionfile);
     }
 }
-void httppeer::save_session_memory(std::string &sessionfile)
+void httppeer::save_session_memory(const std::string &sessionfile)
 {
     pzcache<obj_val> &temp_cache = pzcache<obj_val>::conn();
     temp_cache.save(sessionfile, session, 30000, true);
 }
-void httppeer::save_session_file(std::string &sessionfile)
+void httppeer::save_session_file(const std::string &sessionfile)
 {
 
-    std::string root_path;
+    std::string root_path,temp_session_file;
     // serverconfig &sysconfigpath = getserversysconfig();
     server_loaclvar &localvar = get_server_global_var();
     root_path                 = localvar.temp_path;
 
-    sessionfile.append("_sess");
+    // sessionfile.append("_sess");
     root_path.append(sessionfile);
+    root_path.append("_sess");
 #ifndef _MSC_VER
     int fd = open(root_path.c_str(), O_RDWR | O_CREAT, 0666);
     if (fd == -1)
@@ -374,9 +376,9 @@ void httppeer::save_session_file(std::string &sessionfile)
     }
 #endif
 
-    sessionfile = session.to_json();
+    temp_session_file = session.to_json();
 
-    ssize_t n = write(fd, sessionfile.data(), sessionfile.size());
+    ssize_t n = write(fd, temp_session_file.data(), temp_session_file.size());
     if (n > 0)
     {
         n = 0;

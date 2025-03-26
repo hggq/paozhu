@@ -265,15 +265,6 @@ namespace cms
                     conn_obj->back_select_conn(std::move(select_conn));
                 }
 
-                if (iscache)
-                {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
-                }
                 return querysql_len;
             }
             catch (const std::exception &e)
@@ -499,15 +490,6 @@ namespace cms
                 if (!islock_conn)
                 {
                     conn_obj->back_select_conn(std::move(select_conn));
-                }
-                if (iscache)
-                {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
                 }
                 co_return querysql_len;
             }
@@ -32046,18 +32028,18 @@ M_MODEL& or_leJiluphoto(T val)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
-                model_meta_cache<std::vector<std::string>> &temp_cache =
-                    model_meta_cache<std::vector<std::string>>::getinstance();
+                model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
+                    model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
                 temprecord = temp_cache.get(sqlhashid);
                 if (temprecord.size() > 0)
                 {
                     iscache                                    = false;
-                    model_meta_cache<std::string> &table_cache = model_meta_cache<std::string>::getinstance();
+                    model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
                     table_fieldname                            = table_cache.get(sqlhashid);
 
                     model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
                         model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
-                    table_fieldmap = tablemap_cache.get_obj(sqlhashid);
+                    table_fieldmap = tablemap_cache.get(sqlhashid);
 
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
@@ -32219,12 +32201,12 @@ M_MODEL& or_leJiluphoto(T val)
                         {
                             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
-                            model_meta_cache<std::vector<std::string>> &temp_cache =
-                                model_meta_cache<std::vector<std::string>>::getinstance();
+                            model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
+                                model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
                             temp_cache.save(sqlhashid, temprecord, exptime);
 
                             exptime += 1;
-                            model_meta_cache<std::string> &table_cache = model_meta_cache<std::string>::getinstance();
+                            model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
                             table_cache.save(sqlhashid, table_fieldname, exptime);
 
                             model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
@@ -32292,7 +32274,7 @@ M_MODEL& or_leJiluphoto(T val)
             if (iscache)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (get_cacherecord(sqlhashid))
+                if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
                     return *mod;
@@ -32510,7 +32492,7 @@ M_MODEL& or_leJiluphoto(T val)
             if (iscache)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (get_cacherecord(sqlhashid))
+                if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
                     co_return 0;
@@ -32724,7 +32706,7 @@ M_MODEL& or_leJiluphoto(T val)
             if (iscache)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (get_cacherecord(sqlhashid))
+                if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
                     return *mod;
@@ -32941,7 +32923,7 @@ M_MODEL& or_leJiluphoto(T val)
             if (iscache)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (get_cacherecord(sqlhashid))
+                if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
                     co_return 1;
@@ -33155,7 +33137,7 @@ M_MODEL& or_leJiluphoto(T val)
             if (iscache)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (get_cacherecord(sqlhashid))
+                if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
                     return 0;
@@ -33324,7 +33306,7 @@ M_MODEL& or_leJiluphoto(T val)
                 {
                     if (exptime > 0)
                     {
-                        save_cache(exptime);
+                        save_data_cache(exptime);
                         exptime = 0;
                         iscache = false;
                     }
@@ -33385,7 +33367,7 @@ M_MODEL& or_leJiluphoto(T val)
             if (iscache)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (get_cacherecord(sqlhashid))
+                if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
                     co_return 0;
@@ -33554,7 +33536,7 @@ M_MODEL& or_leJiluphoto(T val)
                 {
                     if (exptime > 0)
                     {
-                        save_cache(exptime);
+                        save_data_cache(exptime);
                         exptime = 0;
                         iscache = false;
                     }
@@ -33617,77 +33599,176 @@ M_MODEL& or_leJiluphoto(T val)
             model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
             return temp_cache.check(cache_key_name);
         }
-        std::vector<typename B_BASE::meta> get_cache_data(std::size_t cache_key_name)
+
+ 
+        bool get_data_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
-            auto cache_data                                     = temp_cache.get(cache_key_name);
-            return cache_data;
-        }
-        typename B_BASE::meta get_cache_obj(std::size_t cache_key_name)
-        {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
-            auto cache_data                                     = temp_cache.get_obj(cache_key_name);
-            return cache_data;
-        }
-        M_MODEL &get_cache(std::size_t cache_key_name)
-        {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
-            B_BASE::record                                      = temp_cache.get(cache_key_name);
-            if (B_BASE::record.size() == 0)
+            try
             {
-                B_BASE::record_reset();
+                model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+                B_BASE::data                                      = temp_cache.get(cache_key_name);
+                return true;
             }
-            else
+            catch (const std::exception &e)
             {
-                B_BASE::data = B_BASE::record[0];
+                error_msg = std::string(e.what());
             }
-            return *mod;
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (const char* e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            B_BASE::data_reset();  
+            return false;
         }
         int update_cache(int exp_time = 0)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
             return temp_cache.update(sqlhashid, exp_time);
         }
         int update_cache(std::size_t cache_key_name, int exp_time)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
             return temp_cache.update(cache_key_name, exp_time);
         }
         bool save_cache(int exp_time = 0)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
             temp_cache.save(sqlhashid, B_BASE::record, exp_time);
             return true;
         }
 
-        bool save_cache(std::size_t cache_key_name, typename B_BASE::meta &cache_data, int exp_time = 0)
+        bool save_data_cache(int exp_time = 0)
         {
             model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
-            temp_cache.save(cache_key_name, cache_data, exp_time);
+            std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
+            temp_cache.save(sqlhashid, B_BASE::data, exp_time);
             return true;
         }
 
-        bool save_cache(std::size_t cache_key_name, std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        bool save_data_cache(const std::string &cache_key_name,const typename B_BASE::meta &cache_data, int exp_time = 0)
         {
             model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            temp_cache.save(sqlhashid, cache_data, exp_time);
+            return true;
+        }
+
+        bool save_cache(std::size_t cache_key_name,const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        {
+            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
             temp_cache.save(cache_key_name, cache_data, exp_time);
             return true;
         }
-        bool get_cacherecord(std::size_t cache_key_name)
+        bool save_cache(const std::string cache_key_name,const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        {
+            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            temp_cache.save(sqlhashid, cache_data, exp_time);
+            return true;
+        }
+        bool save_vector_cache(const std::string cache_key_name,const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        {
+            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            temp_cache.save(sqlhashid, cache_data, exp_time);
+            return true;
+        }
+        bool save_cache(const std::string cache_key_name,const typename B_BASE::meta &cache_data, int exp_time = 0)
         {
             model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
-            B_BASE::record                                      = temp_cache.get(cache_key_name);
-            if (B_BASE::record.size() == 0)
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            temp_cache.save(sqlhashid, cache_data, exp_time);
+            return true;
+        }
+        B_BASE::meta &get_cache(const std::string &cache_key_name)
+        {
+            try
             {
-                return false;
+                model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+                std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+                return temp_cache.get(sqlhashid);
             }
-            else
+            catch (const std::exception &e)
             {
-                B_BASE::data = B_BASE::record[0];
+                error_msg = std::string(e.what());
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (const char* e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            throw "Not in cache";
+        }
+
+        
+        std::vector<typename B_BASE::meta> &get_vector_cache(const std::string &cache_key_name)
+        {
+            try
+            {
+                model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+                std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+                return temp_cache.get(sqlhashid);
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (const char* e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            throw "Not in cache";
+        }
+
+        bool get_record_cache(std::size_t cache_key_name)
+        {
+            try
+            {
+                model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+                B_BASE::record                                      = temp_cache.get(cache_key_name);
                 return true;
+                
             }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (const char* e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            B_BASE::record.clear();
+            return false;
+            
         }
         http::obj_val fetch_json()
         {
@@ -34115,7 +34196,7 @@ M_MODEL& or_leJiluphoto(T val)
             if (iscache)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (get_cacherecord(sqlhashid))
+                if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
                     return 0;
@@ -34268,7 +34349,7 @@ M_MODEL& or_leJiluphoto(T val)
                 {
                     if (exptime > 0)
                     {
-                        save_cache(exptime);
+                        save_data_cache(exptime);
                         exptime = 0;
                         iscache = false;
                     }
@@ -34314,7 +34395,7 @@ M_MODEL& or_leJiluphoto(T val)
             if (iscache)
             {
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
-                if (get_cacherecord(sqlhashid))
+                if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
                     co_return 0;
@@ -34465,7 +34546,7 @@ M_MODEL& or_leJiluphoto(T val)
                 {
                     if (exptime > 0)
                     {
-                        save_cache(exptime);
+                        save_data_cache(exptime);
                         exptime = 0;
                         iscache = false;
                     }

@@ -419,7 +419,7 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 * [ ] 采集client框架，支持协程，多线程，协议转发  
 * [ ] WebSocket 客户端  
 * [ ] HTTP/2 客户端  
-* [ ] Postgres、SQLite ORM 支持  
+* [ ] PostgresSQL、SQLite ORM 支持  
 
 ### 11.贡献👏👋
 

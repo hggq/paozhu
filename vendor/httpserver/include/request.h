@@ -996,16 +996,16 @@ struct obj_val
     std::pair<std::string, obj_val> &ref_obj_val(unsigned int index);
     obj_val &ref_array_val(unsigned int index);
 
-    std::pair<std::string, obj_val> &cref_obj_val(unsigned int index) const;
-    obj_val &cref_array_val(unsigned int index) const;
+    const std::pair<std::string, obj_val> &cref_obj_val(unsigned int index);
+    const obj_val &cref_array_val(unsigned int index);
 
     std::vector<std::pair<std::string, obj_val>> get_obj();
     std::vector<obj_val> get_array();
 
     std::vector<std::pair<std::string, obj_val>> &ref_obj();
     std::vector<obj_val> &ref_array();
-    std::vector<std::pair<std::string, obj_val>> &cref_obj() const;
-    std::vector<obj_val> &cref_array() const;
+    const std::vector<std::pair<std::string, obj_val>> &cref_obj();
+    const std::vector<obj_val> &cref_array();
 
     const char *c_str() const;
     char *str_data();
