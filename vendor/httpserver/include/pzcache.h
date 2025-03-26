@@ -10,13 +10,15 @@
 
 namespace http
 {
-template <typename BASETYPE_T> std::map<std::string, BASETYPE_T> &get_pz_cache()
+template <typename BASETYPE_T>
+std::map<std::string, BASETYPE_T> &get_pz_cache()
 {
     static std::map<std::string, BASETYPE_T> instance;
     return instance;
 }
 
-template <typename BASE_TYPE> class pzcache
+template <typename BASE_TYPE>
+class pzcache
 {
   private:
     pzcache(){};
@@ -32,11 +34,11 @@ template <typename BASE_TYPE> class pzcache
     };
 
   public:
-    void save(const std::string &hashid,const BASE_TYPE &data_list, int expnum = 0, bool cover_data = false)
+    void save(const std::string &hashid, const BASE_TYPE &data_list, int expnum = 0, bool cover_data = false)
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data=data_list;
+        temp.data = data_list;
         if (expnum != 0)
         {
             temp.exptime = http::timeid() + expnum;
@@ -59,11 +61,11 @@ template <typename BASE_TYPE> class pzcache
             }
         }
     }
-    void save(const std::string &hashid,BASE_TYPE &&data_list, int expnum = 0, bool cover_data = false)
+    void save(const std::string &hashid, BASE_TYPE &&data_list, int expnum = 0, bool cover_data = false)
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data=std::move(data_list);
+        temp.data = std::move(data_list);
         if (expnum != 0)
         {
             temp.exptime = http::timeid() + expnum;

@@ -17393,9 +17393,9 @@ M_MODEL& or_leUrlpath(T val)
                 temprecord = temp_cache.get(sqlhashid);
                 if (temprecord.size() > 0)
                 {
-                    iscache                                    = false;
+                    iscache                                                 = false;
                     model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
-                    table_fieldname                            = table_cache.get(sqlhashid);
+                    table_fieldname                                         = table_cache.get(sqlhashid);
 
                     model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
                         model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
@@ -17504,7 +17504,7 @@ M_MODEL& or_leUrlpath(T val)
                                     for (unsigned int ii = 0; ii < field_array.size(); ii++)
                                     {
                                         field_pos.push_back(B_BASE::findcolpos(field_array[ii].org_name));
-                                        table_fieldmap.insert({field_array[ii].org_name, table_fieldname.size()});
+                                        table_fieldmap.emplace(field_array[ii].org_name, table_fieldname.size());
                                         table_fieldname.push_back(field_array[ii].org_name);
                                     }
                                 }
@@ -18960,13 +18960,12 @@ M_MODEL& or_leUrlpath(T val)
             return temp_cache.check(cache_key_name);
         }
 
- 
         bool get_data_cache(std::size_t cache_key_name)
         {
             try
             {
                 model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
-                B_BASE::data                                      = temp_cache.get(cache_key_name);
+                B_BASE::data                                        = temp_cache.get(cache_key_name);
                 return true;
             }
             catch (const std::exception &e)
@@ -18977,20 +18976,20 @@ M_MODEL& or_leUrlpath(T val)
             {
                 error_msg = e;
             }
-            catch (const char* e)
+            catch (const char *e)
             {
                 error_msg = e;
             }
             catch (...)
             {
             }
-            B_BASE::data_reset();  
+            B_BASE::data_reset();
             return false;
         }
         int update_cache(int exp_time = 0)
         {
             model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
-            std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(sqlstring);
             return temp_cache.update(sqlhashid, exp_time);
         }
         int update_cache(std::size_t cache_key_name, int exp_time)
@@ -19001,7 +19000,7 @@ M_MODEL& or_leUrlpath(T val)
         bool save_cache(int exp_time = 0)
         {
             model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
-            std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(sqlstring);
             temp_cache.save(sqlhashid, B_BASE::record, exp_time);
             return true;
         }
@@ -19014,7 +19013,7 @@ M_MODEL& or_leUrlpath(T val)
             return true;
         }
 
-        bool save_data_cache(const std::string &cache_key_name,const typename B_BASE::meta &cache_data, int exp_time = 0)
+        bool save_data_cache(const std::string &cache_key_name, const typename B_BASE::meta &cache_data, int exp_time = 0)
         {
             model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
@@ -19022,27 +19021,27 @@ M_MODEL& or_leUrlpath(T val)
             return true;
         }
 
-        bool save_cache(std::size_t cache_key_name,const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        bool save_cache(std::size_t cache_key_name, const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
         {
             model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
             temp_cache.save(cache_key_name, cache_data, exp_time);
             return true;
         }
-        bool save_cache(const std::string cache_key_name,const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        bool save_cache(const std::string cache_key_name, const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
         {
             model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
-            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        bool save_vector_cache(const std::string cache_key_name,const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        bool save_vector_cache(const std::string cache_key_name, const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
         {
             model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
-            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        bool save_cache(const std::string cache_key_name,const typename B_BASE::meta &cache_data, int exp_time = 0)
+        bool save_cache(const std::string cache_key_name, const typename B_BASE::meta &cache_data, int exp_time = 0)
         {
             model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
@@ -19065,7 +19064,7 @@ M_MODEL& or_leUrlpath(T val)
             {
                 error_msg = e;
             }
-            catch (const char* e)
+            catch (const char *e)
             {
                 error_msg = e;
             }
@@ -19075,13 +19074,12 @@ M_MODEL& or_leUrlpath(T val)
             throw "Not in cache";
         }
 
-        
         std::vector<typename B_BASE::meta> &get_vector_cache(const std::string &cache_key_name)
         {
             try
             {
                 model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
-                std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+                std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
                 return temp_cache.get(sqlhashid);
             }
             catch (const std::exception &e)
@@ -19092,7 +19090,7 @@ M_MODEL& or_leUrlpath(T val)
             {
                 error_msg = e;
             }
-            catch (const char* e)
+            catch (const char *e)
             {
                 error_msg = e;
             }
@@ -19107,9 +19105,8 @@ M_MODEL& or_leUrlpath(T val)
             try
             {
                 model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
-                B_BASE::record                                      = temp_cache.get(cache_key_name);
+                B_BASE::record                                                   = temp_cache.get(cache_key_name);
                 return true;
-                
             }
             catch (const std::exception &e)
             {
@@ -19119,7 +19116,7 @@ M_MODEL& or_leUrlpath(T val)
             {
                 error_msg = e;
             }
-            catch (const char* e)
+            catch (const char *e)
             {
                 error_msg = e;
             }
@@ -19128,7 +19125,6 @@ M_MODEL& or_leUrlpath(T val)
             }
             B_BASE::record.clear();
             return false;
-            
         }
         http::obj_val fetch_json()
         {
@@ -22456,7 +22452,7 @@ M_MODEL& or_leUrlpath(T val)
                                     for (unsigned int ii = 0; ii < field_array.size(); ii++)
                                     {
                                         field_pos.push_back(B_BASE::findcolpos(field_array[ii].org_name));
-                                        table_fieldmap.insert({field_array[ii].org_name, table_fieldname.size()});
+                                        table_fieldmap.emplace(field_array[ii].org_name, table_fieldname.size());
                                         table_fieldname.push_back(field_array[ii].org_name);
                                     }
                                 }
@@ -22651,7 +22647,7 @@ M_MODEL& or_leUrlpath(T val)
                                     for (unsigned int ii = 0; ii < field_array.size(); ii++)
                                     {
                                         field_pos.push_back(B_BASE::findcolpos(field_array[ii].org_name));
-                                        table_fieldmap.insert({field_array[ii].org_name, table_fieldname.size()});
+                                        table_fieldmap.emplace(field_array[ii].org_name, table_fieldname.size());
                                         table_fieldname.push_back(field_array[ii].org_name);
                                     }
                                 }

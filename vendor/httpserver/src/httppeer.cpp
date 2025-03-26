@@ -134,11 +134,34 @@ void httppeer::flush_out()
 }
 void httppeer::parse_session_file(const std::string &sessionfile)
 {
-    std::string root_path,temp_session_file;
+    std::string root_path, temp_session_file;
     server_loaclvar &localvar = get_server_global_var();
     root_path                 = localvar.temp_path;
     //sessionfile.append("_sess");
-    root_path.append(sessionfile);
+    for (unsigned int i = 0; i < sessionfile.size(); i++)
+    {
+        if (sessionfile[i] > 0x2F && sessionfile[i] < 0x3A)
+        {
+            root_path.push_back(sessionfile[i]);
+        }
+        else if (sessionfile[i] > 0x40 && sessionfile[i] < 0x5B)
+        {
+            root_path.push_back(sessionfile[i]);
+        }
+        else if (sessionfile[i] > 0x60 && sessionfile[i] < 0x7B)
+        {
+            root_path.push_back(sessionfile[i]);
+        }
+        else if (sessionfile[i] == '-')
+        {
+            root_path.push_back(sessionfile[i]);
+        }
+        else if (sessionfile[i] == '_')
+        {
+            root_path.push_back(sessionfile[i]);
+        }
+    }
+    //root_path.append(sessionfile);
     root_path.append("_sess");
 
     struct stat sessfileinfo;
@@ -337,7 +360,7 @@ void httppeer::save_session_memory(const std::string &sessionfile)
 void httppeer::save_session_file(const std::string &sessionfile)
 {
 
-    std::string root_path,temp_session_file;
+    std::string root_path, temp_session_file;
     // serverconfig &sysconfigpath = getserversysconfig();
     server_loaclvar &localvar = get_server_global_var();
     root_path                 = localvar.temp_path;
