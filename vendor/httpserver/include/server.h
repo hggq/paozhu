@@ -166,7 +166,7 @@ class httpserver
   public:
     // httpheader begin
     unsigned char runhands_num = 4;
-    asio::io_context io_context{1};
+    asio::io_context io_context{0};
     std::vector<std::thread> runthreads;
     std::vector<std::thread> websocketthreads;
     std::vector<std::thread> http2_send_data_threads;

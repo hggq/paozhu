@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <list>
@@ -14,6 +15,7 @@ namespace http
 
 client_data_cache::~client_data_cache()
 {
+    isclose = true;
     for (; !data_list.empty();)
     {
         unsigned char *a = data_list.front();
@@ -85,6 +87,11 @@ unsigned char *client_data_cache::get_data_ptr()
 }
 bool client_data_cache::back_data_ptr(unsigned char *a)
 {
+    if(isclose)
+    {
+        free(a);
+        return true;
+    }
     std::unique_lock<std::mutex> lock(locklist);
     data_list.push(a);
     return true;

@@ -1053,10 +1053,6 @@ unsigned int orm_conn_pool::clear_select_conn()
         conn_select_pool.pop_front();
         temp->close();
         n++;
-        if (n > 5)
-        {
-            break;
-        }
     }
     lock.unlock();
     return n;
@@ -1071,10 +1067,6 @@ unsigned int orm_conn_pool::clear_edit_conn()
         conn_edit_pool.pop_front();
         temp->close();
         n++;
-        if (n > 5)
-        {
-            break;
-        }
     }
     lock.unlock();
     return n;

@@ -37,6 +37,18 @@ mysql_conn_base::mysql_conn_base(asio::io_context &ioc) : io_ctx(&ioc)
 }
 mysql_conn_base::~mysql_conn_base()
 {
+    if(isclose==false)
+    {
+        if(sock_type == 1)
+        {
+            socket.release();
+        }
+        else if(sock_type == 2)
+        {
+            sslsocket.release();
+        }
+    }
+    isclose = true;
     if (_cache_data != nullptr)
     {
         auto &cc = http::get_client_data_cache();
@@ -173,6 +185,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         error_msg.append("host connect error! ");
         error_msg.append(ec.message());
         error_code = 1;
+        isclose = true;
         return false;
     }
     std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
@@ -181,6 +194,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     {
         error_msg.append("mysql server back data error! ");
         error_code = 255;
+        isclose = true;
         return false;
     }
 
@@ -190,6 +204,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         error_msg.append("connect read_some error! ");
         error_msg.append(ec.message());
         error_code = 1;
+        isclose = true;
         return false;
     }
 
@@ -276,6 +291,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             {
                 error_msg=e.what();
                 error_code = 1;
+                isclose = true;
                 return false;
             }
 
@@ -297,6 +313,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             {
                 error_msg = ec.message();
                 error_code = 2;
+                isclose = true;
                 return false;
             }
 
@@ -312,6 +329,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             {
                 error_msg=e.what();
                 error_code = 1;
+                isclose = true;
                 return false;
             }
 
@@ -323,6 +341,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             catch (std::exception &e)
             {
                 error_msg.append(e.what());
+                isclose = true;
                 return false;
             }
 
@@ -345,6 +364,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                 {
                     error_msg=e.what();
                     error_code = 1;
+                    isclose = true;
                     return false;
                 }
     
@@ -356,6 +376,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                 catch (std::exception &e)
                 {
                     error_msg.append(e.what());
+                    isclose = true;
                     return false;
                 }   
             }
@@ -367,6 +388,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                     error_msg.push_back(_cache_data[i]);
                 }
                 error_code = 2;
+                isclose = true;
                 return false;
             }
             else if ((unsigned char)_cache_data[4] == 0xFF)
@@ -376,6 +398,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                     error_msg.push_back(_cache_data[i]);
                 }
                 error_code = 6;
+                isclose = true;
                 return false;
             }
             else if ((unsigned char)_cache_data[5] == 0x03)
@@ -395,6 +418,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                     {
                         error_msg =" connect fail! server status error! ";
                         error_code = 8;
+                        isclose = true;
                         return false;
                     }
         
@@ -402,6 +426,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                     {
                         error_msg =" connect fail! ";
                         error_code = 8;
+                        isclose = true;
                         return false;
                     }  
                 }else {
@@ -415,6 +440,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                             error_msg.push_back(_cache_data[i]);
                         }
                         error_code = 8;
+                        isclose = true;
                         return false;
                     }
                     else if ((unsigned char)_cache_data[4] == 0x00)
@@ -427,6 +453,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             {   
                 error_msg =" connect fail! ";
                 error_code = 8;
+                isclose = true;
                 return false;
             }
 
@@ -445,6 +472,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         error_msg.append("connect handshake error! ");
         error_msg.append(ec.message());
         error_code = 1;
+        isclose = true;
         return false;
     }
     if (_cache_data[0] == 0x02 && _cache_data[4] == 0x01 && _cache_data[5] == 0x04)
@@ -459,6 +487,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         {
             error_msg.append(" request server_public_key error ! ");
             error_code = 3;
+            isclose = true;
             return false;
         }
 
@@ -469,6 +498,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             error_msg.append(" get server_public_key return size: ");
             error_msg.append(std::to_string(n));
             error_code = 2;
+            isclose = true;
             return false;
         }
 
@@ -476,6 +506,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         bool isok   = server_public_key_encrypt(conn_config.password, &_cache_data[5], n - 5);
         if (isok == false)
         {
+            isclose = true;
             return false;
         }
 
@@ -487,6 +518,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         {
             error_msg.append(e.what());
             error_code = 4;
+            isclose = true;
             return false;
         }
 
@@ -500,6 +532,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         {
             error_msg.append(e.what());
             error_code = 4;
+            isclose = true;
             return false;
         }
 
@@ -510,6 +543,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                 error_msg.push_back(_cache_data[i]);
             }
             error_code = 5;
+            isclose = true;
             return false;
         }
         return true;
@@ -521,6 +555,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             error_msg.push_back(_cache_data[i]);
         }
         error_code = 2;
+        isclose = true;
         return false;
     }
     else if ((unsigned char)_cache_data[4] == 0xFF)
@@ -530,6 +565,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             error_msg.push_back(_cache_data[i]);
         }
         error_code = 6;
+        isclose = true;
         return false;
     }
     else if ((unsigned char)_cache_data[5] == 0x03)
@@ -549,6 +585,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             {
                 error_msg =" connect fail! server status error! ";
                 error_code = 8;
+                isclose = true;
                 return false;
             }
 
@@ -556,6 +593,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             {
                 error_msg =" connect fail! ";
                 error_code = 8;
+                isclose = true;
                 return false;
             }  
         }else {
@@ -568,6 +606,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                     error_msg.push_back(_cache_data[i]);
                 }
                 error_code = 8;
+                isclose = true;
                 return false;
             }
             else if ((unsigned char)_cache_data[4] == 0x00)
@@ -580,6 +619,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     {
         error_msg =" connect fail! ";
         error_code = 9;
+        isclose = true;
         return false;
     }
 
@@ -660,6 +700,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         error_msg.append("host connect error! ");
         error_msg.append(ec.message());
         error_code = 1;
+        isclose = true;
         co_return false;
     }
     std::size_t n = 0;
@@ -671,6 +712,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     catch (std::exception &e)
     {
         error_msg.append(e.what());
+        isclose = true;
         co_return false;
     }
 
@@ -678,6 +720,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     {
         error_msg.append("mysql server back data error! ");
         error_code = 255;
+        isclose = true;
         co_return false;
     }
 
@@ -764,6 +807,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             {
                 error_msg=e.what();
                 error_code = 1;
+                isclose = true;
                 co_return false;
             }
 
@@ -785,6 +829,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             {
                 error_msg = ec.message();
                 error_code = 2;
+                isclose = true;
                 co_return false;
             }
 
@@ -800,6 +845,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             {
                 error_msg=e.what();
                 error_code = 1;
+                isclose = true;
                 co_return false;
             }
 
@@ -811,6 +857,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             catch (std::exception &e)
             {
                 error_msg.append(e.what());
+                isclose = true;
                 co_return false;
             }
             if (_cache_data[0] == 0x02 && _cache_data[4] == 0x01 && _cache_data[5] == 0x04)
@@ -833,6 +880,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                 {
                     error_msg=e.what();
                     error_code = 1;
+                    isclose = true;
                     co_return false;
                 }
     
@@ -844,6 +892,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                 catch (std::exception &e)
                 {
                     error_msg.append(e.what());
+                    isclose = true;
                     co_return false;
                 }
  
@@ -856,6 +905,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     error_msg.push_back(_cache_data[i]);
                 }
                 error_code = 2;
+                isclose = true;
                 co_return false;
             }
             else if ((unsigned char)_cache_data[4] == 0xFF)
@@ -865,6 +915,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     error_msg.push_back(_cache_data[i]);
                 }
                 error_code = 6;
+                isclose = true;
                 co_return false;
             }
             else if ((unsigned char)_cache_data[5] == 0x03)
@@ -882,6 +933,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     {
                         error_msg =" connect fail! server status error! ";
                         error_code = 8;
+                        isclose = true;
                         co_return false;
                     }
 
@@ -893,6 +945,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     {
                         error_msg =" connect fail! ";
                         error_code = 8;
+                        isclose = true;
                         co_return false;
                     }  
                 }else {
@@ -904,6 +957,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     catch (std::exception &e)
                     {
                         error_msg.append(e.what());
+                        isclose = true;
                         co_return false;
                     }
                     if ((unsigned char)_cache_data[4] == 0xFF)
@@ -913,6 +967,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                             error_msg.push_back(_cache_data[i]);
                         }
                         error_code = 7;
+                        isclose = true;
                         co_return false;
                     }
                     else if ((unsigned char)_cache_data[4] == 0x00)
@@ -923,6 +978,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     {
                         error_msg =" async read status connect fail! ";
                         error_code = 9;
+                        isclose = true;
                         co_return false;
                     }
                 }
@@ -931,10 +987,12 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             {   
                 error_msg =" connect fail! ";
                 error_code = 8;
+                isclose = true;
                 co_return false;
             }
 
             seq_next_id = 0;
+            isclose = true;
             co_return false;
         }
     }
@@ -946,6 +1004,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     catch (std::exception &e)
     {
         error_msg.append(e.what());
+        isclose = true;
         co_return false;
     }
     std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
@@ -956,6 +1015,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     catch (std::exception &e)
     {
         error_msg.append(e.what());
+        isclose = true;
         co_return false;
     }
 
@@ -973,12 +1033,14 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         catch (std::exception &e)
         {
             error_msg.append(e.what());
+            isclose = true;
             co_return false;
         }
         if (n == 0)
         {
             error_msg.append(" request server_public_key error ! ");
             error_code = 3;
+            isclose = true;
             co_return false;
         }
 
@@ -990,6 +1052,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         catch (std::exception &e)
         {
             error_msg.append(e.what());
+            isclose = true;
             co_return false;
         }
         if (n < 256 || n > 1024)
@@ -997,6 +1060,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             error_msg.append(" get server_public_key return size: ");
             error_msg.append(std::to_string(n));
             error_code = 2;
+            isclose = true;
             co_return false;
         }
 
@@ -1004,7 +1068,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         bool isok   = server_public_key_encrypt(conn_config.password, &_cache_data[5], n - 5);
         if (isok == false)
         {
-
+            isclose = true;
             co_return false;
         }
 
@@ -1015,6 +1079,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         catch (std::exception &e)
         {
             error_msg.append(e.what());
+            isclose = true;
             co_return false;
         }
         std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
@@ -1026,6 +1091,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         catch (std::exception &e)
         {
             error_msg.append(e.what());
+            isclose = true;
             co_return false;
         }
 
@@ -1036,6 +1102,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                 error_msg.push_back(_cache_data[i]);
             }
             error_code = 5;
+            isclose = true;
             co_return false;
         }
     }
@@ -1046,6 +1113,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             error_msg.push_back(_cache_data[i]);
         }
         error_code = 2;
+        isclose = true;
         co_return false;
     }
     else if ((unsigned char)_cache_data[4] == 0xFF)
@@ -1055,6 +1123,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             error_msg.push_back(_cache_data[i]);
         }
         error_code = 6;
+        isclose = true;
         co_return false;
     }
     else if ((unsigned char)_cache_data[5] == 0x03)
@@ -1072,6 +1141,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             {
                 error_msg =" connect fail! server status error! ";
                 error_code = 8;
+                isclose = true;
                 co_return false;
             }
 
@@ -1083,6 +1153,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             {
                 error_msg =" connect fail! ";
                 error_code = 8;
+                isclose = true;
                 co_return false;
             }  
         }else {
@@ -1094,6 +1165,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             catch (std::exception &e)
             {
                 error_msg.append(e.what());
+                isclose = true;
                 co_return false;
             }
             if ((unsigned char)_cache_data[4] == 0xFF)
@@ -1103,6 +1175,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     error_msg.push_back(_cache_data[i]);
                 }
                 error_code = 7;
+                isclose = true;
                 co_return false;
             }
             else if ((unsigned char)_cache_data[4] == 0x00)
@@ -1113,6 +1186,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             {
                 error_msg =" async read status connect fail! ";
                 error_code = 9;
+                isclose = true;
                 co_return false;
             }
         }
@@ -1121,6 +1195,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     {   
         error_msg =" connect fail! ";
         error_code = 8;
+        isclose = true;
         co_return false;
     }
 
@@ -1400,7 +1475,6 @@ bool mysql_conn_base::close()
     try
     {
         isclose = true;
-
         if(sock_type == 1)
         {
             asio::write(*socket, asio::buffer(data_send, 5), ec);

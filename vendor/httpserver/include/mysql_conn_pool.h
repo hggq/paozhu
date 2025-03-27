@@ -44,6 +44,9 @@ class orm_conn_pool
 
     asio::awaitable<bool> clear_edit_conn_2hour();
     asio::awaitable<bool> clear_select_conn_2hour();
+    ~orm_conn_pool(){
+
+    }
 
   public:
     std::list<std::shared_ptr<mysql_conn_base>> conn_edit_pool;

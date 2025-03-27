@@ -28,6 +28,7 @@ class client_data_cache
     bool fix_lists();
 
   public:
+    bool isclose=false;
     std::queue<unsigned char *> data_list;
     std::mutex locklist;
 };
