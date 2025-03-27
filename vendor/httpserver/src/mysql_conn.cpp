@@ -39,6 +39,7 @@ mysql_conn_base::~mysql_conn_base()
 {
     if(isclose==false)
     {
+        //hard_close();
         if(sock_type == 1)
         {
             socket.release();
@@ -1469,6 +1470,10 @@ bool mysql_conn_base::ping()
 }
 bool mysql_conn_base::close()
 {
+    if(isclose)
+    {
+        return false;
+    }
     char data_send[6] = {0x01, 0x00, 0x00, 0x00, 0x01, 0x00};
     error_code        = 0;
     error_msg.clear();
@@ -1477,11 +1482,15 @@ bool mysql_conn_base::close()
         isclose = true;
         if(sock_type == 1)
         {
-            asio::write(*socket, asio::buffer(data_send, 5), ec);
-            socket->close();
+            if(socket->is_open())
+            {
+                asio::write(*socket, asio::buffer(data_send, 5), ec);
+                socket->close();
+            }
         }
         else if(sock_type == 2)
         {
+            asio::write(*sslsocket, asio::buffer(data_send, 5), ec);
             sslsocket->shutdown(ec);
             if (sslsocket->lowest_layer().is_open())
             {
@@ -1499,6 +1508,10 @@ bool mysql_conn_base::close()
 }
 asio::awaitable<bool> mysql_conn_base::async_close()
 {
+    if(isclose)
+    {
+        co_return false;
+    }
     char data_send[6] = {0x01, 0x00, 0x00, 0x00, 0x01, 0x00};
     error_code        = 0;
     error_msg.clear();
@@ -1508,8 +1521,11 @@ asio::awaitable<bool> mysql_conn_base::async_close()
 
         if(sock_type == 1)
         {
-            co_await asio::async_write(*socket, asio::buffer(data_send, 5), asio::use_awaitable);
-            socket->close();
+            if(socket->is_open())
+            {
+                co_await asio::async_write(*socket, asio::buffer(data_send, 5), asio::use_awaitable);
+                socket->close();
+            }
         }
         else if(sock_type == 2)
         {
@@ -1538,7 +1554,10 @@ bool mysql_conn_base::hard_close()
         isclose = true;
         if(sock_type == 1)
         {
-            socket->close();
+            if(socket->is_open())
+            {
+                socket->close();
+            }
         }
         else if(sock_type == 2)
         {

@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
         std::printf("found: %s\n", users.data.name.c_str());
         }
         std::printf("echo\n");
+        orm::init_orm_conn_pool_release();
     }
     catch (std::exception &e)
     {

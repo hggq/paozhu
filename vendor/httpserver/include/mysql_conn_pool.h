@@ -45,7 +45,6 @@ class orm_conn_pool
     asio::awaitable<bool> clear_edit_conn_2hour();
     asio::awaitable<bool> clear_select_conn_2hour();
     ~orm_conn_pool(){
-
     }
 
   public:
@@ -61,5 +60,6 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename);
 std::map<std::string, std::shared_ptr<orm_conn_pool>> &get_orm_conn_pool_obj();
 
 std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file);
+std::string init_orm_conn_pool_release();
 }// namespace orm
 #endif

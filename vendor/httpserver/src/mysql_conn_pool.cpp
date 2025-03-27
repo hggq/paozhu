@@ -549,7 +549,17 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
 
     return myconfig;
 }
-
+std::string init_orm_conn_pool_release()
+{
+    std::map<std::string, std::shared_ptr<orm_conn_pool>> &int_pool = get_orm_conn_pool_obj();
+ 
+    for (auto iter = int_pool.begin(); iter != int_pool.end(); iter++)
+    {
+        iter->second->clear_select_conn();
+        iter->second->clear_edit_conn();
+    }
+    return "";
+}
 std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file)
 {
     std::map<std::string, std::shared_ptr<orm_conn_pool>> &int_pool = get_orm_conn_pool_obj();
