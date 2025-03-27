@@ -292,7 +292,7 @@ struct obj_val
             {
                 return 0.0;
             }
-            if (length < 9 && length > 4)
+            if (length < 8 && length > 4)
             {
                 if (name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
                 {
@@ -306,20 +306,6 @@ struct obj_val
                 {
                     return 0.0;
                 }
-                try
-                {
-                    double temp_b = std::stod(name);
-                    return temp_b;
-                }
-                catch (const std::invalid_argument &e)
-                {
-                    return 0.0;
-                }
-                catch (const std::out_of_range &e)
-                {
-                    return 0.0;
-                }
-                return 0.0;
             }
             else if (length == 1)
             {
@@ -332,18 +318,23 @@ struct obj_val
             {
                 try
                 {
-                    double temp_b = std::stod(str);
-                    return temp_b;
+                    if (length < 8)
+                    {
+                        return std::stod(name);
+                    }
+                    else
+                    {
+                        return std::stod(str);
+                    }
                 }
                 catch (const std::invalid_argument &e)
                 {
-                    return 0.0;
+                    return 0;
                 }
                 catch (const std::out_of_range &e)
                 {
-                    return 0.0;
+                    return 0;
                 }
-                return 0.0;
             }
             break;
         case obj_type::INT:
@@ -389,7 +380,7 @@ struct obj_val
             {
                 return 0.0;
             }
-            if (length < 9 && length > 4)
+            if (length < 8 && length > 4)
             {
                 if (name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
                 {
@@ -403,20 +394,6 @@ struct obj_val
                 {
                     return 0.0;
                 }
-                try
-                {
-                    double temp_b = std::stod(name);
-                    return temp_b;
-                }
-                catch (const std::invalid_argument &e)
-                {
-                    return 0.0;
-                }
-                catch (const std::out_of_range &e)
-                {
-                    return 0.0;
-                }
-                return 0.0;
             }
             else if (length == 1)
             {
@@ -429,18 +406,23 @@ struct obj_val
             {
                 try
                 {
-                    double temp_b = std::stod(str);
-                    return temp_b;
+                    if (length < 8)
+                    {
+                        return std::stod(name);
+                    }
+                    else
+                    {
+                        return std::stod(str);
+                    }
                 }
                 catch (const std::invalid_argument &e)
                 {
-                    return 0.0;
+                    return 0;
                 }
                 catch (const std::out_of_range &e)
                 {
-                    return 0.0;
+                    return 0;
                 }
-                return 0.0;
             }
             break;
         case obj_type::INT:
@@ -487,7 +469,7 @@ struct obj_val
             {
                 return 0;
             }
-            if (length < 9 && length > 4)
+            if (length < 8 && length > 4)
             {
                 if (name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
                 {
@@ -513,8 +495,14 @@ struct obj_val
             {
                 try
                 {
-                    long long temp_b = std::stoll(str);
-                    return temp_b;
+                    if (length < 8)
+                    {
+                        return std::stoll(name);
+                    }
+                    else
+                    {
+                        return std::stoll(str);
+                    }
                 }
                 catch (const std::invalid_argument &e)
                 {
@@ -524,7 +512,6 @@ struct obj_val
                 {
                     return 0;
                 }
-                return 0;
             }
             break;
         case obj_type::INT:
@@ -572,7 +559,7 @@ struct obj_val
             {
                 return 0;
             }
-            if (length < 9 && length > 4)
+            if (length < 8 && length > 4)
             {
                 if (name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
                 {
@@ -598,8 +585,14 @@ struct obj_val
             {
                 try
                 {
-                    long long temp_b = std::stoll(str);
-                    return temp_b;
+                    if (length < 8)
+                    {
+                        return std::stoull(name);
+                    }
+                    else
+                    {
+                        return std::stoull(str);
+                    }
                 }
                 catch (const std::invalid_argument &e)
                 {
@@ -609,7 +602,6 @@ struct obj_val
                 {
                     return 0;
                 }
-                return 0;
             }
             break;
         case obj_type::INT:
@@ -655,7 +647,7 @@ struct obj_val
             {
                 return 0;
             }
-            if (length < 9 && length > 4)
+            if (length < 8 && length > 4)
             {
                 if (name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
                 {
@@ -681,8 +673,14 @@ struct obj_val
             {
                 try
                 {
-                    long long temp_b = std::stoll(str);
-                    return temp_b;
+                    if (length < 8)
+                    {
+                        return std::stol(name);
+                    }
+                    else
+                    {
+                        return std::stol(str);
+                    }
                 }
                 catch (const std::invalid_argument &e)
                 {
@@ -692,7 +690,6 @@ struct obj_val
                 {
                     return 0;
                 }
-                return 0;
             }
             break;
         case obj_type::INT:
@@ -737,7 +734,7 @@ struct obj_val
             {
                 return 0;
             }
-            if (length < 9 && length > 4)
+            if (length < 8 && length > 4)
             {
                 if (name[0] == 'f' && name[1] == 'a' && name[2] == 'l' && name[3] == 's' && name[4] == 'e')
                 {
@@ -763,8 +760,14 @@ struct obj_val
             {
                 try
                 {
-                    long long temp_b = std::stoll(str);
-                    return temp_b;
+                    if (length < 8)
+                    {
+                        return std::stoul(name);
+                    }
+                    else
+                    {
+                        return std::stoul(str);
+                    }
                 }
                 catch (const std::invalid_argument &e)
                 {
@@ -774,7 +777,6 @@ struct obj_val
                 {
                     return 0;
                 }
-                return 0;
             }
             break;
         case obj_type::INT:
@@ -963,7 +965,7 @@ struct obj_val
         }
         else if (_val_type == obj_type::NIL)
         {
-            return "null";
+            return "";
         }
         return "";
     }
@@ -996,16 +998,16 @@ struct obj_val
     std::pair<std::string, obj_val> &ref_obj_val(unsigned int index);
     obj_val &ref_array_val(unsigned int index);
 
-    const std::pair<std::string, obj_val> &cref_obj_val(unsigned int index);
-    const obj_val &cref_array_val(unsigned int index);
+    std::pair<std::string, obj_val> &cref_obj_val(unsigned int index) const;
+    obj_val &cref_array_val(unsigned int index) const;
 
     std::vector<std::pair<std::string, obj_val>> get_obj();
     std::vector<obj_val> get_array();
 
     std::vector<std::pair<std::string, obj_val>> &ref_obj();
     std::vector<obj_val> &ref_array();
-    const std::vector<std::pair<std::string, obj_val>> &cref_obj();
-    const std::vector<obj_val> &cref_array();
+    std::vector<std::pair<std::string, obj_val>> &cref_obj() const;
+    std::vector<obj_val> &cref_array() const;
 
     const char *c_str() const;
     char *str_data();
@@ -1032,6 +1034,8 @@ struct obj_val
     std::string as_string();
 
     ~obj_val();
+private:
+    std::string mb_substr_name(int begin_pos, int cut_size = 0);
 };
 struct obj_t
 {

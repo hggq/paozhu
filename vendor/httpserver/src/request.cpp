@@ -29,41 +29,85 @@ unsigned int obj_val::mb_strlen()
     unsigned int temp_length = 0;
     unsigned int pos         = 0;
 
-    for (; pos < length; pos++)
+    if (length < 8)
     {
-        unsigned char c = (unsigned char)str[pos];
-        if (c < 0x80)
+        for (; pos < length; pos++)
         {
-            temp_length++;
-        }
-        else if (c < 0xC0)
-        {
-            temp_length++;
-        }
-        else if (c >= 0xC0 && c < 0xE0)
-        {
-            pos += 1;
-            temp_length++;
-        }
-        else if (c >= 0xE0 && c < 0xF0)
-        {
-            pos += 2;
-            temp_length++;
-        }
-        else if (c >= 0xF0 && c < 0xF8)
-        {
-            pos += 3;
-            temp_length++;
-        }
-        else
-        {
-            temp_length++;
+            unsigned char c = (unsigned char)name[pos];
+            if (c < 0x80)
+            {
+                temp_length++;
+            }
+            else if (c < 0xC0)
+            {
+                temp_length++;
+            }
+            else if (c >= 0xC0 && c < 0xE0)
+            {
+                pos += 1;
+                temp_length++;
+            }
+            else if (c >= 0xE0 && c < 0xF0)
+            {
+                pos += 2;
+                temp_length++;
+            }
+            else if (c >= 0xF0 && c < 0xF8)
+            {
+                pos += 3;
+                temp_length++;
+            }
+            else
+            {
+                temp_length++;
+            }
         }
     }
+    else
+    {
+        for (; pos < length; pos++)
+        {
+            unsigned char c = (unsigned char)str[pos];
+            if (c < 0x80)
+            {
+                temp_length++;
+            }
+            else if (c < 0xC0)
+            {
+                temp_length++;
+            }
+            else if (c >= 0xC0 && c < 0xE0)
+            {
+                pos += 1;
+                temp_length++;
+            }
+            else if (c >= 0xE0 && c < 0xF0)
+            {
+                pos += 2;
+                temp_length++;
+            }
+            else if (c >= 0xF0 && c < 0xF8)
+            {
+                pos += 3;
+                temp_length++;
+            }
+            else
+            {
+                temp_length++;
+            }
+        }
+    }
+
     return temp_length;
 }
 std::string obj_val::mb_substr(int begin_pos, int cut_size)
 {
+
+    if (length < 8)
+    {
+        return mb_substr_name(begin_pos, cut_size);
+    }
+
     std::string temp;
     if (_val_type != obj_type::STRING)
     {
@@ -607,6 +651,529 @@ std::string obj_val::mb_substr(int begin_pos, int cut_size)
     return temp;
 }
 
+std::string obj_val::mb_substr_name(int begin_pos, int cut_size)
+{
+    std::string temp;
+    if (_val_type != obj_type::STRING)
+    {
+        return temp;
+    }
+    if (length > 7)
+    {
+        return temp;
+    }
+    int str_length = 0;
+    str_length     = mb_strlen();
+
+    // int spacenum = 0;
+    unsigned char c;
+    if (begin_pos < 0)
+    {
+        if (cut_size == 0)
+        {
+            int n = str_length + begin_pos;
+            if (n > str_length)
+            {
+                n = str_length;
+            }
+            if (n < 0)
+            {
+                n = 0;
+            }
+
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < length; pos++)
+            {
+                c = (unsigned char)name[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                        temp.push_back(name[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+            }
+
+            return temp;
+        }
+        else if (cut_size < 0)
+        {
+            int j = str_length + cut_size;
+            if (j > str_length)
+            {
+                j = str_length;
+            }
+            if (j < 0)
+            {
+                j = 0;
+            }
+            int n = str_length + begin_pos;
+            if (n > str_length)
+            {
+                n = str_length;
+            }
+            if (n < 0)
+            {
+                n = 0;
+            }
+
+            if (n >= j)
+            {
+                return temp;
+            }
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < length; pos++)
+            {
+                c = (unsigned char)name[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                        temp.push_back(name[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                if (offsetnum >= j)
+                {
+                    break;
+                }
+            }
+            return temp;
+        }
+        else
+        {
+            int n = str_length + begin_pos;
+            if (n > str_length)
+            {
+                n = str_length;
+            }
+            if (n < 0)
+            {
+                n = 0;
+            }
+
+            int j = n + cut_size;
+            if (j > str_length)
+            {
+                j = str_length;
+            }
+            if (j < 0)
+            {
+                j = 0;
+            }
+            if (n >= j)
+            {
+                return temp;
+            }
+
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < length; pos++)
+            {
+                c = (unsigned char)name[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                        temp.push_back(name[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                if (offsetnum >= j)
+                {
+                    break;
+                }
+            }
+
+            return temp;
+        }
+    }
+    else
+    {
+        if (cut_size == 0)
+        {
+            int offsetnum = 0;
+            int n         = begin_pos;
+            for (unsigned int pos = 0; pos < length; pos++)
+            {
+                c = (unsigned char)name[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                        temp.push_back(name[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+            }
+
+            return temp;
+        }
+        else if (cut_size < 0)
+        {
+            int j = str_length + cut_size;
+            if (j < 0)
+            {
+                j = 0;
+            }
+            if (begin_pos > str_length)
+            {
+                begin_pos = str_length;
+            }
+
+            int n = j;
+            j     = begin_pos;
+
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < length; pos++)
+            {
+                c = (unsigned char)name[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                        temp.push_back(name[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                if (offsetnum >= j)
+                {
+                    break;
+                }
+            }
+
+            return temp;
+        }
+        else
+        {
+            if (begin_pos > str_length)
+            {
+                begin_pos = str_length;
+            }
+            int j = begin_pos + cut_size;
+            if (j > str_length)
+            {
+                j = str_length;
+            }
+            int n         = begin_pos;
+            int offsetnum = 0;
+            for (unsigned int pos = 0; pos < length; pos++)
+            {
+                c = (unsigned char)name[pos];
+                if (c < 0x80)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c < 0xC0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                else if (c >= 0xC0 && c < 0xE0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                    }
+                    pos += 1;
+                    offsetnum++;
+                }
+                else if (c >= 0xE0 && c < 0xF0)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                    }
+                    pos += 2;
+                    offsetnum++;
+                }
+                else if (c >= 0xF0 && c < 0xF8)
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                        temp.push_back(name[pos + 1]);
+                        temp.push_back(name[pos + 2]);
+                        temp.push_back(name[pos + 3]);
+                    }
+                    pos += 3;
+                    offsetnum++;
+                }
+                else
+                {
+                    if (offsetnum >= n)
+                    {
+                        temp.push_back(name[pos]);
+                    }
+                    offsetnum++;
+                }
+                if (offsetnum >= j)
+                {
+                    break;
+                }
+            }
+            return temp;
+        }
+    }
+
+    return temp;
+}
+
 obj_type obj_val::get_type() const
 {
     return _val_type;
@@ -712,7 +1279,6 @@ std::string_view obj_val::str_view(int a, int b)
     if (aa >= bb)
     {
         std::string_view(name, 0);
-        ;
     }
 
     if (length < 8)
@@ -1039,6 +1605,29 @@ obj_val &obj_val::operator[](unsigned int index)
 
 obj_val &obj_val::operator[](const std::string &key)
 {
+    if (_val_type == obj_type::ARRAY)
+    {
+        unsigned int i_pos = 0xFFFFFFFF;
+        try
+        {
+            i_pos = std::stoul(key);
+        }
+        catch (const std::invalid_argument &e)
+        {
+        }
+        catch (const std::out_of_range &e)
+        {
+        }
+        if (i_pos != 0xFFFFFFFF)
+        {
+            if (i_pos < array_val->_data.size())
+            {
+                return array_val->_data[i_pos];
+            }
+        }
+        throw "Out of range";
+    }
+
     if (_val_type != obj_type::OBJECT)
     {
         clear();
@@ -1060,6 +1649,29 @@ obj_val &obj_val::operator[](const std::string &key)
 }
 obj_val &obj_val::operator[](std::string &&key)
 {
+    if (_val_type == obj_type::ARRAY)
+    {
+        unsigned int i_pos = 0xFFFFFFFF;
+        try
+        {
+            i_pos = std::stoul(key);
+        }
+        catch (const std::invalid_argument &e)
+        {
+        }
+        catch (const std::out_of_range &e)
+        {
+        }
+        if (i_pos != 0xFFFFFFFF)
+        {
+            if (i_pos < array_val->_data.size())
+            {
+                return array_val->_data[i_pos];
+            }
+        }
+        throw "Out of range";
+    }
+
     if (_val_type != obj_type::OBJECT)
     {
         clear();
@@ -6604,7 +7216,7 @@ obj_val &obj_val::ref_array_val(unsigned int index)
     throw "This not array";
 }
 
-const std::pair<std::string, obj_val> &obj_val::cref_obj_val(unsigned int index)
+std::pair<std::string, obj_val> &obj_val::cref_obj_val(unsigned int index) const
 {
     if (_val_type == obj_type::OBJECT)
     {
@@ -6617,7 +7229,7 @@ const std::pair<std::string, obj_val> &obj_val::cref_obj_val(unsigned int index)
     throw "This not object";
 }
 
-const obj_val &obj_val::cref_array_val(unsigned int index)
+obj_val &obj_val::cref_array_val(unsigned int index) const
 {
     if (_val_type == obj_type::ARRAY)
     {
@@ -6666,7 +7278,7 @@ std::vector<obj_val> &obj_val::ref_array()
     throw "This not array";
 }
 
-const std::vector<std::pair<std::string, obj_val>> &obj_val::cref_obj()
+std::vector<std::pair<std::string, obj_val>> &obj_val::cref_obj() const
 {
     if (_val_type == obj_type::OBJECT)
     {
@@ -6675,7 +7287,7 @@ const std::vector<std::pair<std::string, obj_val>> &obj_val::cref_obj()
     throw "This not object";
 }
 
-const std::vector<obj_val> &obj_val::cref_array()
+std::vector<obj_val> &obj_val::cref_array() const
 {
     if (_val_type == obj_type::ARRAY)
     {
