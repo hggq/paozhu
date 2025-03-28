@@ -44,11 +44,11 @@ mysql_conn_base::~mysql_conn_base()
         //may be use static connect pool obj relation
         if(sock_type == 1)
         {
-            socket.release();
+            //socket.release();
         }
         else if(sock_type == 2)
         {
-            sslsocket.release();
+            //sslsocket.release();
         }
     }
     isclose = true;

@@ -25,7 +25,9 @@ namespace view {
 			{
  
                      std::ostringstream echo;
-
+                     try
+                     {
+                    
         
  			 echo<<"<!DOCTYPE html><html><head><title>Fortunes</title></head><body><table><tr><th>id</th><th>message</th></tr>";
 
@@ -41,6 +43,12 @@ namespace view {
 
  			 echo<<"</table></body></html>";
 
+                    }
+                    catch(const char *e)
+                    {
+                        echo << e;
+                        return echo.str();
+                    }
                   return echo.str();
              }
 

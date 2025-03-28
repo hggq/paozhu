@@ -25,7 +25,9 @@ namespace view {
 			{
  
                      std::ostringstream echo;
-
+                     try
+                     {
+                    
         
  			 echo<<"<!doctype html>\n<html lang=\"en\" data-bs-theme=\"auto\">\n\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n \n  <title>网站信息</title>\n\n  <link href=\"/assets/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link rel=\"stylesheet\" href=\"/assets/icons/font/bootstrap-icons.css\">\n  <link href=\"/css/dashboard.css\" rel=\"stylesheet\">\n\n</head>\n\n<body>\n\n  <div class=\"container-fluid\">\n\n    <h5 class=\"card-title mt-2\">网站设置</h5>\n    <hr>\n    <div class=\"row\">\n      <div class=\"col-12\">\n        <form id=\"form\" action=\"/admin/siteinfopost\" method=\"post\">\n          <div class=\"row mb-3\">\n            <label for=\"sitename\" class=\"col-sm-2 col-form-label text-sm-end\">网站名称</label>\n            <div class=\"col-sm-10\">\n              <input type=\"text\" class=\"form-control\" id=\"sitename\" name=\"sitename\" value=\"";
 echo << obj["info"]["sitename"].to_string(); 
@@ -39,6 +41,12 @@ echo << obj["info"]["metadesc"].to_string();
 echo<<obj["info"]["sid"].to_string(); 
  			 echo<<"\" />\n            </div>\n          </div>\n\n        </form>\n      </div>\n    </div>\n\n  </div>\n  \n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n  <script src=\"/nicedit/nicEdit.js\" type=\"text/javascript\"></script>\n  <script lang=\"javascript\">\n\n   bkLib.onDomLoaded(function() {\n\t  new nicEditor({fullPanel : true,iconsPath : '/nicedit/nicEditorIcons.gif'}).panelInstance('copyright');\n    });\n    </script>\n</body>\n\n</html>";
 
+                    }
+                    catch(const char *e)
+                    {
+                        echo << e;
+                        return echo.str();
+                    }
                   return echo.str();
              }
 

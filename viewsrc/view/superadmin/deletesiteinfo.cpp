@@ -25,7 +25,9 @@ namespace view {
 			{
  
                      std::ostringstream echo;
-
+                     try
+                     {
+                    
         
  			 echo<<"<!doctype html>\n<html lang=\"en\" data-bs-theme=\"auto\">\n\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n \n  <title>网站信息</title>\n\n  <link href=\"/assets/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link rel=\"stylesheet\" href=\"/assets/icons/font/bootstrap-icons.css\">\n  <link href=\"/css/dashboard.css\" rel=\"stylesheet\">\n\n</head>\n\n<body>\n\n  <div class=\"container-fluid\">\n\n    <h5 class=\"card-title mt-2\">删除网站</h5>\n    <hr>\n    <div class=\"row\">\n      <div class=\"col-12\">\n        <p>公司名称：";
 echo << obj["info"]["companyname"].to_string(); 
@@ -35,6 +37,12 @@ echo << obj["info"]["sitename"].to_string();
 echo<<obj["info"]["sid"].to_string(); 
  			 echo<<"\" />\n                <a href=\"/superadmin/welcome\" class=\"btn btn-link rounded-pill px-3\">返回</a>\n            </div>\n          </div>\n\n        </form>\n      </div>\n    </div>\n  </div>\n  \n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n \n</body>\n\n</html>";
 
+                    }
+                    catch(const char *e)
+                    {
+                        echo << e;
+                        return echo.str();
+                    }
                   return echo.str();
              }
 

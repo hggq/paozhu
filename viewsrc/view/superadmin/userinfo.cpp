@@ -25,7 +25,9 @@ namespace view {
 			{
  
                      std::ostringstream echo;
-
+                     try
+                     {
+                    
         
  			 echo<<"<!doctype html>\n<html lang=\"en\" data-bs-theme=\"auto\">\n\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"\">\n  <title>账号信息</title>\n\n  <link href=\"/assets/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link rel=\"stylesheet\" href=\"/assets/icons/font/bootstrap-icons.css\">\n  <link href=\"/css/dashboard.css\" rel=\"stylesheet\">\n\n</head>\n\n<body>\n\n  <div class=\"container-fluid\">\n\n    <h5 class=\"card-title mt-2\">账号信息</h5>\n    <hr>\n    <div class=\"row\">\n      <div class=\"col-12\">\n   \n          <div class=\"row mb-3\">\n            <label for=\"sitename\" class=\"col-sm-2 col-form-label text-sm-end\">账户名称</label>\n            <div class=\"col-sm-10\">\n               ";
 echo << obj["info"]["name"].to_string(); 
@@ -47,6 +49,12 @@ echo << obj["info"]["level"].to_string();
  } 
  			 echo<<"              </tbody>\n            </table>\n\n      </div>\n    </div>\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n</body>\n\n</html>";
 
+                    }
+                    catch(const char *e)
+                    {
+                        echo << e;
+                        return echo.str();
+                    }
                   return echo.str();
              }
 

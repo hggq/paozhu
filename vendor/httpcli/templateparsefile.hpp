@@ -692,9 +692,17 @@ namespace http
 
         headtxt            = R"(
                      std::ostringstream echo;
-
+                     try
+                     {
+                    
         )";
         std::string endtxt = R"(
+                    }
+                    catch(const char *e)
+                    {
+                        echo << e;
+                        return echo.str();
+                    }
                   return echo.str();
              }
 

@@ -25,7 +25,9 @@ namespace view {
 			{
  
                      std::ostringstream echo;
-
+                     try
+                     {
+                    
         
  			 echo<<"<!doctype html>\n<html lang=\"en\" data-bs-theme=\"auto\">\n\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"\">\n  <title>首页</title>\n\n  <link href=\"/assets/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link rel=\"stylesheet\" href=\"/assets/icons/font/bootstrap-icons.css\">\n\n  <link href=\"/css/dashboard.css\" rel=\"stylesheet\">\n\n</head>\n\n<body>\n\n  <div class=\"container-fluid\">\n\n    <h5 class=\"card-title mt-2\">";
 echo<<obj["info"]["sitename"].to_string(); 
@@ -53,6 +55,12 @@ echo<<obj["info"]["sid"].to_string();
  } 
  			 echo<<"          </tbody>\n\n        </table>\n      </div>\n    </div>\n    <div class=\"row p-3\">\n      <div class=\"col-10\">\n         <a href=\"/superadmin/welcome\" class=\"btn btn-link rounded-pill px-3\">返回</a>\n      </div>\n    </div>\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n</body>\n\n</html>";
 
+                    }
+                    catch(const char *e)
+                    {
+                        echo << e;
+                        return echo.str();
+                    }
                   return echo.str();
              }
 

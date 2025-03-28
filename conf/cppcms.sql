@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2025-03-05 09:19:28
+-- 生成日期： 2025-03-28 15:57:24
 -- 服务器版本： 8.4.4
 -- PHP 版本： 8.4.3
 
@@ -62,7 +62,7 @@ CREATE TABLE `article` (
 --
 
 INSERT INTO `article` (`aid`, `topicid`, `classtype`, `userid`, `sortid`, `topicname`, `title`, `keywords`, `fromsource`, `author`, `addip`, `createtime`, `addtime`, `readnum`, `review`, `icoimg`, `content`, `mdcontent`, `isopen`, `ishome`, `iscomment`, `showtype`, `fromlocal`, `texturl`, `summary`, `editauthor`, `relatecontent`) VALUES
-(1, 1, 0, 1, 0, '', '我公司典型案例', '', '', '管理员', '113.17.101.12', '2024-11-05 21:54:59', 1730814899, 0, 0, '', '<p>国际大学生</p>', '', 1, 0, 0, 0, '', '', '', '', '');
+(1, 1, 0, 1, 0, '', '我公司典型案例', '', '', '管理员', '113.17.101.12', '2024-11-05 21:54:59', 1730814899, 0, 0, '', '<p>国际大学生aa</p>', '', 1, 0, 0, 0, '', '', '', '', '');
 
 -- --------------------------------------------------------
 
@@ -138,18 +138,6 @@ CREATE TABLE `department` (
   `linkdpid` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '关联部门'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='部门';
 
---
--- 转存表中的数据 `department`
---
-
-INSERT INTO `department` (`dpid`, `userid`, `parentid`, `name`, `depart_code`, `bianzhi_num`, `real_num`, `quan_weight`, `isopen`, `memo`, `created_time`, `created_user`, `updated_time`, `updated_user`, `isvirtual`, `linkdpid`) VALUES
-(38, 0, 0, 'aabb', '', 11, 0, 0, 1, 'aa desc', 0, 0, 0, 0, 0, ''),
-(50, 0, 0, 'bbcc', '', 110, 0, 0, 1, 'bb desc', 0, 0, 0, 0, 0, ''),
-(51, 0, 50, 'bbcc11', '', 66, 0, 0, 1, 'bbcc desc', 0, 0, 0, 0, 0, ''),
-(52, 0, 0, 'ccdd', '', 20, 0, 0, 1, 'cc desc', 0, 0, 0, 0, 0, ''),
-(53, 0, 52, 'ccddee', '', 10, 0, 0, 1, 'ccdd desc', 0, 0, 0, 0, 0, ''),
-(54, 0, 51, 'bbcc777', '', 30, 0, 0, 1, 'bbcc11 desc', 0, 0, 0, 0, 0, '');
-
 -- --------------------------------------------------------
 
 --
@@ -171,6 +159,13 @@ CREATE TABLE `homeblock` (
   `sortid` int NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='home block content display';
 
+--
+-- 转存表中的数据 `homeblock`
+--
+
+INSERT INTO `homeblock` (`hbid`, `userid`, `title`, `content`, `jsonconfig`, `viewtype`, `gettype`, `rownum`, `width`, `height`, `strlength`, `sortid`) VALUES
+(16, 1, 'ssss', '<p>fffff</p>', '[]', 0, 0, 0, 0, 0, 0, 0);
+
 -- --------------------------------------------------------
 
 --
@@ -189,13 +184,6 @@ CREATE TABLE `logininfo` (
   `agent` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `urlpath` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录';
-
---
--- 转存表中的数据 `logininfo`
---
-
-INSERT INTO `logininfo` (`lgid`, `userid`, `logtype`, `username`, `addtime`, `addip`, `addregion`, `loginstate`, `agent`, `urlpath`) VALUES
-(1, 10000, 0, 'admin', '2025-03-05 17:19:12', '127.0.0.1', '', '成功default', '', '');
 
 -- --------------------------------------------------------
 
@@ -296,7 +284,7 @@ CREATE TABLE `siteinfo` (
 --
 
 INSERT INTO `siteinfo` (`sid`, `userid`, `agentid`, `languagetype`, `sitename`, `sitedomain`, `metakeys`, `metadesc`, `copyright`, `beiansn`, `footscript`, `headscript`, `introduce`, `sitelogo`, `contactman`, `phone`, `mobile`, `email`, `bankname`, `banksn`, `address`, `zipnum`, `taxsn`, `companyname`, `linkname`, `linkmobile`, `linkaddress`, `theme`, `sitepath`, `isopen`, `created_at`, `enddate`) VALUES
-(1, 1, 1, 0, '名称名称名称', '', 'META关键词aaayyy', 'META描述cccfddd\r\n', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'default', 0, 0, 0);
+(1, 1, 1, 0, ' 网站名称', '', 'META关键词', 'META描述\r\n', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'default', 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -663,7 +651,8 @@ ALTER TABLE `logininfo`
 ALTER TABLE `product`
   ADD PRIMARY KEY (`pid`),
   ADD KEY `userid` (`userid`),
-  ADD KEY `sortid` (`sortid`);
+  ADD KEY `sortid` (`sortid`),
+  ADD KEY `smallid` (`smallid`);
 
 --
 -- 表的索引 `productparam`
@@ -718,6 +707,12 @@ ALTER TABLE `testa`
 --
 ALTER TABLE `testb`
   ADD PRIMARY KEY (`tid`);
+
+--
+-- 表的索引 `topic`
+--
+ALTER TABLE `topic`
+  ADD PRIMARY KEY (`topicid`);
 
 --
 -- 表的索引 `xmeet`
@@ -785,13 +780,13 @@ ALTER TABLE `department`
 -- 使用表AUTO_INCREMENT `homeblock`
 --
 ALTER TABLE `homeblock`
-  MODIFY `hbid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `hbid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- 使用表AUTO_INCREMENT `logininfo`
 --
 ALTER TABLE `logininfo`
-  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `product`
@@ -852,6 +847,12 @@ ALTER TABLE `testa`
 --
 ALTER TABLE `testb`
   MODIFY `tid` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=120;
+
+--
+-- 使用表AUTO_INCREMENT `topic`
+--
+ALTER TABLE `topic`
+  MODIFY `topicid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- 使用表AUTO_INCREMENT `xmeet`

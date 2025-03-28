@@ -1742,8 +1742,11 @@ obj_val &obj_val::operator[](unsigned int index)
             }
             iter++;
         }
+        obj->_data.emplace_back(key, nullptr);
+        obj->_data.back().second.set_type(obj_type::NIL);
+        return obj->_data.back().second;
     }
-    throw "Out of range";
+    throw "Out of range operator[] index";
 }
 
 obj_val &obj_val::operator[](const std::string &key)
@@ -1770,7 +1773,7 @@ obj_val &obj_val::operator[](const std::string &key)
                 return array_val->_data[i_pos];
             }
         }
-        throw "Out of range";
+        throw "Out of range operator[] &key";
     }
 
     if (_val_type != obj_type::OBJECT)
@@ -1796,25 +1799,31 @@ obj_val &obj_val::operator[](std::string &&key)
 {
     if (_val_type == obj_type::ARRAY)
     {
-        unsigned int i_pos = 0xFFFFFFFF;
-        try
+        if(array_val->_data.size()>0)
         {
-            i_pos = std::stoul(key);
-        }
-        catch (const std::invalid_argument &e)
-        {
-        }
-        catch (const std::out_of_range &e)
-        {
-        }
-        if (i_pos != 0xFFFFFFFF)
-        {
-            if (i_pos < array_val->_data.size())
+            unsigned int i_pos = 0xFFFFFFFF;
+            try
             {
-                return array_val->_data[i_pos];
+                i_pos = std::stoul(key);
             }
+            catch (const std::invalid_argument &e)
+            {
+                i_pos = 0xFFFFFFFF;
+            }
+            catch (const std::out_of_range &e)
+            {
+                i_pos = 0xFFFFFFFF;
+            }
+            if (i_pos != 0xFFFFFFFF)
+            {
+                if (i_pos < array_val->_data.size())
+                {
+                    return array_val->_data[i_pos];
+                }
+            }
+            throw "Out of range operator &&key";
         }
-        throw "Out of range";
+
     }
 
     if (_val_type != obj_type::OBJECT)
@@ -7200,7 +7209,7 @@ obj_val &obj_val::find(const std::string &v)
         throw "Not found in this object";
     }
 
-    throw "This var not is object";
+    throw "This var not is object find";
 }
 
 bool obj_val::unset(const std::string &v)
@@ -7356,7 +7365,7 @@ std::vector<std::pair<std::string, obj_val>>::iterator obj_val::obj_begin()
     {
         return obj->_data.begin();
     }
-    throw "This not array";
+    throw "This not array obj_begin";
 }
 std::vector<std::pair<std::string, obj_val>>::iterator obj_val::obj_end()
 {
@@ -7364,7 +7373,7 @@ std::vector<std::pair<std::string, obj_val>>::iterator obj_val::obj_end()
     {
         return obj->_data.end();
     }
-    throw "This not array";
+    throw "This not array obj_end";
 }
 std::vector<std::pair<std::string, obj_val>>::const_iterator obj_val::obj_cbegin() const
 {
@@ -7372,7 +7381,7 @@ std::vector<std::pair<std::string, obj_val>>::const_iterator obj_val::obj_cbegin
     {
         return obj->_data.cbegin();
     }
-    throw "This not array";
+    throw "This not array obj_cbegin";
 }
 std::vector<std::pair<std::string, obj_val>>::const_iterator obj_val::obj_cend() const
 {
@@ -7380,7 +7389,7 @@ std::vector<std::pair<std::string, obj_val>>::const_iterator obj_val::obj_cend()
     {
         return obj->_data.cend();
     }
-    throw "This not array";
+    throw "This not array obj_cend";
 }
 
 std::pair<std::string, obj_val> obj_val::get_obj_val(unsigned int index)
@@ -7391,9 +7400,9 @@ std::pair<std::string, obj_val> obj_val::get_obj_val(unsigned int index)
         {
             return obj->_data[index];
         }
-        throw "Out of range";
+        throw "Out of range get_obj_val";
     }
-    throw "This not object";
+    throw "This not object get_obj_val";
 }
 
 obj_val obj_val::get_array_val(unsigned int index)
@@ -7404,9 +7413,9 @@ obj_val obj_val::get_array_val(unsigned int index)
         {
             return array_val->_data[index];
         }
-        throw "Out of range";
+        throw "Out of range get_array_val";
     }
-    throw "This not array";
+    throw "This not array get_array_val";
 }
 
 std::pair<std::string, obj_val> &obj_val::ref_obj_val(unsigned int index)
@@ -7417,9 +7426,9 @@ std::pair<std::string, obj_val> &obj_val::ref_obj_val(unsigned int index)
         {
             return obj->_data[index];
         }
-        throw "Out of range";
+        throw "Out of range ref_obj_val";
     }
-    throw "This not object";
+    throw "This not object ref_obj_val";
 }
 
 obj_val &obj_val::ref_array_val(unsigned int index)
@@ -7430,9 +7439,9 @@ obj_val &obj_val::ref_array_val(unsigned int index)
         {
             return array_val->_data[index];
         }
-        throw "Out of range";
+        throw "Out of range ref_array_val ref_array_val";
     }
-    throw "This not array";
+    throw "This not array ref_array_val";
 }
 
 std::pair<std::string, obj_val> &obj_val::cref_obj_val(unsigned int index) const
@@ -7443,9 +7452,9 @@ std::pair<std::string, obj_val> &obj_val::cref_obj_val(unsigned int index) const
         {
             return obj->_data[index];
         }
-        throw "Out of range";
+        throw "Out of range cref_obj_val";
     }
-    throw "This not object";
+    throw "This not object cref_obj_val";
 }
 
 obj_val &obj_val::cref_array_val(unsigned int index) const
@@ -7456,9 +7465,9 @@ obj_val &obj_val::cref_array_val(unsigned int index) const
         {
             return array_val->_data[index];
         }
-        throw "Out of range";
+        throw "Out of range cref_array_val";
     }
-    throw "This not array";
+    throw "This not array cref_array_val";
 }
 
 std::vector<std::pair<std::string, obj_val>> obj_val::get_obj()
@@ -7473,7 +7482,7 @@ std::vector<std::pair<std::string, obj_val>> obj_val::get_obj()
         _val_type = obj_type::OBJECT;
         return obj->_data;
     }
-    throw "This not object";
+    throw "This not object get_obj";
 }
 
 std::vector<obj_val> obj_val::get_array()
@@ -7488,7 +7497,7 @@ std::vector<obj_val> obj_val::get_array()
         _val_type = obj_type::ARRAY;
         return array_val->_data;
     }
-    throw "This not array";
+    throw "This not array get_array";
 }
 
 std::vector<std::pair<std::string, obj_val>> &obj_val::ref_obj()
@@ -7503,7 +7512,7 @@ std::vector<std::pair<std::string, obj_val>> &obj_val::ref_obj()
         _val_type = obj_type::OBJECT;
         return obj->_data;
     }
-    throw "This not object";
+    throw "This not object ref_obj";
 }
 
 std::vector<obj_val> &obj_val::ref_array()
@@ -7518,7 +7527,7 @@ std::vector<obj_val> &obj_val::ref_array()
         _val_type = obj_type::ARRAY;
         return array_val->_data;
     }
-    throw "This not array";
+    throw "This not array ref_array";
 }
 
 std::vector<std::pair<std::string, obj_val>> &obj_val::cref_obj() const
@@ -7527,7 +7536,7 @@ std::vector<std::pair<std::string, obj_val>> &obj_val::cref_obj() const
     {
         return obj->_data;
     }
-    throw "This not object";
+    throw "This not object cref_obj";
 }
 
 std::vector<obj_val> &obj_val::cref_array() const
@@ -7536,7 +7545,7 @@ std::vector<obj_val> &obj_val::cref_array() const
     {
         return array_val->_data;
     }
-    throw "This not array";
+    throw "This not array cref_array";
 }
 
 bool obj_val::isset(const std::string &key)
@@ -8499,7 +8508,17 @@ std::vector<std::pair<std::string, obj_val>> &obj_val::as_object()
         _val_type = obj_type::OBJECT;
         return obj->_data;
     }
-    throw "This not object";
+    else if (_val_type == obj_type::ARRAY)
+    {
+        if(array_val->_data.size()==0)
+        {
+            clear();
+            obj = new obj_t;
+            _val_type = obj_type::OBJECT;
+            return obj->_data;
+        }
+    }
+    throw "This not object for as_object";
 }
 std::vector<obj_val> &obj_val::as_array()
 {
@@ -8513,7 +8532,17 @@ std::vector<obj_val> &obj_val::as_array()
         _val_type = obj_type::ARRAY;
         return array_val->_data;
     }
-    throw "This not array";
+    else if (_val_type == obj_type::OBJECT)
+    {
+        if(obj->_data.size()==0)
+        {
+            clear();
+            array_val = new obj_array;
+            _val_type = obj_type::ARRAY;
+            return array_val->_data;
+        }
+    }
+    throw "This not array for as_array";
 }
 std::string obj_val::as_string()
 {

@@ -25,7 +25,9 @@ namespace view {
 			{
  
                      std::ostringstream echo;
-
+                     try
+                     {
+                    
         
  			 echo<<"<!doctype html>\n<html lang=\"en\" data-bs-theme=\"auto\">\n\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>产品管理</title>\n\n  <link href=\"/assets/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link rel=\"stylesheet\" href=\"/assets/icons/font/bootstrap-icons.css\">\n  <link rel=\"stylesheet\" href=\"/libs/tree/select-tree.css\">\n \n  <link href=\"/css/dashboard.css\" rel=\"stylesheet\">\n  <script src=\"/js/jquery.min.js\"></script>\n  <script src=\"/libs/tree/select-tree.js\"></script>\n \n</head>\n\n<body>\n\n  <div class=\"container-fluid\">\n\n    <h5 class=\"card-title mt-2\">产品管理</h5>\n    <hr>\n    <div class=\"row p-3\">\n      <div class=\"col-5\">\n        <div class=\"col-sm-10\">\n          <select class=\"form-select\" id=\"smallid\" name=\"smallid\"></select>\n        </div>\n      </div>\n      <div class=\"col-5\">\n        <div class=\"input-group\">\n        <input type=\"text\" class=\"form-control\" name=\"searchkeyword\" id=\"searchkeyword\" value=\"";
  echo<<obj["searchword"].to_string(); 
@@ -147,6 +149,12 @@ echo<<obj["categoryid"].to_int();
 echo << obj["categorylist"].to_json(); 
  			 echo<<" ;\n\n    $('#smallid').append($('<option>').val(\"0\").text(\"产品分类\").attr(\"selected\", true));\n    for (var i = 0; i < category_json.length; i++) \n    {\n      if(category_json[i].id==categoryid)\n      {\n        $('#smallid').append($('<option>').val(category_json[i].id).text(category_json[i].value).data(\"pid\", category_json[i].parentid).attr(\"selected\",\"selected\"));\n      }\n      else\n      {      \n        $('#smallid').append($('<option>').val(category_json[i].id).text(category_json[i].value).data(\"pid\", category_json[i].parentid));\n      }\n    }\n\n    var categoryselect =$(\"#smallid\").selectTree({ expandLevel: 1,\n        changeCallBack:function(data){\n          categoryid=data[0].value;\n        }\n    });\n\n    function deletearticle(id)\n    {\n      if(confirm('是否删除?'))\n      {          \n          $.getJSON(\"/admin/deleteproductajax?id=\"+id,function(result){\n                if(result.code==0)\n                {\n                     $(\"#article_\"+id).remove();\n                }\n                \n          });\n\n      }\n      return false;\n    }\n    function updatearticlesort(id,sortid)\n    {\n       $.getJSON(\"/admin/updateproductsort?id=\"+id+\"&sortid=\"+sortid,function(result){\n                               \n       });\n    }\n    function searcharticle()\n    {\n        if($(\"#searchkeyword\").val()<1)\n        {\n           alert(\"请输入关键词！\");\n        }\n        window.location.href=\"/admin/listproduct?categoryid=\"+categoryid+\"&searchword=\"+$(\"#searchkeyword\").val();\n    }\n    function artupdateview(obj)\n    {\n      let isview=0;\n      if(obj.checked)\n        {\n           isview=1;\n        }\n        $.post(\"/admin/updateproductview?id=\"+obj.value,{isview:isview},function(result){\n                               \n       });\n    }\n    function artupdateisstore(obj)\n    {\n      let isstore=0;\n      if(obj.checked)\n        {\n          isstore=1;\n        }\n        $.post(\"/admin/updateproductstore?id=\"+obj.value,{isstore:isstore},function(result){\n                               \n       });\n    }\n    function homeupdateisstore(obj)\n    {\n      let ishome=0;\n      if(obj.checked)\n        {\n          ishome=1;\n        }\n        $.post(\"/admin/updateproducthome?id=\"+obj.value,{ishome:ishome},function(result){\n                               \n       });\n    }\n    </script>\n</body>\n\n</html>";
 
+                    }
+                    catch(const char *e)
+                    {
+                        echo << e;
+                        return echo.str();
+                    }
                   return echo.str();
              }
 

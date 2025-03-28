@@ -80,7 +80,8 @@ std::string admin_addproduct(std::shared_ptr<httppeer> peer)
 std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-
+    obj_val urltemp_array;
+    obj_val objtemp;
     auto pro           = orm::cms::Product();
     pro.data.topicid   = client.post["topicid"].to_int();
     pro.data.name      = client.post["title"].to_string();
@@ -92,14 +93,37 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
 
     pro.data.smallid = client.post["smallid"].to_int();
 
-    pro.data.listimg     = client.post["header_urlpath"].to_json();
+    objtemp = client.post["header_urlpath"].to_json();
+    urltemp_array.set_array();
+    if(objtemp.is_array())
+    {
+        for(auto &a:objtemp.as_array())
+        {
+            if(a.size()>0)
+            {
+                urltemp_array.push(a);
+            }
+        }
+    }
+    else if(objtemp.is_object())
+    {
+        for(auto &a:objtemp.as_object())
+        {
+            if(a.second.size()>0)
+            {
+                urltemp_array.push(a.second);
+            }
+        }
+    }
+
+    pro.data.listimg     = urltemp_array.to_json();
     pro.data.maincontent = client.post["content"].to_string();
     pro.data.samepro     = client.post["relatecontent"].to_string();
     pro.data.adddate     = get_date("%Y-%m-%d %X");
     pro.data.showtype    = 0;
-    obj_val urltemp_array;
-    obj_val objtemp;
-
+    
+    objtemp.clear();
+    urltemp_array.clear();
     urltemp_array.set_array();
     if (client.post["attach_urlpath"].is_array())
     {
@@ -119,6 +143,20 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
             {
                 objtemp["name"] = client.post["attach_name"][j];
             }
+            urltemp_array.push(objtemp);
+        }
+    }
+    else if (client.post["attach_urlpath"].is_object())
+    {
+        // auto tempurls = client.post["attach_urlpath"].as_object();
+
+        // unsigned int nu = tempurls.size();
+        for (auto &a:client.post["attach_urlpath"].as_object())
+        {
+            objtemp["url"]  = "";
+            objtemp["name"] = "";
+            objtemp["url"] = a.second.to_string();
+            objtemp["name"] = client.post["attach_name"][a.first].to_string();
             urltemp_array.push(objtemp);
         }
     }
@@ -144,6 +182,9 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client   = peer->get_peer();
     unsigned int pid   = client.post["pid"].to_int();
+    obj_val urltemp_array;
+    obj_val objtemp;
+
     auto pro           = orm::cms::Product();
     pro.data.topicid   = client.post["topicid"].to_int();
     pro.data.name      = client.post["title"].to_string();
@@ -156,14 +197,38 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
     pro.data.smallid  = client.post["smallid"].to_int();
     pro.data.showtype = client.post["showtype"].to_int();
 
-    pro.data.listimg     = client.post["header_urlpath"].to_json();
+    
+
+    objtemp = client.post["header_urlpath"].to_json();
+    urltemp_array.set_array();
+    if(objtemp.is_array())
+    {
+        for(auto &a:objtemp)
+        {
+            if(a.size()>0)
+            {
+                urltemp_array.push(a);
+            }
+        }
+    }
+    else if(objtemp.is_object())
+    {
+        for(auto &a:objtemp.as_object())
+        {
+            if(a.second.size()>0)
+            {
+                urltemp_array.push(a.second);
+            }
+        }
+    }
+
+    pro.data.listimg     = urltemp_array.to_json();
     pro.data.maincontent = client.post["content"].to_string();
     pro.data.samepro     = client.post["relatecontent"].to_string();
     pro.data.editdate    = get_date("%Y-%m-%d %X");
 
-    obj_val urltemp_array;
-    obj_val objtemp;
-
+    objtemp.clear();
+    urltemp_array.clear();
     urltemp_array.set_array();
     if (client.post["attach_urlpath"].is_array())
     {
@@ -183,6 +248,20 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
             {
                 objtemp["name"] = client.post["attach_name"][j];
             }
+            urltemp_array.push(objtemp);
+        }
+    }
+    else if (client.post["attach_urlpath"].is_object())
+    {
+        // auto tempurls = client.post["attach_urlpath"].as_object();
+
+        // unsigned int nu = tempurls.size();
+        for (auto &a:client.post["attach_urlpath"].as_object())
+        {
+            objtemp["url"]  = "";
+            objtemp["name"] = "";
+            objtemp["url"] = a.second.to_string();
+            objtemp["name"] = client.post["attach_name"][a.first].to_string();
             urltemp_array.push(objtemp);
         }
     }
@@ -286,6 +365,9 @@ std::string admin_editproduct(std::shared_ptr<httppeer> peer)
     client.val["info"]["maincontent"] = html_encode(pro.data.maincontent);
     client.val["info"]["showtype"]    = pro.data.showtype;
     client.val["info"]["samepro"]     = pro.data.samepro;
+
+    client.val["proimglist"].set_array();
+    client.val["profilelist"].set_array();
 
     client.val["proimglist"].from_json(pro.data.listimg);
     client.val["profilelist"].from_json(pro.data.attatchfiles);
