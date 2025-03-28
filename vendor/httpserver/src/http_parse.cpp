@@ -3120,7 +3120,7 @@ namespace http
                 uprawfile.reset(nullptr);
             }
             // uprawfile = NULL;
-            peer->files["tempraw"].set_array();
+            peer->files["tempraw"].set_object();
             peer->files["tempraw"]["name"] = "tempraw";
             peer->files["tempraw"]["filename"] = "";
             peer->files["tempraw"]["tempfile"] = upfile->tempfile;

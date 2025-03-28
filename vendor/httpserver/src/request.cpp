@@ -1757,9 +1757,11 @@ obj_val &obj_val::operator[](const std::string &key)
         }
         catch (const std::invalid_argument &e)
         {
+            i_pos = 0xFFFFFFFF;
         }
         catch (const std::out_of_range &e)
         {
+            i_pos = 0xFFFFFFFF;
         }
         if (i_pos != 0xFFFFFFFF)
         {

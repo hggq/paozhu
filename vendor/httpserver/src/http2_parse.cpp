@@ -3304,8 +3304,7 @@ namespace http
         }
         if (isgroup)
         {
-            // files[upfile.name]=block_data_info_ptr->buffer_value;
-            block_steam_httppeer->files[block_data_info_ptr->upfile->name].set_array();
+            block_steam_httppeer->files[block_data_info_ptr->upfile->name].set_object();
             block_steam_httppeer->files[block_data_info_ptr->upfile->name]["filename"] =
                 block_data_info_ptr->upfile->filename;
             block_steam_httppeer->files[block_data_info_ptr->upfile->name]["name"] =
@@ -4052,7 +4051,6 @@ namespace http
     }
     void http2parse::readmultipartformdata(const unsigned char *buffer, unsigned int buffersize)
     {
-
         for (unsigned int i = 0; i < buffersize;)
         {
             if (error > 0)
