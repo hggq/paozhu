@@ -132,6 +132,7 @@ struct obj_val
     unsigned int size();
 
     void append(const std::string &v);
+    void append(const char *_str, unsigned int str_length);
     std::string substr(int a, int b);
     std::string substr(int a);
 
@@ -152,6 +153,7 @@ struct obj_val
     obj_val(long double i);
     obj_val(const std::string &_str);
     obj_val(const char *_str);
+    obj_val(const char *_str, unsigned int str_length);
     obj_val(std::string_view _str);
     obj_val(std::string &&_str);
     obj_val(const obj_t &v);
@@ -1015,6 +1017,7 @@ struct obj_val
     unsigned int mb_strlen();
     std::string mb_substr(int begin_pos, int cut_size = 0);
     std::string_view str_view();
+    std::string_view str_view(std::string_view default_val);
     std::string_view str_view(int a, int b = 0);
 
     bool isset(const std::string &key);
@@ -1032,9 +1035,18 @@ struct obj_val
     std::vector<std::pair<std::string, obj_val>> &as_object();
     std::vector<obj_val> &as_array();
     std::string as_string();
+    std::string as_string(std::string_view default_val);
+    std::string get_string(std::string_view key, std::string_view default_val);
+    std::string_view get_str_view(std::string_view key, std::string_view default_val);
+
+    std::map<unsigned int, std::vector<unsigned int>> get_obj_key_index();
+    //overloaded 'operator[]' cannot have more than one parameter before C++23
+    //obj_val &operator[](const std::string &key,const std::map<unsigned int, std::vector<unsigned int>> &index_array);
+    obj_val &get_obj_val_index(std::string_view key, const std::map<unsigned int, std::vector<unsigned int>> &index_array);
 
     ~obj_val();
-private:
+
+  private:
     std::string mb_substr_name(int begin_pos, int cut_size = 0);
 };
 struct obj_t

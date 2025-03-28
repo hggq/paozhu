@@ -211,7 +211,7 @@ std::string admin_siteinfo(std::shared_ptr<httppeer> peer)
         auto stinfo = orm::cms::Siteinfo();
         stinfo.where("userid", client.session["userid"].to_int()).fetch_one();
 
-        client.val["info"].set_array();
+        client.val["info"].set_object();
 
         client.val["info"]["sid"]      = stinfo.getSid();
         client.val["info"]["sitename"] = stinfo.getSitename();
@@ -223,7 +223,6 @@ std::string admin_siteinfo(std::shared_ptr<httppeer> peer)
     catch (...)
     {
     }
-
     peer->view("admin/siteinfo");
     return "";
 }
@@ -294,7 +293,7 @@ std::string admin_footscript(std::shared_ptr<httppeer> peer)
     {
         auto stinfo = orm::cms::Siteinfo();
         stinfo.where("userid", client.session["userid"].to_int()).fetch_one();
-        client.val["info"].set_array();
+        client.val["info"].set_object();
 
         client.val["info"]["sid"]        = stinfo.getSid();
         client.val["info"]["footscript"] = html_encode(stinfo.data.footscript);//stinfo.getCopyright();
@@ -358,7 +357,7 @@ std::string admin_copyright(std::shared_ptr<httppeer> peer)
     {
         auto stinfo = orm::cms::Siteinfo();
         stinfo.where("userid", client.session["userid"].to_int()).fetch_one();
-        client.val["info"].set_array();
+        client.val["info"].set_object();
 
         client.val["info"]["sid"]       = stinfo.getSid();
         client.val["info"]["copyright"] = html_encode(stinfo.data.copyright);//stinfo.getCopyright();
@@ -422,7 +421,7 @@ std::string admin_sitelogo(std::shared_ptr<httppeer> peer)
     {
         auto stinfo = orm::cms::Siteinfo();
         stinfo.where("userid", client.session["userid"].to_int()).fetch_one();
-        client.val["info"].set_array();
+        client.val["info"].set_object();
 
         client.val["info"]["sid"]      = stinfo.getSid();
         client.val["info"]["sitelogo"] = html_encode(stinfo.data.sitelogo);//stinfo.getCopyright();

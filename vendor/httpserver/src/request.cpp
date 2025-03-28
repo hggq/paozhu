@@ -1229,6 +1229,22 @@ std::string_view obj_val::str_view()
     return std::string_view(name, 0);
 }
 
+std::string_view obj_val::str_view(std::string_view default_val)
+{
+    if (_val_type == obj_type::STRING)
+    {
+        if (length < 8)
+        {
+            return std::string_view(name, length);
+        }
+        else
+        {
+            return std::string_view(str, length);
+        }
+    }
+    return default_val;
+}
+
 std::string_view obj_val::str_view(int a, int b)
 {
     if (_val_type != obj_type::STRING)
@@ -1475,6 +1491,10 @@ void obj_val::append(const std::string &v)
     {
         return;
     }
+    if (_val_type == obj_type::NIL)
+    {
+        _val_type = obj_type::STRING;
+    }
     if (_val_type != obj_type::STRING)
     {
         return;
@@ -1498,7 +1518,7 @@ void obj_val::append(const std::string &v)
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
-                number = 0xFFFFF;
+                number = 0xFFFFFF;
             }
             else
             {
@@ -1507,7 +1527,14 @@ void obj_val::append(const std::string &v)
             jlenth = v.size();
             if ((jlenth + length) >= 0xFFFFFF)
             {
-                jlenth = v.size() - length;
+                if (length < 0xFFFFFF)
+                {
+                    jlenth = 0xFFFFFF - length;
+                }
+                else
+                {
+                    jlenth = 0;
+                }
             }
             char *tempstr = (char *)std::malloc(number);
             for (unsigned int jj = 0; jj < length; jj++)
@@ -1516,7 +1543,7 @@ void obj_val::append(const std::string &v)
             }
 
             std::memcpy(&tempstr[length], v.data(), jlenth);
-            length          = v.size() + length;
+            length          = jlenth + length;
             tempstr[length] = 0x00;
             str             = tempstr;
         }
@@ -1528,7 +1555,7 @@ void obj_val::append(const std::string &v)
                 jlenth              = jlenth - jlenth % 8 + 8;
                 if (jlenth >= 0xFFFFFF)
                 {
-                    number = 0xFFFFF;
+                    number = 0xFFFFFF;
                 }
                 else
                 {
@@ -1538,13 +1565,20 @@ void obj_val::append(const std::string &v)
                 jlenth = v.size();
                 if ((jlenth + length) >= 0xFFFFFF)
                 {
-                    jlenth = v.size() - length;
+                    if (length < 0xFFFFFF)
+                    {
+                        jlenth = 0xFFFFFF - length;
+                    }
+                    else
+                    {
+                        jlenth = 0;
+                    }
                 }
 
                 char *tempstr = (char *)std::malloc(number);
                 std::memcpy(tempstr, str, length);
                 std::memcpy(&tempstr[length], v.data(), jlenth);
-                length          = v.size() + length;
+                length          = jlenth + length;
                 tempstr[length] = 0x00;
                 free(str);
                 str = tempstr;
@@ -1558,6 +1592,115 @@ void obj_val::append(const std::string &v)
         }
     }
 }
+
+void obj_val::append(const char *_str, unsigned int str_length)
+{
+    if (str_length > 0xFFFFFF)
+    {
+        return;
+    }
+    if (_val_type == obj_type::NIL)
+    {
+        _val_type = obj_type::STRING;
+    }
+    if (_val_type != obj_type::STRING)
+    {
+        return;
+    }
+
+    if ((length + str_length) < 8)
+    {
+        unsigned int llength = length + str_length;
+        for (unsigned int j = length, jj = 0; j < llength; j++, jj++)
+        {
+            name[j] = _str[jj];
+        }
+        name[llength] = 0x00;
+        length        = length + str_length;
+    }
+    else
+    {
+        if (length < 8)
+        {
+            unsigned int jlenth = (length + str_length) * 2;
+            jlenth              = jlenth - jlenth % 8 + 8;
+            if (jlenth >= 0xFFFFFF)
+            {
+                number = 0xFFFFFF;
+            }
+            else
+            {
+                number = jlenth;
+            }
+            jlenth = str_length;
+            if ((jlenth + length) >= 0xFFFFFF)
+            {
+                if (length < 0xFFFFFF)
+                {
+                    jlenth = 0xFFFFFF - length;
+                }
+                else
+                {
+                    jlenth = 0;
+                }
+            }
+            char *tempstr = (char *)std::malloc(number);
+            for (unsigned int jj = 0; jj < length; jj++)
+            {
+                tempstr[jj] = name[jj];
+            }
+
+            std::memcpy(&tempstr[length], _str, jlenth);
+            length          = str_length + length;
+            tempstr[length] = 0x00;
+            str             = tempstr;
+        }
+        else
+        {
+            if (number <= (length + str_length))
+            {
+                unsigned int jlenth = (length + str_length) * 2;
+                jlenth              = jlenth - jlenth % 8 + 8;
+                if (jlenth >= 0xFFFFFF)
+                {
+                    number = 0xFFFFFF;
+                }
+                else
+                {
+                    number = jlenth;
+                }
+
+                jlenth = str_length;
+                if ((jlenth + length) >= 0xFFFFFF)
+                {
+                    if (length < 0xFFFFFF)
+                    {
+                        jlenth = 0xFFFFFF - length;
+                    }
+                    else
+                    {
+                        jlenth = 0;
+                    }
+                }
+
+                char *tempstr = (char *)std::malloc(number);
+                std::memcpy(tempstr, str, length);
+                std::memcpy(&tempstr[length], _str, jlenth);
+                length          = jlenth + length;
+                tempstr[length] = 0x00;
+                free(str);
+                str = tempstr;
+            }
+            else
+            {
+                std::memcpy(&str[length], _str, str_length);
+                length      = str_length + length;
+                str[length] = 0x00;
+            }
+        }
+    }
+}
+
 unsigned int obj_val::size()
 {
     if (_val_type == obj_type::ARRAY)
@@ -1702,7 +1845,6 @@ void obj_val::clear()
             delete obj;
             obj = nullptr;
         }
-        _val_type = obj_type::NIL;
     }
     else if (_val_type == obj_type::ARRAY)
     {
@@ -1712,7 +1854,6 @@ void obj_val::clear()
             delete array_val;
             array_val = nullptr;
         }
-        _val_type = obj_type::NIL;
     }
     else if (_val_type == obj_type::STRING)
     {
@@ -1725,8 +1866,8 @@ void obj_val::clear()
         {
             std::memset(name, 0x00, 8);
         }
-        _val_type = obj_type::NIL;
     }
+    _val_type = obj_type::NIL;
 }
 
 obj_val &obj_val::operator=(long long i)
@@ -1829,6 +1970,7 @@ obj_val &obj_val::operator=(std::string_view v)
             name[v.size()] = 0x00;
             length         = v.size();
             number         = 8;
+            _val_type     = obj_type::STRING;
             return *this;
         }
 
@@ -1837,6 +1979,7 @@ obj_val &obj_val::operator=(std::string_view v)
             memcpy(str, v.data(), v.size());
             str[v.size()] = 0x00;
             length        = v.size();
+            _val_type     = obj_type::STRING;
             return *this;
         }
 
@@ -1848,7 +1991,7 @@ obj_val &obj_val::operator=(std::string_view v)
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
-                number = 0xFFFFF;
+                number = 0xFFFFFF;
             }
             else
             {
@@ -1878,7 +2021,7 @@ obj_val &obj_val::operator=(std::string_view v)
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
-                number = 0xFFFFF;
+                number = 0xFFFFFF;
             }
             else
             {
@@ -1908,6 +2051,7 @@ obj_val &obj_val::operator=(const char *v)
             name[str_length] = 0x00;
             length           = str_length;
             number           = 8;
+            _val_type = obj_type::STRING;
             return *this;
         }
 
@@ -1916,6 +2060,7 @@ obj_val &obj_val::operator=(const char *v)
             memcpy(str, v, str_length);
             str[str_length] = 0x00;
             length          = str_length;
+            _val_type = obj_type::STRING;
             return *this;
         }
 
@@ -1927,7 +2072,7 @@ obj_val &obj_val::operator=(const char *v)
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
-                number = 0xFFFFF;
+                number = 0xFFFFFF;
             }
             else
             {
@@ -1957,7 +2102,7 @@ obj_val &obj_val::operator=(const char *v)
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
-                number = 0xFFFFF;
+                number = 0xFFFFFF;
             }
             else
             {
@@ -1986,6 +2131,7 @@ obj_val &obj_val::operator=(std::string &&v)
             name[v.size()] = 0x00;
             length         = v.size();
             number         = 8;
+            _val_type = obj_type::STRING;
             return *this;
         }
 
@@ -1994,6 +2140,7 @@ obj_val &obj_val::operator=(std::string &&v)
             memcpy(str, v.data(), v.size());
             str[v.size()] = 0x00;
             length        = v.size();
+            _val_type = obj_type::STRING;
             return *this;
         }
 
@@ -2005,7 +2152,7 @@ obj_val &obj_val::operator=(std::string &&v)
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
-                number = 0xFFFFF;
+                number = 0xFFFFFF;
             }
             else
             {
@@ -2035,7 +2182,7 @@ obj_val &obj_val::operator=(std::string &&v)
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
-                number = 0xFFFFF;
+                number = 0xFFFFFF;
             }
             else
             {
@@ -2057,44 +2204,45 @@ obj_val &obj_val::operator=(const std::string &v)
     }
     if (_val_type == obj_type::STRING)
     {
-        if (v.size() < 8)
+        if (v.size() < 8 )
         {
             clear();
             memcpy(name, v.data(), v.size());
             name[v.size()] = 0x00;
             length         = v.size();
             number         = 8;
+            _val_type = obj_type::STRING;
             return *this;
         }
 
-        if (number > v.size())
+        if (number > 7 && number > v.size())
         {
             memcpy(str, v.data(), v.size());
             str[v.size()] = 0x00;
             length        = v.size();
+            _val_type = obj_type::STRING;
             return *this;
         }
 
-        if (number <= v.size())
+        clear();
+
+        length              = 0;
+        unsigned int jlenth = v.size() * 2;
+        jlenth              = jlenth - jlenth % 8 + 8;
+        if (jlenth >= 0xFFFFFF)
         {
-            clear();
-            length              = 0;
-            unsigned int jlenth = v.size() * 2;
-            jlenth              = jlenth - jlenth % 8 + 8;
-            if (jlenth >= 0xFFFFFF)
-            {
-                number = 0xFFFFF;
-            }
-            else
-            {
-                number = jlenth;
-            }
-            str = (char *)std::malloc(number);
+            number = 0xFFFFFF;
         }
+        else
+        {
+            number = jlenth;
+        }
+        str = (char *)std::malloc(number);
+
         memcpy(str, v.data(), v.size());
         str[v.size()] = 0x00;
         length        = v.size();
-        _val_type     = obj_type::STRING;
+        _val_type = obj_type::STRING;
     }
     else
     {
@@ -2113,7 +2261,7 @@ obj_val &obj_val::operator=(const std::string &v)
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
-                number = 0xFFFFF;
+                number = 0xFFFFFF;
             }
             else
             {
@@ -2767,10 +2915,47 @@ obj_val::obj_val(const char *_str) : _val_type(obj_type::STRING)
     {
         number = str_length;
         number = number - number % 8 + 8;
-        str    = (char *)std::malloc(number);
-        std::memcpy(str, _str, str_length);
-        str[str_length] = 0x00;
-        length          = str_length;
+        if (number > 0xFFFFFF)
+        {
+            number = 0xFFFFFF;
+        }
+        length = str_length;
+        if (length >= 0xFFFFFF)
+        {
+            length = 0xFFFFFF - 1;
+        }
+
+        str = (char *)std::malloc(number);
+        std::memcpy(str, _str, length);
+        str[length] = 0x00;
+    }
+}
+obj_val::obj_val(const char *_str, unsigned int str_length) : _val_type(obj_type::STRING)
+{
+    if (str_length < 8)
+    {
+        std::memcpy(name, _str, str_length);
+        name[str_length] = 0x00;
+        length           = str_length;
+        number           = 8;
+    }
+    else
+    {
+        number = str_length;
+        number = number - number % 8 + 8;
+        if (number > 0xFFFFFF)
+        {
+            number = 0xFFFFFF;
+        }
+        length = str_length;
+        if (length >= 0xFFFFFF)
+        {
+            length = 0xFFFFFF - 1;
+        }
+
+        str = (char *)std::malloc(number);
+        std::memcpy(str, _str, length);
+        str[length] = 0x00;
     }
 }
 obj_val::obj_val(std::string_view _str) : _val_type(obj_type::STRING)
@@ -2786,10 +2971,18 @@ obj_val::obj_val(std::string_view _str) : _val_type(obj_type::STRING)
     {
         number = _str.size();
         number = number - number % 8 + 8;
-        str    = (char *)std::malloc(number);
-        std::memcpy(str, _str.data(), _str.size());
-        str[_str.size()] = 0x00;
-        length           = _str.size();
+        if (number > 0xFFFFFF)
+        {
+            number = 0xFFFFFF;
+        }
+        length = _str.size();
+        if (length >= 0xFFFFFF)
+        {
+            length = 0xFFFFFF - 1;
+        }
+        str = (char *)std::malloc(number);
+        std::memcpy(str, _str.data(), length);
+        str[length] = 0x00;
     }
 }
 
@@ -2806,10 +2999,18 @@ obj_val::obj_val(const std::string &_str) : _val_type(obj_type::STRING)
     {
         number = _str.size();
         number = number - number % 8 + 8;
-        str    = (char *)std::malloc(number);
-        std::memcpy(str, _str.data(), _str.size());
-        str[_str.size()] = 0x00;
-        length           = _str.size();
+        if (number > 0xFFFFFF)
+        {
+            number = 0xFFFFFF;
+        }
+        length = _str.size();
+        if (length >= 0xFFFFFF)
+        {
+            length = 0xFFFFFF - 1;
+        }
+        str = (char *)std::malloc(number);
+        std::memcpy(str, _str.data(), length);
+        str[length] = 0x00;
     }
 }
 obj_val::obj_val(std::string &&_str) : _val_type(obj_type::STRING)
@@ -2825,10 +3026,18 @@ obj_val::obj_val(std::string &&_str) : _val_type(obj_type::STRING)
     {
         number = _str.size();
         number = number - number % 8 + 8;
-        str    = (char *)std::malloc(number);
-        std::memcpy(str, _str.data(), _str.size());
-        str[_str.size()] = 0x00;
-        length           = _str.size();
+        if (number > 0xFFFFFF)
+        {
+            number = 0xFFFFFF;
+        }
+        length = _str.size();
+        if (length >= 0xFFFFFF)
+        {
+            length = 0xFFFFFF - 1;
+        }
+        str = (char *)std::malloc(number);
+        std::memcpy(str, _str.data(), length);
+        str[length] = 0x00;
     }
 }
 
@@ -4060,21 +4269,22 @@ obj_val &obj_val::operator+(const std::string &v)
         {
             if (length < 8)
             {
-                unsigned int jlenth = length + v.size() * 2;
-                jlenth              = jlenth - jlenth % 8 + 8;
-                if (jlenth >= 0xFFFFFF)
+                number = length + v.size() * 2;
+                number = number - number % 8 + 8;
+                if (number > 0xFFFFFF)
                 {
-                    number = 0xFFFFF;
+                    number = 0xFFFFFF;
                 }
-                else
+                unsigned int temp_len = length;
+                length                = length + v.size();
+                if (length > 0xFFFFFF)
                 {
-                    number = jlenth;
+                    length = 0xFFFFFF;
                 }
                 char *temp = (char *)std::malloc(number);
-                std::memcpy(temp, name, length);
-                std::memcpy(&temp[length], v.data(), v.size());
+                std::memcpy(temp, name, temp_len);
+                std::memcpy(&temp[temp_len], v.data(), (length - temp_len));
                 str         = temp;
-                length      = v.size() + length;
                 str[length] = 0x00;
             }
             else
@@ -4085,16 +4295,23 @@ obj_val &obj_val::operator+(const std::string &v)
                     jlenth              = jlenth - jlenth % 8 + 8;
                     if (jlenth >= 0xFFFFFF)
                     {
-                        number = 0xFFFFF;
+                        number = 0xFFFFFF;
                     }
                     else
                     {
                         number = jlenth;
                     }
+
+                    jlenth = length;
+                    length = length + v.size();
+                    if (length > 0xFFFFFF)
+                    {
+                        length = 0xFFFFFF;
+                    }
+
                     char *temp = (char *)std::malloc(number);
-                    std::memcpy(temp, str, length);
-                    std::memcpy(&temp[length], v.data(), v.size());
-                    length      = v.size() + length;
+                    std::memcpy(temp, str, jlenth);
+                    std::memcpy(&temp[jlenth], v.data(), length - jlenth);
                     str[length] = 0x00;
                     free(str);
                     str = temp;
@@ -7248,6 +7465,12 @@ std::vector<std::pair<std::string, obj_val>> obj_val::get_obj()
     {
         return obj->_data;
     }
+    else if (_val_type == obj_type::NIL)
+    {
+        obj = new obj_t;
+        _val_type = obj_type::OBJECT;
+        return obj->_data;
+    }
     throw "This not object";
 }
 
@@ -7255,6 +7478,12 @@ std::vector<obj_val> obj_val::get_array()
 {
     if (_val_type == obj_type::ARRAY)
     {
+        return array_val->_data;
+    }
+    else if (_val_type == obj_type::NIL)
+    {
+        array_val = new obj_array;
+        _val_type = obj_type::ARRAY;
         return array_val->_data;
     }
     throw "This not array";
@@ -7266,6 +7495,12 @@ std::vector<std::pair<std::string, obj_val>> &obj_val::ref_obj()
     {
         return obj->_data;
     }
+    else if (_val_type == obj_type::NIL)
+    {
+        obj = new obj_t;
+        _val_type = obj_type::OBJECT;
+        return obj->_data;
+    }
     throw "This not object";
 }
 
@@ -7273,6 +7508,12 @@ std::vector<obj_val> &obj_val::ref_array()
 {
     if (_val_type == obj_type::ARRAY)
     {
+        return array_val->_data;
+    }
+    else if (_val_type == obj_type::NIL)
+    {
+        array_val = new obj_array;
+        _val_type = obj_type::ARRAY;
         return array_val->_data;
     }
     throw "This not array";
@@ -7333,6 +7574,10 @@ void obj_val::from_json(const std::string &json_str)
     if (json_str[offset] == 0x7b)
     {
         // 对象情况
+        if(_val_type != obj_type::OBJECT)
+        {
+            clear();
+        }
         _val_type = obj_type::OBJECT;
         obj       = new obj_t;
         JSON_OBJ(json_str, *obj, offset);
@@ -7340,6 +7585,10 @@ void obj_val::from_json(const std::string &json_str)
     else if (json_str[offset] == 0x5b)
     {
         // 数组情况
+        if(_val_type != obj_type::ARRAY)
+        {
+            clear();
+        }
         _val_type = obj_type::ARRAY;
         array_val = new obj_array;
         JSON_ARRAY(json_str, *array_val, offset);
@@ -8242,12 +8491,24 @@ std::vector<std::pair<std::string, obj_val>> &obj_val::as_object()
     {
         return obj->_data;
     }
+    else if (_val_type == obj_type::NIL)
+    {
+        obj = new obj_t;
+        _val_type = obj_type::OBJECT;
+        return obj->_data;
+    }
     throw "This not object";
 }
 std::vector<obj_val> &obj_val::as_array()
 {
     if (_val_type == obj_type::ARRAY)
     {
+        return array_val->_data;
+    }
+    else if (_val_type == obj_type::NIL)
+    {
+        array_val = new obj_array;
+        _val_type = obj_type::ARRAY;
         return array_val->_data;
     }
     throw "This not array";
@@ -8268,6 +8529,159 @@ std::string obj_val::as_string()
         return std::string(str, length);
     }
     return "";
+}
+
+std::string obj_val::as_string(std::string_view default_val)
+{
+    if (_val_type == obj_type::STRING)
+    {
+        if (length == 0)
+        {
+            return std::string(default_val);
+        }
+        if (length < 8)
+        {
+            std::string a_temp;
+            for (unsigned int j = 0; j < length; j++)
+            {
+                a_temp.push_back(name[j]);
+            }
+            return a_temp;
+        }
+        return std::string(str, length);
+    }
+    return std::string(default_val);
+}
+
+std::string obj_val::get_string(std::string_view key, std::string_view default_val)
+{
+    if (_val_type == obj_type::OBJECT)
+    {
+        for (auto iter = obj->_data.begin(); iter != obj->_data.end();)
+        {
+            if (iter->first == key)
+            {
+                return iter->second.as_string(default_val);
+            }
+            iter++;
+        }
+    }
+    return std::string(default_val);
+}
+
+std::string_view obj_val::get_str_view(std::string_view key, std::string_view default_val)
+{
+    if (_val_type == obj_type::OBJECT)
+    {
+        for (auto iter = obj->_data.begin(); iter != obj->_data.end();)
+        {
+            if (iter->first == key)
+            {
+                return iter->second.str_view(default_val);
+            }
+            iter++;
+        }
+    }
+    return default_val;
+}
+
+std::map<unsigned int, std::vector<unsigned int>> obj_val::get_obj_key_index()
+{
+    std::map<unsigned int, std::vector<unsigned int>> temp;
+    if (_val_type == obj_type::OBJECT)
+    {
+        for (unsigned int i = 0; i < obj->_data.size(); i++)
+        {
+            unsigned int c = 0;
+            if (obj->_data[i].first.size() > 0)
+            {
+                c = obj->_data[i].first[0];
+            }
+
+            if (c < 0x80)
+            {
+                temp[c].emplace_back(i);
+            }
+            else if (c < 0xC0)
+            {
+                temp[c].emplace_back(i);
+            }
+            else if (c >= 0xC0 && c < 0xE0)
+            {
+                c = ((c << 8)) + (obj->_data[i].first[1] & 0xFF);
+                temp[c].emplace_back(i);
+            }
+            else if (c >= 0xE0 && c < 0xF0)
+            {
+                c = ((c << 8)) + (obj->_data[i].first[1] & 0xFF);
+                c = ((c << 8)) + (obj->_data[i].first[2] & 0xFF);
+                temp[c].emplace_back(i);
+            }
+            else if (c >= 0xF0 && c < 0xF8)
+            {
+                c = ((c << 8)) + (obj->_data[i].first[1] & 0xFF);
+                c = ((c << 8)) + (obj->_data[i].first[2] & 0xFF);
+                c = ((c << 8)) + (obj->_data[i].first[3] & 0xFF);
+                temp[c].emplace_back(i);
+            }
+            else
+            {
+                temp[c].emplace_back(i);
+            }
+        }
+    }
+    return temp;
+}
+
+obj_val &obj_val::get_obj_val_index(std::string_view key, const std::map<unsigned int, std::vector<unsigned int>> &index_array)
+{
+    if (_val_type != obj_type::OBJECT)
+    {
+        clear();
+        obj       = new obj_t;
+        _val_type = obj_type::OBJECT;
+    }
+
+    unsigned int c = 0;
+    if (key.size() > 0)
+    {
+        c = key[0];
+    }
+
+    if (c >= 0xC0 && c < 0xE0)
+    {
+        c = (c << 8) + (key[1] & 0xFF);
+    }
+    else if (c >= 0xE0 && c < 0xF0)
+    {
+        c = (c << 8) + (key[1] & 0xFF);
+        c = (c << 8) + (key[2] & 0xFF);
+    }
+    else if (c >= 0xF0 && c < 0xF8)
+    {
+        c = (c << 8) + (key[1] & 0xFF);
+        c = (c << 8) + (key[2] & 0xFF);
+        c = (c << 8) + (key[3] & 0xFF);
+    }
+
+    auto iter = index_array.find(c);
+    if (iter != index_array.end())
+    {
+        for (unsigned int i = 0; i < iter->second.size(); i++)
+        {
+            c = iter->second[i];
+            if (c < obj->_data.size())
+            {
+                if (key == obj->_data[c].first)
+                {
+                    return obj->_data[c].second;
+                }
+            }
+        }
+    }
+    obj->_data.emplace_back(key, nullptr);
+    obj->_data.back().second.set_type(obj_type::NIL);
+    return obj->_data.back().second;
 }
 
 }// namespace http

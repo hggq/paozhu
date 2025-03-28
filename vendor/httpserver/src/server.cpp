@@ -1744,6 +1744,7 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
     }
     else
     {
+        DEBUG_LOG("---  http1 dynamic --------");
         peer->linktype = 0;
         peer->parse_session();
 

@@ -130,7 +130,7 @@ std::string superadmin_editsiteinfo(std::shared_ptr<httppeer> peer)
     auto stinfo      = orm::cms::Siteinfo();
     stinfo.select("sid,sitename,sitedomain,companyname,linkname,linkmobile,isopen,sitepath,enddate").where("sid", sid).where("agentid", client.session["superid"].to_int()).fetch_one();
 
-    client.val["info"].set_array();
+    client.val["info"].set_object();
 
     client.val["info"]["sid"]         = stinfo.data.sid;
     client.val["info"]["sitename"]    = stinfo.data.sitename;
@@ -245,7 +245,7 @@ std::string superadmin_deletesiteinfo(std::shared_ptr<httppeer> peer)
     auto stinfo      = orm::cms::Siteinfo();
     stinfo.select("sid,sitename,sitedomain,companyname,linkname,linkmobile,isopen,enddate").where("sid", sid).where("agentid", client.session["superid"].to_int()).fetch_one();
 
-    client.val["info"].set_array();
+    client.val["info"].set_object();
 
     client.val["info"]["sid"]         = stinfo.data.sid;
     client.val["info"]["sitename"]    = stinfo.data.sitename;

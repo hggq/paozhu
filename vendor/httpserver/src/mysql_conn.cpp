@@ -40,6 +40,8 @@ mysql_conn_base::~mysql_conn_base()
     if(isclose==false)
     {
         //hard_close();
+        //alone use orm , exit the program, need here release smart ptr, why?
+        //may be use static connect pool obj relation
         if(sock_type == 1)
         {
             socket.release();

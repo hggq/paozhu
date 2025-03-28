@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from cli
-*本文件为自动生成 Wed, 26 Mar 2025 14:12:12 GMT
+*本文件为自动生成 Fri, 28 Mar 2025 05:08:51 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -169,7 +169,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "";
+       return "topicid";
 }
 
       void record_reset()
@@ -241,7 +241,7 @@ break;
         tempsql<<") VALUES (";
 
         if(data.topicid==0){
-	tempsql<<"0";
+tempsql<<"null";
  }else{ 
 	tempsql<<std::to_string(data.topicid);
 }
@@ -324,7 +324,7 @@ tempsql<<")";
         tempsql<<") VALUES (";
 
         if(insert_data.topicid==0){
-	tempsql<<"0";
+tempsql<<"null";
  }else{ 
 	tempsql<<std::to_string(insert_data.topicid);
 }
@@ -416,7 +416,7 @@ tempsql<<")";
 
 
             	if(insert_data[i].topicid==0){
-	tempsql<<"0";
+	tempsql<<"null";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].topicid);
 	}
@@ -751,7 +751,7 @@ if(data.accesscode==0){
             }
             tempsql << "(";
             	if(record[i].topicid==0){
-	tempsql<<"0";
+	tempsql<<"null";
 	 }else{ 
 	tempsql<<std::to_string(record[i].topicid);
 	}
@@ -847,7 +847,7 @@ if(data.accesscode==0){
             }
             tempsql << "(";
             	if(record[i].topicid==0){
-	tempsql<<"0";
+	tempsql<<"null";
 	 }else{ 
 	tempsql<<std::to_string(record[i].topicid);
 	}
@@ -2424,8 +2424,8 @@ if(record[n].accesscode==0){
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return 0; } 
- void setPK([[maybe_unused]] long long val){   } 
+   long long getPK(){  return data.topicid; } 
+ void setPK(long long val){  data.topicid=val;} 
  unsigned  int  getTopicid(){  return data.topicid; } 
  void setTopicid( unsigned  int  val){  data.topicid=val;} 
 

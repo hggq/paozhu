@@ -21844,6 +21844,7 @@ M_MODEL& or_leReplyid(T val)
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    B_BASE::setPK(insert_last_id);
                 }
                 if (!islock_conn)
                 {
@@ -21940,6 +21941,7 @@ M_MODEL& or_leReplyid(T val)
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    B_BASE::setPK(insert_last_id);
                 }
                 if (!islock_conn)
                 {
@@ -22037,6 +22039,7 @@ M_MODEL& or_leReplyid(T val)
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    B_BASE::setPK(insert_last_id);
                 }
                 if (!islock_conn)
                 {
@@ -22132,6 +22135,7 @@ M_MODEL& or_leReplyid(T val)
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    B_BASE::setPK(insert_last_id);
                 }
                 if (!islock_conn)
                 {
@@ -22228,6 +22232,7 @@ M_MODEL& or_leReplyid(T val)
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    B_BASE::setPK(insert_last_id);
                 }
                 if (!islock_conn)
                 {
@@ -22324,6 +22329,7 @@ M_MODEL& or_leReplyid(T val)
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    B_BASE::setPK(insert_last_id);
                 }
                 if (!islock_conn)
                 {
@@ -22518,6 +22524,7 @@ M_MODEL& or_leReplyid(T val)
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    B_BASE::setPK(insert_last_id);
                 }
                 if (!islock_conn)
                 {
@@ -22719,6 +22726,7 @@ M_MODEL& or_leReplyid(T val)
                         unsigned int d_offset = 1;
                         effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                         insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                        B_BASE::setPK(insert_last_id);
                     }
                     if (!islock_conn)
                     {

@@ -24,14 +24,15 @@ std::string admin_addtopic(std::shared_ptr<httppeer> peer)
 
         client.val["list"].set_array();
         obj_val temp;
+
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
-
             temp["id"]       = topicm.record[i].topicid;
             temp["parentid"] = topicm.record[i].parentid;
             temp["value"]    = topicm.record[i].title;
             client.val["list"].push(temp);
         }
+
     }
     catch (std::exception &e)
     {
@@ -54,7 +55,6 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
         // psy::topics_tree_outjson_t a;
 
         topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
-
         client.val["list"].set_array();
         obj_val temp;
         for (unsigned int i = 0; i < topicm.record.size(); i++)
@@ -70,7 +70,7 @@ std::string admin_edittopic(std::shared_ptr<httppeer> peer)
         if (topicid > 0)
         {
             topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", topicid).fetch_one();
-            client.val["info"].set_array();
+            client.val["info"].set_object();
             client.val["info"]["topicid"]     = topicm.data.topicid;
             client.val["info"]["parentid"]    = topicm.data.parentid;
             client.val["info"]["topicname"]   = topicm.data.title;
@@ -212,10 +212,7 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
         topicm.save();
         unsigned int topicid = 0;
         topicid              = topicm.getPK();
-        if (topicm.error_msg.size() > 0)
-        {
-            std::cout << topicm.error_msg << std::endl;
-        }
+
         if (topicid > 0)
         {
             client.val["code"]    = 0;
@@ -226,19 +223,26 @@ std::string admin_addtopicpost(std::shared_ptr<httppeer> peer)
             client.val["code"]    = 2;
             client.val["topicid"] = 0;
         }
+        if (topicm.error_msg.size() > 0)
+        {
+            client.val["msg"] = topicm.error_msg;
+        }
 
         topicm.clear(true);
         topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
         client.val["list"].set_array();
         obj_val temp;
+
         for (unsigned int i = 0; i < topicm.record.size(); i++)
         {
 
             temp["id"]       = topicm.record[i].topicid;
             temp["parentid"] = topicm.record[i].parentid;
             temp["value"]    = topicm.record[i].title;
+
             client.val["list"].push(temp);
         }
+
     }
     catch (std::exception &e)
     {

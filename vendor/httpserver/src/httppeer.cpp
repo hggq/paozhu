@@ -256,7 +256,14 @@ void httppeer::parse_session_memory(const std::string &sessionfile_id)
 {
     http::pzcache<http::obj_val> &temp_cache = http::pzcache<http::obj_val>::conn();
     temp_cache.update(sessionfile_id, 30000);
-    session = temp_cache.get(sessionfile_id);
+    try
+    {
+        session = temp_cache.get(sessionfile_id);
+    }
+    catch (const char *e)
+    {
+        session.clear();
+    }
 }
 std::string httppeer::get_session_id()
 {
@@ -275,25 +282,25 @@ void httppeer::set_session_id(const std::string &a)
 }
 void httppeer::parse_session()
 {
-
     if (cookie.check(COOKIE_SESSION_NAME))
     {
-        server_loaclvar &localvar = get_server_global_var();
         std::string sessionfile   = cookie.get(COOKIE_SESSION_NAME);
         if (sessionfile.empty())
         {
             return;
         }
-        for (unsigned int i = 0; i < sessionfile.size(); i++)
-        {
-            if (sessionfile[i] == '/')
-            {
-                // cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
-                // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
-                set_cookie(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, host, "/");
-                return;
-            }
-        }
+        //
+        // for (unsigned int i = 0; i < sessionfile.size(); i++)
+        // {
+        //     if (sessionfile[i] == '/')
+        //     {
+        //         // cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
+        //         // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
+        //         set_cookie(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, host, "/");
+        //         return;
+        //     }
+        // }
+        server_loaclvar &localvar = get_server_global_var();
         switch (localvar.session_type)
         {
         case 0: parse_session_file(sessionfile); break;

@@ -660,11 +660,32 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                            });
         }
     }
+    catch (const char *e)
+    {
+        DEBUG_LOG("catch ... ");
+        if (peer->user_code_handler_call.size() > 0)
+        {
+            peer->status(500);
+            peer->output = "Internal Server Error <hr />";
+            peer->output.append(e);
+            auto handle = std::move(peer->user_code_handler_call.front());
+            peer->user_code_handler_call.pop_front();
+            asio::dispatch(*io_context,
+                           [handler = std::move(handle)]() mutable -> void
+                           {
+                               /////////////
+                               handler(1);
+                               //////////
+                           });
+        }
+    }
     catch (...)
     {
         DEBUG_LOG("catch ... ");
         if (peer->user_code_handler_call.size() > 0)
         {
+            peer->status(500);
+            peer->output = "Internal Server Error";
             auto handle = std::move(peer->user_code_handler_call.front());
             peer->user_code_handler_call.pop_front();
             asio::dispatch(*io_context,

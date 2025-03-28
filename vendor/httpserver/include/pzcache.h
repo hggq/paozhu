@@ -191,7 +191,7 @@ class pzcache
                 obj.erase(iter++);
             }
         }
-        throw "Not in Cache";
+        throw "Not in pzcache";
     }
     static pzcache &conn()
     {
