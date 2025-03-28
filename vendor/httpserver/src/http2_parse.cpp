@@ -3434,8 +3434,8 @@ namespace http
                                     isbound = 2;
                                     break;
                                 }
-                                j += 1;
                                 block_data_info_ptr->buffer_key.push_back(buffer[j]);
+                                j += 1;
                                 if (j >= buffersize)
                                 {
                                     block_data_info_ptr->match_offset = nnn + 1;

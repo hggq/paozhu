@@ -2352,8 +2352,8 @@ namespace http
                                     isbound = 2;
                                     break;
                                 }
-                                j += 1;
                                 buffer_key.push_back(buffer[j]);
+                                j += 1;
                                 if (j >= buffersize)
                                 {
                                     changetype = nnn + 1;
@@ -2836,8 +2836,8 @@ namespace http
                                     isbound = 2;
                                     break;
                                 }
-                                j += 1;
                                 header_input.push_back(buffer[j]);
+                                j += 1;
                                 if (j >= buffersize)
                                 {
                                     changetype = nnn + 1;
