@@ -1040,8 +1040,6 @@ struct obj_val
     std::string_view get_str_view(std::string_view key, std::string_view default_val);
 
     std::map<unsigned int, std::vector<unsigned int>> get_obj_key_index();
-    //overloaded 'operator[]' cannot have more than one parameter before C++23
-    //obj_val &operator[](const std::string &key,const std::map<unsigned int, std::vector<unsigned int>> &index_array);
     obj_val &get_obj_val_index(std::string_view key, const std::map<unsigned int, std::vector<unsigned int>> &index_array);
 
     ~obj_val();

@@ -274,7 +274,7 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
         }
         auto [bar_min, bar_max, current_page, total_page] = artmodel.page(page, 10, 5);
 
-        client.val["pageinfo"].set_array();
+        client.val["pageinfo"].set_object();
         client.val["pageinfo"]["min"]     = bar_min;
         client.val["pageinfo"]["max"]     = bar_max;
         client.val["pageinfo"]["current"] = current_page;

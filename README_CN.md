@@ -85,8 +85,10 @@ sudo apt-get install mysql-server
 **注意：** 需要gcc11支持，安装详情请查看
 
 - 环境配置  
-  [paozhu 框架linux 环境配置](https://github.com/hggq/paozhu/wiki/linux-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE)
-
+  [MacOS 环境配置](https://hggq.github.io/paozhudocs/macos.html)  
+  [Ubuntu 环境配置](https://hggq.github.io/paozhudocs/ubuntu.html)  
+  [RockyLinux AlmaLinux 环境配置](https://hggq.github.io/paozhudocs/linux.html)  
+  
 #### 3.3 Windows 
 
 支持vcpkg和xmake
@@ -402,16 +404,9 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 
 ### 9.相关教程
 
-1. [Paozhu 框架原理](https://github.com/hggq/paozhu/wiki/paozhu-cpp-web-framework-%E6%A1%86%E6%9E%B6%E5%8E%9F%E7%90%86)
+[Paozhu快速入门](https://hggq.github.io/paozhudocs/documentation.html)
 
-2. [Paozhu 框架hello world输出](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6hello-world)
-
-3. [Paozhu 框架ORM入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6ORM%E5%85%A5%E9%97%A8)
-
-4. [Paozhu 框架view视图入门](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6view-%E8%A7%86%E5%9B%BE%E5%85%A5%E9%97%A8)
-
-5. [Paozhu 框架CRUD教程](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
-
+ 
 ### 10.路线图
 
 * [ ] 增强HTTP特性  
