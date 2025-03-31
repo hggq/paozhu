@@ -87,12 +87,12 @@ sudo apt-get install mysql-server
 **Notice：** Requires gcc11 support. For more installation details, please see 
 
 - Environment configuration  
-[MacOS environment configuration](https://hggq.github.io/paozhudocs/macos_en.html)
-[Ubuntu environment configuration](https://hggq.github.io/paozhudocs/ubuntu_en.html)
-[RockyLinux AlmaLinux environment configuration](https://hggq.github.io/paozhudocs/linux_en.html)
+ [MacOS environment configuration](https://hggq.github.io/paozhudocs/macos_en.html)  
+ [Ubuntu environment configuration](https://hggq.github.io/paozhudocs/ubuntu_en.html)  
+ [RockyLinux AlmaLinux environment configuration](https://hggq.github.io/paozhudocs/linux_en.html)  
 
 #### 3.3 Windows
-
+ d
 
 Supports install methods vcpkg and xmake
 
