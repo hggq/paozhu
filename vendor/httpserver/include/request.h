@@ -21,6 +21,8 @@
 
 namespace http
 {
+#define SORT_ASC 0
+#define SORT_DESC 1
 enum class obj_type : unsigned char
 {
     OBJECT    = 0,
@@ -1040,7 +1042,22 @@ struct obj_val
     std::string_view get_str_view(std::string_view key, std::string_view default_val);
 
     std::map<unsigned int, std::vector<unsigned int>> get_obj_key_index();
+    //many object vector quick get val
     obj_val &get_obj_val_index(std::string_view key, const std::map<unsigned int, std::vector<unsigned int>> &index_array);
+
+    //void zip(const std::vector<std::string> &key,const std::vector<unsigned int> &val);
+    void zip(const std::vector<std::string> &key, const std::vector<int> &val);
+    //void zip(const std::vector<std::string> &key,const std::vector<long long> &val);
+    void zip(const std::vector<std::string> &key, const std::vector<float> &val);
+    //void zip(const std::vector<std::string> &key,const std::vector<double> &val);
+
+    void zip(const std::vector<std::string> &key, const std::vector<std::string> &val);
+    void zip(const std::vector<std::string> &key, const obj_val &val);
+    void zip(const obj_val &key, const obj_val &val);
+
+    // Similar to PHP array_multisort
+    obj_val multi_sort(std::string_view key, unsigned char order);
+    obj_val multi_sort(std::string_view key, unsigned char order, std::string_view key2, unsigned char order2);
 
     ~obj_val();
 

@@ -10,9 +10,11 @@
 #include <iterator>
 #include <memory>
 #include <map>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <termios.h>
 #include <utility>
 #include <vector>
 #include <cmath>
@@ -1799,7 +1801,7 @@ obj_val &obj_val::operator[](std::string &&key)
 {
     if (_val_type == obj_type::ARRAY)
     {
-        if(array_val->_data.size()>0)
+        if (array_val->_data.size() > 0)
         {
             unsigned int i_pos = 0xFFFFFFFF;
             try
@@ -1823,7 +1825,6 @@ obj_val &obj_val::operator[](std::string &&key)
             }
             throw "Out of range operator &&key";
         }
-
     }
 
     if (_val_type != obj_type::OBJECT)
@@ -1981,7 +1982,7 @@ obj_val &obj_val::operator=(std::string_view v)
             name[v.size()] = 0x00;
             length         = v.size();
             number         = 8;
-            _val_type     = obj_type::STRING;
+            _val_type      = obj_type::STRING;
             return *this;
         }
 
@@ -2062,7 +2063,7 @@ obj_val &obj_val::operator=(const char *v)
             name[str_length] = 0x00;
             length           = str_length;
             number           = 8;
-            _val_type = obj_type::STRING;
+            _val_type        = obj_type::STRING;
             return *this;
         }
 
@@ -2071,7 +2072,7 @@ obj_val &obj_val::operator=(const char *v)
             memcpy(str, v, str_length);
             str[str_length] = 0x00;
             length          = str_length;
-            _val_type = obj_type::STRING;
+            _val_type       = obj_type::STRING;
             return *this;
         }
 
@@ -2142,7 +2143,7 @@ obj_val &obj_val::operator=(std::string &&v)
             name[v.size()] = 0x00;
             length         = v.size();
             number         = 8;
-            _val_type = obj_type::STRING;
+            _val_type      = obj_type::STRING;
             return *this;
         }
 
@@ -2151,7 +2152,7 @@ obj_val &obj_val::operator=(std::string &&v)
             memcpy(str, v.data(), v.size());
             str[v.size()] = 0x00;
             length        = v.size();
-            _val_type = obj_type::STRING;
+            _val_type     = obj_type::STRING;
             return *this;
         }
 
@@ -2215,14 +2216,14 @@ obj_val &obj_val::operator=(const std::string &v)
     }
     if (_val_type == obj_type::STRING)
     {
-        if (v.size() < 8 )
+        if (v.size() < 8)
         {
             clear();
             memcpy(name, v.data(), v.size());
             name[v.size()] = 0x00;
             length         = v.size();
             number         = 8;
-            _val_type = obj_type::STRING;
+            _val_type      = obj_type::STRING;
             return *this;
         }
 
@@ -2231,7 +2232,7 @@ obj_val &obj_val::operator=(const std::string &v)
             memcpy(str, v.data(), v.size());
             str[v.size()] = 0x00;
             length        = v.size();
-            _val_type = obj_type::STRING;
+            _val_type     = obj_type::STRING;
             return *this;
         }
 
@@ -2253,7 +2254,7 @@ obj_val &obj_val::operator=(const std::string &v)
         memcpy(str, v.data(), v.size());
         str[v.size()] = 0x00;
         length        = v.size();
-        _val_type = obj_type::STRING;
+        _val_type     = obj_type::STRING;
     }
     else
     {
@@ -7478,7 +7479,7 @@ std::vector<std::pair<std::string, obj_val>> obj_val::get_obj()
     }
     else if (_val_type == obj_type::NIL)
     {
-        obj = new obj_t;
+        obj       = new obj_t;
         _val_type = obj_type::OBJECT;
         return obj->_data;
     }
@@ -7508,7 +7509,7 @@ std::vector<std::pair<std::string, obj_val>> &obj_val::ref_obj()
     }
     else if (_val_type == obj_type::NIL)
     {
-        obj = new obj_t;
+        obj       = new obj_t;
         _val_type = obj_type::OBJECT;
         return obj->_data;
     }
@@ -7585,7 +7586,7 @@ void obj_val::from_json(const std::string &json_str)
     if (json_str[offset] == 0x7b)
     {
         // 对象情况
-        if(_val_type != obj_type::OBJECT)
+        if (_val_type != obj_type::OBJECT)
         {
             clear();
         }
@@ -7596,7 +7597,7 @@ void obj_val::from_json(const std::string &json_str)
     else if (json_str[offset] == 0x5b)
     {
         // 数组情况
-        if(_val_type != obj_type::ARRAY)
+        if (_val_type != obj_type::ARRAY)
         {
             clear();
         }
@@ -8504,16 +8505,16 @@ std::vector<std::pair<std::string, obj_val>> &obj_val::as_object()
     }
     else if (_val_type == obj_type::NIL)
     {
-        obj = new obj_t;
+        obj       = new obj_t;
         _val_type = obj_type::OBJECT;
         return obj->_data;
     }
     else if (_val_type == obj_type::ARRAY)
     {
-        if(array_val->_data.size()==0)
+        if (array_val->_data.size() == 0)
         {
             clear();
-            obj = new obj_t;
+            obj       = new obj_t;
             _val_type = obj_type::OBJECT;
             return obj->_data;
         }
@@ -8534,7 +8535,7 @@ std::vector<obj_val> &obj_val::as_array()
     }
     else if (_val_type == obj_type::OBJECT)
     {
-        if(obj->_data.size()==0)
+        if (obj->_data.size() == 0)
         {
             clear();
             array_val = new obj_array;
@@ -8713,6 +8714,713 @@ obj_val &obj_val::get_obj_val_index(std::string_view key, const std::map<unsigne
     obj->_data.emplace_back(key, nullptr);
     obj->_data.back().second.set_type(obj_type::NIL);
     return obj->_data.back().second;
+}
+
+void obj_val::zip(const std::vector<std::string> &key, const std::vector<int> &val)
+{
+    if (_val_type == obj_type::NIL)
+    {
+        obj       = new obj_t;
+        _val_type = obj_type::OBJECT;
+    }
+
+    if (_val_type == obj_type::OBJECT)
+    {
+        for (unsigned int i = 0; i < val.size(); ++i)
+        {
+            if (i < key.size())
+            {
+                obj->_data.emplace_back(key[i], val[i]);
+            }
+        }
+    }
+
+    if (_val_type == obj_type::ARRAY)
+    {
+        for (unsigned int i = 0; i < val.size(); ++i)
+        {
+            if (i < key.size())
+            {
+                obj_val temp;
+                temp.set_object();
+                temp.push(key[i], val[i]);
+                array_val->_data.emplace_back(std::move(temp));
+            }
+        }
+    }
+}
+
+void obj_val::zip(const std::vector<std::string> &key, const std::vector<float> &val)
+{
+    if (_val_type == obj_type::NIL)
+    {
+        obj       = new obj_t;
+        _val_type = obj_type::OBJECT;
+    }
+
+    if (_val_type == obj_type::OBJECT)
+    {
+        for (unsigned int i = 0; i < val.size(); ++i)
+        {
+            if (i < key.size())
+            {
+                obj->_data.emplace_back(key[i], val[i]);
+            }
+        }
+    }
+
+    if (_val_type == obj_type::ARRAY)
+    {
+        for (unsigned int i = 0; i < val.size(); ++i)
+        {
+            if (i < key.size())
+            {
+                obj_val temp;
+                temp.set_object();
+                temp.push(key[i], val[i]);
+                array_val->_data.emplace_back(std::move(temp));
+            }
+        }
+    }
+}
+
+void obj_val::zip(const std::vector<std::string> &key, const std::vector<std::string> &val)
+{
+    if (_val_type == obj_type::NIL)
+    {
+        obj       = new obj_t;
+        _val_type = obj_type::OBJECT;
+    }
+
+    if (_val_type == obj_type::OBJECT)
+    {
+        for (unsigned int i = 0; i < val.size(); ++i)
+        {
+            if (i < key.size())
+            {
+                obj->_data.emplace_back(key[i], val[i]);
+            }
+        }
+    }
+
+    if (_val_type == obj_type::ARRAY)
+    {
+        for (unsigned int i = 0; i < val.size(); ++i)
+        {
+            if (i < key.size())
+            {
+                obj_val temp;
+                temp.set_object();
+                temp.push(key[i], val[i]);
+                array_val->_data.emplace_back(std::move(temp));
+            }
+        }
+    }
+}
+
+void obj_val::zip(const std::vector<std::string> &key, const obj_val &val)
+{
+    if (val.is_array() || val.is_object())
+    {
+    }
+    else
+    {
+        return;
+    }
+
+    if (_val_type == obj_type::NIL)
+    {
+        obj       = new obj_t;
+        _val_type = obj_type::OBJECT;
+    }
+
+    if (_val_type == obj_type::OBJECT)
+    {
+        if (val.is_object())
+        {
+            unsigned int i = 0;
+            for (auto &[a, b] : val.obj->_data)
+            {
+                if (i < key.size())
+                {
+                    obj->_data.emplace_back(key[i], b);
+                }
+                i++;
+            }
+        }
+        else if (val.is_array())
+        {
+            unsigned int i = 0;
+            for (auto &a : val.array_val->_data)
+            {
+                if (i < key.size())
+                {
+                    obj->_data.emplace_back(key[i], a);
+                }
+                i++;
+            }
+        }
+    }
+
+    if (_val_type == obj_type::ARRAY)
+    {
+        if (val.is_object())
+        {
+            unsigned int i = 0;
+            for (auto &[a, b] : val.obj->_data)
+            {
+                if (i < key.size())
+                {
+                    obj_val temp;
+                    temp.set_object();
+                    temp.push(key[i], b);
+                    array_val->_data.emplace_back(std::move(temp));
+                }
+                i++;
+            }
+        }
+        else if (val.is_array())
+        {
+            unsigned int i = 0;
+            for (auto &a : val.array_val->_data)
+            {
+                if (i < key.size())
+                {
+                    obj_val temp;
+                    temp.set_object();
+                    temp.push(key[i], a);
+                    array_val->_data.emplace_back(std::move(temp));
+                }
+                i++;
+            }
+        }
+    }
+}
+
+void obj_val::zip(const obj_val &key, const obj_val &val)
+{
+    if (val.is_array() || val.is_object())
+    {
+    }
+    else
+    {
+        return;
+    }
+
+    if (key.is_array() || key.is_object())
+    {
+    }
+    else
+    {
+        return;
+    }
+
+    if (_val_type == obj_type::NIL)
+    {
+        obj       = new obj_t;
+        _val_type = obj_type::OBJECT;
+    }
+
+    if (_val_type == obj_type::OBJECT)
+    {
+        if (val.is_object())
+        {
+            unsigned int i = 0;
+            for (auto &[a, b] : val.obj->_data)
+            {
+                if (key.is_array())
+                {
+                    if (i < key.array_val->_data.size())
+                    {
+                        obj->_data.emplace_back(key.array_val->_data[i].to_string(), b);
+                    }
+                }
+                else if (key.is_object())
+                {
+                    if (i < key.obj->_data.size())
+                    {
+                        obj->_data.emplace_back(key.obj->_data[i].first, b);
+                    }
+                }
+                i++;
+            }
+        }
+        else if (val.is_array())
+        {
+            unsigned int i = 0;
+            for (auto &a : val.array_val->_data)
+            {
+                if (key.is_array())
+                {
+                    if (i < key.array_val->_data.size())
+                    {
+                        obj->_data.emplace_back(key.array_val->_data[i].to_string(), a);
+                    }
+                }
+                else if (key.is_object())
+                {
+                    if (i < key.obj->_data.size())
+                    {
+                        obj->_data.emplace_back(key.obj->_data[i].first, a);
+                    }
+                }
+                i++;
+            }
+        }
+    }
+
+    if (_val_type == obj_type::ARRAY)
+    {
+        if (val.is_object())
+        {
+            unsigned int i = 0;
+            for (auto &[a, b] : val.obj->_data)
+            {
+                if (key.is_array())
+                {
+                    if (i < key.array_val->_data.size())
+                    {
+                        obj_val temp;
+                        temp.set_object();
+                        temp.push(key.array_val->_data[i].to_string(), b);
+                        array_val->_data.emplace_back(std::move(temp));
+                    }
+                }
+                else if (key.is_object())
+                {
+                    if (i < key.obj->_data.size())
+                    {
+                        obj_val temp;
+                        temp.set_object();
+                        temp.push(key.array_val->_data[i].to_string(), b);
+                        array_val->_data.emplace_back(std::move(temp));
+                    }
+                }
+                i++;
+            }
+        }
+        else if (val.is_array())
+        {
+            unsigned int i = 0;
+            for (auto &a : val.array_val->_data)
+            {
+                if (key.is_array())
+                {
+                    if (i < key.array_val->_data.size())
+                    {
+                        obj_val temp;
+                        temp.set_object();
+                        temp.push(key.array_val->_data[i].to_string(), a);
+                        array_val->_data.emplace_back(std::move(temp));
+                    }
+                }
+                else if (key.is_object())
+                {
+                    if (i < key.obj->_data.size())
+                    {
+                        obj_val temp;
+                        temp.set_object();
+                        temp.push(key.array_val->_data[i].to_string(), a);
+                        array_val->_data.emplace_back(std::move(temp));
+                    }
+                }
+                i++;
+            }
+        }
+    }
+}
+
+obj_val obj_val::multi_sort(std::string_view key, unsigned char order)
+{
+    obj_val temp_obj;
+    temp_obj.set_array();
+
+    if (_val_type != obj_type::ARRAY)
+    {
+        return temp_obj;
+    }
+    temp_obj.set_array();
+    temp_obj.reserve(array_val->_data.size());
+
+    std::list<unsigned int> temp_sort;
+
+    unsigned int pos_num  = 0xFFFFFFFF;
+    unsigned int obj_size = 0;
+    try
+    {
+        for (auto iter = array_val->_data.begin(); iter != array_val->_data.end();)
+        {
+            if (iter->is_object())
+            {
+                for (auto iter_obj = iter->obj_begin(); iter_obj != iter->obj_end();)
+                {
+                    if (iter_obj->first == key)
+                    {
+                        pos_num = obj_size;
+                        break;
+                    }
+                    obj_size++;
+                    iter_obj++;
+                }
+                obj_size = iter->size();
+            }
+            iter++;
+            break;
+        }
+        if (pos_num == 0xFFFFFFFF)
+        {
+            return temp_obj;
+        }
+
+        unsigned int temp_ppos = 0;
+        temp_sort.push_back(temp_ppos);
+        temp_ppos = 1;
+        auto iter = array_val->_data.begin();
+        if (iter == array_val->_data.end())
+        {
+            return temp_obj;
+        }
+        iter++;
+
+        for (; iter != array_val->_data.end();)
+        {
+            if (iter->is_object())
+            {
+                unsigned int temp_ppos2                = 0;
+                std::pair<std::string, obj_val> temp_c = iter->ref_obj_val(pos_num);
+                auto list_iter                         = temp_sort.begin();
+                for (; list_iter != temp_sort.end();)
+                {
+                    temp_ppos2 = *list_iter;
+
+                    if (temp_ppos2 == temp_ppos)
+                    {
+                        break;
+                    }
+                    if (temp_ppos2 < array_val->_data.size())
+                    {
+                        std::pair<std::string, obj_val> temp_d = array_val->_data[temp_ppos2].ref_obj_val(pos_num);
+
+                        if (temp_c.second >= temp_d.second)
+                        {
+                        }
+                        else
+                        {
+                            temp_sort.insert(list_iter, temp_ppos);
+                            break;
+                        }
+                    }
+                    list_iter++;
+                }
+                if (list_iter == temp_sort.end())
+                {
+                    temp_sort.insert(temp_sort.end(), temp_ppos);
+                }
+            }
+            iter++;
+            temp_ppos++;
+        }
+
+        if (order == 0)
+        {
+            auto list_iter = temp_sort.begin();
+            for (; list_iter != temp_sort.end();)
+            {
+                unsigned int temp_ppos2 = *list_iter;
+                if (temp_ppos2 < array_val->_data.size())
+                {
+                    temp_obj.push(array_val->_data[temp_ppos2]);
+                }
+                list_iter++;
+            }
+        }
+        else
+        {
+            auto list_iter = temp_sort.rbegin();
+            for (; list_iter != temp_sort.rend();)
+            {
+                unsigned int temp_ppos2 = *list_iter;
+                if (temp_ppos2 < array_val->_data.size())
+                {
+                    temp_obj.push(array_val->_data[temp_ppos2]);
+                }
+                list_iter++;
+            }
+        }
+    }
+    catch (const char *e)
+    {
+        return temp_obj;
+    }
+    return temp_obj;
+}
+
+obj_val obj_val::multi_sort(std::string_view key, unsigned char order, std::string_view key2, unsigned char order2)
+{
+    obj_val temp_obj;
+    temp_obj.set_array();
+
+    if (_val_type != obj_type::ARRAY)
+    {
+        return temp_obj;
+    }
+    temp_obj.set_array();
+    temp_obj.reserve(array_val->_data.size());
+
+    std::list<unsigned int> temp_sort;
+
+    unsigned int pos_num  = 0xFFFFFFFF;
+    unsigned int pos2_num = 0xFFFFFFFF;
+    unsigned int obj_size = 0;
+    try
+    {
+        for (auto iter = array_val->_data.begin(); iter != array_val->_data.end();)
+        {
+            if (iter->is_object())
+            {
+                for (auto iter_obj = iter->obj_begin(); iter_obj != iter->obj_end();)
+                {
+                    if (iter_obj->first == key)
+                    {
+                        pos_num = obj_size;
+                    }
+                    else if (iter_obj->first == key2)
+                    {
+                        pos2_num = obj_size;
+                    }
+
+                    if (pos_num != 0xFFFFFFFF && pos2_num != 0xFFFFFFFF)
+                    {
+                        break;
+                    }
+                    obj_size++;
+                    iter_obj++;
+                }
+                obj_size = iter->size();
+            }
+            iter++;
+            break;
+        }
+        if (pos_num == 0xFFFFFFFF || pos2_num == 0xFFFFFFFF)
+        {
+            return temp_obj;
+        }
+
+        unsigned int temp_ppos = 0;
+        temp_sort.push_back(temp_ppos);
+        temp_ppos = 1;
+        auto iter = array_val->_data.begin();
+        if (iter == array_val->_data.end())
+        {
+            return temp_obj;
+        }
+        iter++;
+
+        for (; iter != array_val->_data.end();)
+        {
+            if (iter->is_object())
+            {
+
+                unsigned int temp_ppos2                = 0;
+                std::pair<std::string, obj_val> temp_c = iter->ref_obj_val(pos_num);
+                auto list_iter                         = temp_sort.begin();
+                for (; list_iter != temp_sort.end();)
+                {
+                    temp_ppos2 = *list_iter;
+
+                    if (temp_ppos2 == temp_ppos)
+                    {
+                        break;
+                    }
+                    if (temp_ppos2 < array_val->_data.size())
+                    {
+
+                        std::pair<std::string, obj_val> temp_d = array_val->_data[temp_ppos2].ref_obj_val(pos_num);
+
+                        if (temp_c.second >= temp_d.second)
+                        {
+                        }
+                        else
+                        {
+                            temp_sort.insert(list_iter, temp_ppos);
+                            break;
+                        }
+                    }
+                    list_iter++;
+                }
+                if (list_iter == temp_sort.end())
+                {
+                    temp_sort.insert(temp_sort.end(), temp_ppos);
+                }
+            }
+            iter++;
+            temp_ppos++;
+        }
+
+        if (order == 0)
+        {
+            auto list_iter = temp_sort.begin();
+            std::list<unsigned int> temp2_sort;
+            for (; list_iter != temp_sort.end();)
+            {
+                auto list_iter2 = list_iter;
+                list_iter2++;
+                unsigned int temp_ppos2 = *list_iter;
+                temp2_sort.clear();
+                temp2_sort.emplace_back(temp_ppos2);
+                std::pair<std::string, obj_val> temp_c = array_val->_data[temp_ppos2].ref_obj_val(pos_num);
+                for (; list_iter2 != temp_sort.end();)
+                {
+                    unsigned int temp_ppos3                = *list_iter2;
+                    std::pair<std::string, obj_val> temp_d = array_val->_data[temp_ppos3].ref_obj_val(pos_num);
+
+                    if (temp_c.second == temp_d.second)
+                    {
+                        //has eq member
+                        auto list2_iter                         = temp2_sort.begin();
+                        std::pair<std::string, obj_val> temp_dd = array_val->_data[temp_ppos3].ref_obj_val(pos2_num);
+                        for (; list2_iter != temp2_sort.end();)
+                        {
+                            unsigned int list2_pos                  = *list2_iter;
+                            std::pair<std::string, obj_val> temp_cc = array_val->_data[list2_pos].ref_obj_val(pos2_num);
+                            if (temp_dd.second > temp_cc.second)
+                            {
+                                temp2_sort.insert(list2_iter, temp_ppos3);
+                                break;
+                            }
+                            list2_iter++;
+                        }
+                        if (list2_iter == temp2_sort.end())
+                        {
+                            temp2_sort.insert(temp2_sort.end(), temp_ppos3);
+                        }
+
+                        list_iter2++;
+                        continue;
+                    }
+                    break;
+                }
+
+                //is has eq member
+                if (temp2_sort.size() > 1)
+                {
+                    if (order2 == 0)
+                    {
+                        auto list2_iter = temp2_sort.begin();
+                        for (; list2_iter != temp2_sort.end();)
+                        {
+                            unsigned int list2_pos = *list2_iter;
+                            temp_obj.push(array_val->_data[list2_pos]);
+                            list2_iter++;
+                        }
+                    }
+                    else
+                    {
+                        auto list2_iter = temp2_sort.cbegin();
+                        for (; list2_iter != temp2_sort.cend();)
+                        {
+                            unsigned int list2_pos = *list2_iter;
+                            temp_obj.push(array_val->_data[list2_pos]);
+                            list2_iter++;
+                        }
+                    }
+                    list_iter = list_iter2;
+                }
+                else
+                {
+                    if (temp_ppos2 < array_val->_data.size())
+                    {
+                        temp_obj.push(array_val->_data[temp_ppos2]);
+                    }
+                    list_iter++;
+                }
+            }
+        }
+        else
+        {
+            auto list_iter = temp_sort.rbegin();
+            std::list<unsigned int> temp2_sort;
+
+            for (; list_iter != temp_sort.rend();)
+            {
+                auto list_iter2 = list_iter;
+                list_iter2++;
+                unsigned int temp_ppos2 = *list_iter;
+                temp2_sort.clear();
+                temp2_sort.emplace_back(temp_ppos2);
+                std::pair<std::string, obj_val> temp_c = array_val->_data[temp_ppos2].ref_obj_val(pos_num);
+                for (; list_iter2 != temp_sort.rend();)
+                {
+                    unsigned int temp_ppos3                = *list_iter2;
+                    std::pair<std::string, obj_val> temp_d = array_val->_data[temp_ppos3].ref_obj_val(pos_num);
+                    if (temp_c.second == temp_d.second)
+                    {
+                        //has eq member
+                        auto list2_iter                         = temp2_sort.begin();
+                        std::pair<std::string, obj_val> temp_dd = array_val->_data[temp_ppos3].ref_obj_val(pos2_num);
+                        for (; list2_iter != temp2_sort.end();)
+                        {
+                            unsigned int list2_pos                  = *list2_iter;
+                            std::pair<std::string, obj_val> temp_cc = array_val->_data[list2_pos].ref_obj_val(pos2_num);
+                            if (temp_dd.second > temp_cc.second)
+                            {
+                                temp2_sort.insert(list2_iter, temp_ppos3);
+                                break;
+                            }
+                            list2_iter++;
+                        }
+                        if (list2_iter == temp2_sort.end())
+                        {
+                            temp2_sort.insert(temp2_sort.end(), temp_ppos3);
+                        }
+
+                        list_iter2++;
+                        continue;
+                    }
+                    break;
+                }
+
+                //is has eq member
+                if (temp2_sort.size() > 1)
+                {
+                    if (order2 == 0)
+                    {
+                        auto list2_iter = temp2_sort.begin();
+                        for (; list2_iter != temp2_sort.end();)
+                        {
+                            unsigned int list2_pos = *list2_iter;
+                            temp_obj.push(array_val->_data[list2_pos]);
+                            list2_iter++;
+                        }
+                    }
+                    else
+                    {
+                        auto list2_iter = temp2_sort.cbegin();
+                        for (; list2_iter != temp2_sort.cend();)
+                        {
+                            unsigned int list2_pos = *list2_iter;
+                            temp_obj.push(array_val->_data[list2_pos]);
+                            list2_iter++;
+                        }
+                    }
+                    list_iter = list_iter2;
+                }
+                else
+                {
+                    if (temp_ppos2 < array_val->_data.size())
+                    {
+                        temp_obj.push(array_val->_data[temp_ppos2]);
+                    }
+                    list_iter++;
+                }
+            }
+        }
+    }
+    catch (const char *e)
+    {
+        return temp_obj;
+    }
+    return temp_obj;
 }
 
 }// namespace http
