@@ -405,15 +405,8 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 
 ###  9.Related tutorial
 
-1. [paozhu Principle](https://github.com/hggq/paozhu/wiki/paozhu-cpp-web-framework-%E6%A1%86%E6%9E%B6%E5%8E%9F%E7%90%86)
+- [paozhu docs](https://hggq.github.io/paozhudocs/documentation_en.html)
 
-2. [paozhu hello world](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6hello-world)
-
-3. [paozhu ORM](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6ORM%E5%85%A5%E9%97%A8)
-
-4. [paozhu view](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6view-%E8%A7%86%E5%9B%BE%E5%85%A5%E9%97%A8)
-
-5. [paozhu CRUD](https://github.com/hggq/paozhu/wiki/paozhu-%E6%A1%86%E6%9E%B6-CRUD-%E6%95%99%E7%A8%8B)
 
 ### 10.Roadmap
 
