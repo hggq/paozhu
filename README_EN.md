@@ -92,7 +92,6 @@ sudo apt-get install mysql-server
  [RockyLinux AlmaLinux environment configuration](https://hggq.github.io/paozhudocs/linux_en.html)  
 
 #### 3.3 Windows
- d
 
 Supports install methods vcpkg and xmake
 
