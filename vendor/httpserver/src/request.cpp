@@ -9038,11 +9038,9 @@ obj_val obj_val::multi_sort(std::string_view key, unsigned char order)
     {
         return temp_obj;
     }
-    temp_obj.set_array();
     temp_obj.reserve(array_val->_data.size());
 
     std::list<unsigned int> temp_sort;
-
     unsigned int pos_num  = 0xFFFFFFFF;
     unsigned int obj_size = 0;
     try
@@ -9063,7 +9061,6 @@ obj_val obj_val::multi_sort(std::string_view key, unsigned char order)
                 }
                 obj_size = iter->size();
             }
-            iter++;
             break;
         }
         if (pos_num == 0xFFFFFFFF)
@@ -9163,7 +9160,6 @@ obj_val obj_val::multi_sort(std::string_view key, unsigned char order, std::stri
     {
         return temp_obj;
     }
-    temp_obj.set_array();
     temp_obj.reserve(array_val->_data.size());
 
     std::list<unsigned int> temp_sort;
@@ -9197,7 +9193,6 @@ obj_val obj_val::multi_sort(std::string_view key, unsigned char order, std::stri
                 }
                 obj_size = iter->size();
             }
-            iter++;
             break;
         }
         if (pos_num == 0xFFFFFFFF || pos2_num == 0xFFFFFFFF)
@@ -9219,23 +9214,19 @@ obj_val obj_val::multi_sort(std::string_view key, unsigned char order, std::stri
         {
             if (iter->is_object())
             {
-
                 unsigned int temp_ppos2                = 0;
                 std::pair<std::string, obj_val> temp_c = iter->ref_obj_val(pos_num);
                 auto list_iter                         = temp_sort.begin();
                 for (; list_iter != temp_sort.end();)
                 {
                     temp_ppos2 = *list_iter;
-
                     if (temp_ppos2 == temp_ppos)
                     {
                         break;
                     }
                     if (temp_ppos2 < array_val->_data.size())
                     {
-
                         std::pair<std::string, obj_val> temp_d = array_val->_data[temp_ppos2].ref_obj_val(pos_num);
-
                         if (temp_c.second >= temp_d.second)
                         {
                         }
