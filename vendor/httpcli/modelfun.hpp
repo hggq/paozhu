@@ -1,3 +1,9 @@
+/*
+ *  @author 黄自权 huangziquan
+ *  @date 2022-05-04
+ *  @dest ORM文件生成器
+ */
+
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -5820,7 +5826,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 
     // getgmtdatetime
     headtxt += R"(/*
-*This file is auto create from cli
+*This file is auto create from paozhu_cli
 *本文件为自动生成 )";
     headtxt.append(getgmtdatetime());
     headtxt += R"(

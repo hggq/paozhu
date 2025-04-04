@@ -3092,6 +3092,11 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
 #endif
             next_proto_len = 1;
         }
+        catch (...)
+        {
+            co_return;
+        }
+
         if (next_proto_len == 1)
         {
             try
@@ -3100,6 +3105,11 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
             }
             catch (const std::exception &e)
             {
+                co_return;
+            }
+            catch (...)
+            {
+                co_return;
             }
             co_return;
         }
@@ -3122,6 +3132,11 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
     }
     catch (std::exception &e)
     {
+        co_return;
+    }
+    catch (...)
+    {
+        co_return;
     }
     co_return;
 }

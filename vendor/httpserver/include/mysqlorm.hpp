@@ -1,6 +1,11 @@
 #ifndef HTTP_MYSQL_ORM_HPP
 #define HTTP_MYSQL_ORM_HPP
-
+/*
+ *  @author 黄自权 huangziquan
+ *  @date 2022-05-04
+ *  @update 2025-03-12
+ *  @dest ORM MySQL中间连接层
+ */
 #include <iostream>
 #include <mutex>
 #include <string>
