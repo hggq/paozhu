@@ -2454,6 +2454,14 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             lock.unlock();
 #endif
         }
+        catch (...)
+        {
+            log_item.clear();
+            log_item.append(" -- clientpeerfun ... --  ");
+            std::unique_lock<std::mutex> lock(log_mutex);
+            error_loglist.emplace_back(log_item);
+            lock.unlock();
+        }
         peer_session->half_stop();
         if (linktype == 3)
         {
@@ -2476,9 +2484,11 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
     catch (const std::exception &e)
     {
         DEBUG_LOG("client exit exception");
+        peer_session->stop();
     }
     catch (...)
     {
+        peer_session->stop();
     }
 
     co_return;
@@ -3160,7 +3170,7 @@ void httpserver::listeners()
 #endif
 
     acceptor.bind(endpoint, ec_error);
-    acceptor.listen(asio::socket_base::max_connections, ec_error);
+    acceptor.listen(asio::socket_base::max_listen_connections,ec_error);
     if (ec_error)
     {
 
@@ -3277,7 +3287,7 @@ void httpserver::listener()
 #endif
 
     acceptor.bind(endpoint, ec);
-    acceptor.listen(asio::socket_base::max_connections, ec);
+    acceptor.listen(asio::socket_base::max_listen_connections,ec);
     if (ec)
     {
         std::unique_lock<std::mutex> lock(log_mutex);

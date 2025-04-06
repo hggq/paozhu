@@ -25,3 +25,5 @@ cmake-build-*
 .vscode
 www/default/upload
 orm/_rawsqlfile
+asio/*
+asio

@@ -163,25 +163,28 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     error_msg.clear();
     socket = std::make_unique<asio::ip::tcp::socket>(*io_ctx);
     asio::ip::tcp::resolver resolver(*io_ctx);
+    auto endpoints = resolver.resolve(conn_config.host, conn_config.port);
+    //socket->connect(endpoints, ec);
+    asio::connect(*socket,endpoints,ec);
+    
+    // asio::ip::tcp::resolver::query checkquery(conn_config.host, conn_config.port);
+    // asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
+    // asio::ip::tcp::resolver::iterator end;
+    // asio::ip::tcp::endpoint endpoint;
 
-    asio::ip::tcp::resolver::query checkquery(conn_config.host, conn_config.port);
-    asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
-    asio::ip::tcp::resolver::iterator end;
-    asio::ip::tcp::endpoint endpoint;
-
-    while (iter != end)
-    {
-        endpoint = *iter++;
-        socket->connect(endpoint, ec);
-        if (ec)
-        {
-            continue;
-        }
-        else
-        {
-            break;
-        }
-    }
+    // while (iter != end)
+    // {
+    //     endpoint = *iter++;
+    //     socket->connect(endpoint, ec);
+    //     if (ec)
+    //     {
+    //         continue;
+    //     }
+    //     else
+    //     {
+    //         break;
+    //     }
+    // }
     // asio::error_code ec;
     if (ec)
     {
@@ -679,24 +682,35 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     error_msg.clear();
     socket = std::make_unique<asio::ip::tcp::socket>(*io_ctx);
     asio::ip::tcp::resolver resolver(*io_ctx);
-
-    asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(conn_config.host, conn_config.port, asio::use_awaitable);
-    asio::ip::tcp::resolver::iterator end;
-    asio::ip::tcp::endpoint endpoint;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-    while (iter != end)
+    auto endpoints = co_await resolver.async_resolve(conn_config.host, conn_config.port, asio::use_awaitable);
+
+    for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
     {
-        endpoint     = *iter++;
-        std::tie(ec) = co_await socket->async_connect(endpoint, tuple_awaitable);
+        std::tie(ec) = co_await socket->async_connect(*iter, tuple_awaitable);
         if (ec)
         {
             continue;
         }
-        else
-        {
-            break;
-        }
+        break;
     }
+    // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(conn_config.host, conn_config.port, asio::use_awaitable);
+    // asio::ip::tcp::resolver::iterator end;
+    // asio::ip::tcp::endpoint endpoint;
+    // constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+    // while (iter != end)
+    // {
+    //     endpoint     = *iter++;
+    //     std::tie(ec) = co_await socket->async_connect(endpoint, tuple_awaitable);
+    //     if (ec)
+    //     {
+    //         continue;
+    //     }
+    //     else
+    //     {
+    //         break;
+    //     }
+    // }
     // asio::error_code ec;
     if (ec)
     {

@@ -53,8 +53,13 @@ bool send_email::sendssldata()
 
         SSL_set_tlsext_host_name(socket.native_handle(), smpturl.c_str());
 
-        asio::connect(socket.lowest_layer(), endpoints);
+        asio::connect(socket.lowest_layer(), endpoints,ec);
 
+        if (ec)
+        {
+            errormsg.append("ssl connect error!");
+            return false;
+        }
         ssl_context.set_verify_mode(asio::ssl::verify_peer);
         ssl_context.set_verify_callback(asio::ssl::host_name_verification(smpturl));
 
@@ -411,25 +416,27 @@ bool send_email::senddata()
 
         asio::ip::tcp::socket socket(temp_io_context.get_ctx());
         asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
+        auto endpoints = resolver.resolve(smpturl, std::to_string(port));
+        asio::connect(socket,endpoints,ec);
 
-        asio::ip::tcp::resolver::query checkquery(smpturl, std::to_string(port));
-        asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
-        asio::ip::tcp::resolver::iterator end;
-        asio::ip::tcp::endpoint endpoint;
+        //asio::ip::tcp::resolver::query checkquery(smpturl, std::to_string(port));
+        // asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
+        // asio::ip::tcp::resolver::iterator end;
+        // asio::ip::tcp::endpoint endpoint;
 
-        while (iter != end)
-        {
-            endpoint = *iter++;
-            socket.connect(endpoint, ec);
-            if (ec)
-            {
-                continue;
-            }
-            else
-            {
-                break;
-            }
-        }
+        // while (iter != end)
+        // {
+        //     endpoint = *iter++;
+        //     socket.connect(endpoint, ec);
+        //     if (ec)
+        //     {
+        //         continue;
+        //     }
+        //     else
+        //     {
+        //         break;
+        //     }
+        // }
         // asio::error_code ec;
         if (ec)
         {

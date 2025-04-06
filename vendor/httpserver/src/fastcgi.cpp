@@ -62,30 +62,40 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
     else
     {
         asio::ip::tcp::resolver resolver(executor);
-        asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-        asio::ip::tcp::resolver::iterator end;
-        asio::ip::tcp::endpoint endpoint;
+       // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+        // asio::ip::tcp::resolver::iterator end;
+        // asio::ip::tcp::endpoint endpoint;
         sock = std::make_shared<asio::ip::tcp::socket>(executor);
 
-        if (iter == end)
-        {
-            error_msg = "php-fpm resolver " + host + port;
-            DEBUG_LOG("%s", error_msg.c_str());
-            co_return false;
-        }
+        // if (iter == end)
+        // {
+        //     error_msg = "php-fpm resolver " + host + port;
+        //     DEBUG_LOG("%s", error_msg.c_str());
+        //     co_return false;
+        // }
 
-        while (iter != end)
+        // while (iter != end)
+        // {
+        //     endpoint     = *iter++;
+        //     std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
+        //     if (ec)
+        //     {
+        //         continue;
+        //     }
+        //     else
+        //     {
+        //         break;
+        //     }
+        // }
+        auto endpoints = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+        for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
         {
-            endpoint     = *iter++;
-            std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
+            std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
             if (ec)
             {
                 continue;
             }
-            else
-            {
-                break;
-            }
+            break;
         }
     }
 

@@ -300,26 +300,38 @@ asio::awaitable<bool> client::async_init_http_sock()
     error_msg.clear();
     auto executor = co_await asio::this_coro::executor;
     asio::ip::tcp::resolver resolver(executor);
-    asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-    asio::ip::tcp::resolver::iterator end;
-    asio::ip::tcp::endpoint endpoint;
+    // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+    // asio::ip::tcp::resolver::iterator end;
+    // asio::ip::tcp::endpoint endpoint;
 
     sock = std::make_shared<asio::ip::tcp::socket>(executor);
     asio::error_code ec;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-    while (iter != end)
+    auto endpoints = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+
+    for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
     {
-        endpoint     = *iter++;
-        std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
+        std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
         if (ec)
         {
             continue;
         }
-        else
-        {
-            break;
-        }
+        break;
     }
+    // constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+    // while (iter != end)
+    // {
+    //     endpoint     = *iter++;
+    //     std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
+    //     if (ec)
+    //     {
+    //         continue;
+    //     }
+    //     else
+    //     {
+    //         break;
+    //     }
+    // }
 
     // if (iter == end)
     // {
@@ -350,28 +362,42 @@ asio::awaitable<bool> client::async_init_https_sock()
     ssl_context->set_default_verify_paths();
 
     asio::ip::tcp::resolver resolver(executor);
-    asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-    asio::ip::tcp::resolver::iterator end;
-    asio::ip::tcp::endpoint endpoint;
+    // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+    // asio::ip::tcp::resolver::iterator end;
+    // asio::ip::tcp::endpoint endpoint;
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
-
-    // asio::connect(sslsock->lowest_layer(), endpoints);
     asio::error_code ec;
+
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-    while (iter != end)
+    auto endpoints = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+
+    for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
     {
-        endpoint     = *iter++;
-        std::tie(ec) = co_await sslsock->lowest_layer().async_connect(endpoint, tuple_awaitable);
+        std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
         if (ec)
         {
             continue;
         }
-        else
-        {
-            break;
-        }
+        break;
     }
+
+    // asio::connect(sslsock->lowest_layer(), endpoints);
+    
+    // constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+    // while (iter != end)
+    // {
+    //     endpoint     = *iter++;
+    //     std::tie(ec) = co_await sslsock->lowest_layer().async_connect(endpoint, tuple_awaitable);
+    //     if (ec)
+    //     {
+    //         continue;
+    //     }
+    //     else
+    //     {
+    //         break;
+    //     }
+    // }
 
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
 
@@ -395,27 +421,29 @@ bool client::init_http_sock()
     client_context &temp_io_context = get_client_context_obj();
     sock                            = std::make_shared<asio::ip::tcp::socket>(temp_io_context.get_ctx());
     asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
-
-    asio::ip::tcp::resolver::query checkquery(host, port);
-    asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
-    asio::ip::tcp::resolver::iterator end;
-    asio::ip::tcp::endpoint endpoint;
-    if (iter == end)
-    {
-        error_msg = "resolver " + host + port;
-        DEBUG_LOG("%s", error_msg.c_str());
-        return false;
-    }
-    while (iter != end)
-    {
-        endpoint = *iter++;
-        // at here  maybe under code
-        sock->connect(endpoint, ec);
-        if (ec)
-        {
-            continue;
-        }
-    }
+    auto endpoints = resolver.resolve(host, port);
+    //socket->connect(endpoints, ec);
+    asio::connect(*sock,endpoints,ec);
+    //asio::ip::tcp::resolver::query checkquery(host, port);
+    // asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
+    // asio::ip::tcp::resolver::iterator end;
+    // asio::ip::tcp::endpoint endpoint;
+    // if (iter == end)
+    // {
+    //     error_msg = "resolver " + host + port;
+    //     DEBUG_LOG("%s", error_msg.c_str());
+    //     return false;
+    // }
+    // while (iter != end)
+    // {
+    //     endpoint = *iter++;
+    //     // at here  maybe under code
+    //     sock->connect(endpoint, ec);
+    //     if (ec)
+    //     {
+    //         continue;
+    //     }
+    // }
     // asio::error_code ec;
 
     if (ec)
@@ -830,7 +858,14 @@ bool client::init_https_sock()
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
     
-    asio::connect(sslsock->lowest_layer(), endpoints);
+    asio::connect(sslsock->lowest_layer(), endpoints,ec);
+    if (ec)
+    {
+        error_msg = host + " connect error! ";
+        DEBUG_LOG("%s", error_msg.c_str());
+        return false;
+    }
+
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
 
     ssl_context->set_verify_mode(asio::ssl::verify_peer);
@@ -884,26 +919,42 @@ asio::awaitable<void> client::async_send_ssl_data()
             ssl_context->set_default_verify_paths();
 
             asio::ip::tcp::resolver resolver(executor);
-            asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-            asio::ip::tcp::resolver::iterator end;
-            asio::ip::tcp::endpoint endpoint;
+            // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+            // asio::ip::tcp::resolver::iterator end;
+            // asio::ip::tcp::endpoint endpoint;
 
             SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
 
             constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-            while (iter != end)
+            auto endpoints = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+            for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
             {
-                endpoint     = *iter++;
-                std::tie(ec) = co_await sslsock->lowest_layer().async_connect(endpoint, tuple_awaitable);
+                std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
                 if (ec)
                 {
                     continue;
                 }
-                else
-                {
-                    break;
-                }
+                break;
             }
+            if (ec)
+            {
+                error_msg = host + " async_connect error! ";
+                DEBUG_LOG("%s", error_msg.c_str());
+                co_return;
+            }
+            // while (iter != end)
+            // {
+            //     endpoint     = *iter++;
+            //     std::tie(ec) = co_await sslsock->lowest_layer().async_connect(endpoint, tuple_awaitable);
+            //     if (ec)
+            //     {
+            //         continue;
+            //     }
+            //     else
+            //     {
+            //         break;
+            //     }
+            // }
 
             sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
             ssl_context->set_verify_mode(asio::ssl::verify_peer);
