@@ -25,10 +25,10 @@ jobs:
           sudo apt install cmake
           sudo apt-get install -y libbrotli-dev libssl-dev zlib1g-dev
           sudo apt install brotli 
-          sudo apt install libgd-dev
-          sudo apt install qrencode libqrencode-dev
           sudo apt-get install openssl libssl-dev
           unzip asio.zip
+        # sudo apt install libgd-dev
+        # sudo apt install qrencode libqrencode-dev
       - name: Build
         run: |
           cmake .

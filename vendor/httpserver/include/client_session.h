@@ -140,7 +140,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     //std::string http2_ring_queue_temp;
 
     std::mutex http2_sock_mutex;
-    std::unique_ptr<http2_send_queue_cache> http2_ring_queue;
+    std::unique_ptr<http2_send_queue_cache> http2_ring_queue = nullptr;
 
     std::mutex waituphttp2_mutex;
     std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
