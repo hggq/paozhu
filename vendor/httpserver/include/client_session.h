@@ -127,8 +127,8 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     unsigned char httpv = 0;
 
-    std::unique_ptr<asio::ip::tcp::socket> socket;
-    std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket;
+    std::unique_ptr<asio::ip::tcp::socket> socket = nullptr;
+    std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket = nullptr;
     std::atomic<unsigned int> last_time_interval          = 0;
     std::atomic<unsigned long long> window_update_num     = 0;
     std::atomic<unsigned long long> old_window_update_num = 0;

@@ -3234,30 +3234,40 @@ void httpserver::listeners()
     {
         try
         {
-            asio::ip::tcp::socket socket(this->io_context);
-            std::shared_ptr<client_session> peer_session = std::make_shared<client_session>();
-            peer_session->sslsocket                      = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), context_);
-            peer_session->isssl                          = true;
-
-            acceptor.accept(peer_session->sslsocket->lowest_layer(), ec_error);
-            if (ec_error)
+            for (;;)
             {
-                std::unique_lock<std::mutex> lock(log_mutex);
-                error_loglist.emplace_back("https accept ec_error ");
-                lock.unlock();
-                std::this_thread::sleep_for(std::chrono::nanoseconds(200));
-                continue;
+                asio::ip::tcp::socket socket(this->io_context);
+                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>();
+                peer_session->sslsocket                      = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), context_);
+                peer_session->isssl                          = true;
+
+                acceptor.accept(peer_session->sslsocket->lowest_layer(), ec_error);
+                if (ec_error)
+                {
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back("https accept ec_error ");
+                    lock.unlock();
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(200));
+                    continue;
+                }
+    #ifndef BENCHMARK
+                std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
+                socket_session_lists.push_back(peer_session);
+                lock_sock.unlock();
+    #endif
+                total_http2_count++;
+                co_spawn(this->io_context, sslhandshake(peer_session), asio::detached);
+                if (isstop)
+                {
+                    break;
+                }
             }
-#ifndef BENCHMARK
-            std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
-            socket_session_lists.push_back(peer_session);
-            lock_sock.unlock();
-#endif
-            total_http2_count++;
-            co_spawn(this->io_context, sslhandshake(peer_session), asio::detached);
         }
         catch (std::exception &e)
         {
+            std::unique_lock<std::mutex> lock(log_mutex);
+            error_loglist.emplace_back("https accept ec_error ");
+            lock.unlock();
         }
         if (isstop)
         {
@@ -3301,30 +3311,40 @@ void httpserver::listener()
     {
         try
         {
-            // asio::ip::tcp::socket socket(this->io_context);
-            std::shared_ptr<client_session> peer_session = std::make_shared<client_session>();
-            peer_session->socket                         = std::make_unique<asio::ip::tcp::socket>(this->io_context);
-            peer_session->isssl                          = false;
-
-            acceptor.accept(*peer_session->socket, ec);
-            if (ec)
+            for (;;)
             {
-                std::unique_lock<std::mutex> lock(log_mutex);
-                error_loglist.emplace_back("http accept ec_error ");
-                lock.unlock();
-                std::this_thread::sleep_for(std::chrono::nanoseconds(200));
-                continue;
+                // asio::ip::tcp::socket socket(this->io_context);
+                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>();
+                peer_session->socket                         = std::make_unique<asio::ip::tcp::socket>(this->io_context);
+                peer_session->isssl                          = false;
+
+                acceptor.accept(*peer_session->socket, ec);
+                if (ec)
+                {
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back("http accept ec_error ");
+                    lock.unlock();
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(200));
+                    continue;
+                }
+    #ifndef BENCHMARK
+                std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
+                socket_session_lists.push_back(peer_session);
+                lock_sock.unlock();
+    #endif
+                total_http1_count++;
+                co_spawn(this->io_context, clientpeerfun(peer_session, false), asio::detached);
+                if (isstop)
+                {
+                    break;
+                }
             }
-#ifndef BENCHMARK
-            std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
-            socket_session_lists.push_back(peer_session);
-            lock_sock.unlock();
-#endif
-            total_http1_count++;
-            co_spawn(this->io_context, clientpeerfun(peer_session, false), asio::detached);
         }
         catch (std::exception &e)
         {
+            std::unique_lock<std::mutex> lock(log_mutex);
+            error_loglist.emplace_back("http accept ec_error ");
+            lock.unlock();
         }
         if (isstop)
         {
