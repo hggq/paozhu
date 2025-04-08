@@ -21,6 +21,43 @@
 
 namespace http
 {
+std::string obj_val::filter(std::function<char(char)> func)
+{
+    std::string temp;
+    if (_val_type != obj_type::STRING)
+    {
+        return temp;
+    }
+
+    if(func==nullptr)
+    {
+        return temp;
+    }
+
+    if (length < 8)
+    {
+        for(unsigned int i=0;i<length;i++)
+        {
+            char a=func(name[i]);
+            if(a>0)
+            {
+                temp.push_back(a);
+            }
+        }
+    }
+    else
+    {
+        for(unsigned int i=0;i<length;i++)
+        {
+            char a=func(str[i]);
+            if(a>0)
+            {
+                temp.push_back(a);
+            }
+        }
+    }
+    return temp;
+}
 unsigned int obj_val::mb_strlen()
 {
     if (_val_type != obj_type::STRING)

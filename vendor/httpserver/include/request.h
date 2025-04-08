@@ -137,6 +137,8 @@ struct obj_val
     void append(const char *_str, unsigned int str_length);
     std::string substr(int a, int b);
     std::string substr(int a);
+    std::string filter(std::function<char(char)> func=nullptr);
+    
 
     void clear();
     obj_val();
