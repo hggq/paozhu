@@ -30,11 +30,12 @@ std::string pxapidepartmentsaddpost(std::shared_ptr<httppeer> peer)
         deps.setMemo(client.json["desc"].to_string());
         deps.setIsopen(client.json["isopen"].to_int());
 
-        unsigned int lastdepid = deps.save();
-        lastdepid              = deps.getPK();
+        auto [effect_num, lastdepid] = deps.save();
+        lastdepid                    = deps.getPK();
         if (deps.error_msg.size() > 0)
         {
-            std::cout << deps.error_msg << std::endl;
+            //std::cout << deps.error_msg << std::endl;
+            client.val["msg"] = deps.error_msg;
         }
 
         client.val["code"] = 0;
@@ -84,13 +85,14 @@ std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
         }
         else
         {
-            lastdepid = deps.save();
+            std::tie(std::ignore, lastdepid) = deps.save();
         }
 
         lastdepid = deps.getPK();
         if (deps.error_msg.size() > 0)
         {
-            std::cout << deps.error_msg << std::endl;
+            //std::cout << deps.error_msg << std::endl;
+            client.val["msg"] = deps.error_msg;
         }
 
         client.val["code"] = 0;

@@ -206,7 +206,7 @@ std::string articleaddpost(std::shared_ptr<httppeer> peer)
     int effectnum = 0;
     try
     {
-        effectnum = articles.save();
+        auto[effectnum,last_id] = articles.save();
         aid       = articles.getAid();
         client << "<p>新(new)id " << aid << " 或 新(new)id " << effectnum << "</p>";
     }

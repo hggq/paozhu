@@ -327,7 +327,7 @@ std::string admin_addhomeblockpost(std::shared_ptr<httppeer> peer)
     homeblock.data.rownum     = client.post["rownum"].to_int();
     homeblock.data.content    = client.post["content"].to_string();
 
-    imgnum = homeblock.save();
+    std::tie(imgnum, std::ignore) = homeblock.save();
 
     if (imgnum > 0)
     {

@@ -13,7 +13,8 @@ std::string testsoftremove(std::shared_ptr<httppeer> peer)
     auto a          = orm::cms::Testa();
     a.data.value_id = 2;
     a.data.content  = rand_string(4, 0);
-    if (a.save() > 0)
+    auto[effect_num,last_id] = a.save();
+    if (effect_num > 0)
     {
         client << " new id " << a.data.id;
         a.soft_remove();

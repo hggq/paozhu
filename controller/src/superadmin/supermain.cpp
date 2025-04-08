@@ -586,17 +586,18 @@ std::string superadmin_adduserpost(std::shared_ptr<httppeer> peer)
         return "";
     }
     uinfo.clear();
-    uinfo.data.name       = username;
-    uinfo.data.password   = md5(password);
-    uinfo.data.isopen     = client.post["isopen"].to_int() == 1 ? 1 : 0;
-    uinfo.data.companyid  = sid;
-    uinfo.data.textword   = password;
-    uinfo.data.created_at = timeid();
-    uinfo.data.enddate    = strtotime(expdate);
-    uinfo.data.nickname   = client.post["nickname"].to_string();
-    uinfo.data.mobile     = client.post["mobile"].to_string();
-    uinfo.data.email      = client.post["email"].to_string();
-    if (uinfo.save() == 0)
+    uinfo.data.name            = username;
+    uinfo.data.password        = md5(password);
+    uinfo.data.isopen          = client.post["isopen"].to_int() == 1 ? 1 : 0;
+    uinfo.data.companyid       = sid;
+    uinfo.data.textword        = password;
+    uinfo.data.created_at      = timeid();
+    uinfo.data.enddate         = strtotime(expdate);
+    uinfo.data.nickname        = client.post["nickname"].to_string();
+    uinfo.data.mobile          = client.post["mobile"].to_string();
+    uinfo.data.email           = client.post["email"].to_string();
+    auto [effect_num, last_id] = uinfo.save();
+    if (effect_num == 0)
     {
         client.goto_url(urlmsg, 3, "保存出错！");
         return "";

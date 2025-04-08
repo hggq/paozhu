@@ -1,6 +1,11 @@
 #ifndef _ORM_CMS_PRODUCT_OPERATE_H
 #define _ORM_CMS_PRODUCT_OPERATE_H
-
+/*
+ *  @author 黄自权 huangziquan
+ *  @date 2022-05-04
+ *  @update 2025-03-12
+ *  @dest ORM MySQL中间连接层
+ */
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -41519,26 +41524,26 @@ M_MODEL& or_leEditdate(T val)
             }
             return 0;
         }
-        long long insert(typename B_BASE::meta &insert_data)
+        std::tuple<unsigned int, unsigned long long> insert(typename B_BASE::meta &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
-                return 0;
+                return std::make_tuple(0, 0);
             }
 
             if (iserror)
             {
-                return 0;
+                return std::make_tuple(0, 0);
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 //auto conn = conn_obj->get_edit_conn();
 
@@ -41563,7 +41568,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
 
                 unsigned int offset = 0;
@@ -41572,7 +41577,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -41602,7 +41607,8 @@ M_MODEL& or_leEditdate(T val)
                 {
                     conn_obj->back_edit_conn(std::move(edit_conn));
                 }
-                return insert_last_id;
+                //return insert_last_id;
+                return std::make_tuple(effect_num, insert_last_id);
             }
             catch (const std::exception &e)
             {
@@ -41615,29 +41621,29 @@ M_MODEL& or_leEditdate(T val)
             catch (...)
             {
             }
-            return 0;
+            return std::make_tuple(0, 0);
         }
 
-        asio::awaitable<long long> async_insert(typename B_BASE::meta &insert_data)
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(typename B_BASE::meta &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
-                co_return 0;
+                co_return std::make_tuple(0, 0);
             }
 
             if (iserror)
             {
-                co_return 0;
+                co_return std::make_tuple(0, 0);
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
 
                 if (islock_conn)
@@ -41661,7 +41667,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
 
                 unsigned int offset = 0;
@@ -41669,7 +41675,7 @@ M_MODEL& or_leEditdate(T val)
                 if (n == 0)
                 {
                     edit_conn.reset();
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -41699,7 +41705,8 @@ M_MODEL& or_leEditdate(T val)
                 {
                     conn_obj->back_edit_conn(std::move(edit_conn));
                 }
-                co_return insert_last_id;
+                //co_return insert_last_id;
+                co_return std::make_tuple(effect_num, insert_last_id);
             }
             catch (const std::exception &e)
             {
@@ -41712,29 +41719,29 @@ M_MODEL& or_leEditdate(T val)
             catch (...)
             {
             }
-            co_return 0;
+            co_return std::make_tuple(0, 0);
         }
 
-        long long insert(std::vector<typename B_BASE::meta> &insert_data)
+        std::tuple<unsigned int, unsigned long long> insert(std::vector<typename B_BASE::meta> &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
-                return 0;
+                return std::make_tuple(0, 0);
             }
 
             if (iserror)
             {
-                return 0;
+                return std::make_tuple(0, 0);
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 //auto conn = conn_obj->get_edit_conn();
                 if (islock_conn)
@@ -41758,7 +41765,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
 
                 unsigned int offset = 0;
@@ -41767,7 +41774,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -41797,7 +41804,8 @@ M_MODEL& or_leEditdate(T val)
                 {
                     conn_obj->back_edit_conn(std::move(edit_conn));
                 }
-                return insert_last_id;
+                //return insert_last_id;
+                return std::make_tuple(effect_num, insert_last_id);
             }
             catch (const std::exception &e)
             {
@@ -41810,29 +41818,29 @@ M_MODEL& or_leEditdate(T val)
             catch (...)
             {
             }
-            return 0;
+            return std::make_tuple(0, 0);
         }
 
-        asio::awaitable<long long> async_insert(std::vector<typename B_BASE::meta> &insert_data)
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(std::vector<typename B_BASE::meta> &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
-                co_return 0;
+                co_return std::make_tuple(0, 0);
             }
 
             if (iserror)
             {
-                co_return 0;
+                co_return std::make_tuple(0, 0);
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
 
                 if (islock_conn)
@@ -41856,7 +41864,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
 
                 unsigned int offset = 0;
@@ -41864,7 +41872,7 @@ M_MODEL& or_leEditdate(T val)
                 if (n == 0)
                 {
                     edit_conn.reset();
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -41893,7 +41901,8 @@ M_MODEL& or_leEditdate(T val)
                 {
                     conn_obj->back_edit_conn(std::move(edit_conn));
                 }
-                co_return insert_last_id;
+                //co_return insert_last_id;
+                co_return std::make_tuple(effect_num, insert_last_id);
             }
             catch (const std::exception &e)
             {
@@ -41906,29 +41915,29 @@ M_MODEL& or_leEditdate(T val)
             catch (...)
             {
             }
-            co_return 0;
+            co_return std::make_tuple(0, 0);
         }
 
-        long long insert()
+        std::tuple<unsigned int, unsigned long long> insert()
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makeinsertsql();
             if (iscommit)
             {
                 iscommit = false;
-                return 0;
+                return std::make_tuple(0, 0);
             }
 
             if (iserror)
             {
-                return 0;
+                return std::make_tuple(0, 0);
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 //auto conn = conn_obj->get_edit_conn();
                 if (islock_conn)
@@ -41952,7 +41961,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
 
                 unsigned int offset = 0;
@@ -41961,7 +41970,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -41990,7 +41999,8 @@ M_MODEL& or_leEditdate(T val)
                 {
                     conn_obj->back_edit_conn(std::move(edit_conn));
                 }
-                return insert_last_id;
+                //return insert_last_id;
+                return std::make_tuple(effect_num, insert_last_id);
             }
             catch (const std::exception &e)
             {
@@ -42003,29 +42013,29 @@ M_MODEL& or_leEditdate(T val)
             catch (...)
             {
             }
-            return 0;
+            return std::make_tuple(0, 0);
         }
 
-        asio::awaitable<long long> async_insert()
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert()
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makeinsertsql();
             if (iscommit)
             {
                 iscommit = false;
-                co_return 0;
+                co_return std::make_tuple(0, 0);
             }
 
             if (iserror)
             {
-                co_return 0;
+                co_return std::make_tuple(0, 0);
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
 
                 if (islock_conn)
@@ -42049,7 +42059,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
 
                 unsigned int offset = 0;
@@ -42057,7 +42067,7 @@ M_MODEL& or_leEditdate(T val)
                 if (n == 0)
                 {
                     edit_conn.reset();
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -42087,7 +42097,8 @@ M_MODEL& or_leEditdate(T val)
                 {
                     conn_obj->back_edit_conn(std::move(edit_conn));
                 }
-                co_return insert_last_id;
+                //co_return insert_last_id;
+                co_return std::make_tuple(effect_num, insert_last_id);
             }
             catch (const std::exception &e)
             {
@@ -42100,10 +42111,10 @@ M_MODEL& or_leEditdate(T val)
             catch (...)
             {
             }
-            co_return 0;
+            co_return std::make_tuple(0, 0);
         }
 
-        long long save(bool isrealnew = false)
+        std::tuple<unsigned int, unsigned long long> save(bool isrealnew = false)
         {
             effect_num = 0;
             if (B_BASE::getPK() > 0 && isrealnew == false)
@@ -42122,7 +42133,7 @@ M_MODEL& or_leEditdate(T val)
                 sqlstring.append(" where ");
                 if (wheresql.empty())
                 {
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 else
                 {
@@ -42143,16 +42154,16 @@ M_MODEL& or_leEditdate(T val)
                 if (iscommit)
                 {
                     iscommit = false;
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
 
                 if (iserror)
                 {
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 if (conn_empty())
                 {
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 //auto conn = conn_obj->get_edit_conn();
                 if (islock_conn)
@@ -42176,7 +42187,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
 
                 unsigned int offset = 0;
@@ -42185,7 +42196,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -42212,14 +42223,15 @@ M_MODEL& or_leEditdate(T val)
                 {
                     conn_obj->back_edit_conn(std::move(edit_conn));
                 }
-                return effect_num;
+                //return effect_num;
+                return std::make_tuple(effect_num, 0);
             }
             else
             {
                 sqlstring = B_BASE::_makeinsertsql();
                 if (conn_empty())
                 {
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 //auto conn = conn_obj->get_edit_conn();
                 if (islock_conn)
@@ -42243,7 +42255,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
 
                 unsigned int offset = 0;
@@ -42252,7 +42264,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     error_msg = edit_conn->error_msg;
                     edit_conn.reset();
-                    return 0;
+                    return std::make_tuple(0, 0);
                 }
                 pack_info_t temp_pack_data;
                 temp_pack_data.seq_id = 1;
@@ -42282,12 +42294,13 @@ M_MODEL& or_leEditdate(T val)
                 {
                     conn_obj->back_edit_conn(std::move(edit_conn));
                 }
-                return insert_last_id;
+                //return insert_last_id;
+                return std::make_tuple(effect_num, insert_last_id);
             }
-            return 0;
+            return std::make_tuple(0, 0);
         }
 
-        asio::awaitable<long long> async_save(bool isrealnew = false)
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_save(bool isrealnew = false)
         {
             effect_num = 0;
             if (B_BASE::getPK() > 0 && isrealnew == false)
@@ -42306,7 +42319,7 @@ M_MODEL& or_leEditdate(T val)
                 sqlstring.append(" where ");
                 if (wheresql.empty())
                 {
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
                 else
                 {
@@ -42327,19 +42340,19 @@ M_MODEL& or_leEditdate(T val)
                 if (iscommit)
                 {
                     iscommit = false;
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
 
                 if (iserror)
                 {
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
 
                 try
                 {
                     if (conn_empty())
                     {
-                        co_return 0;
+                        co_return std::make_tuple(0, 0);
                     }
 
                     if (islock_conn)
@@ -42363,7 +42376,7 @@ M_MODEL& or_leEditdate(T val)
                     {
                         error_msg = edit_conn->error_msg;
                         edit_conn.reset();
-                        co_return 0;
+                        co_return std::make_tuple(0, 0);
                     }
 
                     unsigned int offset = 0;
@@ -42371,7 +42384,7 @@ M_MODEL& or_leEditdate(T val)
                     if (n == 0)
                     {
                         edit_conn.reset();
-                        co_return 0;
+                        co_return std::make_tuple(0, 0);
                     }
                     pack_info_t temp_pack_data;
                     temp_pack_data.seq_id = 1;
@@ -42399,12 +42412,13 @@ M_MODEL& or_leEditdate(T val)
                     {
                         conn_obj->back_edit_conn(std::move(edit_conn));
                     }
-                    co_return effect_num;
+                    co_return std::make_tuple(effect_num, 0);
+                    //co_return effect_num;
                 }
                 catch (const std::exception &e)
                 {
                     error_msg = std::string(e.what());
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
                 catch (const std::string &e)
                 {
@@ -42412,9 +42426,9 @@ M_MODEL& or_leEditdate(T val)
                 }
                 catch (...)
                 {
-                    co_return 0;
+                    co_return std::make_tuple(0, 0);
                 }
-                co_return 0;
+                co_return std::make_tuple(0, 0);
             }
             else
             {
@@ -42423,7 +42437,7 @@ M_MODEL& or_leEditdate(T val)
                 {
                     if (conn_empty())
                     {
-                        co_return 0;
+                        co_return std::make_tuple(0, 0);
                     }
                     if (islock_conn)
                     {
@@ -42446,7 +42460,7 @@ M_MODEL& or_leEditdate(T val)
                     {
                         error_msg = edit_conn->error_msg;
                         edit_conn.reset();
-                        co_return 0;
+                        co_return std::make_tuple(0, 0);
                     }
 
                     unsigned int offset = 0;
@@ -42454,7 +42468,7 @@ M_MODEL& or_leEditdate(T val)
                     if (n == 0)
                     {
                         edit_conn.reset();
-                        co_return 0;
+                        co_return std::make_tuple(0, 0);
                     }
                     pack_info_t temp_pack_data;
                     temp_pack_data.seq_id = 1;
@@ -42484,7 +42498,8 @@ M_MODEL& or_leEditdate(T val)
                     {
                         conn_obj->back_edit_conn(std::move(edit_conn));
                     }
-                    co_return insert_last_id;
+                    co_return std::make_tuple(effect_num, insert_last_id);
+                    //co_return insert_last_id;
                 }
                 catch (const std::exception &e)
                 {
@@ -42497,9 +42512,9 @@ M_MODEL& or_leEditdate(T val)
                 catch (...)
                 {
                 }
-                co_return 0;
+                co_return std::make_tuple(0, 0);
             }
-            co_return 0;
+            co_return std::make_tuple(0, 0);
         }
 
         std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>>
@@ -42949,15 +42964,180 @@ M_MODEL& or_leEditdate(T val)
         }
         M_MODEL &get() { return *mod; }
         std::string get_query() { return sqlstring; }
-        M_MODEL &start_commit()
+
+        M_MODEL &begin_commit()
         {
+            if (!conn_empty())
+            {
+                return *mod;
+            }
+            islock_conn = true;
+            
+            if (islock_conn)
+            {
+                if (!edit_conn)
+                {
+                    edit_conn = conn_obj->get_edit_conn();
+                }
+            }
+            else
+            {
+                edit_conn = conn_obj->get_edit_conn();
+            }
+            sqlstring="start transaction";
+            edit_conn->write_sql(sqlstring);
             iscommit = true;
+
+            
             return *mod;
         }
-        M_MODEL &end_commit()
+        M_MODEL &rollback()
         {
+            if(iscommit==false)
+            {
+                error_msg = "not begin_commit";
+                iserror   = true;
+                return *mod;
+            }
+            if (!conn_empty())
+            {
+                return *mod;
+            }
+            if (islock_conn)
+            {
+                if (!edit_conn)
+                {
+                    edit_conn = conn_obj->get_edit_conn();
+                }
+            }
+            else
+            {
+                edit_conn = conn_obj->get_edit_conn();
+            }
+            sqlstring="rollback";
+            edit_conn->write_sql(sqlstring);
+
             iscommit = false;
+            islock_conn = false;
             return *mod;
+        }
+        M_MODEL &commit()
+        {
+            if(iscommit==false)
+            {
+                error_msg = "not begin_commit";
+                iserror   = true;
+                return *mod;
+            }
+            if (!conn_empty())
+            {
+                return *mod;
+            }
+            if (islock_conn)
+            {
+                if (!edit_conn)
+                {
+                    edit_conn = conn_obj->get_edit_conn();
+                }
+            }
+            else
+            {
+                edit_conn =conn_obj->get_edit_conn();
+            }
+            sqlstring="commit";
+            edit_conn->write_sql(sqlstring);
+
+            iscommit = false;
+            islock_conn = false;
+            return *mod;
+        }
+
+
+        asio::awaitable<bool> async_begin_commit()
+        {
+            if (!conn_empty())
+            {
+                co_return false;
+            }
+            islock_conn = true;
+
+            if (islock_conn)
+            {
+                if (!edit_conn)
+                {
+                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                }
+            }
+            else
+            {
+                edit_conn = co_await conn_obj->async_get_edit_conn();
+            }
+            sqlstring="start transaction";
+            co_await edit_conn->async_write_sql(sqlstring);
+            iscommit = true;
+
+            co_return false;
+        }
+        asio::awaitable<bool> async_rollback()
+        {
+            if(iscommit==false)
+            {
+                error_msg = "not begin_commit";
+                iserror   = true;
+                co_return false;
+            }
+            if (!conn_empty())
+            {
+                co_return false;
+            }
+            if (islock_conn)
+            {
+                if (!edit_conn)
+                {
+                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                }
+            }
+            else
+            {
+                edit_conn = co_await conn_obj->async_get_edit_conn();
+            }
+            sqlstring="rollback";
+            co_await edit_conn->async_write_sql(sqlstring);
+
+            iscommit = false;
+            islock_conn = false;
+            co_return true;
+        }
+
+        asio::awaitable<bool> async_commit()
+        {
+            if(iscommit==false)
+            {
+                error_msg = "not begin_commit";
+                iserror   = true;
+                co_return false;
+            }
+            if (!conn_empty())
+            {
+                co_return false;
+            }
+            if (islock_conn)
+            {
+                if (!edit_conn)
+                {
+                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                }
+            }
+            else
+            {
+                edit_conn = co_await conn_obj->async_get_edit_conn();
+            }
+            sqlstring="commit";
+            co_await edit_conn->async_write_sql(sqlstring);
+
+            iscommit = false;
+            islock_conn = false;
+            co_return true;
         }
 
         unsigned int effect()

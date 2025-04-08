@@ -3263,7 +3263,7 @@ void httpserver::listeners()
                 }
             }
         }
-        catch (std::exception &e)
+        catch (...)
         {
             std::unique_lock<std::mutex> lock(log_mutex);
             error_loglist.emplace_back("https accept ec_error ");
@@ -3340,7 +3340,7 @@ void httpserver::listener()
                 }
             }
         }
-        catch (std::exception &e)
+        catch (...)
         {
             std::unique_lock<std::mutex> lock(log_mutex);
             error_loglist.emplace_back("http accept ec_error ");
