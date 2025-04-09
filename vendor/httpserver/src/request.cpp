@@ -17,6 +17,7 @@
 #include <vector>
 #include <list>
 #include <cmath>
+#include <functional>
 #include "request.h"
 
 namespace http

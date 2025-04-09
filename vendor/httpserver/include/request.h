@@ -18,6 +18,7 @@
 #include <concepts>
 #include <tuple>
 #include <string_view>
+#include <functional>
 
 namespace http
 {
