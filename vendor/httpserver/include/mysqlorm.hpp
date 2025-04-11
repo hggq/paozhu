@@ -4086,7 +4086,7 @@ namespace orm
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        B_BASE::meta &get_cache(const std::string &cache_key_name)
+        typename B_BASE::meta &get_cache(const std::string &cache_key_name)
         {
             try
             {
@@ -7829,7 +7829,7 @@ namespace orm
                 return *mod;
             }
             islock_conn = true;
-            
+
             if (islock_conn)
             {
                 if (!edit_conn)
@@ -7841,16 +7841,15 @@ namespace orm
             {
                 edit_conn = conn_obj->get_edit_conn();
             }
-            sqlstring="start transaction";
+            sqlstring = "start transaction";
             edit_conn->write_sql(sqlstring);
             iscommit = true;
 
-            
             return *mod;
         }
         M_MODEL &rollback()
         {
-            if(iscommit==false)
+            if (iscommit == false)
             {
                 error_msg = "not begin_commit";
                 iserror   = true;
@@ -7871,16 +7870,16 @@ namespace orm
             {
                 edit_conn = conn_obj->get_edit_conn();
             }
-            sqlstring="rollback";
+            sqlstring = "rollback";
             edit_conn->write_sql(sqlstring);
 
-            iscommit = false;
+            iscommit    = false;
             islock_conn = false;
             return *mod;
         }
         M_MODEL &commit()
         {
-            if(iscommit==false)
+            if (iscommit == false)
             {
                 error_msg = "not begin_commit";
                 iserror   = true;
@@ -7899,16 +7898,15 @@ namespace orm
             }
             else
             {
-                edit_conn =conn_obj->get_edit_conn();
+                edit_conn = conn_obj->get_edit_conn();
             }
-            sqlstring="commit";
+            sqlstring = "commit";
             edit_conn->write_sql(sqlstring);
 
-            iscommit = false;
+            iscommit    = false;
             islock_conn = false;
             return *mod;
         }
-
 
         asio::awaitable<bool> async_begin_commit()
         {
@@ -7929,7 +7927,7 @@ namespace orm
             {
                 edit_conn = co_await conn_obj->async_get_edit_conn();
             }
-            sqlstring="start transaction";
+            sqlstring = "start transaction";
             co_await edit_conn->async_write_sql(sqlstring);
             iscommit = true;
 
@@ -7937,7 +7935,7 @@ namespace orm
         }
         asio::awaitable<bool> async_rollback()
         {
-            if(iscommit==false)
+            if (iscommit == false)
             {
                 error_msg = "not begin_commit";
                 iserror   = true;
@@ -7958,17 +7956,17 @@ namespace orm
             {
                 edit_conn = co_await conn_obj->async_get_edit_conn();
             }
-            sqlstring="rollback";
+            sqlstring = "rollback";
             co_await edit_conn->async_write_sql(sqlstring);
 
-            iscommit = false;
+            iscommit    = false;
             islock_conn = false;
             co_return true;
         }
 
         asio::awaitable<bool> async_commit()
         {
-            if(iscommit==false)
+            if (iscommit == false)
             {
                 error_msg = "not begin_commit";
                 iserror   = true;
@@ -7989,10 +7987,10 @@ namespace orm
             {
                 edit_conn = co_await conn_obj->async_get_edit_conn();
             }
-            sqlstring="commit";
+            sqlstring = "commit";
             co_await edit_conn->async_write_sql(sqlstring);
 
-            iscommit = false;
+            iscommit    = false;
             islock_conn = false;
             co_return true;
         }

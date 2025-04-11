@@ -19477,7 +19477,7 @@ M_MODEL& or_leReplyid(T val)
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        B_BASE::meta &get_cache(const std::string &cache_key_name)
+        typename B_BASE::meta &get_cache(const std::string &cache_key_name)
         {
             try
             {
