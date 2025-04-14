@@ -13,11 +13,16 @@ namespace http
 std::string testqrcode(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
+    std::string atxt = client.post["qrcontent"].to_string();
+    if (atxt.size() == 0)
+    {
+        atxt = "qrsting hello world !";
+    }
     client << "<p>hello world!</p>";
 
 #ifdef ENABLE_GD
 
-    qrcode a("qrsting hello world !", 5);
+    qrcode a(atxt, 5);
     std::string wwwpath;
     wwwpath.append(client.get_sitepath());
     wwwpath.append("/upload");
@@ -35,6 +40,7 @@ std::string testqrcode(std::shared_ptr<httppeer> peer)
     client << "<img src=\"" << a.save("/upload/", wwwpath) << "?token=123456\">";
 
 #endif
+    client << "<form method=\"post\" action=\"/testqrcode\"><p><textarea name=\"qrcontent\"></textarea></p><p><input type=\"submit\" name=\"submit2\" value=\"Submit\"></p></form>";
     return "";
 }
 
