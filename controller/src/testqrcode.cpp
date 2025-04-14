@@ -18,7 +18,7 @@ std::string testqrcode(std::shared_ptr<httppeer> peer)
     {
         atxt = "qrsting hello world !";
     }
-    client << "<p>hello world!</p>";
+    client << "<p>"<<atxt<<"</p>";
 
 #ifdef ENABLE_GD
 
