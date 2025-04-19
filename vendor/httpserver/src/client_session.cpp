@@ -523,6 +523,7 @@ asio::awaitable<void> client_session::async_stop()
     catch (...)
     {
         DEBUG_LOG("socket exp ");
+        iserror = true;
     }
     // timer_.cancel();
 }
@@ -541,6 +542,12 @@ void client_session::stop()
         {
             asio::error_code ec;
             sslsocket->shutdown(ec);
+            if(ec)
+            {
+                iserror = true;
+                return;
+            }
+
             if (sslsocket->lowest_layer().is_open())
             {
                 sslsocket->lowest_layer().close();
@@ -554,6 +561,7 @@ void client_session::stop()
     catch (...)
     {
         DEBUG_LOG("socket exp ");
+        iserror = true;
     }
     // timer_.cancel();
 }

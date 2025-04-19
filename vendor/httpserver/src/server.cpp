@@ -3105,7 +3105,7 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
         }
         catch (...)
         {
-            co_return;
+            next_proto_len = 1;
         }
 
         if (next_proto_len == 1)
