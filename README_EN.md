@@ -57,7 +57,7 @@ asio openssl zlib brotli [options](gd qrencode)
 - Install necessary dependencies
 ```bash
 brew install asio
-brew install mysql
+brew install cmake
 brew install openssl
 brew install zlib
 brew install brotli

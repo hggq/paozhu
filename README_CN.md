@@ -55,7 +55,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 
 ```bash
 brew install asio
-brew install mysql
+brew install cmake
 brew install openssl
 brew install zlib
 brew install brotli

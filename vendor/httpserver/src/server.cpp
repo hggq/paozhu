@@ -1,3 +1,4 @@
+#include <string>
 #include <zlib.h>
 #include <functional>
 #include <cstring>
@@ -4447,7 +4448,19 @@ void httpserver::run(const std::string &sysconfpath)
                     oss << std::this_thread::get_id();
                     std::string tempthread = oss.str();
                     DEBUG_LOG("frame thread:%s", tempthread.c_str());
-                    this->io_context.run();
+                    tempthread.append(" io_context.run() ");
+                    try 
+                    {
+                        this->io_context.run();
+                        tempthread.append(" nornal; ----\n");
+                    } 
+                    catch (...) 
+                    {
+                        tempthread.append(" throw exit; ----\n");
+                    }
+                    std::unique_lock<std::mutex> loglock(log_mutex);
+                    error_loglist.push_back(tempthread);
+                    loglock.unlock();
                 });
         }
         total_count              = 0;
