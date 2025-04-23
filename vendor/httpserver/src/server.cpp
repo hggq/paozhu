@@ -3171,7 +3171,7 @@ void httpserver::listeners()
 #endif
 
     acceptor.bind(endpoint, ec_error);
-    acceptor.listen(asio::socket_base::max_listen_connections,ec_error);
+    acceptor.listen(asio::socket_base::max_listen_connections, ec_error);
     if (ec_error)
     {
 
@@ -3251,11 +3251,11 @@ void httpserver::listeners()
                     std::this_thread::sleep_for(std::chrono::nanoseconds(200));
                     continue;
                 }
-    #ifndef BENCHMARK
+#ifndef BENCHMARK
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
                 socket_session_lists.push_back(peer_session);
                 lock_sock.unlock();
-    #endif
+#endif
                 total_http2_count++;
                 co_spawn(this->io_context, sslhandshake(peer_session), asio::detached);
                 if (isstop)
@@ -3298,7 +3298,7 @@ void httpserver::listener()
 #endif
 
     acceptor.bind(endpoint, ec);
-    acceptor.listen(asio::socket_base::max_listen_connections,ec);
+    acceptor.listen(asio::socket_base::max_listen_connections, ec);
     if (ec)
     {
         std::unique_lock<std::mutex> lock(log_mutex);
@@ -3328,11 +3328,11 @@ void httpserver::listener()
                     std::this_thread::sleep_for(std::chrono::nanoseconds(200));
                     continue;
                 }
-    #ifndef BENCHMARK
+#ifndef BENCHMARK
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
                 socket_session_lists.push_back(peer_session);
                 lock_sock.unlock();
-    #endif
+#endif
                 total_http1_count++;
                 co_spawn(this->io_context, clientpeerfun(peer_session, false), asio::detached);
                 if (isstop)
@@ -4436,9 +4436,9 @@ void httpserver::run(const std::string &sysconfpath)
         {
             total_count = 8;
         }
-        // asio::io_context::work worker(io_context);
-        asio::executor_work_guard<asio::io_context::executor_type> worker(io_context.get_executor());
 
+        asio::executor_work_guard<asio::io_context::executor_type> worker(io_context.get_executor());
+        
         for (std::size_t i = 0; i < total_count; ++i)
         {
             runthreads.emplace_back(
@@ -4449,18 +4449,21 @@ void httpserver::run(const std::string &sysconfpath)
                     std::string tempthread = oss.str();
                     DEBUG_LOG("frame thread:%s", tempthread.c_str());
                     tempthread.append(" io_context.run() ");
-                    try 
+                    do
                     {
-                        this->io_context.run();
-                        tempthread.append(" nornal; ----\n");
-                    } 
-                    catch (...) 
-                    {
-                        tempthread.append(" throw exit; ----\n");
-                    }
-                    std::unique_lock<std::mutex> loglock(log_mutex);
-                    error_loglist.push_back(tempthread);
-                    loglock.unlock();
+                        try
+                        {
+                            this->io_context.run();
+                            tempthread.append(" nornal; ----\n");
+                        }
+                        catch (...)
+                        {
+                            tempthread.append(" throw exit; ----\n");
+                        }
+                        std::unique_lock<std::mutex> loglock(log_mutex);
+                        error_loglist.push_back(tempthread);
+                        loglock.unlock();
+                    } while (!isstop);
                 });
         }
         total_count              = 0;

@@ -57,11 +57,11 @@ echo << obj["info"]["bigimg"].to_string();
                 }
                  
  			 echo<<"</div>  \n            </div>\n          </div> \n\n\n\n          <div class=\"row mb-3\">\n            <label for=\"keywords\" class=\"col-sm-2 col-form-label text-sm-end\">产品图片</label>\n            <div class=\"col-sm-10\">\n\n              ";
- unsigned int tempcout=0; for(auto &a:obj["proimglist"].as_array()){ 
+ unsigned int tempcout=0; if(obj["proimglist"].is_array()){ for(auto &a:obj["proimglist"].as_array()){ 
  			 echo<<"              <div class=\"row\" style=\"margin-left: unset;margin-bottom: 5px;\">\n                <div class=\"col-md-8\">\n                  <div class=\"input-group row\">\n                    <input type=\"text\" class=\"form-control col-md-8\"  name=\"header_urlpath[]\"  placeholder=\"图片地址\" value=\"";
  echo<<a.to_string(); 
  			 echo<<"\">\n                    <input type=\"file\" class=\"form-control uploadfile col-md-4\"  accept=\".jpg,.png,.jpeg\"  aria-describedby=\"inputGroupFileAddon04\" aria-label=\"Upload\">\n                  </div>\n                </div>\n                <div class=\"col-md-4\">\n                  <button type=\"button\" class=\"btn btn-outline-info\" onclick=\"additem(this)\">+</button>\n                  <button type=\"button\" class=\"btn btn-outline-danger\" onclick=\"removeitem(this)\">-</button>\n                </div>\n              </div>\n              ";
- tempcout+=1; } 
+ tempcout+=1; } } 
  			 echo<<"    \n              ";
   if(tempcout==0){ 
  			 echo<<"  \n                <div class=\"row\" style=\"margin-left: unset;margin-bottom: 5px;\">\n                  <div class=\"col-md-8\">\n                    <div class=\"input-group row\">\n                      <input type=\"text\" class=\"form-control col-md-8\"  name=\"header_urlpath[]\"  placeholder=\"图片地址\" value=\"\">\n                      <input type=\"file\" class=\"form-control uploadfile col-md-4\"  accept=\".jpg,.png,.jpeg\"  aria-describedby=\"inputGroupFileAddon04\" aria-label=\"Upload\">\n                    </div>\n                  </div>\n                  <div class=\"col-md-4\">\n                    <button type=\"button\" class=\"btn btn-outline-info\" onclick=\"additem(this)\">+</button>\n                    <button type=\"button\" class=\"btn btn-outline-danger\" onclick=\"removeitem(this)\">-</button>\n                  </div>\n                </div>\n              ";

@@ -114,7 +114,7 @@
             <label for="keywords" class="col-sm-2 col-form-label text-sm-end">产品图片</label>
             <div class="col-sm-10">
 
-              <%c unsigned int tempcout=0; for(auto &a:obj["proimglist"].as_array()){ %>
+              <%c unsigned int tempcout=0; if(obj["proimglist"].is_array()){ for(auto &a:obj["proimglist"].as_array()){ %>
               <div class="row" style="margin-left: unset;margin-bottom: 5px;">
                 <div class="col-md-8">
                   <div class="input-group row">
@@ -127,7 +127,7 @@
                   <button type="button" class="btn btn-outline-danger" onclick="removeitem(this)">-</button>
                 </div>
               </div>
-              <%c tempcout+=1; } %>    
+              <%c tempcout+=1; } } %>    
               <%c  if(tempcout==0){ %>  
                 <div class="row" style="margin-left: unset;margin-bottom: 5px;">
                   <div class="col-md-8">

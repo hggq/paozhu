@@ -7626,9 +7626,10 @@ void obj_val::from_json(const std::string &json_str)
         if (_val_type != obj_type::OBJECT)
         {
             clear();
+            _val_type = obj_type::OBJECT;
+            obj       = new obj_t;
         }
-        _val_type = obj_type::OBJECT;
-        obj       = new obj_t;
+
         JSON_OBJ(json_str, *obj, offset);
     }
     else if (json_str[offset] == 0x5b)
@@ -7637,9 +7638,10 @@ void obj_val::from_json(const std::string &json_str)
         if (_val_type != obj_type::ARRAY)
         {
             clear();
+            _val_type = obj_type::ARRAY;
+            array_val = new obj_array;
         }
-        _val_type = obj_type::ARRAY;
-        array_val = new obj_array;
+
         JSON_ARRAY(json_str, *array_val, offset);
     }
 }
