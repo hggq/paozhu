@@ -4511,6 +4511,13 @@ void httpserver::run(const std::string &sysconfpath)
                 websocketthreads[i].join();
             }
         }
+        for (unsigned int i = 0; i < runthreads.size(); ++i)
+        {
+            if (runthreads[i].joinable())
+            {
+                runthreads[i].join();
+            }
+        }
     }
     catch (std::exception &e)
     {
