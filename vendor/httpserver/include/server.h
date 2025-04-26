@@ -140,6 +140,7 @@ class httpserver
     asio::awaitable<void> http1_send_file_range(std::shared_ptr<httppeer> peer,
                                                 std::shared_ptr<client_session> peer_session);
 
+    void set_thread_priority(std::thread& thread, int priority);
     void run(const std::string &);
 
     void add_nullptrlog(const std::string &logstrb);

@@ -36,6 +36,14 @@
 #include "autorestfulpaths.hpp"
 #include "client_context.h"
 #include "fastcgi.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <pthread.h>
+#include <sched.h>
+#endif
+
 #ifdef ENABLE_BOOST
 #include "loadviewso.h"
 #include "loadmodule.h"
@@ -4375,6 +4383,23 @@ void httpserver::save_traffic_arrays()
 #endif
     }
 }
+
+void httpserver::set_thread_priority(std::thread& thread, int priority) {
+    auto native_handle = thread.native_handle();
+
+#ifdef _WIN32
+    // Windows 平台
+    SetThreadPriority(native_handle, priority);
+#else
+    // Linux 平台
+    sched_param sch;
+    int policy;
+    pthread_getschedparam(native_handle, &policy, &sch);
+    sch.sched_priority = priority;
+    pthread_setschedparam(native_handle, policy, &sch);
+#endif
+}
+
 void httpserver::run(const std::string &sysconfpath)
 {
     try
@@ -4473,6 +4498,15 @@ void httpserver::run(const std::string &sysconfpath)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         std::thread https(std::bind(&httpserver::listeners, this));
         std::thread http(std::bind(&httpserver::listener, this));
+
+        //set thread priority 设置线程优先级
+        #ifdef _WIN32
+            set_thread_priority(https, THREAD_PRIORITY_HIGHEST);
+            set_thread_priority(http, THREAD_PRIORITY_HIGHEST);
+        #else
+            set_thread_priority(https, 90);
+            set_thread_priority(http, 90);
+        #endif
 
         {
             client_context &client_context = get_client_context_obj(&io_context);
