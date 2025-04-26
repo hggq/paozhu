@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_PRODUCTPARAMBASEMATA_H
-#define ORM_CMS_PRODUCTPARAMBASEMATA_H
+#ifndef ORM_CMS_XMEETBASEMATA_H
+#define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,50 +20,43 @@ namespace orm {
    
      namespace cms { 
 
-struct productparambase
+struct xmeet_base
 {
     struct meta{
-     unsigned  int  ppid = 0; ///**/
+     unsigned  int  xmeetid = 0; ///**/
  unsigned  int  userid = 0; ///**/
- unsigned  int  pid = 0; ///*产品id*/
- std::string  imgurl = ""; ///*图片*/
- unsigned  long long  price = 0; ///*价格*/
- std::string  attachfiles = ""; ///*附件*/
- std::string  name = ""; ///*内容*/
- std::string  attachdate = ""; ///*时间*/
- int  sortid = 0; ///*排序*/
- unsigned  int  filesize = 0; ///*文件大小*/
- std::string  fileext = ""; ///*文件扩展名*/
+ unsigned  int  xpjid = 0; ///**/
+ unsigned  int  xtaskid = 0; ///**/
+ unsigned  int  adminid = 0; ///**/
+ std::string  title = ""; ///**/
+ std::string  zhuchi = ""; ///**/
+ std::string  jilu = ""; ///**/
+ std::string  meetnotice = ""; ///**/
+ std::string  meetfiles = ""; ///**/
+ std::string  address = ""; ///**/
+ std::string  meettime = ""; ///**/
+ unsigned  int  regdate = 0; ///**/
+ unsigned  int  expecttime = 0; ///**/
+ unsigned  int  endtime = 0; ///**/
+ std::string  presents = ""; ///**/
+ std::string  content = ""; ///**/
+ std::string  postresult = ""; ///**/
+ std::string  postfiles = ""; ///**/
+ std::string  jiluphoto = ""; ///**/
  } data;
-  
-        struct meta_tree{
-         unsigned  int  ppid = 0; ///**/
- unsigned  int  userid = 0; ///**/
- unsigned  int  pid = 0; ///*产品id*/
- std::string  imgurl = ""; ///*图片*/
- unsigned  long long  price = 0; ///*价格*/
- std::string  attachfiles = ""; ///*附件*/
- std::string  name = ""; ///*内容*/
- std::string  attachdate = ""; ///*时间*/
- int  sortid = 0; ///*排序*/
- unsigned  int  filesize = 0; ///*文件大小*/
- std::string  fileext = ""; ///*文件扩展名*/
-
-	std::vector<meta_tree> children;
- };
- std::vector<productparambase::meta> record;
+ std::vector<xmeet_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<productparambase::meta>::iterator begin(){     return record.begin(); }
-std::vector<productparambase::meta>::iterator end(){     return record.end(); }
-std::vector<productparambase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<productparambase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,11> col_names={"ppid","userid","pid","imgurl","price","attachfiles","name","attachdate","sortid","filesize","fileext"};
-static constexpr std::array<unsigned char,11> col_types={3,3,3,253,8,253,253,253,3,3,253};
-static constexpr std::array<unsigned char,11> col_length={0,0,0,254,0,254,160,20,0,0,20};
-static constexpr std::array<unsigned char,11> col_decimals={0,0,0,0,0,0,0,0,0,0,0};
-std::string tablename="productparam";
-static constexpr std::string_view modelname="Productparam";
+std::vector<xmeet_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<xmeet_base::meta>::iterator end(){     return record.end(); }
+std::vector<xmeet_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<xmeet_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,20> col_names={"xmeetid","userid","xpjid","xtaskid","adminid","title","zhuchi","jilu","meetnotice","meetfiles","address","meettime","regdate","expecttime","endtime","presents","content","postresult","postfiles","jiluphoto"};
+static constexpr std::array<unsigned char,20> col_types={3,3,3,3,3,253,253,253,252,253,253,253,3,3,3,253,252,252,252,253};
+static constexpr std::array<unsigned char,20> col_length={0,0,0,0,0,120,120,120,0,0,120,120,0,0,0,0,0,0,0,0};
+static constexpr std::array<unsigned char,20> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+std::string tablename="xmeet";
+static constexpr std::string_view modelname="Xmeet";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -71,7 +64,7 @@ static constexpr std::string_view modelname="Productparam";
                 return 255;
             }
 		    unsigned char  bi=coln[0];
-         
+         char colpospppc;
 
 	         if(bi<91&&bi>64){
 				bi+=32;
@@ -81,48 +74,85 @@ static constexpr std::string_view modelname="Productparam";
 
          case 'a':
  switch(coln.size()){  
-case 10:
-   	 return 7;
-break;
-case 11:
-   	 return 5;
-break;
+case 7:
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='d'){ return 4; }
+ if(colpospppc=='s'){ return 10; }
+   	 break;
  }
  break;
-case 'f':
+case 'c':
+   	 return 16;
+break;
+case 'e':
  switch(coln.size()){  
 case 7:
-   	 return 10;
+   	 return 14;
 break;
+case 10:
+   	 return 13;
+break;
+ }
+ break;
+case 'j':
+ switch(coln.size()){  
+case 4:
+   	 return 7;
+break;
+case 9:
+   	 return 19;
+break;
+ }
+ break;
+case 'm':
+ switch(coln.size()){  
 case 8:
+   	 return 11;
+break;
+case 9:
    	 return 9;
 break;
+case 10:
+   	 return 8;
+break;
  }
  break;
-case 'i':
-   	 return 3;
-break;
-case 'n':
-   	 return 6;
-break;
 case 'p':
  switch(coln.size()){  
-case 3:
-   	 return 2;
+case 8:
+   	 return 15;
 break;
-case 4:
-   	 return 0;
+case 9:
+   	 return 18;
 break;
-case 5:
-   	 return 4;
+case 10:
+   	 return 17;
 break;
  }
  break;
-case 's':
-   	 return 8;
+case 'r':
+   	 return 12;
+break;
+case 't':
+   	 return 5;
 break;
 case 'u':
    	 return 1;
+break;
+case 'x':
+ switch(coln.size()){  
+case 5:
+   	 return 2;
+break;
+case 7:
+ if(coln.size()>1&&(coln[1]=='m'||coln[1]=='M')){ return 0; }
+ if(coln.size()>1&&(coln[1]=='t'||coln[1]=='T')){ return 3; }
+   	 break;
+ }
+ break;
+case 'z':
+   	 return 6;
 break;
 
              }
@@ -132,7 +162,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "ppid";
+       return "xmeetid";
 }
 
       void record_reset()
@@ -140,7 +170,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     productparambase::meta metatemp;    
+     xmeet_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -203,41 +233,58 @@ break;
         }
         tempsql<<") VALUES (";
 
-        if(data.ppid==0){
+        if(data.xmeetid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.ppid);
+	tempsql<<std::to_string(data.xmeetid);
 }
 if(data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.userid);
 }
-if(data.pid==0){
+if(data.xpjid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.pid);
+	tempsql<<","<<std::to_string(data.xpjid);
 }
-tempsql<<",'"<<stringaddslash(data.imgurl)<<"'";
-if(data.price==0){
+if(data.xtaskid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.price);
+	tempsql<<","<<std::to_string(data.xtaskid);
 }
-tempsql<<",'"<<stringaddslash(data.attachfiles)<<"'";
-tempsql<<",'"<<stringaddslash(data.name)<<"'";
-tempsql<<",'"<<stringaddslash(data.attachdate)<<"'";
-if(data.sortid==0){
+if(data.adminid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.sortid);
+	tempsql<<","<<std::to_string(data.adminid);
 }
-if(data.filesize==0){
+tempsql<<",'"<<stringaddslash(data.title)<<"'";
+tempsql<<",'"<<stringaddslash(data.zhuchi)<<"'";
+tempsql<<",'"<<stringaddslash(data.jilu)<<"'";
+tempsql<<",'"<<stringaddslash(data.meetnotice)<<"'";
+tempsql<<",'"<<stringaddslash(data.meetfiles)<<"'";
+tempsql<<",'"<<stringaddslash(data.address)<<"'";
+tempsql<<",'"<<stringaddslash(data.meettime)<<"'";
+if(data.regdate==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.filesize);
+	tempsql<<","<<std::to_string(data.regdate);
 }
-tempsql<<",'"<<stringaddslash(data.fileext)<<"'";
+if(data.expecttime==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.expecttime);
+}
+if(data.endtime==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.endtime);
+}
+tempsql<<",'"<<stringaddslash(data.presents)<<"'";
+tempsql<<",'"<<stringaddslash(data.content)<<"'";
+tempsql<<",'"<<stringaddslash(data.postresult)<<"'";
+tempsql<<",'"<<stringaddslash(data.postfiles)<<"'";
+tempsql<<",'"<<stringaddslash(data.jiluphoto)<<"'";
 tempsql<<")";
 
      
@@ -263,41 +310,58 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.ppid==0){
+        if(insert_data.xmeetid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.ppid);
+	tempsql<<std::to_string(insert_data.xmeetid);
 }
 if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.userid);
 }
-if(insert_data.pid==0){
+if(insert_data.xpjid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.pid);
+	tempsql<<","<<std::to_string(insert_data.xpjid);
 }
-tempsql<<",'"<<stringaddslash(insert_data.imgurl)<<"'";
-if(insert_data.price==0){
+if(insert_data.xtaskid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.price);
+	tempsql<<","<<std::to_string(insert_data.xtaskid);
 }
-tempsql<<",'"<<stringaddslash(insert_data.attachfiles)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.attachdate)<<"'";
-if(insert_data.sortid==0){
+if(insert_data.adminid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.sortid);
+	tempsql<<","<<std::to_string(insert_data.adminid);
 }
-if(insert_data.filesize==0){
+tempsql<<",'"<<stringaddslash(insert_data.title)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.zhuchi)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.jilu)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.meetnotice)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.meetfiles)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.address)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.meettime)<<"'";
+if(insert_data.regdate==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.filesize);
+	tempsql<<","<<std::to_string(insert_data.regdate);
 }
-tempsql<<",'"<<stringaddslash(insert_data.fileext)<<"'";
+if(insert_data.expecttime==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.expecttime);
+}
+if(insert_data.endtime==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.endtime);
+}
+tempsql<<",'"<<stringaddslash(insert_data.presents)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.postresult)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.postfiles)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.jiluphoto)<<"'";
 tempsql<<")";
 
      
@@ -332,41 +396,58 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].ppid==0){
+            	if(insert_data[i].xmeetid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].ppid);
+	tempsql<<std::to_string(insert_data[i].xmeetid);
 	}
 	if(insert_data[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
-	if(insert_data[i].pid==0){
+	if(insert_data[i].xpjid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].pid);
+	tempsql<<","<<std::to_string(insert_data[i].xpjid);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].imgurl)<<"'";
-	if(insert_data[i].price==0){
+	if(insert_data[i].xtaskid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].price);
+	tempsql<<","<<std::to_string(insert_data[i].xtaskid);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].attachfiles)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].attachdate)<<"'";
-	if(insert_data[i].sortid==0){
+	if(insert_data[i].adminid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].sortid);
+	tempsql<<","<<std::to_string(insert_data[i].adminid);
 	}
-	if(insert_data[i].filesize==0){
+		tempsql<<",'"<<stringaddslash(insert_data[i].title)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].zhuchi)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].jilu)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].meetnotice)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].meetfiles)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].address)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].meettime)<<"'";
+	if(insert_data[i].regdate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].filesize);
+	tempsql<<","<<std::to_string(insert_data[i].regdate);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].fileext)<<"'";
+	if(insert_data[i].expecttime==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].expecttime);
+	}
+	if(insert_data[i].endtime==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].endtime);
+	}
+		tempsql<<",'"<<stringaddslash(insert_data[i].presents)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].postresult)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].postfiles)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].jiluphoto)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -386,41 +467,58 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.ppid==0){
-	tempsql<<"`ppid`=0";
+        if(data.xmeetid==0){
+	tempsql<<"`xmeetid`=0";
  }else{ 
-	tempsql<<"`ppid`="<<std::to_string(data.ppid);
+	tempsql<<"`xmeetid`="<<std::to_string(data.xmeetid);
 }
 if(data.userid==0){
 	tempsql<<",`userid`=0";
  }else{ 
 	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
-if(data.pid==0){
-	tempsql<<",`pid`=0";
+if(data.xpjid==0){
+	tempsql<<",`xpjid`=0";
  }else{ 
-	tempsql<<",`pid`="<<std::to_string(data.pid);
+	tempsql<<",`xpjid`="<<std::to_string(data.xpjid);
 }
-tempsql<<",`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
-if(data.price==0){
-	tempsql<<",`price`=0";
+if(data.xtaskid==0){
+	tempsql<<",`xtaskid`=0";
  }else{ 
-	tempsql<<",`price`="<<std::to_string(data.price);
+	tempsql<<",`xtaskid`="<<std::to_string(data.xtaskid);
 }
-tempsql<<",`attachfiles`='"<<stringaddslash(data.attachfiles)<<"'";
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
-tempsql<<",`attachdate`='"<<stringaddslash(data.attachdate)<<"'";
-if(data.sortid==0){
-	tempsql<<",`sortid`=0";
+if(data.adminid==0){
+	tempsql<<",`adminid`=0";
  }else{ 
-	tempsql<<",`sortid`="<<std::to_string(data.sortid);
+	tempsql<<",`adminid`="<<std::to_string(data.adminid);
 }
-if(data.filesize==0){
-	tempsql<<",`filesize`=0";
+tempsql<<",`title`='"<<stringaddslash(data.title)<<"'";
+tempsql<<",`zhuchi`='"<<stringaddslash(data.zhuchi)<<"'";
+tempsql<<",`jilu`='"<<stringaddslash(data.jilu)<<"'";
+tempsql<<",`meetnotice`='"<<stringaddslash(data.meetnotice)<<"'";
+tempsql<<",`meetfiles`='"<<stringaddslash(data.meetfiles)<<"'";
+tempsql<<",`address`='"<<stringaddslash(data.address)<<"'";
+tempsql<<",`meettime`='"<<stringaddslash(data.meettime)<<"'";
+if(data.regdate==0){
+	tempsql<<",`regdate`=0";
  }else{ 
-	tempsql<<",`filesize`="<<std::to_string(data.filesize);
+	tempsql<<",`regdate`="<<std::to_string(data.regdate);
 }
-tempsql<<",`fileext`='"<<stringaddslash(data.fileext)<<"'";
+if(data.expecttime==0){
+	tempsql<<",`expecttime`=0";
+ }else{ 
+	tempsql<<",`expecttime`="<<std::to_string(data.expecttime);
+}
+if(data.endtime==0){
+	tempsql<<",`endtime`=0";
+ }else{ 
+	tempsql<<",`endtime`="<<std::to_string(data.endtime);
+}
+tempsql<<",`presents`='"<<stringaddslash(data.presents)<<"'";
+tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
+tempsql<<",`postresult`='"<<stringaddslash(data.postresult)<<"'";
+tempsql<<",`postfiles`='"<<stringaddslash(data.postfiles)<<"'";
+tempsql<<",`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
  }else{ 
 
      
@@ -467,10 +565,10 @@ tempsql<<",`fileext`='"<<stringaddslash(data.fileext)<<"'";
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.ppid==0){
-	tempsql<<"`ppid`=0";
+if(data.xmeetid==0){
+	tempsql<<"`xmeetid`=0";
  }else{ 
-	tempsql<<"`ppid`="<<std::to_string(data.ppid);
+	tempsql<<"`xmeetid`="<<std::to_string(data.xmeetid);
 }
  break;
  case 1:
@@ -483,55 +581,99 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.pid==0){
-	tempsql<<"`pid`=0";
+if(data.xpjid==0){
+	tempsql<<"`xpjid`=0";
  }else{ 
-	tempsql<<"`pid`="<<std::to_string(data.pid);
+	tempsql<<"`xpjid`="<<std::to_string(data.xpjid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
+if(data.xtaskid==0){
+	tempsql<<"`xtaskid`=0";
+ }else{ 
+	tempsql<<"`xtaskid`="<<std::to_string(data.xtaskid);
+}
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.price==0){
-	tempsql<<"`price`=0";
+if(data.adminid==0){
+	tempsql<<"`adminid`=0";
  }else{ 
-	tempsql<<"`price`="<<std::to_string(data.price);
+	tempsql<<"`adminid`="<<std::to_string(data.adminid);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`attachfiles`='"<<stringaddslash(data.attachfiles)<<"'";
+tempsql<<"`title`='"<<stringaddslash(data.title)<<"'";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+tempsql<<"`zhuchi`='"<<stringaddslash(data.zhuchi)<<"'";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`attachdate`='"<<stringaddslash(data.attachdate)<<"'";
+tempsql<<"`jilu`='"<<stringaddslash(data.jilu)<<"'";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(data.sortid==0){
-	tempsql<<"`sortid`=0";
- }else{ 
-	tempsql<<"`sortid`="<<std::to_string(data.sortid);
-}
+tempsql<<"`meetnotice`='"<<stringaddslash(data.meetnotice)<<"'";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(data.filesize==0){
-	tempsql<<"`filesize`=0";
- }else{ 
-	tempsql<<"`filesize`="<<std::to_string(data.filesize);
-}
+tempsql<<"`meetfiles`='"<<stringaddslash(data.meetfiles)<<"'";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
+tempsql<<"`address`='"<<stringaddslash(data.address)<<"'";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`meettime`='"<<stringaddslash(data.meettime)<<"'";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(data.regdate==0){
+	tempsql<<"`regdate`=0";
+ }else{ 
+	tempsql<<"`regdate`="<<std::to_string(data.regdate);
+}
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+if(data.expecttime==0){
+	tempsql<<"`expecttime`=0";
+ }else{ 
+	tempsql<<"`expecttime`="<<std::to_string(data.expecttime);
+}
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+if(data.endtime==0){
+	tempsql<<"`endtime`=0";
+ }else{ 
+	tempsql<<"`endtime`="<<std::to_string(data.endtime);
+}
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`presents`='"<<stringaddslash(data.presents)<<"'";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`postresult`='"<<stringaddslash(data.postresult)<<"'";
+ break;
+ case 18:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`postfiles`='"<<stringaddslash(data.postfiles)<<"'";
+ break;
+ case 19:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
  break;
 
      
@@ -577,41 +719,58 @@ tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].ppid==0){
+            	if(record[i].xmeetid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].ppid);
+	tempsql<<std::to_string(record[i].xmeetid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].pid==0){
+	if(record[i].xpjid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].pid);
+	tempsql<<","<<std::to_string(record[i].xpjid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
-	if(record[i].price==0){
+	if(record[i].xtaskid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].price);
+	tempsql<<","<<std::to_string(record[i].xtaskid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].attachfiles)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].attachdate)<<"'";
-	if(record[i].sortid==0){
+	if(record[i].adminid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].sortid);
+	tempsql<<","<<std::to_string(record[i].adminid);
 	}
-	if(record[i].filesize==0){
+	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].zhuchi)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].jilu)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].meetnotice)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].meetfiles)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].address)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].meettime)<<"'";
+	if(record[i].regdate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].filesize);
+	tempsql<<","<<std::to_string(record[i].regdate);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].fileext)<<"'";
+	if(record[i].expecttime==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].expecttime);
+	}
+	if(record[i].endtime==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].endtime);
+	}
+	tempsql<<",'"<<stringaddslash(record[i].presents)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].postresult)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].postfiles)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].jiluphoto)<<"'";
 	tempsql<<")";
 
  }
@@ -650,41 +809,58 @@ tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].ppid==0){
+            	if(record[i].xmeetid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].ppid);
+	tempsql<<std::to_string(record[i].xmeetid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].pid==0){
+	if(record[i].xpjid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].pid);
+	tempsql<<","<<std::to_string(record[i].xpjid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
-	if(record[i].price==0){
+	if(record[i].xtaskid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].price);
+	tempsql<<","<<std::to_string(record[i].xtaskid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].attachfiles)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].attachdate)<<"'";
-	if(record[i].sortid==0){
+	if(record[i].adminid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].sortid);
+	tempsql<<","<<std::to_string(record[i].adminid);
 	}
-	if(record[i].filesize==0){
+	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].zhuchi)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].jilu)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].meetnotice)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].meetfiles)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].address)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].meettime)<<"'";
+	if(record[i].regdate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].filesize);
+	tempsql<<","<<std::to_string(record[i].regdate);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].fileext)<<"'";
+	if(record[i].expecttime==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].expecttime);
+	}
+	if(record[i].endtime==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].endtime);
+	}
+	tempsql<<",'"<<stringaddslash(record[i].presents)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].postresult)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].postfiles)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].jiluphoto)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -765,10 +941,10 @@ tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.ppid==0){
+if(data.xmeetid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.ppid));
+	temparray.push_back(std::to_string(data.xmeetid));
 }
  break;
  case 1:
@@ -779,47 +955,82 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.pid==0){
+if(data.xpjid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.pid));
+	temparray.push_back(std::to_string(data.xpjid));
 }
  break;
  case 3:
-	temparray.push_back(data.imgurl);
- break;
- case 4:
-if(data.price==0){
+if(data.xtaskid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.price));
+	temparray.push_back(std::to_string(data.xtaskid));
+}
+ break;
+ case 4:
+if(data.adminid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.adminid));
 }
  break;
  case 5:
-	temparray.push_back(data.attachfiles);
+	temparray.push_back(data.title);
  break;
  case 6:
-	temparray.push_back(data.name);
+	temparray.push_back(data.zhuchi);
  break;
  case 7:
-	temparray.push_back(data.attachdate);
+	temparray.push_back(data.jilu);
  break;
  case 8:
-if(data.sortid==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.sortid));
-}
+	temparray.push_back(data.meetnotice);
  break;
  case 9:
-if(data.filesize==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.filesize));
-}
+	temparray.push_back(data.meetfiles);
  break;
  case 10:
-	temparray.push_back(data.fileext);
+	temparray.push_back(data.address);
+ break;
+ case 11:
+	temparray.push_back(data.meettime);
+ break;
+ case 12:
+if(data.regdate==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.regdate));
+}
+ break;
+ case 13:
+if(data.expecttime==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.expecttime));
+}
+ break;
+ case 14:
+if(data.endtime==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.endtime));
+}
+ break;
+ case 15:
+	temparray.push_back(data.presents);
+ break;
+ case 16:
+	temparray.push_back(data.content);
+ break;
+ case 17:
+	temparray.push_back(data.postresult);
+ break;
+ case 18:
+	temparray.push_back(data.postfiles);
+ break;
+ case 19:
+	temparray.push_back(data.jiluphoto);
  break;
 
                              default:
@@ -862,10 +1073,10 @@ if(data.filesize==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.ppid==0){
-	tempsql.insert({"ppid","0"});
+if(data.xmeetid==0){
+	tempsql.insert({"xmeetid","0"});
  }else{ 
-	tempsql.insert({"ppid",std::to_string(data.ppid)});
+	tempsql.insert({"xmeetid",std::to_string(data.xmeetid)});
 }
  break;
  case 1:
@@ -876,47 +1087,82 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.pid==0){
-	tempsql.insert({"pid","0"});
+if(data.xpjid==0){
+	tempsql.insert({"xpjid","0"});
  }else{ 
-	tempsql.insert({"pid",std::to_string(data.pid)});
+	tempsql.insert({"xpjid",std::to_string(data.xpjid)});
 }
  break;
  case 3:
-	tempsql.insert({"imgurl",data.imgurl});
+if(data.xtaskid==0){
+	tempsql.insert({"xtaskid","0"});
+ }else{ 
+	tempsql.insert({"xtaskid",std::to_string(data.xtaskid)});
+}
  break;
  case 4:
-if(data.price==0){
-	tempsql.insert({"price","0"});
+if(data.adminid==0){
+	tempsql.insert({"adminid","0"});
  }else{ 
-	tempsql.insert({"price",std::to_string(data.price)});
+	tempsql.insert({"adminid",std::to_string(data.adminid)});
 }
  break;
  case 5:
-	tempsql.insert({"attachfiles",data.attachfiles});
+	tempsql.insert({"title",data.title});
  break;
  case 6:
-	tempsql.insert({"name",data.name});
+	tempsql.insert({"zhuchi",data.zhuchi});
  break;
  case 7:
-	tempsql.insert({"attachdate",data.attachdate});
+	tempsql.insert({"jilu",data.jilu});
  break;
  case 8:
-if(data.sortid==0){
-	tempsql.insert({"sortid","0"});
- }else{ 
-	tempsql.insert({"sortid",std::to_string(data.sortid)});
-}
+	tempsql.insert({"meetnotice",data.meetnotice});
  break;
  case 9:
-if(data.filesize==0){
-	tempsql.insert({"filesize","0"});
- }else{ 
-	tempsql.insert({"filesize",std::to_string(data.filesize)});
-}
+	tempsql.insert({"meetfiles",data.meetfiles});
  break;
  case 10:
-	tempsql.insert({"fileext",data.fileext});
+	tempsql.insert({"address",data.address});
+ break;
+ case 11:
+	tempsql.insert({"meettime",data.meettime});
+ break;
+ case 12:
+if(data.regdate==0){
+	tempsql.insert({"regdate","0"});
+ }else{ 
+	tempsql.insert({"regdate",std::to_string(data.regdate)});
+}
+ break;
+ case 13:
+if(data.expecttime==0){
+	tempsql.insert({"expecttime","0"});
+ }else{ 
+	tempsql.insert({"expecttime",std::to_string(data.expecttime)});
+}
+ break;
+ case 14:
+if(data.endtime==0){
+	tempsql.insert({"endtime","0"});
+ }else{ 
+	tempsql.insert({"endtime",std::to_string(data.endtime)});
+}
+ break;
+ case 15:
+	tempsql.insert({"presents",data.presents});
+ break;
+ case 16:
+	tempsql.insert({"content",data.content});
+ break;
+ case 17:
+	tempsql.insert({"postresult",data.postresult});
+ break;
+ case 18:
+	tempsql.insert({"postfiles",data.postfiles});
+ break;
+ case 19:
+	tempsql.insert({"jiluphoto",data.jiluphoto});
  break;
 
                              default:
@@ -931,45 +1177,69 @@ if(data.filesize==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.ppid==0){
-	tempsql<<"\"ppid\":0";
+if(data.xmeetid==0){
+	tempsql<<"\"xmeetid\":0";
  }else{ 
-	tempsql<<"\"ppid\":"<<std::to_string(data.ppid);
+	tempsql<<"\"xmeetid\":"<<std::to_string(data.xmeetid);
 }
 if(data.userid==0){
 	tempsql<<",\"userid\":0";
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
-if(data.pid==0){
-	tempsql<<",\"pid\":0";
+if(data.xpjid==0){
+	tempsql<<",\"xpjid\":0";
  }else{ 
-	tempsql<<",\"pid\":"<<std::to_string(data.pid);
+	tempsql<<",\"xpjid\":"<<std::to_string(data.xpjid);
 }
-tempsql<<",\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl);
-tempsql<<"\"";
-if(data.price==0){
-	tempsql<<",\"price\":0";
+if(data.xtaskid==0){
+	tempsql<<",\"xtaskid\":0";
  }else{ 
-	tempsql<<",\"price\":"<<std::to_string(data.price);
+	tempsql<<",\"xtaskid\":"<<std::to_string(data.xtaskid);
 }
-tempsql<<",\"attachfiles\":\""<<http::utf8_to_jsonstring(data.attachfiles);
-tempsql<<"\"";
-tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
-tempsql<<"\"";
-tempsql<<",\"attachdate\":\""<<http::utf8_to_jsonstring(data.attachdate);
-tempsql<<"\"";
-if(data.sortid==0){
-	tempsql<<",\"sortid\":0";
+if(data.adminid==0){
+	tempsql<<",\"adminid\":0";
  }else{ 
-	tempsql<<",\"sortid\":"<<std::to_string(data.sortid);
+	tempsql<<",\"adminid\":"<<std::to_string(data.adminid);
 }
-if(data.filesize==0){
-	tempsql<<",\"filesize\":0";
+tempsql<<",\"title\":\""<<http::utf8_to_jsonstring(data.title);
+tempsql<<"\"";
+tempsql<<",\"zhuchi\":\""<<http::utf8_to_jsonstring(data.zhuchi);
+tempsql<<"\"";
+tempsql<<",\"jilu\":\""<<http::utf8_to_jsonstring(data.jilu);
+tempsql<<"\"";
+tempsql<<",\"meetnotice\":\""<<http::utf8_to_jsonstring(data.meetnotice);
+tempsql<<"\"";
+tempsql<<",\"meetfiles\":\""<<http::utf8_to_jsonstring(data.meetfiles);
+tempsql<<"\"";
+tempsql<<",\"address\":\""<<http::utf8_to_jsonstring(data.address);
+tempsql<<"\"";
+tempsql<<",\"meettime\":\""<<http::utf8_to_jsonstring(data.meettime);
+tempsql<<"\"";
+if(data.regdate==0){
+	tempsql<<",\"regdate\":0";
  }else{ 
-	tempsql<<",\"filesize\":"<<std::to_string(data.filesize);
+	tempsql<<",\"regdate\":"<<std::to_string(data.regdate);
 }
-tempsql<<",\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext);
+if(data.expecttime==0){
+	tempsql<<",\"expecttime\":0";
+ }else{ 
+	tempsql<<",\"expecttime\":"<<std::to_string(data.expecttime);
+}
+if(data.endtime==0){
+	tempsql<<",\"endtime\":0";
+ }else{ 
+	tempsql<<",\"endtime\":"<<std::to_string(data.endtime);
+}
+tempsql<<",\"presents\":\""<<http::utf8_to_jsonstring(data.presents);
+tempsql<<"\"";
+tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
+tempsql<<"\"";
+tempsql<<",\"postresult\":\""<<http::utf8_to_jsonstring(data.postresult);
+tempsql<<"\"";
+tempsql<<",\"postfiles\":\""<<http::utf8_to_jsonstring(data.postfiles);
+tempsql<<"\"";
+tempsql<<",\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto);
 tempsql<<"\"";
 tempsql<<"}";
 
@@ -1010,10 +1280,10 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.ppid==0){
-	tempsql<<"\"ppid\":0";
+if(data.xmeetid==0){
+	tempsql<<"\"xmeetid\":0";
  }else{ 
-	tempsql<<"\"ppid\":"<<std::to_string(data.ppid);
+	tempsql<<"\"xmeetid\":"<<std::to_string(data.xmeetid);
 }
  break;
  case 1:
@@ -1026,55 +1296,99 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.pid==0){
-	tempsql<<"\"pid\":0";
+if(data.xpjid==0){
+	tempsql<<"\"xpjid\":0";
  }else{ 
-	tempsql<<"\"pid\":"<<std::to_string(data.pid);
+	tempsql<<"\"xpjid\":"<<std::to_string(data.xpjid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
+if(data.xtaskid==0){
+	tempsql<<"\"xtaskid\":0";
+ }else{ 
+	tempsql<<"\"xtaskid\":"<<std::to_string(data.xtaskid);
+}
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.price==0){
-	tempsql<<"\"price\":0";
+if(data.adminid==0){
+	tempsql<<"\"adminid\":0";
  }else{ 
-	tempsql<<"\"price\":"<<std::to_string(data.price);
+	tempsql<<"\"adminid\":"<<std::to_string(data.adminid);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachfiles\":\""<<http::utf8_to_jsonstring(data.attachfiles)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
+tempsql<<"\"zhuchi\":\""<<http::utf8_to_jsonstring(data.zhuchi)<<"\"";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachdate\":\""<<http::utf8_to_jsonstring(data.attachdate)<<"\"";
+tempsql<<"\"jilu\":\""<<http::utf8_to_jsonstring(data.jilu)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(data.sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(data.sortid);
-}
+tempsql<<"\"meetnotice\":\""<<http::utf8_to_jsonstring(data.meetnotice)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(data.filesize==0){
-	tempsql<<"\"filesize\":0";
- }else{ 
-	tempsql<<"\"filesize\":"<<std::to_string(data.filesize);
-}
+tempsql<<"\"meetfiles\":\""<<http::utf8_to_jsonstring(data.meetfiles)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(data.address)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"meettime\":\""<<http::utf8_to_jsonstring(data.meettime)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(data.regdate==0){
+	tempsql<<"\"regdate\":0";
+ }else{ 
+	tempsql<<"\"regdate\":"<<std::to_string(data.regdate);
+}
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+if(data.expecttime==0){
+	tempsql<<"\"expecttime\":0";
+ }else{ 
+	tempsql<<"\"expecttime\":"<<std::to_string(data.expecttime);
+}
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+if(data.endtime==0){
+	tempsql<<"\"endtime\":0";
+ }else{ 
+	tempsql<<"\"endtime\":"<<std::to_string(data.endtime);
+}
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"presents\":\""<<http::utf8_to_jsonstring(data.presents)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"postresult\":\""<<http::utf8_to_jsonstring(data.postresult)<<"\"";
+ break;
+ case 18:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"postfiles\":\""<<http::utf8_to_jsonstring(data.postfiles)<<"\"";
+ break;
+ case 19:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
  break;
 
                              default:
@@ -1088,7 +1402,7 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        productparambase::meta metatemp; 
+        xmeet_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1325,9 +1639,9 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
         {
     		case 0:
 		 try{
-			data.ppid=std::stoul(set_value_name);
+			data.xmeetid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.ppid=0;
+			data.xmeetid=0;
 			 }
 			break;
 		case 1:
@@ -1339,65 +1653,128 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.pid=std::stoul(set_value_name);
+			data.xpjid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.pid=0;
+			data.xpjid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.imgurl.append(set_value_name);
+			data.xtaskid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.imgurl.clear();
+			data.xtaskid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.price=std::stoull(set_value_name);
+			data.adminid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.price=0;
+			data.adminid=0;
 			 }
 			break;
 		case 5:
 		 try{
-			data.attachfiles.append(set_value_name);
+			data.title.append(set_value_name);
 		}catch (...) { 
-			data.attachfiles.clear();
+			data.title.clear();
 			 }
 			break;
 		case 6:
 		 try{
-			data.name.append(set_value_name);
+			data.zhuchi.append(set_value_name);
 		}catch (...) { 
-			data.name.clear();
+			data.zhuchi.clear();
 			 }
 			break;
 		case 7:
 		 try{
-			data.attachdate.append(set_value_name);
+			data.jilu.append(set_value_name);
 		}catch (...) { 
-			data.attachdate.clear();
+			data.jilu.clear();
 			 }
 			break;
 		case 8:
 		 try{
-			data.sortid=std::stoi(set_value_name);
+			data.meetnotice.append(set_value_name);
 		}catch (...) { 
-			data.sortid=0;
+			data.meetnotice.clear();
 			 }
 			break;
 		case 9:
 		 try{
-			data.filesize=std::stoul(set_value_name);
+			data.meetfiles.append(set_value_name);
 		}catch (...) { 
-			data.filesize=0;
+			data.meetfiles.clear();
 			 }
 			break;
 		case 10:
 		 try{
-			data.fileext.append(set_value_name);
+			data.address.append(set_value_name);
 		}catch (...) { 
-			data.fileext.clear();
+			data.address.clear();
+			 }
+			break;
+		case 11:
+		 try{
+			data.meettime.append(set_value_name);
+		}catch (...) { 
+			data.meettime.clear();
+			 }
+			break;
+		case 12:
+		 try{
+			data.regdate=std::stoul(set_value_name);
+		}catch (...) { 
+			data.regdate=0;
+			 }
+			break;
+		case 13:
+		 try{
+			data.expecttime=std::stoul(set_value_name);
+		}catch (...) { 
+			data.expecttime=0;
+			 }
+			break;
+		case 14:
+		 try{
+			data.endtime=std::stoul(set_value_name);
+		}catch (...) { 
+			data.endtime=0;
+			 }
+			break;
+		case 15:
+		 try{
+			data.presents.append(set_value_name);
+		}catch (...) { 
+			data.presents.clear();
+			 }
+			break;
+		case 16:
+		 try{
+			data.content.append(set_value_name);
+		}catch (...) { 
+			data.content.clear();
+			 }
+			break;
+		case 17:
+		 try{
+			data.postresult.append(set_value_name);
+		}catch (...) { 
+			data.postresult.clear();
+			 }
+			break;
+		case 18:
+		 try{
+			data.postfiles.append(set_value_name);
+		}catch (...) { 
+			data.postfiles.clear();
+			 }
+			break;
+		case 19:
+		 try{
+			data.jiluphoto.append(set_value_name);
+		}catch (...) { 
+			data.jiluphoto.clear();
 			 }
 			break;
 	default:
@@ -1414,9 +1791,9 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
         {
     		case 0:
 		 try{
-			data.ppid=set_value_name;
+			data.xmeetid=set_value_name;
 		}catch (...) { 
-			data.ppid=0;
+			data.xmeetid=0;
 			 }
 			break;
 		case 1:
@@ -1428,65 +1805,128 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.pid=set_value_name;
+			data.xpjid=set_value_name;
 		}catch (...) { 
-			data.pid=0;
+			data.xpjid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.imgurl=std::to_string(set_value_name);
+			data.xtaskid=set_value_name;
 		}catch (...) { 
-			data.imgurl.clear();
+			data.xtaskid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.price=set_value_name;
+			data.adminid=set_value_name;
 		}catch (...) { 
-			data.price=0;
+			data.adminid=0;
 			 }
 			break;
 		case 5:
 		 try{
-			data.attachfiles=std::to_string(set_value_name);
+			data.title=std::to_string(set_value_name);
 		}catch (...) { 
-			data.attachfiles.clear();
+			data.title.clear();
 			 }
 			break;
 		case 6:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.zhuchi=std::to_string(set_value_name);
 		}catch (...) { 
-			data.name.clear();
+			data.zhuchi.clear();
 			 }
 			break;
 		case 7:
 		 try{
-			data.attachdate=std::to_string(set_value_name);
+			data.jilu=std::to_string(set_value_name);
 		}catch (...) { 
-			data.attachdate.clear();
+			data.jilu.clear();
 			 }
 			break;
 		case 8:
 		 try{
-			data.sortid=set_value_name;
+			data.meetnotice=std::to_string(set_value_name);
 		}catch (...) { 
-			data.sortid=0;
+			data.meetnotice.clear();
 			 }
 			break;
 		case 9:
 		 try{
-			data.filesize=set_value_name;
+			data.meetfiles=std::to_string(set_value_name);
 		}catch (...) { 
-			data.filesize=0;
+			data.meetfiles.clear();
 			 }
 			break;
 		case 10:
 		 try{
-			data.fileext=std::to_string(set_value_name);
+			data.address=std::to_string(set_value_name);
 		}catch (...) { 
-			data.fileext.clear();
+			data.address.clear();
+			 }
+			break;
+		case 11:
+		 try{
+			data.meettime=std::to_string(set_value_name);
+		}catch (...) { 
+			data.meettime.clear();
+			 }
+			break;
+		case 12:
+		 try{
+			data.regdate=set_value_name;
+		}catch (...) { 
+			data.regdate=0;
+			 }
+			break;
+		case 13:
+		 try{
+			data.expecttime=set_value_name;
+		}catch (...) { 
+			data.expecttime=0;
+			 }
+			break;
+		case 14:
+		 try{
+			data.endtime=set_value_name;
+		}catch (...) { 
+			data.endtime=0;
+			 }
+			break;
+		case 15:
+		 try{
+			data.presents=std::to_string(set_value_name);
+		}catch (...) { 
+			data.presents.clear();
+			 }
+			break;
+		case 16:
+		 try{
+			data.content=std::to_string(set_value_name);
+		}catch (...) { 
+			data.content.clear();
+			 }
+			break;
+		case 17:
+		 try{
+			data.postresult=std::to_string(set_value_name);
+		}catch (...) { 
+			data.postresult.clear();
+			 }
+			break;
+		case 18:
+		 try{
+			data.postfiles=std::to_string(set_value_name);
+		}catch (...) { 
+			data.postfiles.clear();
+			 }
+			break;
+		case 19:
+		 try{
+			data.jiluphoto=std::to_string(set_value_name);
+		}catch (...) { 
+			data.jiluphoto.clear();
 			 }
 			break;
 	default:
@@ -1503,9 +1943,9 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
         {
     		case 0:
 		 try{
-			data.ppid=(unsigned int)set_value_name;
+			data.xmeetid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.ppid=0;
+			data.xmeetid=0;
 			 }
 			break;
 		case 1:
@@ -1517,65 +1957,128 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.pid=(unsigned int)set_value_name;
+			data.xpjid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.pid=0;
+			data.xpjid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.imgurl=std::to_string(set_value_name);
+			data.xtaskid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.imgurl.clear();
+			data.xtaskid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.price=(unsigned long long)set_value_name;
+			data.adminid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.price=0;
+			data.adminid=0;
 			 }
 			break;
 		case 5:
 		 try{
-			data.attachfiles=std::to_string(set_value_name);
+			data.title=std::to_string(set_value_name);
 		}catch (...) { 
-			data.attachfiles.clear();
+			data.title.clear();
 			 }
 			break;
 		case 6:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.zhuchi=std::to_string(set_value_name);
 		}catch (...) { 
-			data.name.clear();
+			data.zhuchi.clear();
 			 }
 			break;
 		case 7:
 		 try{
-			data.attachdate=std::to_string(set_value_name);
+			data.jilu=std::to_string(set_value_name);
 		}catch (...) { 
-			data.attachdate.clear();
+			data.jilu.clear();
 			 }
 			break;
 		case 8:
 		 try{
-			data.sortid=(int)set_value_name;
+			data.meetnotice=std::to_string(set_value_name);
 		}catch (...) { 
-			data.sortid=0;
+			data.meetnotice.clear();
 			 }
 			break;
 		case 9:
 		 try{
-			data.filesize=(unsigned int)set_value_name;
+			data.meetfiles=std::to_string(set_value_name);
 		}catch (...) { 
-			data.filesize=0;
+			data.meetfiles.clear();
 			 }
 			break;
 		case 10:
 		 try{
-			data.fileext=std::to_string(set_value_name);
+			data.address=std::to_string(set_value_name);
 		}catch (...) { 
-			data.fileext.clear();
+			data.address.clear();
+			 }
+			break;
+		case 11:
+		 try{
+			data.meettime=std::to_string(set_value_name);
+		}catch (...) { 
+			data.meettime.clear();
+			 }
+			break;
+		case 12:
+		 try{
+			data.regdate=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.regdate=0;
+			 }
+			break;
+		case 13:
+		 try{
+			data.expecttime=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.expecttime=0;
+			 }
+			break;
+		case 14:
+		 try{
+			data.endtime=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.endtime=0;
+			 }
+			break;
+		case 15:
+		 try{
+			data.presents=std::to_string(set_value_name);
+		}catch (...) { 
+			data.presents.clear();
+			 }
+			break;
+		case 16:
+		 try{
+			data.content=std::to_string(set_value_name);
+		}catch (...) { 
+			data.content.clear();
+			 }
+			break;
+		case 17:
+		 try{
+			data.postresult=std::to_string(set_value_name);
+		}catch (...) { 
+			data.postresult.clear();
+			 }
+			break;
+		case 18:
+		 try{
+			data.postfiles=std::to_string(set_value_name);
+		}catch (...) { 
+			data.postfiles.clear();
+			 }
+			break;
+		case 19:
+		 try{
+			data.jiluphoto=std::to_string(set_value_name);
+		}catch (...) { 
+			data.jiluphoto.clear();
 			 }
 			break;
 	default:
@@ -1626,10 +2129,10 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(data.fileext)<<"\"";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].ppid==0){
-	tempsql<<"\"ppid\":0";
+if(record[n].xmeetid==0){
+	tempsql<<"\"xmeetid\":0";
  }else{ 
-	tempsql<<"\"ppid\":"<<std::to_string(record[n].ppid);
+	tempsql<<"\"xmeetid\":"<<std::to_string(record[n].xmeetid);
 }
  break;
  case 1:
@@ -1642,55 +2145,99 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].pid==0){
-	tempsql<<"\"pid\":0";
+if(record[n].xpjid==0){
+	tempsql<<"\"xpjid\":0";
  }else{ 
-	tempsql<<"\"pid\":"<<std::to_string(record[n].pid);
+	tempsql<<"\"xpjid\":"<<std::to_string(record[n].xpjid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
+if(record[n].xtaskid==0){
+	tempsql<<"\"xtaskid\":0";
+ }else{ 
+	tempsql<<"\"xtaskid\":"<<std::to_string(record[n].xtaskid);
+}
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].price==0){
-	tempsql<<"\"price\":0";
+if(record[n].adminid==0){
+	tempsql<<"\"adminid\":0";
  }else{ 
-	tempsql<<"\"price\":"<<std::to_string(record[n].price);
+	tempsql<<"\"adminid\":"<<std::to_string(record[n].adminid);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachfiles\":\""<<http::utf8_to_jsonstring(record[n].attachfiles)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+tempsql<<"\"zhuchi\":\""<<http::utf8_to_jsonstring(record[n].zhuchi)<<"\"";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachdate\":\""<<http::utf8_to_jsonstring(record[n].attachdate)<<"\"";
+tempsql<<"\"jilu\":\""<<http::utf8_to_jsonstring(record[n].jilu)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(record[n].sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
-}
+tempsql<<"\"meetnotice\":\""<<http::utf8_to_jsonstring(record[n].meetnotice)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(record[n].filesize==0){
-	tempsql<<"\"filesize\":0";
- }else{ 
-	tempsql<<"\"filesize\":"<<std::to_string(record[n].filesize);
-}
+tempsql<<"\"meetfiles\":\""<<http::utf8_to_jsonstring(record[n].meetfiles)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(record[n].fileext)<<"\"";
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(record[n].address)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"meettime\":\""<<http::utf8_to_jsonstring(record[n].meettime)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].regdate==0){
+	tempsql<<"\"regdate\":0";
+ }else{ 
+	tempsql<<"\"regdate\":"<<std::to_string(record[n].regdate);
+}
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].expecttime==0){
+	tempsql<<"\"expecttime\":0";
+ }else{ 
+	tempsql<<"\"expecttime\":"<<std::to_string(record[n].expecttime);
+}
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].endtime==0){
+	tempsql<<"\"endtime\":0";
+ }else{ 
+	tempsql<<"\"endtime\":"<<std::to_string(record[n].endtime);
+}
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"presents\":\""<<http::utf8_to_jsonstring(record[n].presents)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"postresult\":\""<<http::utf8_to_jsonstring(record[n].postresult)<<"\"";
+ break;
+ case 18:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"postfiles\":\""<<http::utf8_to_jsonstring(record[n].postfiles)<<"\"";
+ break;
+ case 19:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(record[n].jiluphoto)<<"\"";
  break;
 
                              default:
@@ -1750,10 +2297,10 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(record[n].fileext)<<"\"";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].ppid==0){
-	tempsql<<"\"ppid\":0";
+if(record[n].xmeetid==0){
+	tempsql<<"\"xmeetid\":0";
  }else{ 
-	tempsql<<"\"ppid\":"<<std::to_string(record[n].ppid);
+	tempsql<<"\"xmeetid\":"<<std::to_string(record[n].xmeetid);
 }
  break;
  case 1:
@@ -1766,55 +2313,99 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].pid==0){
-	tempsql<<"\"pid\":0";
+if(record[n].xpjid==0){
+	tempsql<<"\"xpjid\":0";
  }else{ 
-	tempsql<<"\"pid\":"<<std::to_string(record[n].pid);
+	tempsql<<"\"xpjid\":"<<std::to_string(record[n].xpjid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
+if(record[n].xtaskid==0){
+	tempsql<<"\"xtaskid\":0";
+ }else{ 
+	tempsql<<"\"xtaskid\":"<<std::to_string(record[n].xtaskid);
+}
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].price==0){
-	tempsql<<"\"price\":0";
+if(record[n].adminid==0){
+	tempsql<<"\"adminid\":0";
  }else{ 
-	tempsql<<"\"price\":"<<std::to_string(record[n].price);
+	tempsql<<"\"adminid\":"<<std::to_string(record[n].adminid);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachfiles\":\""<<http::utf8_to_jsonstring(record[n].attachfiles)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+tempsql<<"\"zhuchi\":\""<<http::utf8_to_jsonstring(record[n].zhuchi)<<"\"";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachdate\":\""<<http::utf8_to_jsonstring(record[n].attachdate)<<"\"";
+tempsql<<"\"jilu\":\""<<http::utf8_to_jsonstring(record[n].jilu)<<"\"";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(record[n].sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
-}
+tempsql<<"\"meetnotice\":\""<<http::utf8_to_jsonstring(record[n].meetnotice)<<"\"";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(record[n].filesize==0){
-	tempsql<<"\"filesize\":0";
- }else{ 
-	tempsql<<"\"filesize\":"<<std::to_string(record[n].filesize);
-}
+tempsql<<"\"meetfiles\":\""<<http::utf8_to_jsonstring(record[n].meetfiles)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(record[n].fileext)<<"\"";
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(record[n].address)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"meettime\":\""<<http::utf8_to_jsonstring(record[n].meettime)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].regdate==0){
+	tempsql<<"\"regdate\":0";
+ }else{ 
+	tempsql<<"\"regdate\":"<<std::to_string(record[n].regdate);
+}
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].expecttime==0){
+	tempsql<<"\"expecttime\":0";
+ }else{ 
+	tempsql<<"\"expecttime\":"<<std::to_string(record[n].expecttime);
+}
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].endtime==0){
+	tempsql<<"\"endtime\":0";
+ }else{ 
+	tempsql<<"\"endtime\":"<<std::to_string(record[n].endtime);
+}
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"presents\":\""<<http::utf8_to_jsonstring(record[n].presents)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"postresult\":\""<<http::utf8_to_jsonstring(record[n].postresult)<<"\"";
+ break;
+ case 18:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"postfiles\":\""<<http::utf8_to_jsonstring(record[n].postfiles)<<"\"";
+ break;
+ case 19:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(record[n].jiluphoto)<<"\"";
  break;
 
                              default:
@@ -1826,331 +2417,154 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(record[n].fileext)<<"\"";
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.ppid; } 
- void setPK(long long val){  data.ppid=val;} 
- unsigned  int  getPpid(){  return data.ppid; } 
- void setPpid( unsigned  int  val){  data.ppid=val;} 
+   long long getPK(){  return data.xmeetid; } 
+ void setPK(long long val){  data.xmeetid=val;} 
+ unsigned  int  getXmeetid(){  return data.xmeetid; } 
+ void setXmeetid( unsigned  int  val){  data.xmeetid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
  void setUserid( unsigned  int  val){  data.userid=val;} 
 
- unsigned  int  getPid(){  return data.pid; } 
- void setPid( unsigned  int  val){  data.pid=val;} 
+ unsigned  int  getXpjid(){  return data.xpjid; } 
+ void setXpjid( unsigned  int  val){  data.xpjid=val;} 
 
- std::string  getImgurl(){  return data.imgurl; } 
- std::string & getRefImgurl(){  return std::ref(data.imgurl); } 
- void setImgurl( std::string  &val){  data.imgurl=val;} 
- void setImgurl(std::string_view val){  data.imgurl=val;} 
+ unsigned  int  getXtaskid(){  return data.xtaskid; } 
+ void setXtaskid( unsigned  int  val){  data.xtaskid=val;} 
 
- unsigned  long long  getPrice(){  return data.price; } 
- void setPrice( unsigned  long long  val){  data.price=val;} 
+ unsigned  int  getAdminid(){  return data.adminid; } 
+ void setAdminid( unsigned  int  val){  data.adminid=val;} 
 
- std::string  getAttachfiles(){  return data.attachfiles; } 
- std::string & getRefAttachfiles(){  return std::ref(data.attachfiles); } 
- void setAttachfiles( std::string  &val){  data.attachfiles=val;} 
- void setAttachfiles(std::string_view val){  data.attachfiles=val;} 
+ std::string  getTitle(){  return data.title; } 
+ std::string & getRefTitle(){  return std::ref(data.title); } 
+ void setTitle( std::string  &val){  data.title=val;} 
+ void setTitle(std::string_view val){  data.title=val;} 
 
- std::string  getName(){  return data.name; } 
- std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ std::string  getZhuchi(){  return data.zhuchi; } 
+ std::string & getRefZhuchi(){  return std::ref(data.zhuchi); } 
+ void setZhuchi( std::string  &val){  data.zhuchi=val;} 
+ void setZhuchi(std::string_view val){  data.zhuchi=val;} 
 
- std::string  getAttachdate(){  return data.attachdate; } 
- std::string & getRefAttachdate(){  return std::ref(data.attachdate); } 
- void setAttachdate( std::string  &val){  data.attachdate=val;} 
- void setAttachdate(std::string_view val){  data.attachdate=val;} 
+ std::string  getJilu(){  return data.jilu; } 
+ std::string & getRefJilu(){  return std::ref(data.jilu); } 
+ void setJilu( std::string  &val){  data.jilu=val;} 
+ void setJilu(std::string_view val){  data.jilu=val;} 
 
- int  getSortid(){  return data.sortid; } 
- void setSortid( int  val){  data.sortid=val;} 
+ std::string  getMeetnotice(){  return data.meetnotice; } 
+ std::string & getRefMeetnotice(){  return std::ref(data.meetnotice); } 
+ void setMeetnotice( std::string  &val){  data.meetnotice=val;} 
+ void setMeetnotice(std::string_view val){  data.meetnotice=val;} 
 
- unsigned  int  getFilesize(){  return data.filesize; } 
- void setFilesize( unsigned  int  val){  data.filesize=val;} 
+ std::string  getMeetfiles(){  return data.meetfiles; } 
+ std::string & getRefMeetfiles(){  return std::ref(data.meetfiles); } 
+ void setMeetfiles( std::string  &val){  data.meetfiles=val;} 
+ void setMeetfiles(std::string_view val){  data.meetfiles=val;} 
 
- std::string  getFileext(){  return data.fileext; } 
- std::string & getRefFileext(){  return std::ref(data.fileext); } 
- void setFileext( std::string  &val){  data.fileext=val;} 
- void setFileext(std::string_view val){  data.fileext=val;} 
+ std::string  getAddress(){  return data.address; } 
+ std::string & getRefAddress(){  return std::ref(data.address); } 
+ void setAddress( std::string  &val){  data.address=val;} 
+ void setAddress(std::string_view val){  data.address=val;} 
 
-productparambase::meta getnewData(){
+ std::string  getMeettime(){  return data.meettime; } 
+ std::string & getRefMeettime(){  return std::ref(data.meettime); } 
+ void setMeettime( std::string  &val){  data.meettime=val;} 
+ void setMeettime(std::string_view val){  data.meettime=val;} 
+
+ unsigned  int  getRegdate(){  return data.regdate; } 
+ void setRegdate( unsigned  int  val){  data.regdate=val;} 
+
+ unsigned  int  getExpecttime(){  return data.expecttime; } 
+ void setExpecttime( unsigned  int  val){  data.expecttime=val;} 
+
+ unsigned  int  getEndtime(){  return data.endtime; } 
+ void setEndtime( unsigned  int  val){  data.endtime=val;} 
+
+ std::string  getPresents(){  return data.presents; } 
+ std::string & getRefPresents(){  return std::ref(data.presents); } 
+ void setPresents( std::string  &val){  data.presents=val;} 
+ void setPresents(std::string_view val){  data.presents=val;} 
+
+ std::string  getContent(){  return data.content; } 
+ std::string & getRefContent(){  return std::ref(data.content); } 
+ void setContent( std::string  &val){  data.content=val;} 
+ void setContent(std::string_view val){  data.content=val;} 
+
+ std::string  getPostresult(){  return data.postresult; } 
+ std::string & getRefPostresult(){  return std::ref(data.postresult); } 
+ void setPostresult( std::string  &val){  data.postresult=val;} 
+ void setPostresult(std::string_view val){  data.postresult=val;} 
+
+ std::string  getPostfiles(){  return data.postfiles; } 
+ std::string & getRefPostfiles(){  return std::ref(data.postfiles); } 
+ void setPostfiles( std::string  &val){  data.postfiles=val;} 
+ void setPostfiles(std::string_view val){  data.postfiles=val;} 
+
+ std::string  getJiluphoto(){  return data.jiluphoto; } 
+ std::string & getRefJiluphoto(){  return std::ref(data.jiluphoto); } 
+ void setJiluphoto( std::string  &val){  data.jiluphoto=val;} 
+ void setJiluphoto(std::string_view val){  data.jiluphoto=val;} 
+
+xmeet_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-productparambase::meta getData(){
+xmeet_base::meta getData(){
  	 return data; 
 } 
-std::vector<productparambase::meta> getRecord(){
+std::vector<xmeet_base::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
-       std::ostringstream tempsql;
-        std::string keyname;
-        unsigned char jj=0;
-        std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
-                    keyname.clear();
-                    continue;   
-                }
-                if(fileld[jj]==0x20){
-
-                    continue;   
-                }
-                keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
-            }
-        }else{
-            for(jj=0;jj<col_names.size();jj++){
-                keypos.emplace_back(jj); 
-            }
-        }
-        tempsql<<"[";
-        for(size_t n=0;n<tree_data.size();n++){
-            if(n>0){
-                tempsql<<",{";
-            }else{
-                tempsql<<"{";
-            }  
-        
-        for(jj=0;jj<keypos.size();jj++){
-            switch(keypos[jj]){
-         case 0:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].ppid==0){
-	tempsql<<"\"ppid\":0";
- }else{ 
-	tempsql<<"\"ppid\":"<<std::to_string(tree_data[n].ppid);
-}
- break;
- case 1:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].userid==0){
-	tempsql<<"\"userid\":0";
- }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].pid==0){
-	tempsql<<"\"pid\":0";
- }else{ 
-	tempsql<<"\"pid\":"<<std::to_string(tree_data[n].pid);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].price==0){
-	tempsql<<"\"price\":0";
- }else{ 
-	tempsql<<"\"price\":"<<std::to_string(tree_data[n].price);
-}
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachfiles\":\""<<http::utf8_to_jsonstring(tree_data[n].attachfiles)<<"\"";
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachdate\":\""<<http::utf8_to_jsonstring(tree_data[n].attachdate)<<"\"";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
-}
- break;
- case 9:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].filesize==0){
-	tempsql<<"\"filesize\":0";
- }else{ 
-	tempsql<<"\"filesize\":"<<std::to_string(tree_data[n].filesize);
-}
- break;
- case 10:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
- break;
-
-                             default:
-                                ;
-                     }
-                 }
-
-        tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children, fileld);     
-      tempsql<<"}";  
-            }
-      tempsql<<"]";
-     return tempsql.str();             
-   }   
-   
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
-       std::ostringstream tempsql;
-        std::string keyname;
-        unsigned char jj=0;
-        std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
-                    keyname.clear();
-                    continue;   
-                }
-                if(fileld[jj]==0x20){
-
-                    continue;   
-                }
-                keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
-            }
-        }else{
-            for(jj=0;jj<col_names.size();jj++){
-                keypos.emplace_back(jj); 
-            }
-        }
-    tempsql<<"[";
-    for(size_t n=0;n<tree_data.size();n++){
-        keyname.clear();
-        if(func(keyname,tree_data[n])){ 
-                if(n>0){
-                    tempsql<<",{";
-                }else{
-                    tempsql<<"{";
-                } 
-                tempsql<<keyname;
-        }else{
-        continue;
-        } 
-        
-        for(jj=0;jj<keypos.size();jj++){
-            
-            switch(keypos[jj]){
-         case 0:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].ppid==0){
-	tempsql<<"\"ppid\":0";
- }else{ 
-	tempsql<<"\"ppid\":"<<std::to_string(tree_data[n].ppid);
-}
- break;
- case 1:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].userid==0){
-	tempsql<<"\"userid\":0";
- }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].pid==0){
-	tempsql<<"\"pid\":0";
- }else{ 
-	tempsql<<"\"pid\":"<<std::to_string(tree_data[n].pid);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].price==0){
-	tempsql<<"\"price\":0";
- }else{ 
-	tempsql<<"\"price\":"<<std::to_string(tree_data[n].price);
-}
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachfiles\":\""<<http::utf8_to_jsonstring(tree_data[n].attachfiles)<<"\"";
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"attachdate\":\""<<http::utf8_to_jsonstring(tree_data[n].attachdate)<<"\"";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
-}
- break;
- case 9:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].filesize==0){
-	tempsql<<"\"filesize\":0";
- }else{ 
-	tempsql<<"\"filesize\":"<<std::to_string(tree_data[n].filesize);
-}
- break;
- case 10:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
- break;
-
-                             default:
-                                ;
-                     }
-                 }   
-         tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
-      tempsql<<"}";  
-            }
-      tempsql<<"]";
-     return tempsql.str();             
-   }   
-   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="imgurl")
+   		 if(key_name=="title")
 		{
-			return data.imgurl;
+			return data.title;
 		}
-		 if(key_name=="attachfiles")
+		 if(key_name=="zhuchi")
 		{
-			return data.attachfiles;
+			return data.zhuchi;
 		}
-		 if(key_name=="name")
+		 if(key_name=="jilu")
 		{
-			return data.name;
+			return data.jilu;
 		}
-		 if(key_name=="attachdate")
+		 if(key_name=="meetnotice")
 		{
-			return data.attachdate;
+			return data.meetnotice;
 		}
-		 if(key_name=="fileext")
+		 if(key_name=="meetfiles")
 		{
-			return data.fileext;
+			return data.meetfiles;
+		}
+		 if(key_name=="address")
+		{
+			return data.address;
+		}
+		 if(key_name=="meettime")
+		{
+			return data.meettime;
+		}
+		 if(key_name=="presents")
+		{
+			return data.presents;
+		}
+		 if(key_name=="content")
+		{
+			return data.content;
+		}
+		 if(key_name=="postresult")
+		{
+			return data.postresult;
+		}
+		 if(key_name=="postfiles")
+		{
+			return data.postfiles;
+		}
+		 if(key_name=="jiluphoto")
+		{
+			return data.jiluphoto;
 		}
 		return nullptr; 
 	}
@@ -2159,29 +2573,37 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="ppid")
+   		 if(key_name=="xmeetid")
 		{
-			return data.ppid;
+			return data.xmeetid;
 		}
 		 if(key_name=="userid")
 		{
 			return data.userid;
 		}
-		 if(key_name=="pid")
+		 if(key_name=="xpjid")
 		{
-			return data.pid;
+			return data.xpjid;
 		}
-		 if(key_name=="price")
+		 if(key_name=="xtaskid")
 		{
-			return data.price;
+			return data.xtaskid;
 		}
-		 if(key_name=="sortid")
+		 if(key_name=="adminid")
 		{
-			return data.sortid;
+			return data.adminid;
 		}
-		 if(key_name=="filesize")
+		 if(key_name=="regdate")
 		{
-			return data.filesize;
+			return data.regdate;
+		}
+		 if(key_name=="expecttime")
+		{
+			return data.expecttime;
+		}
+		 if(key_name=="endtime")
+		{
+			return data.endtime;
 		}
 		return nullptr; 
 	}
@@ -2206,22 +2628,28 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.ppid);
+ 				 a.emplace_back(iter.xmeetid);
 				 break;
 			case 1: 
  				 a.emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a.emplace_back(iter.pid);
+ 				 a.emplace_back(iter.xpjid);
+				 break;
+			case 3: 
+ 				 a.emplace_back(iter.xtaskid);
 				 break;
 			case 4: 
- 				 a.emplace_back(iter.price);
+ 				 a.emplace_back(iter.adminid);
 				 break;
-			case 8: 
- 				 a.emplace_back(iter.sortid);
+			case 12: 
+ 				 a.emplace_back(iter.regdate);
 				 break;
-			case 9: 
- 				 a.emplace_back(iter.filesize);
+			case 13: 
+ 				 a.emplace_back(iter.expecttime);
+				 break;
+			case 14: 
+ 				 a.emplace_back(iter.endtime);
 				 break;
 
                     }
@@ -2249,29 +2677,35 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                     {
 
    			case 0: 
- 				 return data.ppid;
+ 				 return data.xmeetid;
 				 break;
 			case 1: 
  				 return data.userid;
 				 break;
 			case 2: 
- 				 return data.pid;
+ 				 return data.xpjid;
+				 break;
+			case 3: 
+ 				 return data.xtaskid;
 				 break;
 			case 4: 
- 				 return data.price;
+ 				 return data.adminid;
 				 break;
-			case 8: 
- 				 return data.sortid;
+			case 12: 
+ 				 return data.regdate;
 				 break;
-			case 9: 
- 				 return data.filesize;
+			case 13: 
+ 				 return data.expecttime;
+				 break;
+			case 14: 
+ 				 return data.endtime;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] productparambase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] xmeet_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2280,22 +2714,28 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
             switch(kpos)
             {
    			case 0: 
- 				 return iter.ppid;
+ 				 return iter.xmeetid;
 				 break;
 			case 1: 
  				 return iter.userid;
 				 break;
 			case 2: 
- 				 return iter.pid;
+ 				 return iter.xpjid;
+				 break;
+			case 3: 
+ 				 return iter.xtaskid;
 				 break;
 			case 4: 
- 				 return iter.price;
+ 				 return iter.adminid;
 				 break;
-			case 8: 
- 				 return iter.sortid;
+			case 12: 
+ 				 return iter.regdate;
 				 break;
-			case 9: 
- 				 return iter.filesize;
+			case 13: 
+ 				 return iter.expecttime;
+				 break;
+			case 14: 
+ 				 return iter.endtime;
 				 break;
 
 			}
@@ -2320,7 +2760,7 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] productparambase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] xmeet_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2343,20 +2783,41 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 return data.imgurl;
-				 break;
-			case 5: 
- 				 return data.attachfiles;
+   			case 5: 
+ 				 return data.title;
 				 break;
 			case 6: 
- 				 return data.name;
+ 				 return data.zhuchi;
 				 break;
 			case 7: 
- 				 return data.attachdate;
+ 				 return data.jilu;
+				 break;
+			case 8: 
+ 				 return data.meetnotice;
+				 break;
+			case 9: 
+ 				 return data.meetfiles;
 				 break;
 			case 10: 
- 				 return data.fileext;
+ 				 return data.address;
+				 break;
+			case 11: 
+ 				 return data.meettime;
+				 break;
+			case 15: 
+ 				 return data.presents;
+				 break;
+			case 16: 
+ 				 return data.content;
+				 break;
+			case 17: 
+ 				 return data.postresult;
+				 break;
+			case 18: 
+ 				 return data.postfiles;
+				 break;
+			case 19: 
+ 				 return data.jiluphoto;
 				 break;
 
                 }
@@ -2364,7 +2825,7 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] productparambase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] xmeet_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2373,20 +2834,41 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 return iter.imgurl;
-				 break;
-			case 5: 
- 				 return iter.attachfiles;
+   			case 5: 
+ 				 return iter.title;
 				 break;
 			case 6: 
- 				 return iter.name;
+ 				 return iter.zhuchi;
 				 break;
 			case 7: 
- 				 return iter.attachdate;
+ 				 return iter.jilu;
+				 break;
+			case 8: 
+ 				 return iter.meetnotice;
+				 break;
+			case 9: 
+ 				 return iter.meetfiles;
 				 break;
 			case 10: 
- 				 return iter.fileext;
+ 				 return iter.address;
+				 break;
+			case 11: 
+ 				 return iter.meettime;
+				 break;
+			case 15: 
+ 				 return iter.presents;
+				 break;
+			case 16: 
+ 				 return iter.content;
+				 break;
+			case 17: 
+ 				 return iter.postresult;
+				 break;
+			case 18: 
+ 				 return iter.postfiles;
+				 break;
+			case 19: 
+ 				 return iter.jiluphoto;
 				 break;
 
                 }
@@ -2409,20 +2891,41 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                     switch(kpos)
                     {
 
-    			case 3: 
- 				 a.emplace_back(iter.imgurl);
-					 break;
-			case 5: 
- 				 a.emplace_back(iter.attachfiles);
+    			case 5: 
+ 				 a.emplace_back(iter.title);
 					 break;
 			case 6: 
- 				 a.emplace_back(iter.name);
+ 				 a.emplace_back(iter.zhuchi);
 					 break;
 			case 7: 
- 				 a.emplace_back(iter.attachdate);
+ 				 a.emplace_back(iter.jilu);
+					 break;
+			case 8: 
+ 				 a.emplace_back(iter.meetnotice);
+					 break;
+			case 9: 
+ 				 a.emplace_back(iter.meetfiles);
 					 break;
 			case 10: 
- 				 a.emplace_back(iter.fileext);
+ 				 a.emplace_back(iter.address);
+					 break;
+			case 11: 
+ 				 a.emplace_back(iter.meettime);
+					 break;
+			case 15: 
+ 				 a.emplace_back(iter.presents);
+					 break;
+			case 16: 
+ 				 a.emplace_back(iter.content);
+					 break;
+			case 17: 
+ 				 a.emplace_back(iter.postresult);
+					 break;
+			case 18: 
+ 				 a.emplace_back(iter.postfiles);
+					 break;
+			case 19: 
+ 				 a.emplace_back(iter.jiluphoto);
 					 break;
 					}
 				}
@@ -2456,51 +2959,99 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.ppid);
+ 				 a<<std::to_string(iter.xmeetid);
 				 break;
 			case 1: 
  				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
- 				 a<<std::to_string(iter.pid);
+ 				 a<<std::to_string(iter.xpjid);
 				 break;
 			case 3: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
-				 }else{
-				 a<<iter.imgurl;
-				 }
+ 				 a<<std::to_string(iter.xtaskid);
 				 break;
 			case 4: 
- 				 a<<std::to_string(iter.price);
+ 				 a<<std::to_string(iter.adminid);
 				 break;
 			case 5: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.attachfiles); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
-				 a<<iter.attachfiles;
+				 a<<iter.title;
 				 }
 				 break;
 			case 6: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.name); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.zhuchi); 
 				 }else{
-				 a<<iter.name;
+				 a<<iter.zhuchi;
 				 }
 				 break;
 			case 7: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.attachdate); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.jilu); 
 				 }else{
-				 a<<iter.attachdate;
+				 a<<iter.jilu;
 				 }
 				 break;
 			case 8: 
- 				 a<<std::to_string(iter.sortid);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.meetnotice); 
+				 }else{
+				 a<<iter.meetnotice;
+				 }
 				 break;
 			case 9: 
- 				 a<<std::to_string(iter.filesize);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.meetfiles); 
+				 }else{
+				 a<<iter.meetfiles;
+				 }
 				 break;
 			case 10: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.fileext); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.address); 
 				 }else{
-				 a<<iter.fileext;
+				 a<<iter.address;
+				 }
+				 break;
+			case 11: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.meettime); 
+				 }else{
+				 a<<iter.meettime;
+				 }
+				 break;
+			case 12: 
+ 				 a<<std::to_string(iter.regdate);
+				 break;
+			case 13: 
+ 				 a<<std::to_string(iter.expecttime);
+				 break;
+			case 14: 
+ 				 a<<std::to_string(iter.endtime);
+				 break;
+			case 15: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.presents); 
+				 }else{
+				 a<<iter.presents;
+				 }
+				 break;
+			case 16: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.content); 
+				 }else{
+				 a<<iter.content;
+				 }
+				 break;
+			case 17: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.postresult); 
+				 }else{
+				 a<<iter.postresult;
+				 }
+				 break;
+			case 18: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.postfiles); 
+				 }else{
+				 a<<iter.postfiles;
+				 }
+				 break;
+			case 19: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.jiluphoto); 
+				 }else{
+				 a<<iter.jiluphoto;
 				 }
 				 break;
 
@@ -2528,37 +3079,79 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 				 } 
 			switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 
                 }
@@ -2588,20 +3181,41 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                     switch(kpos)
                     {
  
-       			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+       			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			 } 
 		 switch(vpos){
@@ -2632,22 +3246,28 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                 {
  
        case 0: 
- 	 ktemp=iter.ppid;
+ 	 ktemp=iter.xmeetid;
 	 break;
 case 1: 
  	 ktemp=iter.userid;
 	 break;
 case 2: 
- 	 ktemp=iter.pid;
+ 	 ktemp=iter.xpjid;
+	 break;
+case 3: 
+ 	 ktemp=iter.xtaskid;
 	 break;
 case 4: 
- 	 ktemp=iter.price;
+ 	 ktemp=iter.adminid;
 	 break;
-case 8: 
- 	 ktemp=iter.sortid;
+case 12: 
+ 	 ktemp=iter.regdate;
 	 break;
-case 9: 
- 	 ktemp=iter.filesize;
+case 13: 
+ 	 ktemp=iter.expecttime;
+	 break;
+case 14: 
+ 	 ktemp=iter.endtime;
 	 break;
 	 } 
  		  switch(vpos){
@@ -2677,39 +3297,66 @@ case 9:
                     {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
  			switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 
                     }
@@ -2737,40 +3384,67 @@ case 9:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 
                 }
@@ -2799,42 +3473,54 @@ case 9:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 
                 }
@@ -2860,22 +3546,28 @@ case 9:
                 {
 
    			case 0: 
- 				 a.emplace(iter.ppid,iter);
+ 				 a.emplace(iter.xmeetid,iter);
 				 break;
 			case 1: 
  				 a.emplace(iter.userid,iter);
 				 break;
 			case 2: 
- 				 a.emplace(iter.pid,iter);
+ 				 a.emplace(iter.xpjid,iter);
+				 break;
+			case 3: 
+ 				 a.emplace(iter.xtaskid,iter);
 				 break;
 			case 4: 
- 				 a.emplace(iter.price,iter);
+ 				 a.emplace(iter.adminid,iter);
 				 break;
-			case 8: 
- 				 a.emplace(iter.sortid,iter);
+			case 12: 
+ 				 a.emplace(iter.regdate,iter);
 				 break;
-			case 9: 
- 				 a.emplace(iter.filesize,iter);
+			case 13: 
+ 				 a.emplace(iter.expecttime,iter);
+				 break;
+			case 14: 
+ 				 a.emplace(iter.endtime,iter);
 				 break;
 
                 }
@@ -2897,20 +3589,41 @@ case 9:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 a.emplace(iter.imgurl,iter);
-			 break;
-			case 5: 
- 				 a.emplace(iter.attachfiles,iter);
+   			case 5: 
+ 				 a.emplace(iter.title,iter);
 			 break;
 			case 6: 
- 				 a.emplace(iter.name,iter);
+ 				 a.emplace(iter.zhuchi,iter);
 			 break;
 			case 7: 
- 				 a.emplace(iter.attachdate,iter);
+ 				 a.emplace(iter.jilu,iter);
+			 break;
+			case 8: 
+ 				 a.emplace(iter.meetnotice,iter);
+			 break;
+			case 9: 
+ 				 a.emplace(iter.meetfiles,iter);
 			 break;
 			case 10: 
- 				 a.emplace(iter.fileext,iter);
+ 				 a.emplace(iter.address,iter);
+			 break;
+			case 11: 
+ 				 a.emplace(iter.meettime,iter);
+			 break;
+			case 15: 
+ 				 a.emplace(iter.presents,iter);
+			 break;
+			case 16: 
+ 				 a.emplace(iter.content,iter);
+			 break;
+			case 17: 
+ 				 a.emplace(iter.postresult,iter);
+			 break;
+			case 18: 
+ 				 a.emplace(iter.postfiles,iter);
+			 break;
+			case 19: 
+ 				 a.emplace(iter.jiluphoto,iter);
 			 break;
 
                 }
@@ -2936,20 +3649,41 @@ case 9:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 	 		 }
  			switch(vpos){
@@ -2980,22 +3714,28 @@ case 9:
                     {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 			 break;
 			case 1: 
  				 ktemp=iter.userid;
 			 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+			 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 			 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 			 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 			 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+			 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 			 break;
 			  }
 			 switch(vpos){
@@ -3027,39 +3767,66 @@ case 9:
                     {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
  			switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 
                    }
@@ -3086,40 +3853,67 @@ case 9:
                     switch(kpos)
                     {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 
                    }
@@ -3145,42 +3939,54 @@ case 9:
                     {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 
                    }
@@ -3205,37 +4011,79 @@ case 9:
                     switch(kpos)
                     {
 
-   case 3: 
- 	 ktemp=iter.imgurl;
-	 break;
-case 5: 
- 	 ktemp=iter.attachfiles;
+   case 5: 
+ 	 ktemp=iter.title;
 	 break;
 case 6: 
- 	 ktemp=iter.name;
+ 	 ktemp=iter.zhuchi;
 	 break;
 case 7: 
- 	 ktemp=iter.attachdate;
+ 	 ktemp=iter.jilu;
+	 break;
+case 8: 
+ 	 ktemp=iter.meetnotice;
+	 break;
+case 9: 
+ 	 ktemp=iter.meetfiles;
 	 break;
 case 10: 
- 	 ktemp=iter.fileext;
+ 	 ktemp=iter.address;
+	 break;
+case 11: 
+ 	 ktemp=iter.meettime;
+	 break;
+case 15: 
+ 	 ktemp=iter.presents;
+	 break;
+case 16: 
+ 	 ktemp=iter.content;
+	 break;
+case 17: 
+ 	 ktemp=iter.postresult;
+	 break;
+case 18: 
+ 	 ktemp=iter.postfiles;
+	 break;
+case 19: 
+ 	 ktemp=iter.jiluphoto;
 	 break;
 	  }
  switch(vpos){
-case 3: 
- 	 vtemp=iter.imgurl;
-	 break;
 case 5: 
- 	 vtemp=iter.attachfiles;
+ 	 vtemp=iter.title;
 	 break;
 case 6: 
- 	 vtemp=iter.name;
+ 	 vtemp=iter.zhuchi;
 	 break;
 case 7: 
- 	 vtemp=iter.attachdate;
+ 	 vtemp=iter.jilu;
+	 break;
+case 8: 
+ 	 vtemp=iter.meetnotice;
+	 break;
+case 9: 
+ 	 vtemp=iter.meetfiles;
 	 break;
 case 10: 
- 	 vtemp=iter.fileext;
+ 	 vtemp=iter.address;
+	 break;
+case 11: 
+ 	 vtemp=iter.meettime;
+	 break;
+case 15: 
+ 	 vtemp=iter.presents;
+	 break;
+case 16: 
+ 	 vtemp=iter.content;
+	 break;
+case 17: 
+ 	 vtemp=iter.postresult;
+	 break;
+case 18: 
+ 	 vtemp=iter.postfiles;
+	 break;
+case 19: 
+ 	 vtemp=iter.jiluphoto;
 	 break;
 
                    }
@@ -3259,22 +4107,28 @@ case 10:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.ppid,iter);
+ 	 a.emplace_back(iter.xmeetid,iter);
 	 break;
 case 1: 
  	 a.emplace_back(iter.userid,iter);
 	 break;
 case 2: 
- 	 a.emplace_back(iter.pid,iter);
+ 	 a.emplace_back(iter.xpjid,iter);
+	 break;
+case 3: 
+ 	 a.emplace_back(iter.xtaskid,iter);
 	 break;
 case 4: 
- 	 a.emplace_back(iter.price,iter);
+ 	 a.emplace_back(iter.adminid,iter);
 	 break;
-case 8: 
- 	 a.emplace_back(iter.sortid,iter);
+case 12: 
+ 	 a.emplace_back(iter.regdate,iter);
 	 break;
-case 9: 
- 	 a.emplace_back(iter.filesize,iter);
+case 13: 
+ 	 a.emplace_back(iter.expecttime,iter);
+	 break;
+case 14: 
+ 	 a.emplace_back(iter.endtime,iter);
 	 break;
 
                 }
@@ -3294,20 +4148,41 @@ case 9:
                 switch(kpos)
                 {
 
-   case 3: 
- 	 a.emplace_back(iter.imgurl,iter);
-	 break;
-case 5: 
- 	 a.emplace_back(iter.attachfiles,iter);
+   case 5: 
+ 	 a.emplace_back(iter.title,iter);
 	 break;
 case 6: 
- 	 a.emplace_back(iter.name,iter);
+ 	 a.emplace_back(iter.zhuchi,iter);
 	 break;
 case 7: 
- 	 a.emplace_back(iter.attachdate,iter);
+ 	 a.emplace_back(iter.jilu,iter);
+	 break;
+case 8: 
+ 	 a.emplace_back(iter.meetnotice,iter);
+	 break;
+case 9: 
+ 	 a.emplace_back(iter.meetfiles,iter);
 	 break;
 case 10: 
- 	 a.emplace_back(iter.fileext,iter);
+ 	 a.emplace_back(iter.address,iter);
+	 break;
+case 11: 
+ 	 a.emplace_back(iter.meettime,iter);
+	 break;
+case 15: 
+ 	 a.emplace_back(iter.presents,iter);
+	 break;
+case 16: 
+ 	 a.emplace_back(iter.content,iter);
+	 break;
+case 17: 
+ 	 a.emplace_back(iter.postresult,iter);
+	 break;
+case 18: 
+ 	 a.emplace_back(iter.postfiles,iter);
+	 break;
+case 19: 
+ 	 a.emplace_back(iter.jiluphoto,iter);
 	 break;
 
                 }
@@ -3333,43 +4208,55 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 			  }
 
@@ -3401,64 +4288,82 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.ppid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xmeetid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.pid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.xtaskid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.price);
+ 				 a[ktemp][vtemp].emplace_back(iter.adminid);
 				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.regdate);
 				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.filesize);
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expecttime);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.endtime);
 				 break;
 
                 }
@@ -3486,61 +4391,94 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 			 }
 
 			 switch(dpos){
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
-				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.attachfiles);
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
+ 				 a[ktemp][vtemp].emplace_back(iter.zhuchi);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.attachdate);
+ 				 a[ktemp][vtemp].emplace_back(iter.jilu);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meetnotice);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meetfiles);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.fileext);
+ 				 a[ktemp][vtemp].emplace_back(iter.address);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meettime);
+				 break;
+			case 15: 
+ 				 a[ktemp][vtemp].emplace_back(iter.presents);
+				 break;
+			case 16: 
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
+				 break;
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.postresult);
+				 break;
+			case 18: 
+ 				 a[ktemp][vtemp].emplace_back(iter.postfiles);
+				 break;
+			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.jiluphoto);
 				 break;
 
                 }
@@ -3569,40 +4507,67 @@ case 10:
                     {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 			  }
 
@@ -3634,61 +4599,94 @@ case 10:
             {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.ppid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xmeetid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.pid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.xtaskid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.price);
+ 				 a[ktemp][vtemp].emplace_back(iter.adminid);
 				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.regdate);
 				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.filesize);
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expecttime);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.endtime);
 				 break;
 
             }
@@ -3715,58 +4713,106 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
-				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.attachfiles);
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
+ 				 a[ktemp][vtemp].emplace_back(iter.zhuchi);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.attachdate);
+ 				 a[ktemp][vtemp].emplace_back(iter.jilu);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meetnotice);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meetfiles);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.fileext);
+ 				 a[ktemp][vtemp].emplace_back(iter.address);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meettime);
+				 break;
+			case 15: 
+ 				 a[ktemp][vtemp].emplace_back(iter.presents);
+				 break;
+			case 16: 
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
+				 break;
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.postresult);
+				 break;
+			case 18: 
+ 				 a[ktemp][vtemp].emplace_back(iter.postfiles);
+				 break;
+			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.jiluphoto);
 				 break;
 
                 }
@@ -3792,41 +4838,68 @@ case 10:
                     switch(kpos)
                     {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 			  }
 
@@ -3858,62 +4931,95 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.ppid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xmeetid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.pid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.xtaskid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.price);
+ 				 a[ktemp][vtemp].emplace_back(iter.adminid);
 				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.regdate);
 				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.filesize);
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expecttime);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.endtime);
 				 break;
 
                 }
@@ -3942,59 +5048,107 @@ case 10:
             switch(kpos)
             {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.ppid;
+ 				 vtemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.pid;
+ 				 vtemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 vtemp=iter.price;
+ 				 vtemp=iter.adminid;
 				 break;
-			case 8: 
- 				 vtemp=iter.sortid;
+			case 12: 
+ 				 vtemp=iter.regdate;
 				 break;
-			case 9: 
- 				 vtemp=iter.filesize;
+			case 13: 
+ 				 vtemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 vtemp=iter.endtime;
 				 break;
 			 }
 
 			switch(dpos){
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
-				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.attachfiles);
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
+ 				 a[ktemp][vtemp].emplace_back(iter.zhuchi);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.attachdate);
+ 				 a[ktemp][vtemp].emplace_back(iter.jilu);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meetnotice);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meetfiles);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.fileext);
+ 				 a[ktemp][vtemp].emplace_back(iter.address);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meettime);
+				 break;
+			case 15: 
+ 				 a[ktemp][vtemp].emplace_back(iter.presents);
+				 break;
+			case 16: 
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
+				 break;
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.postresult);
+				 break;
+			case 18: 
+ 				 a[ktemp][vtemp].emplace_back(iter.postfiles);
+				 break;
+			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.jiluphoto);
 				 break;
 
             }
@@ -4021,38 +5175,80 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 			  }
 
@@ -4083,59 +5279,107 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.ppid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xmeetid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.pid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.xtaskid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.price);
+ 				 a[ktemp][vtemp].emplace_back(iter.adminid);
 				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.regdate);
 				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.filesize);
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expecttime);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.endtime);
 				 break;
 
                 }
@@ -4162,56 +5406,119 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.imgurl;
-				 break;
 			case 5: 
- 				 vtemp=iter.attachfiles;
+ 				 vtemp=iter.title;
 				 break;
 			case 6: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 vtemp=iter.attachdate;
+ 				 vtemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 vtemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 vtemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 vtemp=iter.fileext;
+ 				 vtemp=iter.address;
+				 break;
+			case 11: 
+ 				 vtemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 vtemp=iter.presents;
+				 break;
+			case 16: 
+ 				 vtemp=iter.content;
+				 break;
+			case 17: 
+ 				 vtemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 vtemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 vtemp=iter.jiluphoto;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
-				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.attachfiles);
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
+ 				 a[ktemp][vtemp].emplace_back(iter.zhuchi);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.attachdate);
+ 				 a[ktemp][vtemp].emplace_back(iter.jilu);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meetnotice);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meetfiles);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.fileext);
+ 				 a[ktemp][vtemp].emplace_back(iter.address);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.meettime);
+				 break;
+			case 15: 
+ 				 a[ktemp][vtemp].emplace_back(iter.presents);
+				 break;
+			case 16: 
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
+				 break;
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.postresult);
+				 break;
+			case 18: 
+ 				 a[ktemp][vtemp].emplace_back(iter.postfiles);
+				 break;
+			case 19: 
+ 				 a[ktemp][vtemp].emplace_back(iter.jiluphoto);
 				 break;
 
                 }
@@ -4237,38 +5544,80 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 a[ktemp].emplace_back(iter.imgurl);
-				 break;
 			case 5: 
- 				 a[ktemp].emplace_back(iter.attachfiles);
+ 				 a[ktemp].emplace_back(iter.title);
 				 break;
 			case 6: 
- 				 a[ktemp].emplace_back(iter.name);
+ 				 a[ktemp].emplace_back(iter.zhuchi);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.attachdate);
+ 				 a[ktemp].emplace_back(iter.jilu);
+				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.meetnotice);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.meetfiles);
 				 break;
 			case 10: 
- 				 a[ktemp].emplace_back(iter.fileext);
+ 				 a[ktemp].emplace_back(iter.address);
+				 break;
+			case 11: 
+ 				 a[ktemp].emplace_back(iter.meettime);
+				 break;
+			case 15: 
+ 				 a[ktemp].emplace_back(iter.presents);
+				 break;
+			case 16: 
+ 				 a[ktemp].emplace_back(iter.content);
+				 break;
+			case 17: 
+ 				 a[ktemp].emplace_back(iter.postresult);
+				 break;
+			case 18: 
+ 				 a[ktemp].emplace_back(iter.postfiles);
+				 break;
+			case 19: 
+ 				 a[ktemp].emplace_back(iter.jiluphoto);
 				 break;
 
                 }
@@ -4293,20 +5642,41 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			 }
 
@@ -4336,41 +5706,68 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.ppid);
+ 				 a[ktemp].emplace_back(iter.xmeetid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.pid);
+ 				 a[ktemp].emplace_back(iter.xpjid);
+				 break;
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.xtaskid);
 				 break;
 			case 4: 
- 				 a[ktemp].emplace_back(iter.price);
+ 				 a[ktemp].emplace_back(iter.adminid);
 				 break;
-			case 8: 
- 				 a[ktemp].emplace_back(iter.sortid);
+			case 12: 
+ 				 a[ktemp].emplace_back(iter.regdate);
 				 break;
-			case 9: 
- 				 a[ktemp].emplace_back(iter.filesize);
+			case 13: 
+ 				 a[ktemp].emplace_back(iter.expecttime);
+				 break;
+			case 14: 
+ 				 a[ktemp].emplace_back(iter.endtime);
 				 break;
 
                 }
@@ -4397,40 +5794,67 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 a[ktemp].emplace_back(iter.imgurl);
-				 break;
 			case 5: 
- 				 a[ktemp].emplace_back(iter.attachfiles);
+ 				 a[ktemp].emplace_back(iter.title);
 				 break;
 			case 6: 
- 				 a[ktemp].emplace_back(iter.name);
+ 				 a[ktemp].emplace_back(iter.zhuchi);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.attachdate);
+ 				 a[ktemp].emplace_back(iter.jilu);
+				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.meetnotice);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.meetfiles);
 				 break;
 			case 10: 
- 				 a[ktemp].emplace_back(iter.fileext);
+ 				 a[ktemp].emplace_back(iter.address);
+				 break;
+			case 11: 
+ 				 a[ktemp].emplace_back(iter.meettime);
+				 break;
+			case 15: 
+ 				 a[ktemp].emplace_back(iter.presents);
+				 break;
+			case 16: 
+ 				 a[ktemp].emplace_back(iter.content);
+				 break;
+			case 17: 
+ 				 a[ktemp].emplace_back(iter.postresult);
+				 break;
+			case 18: 
+ 				 a[ktemp].emplace_back(iter.postfiles);
+				 break;
+			case 19: 
+ 				 a[ktemp].emplace_back(iter.jiluphoto);
 				 break;
 
                 }
@@ -4458,22 +5882,28 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
 
@@ -4503,43 +5933,55 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.ppid);
+ 				 a[ktemp].emplace_back(iter.xmeetid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.pid);
+ 				 a[ktemp].emplace_back(iter.xpjid);
+				 break;
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.xtaskid);
 				 break;
 			case 4: 
- 				 a[ktemp].emplace_back(iter.price);
+ 				 a[ktemp].emplace_back(iter.adminid);
 				 break;
-			case 8: 
- 				 a[ktemp].emplace_back(iter.sortid);
+			case 12: 
+ 				 a[ktemp].emplace_back(iter.regdate);
 				 break;
-			case 9: 
- 				 a[ktemp].emplace_back(iter.filesize);
+			case 13: 
+ 				 a[ktemp].emplace_back(iter.expecttime);
+				 break;
+			case 14: 
+ 				 a[ktemp].emplace_back(iter.endtime);
 				 break;
 
                 }
@@ -4562,22 +6004,28 @@ case 10:
                 {
 
    			case 0: 
- 				 a[iter.ppid].emplace_back(iter);
+ 				 a[iter.xmeetid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[iter.pid].emplace_back(iter);
+ 				 a[iter.xpjid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[iter.xtaskid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[iter.price].emplace_back(iter);
+ 				 a[iter.adminid].emplace_back(iter);
 				 break;
-			case 8: 
- 				 a[iter.sortid].emplace_back(iter);
+			case 12: 
+ 				 a[iter.regdate].emplace_back(iter);
 				 break;
-			case 9: 
- 				 a[iter.filesize].emplace_back(iter);
+			case 13: 
+ 				 a[iter.expecttime].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[iter.endtime].emplace_back(iter);
 				 break;
 
                 }
@@ -4600,20 +6048,41 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 a[iter.imgurl].emplace_back(iter);
-				 break;
-			case 5: 
- 				 a[iter.attachfiles].emplace_back(iter);
+   			case 5: 
+ 				 a[iter.title].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[iter.name].emplace_back(iter);
+ 				 a[iter.zhuchi].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[iter.attachdate].emplace_back(iter);
+ 				 a[iter.jilu].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[iter.meetnotice].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[iter.meetfiles].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[iter.fileext].emplace_back(iter);
+ 				 a[iter.address].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[iter.meettime].emplace_back(iter);
+				 break;
+			case 15: 
+ 				 a[iter.presents].emplace_back(iter);
+				 break;
+			case 16: 
+ 				 a[iter.content].emplace_back(iter);
+				 break;
+			case 17: 
+ 				 a[iter.postresult].emplace_back(iter);
+				 break;
+			case 18: 
+ 				 a[iter.postfiles].emplace_back(iter);
+				 break;
+			case 19: 
+ 				 a[iter.jiluphoto].emplace_back(iter);
 				 break;
 
                 }
@@ -4638,38 +6107,80 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 a[ktemp][iter.imgurl].emplace_back(iter);
-				 break;
 			case 5: 
- 				 a[ktemp][iter.attachfiles].emplace_back(iter);
+ 				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[ktemp][iter.name].emplace_back(iter);
+ 				 a[ktemp][iter.zhuchi].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.attachdate].emplace_back(iter);
+ 				 a[ktemp][iter.jilu].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[ktemp][iter.meetnotice].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.meetfiles].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[ktemp][iter.fileext].emplace_back(iter);
+ 				 a[ktemp][iter.address].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[ktemp][iter.meettime].emplace_back(iter);
+				 break;
+			case 15: 
+ 				 a[ktemp][iter.presents].emplace_back(iter);
+				 break;
+			case 16: 
+ 				 a[ktemp][iter.content].emplace_back(iter);
+				 break;
+			case 17: 
+ 				 a[ktemp][iter.postresult].emplace_back(iter);
+				 break;
+			case 18: 
+ 				 a[ktemp][iter.postfiles].emplace_back(iter);
+				 break;
+			case 19: 
+ 				 a[ktemp][iter.jiluphoto].emplace_back(iter);
 				 break;
 
                 }
@@ -4694,41 +6205,68 @@ case 10:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
+   			case 5: 
+ 				 ktemp=iter.title;
 				 break;
 			case 6: 
- 				 ktemp=iter.name;
+ 				 ktemp=iter.zhuchi;
 				 break;
 			case 7: 
- 				 ktemp=iter.attachdate;
+ 				 ktemp=iter.jilu;
+				 break;
+			case 8: 
+ 				 ktemp=iter.meetnotice;
+				 break;
+			case 9: 
+ 				 ktemp=iter.meetfiles;
 				 break;
 			case 10: 
- 				 ktemp=iter.fileext;
+ 				 ktemp=iter.address;
+				 break;
+			case 11: 
+ 				 ktemp=iter.meettime;
+				 break;
+			case 15: 
+ 				 ktemp=iter.presents;
+				 break;
+			case 16: 
+ 				 ktemp=iter.content;
+				 break;
+			case 17: 
+ 				 ktemp=iter.postresult;
+				 break;
+			case 18: 
+ 				 ktemp=iter.postfiles;
+				 break;
+			case 19: 
+ 				 ktemp=iter.jiluphoto;
 				 break;
 	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.ppid].emplace_back(iter);
+ 				 a[ktemp][iter.xmeetid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.pid].emplace_back(iter);
+ 				 a[ktemp][iter.xpjid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[ktemp][iter.xtaskid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[ktemp][iter.price].emplace_back(iter);
+ 				 a[ktemp][iter.adminid].emplace_back(iter);
 				 break;
-			case 8: 
- 				 a[ktemp][iter.sortid].emplace_back(iter);
+			case 12: 
+ 				 a[ktemp][iter.regdate].emplace_back(iter);
 				 break;
-			case 9: 
- 				 a[ktemp][iter.filesize].emplace_back(iter);
+			case 13: 
+ 				 a[ktemp][iter.expecttime].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[ktemp][iter.endtime].emplace_back(iter);
 				 break;
 
                 }
@@ -4755,43 +6293,55 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.ppid].emplace_back(iter);
+ 				 a[ktemp][iter.xmeetid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.pid].emplace_back(iter);
+ 				 a[ktemp][iter.xpjid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[ktemp][iter.xtaskid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[ktemp][iter.price].emplace_back(iter);
+ 				 a[ktemp][iter.adminid].emplace_back(iter);
 				 break;
-			case 8: 
- 				 a[ktemp][iter.sortid].emplace_back(iter);
+			case 12: 
+ 				 a[ktemp][iter.regdate].emplace_back(iter);
 				 break;
-			case 9: 
- 				 a[ktemp][iter.filesize].emplace_back(iter);
+			case 13: 
+ 				 a[ktemp][iter.expecttime].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[ktemp][iter.endtime].emplace_back(iter);
 				 break;
 
                 }
@@ -4818,40 +6368,67 @@ case 10:
                 {
 
    			case 0: 
- 				 ktemp=iter.ppid;
+ 				 ktemp=iter.xmeetid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.pid;
+ 				 ktemp=iter.xpjid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.xtaskid;
 				 break;
 			case 4: 
- 				 ktemp=iter.price;
+ 				 ktemp=iter.adminid;
 				 break;
-			case 8: 
- 				 ktemp=iter.sortid;
+			case 12: 
+ 				 ktemp=iter.regdate;
 				 break;
-			case 9: 
- 				 ktemp=iter.filesize;
+			case 13: 
+ 				 ktemp=iter.expecttime;
+				 break;
+			case 14: 
+ 				 ktemp=iter.endtime;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 a[ktemp][iter.imgurl].emplace_back(iter);
-				 break;
 			case 5: 
- 				 a[ktemp][iter.attachfiles].emplace_back(iter);
+ 				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[ktemp][iter.name].emplace_back(iter);
+ 				 a[ktemp][iter.zhuchi].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.attachdate].emplace_back(iter);
+ 				 a[ktemp][iter.jilu].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[ktemp][iter.meetnotice].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.meetfiles].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[ktemp][iter.fileext].emplace_back(iter);
+ 				 a[ktemp][iter.address].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[ktemp][iter.meettime].emplace_back(iter);
+				 break;
+			case 15: 
+ 				 a[ktemp][iter.presents].emplace_back(iter);
+				 break;
+			case 16: 
+ 				 a[ktemp][iter.content].emplace_back(iter);
+				 break;
+			case 17: 
+ 				 a[ktemp][iter.postresult].emplace_back(iter);
+				 break;
+			case 18: 
+ 				 a[ktemp][iter.postfiles].emplace_back(iter);
+				 break;
+			case 19: 
+ 				 a[ktemp][iter.jiluphoto].emplace_back(iter);
 				 break;
 
                 }

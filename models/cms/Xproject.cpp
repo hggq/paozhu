@@ -1,6 +1,6 @@
 
 #include "xproject_mysql.h"
-#include "cms/include/xprojectbase.h"
+#include "cms/include/xproject_base.h"
 #include "cms/include/Xproject.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_XPROJECTBASEMATA_H
-#define ORM_CMS_XPROJECTBASEMATA_H
+#ifndef ORM_CMS_TOPICBASEMATA_H
+#define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,48 +20,64 @@ namespace orm {
    
      namespace cms { 
 
-struct xprojectbase
+struct topic_base
 {
     struct meta{
-     unsigned  int  xpjid = 0; ///**/
+     unsigned  int  topicid = 0; ///**/
  unsigned  int  userid = 0; ///**/
- unsigned  int  prexpjid = 0; ///**/
- unsigned  int  dpid = 0; ///**/
- unsigned  int  grouptype = 0; ///**/
- std::string  title = ""; ///**/
- unsigned  int  adminuserid = 0; ///**/
- unsigned  int  regdate = 0; ///**/
- unsigned  int  begindate = 0; ///**/
- unsigned  int  expiredate = 0; ///**/
- char  isopen = 0; ///**/
- unsigned  int  clientid = 0; ///**/
- unsigned  int  totalnum = 0; ///**/
- unsigned  int  referdocverion = 0; ///**/
- unsigned  int  xtheme = 0; ///**/
- std::string  xlogo = ""; ///**/
- std::string  introduce = ""; ///**/
- std::string  giturl = ""; ///**/
- std::string  gitname = ""; ///**/
- std::string  gitpwd = ""; ///**/
- std::string  xcolor = ""; ///**/
- std::string  fupan = ""; ///**/
- double  totalvalue = 0; ///**/
- float  expectday = 0; ///**/
- float  realday = 0; ///**/
+ unsigned  int  parentid = 0; ///**/
+ unsigned  int  cateid = 0; ///*类型*/
+ unsigned  char  sorttype = 0; ///*内容排序*/
+ unsigned  int  languagetype = 0; ///*语言类型*/
+ unsigned  char  isview = 0; ///*是否显示*/
+ unsigned  char  isside = 1; ///*是否边栏*/
+ unsigned  int  sortid = 0; ///*排序id*/
+ std::string  title = ""; ///*标题*/
+ std::string  twotitle = ""; ///*第二标题*/
+ std::string  memo = ""; ///*备注*/
+ std::string  templatename = ""; ///*模板名称*/
+ std::string  url = ""; ///*网址*/
+ std::string  urlpath = ""; ///*路径*/
+ std::string  imgurl = ""; ///*图片地址*/
+ std::string  topimg = ""; ///*头图*/
+ unsigned  int  accesscode = 0; ///*权限代码*/
  } data;
- std::vector<xprojectbase::meta> record;
+  
+        struct meta_tree{
+         unsigned  int  topicid = 0; ///**/
+ unsigned  int  userid = 0; ///**/
+ unsigned  int  parentid = 0; ///**/
+ unsigned  int  cateid = 0; ///*类型*/
+ unsigned  char  sorttype = 0; ///*内容排序*/
+ unsigned  int  languagetype = 0; ///*语言类型*/
+ unsigned  char  isview = 0; ///*是否显示*/
+ unsigned  char  isside = 1; ///*是否边栏*/
+ unsigned  int  sortid = 0; ///*排序id*/
+ std::string  title = ""; ///*标题*/
+ std::string  twotitle = ""; ///*第二标题*/
+ std::string  memo = ""; ///*备注*/
+ std::string  templatename = ""; ///*模板名称*/
+ std::string  url = ""; ///*网址*/
+ std::string  urlpath = ""; ///*路径*/
+ std::string  imgurl = ""; ///*图片地址*/
+ std::string  topimg = ""; ///*头图*/
+ unsigned  int  accesscode = 0; ///*权限代码*/
+
+	std::vector<meta_tree> children;
+ };
+ std::vector<topic_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<xprojectbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<xprojectbase::meta>::iterator end(){     return record.end(); }
-std::vector<xprojectbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<xprojectbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,25> col_names={"xpjid","userid","prexpjid","dpid","grouptype","title","adminuserid","regdate","begindate","expiredate","isopen","clientid","totalnum","referdocverion","xtheme","xlogo","introduce","giturl","gitname","gitpwd","xcolor","fupan","totalvalue","expectday","realday"};
-static constexpr std::array<unsigned char,25> col_types={3,3,3,3,3,253,3,3,3,3,1,3,3,3,3,253,252,253,252,253,253,252,5,4,4};
-static constexpr std::array<unsigned char,25> col_length={0,0,0,0,0,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,0,0};
-static constexpr std::array<unsigned char,25> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-std::string tablename="xproject";
-static constexpr std::string_view modelname="Xproject";
+std::vector<topic_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<topic_base::meta>::iterator end(){     return record.end(); }
+std::vector<topic_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<topic_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,18> col_names={"topicid","userid","parentid","cateid","sorttype","languagetype","isview","isside","sortid","title","twotitle","memo","templatename","url","urlpath","imgurl","topimg","accesscode"};
+static constexpr std::array<unsigned char,18> col_types={3,3,3,3,1,3,1,1,3,253,253,253,253,253,253,253,252,3};
+static constexpr std::array<unsigned char,18> col_length={0,0,0,0,0,0,0,0,0,120,120,254,254,255,60,254,0,0};
+static constexpr std::array<unsigned char,18> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+std::string tablename="topic";
+static constexpr std::string_view modelname="Topic";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -78,102 +94,71 @@ static constexpr std::string_view modelname="Xproject";
 
 
          case 'a':
-   	 return 6;
-break;
-case 'b':
-   	 return 8;
+   	 return 17;
 break;
 case 'c':
-   	 return 11;
-break;
-case 'd':
    	 return 3;
 break;
-case 'e':
- switch(coln.size()){  
-case 9:
-   	 return 23;
-break;
-case 10:
-   	 return 9;
-break;
- }
- break;
-case 'f':
-   	 return 21;
-break;
-case 'g':
- switch(coln.size()){  
-case 6:
-  colpospppc=coln.back();
-    if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='d'){ return 19; }
- if(colpospppc=='l'){ return 17; }
-   	 break;
-case 7:
-   	 return 18;
-break;
-case 9:
-   	 return 4;
-break;
- }
- break;
 case 'i':
  switch(coln.size()){  
 case 6:
-   	 return 10;
-break;
-case 9:
-   	 return 16;
-break;
- }
- break;
-case 'p':
-   	 return 2;
-break;
-case 'r':
- switch(coln.size()){  
-case 7:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
  if(colpospppc=='e'){ return 7; }
- if(colpospppc=='y'){ return 24; }
+ if(colpospppc=='l'){ return 15; }
+ if(colpospppc=='w'){ return 6; }
    	 break;
-case 14:
-   	 return 13;
+ }
+ break;
+case 'l':
+   	 return 5;
+break;
+case 'm':
+   	 return 11;
+break;
+case 'p':
+   	 return 2;
+break;
+case 's':
+ switch(coln.size()){  
+case 6:
+   	 return 8;
+break;
+case 8:
+   	 return 4;
 break;
  }
  break;
 case 't':
  switch(coln.size()){  
 case 5:
-   	 return 5;
+   	 return 9;
+break;
+case 6:
+   	 return 16;
+break;
+case 7:
+   	 return 0;
 break;
 case 8:
-   	 return 12;
+   	 return 10;
 break;
-case 10:
-   	 return 22;
+case 12:
+   	 return 12;
 break;
  }
  break;
 case 'u':
+ switch(coln.size()){  
+case 3:
+   	 return 13;
+break;
+case 6:
    	 return 1;
 break;
-case 'x':
- switch(coln.size()){  
-case 5:
-  colpospppc=coln.back();
-    if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='d'){ return 0; }
- if(colpospppc=='o'){ return 15; }
-   	 break;
-case 6:
-  colpospppc=coln.back();
-    if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='e'){ return 14; }
- if(colpospppc=='r'){ return 20; }
-   	 break;
+case 7:
+   	 return 14;
+break;
  }
  break;
 
@@ -184,7 +169,7 @@ case 6:
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "xpjid";
+       return "topicid";
 }
 
       void record_reset()
@@ -192,7 +177,7 @@ case 6:
             record.clear();     
       }
       void data_reset(){
-     xprojectbase::meta metatemp;    
+     topic_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -255,98 +240,63 @@ case 6:
         }
         tempsql<<") VALUES (";
 
-        if(data.xpjid==0){
+        if(data.topicid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.xpjid);
+	tempsql<<std::to_string(data.topicid);
 }
 if(data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.userid);
 }
-if(data.prexpjid==0){
+if(data.parentid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.prexpjid);
+	tempsql<<","<<std::to_string(data.parentid);
 }
-if(data.dpid==0){
+if(data.cateid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.dpid);
+	tempsql<<","<<std::to_string(data.cateid);
 }
-if(data.grouptype==0){
+if(data.sorttype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.grouptype);
+	tempsql<<","<<std::to_string(data.sorttype);
+}
+if(data.languagetype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.languagetype);
+}
+if(data.isview==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.isview);
+}
+if(data.isside==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.isside);
+}
+if(data.sortid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.sortid);
 }
 tempsql<<",'"<<stringaddslash(data.title)<<"'";
-if(data.adminuserid==0){
+tempsql<<",'"<<stringaddslash(data.twotitle)<<"'";
+tempsql<<",'"<<stringaddslash(data.memo)<<"'";
+tempsql<<",'"<<stringaddslash(data.templatename)<<"'";
+tempsql<<",'"<<stringaddslash(data.url)<<"'";
+tempsql<<",'"<<stringaddslash(data.urlpath)<<"'";
+tempsql<<",'"<<stringaddslash(data.imgurl)<<"'";
+tempsql<<",'"<<stringaddslash(data.topimg)<<"'";
+if(data.accesscode==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.adminuserid);
-}
-if(data.regdate==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.regdate);
-}
-if(data.begindate==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.begindate);
-}
-if(data.expiredate==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.expiredate);
-}
-if(data.isopen==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.isopen);
-}
-if(data.clientid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.clientid);
-}
-if(data.totalnum==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.totalnum);
-}
-if(data.referdocverion==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.referdocverion);
-}
-if(data.xtheme==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.xtheme);
-}
-tempsql<<",'"<<stringaddslash(data.xlogo)<<"'";
-tempsql<<",'"<<stringaddslash(data.introduce)<<"'";
-tempsql<<",'"<<stringaddslash(data.giturl)<<"'";
-tempsql<<",'"<<stringaddslash(data.gitname)<<"'";
-tempsql<<",'"<<stringaddslash(data.gitpwd)<<"'";
-tempsql<<",'"<<stringaddslash(data.xcolor)<<"'";
-tempsql<<",'"<<stringaddslash(data.fupan)<<"'";
-if(data.totalvalue==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.totalvalue);
-}
-if(data.expectday==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.expectday);
-}
-if(data.realday==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.realday);
+	tempsql<<","<<std::to_string(data.accesscode);
 }
 tempsql<<")";
 
@@ -373,98 +323,63 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.xpjid==0){
+        if(insert_data.topicid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.xpjid);
+	tempsql<<std::to_string(insert_data.topicid);
 }
 if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.userid);
 }
-if(insert_data.prexpjid==0){
+if(insert_data.parentid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.prexpjid);
+	tempsql<<","<<std::to_string(insert_data.parentid);
 }
-if(insert_data.dpid==0){
+if(insert_data.cateid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.dpid);
+	tempsql<<","<<std::to_string(insert_data.cateid);
 }
-if(insert_data.grouptype==0){
+if(insert_data.sorttype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.grouptype);
+	tempsql<<","<<std::to_string(insert_data.sorttype);
+}
+if(insert_data.languagetype==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.languagetype);
+}
+if(insert_data.isview==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.isview);
+}
+if(insert_data.isside==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.isside);
+}
+if(insert_data.sortid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.sortid);
 }
 tempsql<<",'"<<stringaddslash(insert_data.title)<<"'";
-if(insert_data.adminuserid==0){
+tempsql<<",'"<<stringaddslash(insert_data.twotitle)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.memo)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.templatename)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.url)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.urlpath)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.imgurl)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.topimg)<<"'";
+if(insert_data.accesscode==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.adminuserid);
-}
-if(insert_data.regdate==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.regdate);
-}
-if(insert_data.begindate==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.begindate);
-}
-if(insert_data.expiredate==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.expiredate);
-}
-if(insert_data.isopen==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.isopen);
-}
-if(insert_data.clientid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.clientid);
-}
-if(insert_data.totalnum==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.totalnum);
-}
-if(insert_data.referdocverion==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.referdocverion);
-}
-if(insert_data.xtheme==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.xtheme);
-}
-tempsql<<",'"<<stringaddslash(insert_data.xlogo)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.introduce)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.giturl)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.gitname)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.gitpwd)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.xcolor)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.fupan)<<"'";
-if(insert_data.totalvalue==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.totalvalue);
-}
-if(insert_data.expectday==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.expectday);
-}
-if(insert_data.realday==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.realday);
+	tempsql<<","<<std::to_string(insert_data.accesscode);
 }
 tempsql<<")";
 
@@ -500,98 +415,63 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].xpjid==0){
+            	if(insert_data[i].topicid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].xpjid);
+	tempsql<<std::to_string(insert_data[i].topicid);
 	}
 	if(insert_data[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
-	if(insert_data[i].prexpjid==0){
+	if(insert_data[i].parentid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].prexpjid);
+	tempsql<<","<<std::to_string(insert_data[i].parentid);
 	}
-	if(insert_data[i].dpid==0){
+	if(insert_data[i].cateid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].dpid);
+	tempsql<<","<<std::to_string(insert_data[i].cateid);
 	}
-	if(insert_data[i].grouptype==0){
+	if(insert_data[i].sorttype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].grouptype);
+	tempsql<<","<<std::to_string(insert_data[i].sorttype);
+	}
+	if(insert_data[i].languagetype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].languagetype);
+	}
+	if(insert_data[i].isview==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].isview);
+	}
+	if(insert_data[i].isside==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].isside);
+	}
+	if(insert_data[i].sortid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].sortid);
 	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].title)<<"'";
-	if(insert_data[i].adminuserid==0){
+		tempsql<<",'"<<stringaddslash(insert_data[i].twotitle)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].memo)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].templatename)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].url)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].urlpath)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].imgurl)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].topimg)<<"'";
+	if(insert_data[i].accesscode==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].adminuserid);
-	}
-	if(insert_data[i].regdate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].regdate);
-	}
-	if(insert_data[i].begindate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].begindate);
-	}
-	if(insert_data[i].expiredate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].expiredate);
-	}
-	if(insert_data[i].isopen==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].isopen);
-	}
-	if(insert_data[i].clientid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].clientid);
-	}
-	if(insert_data[i].totalnum==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].totalnum);
-	}
-	if(insert_data[i].referdocverion==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].referdocverion);
-	}
-	if(insert_data[i].xtheme==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].xtheme);
-	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].xlogo)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].introduce)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].giturl)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].gitname)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].gitpwd)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].xcolor)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].fupan)<<"'";
-	if(insert_data[i].totalvalue==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].totalvalue);
-	}
-	if(insert_data[i].expectday==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].expectday);
-	}
-	if(insert_data[i].realday==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].realday);
+	tempsql<<","<<std::to_string(insert_data[i].accesscode);
 	}
 		tempsql<<")";
 	 } 
@@ -612,98 +492,63 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.xpjid==0){
-	tempsql<<"`xpjid`=0";
+        if(data.topicid==0){
+	tempsql<<"`topicid`=0";
  }else{ 
-	tempsql<<"`xpjid`="<<std::to_string(data.xpjid);
+	tempsql<<"`topicid`="<<std::to_string(data.topicid);
 }
 if(data.userid==0){
 	tempsql<<",`userid`=0";
  }else{ 
 	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
-if(data.prexpjid==0){
-	tempsql<<",`prexpjid`=0";
+if(data.parentid==0){
+	tempsql<<",`parentid`=0";
  }else{ 
-	tempsql<<",`prexpjid`="<<std::to_string(data.prexpjid);
+	tempsql<<",`parentid`="<<std::to_string(data.parentid);
 }
-if(data.dpid==0){
-	tempsql<<",`dpid`=0";
+if(data.cateid==0){
+	tempsql<<",`cateid`=0";
  }else{ 
-	tempsql<<",`dpid`="<<std::to_string(data.dpid);
+	tempsql<<",`cateid`="<<std::to_string(data.cateid);
 }
-if(data.grouptype==0){
-	tempsql<<",`grouptype`=0";
+if(data.sorttype==0){
+	tempsql<<",`sorttype`=0";
  }else{ 
-	tempsql<<",`grouptype`="<<std::to_string(data.grouptype);
+	tempsql<<",`sorttype`="<<std::to_string(data.sorttype);
+}
+if(data.languagetype==0){
+	tempsql<<",`languagetype`=0";
+ }else{ 
+	tempsql<<",`languagetype`="<<std::to_string(data.languagetype);
+}
+if(data.isview==0){
+	tempsql<<",`isview`=0";
+ }else{ 
+	tempsql<<",`isview`="<<std::to_string(data.isview);
+}
+if(data.isside==0){
+	tempsql<<",`isside`=0";
+ }else{ 
+	tempsql<<",`isside`="<<std::to_string(data.isside);
+}
+if(data.sortid==0){
+	tempsql<<",`sortid`=0";
+ }else{ 
+	tempsql<<",`sortid`="<<std::to_string(data.sortid);
 }
 tempsql<<",`title`='"<<stringaddslash(data.title)<<"'";
-if(data.adminuserid==0){
-	tempsql<<",`adminuserid`=0";
+tempsql<<",`twotitle`='"<<stringaddslash(data.twotitle)<<"'";
+tempsql<<",`memo`='"<<stringaddslash(data.memo)<<"'";
+tempsql<<",`templatename`='"<<stringaddslash(data.templatename)<<"'";
+tempsql<<",`url`='"<<stringaddslash(data.url)<<"'";
+tempsql<<",`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
+tempsql<<",`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
+tempsql<<",`topimg`='"<<stringaddslash(data.topimg)<<"'";
+if(data.accesscode==0){
+	tempsql<<",`accesscode`=0";
  }else{ 
-	tempsql<<",`adminuserid`="<<std::to_string(data.adminuserid);
-}
-if(data.regdate==0){
-	tempsql<<",`regdate`=0";
- }else{ 
-	tempsql<<",`regdate`="<<std::to_string(data.regdate);
-}
-if(data.begindate==0){
-	tempsql<<",`begindate`=0";
- }else{ 
-	tempsql<<",`begindate`="<<std::to_string(data.begindate);
-}
-if(data.expiredate==0){
-	tempsql<<",`expiredate`=0";
- }else{ 
-	tempsql<<",`expiredate`="<<std::to_string(data.expiredate);
-}
-if(data.isopen==0){
-	tempsql<<",`isopen`=0";
- }else{ 
-	tempsql<<",`isopen`="<<std::to_string(data.isopen);
-}
-if(data.clientid==0){
-	tempsql<<",`clientid`=0";
- }else{ 
-	tempsql<<",`clientid`="<<std::to_string(data.clientid);
-}
-if(data.totalnum==0){
-	tempsql<<",`totalnum`=0";
- }else{ 
-	tempsql<<",`totalnum`="<<std::to_string(data.totalnum);
-}
-if(data.referdocverion==0){
-	tempsql<<",`referdocverion`=0";
- }else{ 
-	tempsql<<",`referdocverion`="<<std::to_string(data.referdocverion);
-}
-if(data.xtheme==0){
-	tempsql<<",`xtheme`=0";
- }else{ 
-	tempsql<<",`xtheme`="<<std::to_string(data.xtheme);
-}
-tempsql<<",`xlogo`='"<<stringaddslash(data.xlogo)<<"'";
-tempsql<<",`introduce`='"<<stringaddslash(data.introduce)<<"'";
-tempsql<<",`giturl`='"<<stringaddslash(data.giturl)<<"'";
-tempsql<<",`gitname`='"<<stringaddslash(data.gitname)<<"'";
-tempsql<<",`gitpwd`='"<<stringaddslash(data.gitpwd)<<"'";
-tempsql<<",`xcolor`='"<<stringaddslash(data.xcolor)<<"'";
-tempsql<<",`fupan`='"<<stringaddslash(data.fupan)<<"'";
-if(data.totalvalue==0){
-	tempsql<<",`totalvalue`=0";
- }else{ 
-	tempsql<<",`totalvalue`="<<std::to_string(data.totalvalue);
-}
-if(data.expectday==0){
-	tempsql<<",`expectday`=0";
- }else{ 
-	tempsql<<",`expectday`="<<std::to_string(data.expectday);
-}
-if(data.realday==0){
-	tempsql<<",`realday`=0";
- }else{ 
-	tempsql<<",`realday`="<<std::to_string(data.realday);
+	tempsql<<",`accesscode`="<<std::to_string(data.accesscode);
 }
  }else{ 
 
@@ -751,10 +596,10 @@ if(data.realday==0){
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.xpjid==0){
-	tempsql<<"`xpjid`=0";
+if(data.topicid==0){
+	tempsql<<"`topicid`=0";
  }else{ 
-	tempsql<<"`xpjid`="<<std::to_string(data.xpjid);
+	tempsql<<"`topicid`="<<std::to_string(data.topicid);
 }
  break;
  case 1:
@@ -767,154 +612,98 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.prexpjid==0){
-	tempsql<<"`prexpjid`=0";
+if(data.parentid==0){
+	tempsql<<"`parentid`=0";
  }else{ 
-	tempsql<<"`prexpjid`="<<std::to_string(data.prexpjid);
+	tempsql<<"`parentid`="<<std::to_string(data.parentid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(data.dpid==0){
-	tempsql<<"`dpid`=0";
+if(data.cateid==0){
+	tempsql<<"`cateid`=0";
  }else{ 
-	tempsql<<"`dpid`="<<std::to_string(data.dpid);
+	tempsql<<"`cateid`="<<std::to_string(data.cateid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.grouptype==0){
-	tempsql<<"`grouptype`=0";
+if(data.sorttype==0){
+	tempsql<<"`sorttype`=0";
  }else{ 
-	tempsql<<"`grouptype`="<<std::to_string(data.grouptype);
+	tempsql<<"`sorttype`="<<std::to_string(data.sorttype);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`title`='"<<stringaddslash(data.title)<<"'";
+if(data.languagetype==0){
+	tempsql<<"`languagetype`=0";
+ }else{ 
+	tempsql<<"`languagetype`="<<std::to_string(data.languagetype);
+}
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(data.adminuserid==0){
-	tempsql<<"`adminuserid`=0";
+if(data.isview==0){
+	tempsql<<"`isview`=0";
  }else{ 
-	tempsql<<"`adminuserid`="<<std::to_string(data.adminuserid);
+	tempsql<<"`isview`="<<std::to_string(data.isview);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(data.regdate==0){
-	tempsql<<"`regdate`=0";
+if(data.isside==0){
+	tempsql<<"`isside`=0";
  }else{ 
-	tempsql<<"`regdate`="<<std::to_string(data.regdate);
+	tempsql<<"`isside`="<<std::to_string(data.isside);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(data.begindate==0){
-	tempsql<<"`begindate`=0";
+if(data.sortid==0){
+	tempsql<<"`sortid`=0";
  }else{ 
-	tempsql<<"`begindate`="<<std::to_string(data.begindate);
+	tempsql<<"`sortid`="<<std::to_string(data.sortid);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(data.expiredate==0){
-	tempsql<<"`expiredate`=0";
- }else{ 
-	tempsql<<"`expiredate`="<<std::to_string(data.expiredate);
-}
+tempsql<<"`title`='"<<stringaddslash(data.title)<<"'";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(data.isopen==0){
-	tempsql<<"`isopen`=0";
- }else{ 
-	tempsql<<"`isopen`="<<std::to_string(data.isopen);
-}
+tempsql<<"`twotitle`='"<<stringaddslash(data.twotitle)<<"'";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-if(data.clientid==0){
-	tempsql<<"`clientid`=0";
- }else{ 
-	tempsql<<"`clientid`="<<std::to_string(data.clientid);
-}
+tempsql<<"`memo`='"<<stringaddslash(data.memo)<<"'";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-if(data.totalnum==0){
-	tempsql<<"`totalnum`=0";
- }else{ 
-	tempsql<<"`totalnum`="<<std::to_string(data.totalnum);
-}
+tempsql<<"`templatename`='"<<stringaddslash(data.templatename)<<"'";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-if(data.referdocverion==0){
-	tempsql<<"`referdocverion`=0";
- }else{ 
-	tempsql<<"`referdocverion`="<<std::to_string(data.referdocverion);
-}
+tempsql<<"`url`='"<<stringaddslash(data.url)<<"'";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-if(data.xtheme==0){
-	tempsql<<"`xtheme`=0";
- }else{ 
-	tempsql<<"`xtheme`="<<std::to_string(data.xtheme);
-}
+tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`xlogo`='"<<stringaddslash(data.xlogo)<<"'";
+tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`introduce`='"<<stringaddslash(data.introduce)<<"'";
+tempsql<<"`topimg`='"<<stringaddslash(data.topimg)<<"'";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`giturl`='"<<stringaddslash(data.giturl)<<"'";
- break;
- case 18:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`gitname`='"<<stringaddslash(data.gitname)<<"'";
- break;
- case 19:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`gitpwd`='"<<stringaddslash(data.gitpwd)<<"'";
- break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`xcolor`='"<<stringaddslash(data.xcolor)<<"'";
- break;
- case 21:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`fupan`='"<<stringaddslash(data.fupan)<<"'";
- break;
- case 22:
- if(jj>0){ tempsql<<","; } 
-if(data.totalvalue==0){
-	tempsql<<"`totalvalue`=0";
+if(data.accesscode==0){
+	tempsql<<"`accesscode`=0";
  }else{ 
-	tempsql<<"`totalvalue`="<<std::to_string(data.totalvalue);
-}
- break;
- case 23:
- if(jj>0){ tempsql<<","; } 
-if(data.expectday==0){
-	tempsql<<"`expectday`=0";
- }else{ 
-	tempsql<<"`expectday`="<<std::to_string(data.expectday);
-}
- break;
- case 24:
- if(jj>0){ tempsql<<","; } 
-if(data.realday==0){
-	tempsql<<"`realday`=0";
- }else{ 
-	tempsql<<"`realday`="<<std::to_string(data.realday);
+	tempsql<<"`accesscode`="<<std::to_string(data.accesscode);
 }
  break;
 
@@ -961,98 +750,63 @@ if(data.realday==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].xpjid==0){
+            	if(record[i].topicid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].xpjid);
+	tempsql<<std::to_string(record[i].topicid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].prexpjid==0){
+	if(record[i].parentid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].prexpjid);
+	tempsql<<","<<std::to_string(record[i].parentid);
 	}
-	if(record[i].dpid==0){
+	if(record[i].cateid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].dpid);
+	tempsql<<","<<std::to_string(record[i].cateid);
 	}
-	if(record[i].grouptype==0){
+	if(record[i].sorttype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].grouptype);
+	tempsql<<","<<std::to_string(record[i].sorttype);
+	}
+	if(record[i].languagetype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].languagetype);
+	}
+	if(record[i].isview==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isview);
+	}
+	if(record[i].isside==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isside);
+	}
+	if(record[i].sortid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].sortid);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
-	if(record[i].adminuserid==0){
+	tempsql<<",'"<<stringaddslash(record[i].twotitle)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].memo)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].templatename)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].url)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].topimg)<<"'";
+	if(record[i].accesscode==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].adminuserid);
-	}
-	if(record[i].regdate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].regdate);
-	}
-	if(record[i].begindate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].begindate);
-	}
-	if(record[i].expiredate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].expiredate);
-	}
-	if(record[i].isopen==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].isopen);
-	}
-	if(record[i].clientid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].clientid);
-	}
-	if(record[i].totalnum==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].totalnum);
-	}
-	if(record[i].referdocverion==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].referdocverion);
-	}
-	if(record[i].xtheme==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].xtheme);
-	}
-	tempsql<<",'"<<stringaddslash(record[i].xlogo)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].introduce)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].giturl)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].gitname)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].gitpwd)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].xcolor)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].fupan)<<"'";
-	if(record[i].totalvalue==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].totalvalue);
-	}
-	if(record[i].expectday==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].expectday);
-	}
-	if(record[i].realday==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].realday);
+	tempsql<<","<<std::to_string(record[i].accesscode);
 	}
 	tempsql<<")";
 
@@ -1092,98 +846,63 @@ if(data.realday==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].xpjid==0){
+            	if(record[i].topicid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].xpjid);
+	tempsql<<std::to_string(record[i].topicid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].prexpjid==0){
+	if(record[i].parentid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].prexpjid);
+	tempsql<<","<<std::to_string(record[i].parentid);
 	}
-	if(record[i].dpid==0){
+	if(record[i].cateid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].dpid);
+	tempsql<<","<<std::to_string(record[i].cateid);
 	}
-	if(record[i].grouptype==0){
+	if(record[i].sorttype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].grouptype);
+	tempsql<<","<<std::to_string(record[i].sorttype);
+	}
+	if(record[i].languagetype==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].languagetype);
+	}
+	if(record[i].isview==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isview);
+	}
+	if(record[i].isside==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isside);
+	}
+	if(record[i].sortid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].sortid);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
-	if(record[i].adminuserid==0){
+	tempsql<<",'"<<stringaddslash(record[i].twotitle)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].memo)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].templatename)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].url)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].topimg)<<"'";
+	if(record[i].accesscode==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].adminuserid);
-	}
-	if(record[i].regdate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].regdate);
-	}
-	if(record[i].begindate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].begindate);
-	}
-	if(record[i].expiredate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].expiredate);
-	}
-	if(record[i].isopen==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].isopen);
-	}
-	if(record[i].clientid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].clientid);
-	}
-	if(record[i].totalnum==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].totalnum);
-	}
-	if(record[i].referdocverion==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].referdocverion);
-	}
-	if(record[i].xtheme==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].xtheme);
-	}
-	tempsql<<",'"<<stringaddslash(record[i].xlogo)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].introduce)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].giturl)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].gitname)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].gitpwd)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].xcolor)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].fupan)<<"'";
-	if(record[i].totalvalue==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].totalvalue);
-	}
-	if(record[i].expectday==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].expectday);
-	}
-	if(record[i].realday==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].realday);
+	tempsql<<","<<std::to_string(record[i].accesscode);
 	}
 	tempsql<<")";
 	 }
@@ -1265,10 +984,10 @@ if(data.realday==0){
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.xpjid==0){
+if(data.topicid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.xpjid));
+	temparray.push_back(std::to_string(data.topicid));
 }
  break;
  case 1:
@@ -1279,132 +998,83 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.prexpjid==0){
+if(data.parentid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.prexpjid));
+	temparray.push_back(std::to_string(data.parentid));
 }
  break;
  case 3:
-if(data.dpid==0){
+if(data.cateid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.dpid));
+	temparray.push_back(std::to_string(data.cateid));
 }
  break;
  case 4:
-if(data.grouptype==0){
+if(data.sorttype==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.grouptype));
+	temparray.push_back(std::to_string(data.sorttype));
 }
  break;
  case 5:
-	temparray.push_back(data.title);
- break;
- case 6:
-if(data.adminuserid==0){
+if(data.languagetype==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.adminuserid));
+	temparray.push_back(std::to_string(data.languagetype));
+}
+ break;
+ case 6:
+if(data.isview==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.isview));
 }
  break;
  case 7:
-if(data.regdate==0){
+if(data.isside==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.regdate));
+	temparray.push_back(std::to_string(data.isside));
 }
  break;
  case 8:
-if(data.begindate==0){
+if(data.sortid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.begindate));
+	temparray.push_back(std::to_string(data.sortid));
 }
  break;
  case 9:
-if(data.expiredate==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.expiredate));
-}
+	temparray.push_back(data.title);
  break;
  case 10:
-if(data.isopen==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.isopen));
-}
+	temparray.push_back(data.twotitle);
  break;
  case 11:
-if(data.clientid==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.clientid));
-}
+	temparray.push_back(data.memo);
  break;
  case 12:
-if(data.totalnum==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.totalnum));
-}
+	temparray.push_back(data.templatename);
  break;
  case 13:
-if(data.referdocverion==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.referdocverion));
-}
+	temparray.push_back(data.url);
  break;
  case 14:
-if(data.xtheme==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.xtheme));
-}
+	temparray.push_back(data.urlpath);
  break;
  case 15:
-	temparray.push_back(data.xlogo);
+	temparray.push_back(data.imgurl);
  break;
  case 16:
-	temparray.push_back(data.introduce);
+	temparray.push_back(data.topimg);
  break;
  case 17:
-	temparray.push_back(data.giturl);
- break;
- case 18:
-	temparray.push_back(data.gitname);
- break;
- case 19:
-	temparray.push_back(data.gitpwd);
- break;
- case 20:
-	temparray.push_back(data.xcolor);
- break;
- case 21:
-	temparray.push_back(data.fupan);
- break;
- case 22:
-if(data.totalvalue==0){
+if(data.accesscode==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.totalvalue));
-}
- break;
- case 23:
-if(data.expectday==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.expectday));
-}
- break;
- case 24:
-if(data.realday==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.realday));
+	temparray.push_back(std::to_string(data.accesscode));
 }
  break;
 
@@ -1448,10 +1118,10 @@ if(data.realday==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.xpjid==0){
-	tempsql.insert({"xpjid","0"});
+if(data.topicid==0){
+	tempsql.insert({"topicid","0"});
  }else{ 
-	tempsql.insert({"xpjid",std::to_string(data.xpjid)});
+	tempsql.insert({"topicid",std::to_string(data.topicid)});
 }
  break;
  case 1:
@@ -1462,132 +1132,83 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.prexpjid==0){
-	tempsql.insert({"prexpjid","0"});
+if(data.parentid==0){
+	tempsql.insert({"parentid","0"});
  }else{ 
-	tempsql.insert({"prexpjid",std::to_string(data.prexpjid)});
+	tempsql.insert({"parentid",std::to_string(data.parentid)});
 }
  break;
  case 3:
-if(data.dpid==0){
-	tempsql.insert({"dpid","0"});
+if(data.cateid==0){
+	tempsql.insert({"cateid","0"});
  }else{ 
-	tempsql.insert({"dpid",std::to_string(data.dpid)});
+	tempsql.insert({"cateid",std::to_string(data.cateid)});
 }
  break;
  case 4:
-if(data.grouptype==0){
-	tempsql.insert({"grouptype","0"});
+if(data.sorttype==0){
+	tempsql.insert({"sorttype","0"});
  }else{ 
-	tempsql.insert({"grouptype",std::to_string(data.grouptype)});
+	tempsql.insert({"sorttype",std::to_string(data.sorttype)});
 }
  break;
  case 5:
-	tempsql.insert({"title",data.title});
+if(data.languagetype==0){
+	tempsql.insert({"languagetype","0"});
+ }else{ 
+	tempsql.insert({"languagetype",std::to_string(data.languagetype)});
+}
  break;
  case 6:
-if(data.adminuserid==0){
-	tempsql.insert({"adminuserid","0"});
+if(data.isview==0){
+	tempsql.insert({"isview","0"});
  }else{ 
-	tempsql.insert({"adminuserid",std::to_string(data.adminuserid)});
+	tempsql.insert({"isview",std::to_string(data.isview)});
 }
  break;
  case 7:
-if(data.regdate==0){
-	tempsql.insert({"regdate","0"});
+if(data.isside==0){
+	tempsql.insert({"isside","0"});
  }else{ 
-	tempsql.insert({"regdate",std::to_string(data.regdate)});
+	tempsql.insert({"isside",std::to_string(data.isside)});
 }
  break;
  case 8:
-if(data.begindate==0){
-	tempsql.insert({"begindate","0"});
+if(data.sortid==0){
+	tempsql.insert({"sortid","0"});
  }else{ 
-	tempsql.insert({"begindate",std::to_string(data.begindate)});
+	tempsql.insert({"sortid",std::to_string(data.sortid)});
 }
  break;
  case 9:
-if(data.expiredate==0){
-	tempsql.insert({"expiredate","0"});
- }else{ 
-	tempsql.insert({"expiredate",std::to_string(data.expiredate)});
-}
+	tempsql.insert({"title",data.title});
  break;
  case 10:
-if(data.isopen==0){
-	tempsql.insert({"isopen","0"});
- }else{ 
-	tempsql.insert({"isopen",std::to_string(data.isopen)});
-}
+	tempsql.insert({"twotitle",data.twotitle});
  break;
  case 11:
-if(data.clientid==0){
-	tempsql.insert({"clientid","0"});
- }else{ 
-	tempsql.insert({"clientid",std::to_string(data.clientid)});
-}
+	tempsql.insert({"memo",data.memo});
  break;
  case 12:
-if(data.totalnum==0){
-	tempsql.insert({"totalnum","0"});
- }else{ 
-	tempsql.insert({"totalnum",std::to_string(data.totalnum)});
-}
+	tempsql.insert({"templatename",data.templatename});
  break;
  case 13:
-if(data.referdocverion==0){
-	tempsql.insert({"referdocverion","0"});
- }else{ 
-	tempsql.insert({"referdocverion",std::to_string(data.referdocverion)});
-}
+	tempsql.insert({"url",data.url});
  break;
  case 14:
-if(data.xtheme==0){
-	tempsql.insert({"xtheme","0"});
- }else{ 
-	tempsql.insert({"xtheme",std::to_string(data.xtheme)});
-}
+	tempsql.insert({"urlpath",data.urlpath});
  break;
  case 15:
-	tempsql.insert({"xlogo",data.xlogo});
+	tempsql.insert({"imgurl",data.imgurl});
  break;
  case 16:
-	tempsql.insert({"introduce",data.introduce});
+	tempsql.insert({"topimg",data.topimg});
  break;
  case 17:
-	tempsql.insert({"giturl",data.giturl});
- break;
- case 18:
-	tempsql.insert({"gitname",data.gitname});
- break;
- case 19:
-	tempsql.insert({"gitpwd",data.gitpwd});
- break;
- case 20:
-	tempsql.insert({"xcolor",data.xcolor});
- break;
- case 21:
-	tempsql.insert({"fupan",data.fupan});
- break;
- case 22:
-if(data.totalvalue==0){
-	tempsql.insert({"totalvalue","0"});
+if(data.accesscode==0){
+	tempsql.insert({"accesscode","0"});
  }else{ 
-	tempsql.insert({"totalvalue",std::to_string(data.totalvalue)});
-}
- break;
- case 23:
-if(data.expectday==0){
-	tempsql.insert({"expectday","0"});
- }else{ 
-	tempsql.insert({"expectday",std::to_string(data.expectday)});
-}
- break;
- case 24:
-if(data.realday==0){
-	tempsql.insert({"realday","0"});
- }else{ 
-	tempsql.insert({"realday",std::to_string(data.realday)});
+	tempsql.insert({"accesscode",std::to_string(data.accesscode)});
 }
  break;
 
@@ -1603,106 +1224,71 @@ if(data.realday==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.xpjid==0){
-	tempsql<<"\"xpjid\":0";
+if(data.topicid==0){
+	tempsql<<"\"topicid\":0";
  }else{ 
-	tempsql<<"\"xpjid\":"<<std::to_string(data.xpjid);
+	tempsql<<"\"topicid\":"<<std::to_string(data.topicid);
 }
 if(data.userid==0){
 	tempsql<<",\"userid\":0";
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
-if(data.prexpjid==0){
-	tempsql<<",\"prexpjid\":0";
+if(data.parentid==0){
+	tempsql<<",\"parentid\":0";
  }else{ 
-	tempsql<<",\"prexpjid\":"<<std::to_string(data.prexpjid);
+	tempsql<<",\"parentid\":"<<std::to_string(data.parentid);
 }
-if(data.dpid==0){
-	tempsql<<",\"dpid\":0";
+if(data.cateid==0){
+	tempsql<<",\"cateid\":0";
  }else{ 
-	tempsql<<",\"dpid\":"<<std::to_string(data.dpid);
+	tempsql<<",\"cateid\":"<<std::to_string(data.cateid);
 }
-if(data.grouptype==0){
-	tempsql<<",\"grouptype\":0";
+if(data.sorttype==0){
+	tempsql<<",\"sorttype\":0";
  }else{ 
-	tempsql<<",\"grouptype\":"<<std::to_string(data.grouptype);
+	tempsql<<",\"sorttype\":"<<std::to_string(data.sorttype);
+}
+if(data.languagetype==0){
+	tempsql<<",\"languagetype\":0";
+ }else{ 
+	tempsql<<",\"languagetype\":"<<std::to_string(data.languagetype);
+}
+if(data.isview==0){
+	tempsql<<",\"isview\":0";
+ }else{ 
+	tempsql<<",\"isview\":"<<std::to_string(data.isview);
+}
+if(data.isside==0){
+	tempsql<<",\"isside\":0";
+ }else{ 
+	tempsql<<",\"isside\":"<<std::to_string(data.isside);
+}
+if(data.sortid==0){
+	tempsql<<",\"sortid\":0";
+ }else{ 
+	tempsql<<",\"sortid\":"<<std::to_string(data.sortid);
 }
 tempsql<<",\"title\":\""<<http::utf8_to_jsonstring(data.title);
 tempsql<<"\"";
-if(data.adminuserid==0){
-	tempsql<<",\"adminuserid\":0";
- }else{ 
-	tempsql<<",\"adminuserid\":"<<std::to_string(data.adminuserid);
-}
-if(data.regdate==0){
-	tempsql<<",\"regdate\":0";
- }else{ 
-	tempsql<<",\"regdate\":"<<std::to_string(data.regdate);
-}
-if(data.begindate==0){
-	tempsql<<",\"begindate\":0";
- }else{ 
-	tempsql<<",\"begindate\":"<<std::to_string(data.begindate);
-}
-if(data.expiredate==0){
-	tempsql<<",\"expiredate\":0";
- }else{ 
-	tempsql<<",\"expiredate\":"<<std::to_string(data.expiredate);
-}
-if(data.isopen==0){
-	tempsql<<",\"isopen\":0";
- }else{ 
-	tempsql<<",\"isopen\":"<<std::to_string(data.isopen);
-}
-if(data.clientid==0){
-	tempsql<<",\"clientid\":0";
- }else{ 
-	tempsql<<",\"clientid\":"<<std::to_string(data.clientid);
-}
-if(data.totalnum==0){
-	tempsql<<",\"totalnum\":0";
- }else{ 
-	tempsql<<",\"totalnum\":"<<std::to_string(data.totalnum);
-}
-if(data.referdocverion==0){
-	tempsql<<",\"referdocverion\":0";
- }else{ 
-	tempsql<<",\"referdocverion\":"<<std::to_string(data.referdocverion);
-}
-if(data.xtheme==0){
-	tempsql<<",\"xtheme\":0";
- }else{ 
-	tempsql<<",\"xtheme\":"<<std::to_string(data.xtheme);
-}
-tempsql<<",\"xlogo\":\""<<http::utf8_to_jsonstring(data.xlogo);
+tempsql<<",\"twotitle\":\""<<http::utf8_to_jsonstring(data.twotitle);
 tempsql<<"\"";
-tempsql<<",\"introduce\":\""<<http::utf8_to_jsonstring(data.introduce);
+tempsql<<",\"memo\":\""<<http::utf8_to_jsonstring(data.memo);
 tempsql<<"\"";
-tempsql<<",\"giturl\":\""<<http::utf8_to_jsonstring(data.giturl);
+tempsql<<",\"templatename\":\""<<http::utf8_to_jsonstring(data.templatename);
 tempsql<<"\"";
-tempsql<<",\"gitname\":\""<<http::utf8_to_jsonstring(data.gitname);
+tempsql<<",\"url\":\""<<http::utf8_to_jsonstring(data.url);
 tempsql<<"\"";
-tempsql<<",\"gitpwd\":\""<<http::utf8_to_jsonstring(data.gitpwd);
+tempsql<<",\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath);
 tempsql<<"\"";
-tempsql<<",\"xcolor\":\""<<http::utf8_to_jsonstring(data.xcolor);
+tempsql<<",\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl);
 tempsql<<"\"";
-tempsql<<",\"fupan\":\""<<http::utf8_to_jsonstring(data.fupan);
+tempsql<<",\"topimg\":\""<<http::utf8_to_jsonstring(data.topimg);
 tempsql<<"\"";
-if(data.totalvalue==0){
-	tempsql<<",\"totalvalue\":0";
+if(data.accesscode==0){
+	tempsql<<",\"accesscode\":0";
  }else{ 
-	tempsql<<",\"totalvalue\":"<<std::to_string(data.totalvalue);
-}
-if(data.expectday==0){
-	tempsql<<",\"expectday\":0";
- }else{ 
-	tempsql<<",\"expectday\":"<<std::to_string(data.expectday);
-}
-if(data.realday==0){
-	tempsql<<",\"realday\":0";
- }else{ 
-	tempsql<<",\"realday\":"<<std::to_string(data.realday);
+	tempsql<<",\"accesscode\":"<<std::to_string(data.accesscode);
 }
 tempsql<<"}";
 
@@ -1743,10 +1329,10 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.xpjid==0){
-	tempsql<<"\"xpjid\":0";
+if(data.topicid==0){
+	tempsql<<"\"topicid\":0";
  }else{ 
-	tempsql<<"\"xpjid\":"<<std::to_string(data.xpjid);
+	tempsql<<"\"topicid\":"<<std::to_string(data.topicid);
 }
  break;
  case 1:
@@ -1759,154 +1345,98 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.prexpjid==0){
-	tempsql<<"\"prexpjid\":0";
+if(data.parentid==0){
+	tempsql<<"\"parentid\":0";
  }else{ 
-	tempsql<<"\"prexpjid\":"<<std::to_string(data.prexpjid);
+	tempsql<<"\"parentid\":"<<std::to_string(data.parentid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(data.dpid==0){
-	tempsql<<"\"dpid\":0";
+if(data.cateid==0){
+	tempsql<<"\"cateid\":0";
  }else{ 
-	tempsql<<"\"dpid\":"<<std::to_string(data.dpid);
+	tempsql<<"\"cateid\":"<<std::to_string(data.cateid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.grouptype==0){
-	tempsql<<"\"grouptype\":0";
+if(data.sorttype==0){
+	tempsql<<"\"sorttype\":0";
  }else{ 
-	tempsql<<"\"grouptype\":"<<std::to_string(data.grouptype);
+	tempsql<<"\"sorttype\":"<<std::to_string(data.sorttype);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
+if(data.languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(data.languagetype);
+}
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(data.adminuserid==0){
-	tempsql<<"\"adminuserid\":0";
+if(data.isview==0){
+	tempsql<<"\"isview\":0";
  }else{ 
-	tempsql<<"\"adminuserid\":"<<std::to_string(data.adminuserid);
+	tempsql<<"\"isview\":"<<std::to_string(data.isview);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(data.regdate==0){
-	tempsql<<"\"regdate\":0";
+if(data.isside==0){
+	tempsql<<"\"isside\":0";
  }else{ 
-	tempsql<<"\"regdate\":"<<std::to_string(data.regdate);
+	tempsql<<"\"isside\":"<<std::to_string(data.isside);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(data.begindate==0){
-	tempsql<<"\"begindate\":0";
+if(data.sortid==0){
+	tempsql<<"\"sortid\":0";
  }else{ 
-	tempsql<<"\"begindate\":"<<std::to_string(data.begindate);
+	tempsql<<"\"sortid\":"<<std::to_string(data.sortid);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(data.expiredate==0){
-	tempsql<<"\"expiredate\":0";
- }else{ 
-	tempsql<<"\"expiredate\":"<<std::to_string(data.expiredate);
-}
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(data.isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(data.isopen);
-}
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(data.twotitle)<<"\"";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-if(data.clientid==0){
-	tempsql<<"\"clientid\":0";
- }else{ 
-	tempsql<<"\"clientid\":"<<std::to_string(data.clientid);
-}
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(data.memo)<<"\"";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-if(data.totalnum==0){
-	tempsql<<"\"totalnum\":0";
- }else{ 
-	tempsql<<"\"totalnum\":"<<std::to_string(data.totalnum);
-}
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(data.templatename)<<"\"";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-if(data.referdocverion==0){
-	tempsql<<"\"referdocverion\":0";
- }else{ 
-	tempsql<<"\"referdocverion\":"<<std::to_string(data.referdocverion);
-}
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(data.url)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-if(data.xtheme==0){
-	tempsql<<"\"xtheme\":0";
- }else{ 
-	tempsql<<"\"xtheme\":"<<std::to_string(data.xtheme);
-}
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"xlogo\":\""<<http::utf8_to_jsonstring(data.xlogo)<<"\"";
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(data.introduce)<<"\"";
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(data.topimg)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"giturl\":\""<<http::utf8_to_jsonstring(data.giturl)<<"\"";
- break;
- case 18:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"gitname\":\""<<http::utf8_to_jsonstring(data.gitname)<<"\"";
- break;
- case 19:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"gitpwd\":\""<<http::utf8_to_jsonstring(data.gitpwd)<<"\"";
- break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"xcolor\":\""<<http::utf8_to_jsonstring(data.xcolor)<<"\"";
- break;
- case 21:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fupan\":\""<<http::utf8_to_jsonstring(data.fupan)<<"\"";
- break;
- case 22:
- if(jj>0){ tempsql<<","; } 
-if(data.totalvalue==0){
-	tempsql<<"\"totalvalue\":0";
+if(data.accesscode==0){
+	tempsql<<"\"accesscode\":0";
  }else{ 
-	tempsql<<"\"totalvalue\":"<<std::to_string(data.totalvalue);
-}
- break;
- case 23:
- if(jj>0){ tempsql<<","; } 
-if(data.expectday==0){
-	tempsql<<"\"expectday\":0";
- }else{ 
-	tempsql<<"\"expectday\":"<<std::to_string(data.expectday);
-}
- break;
- case 24:
- if(jj>0){ tempsql<<","; } 
-if(data.realday==0){
-	tempsql<<"\"realday\":0";
- }else{ 
-	tempsql<<"\"realday\":"<<std::to_string(data.realday);
+	tempsql<<"\"accesscode\":"<<std::to_string(data.accesscode);
 }
  break;
 
@@ -1921,7 +1451,7 @@ if(data.realday==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        xprojectbase::meta metatemp; 
+        topic_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -2158,9 +1688,9 @@ if(data.realday==0){
         {
     		case 0:
 		 try{
-			data.xpjid=std::stoul(set_value_name);
+			data.topicid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.xpjid=0;
+			data.topicid=0;
 			 }
 			break;
 		case 1:
@@ -2172,163 +1702,114 @@ if(data.realday==0){
 			break;
 		case 2:
 		 try{
-			data.prexpjid=std::stoul(set_value_name);
+			data.parentid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.prexpjid=0;
+			data.parentid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.dpid=std::stoul(set_value_name);
+			data.cateid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.dpid=0;
+			data.cateid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.grouptype=std::stoul(set_value_name);
+			data.sorttype=std::stoi(set_value_name);
 		}catch (...) { 
-			data.grouptype=0;
+			data.sorttype=0;
 			 }
 			break;
 		case 5:
+		 try{
+			data.languagetype=std::stoul(set_value_name);
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 6:
+		 try{
+			data.isview=std::stoi(set_value_name);
+		}catch (...) { 
+			data.isview=0;
+			 }
+			break;
+		case 7:
+		 try{
+			data.isside=std::stoi(set_value_name);
+		}catch (...) { 
+			data.isside=0;
+			 }
+			break;
+		case 8:
+		 try{
+			data.sortid=std::stoul(set_value_name);
+		}catch (...) { 
+			data.sortid=0;
+			 }
+			break;
+		case 9:
 		 try{
 			data.title.append(set_value_name);
 		}catch (...) { 
 			data.title.clear();
 			 }
 			break;
-		case 6:
-		 try{
-			data.adminuserid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.adminuserid=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.regdate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.begindate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.expiredate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.expiredate=0;
-			 }
-			break;
 		case 10:
 		 try{
-			data.isopen=std::stoi(set_value_name);
+			data.twotitle.append(set_value_name);
 		}catch (...) { 
-			data.isopen=0;
+			data.twotitle.clear();
 			 }
 			break;
 		case 11:
 		 try{
-			data.clientid=std::stoul(set_value_name);
+			data.memo.append(set_value_name);
 		}catch (...) { 
-			data.clientid=0;
+			data.memo.clear();
 			 }
 			break;
 		case 12:
 		 try{
-			data.totalnum=std::stoul(set_value_name);
+			data.templatename.append(set_value_name);
 		}catch (...) { 
-			data.totalnum=0;
+			data.templatename.clear();
 			 }
 			break;
 		case 13:
 		 try{
-			data.referdocverion=std::stoul(set_value_name);
+			data.url.append(set_value_name);
 		}catch (...) { 
-			data.referdocverion=0;
+			data.url.clear();
 			 }
 			break;
 		case 14:
 		 try{
-			data.xtheme=std::stoul(set_value_name);
+			data.urlpath.append(set_value_name);
 		}catch (...) { 
-			data.xtheme=0;
+			data.urlpath.clear();
 			 }
 			break;
 		case 15:
 		 try{
-			data.xlogo.append(set_value_name);
+			data.imgurl.append(set_value_name);
 		}catch (...) { 
-			data.xlogo.clear();
+			data.imgurl.clear();
 			 }
 			break;
 		case 16:
 		 try{
-			data.introduce.append(set_value_name);
+			data.topimg.append(set_value_name);
 		}catch (...) { 
-			data.introduce.clear();
+			data.topimg.clear();
 			 }
 			break;
 		case 17:
 		 try{
-			data.giturl.append(set_value_name);
+			data.accesscode=std::stoul(set_value_name);
 		}catch (...) { 
-			data.giturl.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.gitname.append(set_value_name);
-		}catch (...) { 
-			data.gitname.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.gitpwd.append(set_value_name);
-		}catch (...) { 
-			data.gitpwd.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.xcolor.append(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
-		case 21:
-		 try{
-			data.fupan.append(set_value_name);
-		}catch (...) { 
-			data.fupan.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.totalvalue=std::stod(set_value_name);
-		}catch (...) { 
-			data.totalvalue=0.0;
-			 }
-			break;
-		case 23:
-		 try{
-			data.expectday=std::stof(set_value_name);
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
-		case 24:
-		 try{
-			data.realday=std::stof(set_value_name);
-		}catch (...) { 
-			data.realday=0.0;
+			data.accesscode=0;
 			 }
 			break;
 	default:
@@ -2345,9 +1826,9 @@ if(data.realday==0){
         {
     		case 0:
 		 try{
-			data.xpjid=set_value_name;
+			data.topicid=set_value_name;
 		}catch (...) { 
-			data.xpjid=0;
+			data.topicid=0;
 			 }
 			break;
 		case 1:
@@ -2359,163 +1840,114 @@ if(data.realday==0){
 			break;
 		case 2:
 		 try{
-			data.prexpjid=set_value_name;
+			data.parentid=set_value_name;
 		}catch (...) { 
-			data.prexpjid=0;
+			data.parentid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.dpid=set_value_name;
+			data.cateid=set_value_name;
 		}catch (...) { 
-			data.dpid=0;
+			data.cateid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.grouptype=set_value_name;
+			data.sorttype=set_value_name;
 		}catch (...) { 
-			data.grouptype=0;
+			data.sorttype=0;
 			 }
 			break;
 		case 5:
+		 try{
+			data.languagetype=set_value_name;
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 6:
+		 try{
+			data.isview=set_value_name;
+		}catch (...) { 
+			data.isview=0;
+			 }
+			break;
+		case 7:
+		 try{
+			data.isside=set_value_name;
+		}catch (...) { 
+			data.isside=0;
+			 }
+			break;
+		case 8:
+		 try{
+			data.sortid=set_value_name;
+		}catch (...) { 
+			data.sortid=0;
+			 }
+			break;
+		case 9:
 		 try{
 			data.title=std::to_string(set_value_name);
 		}catch (...) { 
 			data.title.clear();
 			 }
 			break;
-		case 6:
-		 try{
-			data.adminuserid=set_value_name;
-		}catch (...) { 
-			data.adminuserid=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.regdate=set_value_name;
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.begindate=set_value_name;
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.expiredate=set_value_name;
-		}catch (...) { 
-			data.expiredate=0;
-			 }
-			break;
 		case 10:
 		 try{
-			data.isopen=set_value_name;
+			data.twotitle=std::to_string(set_value_name);
 		}catch (...) { 
-			data.isopen=0;
+			data.twotitle.clear();
 			 }
 			break;
 		case 11:
 		 try{
-			data.clientid=set_value_name;
+			data.memo=std::to_string(set_value_name);
 		}catch (...) { 
-			data.clientid=0;
+			data.memo.clear();
 			 }
 			break;
 		case 12:
 		 try{
-			data.totalnum=set_value_name;
+			data.templatename=std::to_string(set_value_name);
 		}catch (...) { 
-			data.totalnum=0;
+			data.templatename.clear();
 			 }
 			break;
 		case 13:
 		 try{
-			data.referdocverion=set_value_name;
+			data.url=std::to_string(set_value_name);
 		}catch (...) { 
-			data.referdocverion=0;
+			data.url.clear();
 			 }
 			break;
 		case 14:
 		 try{
-			data.xtheme=set_value_name;
+			data.urlpath=std::to_string(set_value_name);
 		}catch (...) { 
-			data.xtheme=0;
+			data.urlpath.clear();
 			 }
 			break;
 		case 15:
 		 try{
-			data.xlogo=std::to_string(set_value_name);
+			data.imgurl=std::to_string(set_value_name);
 		}catch (...) { 
-			data.xlogo.clear();
+			data.imgurl.clear();
 			 }
 			break;
 		case 16:
 		 try{
-			data.introduce=std::to_string(set_value_name);
+			data.topimg=std::to_string(set_value_name);
 		}catch (...) { 
-			data.introduce.clear();
+			data.topimg.clear();
 			 }
 			break;
 		case 17:
 		 try{
-			data.giturl=std::to_string(set_value_name);
+			data.accesscode=set_value_name;
 		}catch (...) { 
-			data.giturl.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.gitname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.gitname.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.gitpwd=std::to_string(set_value_name);
-		}catch (...) { 
-			data.gitpwd.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.xcolor=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
-		case 21:
-		 try{
-			data.fupan=std::to_string(set_value_name);
-		}catch (...) { 
-			data.fupan.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.totalvalue=(double)set_value_name;
-		}catch (...) { 
-			data.totalvalue=0.0;
-			 }
-			break;
-		case 23:
-		 try{
-			data.expectday=set_value_name;
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
-		case 24:
-		 try{
-			data.realday=set_value_name;
-		}catch (...) { 
-			data.realday=0.0;
+			data.accesscode=0;
 			 }
 			break;
 	default:
@@ -2532,9 +1964,9 @@ if(data.realday==0){
         {
     		case 0:
 		 try{
-			data.xpjid=(unsigned int)set_value_name;
+			data.topicid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.xpjid=0;
+			data.topicid=0;
 			 }
 			break;
 		case 1:
@@ -2546,163 +1978,114 @@ if(data.realday==0){
 			break;
 		case 2:
 		 try{
-			data.prexpjid=(unsigned int)set_value_name;
+			data.parentid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.prexpjid=0;
+			data.parentid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.dpid=(unsigned int)set_value_name;
+			data.cateid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.dpid=0;
+			data.cateid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.grouptype=(unsigned int)set_value_name;
+			data.sorttype=(int)set_value_name;
 		}catch (...) { 
-			data.grouptype=0;
+			data.sorttype=0;
 			 }
 			break;
 		case 5:
+		 try{
+			data.languagetype=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.languagetype=0;
+			 }
+			break;
+		case 6:
+		 try{
+			data.isview=(int)set_value_name;
+		}catch (...) { 
+			data.isview=0;
+			 }
+			break;
+		case 7:
+		 try{
+			data.isside=(int)set_value_name;
+		}catch (...) { 
+			data.isside=0;
+			 }
+			break;
+		case 8:
+		 try{
+			data.sortid=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.sortid=0;
+			 }
+			break;
+		case 9:
 		 try{
 			data.title=std::to_string(set_value_name);
 		}catch (...) { 
 			data.title.clear();
 			 }
 			break;
-		case 6:
-		 try{
-			data.adminuserid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.adminuserid=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.regdate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.begindate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.expiredate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.expiredate=0;
-			 }
-			break;
 		case 10:
 		 try{
-			data.isopen=(int)set_value_name;
+			data.twotitle=std::to_string(set_value_name);
 		}catch (...) { 
-			data.isopen=0;
+			data.twotitle.clear();
 			 }
 			break;
 		case 11:
 		 try{
-			data.clientid=(unsigned int)set_value_name;
+			data.memo=std::to_string(set_value_name);
 		}catch (...) { 
-			data.clientid=0;
+			data.memo.clear();
 			 }
 			break;
 		case 12:
 		 try{
-			data.totalnum=(unsigned int)set_value_name;
+			data.templatename=std::to_string(set_value_name);
 		}catch (...) { 
-			data.totalnum=0;
+			data.templatename.clear();
 			 }
 			break;
 		case 13:
 		 try{
-			data.referdocverion=(unsigned int)set_value_name;
+			data.url=std::to_string(set_value_name);
 		}catch (...) { 
-			data.referdocverion=0;
+			data.url.clear();
 			 }
 			break;
 		case 14:
 		 try{
-			data.xtheme=(unsigned int)set_value_name;
+			data.urlpath=std::to_string(set_value_name);
 		}catch (...) { 
-			data.xtheme=0;
+			data.urlpath.clear();
 			 }
 			break;
 		case 15:
 		 try{
-			data.xlogo=std::to_string(set_value_name);
+			data.imgurl=std::to_string(set_value_name);
 		}catch (...) { 
-			data.xlogo.clear();
+			data.imgurl.clear();
 			 }
 			break;
 		case 16:
 		 try{
-			data.introduce=std::to_string(set_value_name);
+			data.topimg=std::to_string(set_value_name);
 		}catch (...) { 
-			data.introduce.clear();
+			data.topimg.clear();
 			 }
 			break;
 		case 17:
 		 try{
-			data.giturl=std::to_string(set_value_name);
+			data.accesscode=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.giturl.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.gitname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.gitname.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.gitpwd=std::to_string(set_value_name);
-		}catch (...) { 
-			data.gitpwd.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.xcolor=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
-		case 21:
-		 try{
-			data.fupan=std::to_string(set_value_name);
-		}catch (...) { 
-			data.fupan.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.totalvalue=set_value_name;
-		}catch (...) { 
-			data.totalvalue=0.0;
-			 }
-			break;
-		case 23:
-		 try{
-			data.expectday=(float)set_value_name;
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
-		case 24:
-		 try{
-			data.realday=(float)set_value_name;
-		}catch (...) { 
-			data.realday=0.0;
+			data.accesscode=0;
 			 }
 			break;
 	default:
@@ -2753,10 +2136,10 @@ if(data.realday==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xpjid==0){
-	tempsql<<"\"xpjid\":0";
+if(record[n].topicid==0){
+	tempsql<<"\"topicid\":0";
  }else{ 
-	tempsql<<"\"xpjid\":"<<std::to_string(record[n].xpjid);
+	tempsql<<"\"topicid\":"<<std::to_string(record[n].topicid);
 }
  break;
  case 1:
@@ -2769,154 +2152,98 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].prexpjid==0){
-	tempsql<<"\"prexpjid\":0";
+if(record[n].parentid==0){
+	tempsql<<"\"parentid\":0";
  }else{ 
-	tempsql<<"\"prexpjid\":"<<std::to_string(record[n].prexpjid);
+	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(record[n].dpid==0){
-	tempsql<<"\"dpid\":0";
+if(record[n].cateid==0){
+	tempsql<<"\"cateid\":0";
  }else{ 
-	tempsql<<"\"dpid\":"<<std::to_string(record[n].dpid);
+	tempsql<<"\"cateid\":"<<std::to_string(record[n].cateid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].grouptype==0){
-	tempsql<<"\"grouptype\":0";
+if(record[n].sorttype==0){
+	tempsql<<"\"sorttype\":0";
  }else{ 
-	tempsql<<"\"grouptype\":"<<std::to_string(record[n].grouptype);
+	tempsql<<"\"sorttype\":"<<std::to_string(record[n].sorttype);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
+if(record[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(record[n].languagetype);
+}
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(record[n].adminuserid==0){
-	tempsql<<"\"adminuserid\":0";
+if(record[n].isview==0){
+	tempsql<<"\"isview\":0";
  }else{ 
-	tempsql<<"\"adminuserid\":"<<std::to_string(record[n].adminuserid);
+	tempsql<<"\"isview\":"<<std::to_string(record[n].isview);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(record[n].regdate==0){
-	tempsql<<"\"regdate\":0";
+if(record[n].isside==0){
+	tempsql<<"\"isside\":0";
  }else{ 
-	tempsql<<"\"regdate\":"<<std::to_string(record[n].regdate);
+	tempsql<<"\"isside\":"<<std::to_string(record[n].isside);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(record[n].begindate==0){
-	tempsql<<"\"begindate\":0";
+if(record[n].sortid==0){
+	tempsql<<"\"sortid\":0";
  }else{ 
-	tempsql<<"\"begindate\":"<<std::to_string(record[n].begindate);
+	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(record[n].expiredate==0){
-	tempsql<<"\"expiredate\":0";
- }else{ 
-	tempsql<<"\"expiredate\":"<<std::to_string(record[n].expiredate);
-}
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(record[n].isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
-}
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(record[n].twotitle)<<"\"";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-if(record[n].clientid==0){
-	tempsql<<"\"clientid\":0";
- }else{ 
-	tempsql<<"\"clientid\":"<<std::to_string(record[n].clientid);
-}
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(record[n].memo)<<"\"";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-if(record[n].totalnum==0){
-	tempsql<<"\"totalnum\":0";
- }else{ 
-	tempsql<<"\"totalnum\":"<<std::to_string(record[n].totalnum);
-}
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(record[n].templatename)<<"\"";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-if(record[n].referdocverion==0){
-	tempsql<<"\"referdocverion\":0";
- }else{ 
-	tempsql<<"\"referdocverion\":"<<std::to_string(record[n].referdocverion);
-}
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(record[n].url)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xtheme==0){
-	tempsql<<"\"xtheme\":0";
- }else{ 
-	tempsql<<"\"xtheme\":"<<std::to_string(record[n].xtheme);
-}
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"xlogo\":\""<<http::utf8_to_jsonstring(record[n].xlogo)<<"\"";
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(record[n].introduce)<<"\"";
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(record[n].topimg)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"giturl\":\""<<http::utf8_to_jsonstring(record[n].giturl)<<"\"";
- break;
- case 18:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"gitname\":\""<<http::utf8_to_jsonstring(record[n].gitname)<<"\"";
- break;
- case 19:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"gitpwd\":\""<<http::utf8_to_jsonstring(record[n].gitpwd)<<"\"";
- break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"xcolor\":\""<<http::utf8_to_jsonstring(record[n].xcolor)<<"\"";
- break;
- case 21:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fupan\":\""<<http::utf8_to_jsonstring(record[n].fupan)<<"\"";
- break;
- case 22:
- if(jj>0){ tempsql<<","; } 
-if(record[n].totalvalue==0){
-	tempsql<<"\"totalvalue\":0";
+if(record[n].accesscode==0){
+	tempsql<<"\"accesscode\":0";
  }else{ 
-	tempsql<<"\"totalvalue\":"<<std::to_string(record[n].totalvalue);
-}
- break;
- case 23:
- if(jj>0){ tempsql<<","; } 
-if(record[n].expectday==0){
-	tempsql<<"\"expectday\":0";
- }else{ 
-	tempsql<<"\"expectday\":"<<std::to_string(record[n].expectday);
-}
- break;
- case 24:
- if(jj>0){ tempsql<<","; } 
-if(record[n].realday==0){
-	tempsql<<"\"realday\":0";
- }else{ 
-	tempsql<<"\"realday\":"<<std::to_string(record[n].realday);
+	tempsql<<"\"accesscode\":"<<std::to_string(record[n].accesscode);
 }
  break;
 
@@ -2977,10 +2304,10 @@ if(record[n].realday==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xpjid==0){
-	tempsql<<"\"xpjid\":0";
+if(record[n].topicid==0){
+	tempsql<<"\"topicid\":0";
  }else{ 
-	tempsql<<"\"xpjid\":"<<std::to_string(record[n].xpjid);
+	tempsql<<"\"topicid\":"<<std::to_string(record[n].topicid);
 }
  break;
  case 1:
@@ -2993,154 +2320,98 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].prexpjid==0){
-	tempsql<<"\"prexpjid\":0";
+if(record[n].parentid==0){
+	tempsql<<"\"parentid\":0";
  }else{ 
-	tempsql<<"\"prexpjid\":"<<std::to_string(record[n].prexpjid);
+	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(record[n].dpid==0){
-	tempsql<<"\"dpid\":0";
+if(record[n].cateid==0){
+	tempsql<<"\"cateid\":0";
  }else{ 
-	tempsql<<"\"dpid\":"<<std::to_string(record[n].dpid);
+	tempsql<<"\"cateid\":"<<std::to_string(record[n].cateid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].grouptype==0){
-	tempsql<<"\"grouptype\":0";
+if(record[n].sorttype==0){
+	tempsql<<"\"sorttype\":0";
  }else{ 
-	tempsql<<"\"grouptype\":"<<std::to_string(record[n].grouptype);
+	tempsql<<"\"sorttype\":"<<std::to_string(record[n].sorttype);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
+if(record[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(record[n].languagetype);
+}
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(record[n].adminuserid==0){
-	tempsql<<"\"adminuserid\":0";
+if(record[n].isview==0){
+	tempsql<<"\"isview\":0";
  }else{ 
-	tempsql<<"\"adminuserid\":"<<std::to_string(record[n].adminuserid);
+	tempsql<<"\"isview\":"<<std::to_string(record[n].isview);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(record[n].regdate==0){
-	tempsql<<"\"regdate\":0";
+if(record[n].isside==0){
+	tempsql<<"\"isside\":0";
  }else{ 
-	tempsql<<"\"regdate\":"<<std::to_string(record[n].regdate);
+	tempsql<<"\"isside\":"<<std::to_string(record[n].isside);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(record[n].begindate==0){
-	tempsql<<"\"begindate\":0";
+if(record[n].sortid==0){
+	tempsql<<"\"sortid\":0";
  }else{ 
-	tempsql<<"\"begindate\":"<<std::to_string(record[n].begindate);
+	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(record[n].expiredate==0){
-	tempsql<<"\"expiredate\":0";
- }else{ 
-	tempsql<<"\"expiredate\":"<<std::to_string(record[n].expiredate);
-}
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(record[n].isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
-}
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(record[n].twotitle)<<"\"";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-if(record[n].clientid==0){
-	tempsql<<"\"clientid\":0";
- }else{ 
-	tempsql<<"\"clientid\":"<<std::to_string(record[n].clientid);
-}
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(record[n].memo)<<"\"";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-if(record[n].totalnum==0){
-	tempsql<<"\"totalnum\":0";
- }else{ 
-	tempsql<<"\"totalnum\":"<<std::to_string(record[n].totalnum);
-}
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(record[n].templatename)<<"\"";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-if(record[n].referdocverion==0){
-	tempsql<<"\"referdocverion\":0";
- }else{ 
-	tempsql<<"\"referdocverion\":"<<std::to_string(record[n].referdocverion);
-}
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(record[n].url)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xtheme==0){
-	tempsql<<"\"xtheme\":0";
- }else{ 
-	tempsql<<"\"xtheme\":"<<std::to_string(record[n].xtheme);
-}
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"xlogo\":\""<<http::utf8_to_jsonstring(record[n].xlogo)<<"\"";
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(record[n].introduce)<<"\"";
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(record[n].topimg)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"giturl\":\""<<http::utf8_to_jsonstring(record[n].giturl)<<"\"";
- break;
- case 18:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"gitname\":\""<<http::utf8_to_jsonstring(record[n].gitname)<<"\"";
- break;
- case 19:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"gitpwd\":\""<<http::utf8_to_jsonstring(record[n].gitpwd)<<"\"";
- break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"xcolor\":\""<<http::utf8_to_jsonstring(record[n].xcolor)<<"\"";
- break;
- case 21:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"fupan\":\""<<http::utf8_to_jsonstring(record[n].fupan)<<"\"";
- break;
- case 22:
- if(jj>0){ tempsql<<","; } 
-if(record[n].totalvalue==0){
-	tempsql<<"\"totalvalue\":0";
+if(record[n].accesscode==0){
+	tempsql<<"\"accesscode\":0";
  }else{ 
-	tempsql<<"\"totalvalue\":"<<std::to_string(record[n].totalvalue);
-}
- break;
- case 23:
- if(jj>0){ tempsql<<","; } 
-if(record[n].expectday==0){
-	tempsql<<"\"expectday\":0";
- }else{ 
-	tempsql<<"\"expectday\":"<<std::to_string(record[n].expectday);
-}
- break;
- case 24:
- if(jj>0){ tempsql<<","; } 
-if(record[n].realday==0){
-	tempsql<<"\"realday\":0";
- }else{ 
-	tempsql<<"\"realday\":"<<std::to_string(record[n].realday);
+	tempsql<<"\"accesscode\":"<<std::to_string(record[n].accesscode);
 }
  break;
 
@@ -3153,110 +2424,423 @@ if(record[n].realday==0){
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.xpjid; } 
- void setPK(long long val){  data.xpjid=val;} 
- unsigned  int  getXpjid(){  return data.xpjid; } 
- void setXpjid( unsigned  int  val){  data.xpjid=val;} 
+   long long getPK(){  return data.topicid; } 
+ void setPK(long long val){  data.topicid=val;} 
+ unsigned  int  getTopicid(){  return data.topicid; } 
+ void setTopicid( unsigned  int  val){  data.topicid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
  void setUserid( unsigned  int  val){  data.userid=val;} 
 
- unsigned  int  getPrexpjid(){  return data.prexpjid; } 
- void setPrexpjid( unsigned  int  val){  data.prexpjid=val;} 
+ unsigned  int  getParentid(){  return data.parentid; } 
+ void setParentid( unsigned  int  val){  data.parentid=val;} 
 
- unsigned  int  getDpid(){  return data.dpid; } 
- void setDpid( unsigned  int  val){  data.dpid=val;} 
+ unsigned  int  getCateid(){  return data.cateid; } 
+ void setCateid( unsigned  int  val){  data.cateid=val;} 
 
- unsigned  int  getGrouptype(){  return data.grouptype; } 
- void setGrouptype( unsigned  int  val){  data.grouptype=val;} 
+ unsigned  char  getSorttype(){  return data.sorttype; } 
+ void setSorttype( unsigned  char  val){  data.sorttype=val;} 
+
+ unsigned  int  getLanguagetype(){  return data.languagetype; } 
+ void setLanguagetype( unsigned  int  val){  data.languagetype=val;} 
+
+ unsigned  char  getIsview(){  return data.isview; } 
+ void setIsview( unsigned  char  val){  data.isview=val;} 
+
+ unsigned  char  getIsside(){  return data.isside; } 
+ void setIsside( unsigned  char  val){  data.isside=val;} 
+
+ unsigned  int  getSortid(){  return data.sortid; } 
+ void setSortid( unsigned  int  val){  data.sortid=val;} 
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 
  void setTitle( std::string  &val){  data.title=val;} 
  void setTitle(std::string_view val){  data.title=val;} 
 
- unsigned  int  getAdminuserid(){  return data.adminuserid; } 
- void setAdminuserid( unsigned  int  val){  data.adminuserid=val;} 
+ std::string  getTwotitle(){  return data.twotitle; } 
+ std::string & getRefTwotitle(){  return std::ref(data.twotitle); } 
+ void setTwotitle( std::string  &val){  data.twotitle=val;} 
+ void setTwotitle(std::string_view val){  data.twotitle=val;} 
 
- unsigned  int  getRegdate(){  return data.regdate; } 
- void setRegdate( unsigned  int  val){  data.regdate=val;} 
+ std::string  getMemo(){  return data.memo; } 
+ std::string & getRefMemo(){  return std::ref(data.memo); } 
+ void setMemo( std::string  &val){  data.memo=val;} 
+ void setMemo(std::string_view val){  data.memo=val;} 
 
- unsigned  int  getBegindate(){  return data.begindate; } 
- void setBegindate( unsigned  int  val){  data.begindate=val;} 
+ std::string  getTemplatename(){  return data.templatename; } 
+ std::string & getRefTemplatename(){  return std::ref(data.templatename); } 
+ void setTemplatename( std::string  &val){  data.templatename=val;} 
+ void setTemplatename(std::string_view val){  data.templatename=val;} 
 
- unsigned  int  getExpiredate(){  return data.expiredate; } 
- void setExpiredate( unsigned  int  val){  data.expiredate=val;} 
+ std::string  getUrl(){  return data.url; } 
+ std::string & getRefUrl(){  return std::ref(data.url); } 
+ void setUrl( std::string  &val){  data.url=val;} 
+ void setUrl(std::string_view val){  data.url=val;} 
 
- char  getIsopen(){  return data.isopen; } 
- void setIsopen( char  val){  data.isopen=val;} 
+ std::string  getUrlpath(){  return data.urlpath; } 
+ std::string & getRefUrlpath(){  return std::ref(data.urlpath); } 
+ void setUrlpath( std::string  &val){  data.urlpath=val;} 
+ void setUrlpath(std::string_view val){  data.urlpath=val;} 
 
- unsigned  int  getClientid(){  return data.clientid; } 
- void setClientid( unsigned  int  val){  data.clientid=val;} 
+ std::string  getImgurl(){  return data.imgurl; } 
+ std::string & getRefImgurl(){  return std::ref(data.imgurl); } 
+ void setImgurl( std::string  &val){  data.imgurl=val;} 
+ void setImgurl(std::string_view val){  data.imgurl=val;} 
 
- unsigned  int  getTotalnum(){  return data.totalnum; } 
- void setTotalnum( unsigned  int  val){  data.totalnum=val;} 
+ std::string  getTopimg(){  return data.topimg; } 
+ std::string & getRefTopimg(){  return std::ref(data.topimg); } 
+ void setTopimg( std::string  &val){  data.topimg=val;} 
+ void setTopimg(std::string_view val){  data.topimg=val;} 
 
- unsigned  int  getReferdocverion(){  return data.referdocverion; } 
- void setReferdocverion( unsigned  int  val){  data.referdocverion=val;} 
+ unsigned  int  getAccesscode(){  return data.accesscode; } 
+ void setAccesscode( unsigned  int  val){  data.accesscode=val;} 
 
- unsigned  int  getXtheme(){  return data.xtheme; } 
- void setXtheme( unsigned  int  val){  data.xtheme=val;} 
-
- std::string  getXlogo(){  return data.xlogo; } 
- std::string & getRefXlogo(){  return std::ref(data.xlogo); } 
- void setXlogo( std::string  &val){  data.xlogo=val;} 
- void setXlogo(std::string_view val){  data.xlogo=val;} 
-
- std::string  getIntroduce(){  return data.introduce; } 
- std::string & getRefIntroduce(){  return std::ref(data.introduce); } 
- void setIntroduce( std::string  &val){  data.introduce=val;} 
- void setIntroduce(std::string_view val){  data.introduce=val;} 
-
- std::string  getGiturl(){  return data.giturl; } 
- std::string & getRefGiturl(){  return std::ref(data.giturl); } 
- void setGiturl( std::string  &val){  data.giturl=val;} 
- void setGiturl(std::string_view val){  data.giturl=val;} 
-
- std::string  getGitname(){  return data.gitname; } 
- std::string & getRefGitname(){  return std::ref(data.gitname); } 
- void setGitname( std::string  &val){  data.gitname=val;} 
- void setGitname(std::string_view val){  data.gitname=val;} 
-
- std::string  getGitpwd(){  return data.gitpwd; } 
- std::string & getRefGitpwd(){  return std::ref(data.gitpwd); } 
- void setGitpwd( std::string  &val){  data.gitpwd=val;} 
- void setGitpwd(std::string_view val){  data.gitpwd=val;} 
-
- std::string  getXcolor(){  return data.xcolor; } 
- std::string & getRefXcolor(){  return std::ref(data.xcolor); } 
- void setXcolor( std::string  &val){  data.xcolor=val;} 
- void setXcolor(std::string_view val){  data.xcolor=val;} 
-
- std::string  getFupan(){  return data.fupan; } 
- std::string & getRefFupan(){  return std::ref(data.fupan); } 
- void setFupan( std::string  &val){  data.fupan=val;} 
- void setFupan(std::string_view val){  data.fupan=val;} 
-
- double  getTotalvalue(){  return data.totalvalue; } 
- void setTotalvalue( double  val){  data.totalvalue=val;} 
-
- float  getExpectday(){  return data.expectday; } 
- void setExpectday( float  val){  data.expectday=val;} 
-
- float  getRealday(){  return data.realday; } 
- void setRealday( float  val){  data.realday=val;} 
-
-xprojectbase::meta getnewData(){
+topic_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-xprojectbase::meta getData(){
+topic_base::meta getData(){
  	 return data; 
 } 
-std::vector<xprojectbase::meta> getRecord(){
+std::vector<topic_base::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<tree_data.size();n++){
+            if(n>0){
+                tempsql<<",{";
+            }else{
+                tempsql<<"{";
+            }  
+        
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].topicid==0){
+	tempsql<<"\"topicid\":0";
+ }else{ 
+	tempsql<<"\"topicid\":"<<std::to_string(tree_data[n].topicid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].cateid==0){
+	tempsql<<"\"cateid\":0";
+ }else{ 
+	tempsql<<"\"cateid\":"<<std::to_string(tree_data[n].cateid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sorttype==0){
+	tempsql<<"\"sorttype\":0";
+ }else{ 
+	tempsql<<"\"sorttype\":"<<std::to_string(tree_data[n].sorttype);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(tree_data[n].languagetype);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(tree_data[n].isview);
+}
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isside==0){
+	tempsql<<"\"isside\":0";
+ }else{ 
+	tempsql<<"\"isside\":"<<std::to_string(tree_data[n].isside);
+}
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(tree_data[n].title)<<"\"";
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(tree_data[n].twotitle)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(tree_data[n].memo)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(tree_data[n].templatename)<<"\"";
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(tree_data[n].url)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(tree_data[n].urlpath)<<"\"";
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(tree_data[n].topimg)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].accesscode==0){
+	tempsql<<"\"accesscode\":0";
+ }else{ 
+	tempsql<<"\"accesscode\":"<<std::to_string(tree_data[n].accesscode);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    tempsql<<"[";
+    for(size_t n=0;n<tree_data.size();n++){
+        keyname.clear();
+        if(func(keyname,tree_data[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+        }else{
+        continue;
+        } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].topicid==0){
+	tempsql<<"\"topicid\":0";
+ }else{ 
+	tempsql<<"\"topicid\":"<<std::to_string(tree_data[n].topicid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].cateid==0){
+	tempsql<<"\"cateid\":0";
+ }else{ 
+	tempsql<<"\"cateid\":"<<std::to_string(tree_data[n].cateid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sorttype==0){
+	tempsql<<"\"sorttype\":0";
+ }else{ 
+	tempsql<<"\"sorttype\":"<<std::to_string(tree_data[n].sorttype);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(tree_data[n].languagetype);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(tree_data[n].isview);
+}
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isside==0){
+	tempsql<<"\"isside\":0";
+ }else{ 
+	tempsql<<"\"isside\":"<<std::to_string(tree_data[n].isside);
+}
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(tree_data[n].title)<<"\"";
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"twotitle\":\""<<http::utf8_to_jsonstring(tree_data[n].twotitle)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"memo\":\""<<http::utf8_to_jsonstring(tree_data[n].memo)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"templatename\":\""<<http::utf8_to_jsonstring(tree_data[n].templatename)<<"\"";
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"url\":\""<<http::utf8_to_jsonstring(tree_data[n].url)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(tree_data[n].urlpath)<<"\"";
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"topimg\":\""<<http::utf8_to_jsonstring(tree_data[n].topimg)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].accesscode==0){
+	tempsql<<"\"accesscode\":0";
+ }else{ 
+	tempsql<<"\"accesscode\":"<<std::to_string(tree_data[n].accesscode);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
@@ -3265,33 +2849,33 @@ std::vector<xprojectbase::meta> getRecord(){
 		{
 			return data.title;
 		}
-		 if(key_name=="xlogo")
+		 if(key_name=="twotitle")
 		{
-			return data.xlogo;
+			return data.twotitle;
 		}
-		 if(key_name=="introduce")
+		 if(key_name=="memo")
 		{
-			return data.introduce;
+			return data.memo;
 		}
-		 if(key_name=="giturl")
+		 if(key_name=="templatename")
 		{
-			return data.giturl;
+			return data.templatename;
 		}
-		 if(key_name=="gitname")
+		 if(key_name=="url")
 		{
-			return data.gitname;
+			return data.url;
 		}
-		 if(key_name=="gitpwd")
+		 if(key_name=="urlpath")
 		{
-			return data.gitpwd;
+			return data.urlpath;
 		}
-		 if(key_name=="xcolor")
+		 if(key_name=="imgurl")
 		{
-			return data.xcolor;
+			return data.imgurl;
 		}
-		 if(key_name=="fupan")
+		 if(key_name=="topimg")
 		{
-			return data.fupan;
+			return data.topimg;
 		}
 		return nullptr; 
 	}
@@ -3300,61 +2884,45 @@ std::vector<xprojectbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="xpjid")
+   		 if(key_name=="topicid")
 		{
-			return data.xpjid;
+			return data.topicid;
 		}
 		 if(key_name=="userid")
 		{
 			return data.userid;
 		}
-		 if(key_name=="prexpjid")
+		 if(key_name=="parentid")
 		{
-			return data.prexpjid;
+			return data.parentid;
 		}
-		 if(key_name=="dpid")
+		 if(key_name=="cateid")
 		{
-			return data.dpid;
+			return data.cateid;
 		}
-		 if(key_name=="grouptype")
+		 if(key_name=="sorttype")
 		{
-			return data.grouptype;
+			return data.sorttype;
 		}
-		 if(key_name=="adminuserid")
+		 if(key_name=="languagetype")
 		{
-			return data.adminuserid;
+			return data.languagetype;
 		}
-		 if(key_name=="regdate")
+		 if(key_name=="isview")
 		{
-			return data.regdate;
+			return data.isview;
 		}
-		 if(key_name=="begindate")
+		 if(key_name=="isside")
 		{
-			return data.begindate;
+			return data.isside;
 		}
-		 if(key_name=="expiredate")
+		 if(key_name=="sortid")
 		{
-			return data.expiredate;
+			return data.sortid;
 		}
-		 if(key_name=="isopen")
+		 if(key_name=="accesscode")
 		{
-			return data.isopen;
-		}
-		 if(key_name=="clientid")
-		{
-			return data.clientid;
-		}
-		 if(key_name=="totalnum")
-		{
-			return data.totalnum;
-		}
-		 if(key_name=="referdocverion")
-		{
-			return data.referdocverion;
-		}
-		 if(key_name=="xtheme")
-		{
-			return data.xtheme;
+			return data.accesscode;
 		}
 		return nullptr; 
 	}
@@ -3363,19 +2931,7 @@ std::vector<xprojectbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="totalvalue")
-		{
-			return data.totalvalue;
-		}
-		 if(key_name=="expectday")
-		{
-			return data.expectday;
-		}
-		 if(key_name=="realday")
-		{
-			return data.realday;
-		}
-		return nullptr; 
+   		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
@@ -3391,46 +2947,34 @@ std::vector<xprojectbase::meta> getRecord(){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.xpjid);
+ 				 a.emplace_back(iter.topicid);
 				 break;
 			case 1: 
  				 a.emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a.emplace_back(iter.prexpjid);
+ 				 a.emplace_back(iter.parentid);
 				 break;
 			case 3: 
- 				 a.emplace_back(iter.dpid);
+ 				 a.emplace_back(iter.cateid);
 				 break;
 			case 4: 
- 				 a.emplace_back(iter.grouptype);
+ 				 a.emplace_back(iter.sorttype);
+				 break;
+			case 5: 
+ 				 a.emplace_back(iter.languagetype);
 				 break;
 			case 6: 
- 				 a.emplace_back(iter.adminuserid);
+ 				 a.emplace_back(iter.isview);
 				 break;
 			case 7: 
- 				 a.emplace_back(iter.regdate);
+ 				 a.emplace_back(iter.isside);
 				 break;
 			case 8: 
- 				 a.emplace_back(iter.begindate);
+ 				 a.emplace_back(iter.sortid);
 				 break;
-			case 9: 
- 				 a.emplace_back(iter.expiredate);
-				 break;
-			case 10: 
- 				 a.emplace_back(iter.isopen);
-				 break;
-			case 11: 
- 				 a.emplace_back(iter.clientid);
-				 break;
-			case 12: 
- 				 a.emplace_back(iter.totalnum);
-				 break;
-			case 13: 
- 				 a.emplace_back(iter.referdocverion);
-				 break;
-			case 14: 
- 				 a.emplace_back(iter.xtheme);
+			case 17: 
+ 				 a.emplace_back(iter.accesscode);
 				 break;
 
                     }
@@ -3445,26 +2989,6 @@ std::vector<xprojectbase::meta> getRecord(){
 				std::vector<T> a;
 				
 
-                unsigned char kpos;
-				kpos = findcolpos(keyname);  
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-			case 22: 
- 					 a.emplace_back(iter.totalvalue);
-			 break;
-			case 23: 
- 					 a.emplace_back(iter.expectday);
-			 break;
-			case 24: 
- 					 a.emplace_back(iter.realday);
-			 break;
-
-                    }
-                }
-    
                 return a;
             }
     
@@ -3478,53 +3002,41 @@ std::vector<xprojectbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 return data.xpjid;
+ 				 return data.topicid;
 				 break;
 			case 1: 
  				 return data.userid;
 				 break;
 			case 2: 
- 				 return data.prexpjid;
+ 				 return data.parentid;
 				 break;
 			case 3: 
- 				 return data.dpid;
+ 				 return data.cateid;
 				 break;
 			case 4: 
- 				 return data.grouptype;
+ 				 return data.sorttype;
+				 break;
+			case 5: 
+ 				 return data.languagetype;
 				 break;
 			case 6: 
- 				 return data.adminuserid;
+ 				 return data.isview;
 				 break;
 			case 7: 
- 				 return data.regdate;
+ 				 return data.isside;
 				 break;
 			case 8: 
- 				 return data.begindate;
+ 				 return data.sortid;
 				 break;
-			case 9: 
- 				 return data.expiredate;
-				 break;
-			case 10: 
- 				 return data.isopen;
-				 break;
-			case 11: 
- 				 return data.clientid;
-				 break;
-			case 12: 
- 				 return data.totalnum;
-				 break;
-			case 13: 
- 				 return data.referdocverion;
-				 break;
-			case 14: 
- 				 return data.xtheme;
+			case 17: 
+ 				 return data.accesscode;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] xprojectbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] topic_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3533,46 +3045,34 @@ std::vector<xprojectbase::meta> getRecord(){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.xpjid;
+ 				 return iter.topicid;
 				 break;
 			case 1: 
  				 return iter.userid;
 				 break;
 			case 2: 
- 				 return iter.prexpjid;
+ 				 return iter.parentid;
 				 break;
 			case 3: 
- 				 return iter.dpid;
+ 				 return iter.cateid;
 				 break;
 			case 4: 
- 				 return iter.grouptype;
+ 				 return iter.sorttype;
+				 break;
+			case 5: 
+ 				 return iter.languagetype;
 				 break;
 			case 6: 
- 				 return iter.adminuserid;
+ 				 return iter.isview;
 				 break;
 			case 7: 
- 				 return iter.regdate;
+ 				 return iter.isside;
 				 break;
 			case 8: 
- 				 return iter.begindate;
+ 				 return iter.sortid;
 				 break;
-			case 9: 
- 				 return iter.expiredate;
-				 break;
-			case 10: 
- 				 return iter.isopen;
-				 break;
-			case 11: 
- 				 return iter.clientid;
-				 break;
-			case 12: 
- 				 return iter.totalnum;
-				 break;
-			case 13: 
- 				 return iter.referdocverion;
-				 break;
-			case 14: 
- 				 return iter.xtheme;
+			case 17: 
+ 				 return iter.accesscode;
 				 break;
 
 			}
@@ -3589,16 +3089,7 @@ std::vector<xprojectbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-    			case 22: 
- 				 return data.totalvalue;
-				 break;
-			case 23: 
- 				 return data.expectday;
-				 break;
-			case 24: 
- 				 return data.realday;
-				 break;
-
+    
                     }
                    
     
@@ -3606,22 +3097,13 @@ std::vector<xprojectbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] xprojectbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] topic_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
                 switch(kpos)
                 {
-   			case 22: 
- 				 return iter.totalvalue;
-				 break;
-			case 23: 
- 				 return iter.expectday;
-				 break;
-			case 24: 
- 				 return iter.realday;
-				 break;
-
+   
                 }
                  
     
@@ -3638,29 +3120,29 @@ std::vector<xprojectbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 return data.title;
 				 break;
+			case 10: 
+ 				 return data.twotitle;
+				 break;
+			case 11: 
+ 				 return data.memo;
+				 break;
+			case 12: 
+ 				 return data.templatename;
+				 break;
+			case 13: 
+ 				 return data.url;
+				 break;
+			case 14: 
+ 				 return data.urlpath;
+				 break;
 			case 15: 
- 				 return data.xlogo;
+ 				 return data.imgurl;
 				 break;
 			case 16: 
- 				 return data.introduce;
-				 break;
-			case 17: 
- 				 return data.giturl;
-				 break;
-			case 18: 
- 				 return data.gitname;
-				 break;
-			case 19: 
- 				 return data.gitpwd;
-				 break;
-			case 20: 
- 				 return data.xcolor;
-				 break;
-			case 21: 
- 				 return data.fupan;
+ 				 return data.topimg;
 				 break;
 
                 }
@@ -3668,7 +3150,7 @@ std::vector<xprojectbase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] xprojectbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] topic_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -3677,29 +3159,29 @@ std::vector<xprojectbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 return iter.title;
 				 break;
+			case 10: 
+ 				 return iter.twotitle;
+				 break;
+			case 11: 
+ 				 return iter.memo;
+				 break;
+			case 12: 
+ 				 return iter.templatename;
+				 break;
+			case 13: 
+ 				 return iter.url;
+				 break;
+			case 14: 
+ 				 return iter.urlpath;
+				 break;
 			case 15: 
- 				 return iter.xlogo;
+ 				 return iter.imgurl;
 				 break;
 			case 16: 
- 				 return iter.introduce;
-				 break;
-			case 17: 
- 				 return iter.giturl;
-				 break;
-			case 18: 
- 				 return iter.gitname;
-				 break;
-			case 19: 
- 				 return iter.gitpwd;
-				 break;
-			case 20: 
- 				 return iter.xcolor;
-				 break;
-			case 21: 
- 				 return iter.fupan;
+ 				 return iter.topimg;
 				 break;
 
                 }
@@ -3722,29 +3204,29 @@ std::vector<xprojectbase::meta> getRecord(){
                     switch(kpos)
                     {
 
-    			case 5: 
+    			case 9: 
  				 a.emplace_back(iter.title);
 					 break;
+			case 10: 
+ 				 a.emplace_back(iter.twotitle);
+					 break;
+			case 11: 
+ 				 a.emplace_back(iter.memo);
+					 break;
+			case 12: 
+ 				 a.emplace_back(iter.templatename);
+					 break;
+			case 13: 
+ 				 a.emplace_back(iter.url);
+					 break;
+			case 14: 
+ 				 a.emplace_back(iter.urlpath);
+					 break;
 			case 15: 
- 				 a.emplace_back(iter.xlogo);
+ 				 a.emplace_back(iter.imgurl);
 					 break;
 			case 16: 
- 				 a.emplace_back(iter.introduce);
-					 break;
-			case 17: 
- 				 a.emplace_back(iter.giturl);
-					 break;
-			case 18: 
- 				 a.emplace_back(iter.gitname);
-					 break;
-			case 19: 
- 				 a.emplace_back(iter.gitpwd);
-					 break;
-			case 20: 
- 				 a.emplace_back(iter.xcolor);
-					 break;
-			case 21: 
- 				 a.emplace_back(iter.fupan);
+ 				 a.emplace_back(iter.topimg);
 					 break;
 					}
 				}
@@ -3778,103 +3260,82 @@ std::vector<xprojectbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.xpjid);
+ 				 a<<std::to_string(iter.topicid);
 				 break;
 			case 1: 
  				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
- 				 a<<std::to_string(iter.prexpjid);
+ 				 a<<std::to_string(iter.parentid);
 				 break;
 			case 3: 
- 				 a<<std::to_string(iter.dpid);
+ 				 a<<std::to_string(iter.cateid);
 				 break;
 			case 4: 
- 				 a<<std::to_string(iter.grouptype);
+ 				 a<<std::to_string(iter.sorttype);
 				 break;
 			case 5: 
+ 				 a<<std::to_string(iter.languagetype);
+				 break;
+			case 6: 
+ 				 a<<std::to_string(iter.isview);
+				 break;
+			case 7: 
+ 				 a<<std::to_string(iter.isside);
+				 break;
+			case 8: 
+ 				 a<<std::to_string(iter.sortid);
+				 break;
+			case 9: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case 6: 
- 				 a<<std::to_string(iter.adminuserid);
-				 break;
-			case 7: 
- 				 a<<std::to_string(iter.regdate);
-				 break;
-			case 8: 
- 				 a<<std::to_string(iter.begindate);
-				 break;
-			case 9: 
- 				 a<<std::to_string(iter.expiredate);
-				 break;
 			case 10: 
- 				 a<<std::to_string(iter.isopen);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.twotitle); 
+				 }else{
+				 a<<iter.twotitle;
+				 }
 				 break;
 			case 11: 
- 				 a<<std::to_string(iter.clientid);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.memo); 
+				 }else{
+				 a<<iter.memo;
+				 }
 				 break;
 			case 12: 
- 				 a<<std::to_string(iter.totalnum);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.templatename); 
+				 }else{
+				 a<<iter.templatename;
+				 }
 				 break;
 			case 13: 
- 				 a<<std::to_string(iter.referdocverion);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.url); 
+				 }else{
+				 a<<iter.url;
+				 }
 				 break;
 			case 14: 
- 				 a<<std::to_string(iter.xtheme);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
+				 }else{
+				 a<<iter.urlpath;
+				 }
 				 break;
 			case 15: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.xlogo); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
 				 }else{
-				 a<<iter.xlogo;
+				 a<<iter.imgurl;
 				 }
 				 break;
 			case 16: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.topimg); 
 				 }else{
-				 a<<iter.introduce;
+				 a<<iter.topimg;
 				 }
 				 break;
 			case 17: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.giturl); 
-				 }else{
-				 a<<iter.giturl;
-				 }
-				 break;
-			case 18: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.gitname); 
-				 }else{
-				 a<<iter.gitname;
-				 }
-				 break;
-			case 19: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.gitpwd); 
-				 }else{
-				 a<<iter.gitpwd;
-				 }
-				 break;
-			case 20: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.xcolor); 
-				 }else{
-				 a<<iter.xcolor;
-				 }
-				 break;
-			case 21: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.fupan); 
-				 }else{
-				 a<<iter.fupan;
-				 }
-				 break;
-			case 22: 
- 				 a<<std::to_string(iter.totalvalue);
-				 break;
-			case 23: 
- 				 a<<std::to_string(iter.expectday);
-				 break;
-			case 24: 
- 				 a<<std::to_string(iter.realday);
+ 				 a<<std::to_string(iter.accesscode);
 				 break;
 
                     }
@@ -3901,55 +3362,55 @@ std::vector<xprojectbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 				 } 
 			switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 
                 }
@@ -3979,41 +3440,32 @@ std::vector<xprojectbase::meta> getRecord(){
                     switch(kpos)
                     {
  
-       			case 5: 
+       			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			 } 
 		 switch(vpos){
-			case 22: 
- 				 vtemp=iter.totalvalue;
-				 break;
-			case 23: 
- 				 vtemp=iter.expectday;
-				 break;
-			case 24: 
- 				 vtemp=iter.realday;
-				 break;
 
                     }
                     if(ktemp.size()>0)
@@ -4041,58 +3493,37 @@ std::vector<xprojectbase::meta> getRecord(){
                 {
  
        case 0: 
- 	 ktemp=iter.xpjid;
+ 	 ktemp=iter.topicid;
 	 break;
 case 1: 
  	 ktemp=iter.userid;
 	 break;
 case 2: 
- 	 ktemp=iter.prexpjid;
+ 	 ktemp=iter.parentid;
 	 break;
 case 3: 
- 	 ktemp=iter.dpid;
+ 	 ktemp=iter.cateid;
 	 break;
 case 4: 
- 	 ktemp=iter.grouptype;
+ 	 ktemp=iter.sorttype;
+	 break;
+case 5: 
+ 	 ktemp=iter.languagetype;
 	 break;
 case 6: 
- 	 ktemp=iter.adminuserid;
+ 	 ktemp=iter.isview;
 	 break;
 case 7: 
- 	 ktemp=iter.regdate;
+ 	 ktemp=iter.isside;
 	 break;
 case 8: 
- 	 ktemp=iter.begindate;
+ 	 ktemp=iter.sortid;
 	 break;
-case 9: 
- 	 ktemp=iter.expiredate;
-	 break;
-case 10: 
- 	 ktemp=iter.isopen;
-	 break;
-case 11: 
- 	 ktemp=iter.clientid;
-	 break;
-case 12: 
- 	 ktemp=iter.totalnum;
-	 break;
-case 13: 
- 	 ktemp=iter.referdocverion;
-	 break;
-case 14: 
- 	 ktemp=iter.xtheme;
+case 17: 
+ 	 ktemp=iter.accesscode;
 	 break;
 	 } 
  		  switch(vpos){
-case 22: 
- 	 vtemp=iter.totalvalue;
-	 break;
-case 23: 
- 	 vtemp=iter.expectday;
-	 break;
-case 24: 
- 	 vtemp=iter.realday;
-	 break;
 
                 }
                 if(ktemp.size()>0)
@@ -4119,72 +3550,60 @@ case 24:
                     {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
  			switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 
                     }
@@ -4212,73 +3631,61 @@ case 24:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 
                 }
@@ -4307,90 +3714,66 @@ case 24:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 
                 }
@@ -4416,46 +3799,34 @@ case 24:
                 {
 
    			case 0: 
- 				 a.emplace(iter.xpjid,iter);
+ 				 a.emplace(iter.topicid,iter);
 				 break;
 			case 1: 
  				 a.emplace(iter.userid,iter);
 				 break;
 			case 2: 
- 				 a.emplace(iter.prexpjid,iter);
+ 				 a.emplace(iter.parentid,iter);
 				 break;
 			case 3: 
- 				 a.emplace(iter.dpid,iter);
+ 				 a.emplace(iter.cateid,iter);
 				 break;
 			case 4: 
- 				 a.emplace(iter.grouptype,iter);
+ 				 a.emplace(iter.sorttype,iter);
+				 break;
+			case 5: 
+ 				 a.emplace(iter.languagetype,iter);
 				 break;
 			case 6: 
- 				 a.emplace(iter.adminuserid,iter);
+ 				 a.emplace(iter.isview,iter);
 				 break;
 			case 7: 
- 				 a.emplace(iter.regdate,iter);
+ 				 a.emplace(iter.isside,iter);
 				 break;
 			case 8: 
- 				 a.emplace(iter.begindate,iter);
+ 				 a.emplace(iter.sortid,iter);
 				 break;
-			case 9: 
- 				 a.emplace(iter.expiredate,iter);
-				 break;
-			case 10: 
- 				 a.emplace(iter.isopen,iter);
-				 break;
-			case 11: 
- 				 a.emplace(iter.clientid,iter);
-				 break;
-			case 12: 
- 				 a.emplace(iter.totalnum,iter);
-				 break;
-			case 13: 
- 				 a.emplace(iter.referdocverion,iter);
-				 break;
-			case 14: 
- 				 a.emplace(iter.xtheme,iter);
+			case 17: 
+ 				 a.emplace(iter.accesscode,iter);
 				 break;
 
                 }
@@ -4477,29 +3848,29 @@ case 24:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 a.emplace(iter.title,iter);
 			 break;
+			case 10: 
+ 				 a.emplace(iter.twotitle,iter);
+			 break;
+			case 11: 
+ 				 a.emplace(iter.memo,iter);
+			 break;
+			case 12: 
+ 				 a.emplace(iter.templatename,iter);
+			 break;
+			case 13: 
+ 				 a.emplace(iter.url,iter);
+			 break;
+			case 14: 
+ 				 a.emplace(iter.urlpath,iter);
+			 break;
 			case 15: 
- 				 a.emplace(iter.xlogo,iter);
+ 				 a.emplace(iter.imgurl,iter);
 			 break;
 			case 16: 
- 				 a.emplace(iter.introduce,iter);
-			 break;
-			case 17: 
- 				 a.emplace(iter.giturl,iter);
-			 break;
-			case 18: 
- 				 a.emplace(iter.gitname,iter);
-			 break;
-			case 19: 
- 				 a.emplace(iter.gitpwd,iter);
-			 break;
-			case 20: 
- 				 a.emplace(iter.xcolor,iter);
-			 break;
-			case 21: 
- 				 a.emplace(iter.fupan,iter);
+ 				 a.emplace(iter.topimg,iter);
 			 break;
 
                 }
@@ -4525,41 +3896,32 @@ case 24:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 	 		 }
  			switch(vpos){
-			case 22: 
- 				 vtemp=iter.totalvalue;
-				 break;
-			case 23: 
- 				 vtemp=iter.expectday;
-				 break;
-			case 24: 
- 				 vtemp=iter.realday;
-				 break;
 
                    }
 
@@ -4587,58 +3949,37 @@ case 24:
                     {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 			 break;
 			case 1: 
  				 ktemp=iter.userid;
 			 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 			 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 			 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+			 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 			 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 			 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 			 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 			 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-			 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-			 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-			 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-			 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-			 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 			 break;
 			  }
 			 switch(vpos){
-			case 22: 
- 				 vtemp=iter.totalvalue;
-				 break;
-			case 23: 
- 				 vtemp=iter.expectday;
-				 break;
-			case 24: 
- 				 vtemp=iter.realday;
-				 break;
 
                    }
 
@@ -4667,72 +4008,60 @@ case 24:
                     {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
  			switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 
                    }
@@ -4759,73 +4088,61 @@ case 24:
                     switch(kpos)
                     {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 
                    }
@@ -4851,90 +4168,66 @@ case 24:
                     {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 
                    }
@@ -4959,55 +4252,55 @@ case 24:
                     switch(kpos)
                     {
 
-   case 5: 
+   case 9: 
  	 ktemp=iter.title;
 	 break;
+case 10: 
+ 	 ktemp=iter.twotitle;
+	 break;
+case 11: 
+ 	 ktemp=iter.memo;
+	 break;
+case 12: 
+ 	 ktemp=iter.templatename;
+	 break;
+case 13: 
+ 	 ktemp=iter.url;
+	 break;
+case 14: 
+ 	 ktemp=iter.urlpath;
+	 break;
 case 15: 
- 	 ktemp=iter.xlogo;
+ 	 ktemp=iter.imgurl;
 	 break;
 case 16: 
- 	 ktemp=iter.introduce;
-	 break;
-case 17: 
- 	 ktemp=iter.giturl;
-	 break;
-case 18: 
- 	 ktemp=iter.gitname;
-	 break;
-case 19: 
- 	 ktemp=iter.gitpwd;
-	 break;
-case 20: 
- 	 ktemp=iter.xcolor;
-	 break;
-case 21: 
- 	 ktemp=iter.fupan;
+ 	 ktemp=iter.topimg;
 	 break;
 	  }
  switch(vpos){
-case 5: 
+case 9: 
  	 vtemp=iter.title;
 	 break;
+case 10: 
+ 	 vtemp=iter.twotitle;
+	 break;
+case 11: 
+ 	 vtemp=iter.memo;
+	 break;
+case 12: 
+ 	 vtemp=iter.templatename;
+	 break;
+case 13: 
+ 	 vtemp=iter.url;
+	 break;
+case 14: 
+ 	 vtemp=iter.urlpath;
+	 break;
 case 15: 
- 	 vtemp=iter.xlogo;
+ 	 vtemp=iter.imgurl;
 	 break;
 case 16: 
- 	 vtemp=iter.introduce;
-	 break;
-case 17: 
- 	 vtemp=iter.giturl;
-	 break;
-case 18: 
- 	 vtemp=iter.gitname;
-	 break;
-case 19: 
- 	 vtemp=iter.gitpwd;
-	 break;
-case 20: 
- 	 vtemp=iter.xcolor;
-	 break;
-case 21: 
- 	 vtemp=iter.fupan;
+ 	 vtemp=iter.topimg;
 	 break;
 
                    }
@@ -5031,46 +4324,34 @@ case 21:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.xpjid,iter);
+ 	 a.emplace_back(iter.topicid,iter);
 	 break;
 case 1: 
  	 a.emplace_back(iter.userid,iter);
 	 break;
 case 2: 
- 	 a.emplace_back(iter.prexpjid,iter);
+ 	 a.emplace_back(iter.parentid,iter);
 	 break;
 case 3: 
- 	 a.emplace_back(iter.dpid,iter);
+ 	 a.emplace_back(iter.cateid,iter);
 	 break;
 case 4: 
- 	 a.emplace_back(iter.grouptype,iter);
+ 	 a.emplace_back(iter.sorttype,iter);
+	 break;
+case 5: 
+ 	 a.emplace_back(iter.languagetype,iter);
 	 break;
 case 6: 
- 	 a.emplace_back(iter.adminuserid,iter);
+ 	 a.emplace_back(iter.isview,iter);
 	 break;
 case 7: 
- 	 a.emplace_back(iter.regdate,iter);
+ 	 a.emplace_back(iter.isside,iter);
 	 break;
 case 8: 
- 	 a.emplace_back(iter.begindate,iter);
+ 	 a.emplace_back(iter.sortid,iter);
 	 break;
-case 9: 
- 	 a.emplace_back(iter.expiredate,iter);
-	 break;
-case 10: 
- 	 a.emplace_back(iter.isopen,iter);
-	 break;
-case 11: 
- 	 a.emplace_back(iter.clientid,iter);
-	 break;
-case 12: 
- 	 a.emplace_back(iter.totalnum,iter);
-	 break;
-case 13: 
- 	 a.emplace_back(iter.referdocverion,iter);
-	 break;
-case 14: 
- 	 a.emplace_back(iter.xtheme,iter);
+case 17: 
+ 	 a.emplace_back(iter.accesscode,iter);
 	 break;
 
                 }
@@ -5090,29 +4371,29 @@ case 14:
                 switch(kpos)
                 {
 
-   case 5: 
+   case 9: 
  	 a.emplace_back(iter.title,iter);
 	 break;
+case 10: 
+ 	 a.emplace_back(iter.twotitle,iter);
+	 break;
+case 11: 
+ 	 a.emplace_back(iter.memo,iter);
+	 break;
+case 12: 
+ 	 a.emplace_back(iter.templatename,iter);
+	 break;
+case 13: 
+ 	 a.emplace_back(iter.url,iter);
+	 break;
+case 14: 
+ 	 a.emplace_back(iter.urlpath,iter);
+	 break;
 case 15: 
- 	 a.emplace_back(iter.xlogo,iter);
+ 	 a.emplace_back(iter.imgurl,iter);
 	 break;
 case 16: 
- 	 a.emplace_back(iter.introduce,iter);
-	 break;
-case 17: 
- 	 a.emplace_back(iter.giturl,iter);
-	 break;
-case 18: 
- 	 a.emplace_back(iter.gitname,iter);
-	 break;
-case 19: 
- 	 a.emplace_back(iter.gitpwd,iter);
-	 break;
-case 20: 
- 	 a.emplace_back(iter.xcolor,iter);
-	 break;
-case 21: 
- 	 a.emplace_back(iter.fupan,iter);
+ 	 a.emplace_back(iter.topimg,iter);
 	 break;
 
                 }
@@ -5138,104 +4419,71 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 22: 
- 				 a[ktemp][vtemp].emplace_back(iter.totalvalue);
-				 break;
-			case 23: 
- 				 a[ktemp][vtemp].emplace_back(iter.expectday);
-				 break;
-			case 24: 
- 				 a[ktemp][vtemp].emplace_back(iter.realday);
-				 break;
 
                 }
             }       
@@ -5263,136 +4511,100 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.topicid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.prexpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.dpid);
+ 				 a[ktemp][vtemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.grouptype);
+ 				 a[ktemp][vtemp].emplace_back(iter.sorttype);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminuserid);
+ 				 a[ktemp][vtemp].emplace_back(iter.isview);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.regdate);
+ 				 a[ktemp][vtemp].emplace_back(iter.isside);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.begindate);
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.expiredate);
-				 break;
-			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.clientid);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.totalnum);
-				 break;
-			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.referdocverion);
-				 break;
-			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.xtheme);
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.accesscode);
 				 break;
 
                 }
@@ -5420,118 +4632,94 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(dpos){
-			case 5: 
+			case 9: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.twotitle);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.memo);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.templatename);
+				 break;
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.url);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
+				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.xlogo);
+ 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.introduce);
-				 break;
-			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.giturl);
-				 break;
-			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.gitname);
-				 break;
-			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.gitpwd);
-				 break;
-			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.xcolor);
-				 break;
-			case 21: 
- 				 a[ktemp][vtemp].emplace_back(iter.fupan);
+ 				 a[ktemp][vtemp].emplace_back(iter.topimg);
 				 break;
 
                 }
@@ -5560,86 +4748,65 @@ case 21:
                     {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 22: 
- 				 a[ktemp][vtemp].emplace_back(iter.totalvalue);
-				 break;
-			case 23: 
- 				 a[ktemp][vtemp].emplace_back(iter.expectday);
-				 break;
-			case 24: 
- 				 a[ktemp][vtemp].emplace_back(iter.realday);
-				 break;
 
                    }
                 }       
@@ -5667,118 +4834,94 @@ case 21:
             {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.topicid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.prexpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.dpid);
+ 				 a[ktemp][vtemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.grouptype);
+ 				 a[ktemp][vtemp].emplace_back(iter.sorttype);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminuserid);
+ 				 a[ktemp][vtemp].emplace_back(iter.isview);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.regdate);
+ 				 a[ktemp][vtemp].emplace_back(iter.isside);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.begindate);
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.expiredate);
-				 break;
-			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.clientid);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.totalnum);
-				 break;
-			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.referdocverion);
-				 break;
-			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.xtheme);
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.accesscode);
 				 break;
 
             }
@@ -5805,100 +4948,88 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 5: 
+			case 9: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.twotitle);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.memo);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.templatename);
+				 break;
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.url);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
+				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.xlogo);
+ 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.introduce);
-				 break;
-			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.giturl);
-				 break;
-			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.gitname);
-				 break;
-			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.gitpwd);
-				 break;
-			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.xcolor);
-				 break;
-			case 21: 
- 				 a[ktemp][vtemp].emplace_back(iter.fupan);
+ 				 a[ktemp][vtemp].emplace_back(iter.topimg);
 				 break;
 
                 }
@@ -5924,87 +5055,66 @@ case 21:
                     switch(kpos)
                     {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 22: 
- 				 a[ktemp][vtemp].emplace_back(iter.totalvalue);
-				 break;
-			case 23: 
- 				 a[ktemp][vtemp].emplace_back(iter.expectday);
-				 break;
-			case 24: 
- 				 a[ktemp][vtemp].emplace_back(iter.realday);
-				 break;
 
                     }
                 }       
@@ -6032,119 +5142,95 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.topicid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.prexpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.dpid);
+ 				 a[ktemp][vtemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.grouptype);
+ 				 a[ktemp][vtemp].emplace_back(iter.sorttype);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminuserid);
+ 				 a[ktemp][vtemp].emplace_back(iter.isview);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.regdate);
+ 				 a[ktemp][vtemp].emplace_back(iter.isside);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.begindate);
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.expiredate);
-				 break;
-			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.clientid);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.totalnum);
-				 break;
-			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.referdocverion);
-				 break;
-			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.xtheme);
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.accesscode);
 				 break;
 
                 }
@@ -6173,101 +5259,89 @@ case 21:
             switch(kpos)
             {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.topicid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.prexpjid;
+ 				 vtemp=iter.parentid;
 				 break;
 			case 3: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.cateid;
 				 break;
 			case 4: 
- 				 vtemp=iter.grouptype;
+ 				 vtemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 vtemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 vtemp=iter.adminuserid;
+ 				 vtemp=iter.isview;
 				 break;
 			case 7: 
- 				 vtemp=iter.regdate;
+ 				 vtemp=iter.isside;
 				 break;
 			case 8: 
- 				 vtemp=iter.begindate;
+ 				 vtemp=iter.sortid;
 				 break;
-			case 9: 
- 				 vtemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 vtemp=iter.isopen;
-				 break;
-			case 11: 
- 				 vtemp=iter.clientid;
-				 break;
-			case 12: 
- 				 vtemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 vtemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 vtemp=iter.xtheme;
+			case 17: 
+ 				 vtemp=iter.accesscode;
 				 break;
 			 }
 
 			switch(dpos){
-			case 5: 
+			case 9: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.twotitle);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.memo);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.templatename);
+				 break;
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.url);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
+				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.xlogo);
+ 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.introduce);
-				 break;
-			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.giturl);
-				 break;
-			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.gitname);
-				 break;
-			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.gitpwd);
-				 break;
-			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.xcolor);
-				 break;
-			case 21: 
- 				 a[ktemp][vtemp].emplace_back(iter.fupan);
+ 				 a[ktemp][vtemp].emplace_back(iter.topimg);
 				 break;
 
             }
@@ -6294,69 +5368,60 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 22: 
- 				 a[ktemp][vtemp].emplace_back(iter.totalvalue);
-				 break;
-			case 23: 
- 				 a[ktemp][vtemp].emplace_back(iter.expectday);
-				 break;
-			case 24: 
- 				 a[ktemp][vtemp].emplace_back(iter.realday);
-				 break;
 
                 }
             }       
@@ -6383,101 +5448,89 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.topicid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.prexpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.dpid);
+ 				 a[ktemp][vtemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.grouptype);
+ 				 a[ktemp][vtemp].emplace_back(iter.sorttype);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminuserid);
+ 				 a[ktemp][vtemp].emplace_back(iter.isview);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.regdate);
+ 				 a[ktemp][vtemp].emplace_back(iter.isside);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.begindate);
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.expiredate);
-				 break;
-			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.clientid);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.totalnum);
-				 break;
-			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.referdocverion);
-				 break;
-			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.xtheme);
+			case 17: 
+ 				 a[ktemp][vtemp].emplace_back(iter.accesscode);
 				 break;
 
                 }
@@ -6504,83 +5557,83 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 vtemp=iter.title;
 				 break;
+			case 10: 
+ 				 vtemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 vtemp=iter.memo;
+				 break;
+			case 12: 
+ 				 vtemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 vtemp=iter.url;
+				 break;
+			case 14: 
+ 				 vtemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 vtemp=iter.xlogo;
+ 				 vtemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 17: 
- 				 vtemp=iter.giturl;
-				 break;
-			case 18: 
- 				 vtemp=iter.gitname;
-				 break;
-			case 19: 
- 				 vtemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 vtemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 vtemp=iter.fupan;
+ 				 vtemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 5: 
+			case 9: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.twotitle);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.memo);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.templatename);
+				 break;
+			case 13: 
+ 				 a[ktemp][vtemp].emplace_back(iter.url);
+				 break;
+			case 14: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
+				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.xlogo);
+ 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.introduce);
-				 break;
-			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.giturl);
-				 break;
-			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.gitname);
-				 break;
-			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.gitpwd);
-				 break;
-			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.xcolor);
-				 break;
-			case 21: 
- 				 a[ktemp][vtemp].emplace_back(iter.fupan);
+ 				 a[ktemp][vtemp].emplace_back(iter.topimg);
 				 break;
 
                 }
@@ -6606,56 +5659,56 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 a[ktemp].emplace_back(iter.title);
 				 break;
+			case 10: 
+ 				 a[ktemp].emplace_back(iter.twotitle);
+				 break;
+			case 11: 
+ 				 a[ktemp].emplace_back(iter.memo);
+				 break;
+			case 12: 
+ 				 a[ktemp].emplace_back(iter.templatename);
+				 break;
+			case 13: 
+ 				 a[ktemp].emplace_back(iter.url);
+				 break;
+			case 14: 
+ 				 a[ktemp].emplace_back(iter.urlpath);
+				 break;
 			case 15: 
- 				 a[ktemp].emplace_back(iter.xlogo);
+ 				 a[ktemp].emplace_back(iter.imgurl);
 				 break;
 			case 16: 
- 				 a[ktemp].emplace_back(iter.introduce);
-				 break;
-			case 17: 
- 				 a[ktemp].emplace_back(iter.giturl);
-				 break;
-			case 18: 
- 				 a[ktemp].emplace_back(iter.gitname);
-				 break;
-			case 19: 
- 				 a[ktemp].emplace_back(iter.gitpwd);
-				 break;
-			case 20: 
- 				 a[ktemp].emplace_back(iter.xcolor);
-				 break;
-			case 21: 
- 				 a[ktemp].emplace_back(iter.fupan);
+ 				 a[ktemp].emplace_back(iter.topimg);
 				 break;
 
                 }
@@ -6680,42 +5733,33 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 22: 
- 				 a[ktemp].emplace_back(iter.totalvalue);
-				 break;
-			case 23: 
- 				 a[ktemp].emplace_back(iter.expectday);
-				 break;
-			case 24: 
- 				 a[ktemp].emplace_back(iter.realday);
-				 break;
 
                 }
             }       
@@ -6741,74 +5785,62 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.xpjid);
+ 				 a[ktemp].emplace_back(iter.topicid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.prexpjid);
+ 				 a[ktemp].emplace_back(iter.parentid);
 				 break;
 			case 3: 
- 				 a[ktemp].emplace_back(iter.dpid);
+ 				 a[ktemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
- 				 a[ktemp].emplace_back(iter.grouptype);
+ 				 a[ktemp].emplace_back(iter.sorttype);
+				 break;
+			case 5: 
+ 				 a[ktemp].emplace_back(iter.languagetype);
 				 break;
 			case 6: 
- 				 a[ktemp].emplace_back(iter.adminuserid);
+ 				 a[ktemp].emplace_back(iter.isview);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.regdate);
+ 				 a[ktemp].emplace_back(iter.isside);
 				 break;
 			case 8: 
- 				 a[ktemp].emplace_back(iter.begindate);
+ 				 a[ktemp].emplace_back(iter.sortid);
 				 break;
-			case 9: 
- 				 a[ktemp].emplace_back(iter.expiredate);
-				 break;
-			case 10: 
- 				 a[ktemp].emplace_back(iter.isopen);
-				 break;
-			case 11: 
- 				 a[ktemp].emplace_back(iter.clientid);
-				 break;
-			case 12: 
- 				 a[ktemp].emplace_back(iter.totalnum);
-				 break;
-			case 13: 
- 				 a[ktemp].emplace_back(iter.referdocverion);
-				 break;
-			case 14: 
- 				 a[ktemp].emplace_back(iter.xtheme);
+			case 17: 
+ 				 a[ktemp].emplace_back(iter.accesscode);
 				 break;
 
                 }
@@ -6835,73 +5867,61 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 a[ktemp].emplace_back(iter.title);
 				 break;
+			case 10: 
+ 				 a[ktemp].emplace_back(iter.twotitle);
+				 break;
+			case 11: 
+ 				 a[ktemp].emplace_back(iter.memo);
+				 break;
+			case 12: 
+ 				 a[ktemp].emplace_back(iter.templatename);
+				 break;
+			case 13: 
+ 				 a[ktemp].emplace_back(iter.url);
+				 break;
+			case 14: 
+ 				 a[ktemp].emplace_back(iter.urlpath);
+				 break;
 			case 15: 
- 				 a[ktemp].emplace_back(iter.xlogo);
+ 				 a[ktemp].emplace_back(iter.imgurl);
 				 break;
 			case 16: 
- 				 a[ktemp].emplace_back(iter.introduce);
-				 break;
-			case 17: 
- 				 a[ktemp].emplace_back(iter.giturl);
-				 break;
-			case 18: 
- 				 a[ktemp].emplace_back(iter.gitname);
-				 break;
-			case 19: 
- 				 a[ktemp].emplace_back(iter.gitpwd);
-				 break;
-			case 20: 
- 				 a[ktemp].emplace_back(iter.xcolor);
-				 break;
-			case 21: 
- 				 a[ktemp].emplace_back(iter.fupan);
+ 				 a[ktemp].emplace_back(iter.topimg);
 				 break;
 
                 }
@@ -6929,59 +5949,38 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 22: 
- 				 a[ktemp].emplace_back(iter.totalvalue);
-				 break;
-			case 23: 
- 				 a[ktemp].emplace_back(iter.expectday);
-				 break;
-			case 24: 
- 				 a[ktemp].emplace_back(iter.realday);
-				 break;
 
                 }
             }       
@@ -7007,91 +6006,67 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.xpjid);
+ 				 a[ktemp].emplace_back(iter.topicid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.prexpjid);
+ 				 a[ktemp].emplace_back(iter.parentid);
 				 break;
 			case 3: 
- 				 a[ktemp].emplace_back(iter.dpid);
+ 				 a[ktemp].emplace_back(iter.cateid);
 				 break;
 			case 4: 
- 				 a[ktemp].emplace_back(iter.grouptype);
+ 				 a[ktemp].emplace_back(iter.sorttype);
+				 break;
+			case 5: 
+ 				 a[ktemp].emplace_back(iter.languagetype);
 				 break;
 			case 6: 
- 				 a[ktemp].emplace_back(iter.adminuserid);
+ 				 a[ktemp].emplace_back(iter.isview);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.regdate);
+ 				 a[ktemp].emplace_back(iter.isside);
 				 break;
 			case 8: 
- 				 a[ktemp].emplace_back(iter.begindate);
+ 				 a[ktemp].emplace_back(iter.sortid);
 				 break;
-			case 9: 
- 				 a[ktemp].emplace_back(iter.expiredate);
-				 break;
-			case 10: 
- 				 a[ktemp].emplace_back(iter.isopen);
-				 break;
-			case 11: 
- 				 a[ktemp].emplace_back(iter.clientid);
-				 break;
-			case 12: 
- 				 a[ktemp].emplace_back(iter.totalnum);
-				 break;
-			case 13: 
- 				 a[ktemp].emplace_back(iter.referdocverion);
-				 break;
-			case 14: 
- 				 a[ktemp].emplace_back(iter.xtheme);
+			case 17: 
+ 				 a[ktemp].emplace_back(iter.accesscode);
 				 break;
 
                 }
@@ -7114,46 +6089,34 @@ case 21:
                 {
 
    			case 0: 
- 				 a[iter.xpjid].emplace_back(iter);
+ 				 a[iter.topicid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[iter.prexpjid].emplace_back(iter);
+ 				 a[iter.parentid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[iter.dpid].emplace_back(iter);
+ 				 a[iter.cateid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[iter.grouptype].emplace_back(iter);
+ 				 a[iter.sorttype].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[iter.languagetype].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[iter.adminuserid].emplace_back(iter);
+ 				 a[iter.isview].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[iter.regdate].emplace_back(iter);
+ 				 a[iter.isside].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[iter.begindate].emplace_back(iter);
+ 				 a[iter.sortid].emplace_back(iter);
 				 break;
-			case 9: 
- 				 a[iter.expiredate].emplace_back(iter);
-				 break;
-			case 10: 
- 				 a[iter.isopen].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[iter.clientid].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[iter.totalnum].emplace_back(iter);
-				 break;
-			case 13: 
- 				 a[iter.referdocverion].emplace_back(iter);
-				 break;
-			case 14: 
- 				 a[iter.xtheme].emplace_back(iter);
+			case 17: 
+ 				 a[iter.accesscode].emplace_back(iter);
 				 break;
 
                 }
@@ -7176,29 +6139,29 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 a[iter.title].emplace_back(iter);
 				 break;
+			case 10: 
+ 				 a[iter.twotitle].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[iter.memo].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[iter.templatename].emplace_back(iter);
+				 break;
+			case 13: 
+ 				 a[iter.url].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[iter.urlpath].emplace_back(iter);
+				 break;
 			case 15: 
- 				 a[iter.xlogo].emplace_back(iter);
+ 				 a[iter.imgurl].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[iter.introduce].emplace_back(iter);
-				 break;
-			case 17: 
- 				 a[iter.giturl].emplace_back(iter);
-				 break;
-			case 18: 
- 				 a[iter.gitname].emplace_back(iter);
-				 break;
-			case 19: 
- 				 a[iter.gitpwd].emplace_back(iter);
-				 break;
-			case 20: 
- 				 a[iter.xcolor].emplace_back(iter);
-				 break;
-			case 21: 
- 				 a[iter.fupan].emplace_back(iter);
+ 				 a[iter.topimg].emplace_back(iter);
 				 break;
 
                 }
@@ -7223,56 +6186,56 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
+			case 10: 
+ 				 a[ktemp][iter.twotitle].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[ktemp][iter.memo].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[ktemp][iter.templatename].emplace_back(iter);
+				 break;
+			case 13: 
+ 				 a[ktemp][iter.url].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[ktemp][iter.urlpath].emplace_back(iter);
+				 break;
 			case 15: 
- 				 a[ktemp][iter.xlogo].emplace_back(iter);
+ 				 a[ktemp][iter.imgurl].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[ktemp][iter.introduce].emplace_back(iter);
-				 break;
-			case 17: 
- 				 a[ktemp][iter.giturl].emplace_back(iter);
-				 break;
-			case 18: 
- 				 a[ktemp][iter.gitname].emplace_back(iter);
-				 break;
-			case 19: 
- 				 a[ktemp][iter.gitpwd].emplace_back(iter);
-				 break;
-			case 20: 
- 				 a[ktemp][iter.xcolor].emplace_back(iter);
-				 break;
-			case 21: 
- 				 a[ktemp][iter.fupan].emplace_back(iter);
+ 				 a[ktemp][iter.topimg].emplace_back(iter);
 				 break;
 
                 }
@@ -7297,74 +6260,62 @@ case 21:
                 switch(kpos)
                 {
 
-   			case 5: 
+   			case 9: 
  				 ktemp=iter.title;
 				 break;
+			case 10: 
+ 				 ktemp=iter.twotitle;
+				 break;
+			case 11: 
+ 				 ktemp=iter.memo;
+				 break;
+			case 12: 
+ 				 ktemp=iter.templatename;
+				 break;
+			case 13: 
+ 				 ktemp=iter.url;
+				 break;
+			case 14: 
+ 				 ktemp=iter.urlpath;
+				 break;
 			case 15: 
- 				 ktemp=iter.xlogo;
+ 				 ktemp=iter.imgurl;
 				 break;
 			case 16: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 17: 
- 				 ktemp=iter.giturl;
-				 break;
-			case 18: 
- 				 ktemp=iter.gitname;
-				 break;
-			case 19: 
- 				 ktemp=iter.gitpwd;
-				 break;
-			case 20: 
- 				 ktemp=iter.xcolor;
-				 break;
-			case 21: 
- 				 ktemp=iter.fupan;
+ 				 ktemp=iter.topimg;
 				 break;
 	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.xpjid].emplace_back(iter);
+ 				 a[ktemp][iter.topicid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.prexpjid].emplace_back(iter);
+ 				 a[ktemp][iter.parentid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[ktemp][iter.dpid].emplace_back(iter);
+ 				 a[ktemp][iter.cateid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[ktemp][iter.grouptype].emplace_back(iter);
+ 				 a[ktemp][iter.sorttype].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[ktemp][iter.languagetype].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[ktemp][iter.adminuserid].emplace_back(iter);
+ 				 a[ktemp][iter.isview].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.regdate].emplace_back(iter);
+ 				 a[ktemp][iter.isside].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[ktemp][iter.begindate].emplace_back(iter);
+ 				 a[ktemp][iter.sortid].emplace_back(iter);
 				 break;
-			case 9: 
- 				 a[ktemp][iter.expiredate].emplace_back(iter);
-				 break;
-			case 10: 
- 				 a[ktemp][iter.isopen].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[ktemp][iter.clientid].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[ktemp][iter.totalnum].emplace_back(iter);
-				 break;
-			case 13: 
- 				 a[ktemp][iter.referdocverion].emplace_back(iter);
-				 break;
-			case 14: 
- 				 a[ktemp][iter.xtheme].emplace_back(iter);
+			case 17: 
+ 				 a[ktemp][iter.accesscode].emplace_back(iter);
 				 break;
 
                 }
@@ -7391,91 +6342,67 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.xpjid].emplace_back(iter);
+ 				 a[ktemp][iter.topicid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.prexpjid].emplace_back(iter);
+ 				 a[ktemp][iter.parentid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[ktemp][iter.dpid].emplace_back(iter);
+ 				 a[ktemp][iter.cateid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[ktemp][iter.grouptype].emplace_back(iter);
+ 				 a[ktemp][iter.sorttype].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[ktemp][iter.languagetype].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[ktemp][iter.adminuserid].emplace_back(iter);
+ 				 a[ktemp][iter.isview].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.regdate].emplace_back(iter);
+ 				 a[ktemp][iter.isside].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[ktemp][iter.begindate].emplace_back(iter);
+ 				 a[ktemp][iter.sortid].emplace_back(iter);
 				 break;
-			case 9: 
- 				 a[ktemp][iter.expiredate].emplace_back(iter);
-				 break;
-			case 10: 
- 				 a[ktemp][iter.isopen].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[ktemp][iter.clientid].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[ktemp][iter.totalnum].emplace_back(iter);
-				 break;
-			case 13: 
- 				 a[ktemp][iter.referdocverion].emplace_back(iter);
-				 break;
-			case 14: 
- 				 a[ktemp][iter.xtheme].emplace_back(iter);
+			case 17: 
+ 				 a[ktemp][iter.accesscode].emplace_back(iter);
 				 break;
 
                 }
@@ -7502,73 +6429,61 @@ case 21:
                 {
 
    			case 0: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.topicid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.prexpjid;
+ 				 ktemp=iter.parentid;
 				 break;
 			case 3: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.cateid;
 				 break;
 			case 4: 
- 				 ktemp=iter.grouptype;
+ 				 ktemp=iter.sorttype;
+				 break;
+			case 5: 
+ 				 ktemp=iter.languagetype;
 				 break;
 			case 6: 
- 				 ktemp=iter.adminuserid;
+ 				 ktemp=iter.isview;
 				 break;
 			case 7: 
- 				 ktemp=iter.regdate;
+ 				 ktemp=iter.isside;
 				 break;
 			case 8: 
- 				 ktemp=iter.begindate;
+ 				 ktemp=iter.sortid;
 				 break;
-			case 9: 
- 				 ktemp=iter.expiredate;
-				 break;
-			case 10: 
- 				 ktemp=iter.isopen;
-				 break;
-			case 11: 
- 				 ktemp=iter.clientid;
-				 break;
-			case 12: 
- 				 ktemp=iter.totalnum;
-				 break;
-			case 13: 
- 				 ktemp=iter.referdocverion;
-				 break;
-			case 14: 
- 				 ktemp=iter.xtheme;
+			case 17: 
+ 				 ktemp=iter.accesscode;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 5: 
+			case 9: 
  				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
+			case 10: 
+ 				 a[ktemp][iter.twotitle].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[ktemp][iter.memo].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[ktemp][iter.templatename].emplace_back(iter);
+				 break;
+			case 13: 
+ 				 a[ktemp][iter.url].emplace_back(iter);
+				 break;
+			case 14: 
+ 				 a[ktemp][iter.urlpath].emplace_back(iter);
+				 break;
 			case 15: 
- 				 a[ktemp][iter.xlogo].emplace_back(iter);
+ 				 a[ktemp][iter.imgurl].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[ktemp][iter.introduce].emplace_back(iter);
-				 break;
-			case 17: 
- 				 a[ktemp][iter.giturl].emplace_back(iter);
-				 break;
-			case 18: 
- 				 a[ktemp][iter.gitname].emplace_back(iter);
-				 break;
-			case 19: 
- 				 a[ktemp][iter.gitpwd].emplace_back(iter);
-				 break;
-			case 20: 
- 				 a[ktemp][iter.xcolor].emplace_back(iter);
-				 break;
-			case 21: 
- 				 a[ktemp][iter.fupan].emplace_back(iter);
+ 				 a[ktemp][iter.topimg].emplace_back(iter);
 				 break;
 
                 }

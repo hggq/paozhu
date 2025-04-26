@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,7 +20,7 @@ namespace orm {
    
      namespace cms { 
 
-struct siteinfobase
+struct siteinfo_base
 {
     struct meta{
      int  sid = 0; ///**/
@@ -56,13 +56,13 @@ struct siteinfobase
  unsigned  int  created_at = 0; ///**/
  unsigned  int  enddate = 0; ///**/
  } data;
- std::vector<siteinfobase::meta> record;
+ std::vector<siteinfo_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<siteinfobase::meta>::iterator begin(){     return record.begin(); }
-std::vector<siteinfobase::meta>::iterator end(){     return record.end(); }
-std::vector<siteinfobase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<siteinfobase::meta>::const_iterator end() const{     return record.end(); }
+std::vector<siteinfo_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<siteinfo_base::meta>::iterator end(){     return record.end(); }
+std::vector<siteinfo_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<siteinfo_base::meta>::const_iterator end() const{     return record.end(); }
 static constexpr std::array<std::string_view,32> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
 static constexpr std::array<unsigned char,32> col_types={3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
 static constexpr std::array<unsigned char,32> col_length={0,0,0,0,120,120,0,0,0,0,0,0,0,0,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
@@ -230,7 +230,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     siteinfobase::meta metatemp;    
+     siteinfo_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -1683,7 +1683,7 @@ if(data.enddate==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        siteinfobase::meta metatemp; 
+        siteinfo_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -3186,14 +3186,14 @@ if(record[n].enddate==0){
  unsigned  int  getEnddate(){  return data.enddate; } 
  void setEnddate( unsigned  int  val){  data.enddate=val;} 
 
-siteinfobase::meta getnewData(){
+siteinfo_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-siteinfobase::meta getData(){
+siteinfo_base::meta getData(){
  	 return data; 
 } 
-std::vector<siteinfobase::meta> getRecord(){
+std::vector<siteinfo_base::meta> getRecord(){
  	 return record; 
 } 
 
@@ -3430,7 +3430,7 @@ std::vector<siteinfobase::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] siteinfobase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] siteinfo_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3482,7 +3482,7 @@ std::vector<siteinfobase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] siteinfobase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] siteinfo_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -3586,7 +3586,7 @@ std::vector<siteinfobase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] siteinfobase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] siteinfo_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;

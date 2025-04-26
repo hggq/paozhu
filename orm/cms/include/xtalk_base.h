@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_SYSPERMSBASEMATA_H
-#define ORM_CMS_SYSPERMSBASEMATA_H
+#ifndef ORM_CMS_XTALKBASEMATA_H
+#define ORM_CMS_XTALKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,54 +20,34 @@ namespace orm {
    
      namespace cms { 
 
-struct syspermsbase
+struct xtalk_base
 {
     struct meta{
-     unsigned  int  permsid = 0; ///**/
- unsigned  int  parentid = 0; ///**/
+     unsigned  int  talkid = 0; ///**/
  unsigned  int  userid = 0; ///**/
- std::string  urlpath = ""; ///**/
- std::string  urlname = ""; ///**/
- std::string  name = ""; ///**/
- unsigned  char  status = 0; ///**/
- unsigned  int  permscode = 0; ///**/
- unsigned  char  readonly = 0; ///**/
- unsigned  int  created_time = 0; ///**/
- unsigned  int  updated_time = 0; ///**/
- unsigned  int  created_user = 0; ///**/
- unsigned  int  updated_user = 0; ///**/
+ unsigned  int  adminid = 0; ///**/
+ unsigned  int  taskid = 0; ///**/
+ unsigned  int  projectid = 0; ///**/
+ std::string  content = ""; ///**/
+ unsigned  char  isdelete = 0; ///**/
+ unsigned  int  addtime = 0; ///**/
+ unsigned  int  update_at = 0; ///**/
+ unsigned  char  islock = 0; ///**/
+ unsigned  int  replyid = 0; ///**/
  } data;
-  
-        struct meta_tree{
-         unsigned  int  permsid = 0; ///**/
- unsigned  int  parentid = 0; ///**/
- unsigned  int  userid = 0; ///**/
- std::string  urlpath = ""; ///**/
- std::string  urlname = ""; ///**/
- std::string  name = ""; ///**/
- unsigned  char  status = 0; ///**/
- unsigned  int  permscode = 0; ///**/
- unsigned  char  readonly = 0; ///**/
- unsigned  int  created_time = 0; ///**/
- unsigned  int  updated_time = 0; ///**/
- unsigned  int  created_user = 0; ///**/
- unsigned  int  updated_user = 0; ///**/
-
-	std::vector<meta_tree> children;
- };
- std::vector<syspermsbase::meta> record;
+ std::vector<xtalk_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<syspermsbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<syspermsbase::meta>::iterator end(){     return record.end(); }
-std::vector<syspermsbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<syspermsbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,13> col_names={"permsid","parentid","userid","urlpath","urlname","name","status","permscode","readonly","created_time","updated_time","created_user","updated_user"};
-static constexpr std::array<unsigned char,13> col_types={3,3,3,253,253,253,1,3,1,3,3,3,3};
-static constexpr std::array<unsigned char,13> col_length={0,0,0,120,60,60,0,0,0,0,0,0,0};
-static constexpr std::array<unsigned char,13> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0};
-std::string tablename="sysperms";
-static constexpr std::string_view modelname="Sysperms";
+std::vector<xtalk_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<xtalk_base::meta>::iterator end(){     return record.end(); }
+std::vector<xtalk_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<xtalk_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,11> col_names={"talkid","userid","adminid","taskid","projectid","content","isdelete","addtime","update_at","islock","replyid"};
+static constexpr std::array<unsigned char,11> col_types={3,3,3,3,3,252,1,3,3,1,3};
+static constexpr std::array<unsigned char,11> col_length={0,0,0,0,0,0,0,0,0,0,0};
+static constexpr std::array<unsigned char,11> col_decimals={0,0,0,0,0,0,0,0,0,0,0};
+std::string tablename="xtalk";
+static constexpr std::string_view modelname="Xtalk";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -83,55 +63,51 @@ static constexpr std::string_view modelname="Sysperms";
             switch(coln[0]){
 
 
-         case 'c':
+         case 'a':
  switch(coln.size()){  
-case 12:
+case 7:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='e'){ return 9; }
- if(colpospppc=='r'){ return 11; }
+ if(colpospppc=='d'){ return 2; }
+ if(colpospppc=='e'){ return 7; }
    	 break;
  }
  break;
-case 'n':
+case 'c':
    	 return 5;
 break;
-case 'p':
+case 'i':
  switch(coln.size()){  
-case 7:
-   	 return 0;
+case 6:
+   	 return 9;
 break;
 case 8:
-   	 return 1;
-break;
-case 9:
-   	 return 7;
+   	 return 6;
 break;
  }
  break;
+case 'p':
+   	 return 4;
+break;
 case 'r':
-   	 return 8;
+   	 return 10;
 break;
-case 's':
-   	 return 6;
-break;
+case 't':
+ switch(coln.size()){  
+case 6:
+ if(coln.size()>2&&(coln[2]=='l'||coln[2]=='L')){ return 0; }
+ if(coln.size()>2&&(coln[2]=='s'||coln[2]=='S')){ return 3; }
+   	 break;
+ }
+ break;
 case 'u':
  switch(coln.size()){  
 case 6:
-   	 return 2;
+   	 return 1;
 break;
-case 7:
-  colpospppc=coln.back();
-    if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='e'){ return 4; }
- if(colpospppc=='h'){ return 3; }
-   	 break;
-case 12:
-  colpospppc=coln.back();
-    if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='e'){ return 10; }
- if(colpospppc=='r'){ return 12; }
-   	 break;
+case 9:
+   	 return 8;
+break;
  }
  break;
 
@@ -142,7 +118,7 @@ case 12:
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "permsid";
+       return "talkid";
 }
 
       void record_reset()
@@ -150,13 +126,43 @@ case 12:
             record.clear();     
       }
       void data_reset(){
-     syspermsbase::meta metatemp;    
+     xtalk_base::meta metatemp;    
             data = metatemp; 
       }
       
       std::string soft_remove_sql([[maybe_unused]] const std::string &fieldsql){
           std::string temp;
      
+         if(fieldsql.size()<2)
+         {
+            temp="UPDATE `";
+            temp.append(tablename);
+            temp.push_back('`');
+            temp.append(" SET ");
+         }
+         else
+         {
+            temp=_makeupdatesql(fieldsql);
+            if(temp.size()>2)
+            {
+                if(temp.back()==0x20&&temp[temp.size()-2]=='T')
+                {
+
+                }
+                else
+                {
+                    temp.push_back(',');
+                }
+            }
+            
+         }   
+         
+      	temp.push_back('`');
+		temp.append("isdelete");
+		temp.push_back('`');
+		temp.append("=1 ");
+		 if(fieldsql.size()>0){ data.isdelete=1; }
+	
          return temp;
      }
      
@@ -213,58 +219,56 @@ case 12:
         }
         tempsql<<") VALUES (";
 
-        if(data.permsid==0){
+        if(data.talkid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.permsid);
-}
-if(data.parentid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.parentid);
+	tempsql<<std::to_string(data.talkid);
 }
 if(data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.userid);
 }
-tempsql<<",'"<<stringaddslash(data.urlpath)<<"'";
-tempsql<<",'"<<stringaddslash(data.urlname)<<"'";
-tempsql<<",'"<<stringaddslash(data.name)<<"'";
-if(data.status==0){
+if(data.adminid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.status);
+	tempsql<<","<<std::to_string(data.adminid);
 }
-if(data.permscode==0){
+if(data.taskid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.permscode);
+	tempsql<<","<<std::to_string(data.taskid);
 }
-if(data.readonly==0){
+if(data.projectid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.readonly);
+	tempsql<<","<<std::to_string(data.projectid);
 }
-if(data.created_time==0){
+tempsql<<",'"<<stringaddslash(data.content)<<"'";
+if(data.isdelete==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.created_time);
+	tempsql<<","<<std::to_string(data.isdelete);
 }
-if(data.updated_time==0){
+if(data.addtime==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.updated_time);
+	tempsql<<","<<std::to_string(data.addtime);
 }
-if(data.created_user==0){
+if(data.update_at==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.created_user);
+	tempsql<<","<<std::to_string(data.update_at);
 }
-if(data.updated_user==0){
+if(data.islock==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.updated_user);
+	tempsql<<","<<std::to_string(data.islock);
+}
+if(data.replyid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.replyid);
 }
 tempsql<<")";
 
@@ -291,58 +295,56 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.permsid==0){
+        if(insert_data.talkid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.permsid);
-}
-if(insert_data.parentid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.parentid);
+	tempsql<<std::to_string(insert_data.talkid);
 }
 if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.userid);
 }
-tempsql<<",'"<<stringaddslash(insert_data.urlpath)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.urlname)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
-if(insert_data.status==0){
+if(insert_data.adminid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.status);
+	tempsql<<","<<std::to_string(insert_data.adminid);
 }
-if(insert_data.permscode==0){
+if(insert_data.taskid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.permscode);
+	tempsql<<","<<std::to_string(insert_data.taskid);
 }
-if(insert_data.readonly==0){
+if(insert_data.projectid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.readonly);
+	tempsql<<","<<std::to_string(insert_data.projectid);
 }
-if(insert_data.created_time==0){
+tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
+if(insert_data.isdelete==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.created_time);
+	tempsql<<","<<std::to_string(insert_data.isdelete);
 }
-if(insert_data.updated_time==0){
+if(insert_data.addtime==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.updated_time);
+	tempsql<<","<<std::to_string(insert_data.addtime);
 }
-if(insert_data.created_user==0){
+if(insert_data.update_at==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.created_user);
+	tempsql<<","<<std::to_string(insert_data.update_at);
 }
-if(insert_data.updated_user==0){
+if(insert_data.islock==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.updated_user);
+	tempsql<<","<<std::to_string(insert_data.islock);
+}
+if(insert_data.replyid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.replyid);
 }
 tempsql<<")";
 
@@ -378,58 +380,56 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].permsid==0){
+            	if(insert_data[i].talkid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].permsid);
-	}
-	if(insert_data[i].parentid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].parentid);
+	tempsql<<std::to_string(insert_data[i].talkid);
 	}
 	if(insert_data[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].urlpath)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].urlname)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
-	if(insert_data[i].status==0){
+	if(insert_data[i].adminid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].status);
+	tempsql<<","<<std::to_string(insert_data[i].adminid);
 	}
-	if(insert_data[i].permscode==0){
+	if(insert_data[i].taskid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].permscode);
+	tempsql<<","<<std::to_string(insert_data[i].taskid);
 	}
-	if(insert_data[i].readonly==0){
+	if(insert_data[i].projectid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].readonly);
+	tempsql<<","<<std::to_string(insert_data[i].projectid);
 	}
-	if(insert_data[i].created_time==0){
+		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
+	if(insert_data[i].isdelete==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].created_time);
+	tempsql<<","<<std::to_string(insert_data[i].isdelete);
 	}
-	if(insert_data[i].updated_time==0){
+	if(insert_data[i].addtime==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].updated_time);
+	tempsql<<","<<std::to_string(insert_data[i].addtime);
 	}
-	if(insert_data[i].created_user==0){
+	if(insert_data[i].update_at==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].created_user);
+	tempsql<<","<<std::to_string(insert_data[i].update_at);
 	}
-	if(insert_data[i].updated_user==0){
+	if(insert_data[i].islock==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].updated_user);
+	tempsql<<","<<std::to_string(insert_data[i].islock);
+	}
+	if(insert_data[i].replyid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].replyid);
 	}
 		tempsql<<")";
 	 } 
@@ -450,58 +450,56 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.permsid==0){
-	tempsql<<"`permsid`=0";
+        if(data.talkid==0){
+	tempsql<<"`talkid`=0";
  }else{ 
-	tempsql<<"`permsid`="<<std::to_string(data.permsid);
-}
-if(data.parentid==0){
-	tempsql<<",`parentid`=0";
- }else{ 
-	tempsql<<",`parentid`="<<std::to_string(data.parentid);
+	tempsql<<"`talkid`="<<std::to_string(data.talkid);
 }
 if(data.userid==0){
 	tempsql<<",`userid`=0";
  }else{ 
 	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
-tempsql<<",`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
-tempsql<<",`urlname`='"<<stringaddslash(data.urlname)<<"'";
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
-if(data.status==0){
-	tempsql<<",`status`=0";
+if(data.adminid==0){
+	tempsql<<",`adminid`=0";
  }else{ 
-	tempsql<<",`status`="<<std::to_string(data.status);
+	tempsql<<",`adminid`="<<std::to_string(data.adminid);
 }
-if(data.permscode==0){
-	tempsql<<",`permscode`=0";
+if(data.taskid==0){
+	tempsql<<",`taskid`=0";
  }else{ 
-	tempsql<<",`permscode`="<<std::to_string(data.permscode);
+	tempsql<<",`taskid`="<<std::to_string(data.taskid);
 }
-if(data.readonly==0){
-	tempsql<<",`readonly`=0";
+if(data.projectid==0){
+	tempsql<<",`projectid`=0";
  }else{ 
-	tempsql<<",`readonly`="<<std::to_string(data.readonly);
+	tempsql<<",`projectid`="<<std::to_string(data.projectid);
 }
-if(data.created_time==0){
-	tempsql<<",`created_time`=0";
+tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
+if(data.isdelete==0){
+	tempsql<<",`isdelete`=0";
  }else{ 
-	tempsql<<",`created_time`="<<std::to_string(data.created_time);
+	tempsql<<",`isdelete`="<<std::to_string(data.isdelete);
 }
-if(data.updated_time==0){
-	tempsql<<",`updated_time`=0";
+if(data.addtime==0){
+	tempsql<<",`addtime`=0";
  }else{ 
-	tempsql<<",`updated_time`="<<std::to_string(data.updated_time);
+	tempsql<<",`addtime`="<<std::to_string(data.addtime);
 }
-if(data.created_user==0){
-	tempsql<<",`created_user`=0";
+if(data.update_at==0){
+	tempsql<<",`update_at`=0";
  }else{ 
-	tempsql<<",`created_user`="<<std::to_string(data.created_user);
+	tempsql<<",`update_at`="<<std::to_string(data.update_at);
 }
-if(data.updated_user==0){
-	tempsql<<",`updated_user`=0";
+if(data.islock==0){
+	tempsql<<",`islock`=0";
  }else{ 
-	tempsql<<",`updated_user`="<<std::to_string(data.updated_user);
+	tempsql<<",`islock`="<<std::to_string(data.islock);
+}
+if(data.replyid==0){
+	tempsql<<",`replyid`=0";
+ }else{ 
+	tempsql<<",`replyid`="<<std::to_string(data.replyid);
 }
  }else{ 
 
@@ -549,21 +547,13 @@ if(data.updated_user==0){
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.permsid==0){
-	tempsql<<"`permsid`=0";
+if(data.talkid==0){
+	tempsql<<"`talkid`=0";
  }else{ 
-	tempsql<<"`permsid`="<<std::to_string(data.permsid);
+	tempsql<<"`talkid`="<<std::to_string(data.talkid);
 }
  break;
  case 1:
- if(jj>0){ tempsql<<","; } 
-if(data.parentid==0){
-	tempsql<<"`parentid`=0";
- }else{ 
-	tempsql<<"`parentid`="<<std::to_string(data.parentid);
-}
- break;
- case 2:
  if(jj>0){ tempsql<<","; } 
 if(data.userid==0){
 	tempsql<<"`userid`=0";
@@ -571,72 +561,72 @@ if(data.userid==0){
 	tempsql<<"`userid`="<<std::to_string(data.userid);
 }
  break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(data.adminid==0){
+	tempsql<<"`adminid`=0";
+ }else{ 
+	tempsql<<"`adminid`="<<std::to_string(data.adminid);
+}
+ break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
+if(data.taskid==0){
+	tempsql<<"`taskid`=0";
+ }else{ 
+	tempsql<<"`taskid`="<<std::to_string(data.taskid);
+}
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`urlname`='"<<stringaddslash(data.urlname)<<"'";
+if(data.projectid==0){
+	tempsql<<"`projectid`=0";
+ }else{ 
+	tempsql<<"`projectid`="<<std::to_string(data.projectid);
+}
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(data.status==0){
-	tempsql<<"`status`=0";
+if(data.isdelete==0){
+	tempsql<<"`isdelete`=0";
  }else{ 
-	tempsql<<"`status`="<<std::to_string(data.status);
+	tempsql<<"`isdelete`="<<std::to_string(data.isdelete);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(data.permscode==0){
-	tempsql<<"`permscode`=0";
+if(data.addtime==0){
+	tempsql<<"`addtime`=0";
  }else{ 
-	tempsql<<"`permscode`="<<std::to_string(data.permscode);
+	tempsql<<"`addtime`="<<std::to_string(data.addtime);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(data.readonly==0){
-	tempsql<<"`readonly`=0";
+if(data.update_at==0){
+	tempsql<<"`update_at`=0";
  }else{ 
-	tempsql<<"`readonly`="<<std::to_string(data.readonly);
+	tempsql<<"`update_at`="<<std::to_string(data.update_at);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(data.created_time==0){
-	tempsql<<"`created_time`=0";
+if(data.islock==0){
+	tempsql<<"`islock`=0";
  }else{ 
-	tempsql<<"`created_time`="<<std::to_string(data.created_time);
+	tempsql<<"`islock`="<<std::to_string(data.islock);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(data.updated_time==0){
-	tempsql<<"`updated_time`=0";
+if(data.replyid==0){
+	tempsql<<"`replyid`=0";
  }else{ 
-	tempsql<<"`updated_time`="<<std::to_string(data.updated_time);
-}
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-if(data.created_user==0){
-	tempsql<<"`created_user`=0";
- }else{ 
-	tempsql<<"`created_user`="<<std::to_string(data.created_user);
-}
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(data.updated_user==0){
-	tempsql<<"`updated_user`=0";
- }else{ 
-	tempsql<<"`updated_user`="<<std::to_string(data.updated_user);
+	tempsql<<"`replyid`="<<std::to_string(data.replyid);
 }
  break;
 
@@ -683,58 +673,56 @@ if(data.updated_user==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].permsid==0){
+            	if(record[i].talkid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].permsid);
-	}
-	if(record[i].parentid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].parentid);
+	tempsql<<std::to_string(record[i].talkid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].urlname)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	if(record[i].status==0){
+	if(record[i].adminid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].status);
+	tempsql<<","<<std::to_string(record[i].adminid);
 	}
-	if(record[i].permscode==0){
+	if(record[i].taskid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].permscode);
+	tempsql<<","<<std::to_string(record[i].taskid);
 	}
-	if(record[i].readonly==0){
+	if(record[i].projectid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].readonly);
+	tempsql<<","<<std::to_string(record[i].projectid);
 	}
-	if(record[i].created_time==0){
+	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
+	if(record[i].isdelete==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].created_time);
+	tempsql<<","<<std::to_string(record[i].isdelete);
 	}
-	if(record[i].updated_time==0){
+	if(record[i].addtime==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].updated_time);
+	tempsql<<","<<std::to_string(record[i].addtime);
 	}
-	if(record[i].created_user==0){
+	if(record[i].update_at==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].created_user);
+	tempsql<<","<<std::to_string(record[i].update_at);
 	}
-	if(record[i].updated_user==0){
+	if(record[i].islock==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].updated_user);
+	tempsql<<","<<std::to_string(record[i].islock);
+	}
+	if(record[i].replyid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].replyid);
 	}
 	tempsql<<")";
 
@@ -774,58 +762,56 @@ if(data.updated_user==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].permsid==0){
+            	if(record[i].talkid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].permsid);
-	}
-	if(record[i].parentid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].parentid);
+	tempsql<<std::to_string(record[i].talkid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].urlname)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	if(record[i].status==0){
+	if(record[i].adminid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].status);
+	tempsql<<","<<std::to_string(record[i].adminid);
 	}
-	if(record[i].permscode==0){
+	if(record[i].taskid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].permscode);
+	tempsql<<","<<std::to_string(record[i].taskid);
 	}
-	if(record[i].readonly==0){
+	if(record[i].projectid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].readonly);
+	tempsql<<","<<std::to_string(record[i].projectid);
 	}
-	if(record[i].created_time==0){
+	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
+	if(record[i].isdelete==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].created_time);
+	tempsql<<","<<std::to_string(record[i].isdelete);
 	}
-	if(record[i].updated_time==0){
+	if(record[i].addtime==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].updated_time);
+	tempsql<<","<<std::to_string(record[i].addtime);
 	}
-	if(record[i].created_user==0){
+	if(record[i].update_at==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].created_user);
+	tempsql<<","<<std::to_string(record[i].update_at);
 	}
-	if(record[i].updated_user==0){
+	if(record[i].islock==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].updated_user);
+	tempsql<<","<<std::to_string(record[i].islock);
+	}
+	if(record[i].replyid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].replyid);
 	}
 	tempsql<<")";
 	 }
@@ -907,82 +893,76 @@ if(data.updated_user==0){
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.permsid==0){
+if(data.talkid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.permsid));
+	temparray.push_back(std::to_string(data.talkid));
 }
  break;
  case 1:
-if(data.parentid==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.parentid));
-}
- break;
- case 2:
 if(data.userid==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.userid));
 }
  break;
- case 3:
-	temparray.push_back(data.urlpath);
- break;
- case 4:
-	temparray.push_back(data.urlname);
- break;
- case 5:
-	temparray.push_back(data.name);
- break;
- case 6:
-if(data.status==0){
+ case 2:
+if(data.adminid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.status));
+	temparray.push_back(std::to_string(data.adminid));
+}
+ break;
+ case 3:
+if(data.taskid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.taskid));
+}
+ break;
+ case 4:
+if(data.projectid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.projectid));
+}
+ break;
+ case 5:
+	temparray.push_back(data.content);
+ break;
+ case 6:
+if(data.isdelete==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.isdelete));
 }
  break;
  case 7:
-if(data.permscode==0){
+if(data.addtime==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.permscode));
+	temparray.push_back(std::to_string(data.addtime));
 }
  break;
  case 8:
-if(data.readonly==0){
+if(data.update_at==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.readonly));
+	temparray.push_back(std::to_string(data.update_at));
 }
  break;
  case 9:
-if(data.created_time==0){
+if(data.islock==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.created_time));
+	temparray.push_back(std::to_string(data.islock));
 }
  break;
  case 10:
-if(data.updated_time==0){
+if(data.replyid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.updated_time));
-}
- break;
- case 11:
-if(data.created_user==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.created_user));
-}
- break;
- case 12:
-if(data.updated_user==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.updated_user));
+	temparray.push_back(std::to_string(data.replyid));
 }
  break;
 
@@ -1026,82 +1006,76 @@ if(data.updated_user==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.permsid==0){
-	tempsql.insert({"permsid","0"});
+if(data.talkid==0){
+	tempsql.insert({"talkid","0"});
  }else{ 
-	tempsql.insert({"permsid",std::to_string(data.permsid)});
+	tempsql.insert({"talkid",std::to_string(data.talkid)});
 }
  break;
  case 1:
-if(data.parentid==0){
-	tempsql.insert({"parentid","0"});
- }else{ 
-	tempsql.insert({"parentid",std::to_string(data.parentid)});
-}
- break;
- case 2:
 if(data.userid==0){
 	tempsql.insert({"userid","0"});
  }else{ 
 	tempsql.insert({"userid",std::to_string(data.userid)});
 }
  break;
+ case 2:
+if(data.adminid==0){
+	tempsql.insert({"adminid","0"});
+ }else{ 
+	tempsql.insert({"adminid",std::to_string(data.adminid)});
+}
+ break;
  case 3:
-	tempsql.insert({"urlpath",data.urlpath});
+if(data.taskid==0){
+	tempsql.insert({"taskid","0"});
+ }else{ 
+	tempsql.insert({"taskid",std::to_string(data.taskid)});
+}
  break;
  case 4:
-	tempsql.insert({"urlname",data.urlname});
+if(data.projectid==0){
+	tempsql.insert({"projectid","0"});
+ }else{ 
+	tempsql.insert({"projectid",std::to_string(data.projectid)});
+}
  break;
  case 5:
-	tempsql.insert({"name",data.name});
+	tempsql.insert({"content",data.content});
  break;
  case 6:
-if(data.status==0){
-	tempsql.insert({"status","0"});
+if(data.isdelete==0){
+	tempsql.insert({"isdelete","0"});
  }else{ 
-	tempsql.insert({"status",std::to_string(data.status)});
+	tempsql.insert({"isdelete",std::to_string(data.isdelete)});
 }
  break;
  case 7:
-if(data.permscode==0){
-	tempsql.insert({"permscode","0"});
+if(data.addtime==0){
+	tempsql.insert({"addtime","0"});
  }else{ 
-	tempsql.insert({"permscode",std::to_string(data.permscode)});
+	tempsql.insert({"addtime",std::to_string(data.addtime)});
 }
  break;
  case 8:
-if(data.readonly==0){
-	tempsql.insert({"readonly","0"});
+if(data.update_at==0){
+	tempsql.insert({"update_at","0"});
  }else{ 
-	tempsql.insert({"readonly",std::to_string(data.readonly)});
+	tempsql.insert({"update_at",std::to_string(data.update_at)});
 }
  break;
  case 9:
-if(data.created_time==0){
-	tempsql.insert({"created_time","0"});
+if(data.islock==0){
+	tempsql.insert({"islock","0"});
  }else{ 
-	tempsql.insert({"created_time",std::to_string(data.created_time)});
+	tempsql.insert({"islock",std::to_string(data.islock)});
 }
  break;
  case 10:
-if(data.updated_time==0){
-	tempsql.insert({"updated_time","0"});
+if(data.replyid==0){
+	tempsql.insert({"replyid","0"});
  }else{ 
-	tempsql.insert({"updated_time",std::to_string(data.updated_time)});
-}
- break;
- case 11:
-if(data.created_user==0){
-	tempsql.insert({"created_user","0"});
- }else{ 
-	tempsql.insert({"created_user",std::to_string(data.created_user)});
-}
- break;
- case 12:
-if(data.updated_user==0){
-	tempsql.insert({"updated_user","0"});
- }else{ 
-	tempsql.insert({"updated_user",std::to_string(data.updated_user)});
+	tempsql.insert({"replyid",std::to_string(data.replyid)});
 }
  break;
 
@@ -1117,61 +1091,57 @@ if(data.updated_user==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.permsid==0){
-	tempsql<<"\"permsid\":0";
+if(data.talkid==0){
+	tempsql<<"\"talkid\":0";
  }else{ 
-	tempsql<<"\"permsid\":"<<std::to_string(data.permsid);
-}
-if(data.parentid==0){
-	tempsql<<",\"parentid\":0";
- }else{ 
-	tempsql<<",\"parentid\":"<<std::to_string(data.parentid);
+	tempsql<<"\"talkid\":"<<std::to_string(data.talkid);
 }
 if(data.userid==0){
 	tempsql<<",\"userid\":0";
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
-tempsql<<",\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath);
+if(data.adminid==0){
+	tempsql<<",\"adminid\":0";
+ }else{ 
+	tempsql<<",\"adminid\":"<<std::to_string(data.adminid);
+}
+if(data.taskid==0){
+	tempsql<<",\"taskid\":0";
+ }else{ 
+	tempsql<<",\"taskid\":"<<std::to_string(data.taskid);
+}
+if(data.projectid==0){
+	tempsql<<",\"projectid\":0";
+ }else{ 
+	tempsql<<",\"projectid\":"<<std::to_string(data.projectid);
+}
+tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
 tempsql<<"\"";
-tempsql<<",\"urlname\":\""<<http::utf8_to_jsonstring(data.urlname);
-tempsql<<"\"";
-tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
-tempsql<<"\"";
-if(data.status==0){
-	tempsql<<",\"status\":0";
+if(data.isdelete==0){
+	tempsql<<",\"isdelete\":0";
  }else{ 
-	tempsql<<",\"status\":"<<std::to_string(data.status);
+	tempsql<<",\"isdelete\":"<<std::to_string(data.isdelete);
 }
-if(data.permscode==0){
-	tempsql<<",\"permscode\":0";
+if(data.addtime==0){
+	tempsql<<",\"addtime\":0";
  }else{ 
-	tempsql<<",\"permscode\":"<<std::to_string(data.permscode);
+	tempsql<<",\"addtime\":"<<std::to_string(data.addtime);
 }
-if(data.readonly==0){
-	tempsql<<",\"readonly\":0";
+if(data.update_at==0){
+	tempsql<<",\"update_at\":0";
  }else{ 
-	tempsql<<",\"readonly\":"<<std::to_string(data.readonly);
+	tempsql<<",\"update_at\":"<<std::to_string(data.update_at);
 }
-if(data.created_time==0){
-	tempsql<<",\"created_time\":0";
+if(data.islock==0){
+	tempsql<<",\"islock\":0";
  }else{ 
-	tempsql<<",\"created_time\":"<<std::to_string(data.created_time);
+	tempsql<<",\"islock\":"<<std::to_string(data.islock);
 }
-if(data.updated_time==0){
-	tempsql<<",\"updated_time\":0";
+if(data.replyid==0){
+	tempsql<<",\"replyid\":0";
  }else{ 
-	tempsql<<",\"updated_time\":"<<std::to_string(data.updated_time);
-}
-if(data.created_user==0){
-	tempsql<<",\"created_user\":0";
- }else{ 
-	tempsql<<",\"created_user\":"<<std::to_string(data.created_user);
-}
-if(data.updated_user==0){
-	tempsql<<",\"updated_user\":0";
- }else{ 
-	tempsql<<",\"updated_user\":"<<std::to_string(data.updated_user);
+	tempsql<<",\"replyid\":"<<std::to_string(data.replyid);
 }
 tempsql<<"}";
 
@@ -1212,21 +1182,13 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.permsid==0){
-	tempsql<<"\"permsid\":0";
+if(data.talkid==0){
+	tempsql<<"\"talkid\":0";
  }else{ 
-	tempsql<<"\"permsid\":"<<std::to_string(data.permsid);
+	tempsql<<"\"talkid\":"<<std::to_string(data.talkid);
 }
  break;
  case 1:
- if(jj>0){ tempsql<<","; } 
-if(data.parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(data.parentid);
-}
- break;
- case 2:
  if(jj>0){ tempsql<<","; } 
 if(data.userid==0){
 	tempsql<<"\"userid\":0";
@@ -1234,72 +1196,72 @@ if(data.userid==0){
 	tempsql<<"\"userid\":"<<std::to_string(data.userid);
 }
  break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(data.adminid==0){
+	tempsql<<"\"adminid\":0";
+ }else{ 
+	tempsql<<"\"adminid\":"<<std::to_string(data.adminid);
+}
+ break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
+if(data.taskid==0){
+	tempsql<<"\"taskid\":0";
+ }else{ 
+	tempsql<<"\"taskid\":"<<std::to_string(data.taskid);
+}
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlname\":\""<<http::utf8_to_jsonstring(data.urlname)<<"\"";
+if(data.projectid==0){
+	tempsql<<"\"projectid\":0";
+ }else{ 
+	tempsql<<"\"projectid\":"<<std::to_string(data.projectid);
+}
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(data.status==0){
-	tempsql<<"\"status\":0";
+if(data.isdelete==0){
+	tempsql<<"\"isdelete\":0";
  }else{ 
-	tempsql<<"\"status\":"<<std::to_string(data.status);
+	tempsql<<"\"isdelete\":"<<std::to_string(data.isdelete);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(data.permscode==0){
-	tempsql<<"\"permscode\":0";
+if(data.addtime==0){
+	tempsql<<"\"addtime\":0";
  }else{ 
-	tempsql<<"\"permscode\":"<<std::to_string(data.permscode);
+	tempsql<<"\"addtime\":"<<std::to_string(data.addtime);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(data.readonly==0){
-	tempsql<<"\"readonly\":0";
+if(data.update_at==0){
+	tempsql<<"\"update_at\":0";
  }else{ 
-	tempsql<<"\"readonly\":"<<std::to_string(data.readonly);
+	tempsql<<"\"update_at\":"<<std::to_string(data.update_at);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(data.created_time==0){
-	tempsql<<"\"created_time\":0";
+if(data.islock==0){
+	tempsql<<"\"islock\":0";
  }else{ 
-	tempsql<<"\"created_time\":"<<std::to_string(data.created_time);
+	tempsql<<"\"islock\":"<<std::to_string(data.islock);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(data.updated_time==0){
-	tempsql<<"\"updated_time\":0";
+if(data.replyid==0){
+	tempsql<<"\"replyid\":0";
  }else{ 
-	tempsql<<"\"updated_time\":"<<std::to_string(data.updated_time);
-}
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-if(data.created_user==0){
-	tempsql<<"\"created_user\":0";
- }else{ 
-	tempsql<<"\"created_user\":"<<std::to_string(data.created_user);
-}
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(data.updated_user==0){
-	tempsql<<"\"updated_user\":0";
- }else{ 
-	tempsql<<"\"updated_user\":"<<std::to_string(data.updated_user);
+	tempsql<<"\"replyid\":"<<std::to_string(data.replyid);
 }
  break;
 
@@ -1314,7 +1276,7 @@ if(data.updated_user==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        syspermsbase::meta metatemp; 
+        xtalk_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1551,93 +1513,79 @@ if(data.updated_user==0){
         {
     		case 0:
 		 try{
-			data.permsid=std::stoul(set_value_name);
+			data.talkid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.permsid=0;
+			data.talkid=0;
 			 }
 			break;
 		case 1:
-		 try{
-			data.parentid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 2:
 		 try{
 			data.userid=std::stoul(set_value_name);
 		}catch (...) { 
 			data.userid=0;
 			 }
 			break;
+		case 2:
+		 try{
+			data.adminid=std::stoul(set_value_name);
+		}catch (...) { 
+			data.adminid=0;
+			 }
+			break;
 		case 3:
 		 try{
-			data.urlpath.append(set_value_name);
+			data.taskid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.urlpath.clear();
+			data.taskid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.urlname.append(set_value_name);
+			data.projectid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.urlname.clear();
+			data.projectid=0;
 			 }
 			break;
 		case 5:
 		 try{
-			data.name.append(set_value_name);
+			data.content.append(set_value_name);
 		}catch (...) { 
-			data.name.clear();
+			data.content.clear();
 			 }
 			break;
 		case 6:
 		 try{
-			data.status=std::stoi(set_value_name);
+			data.isdelete=std::stoi(set_value_name);
 		}catch (...) { 
-			data.status=0;
+			data.isdelete=0;
 			 }
 			break;
 		case 7:
 		 try{
-			data.permscode=std::stoul(set_value_name);
+			data.addtime=std::stoul(set_value_name);
 		}catch (...) { 
-			data.permscode=0;
+			data.addtime=0;
 			 }
 			break;
 		case 8:
 		 try{
-			data.readonly=std::stoi(set_value_name);
+			data.update_at=std::stoul(set_value_name);
 		}catch (...) { 
-			data.readonly=0;
+			data.update_at=0;
 			 }
 			break;
 		case 9:
 		 try{
-			data.created_time=std::stoul(set_value_name);
+			data.islock=std::stoi(set_value_name);
 		}catch (...) { 
-			data.created_time=0;
+			data.islock=0;
 			 }
 			break;
 		case 10:
 		 try{
-			data.updated_time=std::stoul(set_value_name);
+			data.replyid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.created_user=std::stoul(set_value_name);
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.updated_user=std::stoul(set_value_name);
-		}catch (...) { 
-			data.updated_user=0;
+			data.replyid=0;
 			 }
 			break;
 	default:
@@ -1654,93 +1602,79 @@ if(data.updated_user==0){
         {
     		case 0:
 		 try{
-			data.permsid=set_value_name;
+			data.talkid=set_value_name;
 		}catch (...) { 
-			data.permsid=0;
+			data.talkid=0;
 			 }
 			break;
 		case 1:
-		 try{
-			data.parentid=set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 2:
 		 try{
 			data.userid=set_value_name;
 		}catch (...) { 
 			data.userid=0;
 			 }
 			break;
+		case 2:
+		 try{
+			data.adminid=set_value_name;
+		}catch (...) { 
+			data.adminid=0;
+			 }
+			break;
 		case 3:
 		 try{
-			data.urlpath=std::to_string(set_value_name);
+			data.taskid=set_value_name;
 		}catch (...) { 
-			data.urlpath.clear();
+			data.taskid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.urlname=std::to_string(set_value_name);
+			data.projectid=set_value_name;
 		}catch (...) { 
-			data.urlname.clear();
+			data.projectid=0;
 			 }
 			break;
 		case 5:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.content=std::to_string(set_value_name);
 		}catch (...) { 
-			data.name.clear();
+			data.content.clear();
 			 }
 			break;
 		case 6:
 		 try{
-			data.status=set_value_name;
+			data.isdelete=set_value_name;
 		}catch (...) { 
-			data.status=0;
+			data.isdelete=0;
 			 }
 			break;
 		case 7:
 		 try{
-			data.permscode=set_value_name;
+			data.addtime=set_value_name;
 		}catch (...) { 
-			data.permscode=0;
+			data.addtime=0;
 			 }
 			break;
 		case 8:
 		 try{
-			data.readonly=set_value_name;
+			data.update_at=set_value_name;
 		}catch (...) { 
-			data.readonly=0;
+			data.update_at=0;
 			 }
 			break;
 		case 9:
 		 try{
-			data.created_time=set_value_name;
+			data.islock=set_value_name;
 		}catch (...) { 
-			data.created_time=0;
+			data.islock=0;
 			 }
 			break;
 		case 10:
 		 try{
-			data.updated_time=set_value_name;
+			data.replyid=set_value_name;
 		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.created_user=set_value_name;
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.updated_user=set_value_name;
-		}catch (...) { 
-			data.updated_user=0;
+			data.replyid=0;
 			 }
 			break;
 	default:
@@ -1757,93 +1691,79 @@ if(data.updated_user==0){
         {
     		case 0:
 		 try{
-			data.permsid=(unsigned int)set_value_name;
+			data.talkid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.permsid=0;
+			data.talkid=0;
 			 }
 			break;
 		case 1:
-		 try{
-			data.parentid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 2:
 		 try{
 			data.userid=(unsigned int)set_value_name;
 		}catch (...) { 
 			data.userid=0;
 			 }
 			break;
+		case 2:
+		 try{
+			data.adminid=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.adminid=0;
+			 }
+			break;
 		case 3:
 		 try{
-			data.urlpath=std::to_string(set_value_name);
+			data.taskid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.urlpath.clear();
+			data.taskid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.urlname=std::to_string(set_value_name);
+			data.projectid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.urlname.clear();
+			data.projectid=0;
 			 }
 			break;
 		case 5:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.content=std::to_string(set_value_name);
 		}catch (...) { 
-			data.name.clear();
+			data.content.clear();
 			 }
 			break;
 		case 6:
 		 try{
-			data.status=(int)set_value_name;
+			data.isdelete=(int)set_value_name;
 		}catch (...) { 
-			data.status=0;
+			data.isdelete=0;
 			 }
 			break;
 		case 7:
 		 try{
-			data.permscode=(unsigned int)set_value_name;
+			data.addtime=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.permscode=0;
+			data.addtime=0;
 			 }
 			break;
 		case 8:
 		 try{
-			data.readonly=(int)set_value_name;
+			data.update_at=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.readonly=0;
+			data.update_at=0;
 			 }
 			break;
 		case 9:
 		 try{
-			data.created_time=(unsigned int)set_value_name;
+			data.islock=(int)set_value_name;
 		}catch (...) { 
-			data.created_time=0;
+			data.islock=0;
 			 }
 			break;
 		case 10:
 		 try{
-			data.updated_time=(unsigned int)set_value_name;
+			data.replyid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.created_user=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.updated_user=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.updated_user=0;
+			data.replyid=0;
 			 }
 			break;
 	default:
@@ -1894,21 +1814,13 @@ if(data.updated_user==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].permsid==0){
-	tempsql<<"\"permsid\":0";
+if(record[n].talkid==0){
+	tempsql<<"\"talkid\":0";
  }else{ 
-	tempsql<<"\"permsid\":"<<std::to_string(record[n].permsid);
+	tempsql<<"\"talkid\":"<<std::to_string(record[n].talkid);
 }
  break;
  case 1:
- if(jj>0){ tempsql<<","; } 
-if(record[n].parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
-}
- break;
- case 2:
  if(jj>0){ tempsql<<","; } 
 if(record[n].userid==0){
 	tempsql<<"\"userid\":0";
@@ -1916,72 +1828,72 @@ if(record[n].userid==0){
 	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
 }
  break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].adminid==0){
+	tempsql<<"\"adminid\":0";
+ }else{ 
+	tempsql<<"\"adminid\":"<<std::to_string(record[n].adminid);
+}
+ break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
+if(record[n].taskid==0){
+	tempsql<<"\"taskid\":0";
+ }else{ 
+	tempsql<<"\"taskid\":"<<std::to_string(record[n].taskid);
+}
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlname\":\""<<http::utf8_to_jsonstring(record[n].urlname)<<"\"";
+if(record[n].projectid==0){
+	tempsql<<"\"projectid\":0";
+ }else{ 
+	tempsql<<"\"projectid\":"<<std::to_string(record[n].projectid);
+}
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(record[n].status==0){
-	tempsql<<"\"status\":0";
+if(record[n].isdelete==0){
+	tempsql<<"\"isdelete\":0";
  }else{ 
-	tempsql<<"\"status\":"<<std::to_string(record[n].status);
+	tempsql<<"\"isdelete\":"<<std::to_string(record[n].isdelete);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(record[n].permscode==0){
-	tempsql<<"\"permscode\":0";
+if(record[n].addtime==0){
+	tempsql<<"\"addtime\":0";
  }else{ 
-	tempsql<<"\"permscode\":"<<std::to_string(record[n].permscode);
+	tempsql<<"\"addtime\":"<<std::to_string(record[n].addtime);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(record[n].readonly==0){
-	tempsql<<"\"readonly\":0";
+if(record[n].update_at==0){
+	tempsql<<"\"update_at\":0";
  }else{ 
-	tempsql<<"\"readonly\":"<<std::to_string(record[n].readonly);
+	tempsql<<"\"update_at\":"<<std::to_string(record[n].update_at);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(record[n].created_time==0){
-	tempsql<<"\"created_time\":0";
+if(record[n].islock==0){
+	tempsql<<"\"islock\":0";
  }else{ 
-	tempsql<<"\"created_time\":"<<std::to_string(record[n].created_time);
+	tempsql<<"\"islock\":"<<std::to_string(record[n].islock);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(record[n].updated_time==0){
-	tempsql<<"\"updated_time\":0";
+if(record[n].replyid==0){
+	tempsql<<"\"replyid\":0";
  }else{ 
-	tempsql<<"\"updated_time\":"<<std::to_string(record[n].updated_time);
-}
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-if(record[n].created_user==0){
-	tempsql<<"\"created_user\":0";
- }else{ 
-	tempsql<<"\"created_user\":"<<std::to_string(record[n].created_user);
-}
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(record[n].updated_user==0){
-	tempsql<<"\"updated_user\":0";
- }else{ 
-	tempsql<<"\"updated_user\":"<<std::to_string(record[n].updated_user);
+	tempsql<<"\"replyid\":"<<std::to_string(record[n].replyid);
 }
  break;
 
@@ -2042,21 +1954,13 @@ if(record[n].updated_user==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].permsid==0){
-	tempsql<<"\"permsid\":0";
+if(record[n].talkid==0){
+	tempsql<<"\"talkid\":0";
  }else{ 
-	tempsql<<"\"permsid\":"<<std::to_string(record[n].permsid);
+	tempsql<<"\"talkid\":"<<std::to_string(record[n].talkid);
 }
  break;
  case 1:
- if(jj>0){ tempsql<<","; } 
-if(record[n].parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
-}
- break;
- case 2:
  if(jj>0){ tempsql<<","; } 
 if(record[n].userid==0){
 	tempsql<<"\"userid\":0";
@@ -2064,72 +1968,72 @@ if(record[n].userid==0){
 	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
 }
  break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].adminid==0){
+	tempsql<<"\"adminid\":0";
+ }else{ 
+	tempsql<<"\"adminid\":"<<std::to_string(record[n].adminid);
+}
+ break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
+if(record[n].taskid==0){
+	tempsql<<"\"taskid\":0";
+ }else{ 
+	tempsql<<"\"taskid\":"<<std::to_string(record[n].taskid);
+}
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlname\":\""<<http::utf8_to_jsonstring(record[n].urlname)<<"\"";
+if(record[n].projectid==0){
+	tempsql<<"\"projectid\":0";
+ }else{ 
+	tempsql<<"\"projectid\":"<<std::to_string(record[n].projectid);
+}
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(record[n].status==0){
-	tempsql<<"\"status\":0";
+if(record[n].isdelete==0){
+	tempsql<<"\"isdelete\":0";
  }else{ 
-	tempsql<<"\"status\":"<<std::to_string(record[n].status);
+	tempsql<<"\"isdelete\":"<<std::to_string(record[n].isdelete);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(record[n].permscode==0){
-	tempsql<<"\"permscode\":0";
+if(record[n].addtime==0){
+	tempsql<<"\"addtime\":0";
  }else{ 
-	tempsql<<"\"permscode\":"<<std::to_string(record[n].permscode);
+	tempsql<<"\"addtime\":"<<std::to_string(record[n].addtime);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(record[n].readonly==0){
-	tempsql<<"\"readonly\":0";
+if(record[n].update_at==0){
+	tempsql<<"\"update_at\":0";
  }else{ 
-	tempsql<<"\"readonly\":"<<std::to_string(record[n].readonly);
+	tempsql<<"\"update_at\":"<<std::to_string(record[n].update_at);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(record[n].created_time==0){
-	tempsql<<"\"created_time\":0";
+if(record[n].islock==0){
+	tempsql<<"\"islock\":0";
  }else{ 
-	tempsql<<"\"created_time\":"<<std::to_string(record[n].created_time);
+	tempsql<<"\"islock\":"<<std::to_string(record[n].islock);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(record[n].updated_time==0){
-	tempsql<<"\"updated_time\":0";
+if(record[n].replyid==0){
+	tempsql<<"\"replyid\":0";
  }else{ 
-	tempsql<<"\"updated_time\":"<<std::to_string(record[n].updated_time);
-}
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-if(record[n].created_user==0){
-	tempsql<<"\"created_user\":0";
- }else{ 
-	tempsql<<"\"created_user\":"<<std::to_string(record[n].created_user);
-}
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(record[n].updated_user==0){
-	tempsql<<"\"updated_user\":0";
- }else{ 
-	tempsql<<"\"updated_user\":"<<std::to_string(record[n].updated_user);
+	tempsql<<"\"replyid\":"<<std::to_string(record[n].replyid);
 }
  break;
 
@@ -2142,373 +2046,61 @@ if(record[n].updated_user==0){
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.permsid; } 
- void setPK(long long val){  data.permsid=val;} 
- unsigned  int  getPermsid(){  return data.permsid; } 
- void setPermsid( unsigned  int  val){  data.permsid=val;} 
-
- unsigned  int  getParentid(){  return data.parentid; } 
- void setParentid( unsigned  int  val){  data.parentid=val;} 
+   long long getPK(){  return data.talkid; } 
+ void setPK(long long val){  data.talkid=val;} 
+ unsigned  int  getTalkid(){  return data.talkid; } 
+ void setTalkid( unsigned  int  val){  data.talkid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
  void setUserid( unsigned  int  val){  data.userid=val;} 
 
- std::string  getUrlpath(){  return data.urlpath; } 
- std::string & getRefUrlpath(){  return std::ref(data.urlpath); } 
- void setUrlpath( std::string  &val){  data.urlpath=val;} 
- void setUrlpath(std::string_view val){  data.urlpath=val;} 
+ unsigned  int  getAdminid(){  return data.adminid; } 
+ void setAdminid( unsigned  int  val){  data.adminid=val;} 
 
- std::string  getUrlname(){  return data.urlname; } 
- std::string & getRefUrlname(){  return std::ref(data.urlname); } 
- void setUrlname( std::string  &val){  data.urlname=val;} 
- void setUrlname(std::string_view val){  data.urlname=val;} 
+ unsigned  int  getTaskid(){  return data.taskid; } 
+ void setTaskid( unsigned  int  val){  data.taskid=val;} 
 
- std::string  getName(){  return data.name; } 
- std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ unsigned  int  getProjectid(){  return data.projectid; } 
+ void setProjectid( unsigned  int  val){  data.projectid=val;} 
 
- unsigned  char  getStatus(){  return data.status; } 
- void setStatus( unsigned  char  val){  data.status=val;} 
+ std::string  getContent(){  return data.content; } 
+ std::string & getRefContent(){  return std::ref(data.content); } 
+ void setContent( std::string  &val){  data.content=val;} 
+ void setContent(std::string_view val){  data.content=val;} 
 
- unsigned  int  getPermscode(){  return data.permscode; } 
- void setPermscode( unsigned  int  val){  data.permscode=val;} 
+ unsigned  char  getIsdelete(){  return data.isdelete; } 
+ void setIsdelete( unsigned  char  val){  data.isdelete=val;} 
 
- unsigned  char  getReadonly(){  return data.readonly; } 
- void setReadonly( unsigned  char  val){  data.readonly=val;} 
+ unsigned  int  getAddtime(){  return data.addtime; } 
+ void setAddtime( unsigned  int  val){  data.addtime=val;} 
 
- unsigned  int  getCreatedTime(){  return data.created_time; } 
- void setCreatedTime( unsigned  int  val){  data.created_time=val;} 
+ unsigned  int  getUpdateAt(){  return data.update_at; } 
+ void setUpdateAt( unsigned  int  val){  data.update_at=val;} 
 
- unsigned  int  getUpdatedTime(){  return data.updated_time; } 
- void setUpdatedTime( unsigned  int  val){  data.updated_time=val;} 
+ unsigned  char  getIslock(){  return data.islock; } 
+ void setIslock( unsigned  char  val){  data.islock=val;} 
 
- unsigned  int  getCreatedUser(){  return data.created_user; } 
- void setCreatedUser( unsigned  int  val){  data.created_user=val;} 
+ unsigned  int  getReplyid(){  return data.replyid; } 
+ void setReplyid( unsigned  int  val){  data.replyid=val;} 
 
- unsigned  int  getUpdatedUser(){  return data.updated_user; } 
- void setUpdatedUser( unsigned  int  val){  data.updated_user=val;} 
-
-syspermsbase::meta getnewData(){
+xtalk_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-syspermsbase::meta getData(){
+xtalk_base::meta getData(){
  	 return data; 
 } 
-std::vector<syspermsbase::meta> getRecord(){
+std::vector<xtalk_base::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
-       std::ostringstream tempsql;
-        std::string keyname;
-        unsigned char jj=0;
-        std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
-                    keyname.clear();
-                    continue;   
-                }
-                if(fileld[jj]==0x20){
-
-                    continue;   
-                }
-                keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
-            }
-        }else{
-            for(jj=0;jj<col_names.size();jj++){
-                keypos.emplace_back(jj); 
-            }
-        }
-        tempsql<<"[";
-        for(size_t n=0;n<tree_data.size();n++){
-            if(n>0){
-                tempsql<<",{";
-            }else{
-                tempsql<<"{";
-            }  
-        
-        for(jj=0;jj<keypos.size();jj++){
-            switch(keypos[jj]){
-         case 0:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].permsid==0){
-	tempsql<<"\"permsid\":0";
- }else{ 
-	tempsql<<"\"permsid\":"<<std::to_string(tree_data[n].permsid);
-}
- break;
- case 1:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].userid==0){
-	tempsql<<"\"userid\":0";
- }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(tree_data[n].urlpath)<<"\"";
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlname\":\""<<http::utf8_to_jsonstring(tree_data[n].urlname)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].status==0){
-	tempsql<<"\"status\":0";
- }else{ 
-	tempsql<<"\"status\":"<<std::to_string(tree_data[n].status);
-}
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].permscode==0){
-	tempsql<<"\"permscode\":0";
- }else{ 
-	tempsql<<"\"permscode\":"<<std::to_string(tree_data[n].permscode);
-}
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].readonly==0){
-	tempsql<<"\"readonly\":0";
- }else{ 
-	tempsql<<"\"readonly\":"<<std::to_string(tree_data[n].readonly);
-}
- break;
- case 9:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].created_time==0){
-	tempsql<<"\"created_time\":0";
- }else{ 
-	tempsql<<"\"created_time\":"<<std::to_string(tree_data[n].created_time);
-}
- break;
- case 10:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].updated_time==0){
-	tempsql<<"\"updated_time\":0";
- }else{ 
-	tempsql<<"\"updated_time\":"<<std::to_string(tree_data[n].updated_time);
-}
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].created_user==0){
-	tempsql<<"\"created_user\":0";
- }else{ 
-	tempsql<<"\"created_user\":"<<std::to_string(tree_data[n].created_user);
-}
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].updated_user==0){
-	tempsql<<"\"updated_user\":0";
- }else{ 
-	tempsql<<"\"updated_user\":"<<std::to_string(tree_data[n].updated_user);
-}
- break;
-
-                             default:
-                                ;
-                     }
-                 }
-
-        tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children, fileld);     
-      tempsql<<"}";  
-            }
-      tempsql<<"]";
-     return tempsql.str();             
-   }   
-   
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
-       std::ostringstream tempsql;
-        std::string keyname;
-        unsigned char jj=0;
-        std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
-                    keyname.clear();
-                    continue;   
-                }
-                if(fileld[jj]==0x20){
-
-                    continue;   
-                }
-                keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
-            }
-        }else{
-            for(jj=0;jj<col_names.size();jj++){
-                keypos.emplace_back(jj); 
-            }
-        }
-    tempsql<<"[";
-    for(size_t n=0;n<tree_data.size();n++){
-        keyname.clear();
-        if(func(keyname,tree_data[n])){ 
-                if(n>0){
-                    tempsql<<",{";
-                }else{
-                    tempsql<<"{";
-                } 
-                tempsql<<keyname;
-        }else{
-        continue;
-        } 
-        
-        for(jj=0;jj<keypos.size();jj++){
-            
-            switch(keypos[jj]){
-         case 0:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].permsid==0){
-	tempsql<<"\"permsid\":0";
- }else{ 
-	tempsql<<"\"permsid\":"<<std::to_string(tree_data[n].permsid);
-}
- break;
- case 1:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].userid==0){
-	tempsql<<"\"userid\":0";
- }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(tree_data[n].urlpath)<<"\"";
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"urlname\":\""<<http::utf8_to_jsonstring(tree_data[n].urlname)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].status==0){
-	tempsql<<"\"status\":0";
- }else{ 
-	tempsql<<"\"status\":"<<std::to_string(tree_data[n].status);
-}
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].permscode==0){
-	tempsql<<"\"permscode\":0";
- }else{ 
-	tempsql<<"\"permscode\":"<<std::to_string(tree_data[n].permscode);
-}
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].readonly==0){
-	tempsql<<"\"readonly\":0";
- }else{ 
-	tempsql<<"\"readonly\":"<<std::to_string(tree_data[n].readonly);
-}
- break;
- case 9:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].created_time==0){
-	tempsql<<"\"created_time\":0";
- }else{ 
-	tempsql<<"\"created_time\":"<<std::to_string(tree_data[n].created_time);
-}
- break;
- case 10:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].updated_time==0){
-	tempsql<<"\"updated_time\":0";
- }else{ 
-	tempsql<<"\"updated_time\":"<<std::to_string(tree_data[n].updated_time);
-}
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].created_user==0){
-	tempsql<<"\"created_user\":0";
- }else{ 
-	tempsql<<"\"created_user\":"<<std::to_string(tree_data[n].created_user);
-}
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].updated_user==0){
-	tempsql<<"\"updated_user\":0";
- }else{ 
-	tempsql<<"\"updated_user\":"<<std::to_string(tree_data[n].updated_user);
-}
- break;
-
-                             default:
-                                ;
-                     }
-                 }   
-         tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
-      tempsql<<"}";  
-            }
-      tempsql<<"]";
-     return tempsql.str();             
-   }   
-   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="urlpath")
+   		 if(key_name=="content")
 		{
-			return data.urlpath;
-		}
-		 if(key_name=="urlname")
-		{
-			return data.urlname;
-		}
-		 if(key_name=="name")
-		{
-			return data.name;
+			return data.content;
 		}
 		return nullptr; 
 	}
@@ -2517,45 +2109,45 @@ if(tree_data[n].updated_user==0){
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="permsid")
+   		 if(key_name=="talkid")
 		{
-			return data.permsid;
-		}
-		 if(key_name=="parentid")
-		{
-			return data.parentid;
+			return data.talkid;
 		}
 		 if(key_name=="userid")
 		{
 			return data.userid;
 		}
-		 if(key_name=="status")
+		 if(key_name=="adminid")
 		{
-			return data.status;
+			return data.adminid;
 		}
-		 if(key_name=="permscode")
+		 if(key_name=="taskid")
 		{
-			return data.permscode;
+			return data.taskid;
 		}
-		 if(key_name=="readonly")
+		 if(key_name=="projectid")
 		{
-			return data.readonly;
+			return data.projectid;
 		}
-		 if(key_name=="created_time")
+		 if(key_name=="isdelete")
 		{
-			return data.created_time;
+			return data.isdelete;
 		}
-		 if(key_name=="updated_time")
+		 if(key_name=="addtime")
 		{
-			return data.updated_time;
+			return data.addtime;
 		}
-		 if(key_name=="created_user")
+		 if(key_name=="update_at")
 		{
-			return data.created_user;
+			return data.update_at;
 		}
-		 if(key_name=="updated_user")
+		 if(key_name=="islock")
 		{
-			return data.updated_user;
+			return data.islock;
+		}
+		 if(key_name=="replyid")
+		{
+			return data.replyid;
 		}
 		return nullptr; 
 	}
@@ -2580,34 +2172,34 @@ if(tree_data[n].updated_user==0){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.permsid);
+ 				 a.emplace_back(iter.talkid);
 				 break;
 			case 1: 
- 				 a.emplace_back(iter.parentid);
-				 break;
-			case 2: 
  				 a.emplace_back(iter.userid);
 				 break;
+			case 2: 
+ 				 a.emplace_back(iter.adminid);
+				 break;
+			case 3: 
+ 				 a.emplace_back(iter.taskid);
+				 break;
+			case 4: 
+ 				 a.emplace_back(iter.projectid);
+				 break;
 			case 6: 
- 				 a.emplace_back(iter.status);
+ 				 a.emplace_back(iter.isdelete);
 				 break;
 			case 7: 
- 				 a.emplace_back(iter.permscode);
+ 				 a.emplace_back(iter.addtime);
 				 break;
 			case 8: 
- 				 a.emplace_back(iter.readonly);
+ 				 a.emplace_back(iter.update_at);
 				 break;
 			case 9: 
- 				 a.emplace_back(iter.created_time);
+ 				 a.emplace_back(iter.islock);
 				 break;
 			case 10: 
- 				 a.emplace_back(iter.updated_time);
-				 break;
-			case 11: 
- 				 a.emplace_back(iter.created_user);
-				 break;
-			case 12: 
- 				 a.emplace_back(iter.updated_user);
+ 				 a.emplace_back(iter.replyid);
 				 break;
 
                     }
@@ -2635,41 +2227,41 @@ if(tree_data[n].updated_user==0){
                     {
 
    			case 0: 
- 				 return data.permsid;
+ 				 return data.talkid;
 				 break;
 			case 1: 
- 				 return data.parentid;
-				 break;
-			case 2: 
  				 return data.userid;
 				 break;
+			case 2: 
+ 				 return data.adminid;
+				 break;
+			case 3: 
+ 				 return data.taskid;
+				 break;
+			case 4: 
+ 				 return data.projectid;
+				 break;
 			case 6: 
- 				 return data.status;
+ 				 return data.isdelete;
 				 break;
 			case 7: 
- 				 return data.permscode;
+ 				 return data.addtime;
 				 break;
 			case 8: 
- 				 return data.readonly;
+ 				 return data.update_at;
 				 break;
 			case 9: 
- 				 return data.created_time;
+ 				 return data.islock;
 				 break;
 			case 10: 
- 				 return data.updated_time;
-				 break;
-			case 11: 
- 				 return data.created_user;
-				 break;
-			case 12: 
- 				 return data.updated_user;
+ 				 return data.replyid;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] syspermsbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] xtalk_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2678,34 +2270,34 @@ if(tree_data[n].updated_user==0){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.permsid;
+ 				 return iter.talkid;
 				 break;
 			case 1: 
- 				 return iter.parentid;
-				 break;
-			case 2: 
  				 return iter.userid;
 				 break;
+			case 2: 
+ 				 return iter.adminid;
+				 break;
+			case 3: 
+ 				 return iter.taskid;
+				 break;
+			case 4: 
+ 				 return iter.projectid;
+				 break;
 			case 6: 
- 				 return iter.status;
+ 				 return iter.isdelete;
 				 break;
 			case 7: 
- 				 return iter.permscode;
+ 				 return iter.addtime;
 				 break;
 			case 8: 
- 				 return iter.readonly;
+ 				 return iter.update_at;
 				 break;
 			case 9: 
- 				 return iter.created_time;
+ 				 return iter.islock;
 				 break;
 			case 10: 
- 				 return iter.updated_time;
-				 break;
-			case 11: 
- 				 return iter.created_user;
-				 break;
-			case 12: 
- 				 return iter.updated_user;
+ 				 return iter.replyid;
 				 break;
 
 			}
@@ -2730,7 +2322,7 @@ if(tree_data[n].updated_user==0){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] syspermsbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] xtalk_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2753,14 +2345,8 @@ if(tree_data[n].updated_user==0){
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 return data.urlpath;
-				 break;
-			case 4: 
- 				 return data.urlname;
-				 break;
-			case 5: 
- 				 return data.name;
+   			case 5: 
+ 				 return data.content;
 				 break;
 
                 }
@@ -2768,7 +2354,7 @@ if(tree_data[n].updated_user==0){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] syspermsbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] xtalk_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2777,14 +2363,8 @@ if(tree_data[n].updated_user==0){
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 return iter.urlpath;
-				 break;
-			case 4: 
- 				 return iter.urlname;
-				 break;
-			case 5: 
- 				 return iter.name;
+   			case 5: 
+ 				 return iter.content;
 				 break;
 
                 }
@@ -2807,14 +2387,8 @@ if(tree_data[n].updated_user==0){
                     switch(kpos)
                     {
 
-    			case 3: 
- 				 a.emplace_back(iter.urlpath);
-					 break;
-			case 4: 
- 				 a.emplace_back(iter.urlname);
-					 break;
-			case 5: 
- 				 a.emplace_back(iter.name);
+    			case 5: 
+ 				 a.emplace_back(iter.content);
 					 break;
 					}
 				}
@@ -2848,52 +2422,40 @@ if(tree_data[n].updated_user==0){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.permsid);
+ 				 a<<std::to_string(iter.talkid);
 				 break;
 			case 1: 
- 				 a<<std::to_string(iter.parentid);
-				 break;
-			case 2: 
  				 a<<std::to_string(iter.userid);
 				 break;
+			case 2: 
+ 				 a<<std::to_string(iter.adminid);
+				 break;
 			case 3: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
-				 }else{
-				 a<<iter.urlpath;
-				 }
+ 				 a<<std::to_string(iter.taskid);
 				 break;
 			case 4: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.urlname); 
-				 }else{
-				 a<<iter.urlname;
-				 }
+ 				 a<<std::to_string(iter.projectid);
 				 break;
 			case 5: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.name); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
-				 a<<iter.name;
+				 a<<iter.content;
 				 }
 				 break;
 			case 6: 
- 				 a<<std::to_string(iter.status);
+ 				 a<<std::to_string(iter.isdelete);
 				 break;
 			case 7: 
- 				 a<<std::to_string(iter.permscode);
+ 				 a<<std::to_string(iter.addtime);
 				 break;
 			case 8: 
- 				 a<<std::to_string(iter.readonly);
+ 				 a<<std::to_string(iter.update_at);
 				 break;
 			case 9: 
- 				 a<<std::to_string(iter.created_time);
+ 				 a<<std::to_string(iter.islock);
 				 break;
 			case 10: 
- 				 a<<std::to_string(iter.updated_time);
-				 break;
-			case 11: 
- 				 a<<std::to_string(iter.created_user);
-				 break;
-			case 12: 
- 				 a<<std::to_string(iter.updated_user);
+ 				 a<<std::to_string(iter.replyid);
 				 break;
 
                     }
@@ -2920,25 +2482,13 @@ if(tree_data[n].updated_user==0){
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 				 } 
 			switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 
                 }
@@ -2968,14 +2518,8 @@ if(tree_data[n].updated_user==0){
                     switch(kpos)
                     {
  
-       			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+       			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			 } 
 		 switch(vpos){
@@ -3006,34 +2550,34 @@ if(tree_data[n].updated_user==0){
                 {
  
        case 0: 
- 	 ktemp=iter.permsid;
+ 	 ktemp=iter.talkid;
 	 break;
 case 1: 
- 	 ktemp=iter.parentid;
-	 break;
-case 2: 
  	 ktemp=iter.userid;
 	 break;
+case 2: 
+ 	 ktemp=iter.adminid;
+	 break;
+case 3: 
+ 	 ktemp=iter.taskid;
+	 break;
+case 4: 
+ 	 ktemp=iter.projectid;
+	 break;
 case 6: 
- 	 ktemp=iter.status;
+ 	 ktemp=iter.isdelete;
 	 break;
 case 7: 
- 	 ktemp=iter.permscode;
+ 	 ktemp=iter.addtime;
 	 break;
 case 8: 
- 	 ktemp=iter.readonly;
+ 	 ktemp=iter.update_at;
 	 break;
 case 9: 
- 	 ktemp=iter.created_time;
+ 	 ktemp=iter.islock;
 	 break;
 case 10: 
- 	 ktemp=iter.updated_time;
-	 break;
-case 11: 
- 	 ktemp=iter.created_user;
-	 break;
-case 12: 
- 	 ktemp=iter.updated_user;
+ 	 ktemp=iter.replyid;
 	 break;
 	 } 
  		  switch(vpos){
@@ -3063,45 +2607,39 @@ case 12:
                     {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
  			switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 
                     }
@@ -3129,46 +2667,40 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 
                 }
@@ -3197,66 +2729,66 @@ case 12:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 
                 }
@@ -3282,34 +2814,34 @@ case 12:
                 {
 
    			case 0: 
- 				 a.emplace(iter.permsid,iter);
+ 				 a.emplace(iter.talkid,iter);
 				 break;
 			case 1: 
- 				 a.emplace(iter.parentid,iter);
-				 break;
-			case 2: 
  				 a.emplace(iter.userid,iter);
 				 break;
+			case 2: 
+ 				 a.emplace(iter.adminid,iter);
+				 break;
+			case 3: 
+ 				 a.emplace(iter.taskid,iter);
+				 break;
+			case 4: 
+ 				 a.emplace(iter.projectid,iter);
+				 break;
 			case 6: 
- 				 a.emplace(iter.status,iter);
+ 				 a.emplace(iter.isdelete,iter);
 				 break;
 			case 7: 
- 				 a.emplace(iter.permscode,iter);
+ 				 a.emplace(iter.addtime,iter);
 				 break;
 			case 8: 
- 				 a.emplace(iter.readonly,iter);
+ 				 a.emplace(iter.update_at,iter);
 				 break;
 			case 9: 
- 				 a.emplace(iter.created_time,iter);
+ 				 a.emplace(iter.islock,iter);
 				 break;
 			case 10: 
- 				 a.emplace(iter.updated_time,iter);
-				 break;
-			case 11: 
- 				 a.emplace(iter.created_user,iter);
-				 break;
-			case 12: 
- 				 a.emplace(iter.updated_user,iter);
+ 				 a.emplace(iter.replyid,iter);
 				 break;
 
                 }
@@ -3331,14 +2863,8 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 a.emplace(iter.urlpath,iter);
-			 break;
-			case 4: 
- 				 a.emplace(iter.urlname,iter);
-			 break;
-			case 5: 
- 				 a.emplace(iter.name,iter);
+   			case 5: 
+ 				 a.emplace(iter.content,iter);
 			 break;
 
                 }
@@ -3364,14 +2890,8 @@ case 12:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 	 		 }
  			switch(vpos){
@@ -3402,34 +2922,34 @@ case 12:
                     {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 			 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-			 break;
-			case 2: 
  				 ktemp=iter.userid;
 			 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+			 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+			 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+			 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 			 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 			 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 			 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 			 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-			 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-			 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 			 break;
 			  }
 			 switch(vpos){
@@ -3461,45 +2981,39 @@ case 12:
                     {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
  			switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 
                    }
@@ -3526,46 +3040,40 @@ case 12:
                     switch(kpos)
                     {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 
                    }
@@ -3591,66 +3099,66 @@ case 12:
                     {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 
                    }
@@ -3675,25 +3183,13 @@ case 12:
                     switch(kpos)
                     {
 
-   case 3: 
- 	 ktemp=iter.urlpath;
-	 break;
-case 4: 
- 	 ktemp=iter.urlname;
-	 break;
-case 5: 
- 	 ktemp=iter.name;
+   case 5: 
+ 	 ktemp=iter.content;
 	 break;
 	  }
  switch(vpos){
-case 3: 
- 	 vtemp=iter.urlpath;
-	 break;
-case 4: 
- 	 vtemp=iter.urlname;
-	 break;
 case 5: 
- 	 vtemp=iter.name;
+ 	 vtemp=iter.content;
 	 break;
 
                    }
@@ -3717,34 +3213,34 @@ case 5:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.permsid,iter);
+ 	 a.emplace_back(iter.talkid,iter);
 	 break;
 case 1: 
- 	 a.emplace_back(iter.parentid,iter);
-	 break;
-case 2: 
  	 a.emplace_back(iter.userid,iter);
 	 break;
+case 2: 
+ 	 a.emplace_back(iter.adminid,iter);
+	 break;
+case 3: 
+ 	 a.emplace_back(iter.taskid,iter);
+	 break;
+case 4: 
+ 	 a.emplace_back(iter.projectid,iter);
+	 break;
 case 6: 
- 	 a.emplace_back(iter.status,iter);
+ 	 a.emplace_back(iter.isdelete,iter);
 	 break;
 case 7: 
- 	 a.emplace_back(iter.permscode,iter);
+ 	 a.emplace_back(iter.addtime,iter);
 	 break;
 case 8: 
- 	 a.emplace_back(iter.readonly,iter);
+ 	 a.emplace_back(iter.update_at,iter);
 	 break;
 case 9: 
- 	 a.emplace_back(iter.created_time,iter);
+ 	 a.emplace_back(iter.islock,iter);
 	 break;
 case 10: 
- 	 a.emplace_back(iter.updated_time,iter);
-	 break;
-case 11: 
- 	 a.emplace_back(iter.created_user,iter);
-	 break;
-case 12: 
- 	 a.emplace_back(iter.updated_user,iter);
+ 	 a.emplace_back(iter.replyid,iter);
 	 break;
 
                 }
@@ -3764,14 +3260,8 @@ case 12:
                 switch(kpos)
                 {
 
-   case 3: 
- 	 a.emplace_back(iter.urlpath,iter);
-	 break;
-case 4: 
- 	 a.emplace_back(iter.urlname,iter);
-	 break;
-case 5: 
- 	 a.emplace_back(iter.name,iter);
+   case 5: 
+ 	 a.emplace_back(iter.content,iter);
 	 break;
 
                 }
@@ -3797,67 +3287,67 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 			  }
 
@@ -3889,100 +3379,100 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.permsid);
+ 				 a[ktemp][vtemp].emplace_back(iter.talkid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
-				 break;
-			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.taskid);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.projectid);
+				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.status);
+ 				 a[ktemp][vtemp].emplace_back(iter.isdelete);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.permscode);
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.readonly);
+ 				 a[ktemp][vtemp].emplace_back(iter.update_at);
 				 break;
 			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_time);
+ 				 a[ktemp][vtemp].emplace_back(iter.islock);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.updated_time);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_user);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.updated_user);
+ 				 a[ktemp][vtemp].emplace_back(iter.replyid);
 				 break;
 
                 }
@@ -4010,79 +3500,73 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 			 }
 
 			 switch(dpos){
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.urlname);
-				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -4111,46 +3595,40 @@ case 5:
                     {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 			  }
 
@@ -4182,79 +3660,73 @@ case 5:
             {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.permsid);
+ 				 a[ktemp][vtemp].emplace_back(iter.talkid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
-				 break;
-			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.taskid);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.projectid);
+				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.status);
+ 				 a[ktemp][vtemp].emplace_back(iter.isdelete);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.permscode);
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.readonly);
+ 				 a[ktemp][vtemp].emplace_back(iter.update_at);
 				 break;
 			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_time);
+ 				 a[ktemp][vtemp].emplace_back(iter.islock);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.updated_time);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_user);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.updated_user);
+ 				 a[ktemp][vtemp].emplace_back(iter.replyid);
 				 break;
 
             }
@@ -4281,58 +3753,46 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.urlname);
-				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -4358,47 +3818,41 @@ case 5:
                     switch(kpos)
                     {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 			  }
 
@@ -4430,80 +3884,74 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.permsid);
+ 				 a[ktemp][vtemp].emplace_back(iter.talkid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
-				 break;
-			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.taskid);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.projectid);
+				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.status);
+ 				 a[ktemp][vtemp].emplace_back(iter.isdelete);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.permscode);
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.readonly);
+ 				 a[ktemp][vtemp].emplace_back(iter.update_at);
 				 break;
 			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_time);
+ 				 a[ktemp][vtemp].emplace_back(iter.islock);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.updated_time);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_user);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.updated_user);
+ 				 a[ktemp][vtemp].emplace_back(iter.replyid);
 				 break;
 
                 }
@@ -4532,59 +3980,47 @@ case 5:
             switch(kpos)
             {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.permsid;
+ 				 vtemp=iter.talkid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
-				 break;
-			case 2: 
  				 vtemp=iter.userid;
 				 break;
+			case 2: 
+ 				 vtemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 vtemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 vtemp=iter.projectid;
+				 break;
 			case 6: 
- 				 vtemp=iter.status;
+ 				 vtemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 vtemp=iter.permscode;
+ 				 vtemp=iter.addtime;
 				 break;
 			case 8: 
- 				 vtemp=iter.readonly;
+ 				 vtemp=iter.update_at;
 				 break;
 			case 9: 
- 				 vtemp=iter.created_time;
+ 				 vtemp=iter.islock;
 				 break;
 			case 10: 
- 				 vtemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 vtemp=iter.created_user;
-				 break;
-			case 12: 
- 				 vtemp=iter.updated_user;
+ 				 vtemp=iter.replyid;
 				 break;
 			 }
 
 			switch(dpos){
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.urlname);
-				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
             }
@@ -4611,26 +4047,14 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 			  }
 
@@ -4661,59 +4085,47 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.permsid);
+ 				 a[ktemp][vtemp].emplace_back(iter.talkid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
-				 break;
-			case 2: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+				 break;
+			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.taskid);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.projectid);
+				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.status);
+ 				 a[ktemp][vtemp].emplace_back(iter.isdelete);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.permscode);
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.readonly);
+ 				 a[ktemp][vtemp].emplace_back(iter.update_at);
 				 break;
 			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_time);
+ 				 a[ktemp][vtemp].emplace_back(iter.islock);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.updated_time);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_user);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.updated_user);
+ 				 a[ktemp][vtemp].emplace_back(iter.replyid);
 				 break;
 
                 }
@@ -4740,38 +4152,20 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 vtemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 vtemp=iter.urlname;
-				 break;
 			case 5: 
- 				 vtemp=iter.name;
+ 				 vtemp=iter.content;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.urlname);
-				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -4797,26 +4191,14 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 a[ktemp].emplace_back(iter.urlpath);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.urlname);
-				 break;
 			case 5: 
- 				 a[ktemp].emplace_back(iter.name);
+ 				 a[ktemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -4841,14 +4223,8 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
@@ -4878,47 +4254,41 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.permsid);
+ 				 a[ktemp].emplace_back(iter.talkid);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.parentid);
-				 break;
-			case 2: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.adminid);
+				 break;
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.taskid);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.projectid);
+				 break;
 			case 6: 
- 				 a[ktemp].emplace_back(iter.status);
+ 				 a[ktemp].emplace_back(iter.isdelete);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.permscode);
+ 				 a[ktemp].emplace_back(iter.addtime);
 				 break;
 			case 8: 
- 				 a[ktemp].emplace_back(iter.readonly);
+ 				 a[ktemp].emplace_back(iter.update_at);
 				 break;
 			case 9: 
- 				 a[ktemp].emplace_back(iter.created_time);
+ 				 a[ktemp].emplace_back(iter.islock);
 				 break;
 			case 10: 
- 				 a[ktemp].emplace_back(iter.updated_time);
-				 break;
-			case 11: 
- 				 a[ktemp].emplace_back(iter.created_user);
-				 break;
-			case 12: 
- 				 a[ktemp].emplace_back(iter.updated_user);
+ 				 a[ktemp].emplace_back(iter.replyid);
 				 break;
 
                 }
@@ -4945,46 +4315,40 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 a[ktemp].emplace_back(iter.urlpath);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.urlname);
-				 break;
 			case 5: 
- 				 a[ktemp].emplace_back(iter.name);
+ 				 a[ktemp].emplace_back(iter.content);
 				 break;
 
                 }
@@ -5012,34 +4376,34 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
 
@@ -5069,67 +4433,67 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.permsid);
+ 				 a[ktemp].emplace_back(iter.talkid);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.parentid);
-				 break;
-			case 2: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.adminid);
+				 break;
+			case 3: 
+ 				 a[ktemp].emplace_back(iter.taskid);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.projectid);
+				 break;
 			case 6: 
- 				 a[ktemp].emplace_back(iter.status);
+ 				 a[ktemp].emplace_back(iter.isdelete);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.permscode);
+ 				 a[ktemp].emplace_back(iter.addtime);
 				 break;
 			case 8: 
- 				 a[ktemp].emplace_back(iter.readonly);
+ 				 a[ktemp].emplace_back(iter.update_at);
 				 break;
 			case 9: 
- 				 a[ktemp].emplace_back(iter.created_time);
+ 				 a[ktemp].emplace_back(iter.islock);
 				 break;
 			case 10: 
- 				 a[ktemp].emplace_back(iter.updated_time);
-				 break;
-			case 11: 
- 				 a[ktemp].emplace_back(iter.created_user);
-				 break;
-			case 12: 
- 				 a[ktemp].emplace_back(iter.updated_user);
+ 				 a[ktemp].emplace_back(iter.replyid);
 				 break;
 
                 }
@@ -5152,34 +4516,34 @@ case 5:
                 {
 
    			case 0: 
- 				 a[iter.permsid].emplace_back(iter);
+ 				 a[iter.talkid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[iter.parentid].emplace_back(iter);
-				 break;
-			case 2: 
  				 a[iter.userid].emplace_back(iter);
 				 break;
+			case 2: 
+ 				 a[iter.adminid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[iter.taskid].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[iter.projectid].emplace_back(iter);
+				 break;
 			case 6: 
- 				 a[iter.status].emplace_back(iter);
+ 				 a[iter.isdelete].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[iter.permscode].emplace_back(iter);
+ 				 a[iter.addtime].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[iter.readonly].emplace_back(iter);
+ 				 a[iter.update_at].emplace_back(iter);
 				 break;
 			case 9: 
- 				 a[iter.created_time].emplace_back(iter);
+ 				 a[iter.islock].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[iter.updated_time].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[iter.created_user].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[iter.updated_user].emplace_back(iter);
+ 				 a[iter.replyid].emplace_back(iter);
 				 break;
 
                 }
@@ -5202,14 +4566,8 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 a[iter.urlpath].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[iter.urlname].emplace_back(iter);
-				 break;
-			case 5: 
- 				 a[iter.name].emplace_back(iter);
+   			case 5: 
+ 				 a[iter.content].emplace_back(iter);
 				 break;
 
                 }
@@ -5234,26 +4592,14 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 3: 
- 				 a[ktemp][iter.urlpath].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.urlname].emplace_back(iter);
-				 break;
 			case 5: 
- 				 a[ktemp][iter.name].emplace_back(iter);
+ 				 a[ktemp][iter.content].emplace_back(iter);
 				 break;
 
                 }
@@ -5278,47 +4624,41 @@ case 5:
                 switch(kpos)
                 {
 
-   			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
+   			case 5: 
+ 				 ktemp=iter.content;
 				 break;
 	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.permsid].emplace_back(iter);
+ 				 a[ktemp][iter.talkid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.parentid].emplace_back(iter);
-				 break;
-			case 2: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
+			case 2: 
+ 				 a[ktemp][iter.adminid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[ktemp][iter.taskid].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.projectid].emplace_back(iter);
+				 break;
 			case 6: 
- 				 a[ktemp][iter.status].emplace_back(iter);
+ 				 a[ktemp][iter.isdelete].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.permscode].emplace_back(iter);
+ 				 a[ktemp][iter.addtime].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[ktemp][iter.readonly].emplace_back(iter);
+ 				 a[ktemp][iter.update_at].emplace_back(iter);
 				 break;
 			case 9: 
- 				 a[ktemp][iter.created_time].emplace_back(iter);
+ 				 a[ktemp][iter.islock].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[ktemp][iter.updated_time].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[ktemp][iter.created_user].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[ktemp][iter.updated_user].emplace_back(iter);
+ 				 a[ktemp][iter.replyid].emplace_back(iter);
 				 break;
 
                 }
@@ -5345,67 +4685,67 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.permsid].emplace_back(iter);
+ 				 a[ktemp][iter.talkid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.parentid].emplace_back(iter);
-				 break;
-			case 2: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
+			case 2: 
+ 				 a[ktemp][iter.adminid].emplace_back(iter);
+				 break;
+			case 3: 
+ 				 a[ktemp][iter.taskid].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.projectid].emplace_back(iter);
+				 break;
 			case 6: 
- 				 a[ktemp][iter.status].emplace_back(iter);
+ 				 a[ktemp][iter.isdelete].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.permscode].emplace_back(iter);
+ 				 a[ktemp][iter.addtime].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[ktemp][iter.readonly].emplace_back(iter);
+ 				 a[ktemp][iter.update_at].emplace_back(iter);
 				 break;
 			case 9: 
- 				 a[ktemp][iter.created_time].emplace_back(iter);
+ 				 a[ktemp][iter.islock].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[ktemp][iter.updated_time].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[ktemp][iter.created_user].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[ktemp][iter.updated_user].emplace_back(iter);
+ 				 a[ktemp][iter.replyid].emplace_back(iter);
 				 break;
 
                 }
@@ -5432,46 +4772,40 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.permsid;
+ 				 ktemp=iter.talkid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
-				 break;
-			case 2: 
  				 ktemp=iter.userid;
 				 break;
+			case 2: 
+ 				 ktemp=iter.adminid;
+				 break;
+			case 3: 
+ 				 ktemp=iter.taskid;
+				 break;
+			case 4: 
+ 				 ktemp=iter.projectid;
+				 break;
 			case 6: 
- 				 ktemp=iter.status;
+ 				 ktemp=iter.isdelete;
 				 break;
 			case 7: 
- 				 ktemp=iter.permscode;
+ 				 ktemp=iter.addtime;
 				 break;
 			case 8: 
- 				 ktemp=iter.readonly;
+ 				 ktemp=iter.update_at;
 				 break;
 			case 9: 
- 				 ktemp=iter.created_time;
+ 				 ktemp=iter.islock;
 				 break;
 			case 10: 
- 				 ktemp=iter.updated_time;
-				 break;
-			case 11: 
- 				 ktemp=iter.created_user;
-				 break;
-			case 12: 
- 				 ktemp=iter.updated_user;
+ 				 ktemp=iter.replyid;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 3: 
- 				 a[ktemp][iter.urlpath].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.urlname].emplace_back(iter);
-				 break;
 			case 5: 
- 				 a[ktemp][iter.name].emplace_back(iter);
+ 				 a[ktemp][iter.content].emplace_back(iter);
 				 break;
 
                 }

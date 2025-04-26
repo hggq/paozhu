@@ -1,6 +1,6 @@
 
 #include "testa_mysql.h"
-#include "cms/include/testabase.h"
+#include "cms/include/testa_base.h"
 #include "cms/include/Testa.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

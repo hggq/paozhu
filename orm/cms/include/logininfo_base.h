@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_TESTABASEMATA_H
-#define ORM_CMS_TESTABASEMATA_H
+#ifndef ORM_CMS_LOGININFOBASEMATA_H
+#define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:49 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,40 +20,33 @@ namespace orm {
    
      namespace cms { 
 
-struct testabase
+struct logininfo_base
 {
     struct meta{
-     unsigned  int  id = 0; ///**/
- unsigned  int  parentid = 0; ///*父id[id tree]*/
- char  value_id = 0; ///**/
- std::string  content = ""; ///**/
- unsigned  char  deleted = 0; ///**/
- unsigned  int  deletetime = 0; ///**/
+     unsigned  int  lgid = 0; ///**/
+ unsigned  int  userid = 0; ///*会员id*/
+ unsigned  char  logtype = 0; ///**/
+ std::string  username = ""; ///*会员名字*/
+ std::string  addtime = ""; ///*登录时间*/
+ std::string  addip = ""; ///*登录ip*/
+ std::string  addregion = ""; ///*登录地区*/
+ std::string  loginstate = ""; ///*登录状态*/
+ std::string  agent = ""; ///**/
+ std::string  urlpath = ""; ///**/
  } data;
-  
-        struct meta_tree{
-         unsigned  int  id = 0; ///**/
- unsigned  int  parentid = 0; ///*父id[id tree]*/
- char  value_id = 0; ///**/
- std::string  content = ""; ///**/
- unsigned  char  deleted = 0; ///**/
- unsigned  int  deletetime = 0; ///**/
-
-	std::vector<meta_tree> children;
- };
- std::vector<testabase::meta> record;
+ std::vector<logininfo_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<testabase::meta>::iterator begin(){     return record.begin(); }
-std::vector<testabase::meta>::iterator end(){     return record.end(); }
-std::vector<testabase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<testabase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,6> col_names={"id","parentid","value_id","content","deleted","deletetime"};
-static constexpr std::array<unsigned char,6> col_types={3,3,1,253,1,3};
-static constexpr std::array<unsigned char,6> col_length={0,0,0,200,0,0};
-static constexpr std::array<unsigned char,6> col_decimals={0,0,0,0,0,0};
-std::string tablename="testa";
-static constexpr std::string_view modelname="Testa";
+std::vector<logininfo_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<logininfo_base::meta>::iterator end(){     return record.end(); }
+std::vector<logininfo_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<logininfo_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
+static constexpr std::array<unsigned char,10> col_types={3,3,1,253,253,253,253,253,253,253};
+static constexpr std::array<unsigned char,10> col_length={0,0,0,40,20,70,70,20,120,120};
+static constexpr std::array<unsigned char,10> col_decimals={0,0,0,0,0,0,0,0,0,0};
+std::string tablename="logininfo";
+static constexpr std::string_view modelname="Logininfo";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -61,7 +54,7 @@ static constexpr std::string_view modelname="Testa";
                 return 255;
             }
 		    unsigned char  bi=coln[0];
-         
+         char colpospppc;
 
 	         if(bi<91&&bi>64){
 				bi+=32;
@@ -69,28 +62,48 @@ static constexpr std::string_view modelname="Testa";
             switch(coln[0]){
 
 
-         case 'c':
-   	 return 3;
-break;
-case 'd':
+         case 'a':
  switch(coln.size()){  
+case 5:
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='p'){ return 5; }
+ if(colpospppc=='t'){ return 8; }
+   	 break;
 case 7:
    	 return 4;
 break;
-case 10:
-   	 return 5;
+case 9:
+   	 return 6;
 break;
  }
  break;
-case 'i':
+case 'l':
+ switch(coln.size()){  
+case 4:
    	 return 0;
 break;
-case 'p':
-   	 return 1;
-break;
-case 'v':
+case 7:
    	 return 2;
 break;
+case 10:
+   	 return 7;
+break;
+ }
+ break;
+case 'u':
+ switch(coln.size()){  
+case 6:
+   	 return 1;
+break;
+case 7:
+   	 return 9;
+break;
+case 8:
+   	 return 3;
+break;
+ }
+ break;
 
              }
              return 255;
@@ -99,7 +112,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "id";
+       return "lgid";
 }
 
       void record_reset()
@@ -107,51 +120,13 @@ break;
             record.clear();     
       }
       void data_reset(){
-     testabase::meta metatemp;    
+     logininfo_base::meta metatemp;    
             data = metatemp; 
       }
       
       std::string soft_remove_sql([[maybe_unused]] const std::string &fieldsql){
           std::string temp;
      
-         if(fieldsql.size()<2)
-         {
-            temp="UPDATE `";
-            temp.append(tablename);
-            temp.push_back('`');
-            temp.append(" SET ");
-         }
-         else
-         {
-            temp=_makeupdatesql(fieldsql);
-            if(temp.size()>2)
-            {
-                if(temp.back()==0x20&&temp[temp.size()-2]=='T')
-                {
-
-                }
-                else
-                {
-                    temp.push_back(',');
-                }
-            }
-            
-         }   
-         
-      	temp.push_back('`');
-		temp.append("deleted");
-		temp.push_back('`');
-		temp.append("=1 ");
-		 if(fieldsql.size()>0){ data.deleted=1; }
-		temp.push_back(',');
-		temp.push_back('`');
-		temp.append("deletetime");
-		temp.push_back('`');
-		temp.append("=");
-		unsigned int t=time((time_t *)NULL);
-		temp.append(std::to_string(t));
-		if(fieldsql.size()>0){ data.deletetime=t; }
-	
          return temp;
      }
      
@@ -208,32 +183,28 @@ break;
         }
         tempsql<<") VALUES (";
 
-        if(data.id==0){
+        if(data.lgid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.id);
+	tempsql<<std::to_string(data.lgid);
 }
-if(data.parentid==0){
+if(data.userid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.parentid);
+	tempsql<<","<<std::to_string(data.userid);
 }
-if(data.value_id==0){
+if(data.logtype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.value_id);
+	tempsql<<","<<std::to_string(data.logtype);
 }
-tempsql<<",'"<<stringaddslash(data.content)<<"'";
-if(data.deleted==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.deleted);
-}
-if(data.deletetime==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.deletetime);
-}
+tempsql<<",'"<<stringaddslash(data.username)<<"'";
+tempsql<<",'"<<stringaddslash(data.addtime)<<"'";
+tempsql<<",'"<<stringaddslash(data.addip)<<"'";
+tempsql<<",'"<<stringaddslash(data.addregion)<<"'";
+tempsql<<",'"<<stringaddslash(data.loginstate)<<"'";
+tempsql<<",'"<<stringaddslash(data.agent)<<"'";
+tempsql<<",'"<<stringaddslash(data.urlpath)<<"'";
 tempsql<<")";
 
      
@@ -259,32 +230,28 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.id==0){
+        if(insert_data.lgid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.id);
+	tempsql<<std::to_string(insert_data.lgid);
 }
-if(insert_data.parentid==0){
+if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.parentid);
+	tempsql<<","<<std::to_string(insert_data.userid);
 }
-if(insert_data.value_id==0){
+if(insert_data.logtype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.value_id);
+	tempsql<<","<<std::to_string(insert_data.logtype);
 }
-tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
-if(insert_data.deleted==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.deleted);
-}
-if(insert_data.deletetime==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.deletetime);
-}
+tempsql<<",'"<<stringaddslash(insert_data.username)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.addtime)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.addip)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.addregion)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.loginstate)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.agent)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.urlpath)<<"'";
 tempsql<<")";
 
      
@@ -319,32 +286,28 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].id==0){
+            	if(insert_data[i].lgid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].id);
+	tempsql<<std::to_string(insert_data[i].lgid);
 	}
-	if(insert_data[i].parentid==0){
+	if(insert_data[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].parentid);
+	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
-	if(insert_data[i].value_id==0){
+	if(insert_data[i].logtype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].value_id);
+	tempsql<<","<<std::to_string(insert_data[i].logtype);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
-	if(insert_data[i].deleted==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].deleted);
-	}
-	if(insert_data[i].deletetime==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].deletetime);
-	}
+		tempsql<<",'"<<stringaddslash(insert_data[i].username)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].addtime)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].addip)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].addregion)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].loginstate)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].agent)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].urlpath)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -364,32 +327,28 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.id==0){
-	tempsql<<"`id`=0";
+        if(data.lgid==0){
+	tempsql<<"`lgid`=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"`lgid`="<<std::to_string(data.lgid);
 }
-if(data.parentid==0){
-	tempsql<<",`parentid`=0";
+if(data.userid==0){
+	tempsql<<",`userid`=0";
  }else{ 
-	tempsql<<",`parentid`="<<std::to_string(data.parentid);
+	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
-if(data.value_id==0){
-	tempsql<<",`value_id`=0";
+if(data.logtype==0){
+	tempsql<<",`logtype`=0";
  }else{ 
-	tempsql<<",`value_id`="<<std::to_string(data.value_id);
+	tempsql<<",`logtype`="<<std::to_string(data.logtype);
 }
-tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
-if(data.deleted==0){
-	tempsql<<",`deleted`=0";
- }else{ 
-	tempsql<<",`deleted`="<<std::to_string(data.deleted);
-}
-if(data.deletetime==0){
-	tempsql<<",`deletetime`=0";
- }else{ 
-	tempsql<<",`deletetime`="<<std::to_string(data.deletetime);
-}
+tempsql<<",`username`='"<<stringaddslash(data.username)<<"'";
+tempsql<<",`addtime`='"<<stringaddslash(data.addtime)<<"'";
+tempsql<<",`addip`='"<<stringaddslash(data.addip)<<"'";
+tempsql<<",`addregion`='"<<stringaddslash(data.addregion)<<"'";
+tempsql<<",`loginstate`='"<<stringaddslash(data.loginstate)<<"'";
+tempsql<<",`agent`='"<<stringaddslash(data.agent)<<"'";
+tempsql<<",`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  }else{ 
 
      
@@ -436,47 +395,55 @@ if(data.deletetime==0){
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.id==0){
-	tempsql<<"`id`=0";
+if(data.lgid==0){
+	tempsql<<"`lgid`=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"`lgid`="<<std::to_string(data.lgid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(data.parentid==0){
-	tempsql<<"`parentid`=0";
+if(data.userid==0){
+	tempsql<<"`userid`=0";
  }else{ 
-	tempsql<<"`parentid`="<<std::to_string(data.parentid);
+	tempsql<<"`userid`="<<std::to_string(data.userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.value_id==0){
-	tempsql<<"`value_id`=0";
+if(data.logtype==0){
+	tempsql<<"`logtype`=0";
  }else{ 
-	tempsql<<"`value_id`="<<std::to_string(data.value_id);
+	tempsql<<"`logtype`="<<std::to_string(data.logtype);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
+tempsql<<"`username`='"<<stringaddslash(data.username)<<"'";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.deleted==0){
-	tempsql<<"`deleted`=0";
- }else{ 
-	tempsql<<"`deleted`="<<std::to_string(data.deleted);
-}
+tempsql<<"`addtime`='"<<stringaddslash(data.addtime)<<"'";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(data.deletetime==0){
-	tempsql<<"`deletetime`=0";
- }else{ 
-	tempsql<<"`deletetime`="<<std::to_string(data.deletetime);
-}
+tempsql<<"`addip`='"<<stringaddslash(data.addip)<<"'";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`addregion`='"<<stringaddslash(data.addregion)<<"'";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`loginstate`='"<<stringaddslash(data.loginstate)<<"'";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`agent`='"<<stringaddslash(data.agent)<<"'";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  break;
 
      
@@ -522,32 +489,28 @@ if(data.deletetime==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].id==0){
+            	if(record[i].lgid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].id);
+	tempsql<<std::to_string(record[i].lgid);
 	}
-	if(record[i].parentid==0){
+	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].parentid);
+	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].value_id==0){
+	if(record[i].logtype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].value_id);
+	tempsql<<","<<std::to_string(record[i].logtype);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
-	if(record[i].deleted==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].deleted);
-	}
-	if(record[i].deletetime==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].deletetime);
-	}
+	tempsql<<",'"<<stringaddslash(record[i].username)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].addtime)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].addip)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].addregion)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].loginstate)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].agent)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
 	tempsql<<")";
 
  }
@@ -586,32 +549,28 @@ if(data.deletetime==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].id==0){
+            	if(record[i].lgid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].id);
+	tempsql<<std::to_string(record[i].lgid);
 	}
-	if(record[i].parentid==0){
+	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].parentid);
+	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].value_id==0){
+	if(record[i].logtype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].value_id);
+	tempsql<<","<<std::to_string(record[i].logtype);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
-	if(record[i].deleted==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].deleted);
-	}
-	if(record[i].deletetime==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].deletetime);
-	}
+	tempsql<<",'"<<stringaddslash(record[i].username)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].addtime)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].addip)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].addregion)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].loginstate)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].agent)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].urlpath)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -692,42 +651,46 @@ if(data.deletetime==0){
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.id==0){
+if(data.lgid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.id));
+	temparray.push_back(std::to_string(data.lgid));
 }
  break;
  case 1:
-if(data.parentid==0){
+if(data.userid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.parentid));
+	temparray.push_back(std::to_string(data.userid));
 }
  break;
  case 2:
-if(data.value_id==0){
+if(data.logtype==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.value_id));
+	temparray.push_back(std::to_string(data.logtype));
 }
  break;
  case 3:
-	temparray.push_back(data.content);
+	temparray.push_back(data.username);
  break;
  case 4:
-if(data.deleted==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.deleted));
-}
+	temparray.push_back(data.addtime);
  break;
  case 5:
-if(data.deletetime==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.deletetime));
-}
+	temparray.push_back(data.addip);
+ break;
+ case 6:
+	temparray.push_back(data.addregion);
+ break;
+ case 7:
+	temparray.push_back(data.loginstate);
+ break;
+ case 8:
+	temparray.push_back(data.agent);
+ break;
+ case 9:
+	temparray.push_back(data.urlpath);
  break;
 
                              default:
@@ -770,42 +733,46 @@ if(data.deletetime==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.id==0){
-	tempsql.insert({"id","0"});
+if(data.lgid==0){
+	tempsql.insert({"lgid","0"});
  }else{ 
-	tempsql.insert({"id",std::to_string(data.id)});
+	tempsql.insert({"lgid",std::to_string(data.lgid)});
 }
  break;
  case 1:
-if(data.parentid==0){
-	tempsql.insert({"parentid","0"});
+if(data.userid==0){
+	tempsql.insert({"userid","0"});
  }else{ 
-	tempsql.insert({"parentid",std::to_string(data.parentid)});
+	tempsql.insert({"userid",std::to_string(data.userid)});
 }
  break;
  case 2:
-if(data.value_id==0){
-	tempsql.insert({"value_id","0"});
+if(data.logtype==0){
+	tempsql.insert({"logtype","0"});
  }else{ 
-	tempsql.insert({"value_id",std::to_string(data.value_id)});
+	tempsql.insert({"logtype",std::to_string(data.logtype)});
 }
  break;
  case 3:
-	tempsql.insert({"content",data.content});
+	tempsql.insert({"username",data.username});
  break;
  case 4:
-if(data.deleted==0){
-	tempsql.insert({"deleted","0"});
- }else{ 
-	tempsql.insert({"deleted",std::to_string(data.deleted)});
-}
+	tempsql.insert({"addtime",data.addtime});
  break;
  case 5:
-if(data.deletetime==0){
-	tempsql.insert({"deletetime","0"});
- }else{ 
-	tempsql.insert({"deletetime",std::to_string(data.deletetime)});
-}
+	tempsql.insert({"addip",data.addip});
+ break;
+ case 6:
+	tempsql.insert({"addregion",data.addregion});
+ break;
+ case 7:
+	tempsql.insert({"loginstate",data.loginstate});
+ break;
+ case 8:
+	tempsql.insert({"agent",data.agent});
+ break;
+ case 9:
+	tempsql.insert({"urlpath",data.urlpath});
  break;
 
                              default:
@@ -820,33 +787,35 @@ if(data.deletetime==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.id==0){
-	tempsql<<"\"id\":0";
+if(data.lgid==0){
+	tempsql<<"\"lgid\":0";
  }else{ 
-	tempsql<<"\"id\":"<<std::to_string(data.id);
+	tempsql<<"\"lgid\":"<<std::to_string(data.lgid);
 }
-if(data.parentid==0){
-	tempsql<<",\"parentid\":0";
+if(data.userid==0){
+	tempsql<<",\"userid\":0";
  }else{ 
-	tempsql<<",\"parentid\":"<<std::to_string(data.parentid);
+	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
-if(data.value_id==0){
-	tempsql<<",\"value_id\":0";
+if(data.logtype==0){
+	tempsql<<",\"logtype\":0";
  }else{ 
-	tempsql<<",\"value_id\":"<<std::to_string(data.value_id);
+	tempsql<<",\"logtype\":"<<std::to_string(data.logtype);
 }
-tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
+tempsql<<",\"username\":\""<<http::utf8_to_jsonstring(data.username);
 tempsql<<"\"";
-if(data.deleted==0){
-	tempsql<<",\"deleted\":0";
- }else{ 
-	tempsql<<",\"deleted\":"<<std::to_string(data.deleted);
-}
-if(data.deletetime==0){
-	tempsql<<",\"deletetime\":0";
- }else{ 
-	tempsql<<",\"deletetime\":"<<std::to_string(data.deletetime);
-}
+tempsql<<",\"addtime\":\""<<http::utf8_to_jsonstring(data.addtime);
+tempsql<<"\"";
+tempsql<<",\"addip\":\""<<http::utf8_to_jsonstring(data.addip);
+tempsql<<"\"";
+tempsql<<",\"addregion\":\""<<http::utf8_to_jsonstring(data.addregion);
+tempsql<<"\"";
+tempsql<<",\"loginstate\":\""<<http::utf8_to_jsonstring(data.loginstate);
+tempsql<<"\"";
+tempsql<<",\"agent\":\""<<http::utf8_to_jsonstring(data.agent);
+tempsql<<"\"";
+tempsql<<",\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath);
+tempsql<<"\"";
 tempsql<<"}";
 
      
@@ -886,47 +855,55 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.id==0){
-	tempsql<<"\"id\":0";
+if(data.lgid==0){
+	tempsql<<"\"lgid\":0";
  }else{ 
-	tempsql<<"\"id\":"<<std::to_string(data.id);
+	tempsql<<"\"lgid\":"<<std::to_string(data.lgid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(data.parentid==0){
-	tempsql<<"\"parentid\":0";
+if(data.userid==0){
+	tempsql<<"\"userid\":0";
  }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(data.parentid);
+	tempsql<<"\"userid\":"<<std::to_string(data.userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.value_id==0){
-	tempsql<<"\"value_id\":0";
+if(data.logtype==0){
+	tempsql<<"\"logtype\":0";
  }else{ 
-	tempsql<<"\"value_id\":"<<std::to_string(data.value_id);
+	tempsql<<"\"logtype\":"<<std::to_string(data.logtype);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
+tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(data.username)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.deleted==0){
-	tempsql<<"\"deleted\":0";
- }else{ 
-	tempsql<<"\"deleted\":"<<std::to_string(data.deleted);
-}
+tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(data.addtime)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(data.deletetime==0){
-	tempsql<<"\"deletetime\":0";
- }else{ 
-	tempsql<<"\"deletetime\":"<<std::to_string(data.deletetime);
-}
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(data.addip)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(data.addregion)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(data.loginstate)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"agent\":\""<<http::utf8_to_jsonstring(data.agent)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
  break;
 
                              default:
@@ -940,7 +917,7 @@ if(data.deletetime==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        testabase::meta metatemp; 
+        logininfo_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1177,44 +1154,72 @@ if(data.deletetime==0){
         {
     		case 0:
 		 try{
-			data.id=std::stoul(set_value_name);
+			data.lgid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.id=0;
+			data.lgid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.parentid=std::stoul(set_value_name);
+			data.userid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.parentid=0;
+			data.userid=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.value_id=std::stoi(set_value_name);
+			data.logtype=std::stoi(set_value_name);
 		}catch (...) { 
-			data.value_id=0;
+			data.logtype=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.content.append(set_value_name);
+			data.username.append(set_value_name);
 		}catch (...) { 
-			data.content.clear();
+			data.username.clear();
 			 }
 			break;
 		case 4:
 		 try{
-			data.deleted=std::stoi(set_value_name);
+			data.addtime.append(set_value_name);
 		}catch (...) { 
-			data.deleted=0;
+			data.addtime.clear();
 			 }
 			break;
 		case 5:
 		 try{
-			data.deletetime=std::stoul(set_value_name);
+			data.addip.append(set_value_name);
 		}catch (...) { 
-			data.deletetime=0;
+			data.addip.clear();
+			 }
+			break;
+		case 6:
+		 try{
+			data.addregion.append(set_value_name);
+		}catch (...) { 
+			data.addregion.clear();
+			 }
+			break;
+		case 7:
+		 try{
+			data.loginstate.append(set_value_name);
+		}catch (...) { 
+			data.loginstate.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.agent.append(set_value_name);
+		}catch (...) { 
+			data.agent.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.urlpath.append(set_value_name);
+		}catch (...) { 
+			data.urlpath.clear();
 			 }
 			break;
 	default:
@@ -1231,44 +1236,72 @@ if(data.deletetime==0){
         {
     		case 0:
 		 try{
-			data.id=set_value_name;
+			data.lgid=set_value_name;
 		}catch (...) { 
-			data.id=0;
+			data.lgid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.parentid=set_value_name;
+			data.userid=set_value_name;
 		}catch (...) { 
-			data.parentid=0;
+			data.userid=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.value_id=set_value_name;
+			data.logtype=set_value_name;
 		}catch (...) { 
-			data.value_id=0;
+			data.logtype=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.content=std::to_string(set_value_name);
+			data.username=std::to_string(set_value_name);
 		}catch (...) { 
-			data.content.clear();
+			data.username.clear();
 			 }
 			break;
 		case 4:
 		 try{
-			data.deleted=set_value_name;
+			data.addtime=std::to_string(set_value_name);
 		}catch (...) { 
-			data.deleted=0;
+			data.addtime.clear();
 			 }
 			break;
 		case 5:
 		 try{
-			data.deletetime=set_value_name;
+			data.addip=std::to_string(set_value_name);
 		}catch (...) { 
-			data.deletetime=0;
+			data.addip.clear();
+			 }
+			break;
+		case 6:
+		 try{
+			data.addregion=std::to_string(set_value_name);
+		}catch (...) { 
+			data.addregion.clear();
+			 }
+			break;
+		case 7:
+		 try{
+			data.loginstate=std::to_string(set_value_name);
+		}catch (...) { 
+			data.loginstate.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.agent=std::to_string(set_value_name);
+		}catch (...) { 
+			data.agent.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.urlpath=std::to_string(set_value_name);
+		}catch (...) { 
+			data.urlpath.clear();
 			 }
 			break;
 	default:
@@ -1285,44 +1318,72 @@ if(data.deletetime==0){
         {
     		case 0:
 		 try{
-			data.id=(unsigned int)set_value_name;
+			data.lgid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.id=0;
+			data.lgid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.parentid=(unsigned int)set_value_name;
+			data.userid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.parentid=0;
+			data.userid=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.value_id=(int)set_value_name;
+			data.logtype=(int)set_value_name;
 		}catch (...) { 
-			data.value_id=0;
+			data.logtype=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.content=std::to_string(set_value_name);
+			data.username=std::to_string(set_value_name);
 		}catch (...) { 
-			data.content.clear();
+			data.username.clear();
 			 }
 			break;
 		case 4:
 		 try{
-			data.deleted=(int)set_value_name;
+			data.addtime=std::to_string(set_value_name);
 		}catch (...) { 
-			data.deleted=0;
+			data.addtime.clear();
 			 }
 			break;
 		case 5:
 		 try{
-			data.deletetime=(unsigned int)set_value_name;
+			data.addip=std::to_string(set_value_name);
 		}catch (...) { 
-			data.deletetime=0;
+			data.addip.clear();
+			 }
+			break;
+		case 6:
+		 try{
+			data.addregion=std::to_string(set_value_name);
+		}catch (...) { 
+			data.addregion.clear();
+			 }
+			break;
+		case 7:
+		 try{
+			data.loginstate=std::to_string(set_value_name);
+		}catch (...) { 
+			data.loginstate.clear();
+			 }
+			break;
+		case 8:
+		 try{
+			data.agent=std::to_string(set_value_name);
+		}catch (...) { 
+			data.agent.clear();
+			 }
+			break;
+		case 9:
+		 try{
+			data.urlpath=std::to_string(set_value_name);
+		}catch (...) { 
+			data.urlpath.clear();
 			 }
 			break;
 	default:
@@ -1373,47 +1434,55 @@ if(data.deletetime==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].id==0){
-	tempsql<<"\"id\":0";
+if(record[n].lgid==0){
+	tempsql<<"\"lgid\":0";
  }else{ 
-	tempsql<<"\"id\":"<<std::to_string(record[n].id);
+	tempsql<<"\"lgid\":"<<std::to_string(record[n].lgid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(record[n].parentid==0){
-	tempsql<<"\"parentid\":0";
+if(record[n].userid==0){
+	tempsql<<"\"userid\":0";
  }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
+	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].value_id==0){
-	tempsql<<"\"value_id\":0";
+if(record[n].logtype==0){
+	tempsql<<"\"logtype\":0";
  }else{ 
-	tempsql<<"\"value_id\":"<<std::to_string(record[n].value_id);
+	tempsql<<"\"logtype\":"<<std::to_string(record[n].logtype);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
+tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(record[n].username)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].deleted==0){
-	tempsql<<"\"deleted\":0";
- }else{ 
-	tempsql<<"\"deleted\":"<<std::to_string(record[n].deleted);
-}
+tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(record[n].addtime)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(record[n].deletetime==0){
-	tempsql<<"\"deletetime\":0";
- }else{ 
-	tempsql<<"\"deletetime\":"<<std::to_string(record[n].deletetime);
-}
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(record[n].addip)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(record[n].addregion)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(record[n].loginstate)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"agent\":\""<<http::utf8_to_jsonstring(record[n].agent)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  break;
 
                              default:
@@ -1473,47 +1542,55 @@ if(record[n].deletetime==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].id==0){
-	tempsql<<"\"id\":0";
+if(record[n].lgid==0){
+	tempsql<<"\"lgid\":0";
  }else{ 
-	tempsql<<"\"id\":"<<std::to_string(record[n].id);
+	tempsql<<"\"lgid\":"<<std::to_string(record[n].lgid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(record[n].parentid==0){
-	tempsql<<"\"parentid\":0";
+if(record[n].userid==0){
+	tempsql<<"\"userid\":0";
  }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
+	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].value_id==0){
-	tempsql<<"\"value_id\":0";
+if(record[n].logtype==0){
+	tempsql<<"\"logtype\":0";
  }else{ 
-	tempsql<<"\"value_id\":"<<std::to_string(record[n].value_id);
+	tempsql<<"\"logtype\":"<<std::to_string(record[n].logtype);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
+tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(record[n].username)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].deleted==0){
-	tempsql<<"\"deleted\":0";
- }else{ 
-	tempsql<<"\"deleted\":"<<std::to_string(record[n].deleted);
-}
+tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(record[n].addtime)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(record[n].deletetime==0){
-	tempsql<<"\"deletetime\":0";
- }else{ 
-	tempsql<<"\"deletetime\":"<<std::to_string(record[n].deletetime);
-}
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(record[n].addip)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(record[n].addregion)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(record[n].loginstate)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"agent\":\""<<http::utf8_to_jsonstring(record[n].agent)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  break;
 
                              default:
@@ -1525,381 +1602,94 @@ if(record[n].deletetime==0){
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.id; } 
- void setPK(long long val){  data.id=val;} 
- unsigned  int  getId(){  return data.id; } 
- void setId( unsigned  int  val){  data.id=val;} 
+   long long getPK(){  return data.lgid; } 
+ void setPK(long long val){  data.lgid=val;} 
+ unsigned  int  getLgid(){  return data.lgid; } 
+ void setLgid( unsigned  int  val){  data.lgid=val;} 
 
- unsigned  int  getParentid(){  return data.parentid; } 
- void setParentid( unsigned  int  val){  data.parentid=val;} 
+ unsigned  int  getUserid(){  return data.userid; } 
+ void setUserid( unsigned  int  val){  data.userid=val;} 
 
- char  getValueId(){  return data.value_id; } 
- void setValueId( char  val){  data.value_id=val;} 
+ unsigned  char  getLogtype(){  return data.logtype; } 
+ void setLogtype( unsigned  char  val){  data.logtype=val;} 
 
- std::string  getContent(){  return data.content; } 
- std::string & getRefContent(){  return std::ref(data.content); } 
- void setContent( std::string  &val){  data.content=val;} 
- void setContent(std::string_view val){  data.content=val;} 
+ std::string  getUsername(){  return data.username; } 
+ std::string & getRefUsername(){  return std::ref(data.username); } 
+ void setUsername( std::string  &val){  data.username=val;} 
+ void setUsername(std::string_view val){  data.username=val;} 
 
- unsigned  char  getDeleted(){  return data.deleted; } 
- void setDeleted( unsigned  char  val){  data.deleted=val;} 
+ std::string  getAddtime(){  return data.addtime; } 
+ std::string & getRefAddtime(){  return std::ref(data.addtime); } 
+ void setAddtime( std::string  &val){  data.addtime=val;} 
+ void setAddtime(std::string_view val){  data.addtime=val;} 
 
- unsigned  int  getDeletetime(){  return data.deletetime; } 
- void setDeletetime( unsigned  int  val){  data.deletetime=val;} 
+ std::string  getAddip(){  return data.addip; } 
+ std::string & getRefAddip(){  return std::ref(data.addip); } 
+ void setAddip( std::string  &val){  data.addip=val;} 
+ void setAddip(std::string_view val){  data.addip=val;} 
 
-testabase::meta getnewData(){
+ std::string  getAddregion(){  return data.addregion; } 
+ std::string & getRefAddregion(){  return std::ref(data.addregion); } 
+ void setAddregion( std::string  &val){  data.addregion=val;} 
+ void setAddregion(std::string_view val){  data.addregion=val;} 
+
+ std::string  getLoginstate(){  return data.loginstate; } 
+ std::string & getRefLoginstate(){  return std::ref(data.loginstate); } 
+ void setLoginstate( std::string  &val){  data.loginstate=val;} 
+ void setLoginstate(std::string_view val){  data.loginstate=val;} 
+
+ std::string  getAgent(){  return data.agent; } 
+ std::string & getRefAgent(){  return std::ref(data.agent); } 
+ void setAgent( std::string  &val){  data.agent=val;} 
+ void setAgent(std::string_view val){  data.agent=val;} 
+
+ std::string  getUrlpath(){  return data.urlpath; } 
+ std::string & getRefUrlpath(){  return std::ref(data.urlpath); } 
+ void setUrlpath( std::string  &val){  data.urlpath=val;} 
+ void setUrlpath(std::string_view val){  data.urlpath=val;} 
+
+logininfo_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-testabase::meta getData(){
+logininfo_base::meta getData(){
  	 return data; 
 } 
-std::vector<testabase::meta> getRecord(){
+std::vector<logininfo_base::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
-       std::ostringstream tempsql;
-        std::string keyname;
-        unsigned char jj=0;
-        std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
-                    keyname.clear();
-                    continue;   
-                }
-                if(fileld[jj]==0x20){
-
-                    continue;   
-                }
-                keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
-            }
-        }else{
-            for(jj=0;jj<col_names.size();jj++){
-                keypos.emplace_back(jj); 
-            }
-        }
-        tempsql<<"[";
-        for(size_t n=0;n<tree_data.size();n++){
-            if(n>0){
-                tempsql<<",{";
-            }else{
-                tempsql<<"{";
-            }  
-        
-        for(jj=0;jj<keypos.size();jj++){
-            switch(keypos[jj]){
-         case 0:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].id==0){
-	tempsql<<"\"id\":0";
- }else{ 
-	tempsql<<"\"id\":"<<std::to_string(tree_data[n].id);
-}
- break;
- case 1:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].value_id==0){
-	tempsql<<"\"value_id\":0";
- }else{ 
-	tempsql<<"\"value_id\":"<<std::to_string(tree_data[n].value_id);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(tree_data[n].content)<<"\"";
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].deleted==0){
-	tempsql<<"\"deleted\":0";
- }else{ 
-	tempsql<<"\"deleted\":"<<std::to_string(tree_data[n].deleted);
-}
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].deletetime==0){
-	tempsql<<"\"deletetime\":0";
- }else{ 
-	tempsql<<"\"deletetime\":"<<std::to_string(tree_data[n].deletetime);
-}
- break;
-
-                             default:
-                                ;
-                     }
-                 }
-
-        tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children, fileld);     
-      tempsql<<"}";  
-            }
-      tempsql<<"]";
-     return tempsql.str();             
-   }   
-   
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
-       std::ostringstream tempsql;
-        std::string keyname;
-        unsigned char jj=0;
-        std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
-                    keyname.clear();
-                    continue;   
-                }
-                if(fileld[jj]==0x20){
-
-                    continue;   
-                }
-                keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
-            }
-        }else{
-            for(jj=0;jj<col_names.size();jj++){
-                keypos.emplace_back(jj); 
-            }
-        }
-    tempsql<<"[";
-    for(size_t n=0;n<tree_data.size();n++){
-        keyname.clear();
-        if(func(keyname,tree_data[n])){ 
-                if(n>0){
-                    tempsql<<",{";
-                }else{
-                    tempsql<<"{";
-                } 
-                tempsql<<keyname;
-        }else{
-        continue;
-        } 
-        
-        for(jj=0;jj<keypos.size();jj++){
-            
-            switch(keypos[jj]){
-         case 0:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].id==0){
-	tempsql<<"\"id\":0";
- }else{ 
-	tempsql<<"\"id\":"<<std::to_string(tree_data[n].id);
-}
- break;
- case 1:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].value_id==0){
-	tempsql<<"\"value_id\":0";
- }else{ 
-	tempsql<<"\"value_id\":"<<std::to_string(tree_data[n].value_id);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(tree_data[n].content)<<"\"";
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].deleted==0){
-	tempsql<<"\"deleted\":0";
- }else{ 
-	tempsql<<"\"deleted\":"<<std::to_string(tree_data[n].deleted);
-}
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].deletetime==0){
-	tempsql<<"\"deletetime\":0";
- }else{ 
-	tempsql<<"\"deletetime\":"<<std::to_string(tree_data[n].deletetime);
-}
- break;
-
-                             default:
-                                ;
-                     }
-                 }   
-         tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
-      tempsql<<"}";  
-            }
-      tempsql<<"]";
-     return tempsql.str();             
-   }   
-   
-    meta_tree treedata_from_record(unsigned int i=0)
-    {
-        meta_tree temp_obja;
-        if(i>=record.size())
-        {
-           return  temp_obja;   
-        }
-        	temp_obja.id=record[i].id;
-	temp_obja.parentid=record[i].parentid;
-	temp_obja.value_id=record[i].value_id;
-	temp_obja.content=record[i].content;
-	temp_obja.deleted=record[i].deleted;
-	temp_obja.deletetime=record[i].deletetime;
-
-        return  temp_obja;   
-    }
-    meta_tree treedata_from_data()
-    {
-        meta_tree temp_obja;
-
-        	temp_obja.id=data.id;
-	temp_obja.parentid=data.parentid;
-	temp_obja.value_id=data.value_id;
-	temp_obja.content=data.content;
-	temp_obja.deleted=data.deleted;
-	temp_obja.deletetime=data.deletetime;
-
-        return  temp_obja;   
-    }      
-    meta_tree treedata_from_data(const meta &tempdata)
-    {
-        meta_tree temp_obja;
-        	temp_obja.id=tempdata.id;
-	temp_obja.parentid=tempdata.parentid;
-	temp_obja.value_id=tempdata.value_id;
-	temp_obja.content=tempdata.content;
-	temp_obja.deleted=tempdata.deleted;
-	temp_obja.deletetime=tempdata.deletetime;
-
-        return  temp_obja;   
-    }     
-    std::vector<meta_tree> to_tree(unsigned int beginid=0)
-    {
-       std::vector<meta_tree> temp;
-       unsigned int level=0; 
-       if(beginid==0)
-       {
-            for (unsigned int i = 0; i < record.size(); i++)
-            {
-                if (record[i].parentid == 0)
-                {
-                    		meta_tree temp_obja;
-						temp_obja.id=record[i].id;
-						temp_obja.parentid=record[i].parentid;
-						temp_obja.value_id=record[i].value_id;
-						temp_obja.content=record[i].content;
-						temp_obja.deleted=record[i].deleted;
-						temp_obja.deletetime=record[i].deletetime;
-
-                    temp.push_back(temp_obja);
-                }
-            }
-       }
-       else
-       {
-           for (unsigned int i = 0; i < record.size(); i++)
-            {
-                if (record[i].id == beginid)
-                {
-                    		meta_tree temp_obja;
-						temp_obja.id=record[i].id;
-						temp_obja.parentid=record[i].parentid;
-						temp_obja.value_id=record[i].value_id;
-						temp_obja.content=record[i].content;
-						temp_obja.deleted=record[i].deleted;
-						temp_obja.deletetime=record[i].deletetime;
-
-                    temp.push_back(temp_obja);
-                    break;
-                }
-            }
-       }
-
-       if(temp.size()==0)
-       {
-          return temp; 
-       }
-       level+=1;
-       for (unsigned int j = 0; j < temp.size(); j++)
-       {
-         record_to_tree(temp[j].children,temp[j].id,level);
-       }
-       return temp; 
-    }    
-    void record_to_tree(std::vector<meta_tree> &targetdata,long long t_vid,unsigned int level=0)
-    {
-        for (unsigned int i = 0; i < record.size(); i++)
-        {
-            if (record[i].parentid== t_vid)
-            {
-                		meta_tree temp_obja;
-						temp_obja.id=record[i].id;
-						temp_obja.parentid=record[i].parentid;
-						temp_obja.value_id=record[i].value_id;
-						temp_obja.content=record[i].content;
-						temp_obja.deleted=record[i].deleted;
-						temp_obja.deletetime=record[i].deletetime;
-
-                targetdata.push_back(temp_obja);
-            }
-        }
-        level+=1;
-        for (unsigned int j = 0; j < targetdata.size(); j++)
-        {
-         record_to_tree(targetdata[j].children,targetdata[j].id,level);
-        }
-    }
-    void tree_torecord(const std::vector<meta_tree> &sourcedata,unsigned int level=0)
-    {
-        for (unsigned int i = 0; i < sourcedata.size(); i++)
-        {
-		meta temp_obja;
-			temp_obja.id=sourcedata[i].id;
-			temp_obja.parentid=sourcedata[i].parentid;
-			temp_obja.value_id=sourcedata[i].value_id;
-			temp_obja.content=sourcedata[i].content;
-			temp_obja.deleted=sourcedata[i].deleted;
-			temp_obja.deletetime=sourcedata[i].deletetime;
-
-            record.push_back(temp_obja);
-            if(sourcedata[i].children.size()>0)
-            {
-                tree_torecord(sourcedata[i].children,level+1);
-            }
-        }
-    }      
-   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="content")
+   		 if(key_name=="username")
 		{
-			return data.content;
+			return data.username;
+		}
+		 if(key_name=="addtime")
+		{
+			return data.addtime;
+		}
+		 if(key_name=="addip")
+		{
+			return data.addip;
+		}
+		 if(key_name=="addregion")
+		{
+			return data.addregion;
+		}
+		 if(key_name=="loginstate")
+		{
+			return data.loginstate;
+		}
+		 if(key_name=="agent")
+		{
+			return data.agent;
+		}
+		 if(key_name=="urlpath")
+		{
+			return data.urlpath;
 		}
 		return nullptr; 
 	}
@@ -1908,25 +1698,17 @@ if(tree_data[n].deletetime==0){
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="id")
+   		 if(key_name=="lgid")
 		{
-			return data.id;
+			return data.lgid;
 		}
-		 if(key_name=="parentid")
+		 if(key_name=="userid")
 		{
-			return data.parentid;
+			return data.userid;
 		}
-		 if(key_name=="value_id")
+		 if(key_name=="logtype")
 		{
-			return data.value_id;
-		}
-		 if(key_name=="deleted")
-		{
-			return data.deleted;
-		}
-		 if(key_name=="deletetime")
-		{
-			return data.deletetime;
+			return data.logtype;
 		}
 		return nullptr; 
 	}
@@ -1951,19 +1733,13 @@ if(tree_data[n].deletetime==0){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.id);
+ 				 a.emplace_back(iter.lgid);
 				 break;
 			case 1: 
- 				 a.emplace_back(iter.parentid);
+ 				 a.emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a.emplace_back(iter.value_id);
-				 break;
-			case 4: 
- 				 a.emplace_back(iter.deleted);
-				 break;
-			case 5: 
- 				 a.emplace_back(iter.deletetime);
+ 				 a.emplace_back(iter.logtype);
 				 break;
 
                     }
@@ -1991,26 +1767,20 @@ if(tree_data[n].deletetime==0){
                     {
 
    			case 0: 
- 				 return data.id;
+ 				 return data.lgid;
 				 break;
 			case 1: 
- 				 return data.parentid;
+ 				 return data.userid;
 				 break;
 			case 2: 
- 				 return data.value_id;
-				 break;
-			case 4: 
- 				 return data.deleted;
-				 break;
-			case 5: 
- 				 return data.deletetime;
+ 				 return data.logtype;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] testabase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] logininfo_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2019,19 +1789,13 @@ if(tree_data[n].deletetime==0){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.id;
+ 				 return iter.lgid;
 				 break;
 			case 1: 
- 				 return iter.parentid;
+ 				 return iter.userid;
 				 break;
 			case 2: 
- 				 return iter.value_id;
-				 break;
-			case 4: 
- 				 return iter.deleted;
-				 break;
-			case 5: 
- 				 return iter.deletetime;
+ 				 return iter.logtype;
 				 break;
 
 			}
@@ -2056,7 +1820,7 @@ if(tree_data[n].deletetime==0){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] testabase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] logininfo_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2080,7 +1844,25 @@ if(tree_data[n].deletetime==0){
                 {
 
    			case 3: 
- 				 return data.content;
+ 				 return data.username;
+				 break;
+			case 4: 
+ 				 return data.addtime;
+				 break;
+			case 5: 
+ 				 return data.addip;
+				 break;
+			case 6: 
+ 				 return data.addregion;
+				 break;
+			case 7: 
+ 				 return data.loginstate;
+				 break;
+			case 8: 
+ 				 return data.agent;
+				 break;
+			case 9: 
+ 				 return data.urlpath;
 				 break;
 
                 }
@@ -2088,7 +1870,7 @@ if(tree_data[n].deletetime==0){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] testabase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] logininfo_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2098,7 +1880,25 @@ if(tree_data[n].deletetime==0){
                 {
 
    			case 3: 
- 				 return iter.content;
+ 				 return iter.username;
+				 break;
+			case 4: 
+ 				 return iter.addtime;
+				 break;
+			case 5: 
+ 				 return iter.addip;
+				 break;
+			case 6: 
+ 				 return iter.addregion;
+				 break;
+			case 7: 
+ 				 return iter.loginstate;
+				 break;
+			case 8: 
+ 				 return iter.agent;
+				 break;
+			case 9: 
+ 				 return iter.urlpath;
 				 break;
 
                 }
@@ -2122,7 +1922,25 @@ if(tree_data[n].deletetime==0){
                     {
 
     			case 3: 
- 				 a.emplace_back(iter.content);
+ 				 a.emplace_back(iter.username);
+					 break;
+			case 4: 
+ 				 a.emplace_back(iter.addtime);
+					 break;
+			case 5: 
+ 				 a.emplace_back(iter.addip);
+					 break;
+			case 6: 
+ 				 a.emplace_back(iter.addregion);
+					 break;
+			case 7: 
+ 				 a.emplace_back(iter.loginstate);
+					 break;
+			case 8: 
+ 				 a.emplace_back(iter.agent);
+					 break;
+			case 9: 
+ 				 a.emplace_back(iter.urlpath);
 					 break;
 					}
 				}
@@ -2156,25 +1974,55 @@ if(tree_data[n].deletetime==0){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.id);
+ 				 a<<std::to_string(iter.lgid);
 				 break;
 			case 1: 
- 				 a<<std::to_string(iter.parentid);
+ 				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
- 				 a<<std::to_string(iter.value_id);
+ 				 a<<std::to_string(iter.logtype);
 				 break;
 			case 3: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.content); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.username); 
 				 }else{
-				 a<<iter.content;
+				 a<<iter.username;
 				 }
 				 break;
 			case 4: 
- 				 a<<std::to_string(iter.deleted);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.addtime); 
+				 }else{
+				 a<<iter.addtime;
+				 }
 				 break;
 			case 5: 
- 				 a<<std::to_string(iter.deletetime);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.addip); 
+				 }else{
+				 a<<iter.addip;
+				 }
+				 break;
+			case 6: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.addregion); 
+				 }else{
+				 a<<iter.addregion;
+				 }
+				 break;
+			case 7: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.loginstate); 
+				 }else{
+				 a<<iter.loginstate;
+				 }
+				 break;
+			case 8: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.agent); 
+				 }else{
+				 a<<iter.agent;
+				 }
+				 break;
+			case 9: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
+				 }else{
+				 a<<iter.urlpath;
+				 }
 				 break;
 
                     }
@@ -2202,12 +2050,48 @@ if(tree_data[n].deletetime==0){
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 				 } 
 			switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 
                 }
@@ -2238,7 +2122,25 @@ if(tree_data[n].deletetime==0){
                     {
  
        			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 } 
 		 switch(vpos){
@@ -2269,19 +2171,13 @@ if(tree_data[n].deletetime==0){
                 {
  
        case 0: 
- 	 ktemp=iter.id;
+ 	 ktemp=iter.lgid;
 	 break;
 case 1: 
- 	 ktemp=iter.parentid;
+ 	 ktemp=iter.userid;
 	 break;
 case 2: 
- 	 ktemp=iter.value_id;
-	 break;
-case 4: 
- 	 ktemp=iter.deleted;
-	 break;
-case 5: 
- 	 ktemp=iter.deletetime;
+ 	 ktemp=iter.logtype;
 	 break;
 	 } 
  		  switch(vpos){
@@ -2311,24 +2207,36 @@ case 5:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
  			switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 
                     }
@@ -2357,24 +2265,36 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 
                 }
@@ -2403,36 +2323,24 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 
                 }
@@ -2458,19 +2366,13 @@ case 5:
                 {
 
    			case 0: 
- 				 a.emplace(iter.id,iter);
+ 				 a.emplace(iter.lgid,iter);
 				 break;
 			case 1: 
- 				 a.emplace(iter.parentid,iter);
+ 				 a.emplace(iter.userid,iter);
 				 break;
 			case 2: 
- 				 a.emplace(iter.value_id,iter);
-				 break;
-			case 4: 
- 				 a.emplace(iter.deleted,iter);
-				 break;
-			case 5: 
- 				 a.emplace(iter.deletetime,iter);
+ 				 a.emplace(iter.logtype,iter);
 				 break;
 
                 }
@@ -2493,7 +2395,25 @@ case 5:
                 {
 
    			case 3: 
- 				 a.emplace(iter.content,iter);
+ 				 a.emplace(iter.username,iter);
+			 break;
+			case 4: 
+ 				 a.emplace(iter.addtime,iter);
+			 break;
+			case 5: 
+ 				 a.emplace(iter.addip,iter);
+			 break;
+			case 6: 
+ 				 a.emplace(iter.addregion,iter);
+			 break;
+			case 7: 
+ 				 a.emplace(iter.loginstate,iter);
+			 break;
+			case 8: 
+ 				 a.emplace(iter.agent,iter);
+			 break;
+			case 9: 
+ 				 a.emplace(iter.urlpath,iter);
 			 break;
 
                 }
@@ -2520,7 +2440,25 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 	 		 }
  			switch(vpos){
@@ -2551,19 +2489,13 @@ case 5:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 			 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 			 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-			 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-			 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 			 break;
 			  }
 			 switch(vpos){
@@ -2595,24 +2527,36 @@ case 5:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
  			switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 
                    }
@@ -2640,24 +2584,36 @@ case 5:
                     {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 
                    }
@@ -2683,36 +2639,24 @@ case 5:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 
                    }
@@ -2738,12 +2682,48 @@ case 5:
                     {
 
    case 3: 
- 	 ktemp=iter.content;
+ 	 ktemp=iter.username;
+	 break;
+case 4: 
+ 	 ktemp=iter.addtime;
+	 break;
+case 5: 
+ 	 ktemp=iter.addip;
+	 break;
+case 6: 
+ 	 ktemp=iter.addregion;
+	 break;
+case 7: 
+ 	 ktemp=iter.loginstate;
+	 break;
+case 8: 
+ 	 ktemp=iter.agent;
+	 break;
+case 9: 
+ 	 ktemp=iter.urlpath;
 	 break;
 	  }
  switch(vpos){
 case 3: 
- 	 vtemp=iter.content;
+ 	 vtemp=iter.username;
+	 break;
+case 4: 
+ 	 vtemp=iter.addtime;
+	 break;
+case 5: 
+ 	 vtemp=iter.addip;
+	 break;
+case 6: 
+ 	 vtemp=iter.addregion;
+	 break;
+case 7: 
+ 	 vtemp=iter.loginstate;
+	 break;
+case 8: 
+ 	 vtemp=iter.agent;
+	 break;
+case 9: 
+ 	 vtemp=iter.urlpath;
 	 break;
 
                    }
@@ -2767,19 +2747,13 @@ case 3:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.id,iter);
+ 	 a.emplace_back(iter.lgid,iter);
 	 break;
 case 1: 
- 	 a.emplace_back(iter.parentid,iter);
+ 	 a.emplace_back(iter.userid,iter);
 	 break;
 case 2: 
- 	 a.emplace_back(iter.value_id,iter);
-	 break;
-case 4: 
- 	 a.emplace_back(iter.deleted,iter);
-	 break;
-case 5: 
- 	 a.emplace_back(iter.deletetime,iter);
+ 	 a.emplace_back(iter.logtype,iter);
 	 break;
 
                 }
@@ -2800,7 +2774,25 @@ case 5:
                 {
 
    case 3: 
- 	 a.emplace_back(iter.content,iter);
+ 	 a.emplace_back(iter.username,iter);
+	 break;
+case 4: 
+ 	 a.emplace_back(iter.addtime,iter);
+	 break;
+case 5: 
+ 	 a.emplace_back(iter.addip,iter);
+	 break;
+case 6: 
+ 	 a.emplace_back(iter.addregion,iter);
+	 break;
+case 7: 
+ 	 a.emplace_back(iter.loginstate,iter);
+	 break;
+case 8: 
+ 	 a.emplace_back(iter.agent,iter);
+	 break;
+case 9: 
+ 	 a.emplace_back(iter.urlpath,iter);
 	 break;
 
                 }
@@ -2826,37 +2818,25 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 			  }
 
@@ -2888,55 +2868,37 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.id);
+ 				 a[ktemp][vtemp].emplace_back(iter.lgid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.value_id);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.deleted);
-				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.deletetime);
+ 				 a[ktemp][vtemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -2964,43 +2926,49 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.content);
+ 				 a[ktemp][vtemp].emplace_back(iter.username);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addip);
+				 break;
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addregion);
+				 break;
+			case 7: 
+ 				 a[ktemp][vtemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -3029,25 +2997,37 @@ case 5:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			  }
 
@@ -3079,43 +3059,49 @@ case 5:
             {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.id);
+ 				 a[ktemp][vtemp].emplace_back(iter.lgid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.value_id);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.deleted);
-				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.deletetime);
+ 				 a[ktemp][vtemp].emplace_back(iter.logtype);
 				 break;
 
             }
@@ -3142,31 +3128,61 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.content);
+ 				 a[ktemp][vtemp].emplace_back(iter.username);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addip);
+				 break;
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addregion);
+				 break;
+			case 7: 
+ 				 a[ktemp][vtemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -3193,25 +3209,37 @@ case 5:
                     {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 			  }
 
@@ -3244,43 +3272,49 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.id);
+ 				 a[ktemp][vtemp].emplace_back(iter.lgid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.value_id);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.deleted);
-				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.deletetime);
+ 				 a[ktemp][vtemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -3310,31 +3344,61 @@ case 5:
             {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.lgid;
 				 break;
 			case 1: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.value_id;
-				 break;
-			case 4: 
- 				 vtemp=iter.deleted;
-				 break;
-			case 5: 
- 				 vtemp=iter.deletetime;
+ 				 vtemp=iter.logtype;
 				 break;
 			 }
 
 			switch(dpos){
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.content);
+ 				 a[ktemp][vtemp].emplace_back(iter.username);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addip);
+				 break;
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addregion);
+				 break;
+			case 7: 
+ 				 a[ktemp][vtemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
 
             }
@@ -3362,13 +3426,49 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			  }
 
@@ -3400,31 +3500,61 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.id);
+ 				 a[ktemp][vtemp].emplace_back(iter.lgid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.value_id);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.deleted);
-				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.deletetime);
+ 				 a[ktemp][vtemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -3452,19 +3582,73 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 3: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.username;
+				 break;
+			case 4: 
+ 				 vtemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 vtemp=iter.addip;
+				 break;
+			case 6: 
+ 				 vtemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 vtemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 vtemp=iter.agent;
+				 break;
+			case 9: 
+ 				 vtemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.content);
+ 				 a[ktemp][vtemp].emplace_back(iter.username);
+				 break;
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addtime);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addip);
+				 break;
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.addregion);
+				 break;
+			case 7: 
+ 				 a[ktemp][vtemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -3491,13 +3675,49 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 3: 
- 				 a[ktemp].emplace_back(iter.content);
+ 				 a[ktemp].emplace_back(iter.username);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.addtime);
+				 break;
+			case 5: 
+ 				 a[ktemp].emplace_back(iter.addip);
+				 break;
+			case 6: 
+ 				 a[ktemp].emplace_back(iter.addregion);
+				 break;
+			case 7: 
+ 				 a[ktemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -3523,7 +3743,25 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
@@ -3554,25 +3792,37 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.id);
+ 				 a[ktemp].emplace_back(iter.lgid);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.parentid);
+ 				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.value_id);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.deleted);
-				 break;
-			case 5: 
- 				 a[ktemp].emplace_back(iter.deletetime);
+ 				 a[ktemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -3599,25 +3849,37 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 3: 
- 				 a[ktemp].emplace_back(iter.content);
+ 				 a[ktemp].emplace_back(iter.username);
+				 break;
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.addtime);
+				 break;
+			case 5: 
+ 				 a[ktemp].emplace_back(iter.addip);
+				 break;
+			case 6: 
+ 				 a[ktemp].emplace_back(iter.addregion);
+				 break;
+			case 7: 
+ 				 a[ktemp].emplace_back(iter.loginstate);
+				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.agent);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.urlpath);
 				 break;
 
                 }
@@ -3645,19 +3907,13 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
 
@@ -3687,37 +3943,25 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.id);
+ 				 a[ktemp].emplace_back(iter.lgid);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.parentid);
+ 				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.value_id);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.deleted);
-				 break;
-			case 5: 
- 				 a[ktemp].emplace_back(iter.deletetime);
+ 				 a[ktemp].emplace_back(iter.logtype);
 				 break;
 
                 }
@@ -3740,19 +3984,13 @@ case 5:
                 {
 
    			case 0: 
- 				 a[iter.id].emplace_back(iter);
+ 				 a[iter.lgid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[iter.parentid].emplace_back(iter);
+ 				 a[iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[iter.value_id].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[iter.deleted].emplace_back(iter);
-				 break;
-			case 5: 
- 				 a[iter.deletetime].emplace_back(iter);
+ 				 a[iter.logtype].emplace_back(iter);
 				 break;
 
                 }
@@ -3776,7 +4014,25 @@ case 5:
                 {
 
    			case 3: 
- 				 a[iter.content].emplace_back(iter);
+ 				 a[iter.username].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[iter.addtime].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[iter.addip].emplace_back(iter);
+				 break;
+			case 6: 
+ 				 a[iter.addregion].emplace_back(iter);
+				 break;
+			case 7: 
+ 				 a[iter.loginstate].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[iter.agent].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[iter.urlpath].emplace_back(iter);
 				 break;
 
                 }
@@ -3802,13 +4058,49 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 3: 
- 				 a[ktemp][iter.content].emplace_back(iter);
+ 				 a[ktemp][iter.username].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.addtime].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[ktemp][iter.addip].emplace_back(iter);
+				 break;
+			case 6: 
+ 				 a[ktemp][iter.addregion].emplace_back(iter);
+				 break;
+			case 7: 
+ 				 a[ktemp][iter.loginstate].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[ktemp][iter.agent].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.urlpath].emplace_back(iter);
 				 break;
 
                 }
@@ -3834,25 +4126,37 @@ case 5:
                 {
 
    			case 3: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.username;
+				 break;
+			case 4: 
+ 				 ktemp=iter.addtime;
+				 break;
+			case 5: 
+ 				 ktemp=iter.addip;
+				 break;
+			case 6: 
+ 				 ktemp=iter.addregion;
+				 break;
+			case 7: 
+ 				 ktemp=iter.loginstate;
+				 break;
+			case 8: 
+ 				 ktemp=iter.agent;
+				 break;
+			case 9: 
+ 				 ktemp=iter.urlpath;
 				 break;
 	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.id].emplace_back(iter);
+ 				 a[ktemp][iter.lgid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.parentid].emplace_back(iter);
+ 				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.value_id].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.deleted].emplace_back(iter);
-				 break;
-			case 5: 
- 				 a[ktemp][iter.deletetime].emplace_back(iter);
+ 				 a[ktemp][iter.logtype].emplace_back(iter);
 				 break;
 
                 }
@@ -3879,37 +4183,25 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.id].emplace_back(iter);
+ 				 a[ktemp][iter.lgid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.parentid].emplace_back(iter);
+ 				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.value_id].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.deleted].emplace_back(iter);
-				 break;
-			case 5: 
- 				 a[ktemp][iter.deletetime].emplace_back(iter);
+ 				 a[ktemp][iter.logtype].emplace_back(iter);
 				 break;
 
                 }
@@ -3936,25 +4228,37 @@ case 5:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.lgid;
 				 break;
 			case 1: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.value_id;
-				 break;
-			case 4: 
- 				 ktemp=iter.deleted;
-				 break;
-			case 5: 
- 				 ktemp=iter.deletetime;
+ 				 ktemp=iter.logtype;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 3: 
- 				 a[ktemp][iter.content].emplace_back(iter);
+ 				 a[ktemp][iter.username].emplace_back(iter);
+				 break;
+			case 4: 
+ 				 a[ktemp][iter.addtime].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[ktemp][iter.addip].emplace_back(iter);
+				 break;
+			case 6: 
+ 				 a[ktemp][iter.addregion].emplace_back(iter);
+				 break;
+			case 7: 
+ 				 a[ktemp][iter.loginstate].emplace_back(iter);
+				 break;
+			case 8: 
+ 				 a[ktemp][iter.agent].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.urlpath].emplace_back(iter);
 				 break;
 
                 }

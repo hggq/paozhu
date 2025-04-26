@@ -1,6 +1,6 @@
 
 #include "xtask_mysql.h"
-#include "cms/include/xtaskbase.h"
+#include "cms/include/xtask_base.h"
 #include "cms/include/Xtask.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

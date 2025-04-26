@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_CATALOGUEBASEMATA_H
-#define ORM_CMS_CATALOGUEBASEMATA_H
+#ifndef ORM_CMS_BLOGCATALOGBASEMATA_H
+#define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:49 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,44 +20,28 @@ namespace orm {
    
      namespace cms { 
 
-struct cataloguebase
+struct blogcatalog_base
 {
     struct meta{
-     unsigned  int  cid = 0; ///**/
+     unsigned  int  bid = 0; ///**/
  unsigned  int  userid = 0; ///**/
- unsigned  int  level = 0; ///*深度*/
- unsigned  int  parentid = 0; ///*父id[cid tree]*/
- std::string  name = ""; ///*分类名称*/
- char  isview = 0; ///*是否显示*/
- int  sortid = 0; ///*排序*/
- std::string  imgurl = ""; ///*图片*/
+ unsigned  int  dateid = 0; ///*月份聚合*/
+ unsigned  int  articlenum = 0; ///*月份文章数量聚合*/
+ unsigned  int  languageid = 0; ///*语言版本*/
  } data;
-  
-        struct meta_tree{
-         unsigned  int  cid = 0; ///**/
- unsigned  int  userid = 0; ///**/
- unsigned  int  level = 0; ///*深度*/
- unsigned  int  parentid = 0; ///*父id[cid tree]*/
- std::string  name = ""; ///*分类名称*/
- char  isview = 0; ///*是否显示*/
- int  sortid = 0; ///*排序*/
- std::string  imgurl = ""; ///*图片*/
-
-	std::vector<meta_tree> children;
- };
- std::vector<cataloguebase::meta> record;
+ std::vector<blogcatalog_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<cataloguebase::meta>::iterator begin(){     return record.begin(); }
-std::vector<cataloguebase::meta>::iterator end(){     return record.end(); }
-std::vector<cataloguebase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<cataloguebase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,8> col_names={"cid","userid","level","parentid","name","isview","sortid","imgurl"};
-static constexpr std::array<unsigned char,8> col_types={3,3,3,3,253,1,3,253};
-static constexpr std::array<unsigned char,8> col_length={0,0,0,0,64,0,0,254};
-static constexpr std::array<unsigned char,8> col_decimals={0,0,0,0,0,0,0,0};
-std::string tablename="catalogue";
-static constexpr std::string_view modelname="Catalogue";
+std::vector<blogcatalog_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<blogcatalog_base::meta>::iterator end(){     return record.end(); }
+std::vector<blogcatalog_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<blogcatalog_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,5> col_names={"bid","userid","dateid","articlenum","languageid"};
+static constexpr std::array<unsigned char,5> col_types={3,3,3,3,3};
+static constexpr std::array<unsigned char,5> col_length={0,0,0,0,0};
+static constexpr std::array<unsigned char,5> col_decimals={0,0,0,0,0};
+std::string tablename="blogcatalog";
+static constexpr std::string_view modelname="Blogcatalog";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -65,7 +49,7 @@ static constexpr std::string_view modelname="Catalogue";
                 return 255;
             }
 		    unsigned char  bi=coln[0];
-         char colpospppc;
+         
 
 	         if(bi<91&&bi>64){
 				bi+=32;
@@ -73,30 +57,17 @@ static constexpr std::string_view modelname="Catalogue";
             switch(coln[0]){
 
 
-         case 'c':
-   	 return 0;
-break;
-case 'i':
- switch(coln.size()){  
-case 6:
-  colpospppc=coln.back();
-    if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='l'){ return 7; }
- if(colpospppc=='w'){ return 5; }
-   	 break;
- }
- break;
-case 'l':
-   	 return 2;
-break;
-case 'n':
-   	 return 4;
-break;
-case 'p':
+         case 'a':
    	 return 3;
 break;
-case 's':
-   	 return 6;
+case 'b':
+   	 return 0;
+break;
+case 'd':
+   	 return 2;
+break;
+case 'l':
+   	 return 4;
 break;
 case 'u':
    	 return 1;
@@ -109,7 +80,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "cid";
+       return "bid";
 }
 
       void record_reset()
@@ -117,7 +88,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     cataloguebase::meta metatemp;    
+     blogcatalog_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -180,38 +151,31 @@ break;
         }
         tempsql<<") VALUES (";
 
-        if(data.cid==0){
+        if(data.bid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.cid);
+	tempsql<<std::to_string(data.bid);
 }
 if(data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.userid);
 }
-if(data.level==0){
+if(data.dateid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.level);
+	tempsql<<","<<std::to_string(data.dateid);
 }
-if(data.parentid==0){
+if(data.articlenum==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.parentid);
+	tempsql<<","<<std::to_string(data.articlenum);
 }
-tempsql<<",'"<<stringaddslash(data.name)<<"'";
-if(data.isview==0){
+if(data.languageid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.isview);
+	tempsql<<","<<std::to_string(data.languageid);
 }
-if(data.sortid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.sortid);
-}
-tempsql<<",'"<<stringaddslash(data.imgurl)<<"'";
 tempsql<<")";
 
      
@@ -237,38 +201,31 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.cid==0){
+        if(insert_data.bid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.cid);
+	tempsql<<std::to_string(insert_data.bid);
 }
 if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.userid);
 }
-if(insert_data.level==0){
+if(insert_data.dateid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.level);
+	tempsql<<","<<std::to_string(insert_data.dateid);
 }
-if(insert_data.parentid==0){
+if(insert_data.articlenum==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.parentid);
+	tempsql<<","<<std::to_string(insert_data.articlenum);
 }
-tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
-if(insert_data.isview==0){
+if(insert_data.languageid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.isview);
+	tempsql<<","<<std::to_string(insert_data.languageid);
 }
-if(insert_data.sortid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.sortid);
-}
-tempsql<<",'"<<stringaddslash(insert_data.imgurl)<<"'";
 tempsql<<")";
 
      
@@ -303,38 +260,31 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].cid==0){
+            	if(insert_data[i].bid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].cid);
+	tempsql<<std::to_string(insert_data[i].bid);
 	}
 	if(insert_data[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
-	if(insert_data[i].level==0){
+	if(insert_data[i].dateid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].level);
+	tempsql<<","<<std::to_string(insert_data[i].dateid);
 	}
-	if(insert_data[i].parentid==0){
+	if(insert_data[i].articlenum==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].parentid);
+	tempsql<<","<<std::to_string(insert_data[i].articlenum);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
-	if(insert_data[i].isview==0){
+	if(insert_data[i].languageid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].isview);
+	tempsql<<","<<std::to_string(insert_data[i].languageid);
 	}
-	if(insert_data[i].sortid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].sortid);
-	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].imgurl)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -354,38 +304,31 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.cid==0){
-	tempsql<<"`cid`=0";
+        if(data.bid==0){
+	tempsql<<"`bid`=0";
  }else{ 
-	tempsql<<"`cid`="<<std::to_string(data.cid);
+	tempsql<<"`bid`="<<std::to_string(data.bid);
 }
 if(data.userid==0){
 	tempsql<<",`userid`=0";
  }else{ 
 	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
-if(data.level==0){
-	tempsql<<",`level`=0";
+if(data.dateid==0){
+	tempsql<<",`dateid`=0";
  }else{ 
-	tempsql<<",`level`="<<std::to_string(data.level);
+	tempsql<<",`dateid`="<<std::to_string(data.dateid);
 }
-if(data.parentid==0){
-	tempsql<<",`parentid`=0";
+if(data.articlenum==0){
+	tempsql<<",`articlenum`=0";
  }else{ 
-	tempsql<<",`parentid`="<<std::to_string(data.parentid);
+	tempsql<<",`articlenum`="<<std::to_string(data.articlenum);
 }
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
-if(data.isview==0){
-	tempsql<<",`isview`=0";
+if(data.languageid==0){
+	tempsql<<",`languageid`=0";
  }else{ 
-	tempsql<<",`isview`="<<std::to_string(data.isview);
+	tempsql<<",`languageid`="<<std::to_string(data.languageid);
 }
-if(data.sortid==0){
-	tempsql<<",`sortid`=0";
- }else{ 
-	tempsql<<",`sortid`="<<std::to_string(data.sortid);
-}
-tempsql<<",`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
  }else{ 
 
      
@@ -432,10 +375,10 @@ tempsql<<",`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.cid==0){
-	tempsql<<"`cid`=0";
+if(data.bid==0){
+	tempsql<<"`bid`=0";
  }else{ 
-	tempsql<<"`cid`="<<std::to_string(data.cid);
+	tempsql<<"`bid`="<<std::to_string(data.bid);
 }
  break;
  case 1:
@@ -448,43 +391,27 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.level==0){
-	tempsql<<"`level`=0";
+if(data.dateid==0){
+	tempsql<<"`dateid`=0";
  }else{ 
-	tempsql<<"`level`="<<std::to_string(data.level);
+	tempsql<<"`dateid`="<<std::to_string(data.dateid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(data.parentid==0){
-	tempsql<<"`parentid`=0";
+if(data.articlenum==0){
+	tempsql<<"`articlenum`=0";
  }else{ 
-	tempsql<<"`parentid`="<<std::to_string(data.parentid);
+	tempsql<<"`articlenum`="<<std::to_string(data.articlenum);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-if(data.isview==0){
-	tempsql<<"`isview`=0";
+if(data.languageid==0){
+	tempsql<<"`languageid`=0";
  }else{ 
-	tempsql<<"`isview`="<<std::to_string(data.isview);
+	tempsql<<"`languageid`="<<std::to_string(data.languageid);
 }
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-if(data.sortid==0){
-	tempsql<<"`sortid`=0";
- }else{ 
-	tempsql<<"`sortid`="<<std::to_string(data.sortid);
-}
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
  break;
 
      
@@ -530,38 +457,31 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].cid==0){
+            	if(record[i].bid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].cid);
+	tempsql<<std::to_string(record[i].bid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].level==0){
+	if(record[i].dateid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].level);
+	tempsql<<","<<std::to_string(record[i].dateid);
 	}
-	if(record[i].parentid==0){
+	if(record[i].articlenum==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].parentid);
+	tempsql<<","<<std::to_string(record[i].articlenum);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	if(record[i].isview==0){
+	if(record[i].languageid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].isview);
+	tempsql<<","<<std::to_string(record[i].languageid);
 	}
-	if(record[i].sortid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].sortid);
-	}
-	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
 	tempsql<<")";
 
  }
@@ -600,38 +520,31 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].cid==0){
+            	if(record[i].bid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].cid);
+	tempsql<<std::to_string(record[i].bid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].level==0){
+	if(record[i].dateid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].level);
+	tempsql<<","<<std::to_string(record[i].dateid);
 	}
-	if(record[i].parentid==0){
+	if(record[i].articlenum==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].parentid);
+	tempsql<<","<<std::to_string(record[i].articlenum);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	if(record[i].isview==0){
+	if(record[i].languageid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].isview);
+	tempsql<<","<<std::to_string(record[i].languageid);
 	}
-	if(record[i].sortid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].sortid);
-	}
-	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -712,10 +625,10 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.cid==0){
+if(data.bid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.cid));
+	temparray.push_back(std::to_string(data.bid));
 }
  break;
  case 1:
@@ -726,38 +639,25 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.level==0){
+if(data.dateid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.level));
+	temparray.push_back(std::to_string(data.dateid));
 }
  break;
  case 3:
-if(data.parentid==0){
+if(data.articlenum==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.parentid));
+	temparray.push_back(std::to_string(data.articlenum));
 }
  break;
  case 4:
-	temparray.push_back(data.name);
- break;
- case 5:
-if(data.isview==0){
+if(data.languageid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.isview));
+	temparray.push_back(std::to_string(data.languageid));
 }
- break;
- case 6:
-if(data.sortid==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.sortid));
-}
- break;
- case 7:
-	temparray.push_back(data.imgurl);
  break;
 
                              default:
@@ -800,10 +700,10 @@ if(data.sortid==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.cid==0){
-	tempsql.insert({"cid","0"});
+if(data.bid==0){
+	tempsql.insert({"bid","0"});
  }else{ 
-	tempsql.insert({"cid",std::to_string(data.cid)});
+	tempsql.insert({"bid",std::to_string(data.bid)});
 }
  break;
  case 1:
@@ -814,38 +714,25 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.level==0){
-	tempsql.insert({"level","0"});
+if(data.dateid==0){
+	tempsql.insert({"dateid","0"});
  }else{ 
-	tempsql.insert({"level",std::to_string(data.level)});
+	tempsql.insert({"dateid",std::to_string(data.dateid)});
 }
  break;
  case 3:
-if(data.parentid==0){
-	tempsql.insert({"parentid","0"});
+if(data.articlenum==0){
+	tempsql.insert({"articlenum","0"});
  }else{ 
-	tempsql.insert({"parentid",std::to_string(data.parentid)});
+	tempsql.insert({"articlenum",std::to_string(data.articlenum)});
 }
  break;
  case 4:
-	tempsql.insert({"name",data.name});
- break;
- case 5:
-if(data.isview==0){
-	tempsql.insert({"isview","0"});
+if(data.languageid==0){
+	tempsql.insert({"languageid","0"});
  }else{ 
-	tempsql.insert({"isview",std::to_string(data.isview)});
+	tempsql.insert({"languageid",std::to_string(data.languageid)});
 }
- break;
- case 6:
-if(data.sortid==0){
-	tempsql.insert({"sortid","0"});
- }else{ 
-	tempsql.insert({"sortid",std::to_string(data.sortid)});
-}
- break;
- case 7:
-	tempsql.insert({"imgurl",data.imgurl});
  break;
 
                              default:
@@ -860,40 +747,31 @@ if(data.sortid==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.cid==0){
-	tempsql<<"\"cid\":0";
+if(data.bid==0){
+	tempsql<<"\"bid\":0";
  }else{ 
-	tempsql<<"\"cid\":"<<std::to_string(data.cid);
+	tempsql<<"\"bid\":"<<std::to_string(data.bid);
 }
 if(data.userid==0){
 	tempsql<<",\"userid\":0";
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
-if(data.level==0){
-	tempsql<<",\"level\":0";
+if(data.dateid==0){
+	tempsql<<",\"dateid\":0";
  }else{ 
-	tempsql<<",\"level\":"<<std::to_string(data.level);
+	tempsql<<",\"dateid\":"<<std::to_string(data.dateid);
 }
-if(data.parentid==0){
-	tempsql<<",\"parentid\":0";
+if(data.articlenum==0){
+	tempsql<<",\"articlenum\":0";
  }else{ 
-	tempsql<<",\"parentid\":"<<std::to_string(data.parentid);
+	tempsql<<",\"articlenum\":"<<std::to_string(data.articlenum);
 }
-tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
-tempsql<<"\"";
-if(data.isview==0){
-	tempsql<<",\"isview\":0";
+if(data.languageid==0){
+	tempsql<<",\"languageid\":0";
  }else{ 
-	tempsql<<",\"isview\":"<<std::to_string(data.isview);
+	tempsql<<",\"languageid\":"<<std::to_string(data.languageid);
 }
-if(data.sortid==0){
-	tempsql<<",\"sortid\":0";
- }else{ 
-	tempsql<<",\"sortid\":"<<std::to_string(data.sortid);
-}
-tempsql<<",\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl);
-tempsql<<"\"";
 tempsql<<"}";
 
      
@@ -933,10 +811,10 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.cid==0){
-	tempsql<<"\"cid\":0";
+if(data.bid==0){
+	tempsql<<"\"bid\":0";
  }else{ 
-	tempsql<<"\"cid\":"<<std::to_string(data.cid);
+	tempsql<<"\"bid\":"<<std::to_string(data.bid);
 }
  break;
  case 1:
@@ -949,43 +827,27 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.level==0){
-	tempsql<<"\"level\":0";
+if(data.dateid==0){
+	tempsql<<"\"dateid\":0";
  }else{ 
-	tempsql<<"\"level\":"<<std::to_string(data.level);
+	tempsql<<"\"dateid\":"<<std::to_string(data.dateid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(data.parentid==0){
-	tempsql<<"\"parentid\":0";
+if(data.articlenum==0){
+	tempsql<<"\"articlenum\":0";
  }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(data.parentid);
+	tempsql<<"\"articlenum\":"<<std::to_string(data.articlenum);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-if(data.isview==0){
-	tempsql<<"\"isview\":0";
+if(data.languageid==0){
+	tempsql<<"\"languageid\":0";
  }else{ 
-	tempsql<<"\"isview\":"<<std::to_string(data.isview);
+	tempsql<<"\"languageid\":"<<std::to_string(data.languageid);
 }
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-if(data.sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(data.sortid);
-}
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
  break;
 
                              default:
@@ -999,7 +861,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        cataloguebase::meta metatemp; 
+        blogcatalog_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1236,9 +1098,9 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
         {
     		case 0:
 		 try{
-			data.cid=std::stoul(set_value_name);
+			data.bid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.cid=0;
+			data.bid=0;
 			 }
 			break;
 		case 1:
@@ -1250,44 +1112,23 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.level=std::stoul(set_value_name);
+			data.dateid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.level=0;
+			data.dateid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.parentid=std::stoul(set_value_name);
+			data.articlenum=std::stoul(set_value_name);
 		}catch (...) { 
-			data.parentid=0;
+			data.articlenum=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.name.append(set_value_name);
+			data.languageid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.isview=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isview=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.sortid=std::stoi(set_value_name);
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.imgurl.append(set_value_name);
-		}catch (...) { 
-			data.imgurl.clear();
+			data.languageid=0;
 			 }
 			break;
 	default:
@@ -1304,9 +1145,9 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
         {
     		case 0:
 		 try{
-			data.cid=set_value_name;
+			data.bid=set_value_name;
 		}catch (...) { 
-			data.cid=0;
+			data.bid=0;
 			 }
 			break;
 		case 1:
@@ -1318,44 +1159,23 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.level=set_value_name;
+			data.dateid=set_value_name;
 		}catch (...) { 
-			data.level=0;
+			data.dateid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.parentid=set_value_name;
+			data.articlenum=set_value_name;
 		}catch (...) { 
-			data.parentid=0;
+			data.articlenum=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.languageid=set_value_name;
 		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.isview=set_value_name;
-		}catch (...) { 
-			data.isview=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.sortid=set_value_name;
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.imgurl=std::to_string(set_value_name);
-		}catch (...) { 
-			data.imgurl.clear();
+			data.languageid=0;
 			 }
 			break;
 	default:
@@ -1372,9 +1192,9 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
         {
     		case 0:
 		 try{
-			data.cid=(unsigned int)set_value_name;
+			data.bid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.cid=0;
+			data.bid=0;
 			 }
 			break;
 		case 1:
@@ -1386,44 +1206,23 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.level=(unsigned int)set_value_name;
+			data.dateid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.level=0;
+			data.dateid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.parentid=(unsigned int)set_value_name;
+			data.articlenum=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.parentid=0;
+			data.articlenum=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.languageid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.isview=(int)set_value_name;
-		}catch (...) { 
-			data.isview=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.sortid=(int)set_value_name;
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.imgurl=std::to_string(set_value_name);
-		}catch (...) { 
-			data.imgurl.clear();
+			data.languageid=0;
 			 }
 			break;
 	default:
@@ -1474,10 +1273,10 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].cid==0){
-	tempsql<<"\"cid\":0";
+if(record[n].bid==0){
+	tempsql<<"\"bid\":0";
  }else{ 
-	tempsql<<"\"cid\":"<<std::to_string(record[n].cid);
+	tempsql<<"\"bid\":"<<std::to_string(record[n].bid);
 }
  break;
  case 1:
@@ -1490,43 +1289,27 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].level==0){
-	tempsql<<"\"level\":0";
+if(record[n].dateid==0){
+	tempsql<<"\"dateid\":0";
  }else{ 
-	tempsql<<"\"level\":"<<std::to_string(record[n].level);
+	tempsql<<"\"dateid\":"<<std::to_string(record[n].dateid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(record[n].parentid==0){
-	tempsql<<"\"parentid\":0";
+if(record[n].articlenum==0){
+	tempsql<<"\"articlenum\":0";
  }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
+	tempsql<<"\"articlenum\":"<<std::to_string(record[n].articlenum);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-if(record[n].isview==0){
-	tempsql<<"\"isview\":0";
+if(record[n].languageid==0){
+	tempsql<<"\"languageid\":0";
  }else{ 
-	tempsql<<"\"isview\":"<<std::to_string(record[n].isview);
+	tempsql<<"\"languageid\":"<<std::to_string(record[n].languageid);
 }
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-if(record[n].sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
-}
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
  break;
 
                              default:
@@ -1586,10 +1369,10 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].cid==0){
-	tempsql<<"\"cid\":0";
+if(record[n].bid==0){
+	tempsql<<"\"bid\":0";
  }else{ 
-	tempsql<<"\"cid\":"<<std::to_string(record[n].cid);
+	tempsql<<"\"bid\":"<<std::to_string(record[n].bid);
 }
  break;
  case 1:
@@ -1602,43 +1385,27 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].level==0){
-	tempsql<<"\"level\":0";
+if(record[n].dateid==0){
+	tempsql<<"\"dateid\":0";
  }else{ 
-	tempsql<<"\"level\":"<<std::to_string(record[n].level);
+	tempsql<<"\"dateid\":"<<std::to_string(record[n].dateid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(record[n].parentid==0){
-	tempsql<<"\"parentid\":0";
+if(record[n].articlenum==0){
+	tempsql<<"\"articlenum\":0";
  }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
+	tempsql<<"\"articlenum\":"<<std::to_string(record[n].articlenum);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-if(record[n].isview==0){
-	tempsql<<"\"isview\":0";
+if(record[n].languageid==0){
+	tempsql<<"\"languageid\":0";
  }else{ 
-	tempsql<<"\"isview\":"<<std::to_string(record[n].isview);
+	tempsql<<"\"languageid\":"<<std::to_string(record[n].languageid);
 }
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-if(record[n].sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
-}
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
  break;
 
                              default:
@@ -1650,462 +1417,64 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.cid; } 
- void setPK(long long val){  data.cid=val;} 
- unsigned  int  getCid(){  return data.cid; } 
- void setCid( unsigned  int  val){  data.cid=val;} 
+   long long getPK(){  return data.bid; } 
+ void setPK(long long val){  data.bid=val;} 
+ unsigned  int  getBid(){  return data.bid; } 
+ void setBid( unsigned  int  val){  data.bid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
  void setUserid( unsigned  int  val){  data.userid=val;} 
 
- unsigned  int  getLevel(){  return data.level; } 
- void setLevel( unsigned  int  val){  data.level=val;} 
+ unsigned  int  getDateid(){  return data.dateid; } 
+ void setDateid( unsigned  int  val){  data.dateid=val;} 
 
- unsigned  int  getParentid(){  return data.parentid; } 
- void setParentid( unsigned  int  val){  data.parentid=val;} 
+ unsigned  int  getArticlenum(){  return data.articlenum; } 
+ void setArticlenum( unsigned  int  val){  data.articlenum=val;} 
 
- std::string  getName(){  return data.name; } 
- std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ unsigned  int  getLanguageid(){  return data.languageid; } 
+ void setLanguageid( unsigned  int  val){  data.languageid=val;} 
 
- char  getIsview(){  return data.isview; } 
- void setIsview( char  val){  data.isview=val;} 
-
- int  getSortid(){  return data.sortid; } 
- void setSortid( int  val){  data.sortid=val;} 
-
- std::string  getImgurl(){  return data.imgurl; } 
- std::string & getRefImgurl(){  return std::ref(data.imgurl); } 
- void setImgurl( std::string  &val){  data.imgurl=val;} 
- void setImgurl(std::string_view val){  data.imgurl=val;} 
-
-cataloguebase::meta getnewData(){
+blogcatalog_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-cataloguebase::meta getData(){
+blogcatalog_base::meta getData(){
  	 return data; 
 } 
-std::vector<cataloguebase::meta> getRecord(){
+std::vector<blogcatalog_base::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
-       std::ostringstream tempsql;
-        std::string keyname;
-        unsigned char jj=0;
-        std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
-                    keyname.clear();
-                    continue;   
-                }
-                if(fileld[jj]==0x20){
-
-                    continue;   
-                }
-                keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
-            }
-        }else{
-            for(jj=0;jj<col_names.size();jj++){
-                keypos.emplace_back(jj); 
-            }
-        }
-        tempsql<<"[";
-        for(size_t n=0;n<tree_data.size();n++){
-            if(n>0){
-                tempsql<<",{";
-            }else{
-                tempsql<<"{";
-            }  
-        
-        for(jj=0;jj<keypos.size();jj++){
-            switch(keypos[jj]){
-         case 0:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].cid==0){
-	tempsql<<"\"cid\":0";
- }else{ 
-	tempsql<<"\"cid\":"<<std::to_string(tree_data[n].cid);
-}
- break;
- case 1:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].userid==0){
-	tempsql<<"\"userid\":0";
- }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].level==0){
-	tempsql<<"\"level\":0";
- }else{ 
-	tempsql<<"\"level\":"<<std::to_string(tree_data[n].level);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].isview==0){
-	tempsql<<"\"isview\":0";
- }else{ 
-	tempsql<<"\"isview\":"<<std::to_string(tree_data[n].isview);
-}
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
-}
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
- break;
-
-                             default:
-                                ;
-                     }
-                 }
-
-        tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children, fileld);     
-      tempsql<<"}";  
-            }
-      tempsql<<"]";
-     return tempsql.str();             
-   }   
-   
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
-       std::ostringstream tempsql;
-        std::string keyname;
-        unsigned char jj=0;
-        std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
-                    keyname.clear();
-                    continue;   
-                }
-                if(fileld[jj]==0x20){
-
-                    continue;   
-                }
-                keyname.push_back(fileld[jj]);
-
-            }  
-            if(keyname.size()>0){
-                            keypos.emplace_back(findcolpos(keyname)); 
-                            keyname.clear();
-            }
-        }else{
-            for(jj=0;jj<col_names.size();jj++){
-                keypos.emplace_back(jj); 
-            }
-        }
-    tempsql<<"[";
-    for(size_t n=0;n<tree_data.size();n++){
-        keyname.clear();
-        if(func(keyname,tree_data[n])){ 
-                if(n>0){
-                    tempsql<<",{";
-                }else{
-                    tempsql<<"{";
-                } 
-                tempsql<<keyname;
-        }else{
-        continue;
-        } 
-        
-        for(jj=0;jj<keypos.size();jj++){
-            
-            switch(keypos[jj]){
-         case 0:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].cid==0){
-	tempsql<<"\"cid\":0";
- }else{ 
-	tempsql<<"\"cid\":"<<std::to_string(tree_data[n].cid);
-}
- break;
- case 1:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].userid==0){
-	tempsql<<"\"userid\":0";
- }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].level==0){
-	tempsql<<"\"level\":0";
- }else{ 
-	tempsql<<"\"level\":"<<std::to_string(tree_data[n].level);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].parentid==0){
-	tempsql<<"\"parentid\":0";
- }else{ 
-	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].isview==0){
-	tempsql<<"\"isview\":0";
- }else{ 
-	tempsql<<"\"isview\":"<<std::to_string(tree_data[n].isview);
-}
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-if(tree_data[n].sortid==0){
-	tempsql<<"\"sortid\":0";
- }else{ 
-	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
-}
- break;
- case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
- break;
-
-                             default:
-                                ;
-                     }
-                 }   
-         tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
-      tempsql<<"}";  
-            }
-      tempsql<<"]";
-     return tempsql.str();             
-   }   
-   
-    meta_tree treedata_from_record(unsigned int i=0)
-    {
-        meta_tree temp_obja;
-        if(i>=record.size())
-        {
-           return  temp_obja;   
-        }
-        	temp_obja.cid=record[i].cid;
-	temp_obja.userid=record[i].userid;
-	temp_obja.level=record[i].level;
-	temp_obja.parentid=record[i].parentid;
-	temp_obja.name=record[i].name;
-	temp_obja.isview=record[i].isview;
-	temp_obja.sortid=record[i].sortid;
-	temp_obja.imgurl=record[i].imgurl;
-
-        return  temp_obja;   
-    }
-    meta_tree treedata_from_data()
-    {
-        meta_tree temp_obja;
-
-        	temp_obja.cid=data.cid;
-	temp_obja.userid=data.userid;
-	temp_obja.level=data.level;
-	temp_obja.parentid=data.parentid;
-	temp_obja.name=data.name;
-	temp_obja.isview=data.isview;
-	temp_obja.sortid=data.sortid;
-	temp_obja.imgurl=data.imgurl;
-
-        return  temp_obja;   
-    }      
-    meta_tree treedata_from_data(const meta &tempdata)
-    {
-        meta_tree temp_obja;
-        	temp_obja.cid=tempdata.cid;
-	temp_obja.userid=tempdata.userid;
-	temp_obja.level=tempdata.level;
-	temp_obja.parentid=tempdata.parentid;
-	temp_obja.name=tempdata.name;
-	temp_obja.isview=tempdata.isview;
-	temp_obja.sortid=tempdata.sortid;
-	temp_obja.imgurl=tempdata.imgurl;
-
-        return  temp_obja;   
-    }     
-    std::vector<meta_tree> to_tree(unsigned int beginid=0)
-    {
-       std::vector<meta_tree> temp;
-       unsigned int level=0; 
-       if(beginid==0)
-       {
-            for (unsigned int i = 0; i < record.size(); i++)
-            {
-                if (record[i].parentid == 0)
-                {
-                    		meta_tree temp_obja;
-						temp_obja.cid=record[i].cid;
-						temp_obja.userid=record[i].userid;
-						temp_obja.level=level;
-						temp_obja.parentid=record[i].parentid;
-						temp_obja.name=record[i].name;
-						temp_obja.isview=record[i].isview;
-						temp_obja.sortid=record[i].sortid;
-						temp_obja.imgurl=record[i].imgurl;
-
-                    temp.push_back(temp_obja);
-                }
-            }
-       }
-       else
-       {
-           for (unsigned int i = 0; i < record.size(); i++)
-            {
-                if (record[i].cid == beginid)
-                {
-                    		meta_tree temp_obja;
-						temp_obja.cid=record[i].cid;
-						temp_obja.userid=record[i].userid;
-						temp_obja.level=level;
-						temp_obja.parentid=record[i].parentid;
-						temp_obja.name=record[i].name;
-						temp_obja.isview=record[i].isview;
-						temp_obja.sortid=record[i].sortid;
-						temp_obja.imgurl=record[i].imgurl;
-
-                    temp.push_back(temp_obja);
-                    break;
-                }
-            }
-       }
-
-       if(temp.size()==0)
-       {
-          return temp; 
-       }
-       level+=1;
-       for (unsigned int j = 0; j < temp.size(); j++)
-       {
-         record_to_tree(temp[j].children,temp[j].cid,level);
-       }
-       return temp; 
-    }    
-    void record_to_tree(std::vector<meta_tree> &targetdata,long long t_vid,unsigned int level=0)
-    {
-        for (unsigned int i = 0; i < record.size(); i++)
-        {
-            if (record[i].parentid== t_vid)
-            {
-                		meta_tree temp_obja;
-						temp_obja.cid=record[i].cid;
-						temp_obja.userid=record[i].userid;
-						temp_obja.level=level;
-						temp_obja.parentid=record[i].parentid;
-						temp_obja.name=record[i].name;
-						temp_obja.isview=record[i].isview;
-						temp_obja.sortid=record[i].sortid;
-						temp_obja.imgurl=record[i].imgurl;
-
-                targetdata.push_back(temp_obja);
-            }
-        }
-        level+=1;
-        for (unsigned int j = 0; j < targetdata.size(); j++)
-        {
-         record_to_tree(targetdata[j].children,targetdata[j].cid,level);
-        }
-    }
-    void tree_torecord(const std::vector<meta_tree> &sourcedata,unsigned int level=0)
-    {
-        for (unsigned int i = 0; i < sourcedata.size(); i++)
-        {
-		meta temp_obja;
-			temp_obja.cid=sourcedata[i].cid;
-			temp_obja.userid=sourcedata[i].userid;
-			temp_obja.level=level;
-			temp_obja.parentid=sourcedata[i].parentid;
-			temp_obja.name=sourcedata[i].name;
-			temp_obja.isview=sourcedata[i].isview;
-			temp_obja.sortid=sourcedata[i].sortid;
-			temp_obja.imgurl=sourcedata[i].imgurl;
-
-            record.push_back(temp_obja);
-            if(sourcedata[i].children.size()>0)
-            {
-                tree_torecord(sourcedata[i].children,level+1);
-            }
-        }
-    }      
-   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="name")
-		{
-			return data.name;
-		}
-		 if(key_name=="imgurl")
-		{
-			return data.imgurl;
-		}
-		return nullptr; 
+   		return nullptr; 
 	}
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="cid")
+   		 if(key_name=="bid")
 		{
-			return data.cid;
+			return data.bid;
 		}
 		 if(key_name=="userid")
 		{
 			return data.userid;
 		}
-		 if(key_name=="level")
+		 if(key_name=="dateid")
 		{
-			return data.level;
+			return data.dateid;
 		}
-		 if(key_name=="parentid")
+		 if(key_name=="articlenum")
 		{
-			return data.parentid;
+			return data.articlenum;
 		}
-		 if(key_name=="isview")
+		 if(key_name=="languageid")
 		{
-			return data.isview;
-		}
-		 if(key_name=="sortid")
-		{
-			return data.sortid;
+			return data.languageid;
 		}
 		return nullptr; 
 	}
@@ -2130,22 +1499,19 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.cid);
+ 				 a.emplace_back(iter.bid);
 				 break;
 			case 1: 
  				 a.emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a.emplace_back(iter.level);
+ 				 a.emplace_back(iter.dateid);
 				 break;
 			case 3: 
- 				 a.emplace_back(iter.parentid);
+ 				 a.emplace_back(iter.articlenum);
 				 break;
-			case 5: 
- 				 a.emplace_back(iter.isview);
-				 break;
-			case 6: 
- 				 a.emplace_back(iter.sortid);
+			case 4: 
+ 				 a.emplace_back(iter.languageid);
 				 break;
 
                     }
@@ -2173,29 +1539,26 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                     {
 
    			case 0: 
- 				 return data.cid;
+ 				 return data.bid;
 				 break;
 			case 1: 
  				 return data.userid;
 				 break;
 			case 2: 
- 				 return data.level;
+ 				 return data.dateid;
 				 break;
 			case 3: 
- 				 return data.parentid;
+ 				 return data.articlenum;
 				 break;
-			case 5: 
- 				 return data.isview;
-				 break;
-			case 6: 
- 				 return data.sortid;
+			case 4: 
+ 				 return data.languageid;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] cataloguebase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] blogcatalog_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2204,22 +1567,19 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             switch(kpos)
             {
    			case 0: 
- 				 return iter.cid;
+ 				 return iter.bid;
 				 break;
 			case 1: 
  				 return iter.userid;
 				 break;
 			case 2: 
- 				 return iter.level;
+ 				 return iter.dateid;
 				 break;
 			case 3: 
- 				 return iter.parentid;
+ 				 return iter.articlenum;
 				 break;
-			case 5: 
- 				 return iter.isview;
-				 break;
-			case 6: 
- 				 return iter.sortid;
+			case 4: 
+ 				 return iter.languageid;
 				 break;
 
 			}
@@ -2244,7 +1604,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] cataloguebase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] blogcatalog_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2267,19 +1627,13 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                 switch(kpos)
                 {
 
-   			case 4: 
- 				 return data.name;
-				 break;
-			case 7: 
- 				 return data.imgurl;
-				 break;
-
+   
                 }
                 return "";
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] cataloguebase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] blogcatalog_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2288,13 +1642,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                 switch(kpos)
                 {
 
-   			case 4: 
- 				 return iter.name;
-				 break;
-			case 7: 
- 				 return iter.imgurl;
-				 break;
-
+   
                 }
                 
     
@@ -2308,21 +1656,6 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                 std::vector<std::string> a;
 
            
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-    			case 4: 
- 				 a.emplace_back(iter.name);
-					 break;
-			case 7: 
- 				 a.emplace_back(iter.imgurl);
-					 break;
-					}
-				}
 
         return a;
     }
@@ -2353,34 +1686,19 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.cid);
+ 				 a<<std::to_string(iter.bid);
 				 break;
 			case 1: 
  				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
- 				 a<<std::to_string(iter.level);
+ 				 a<<std::to_string(iter.dateid);
 				 break;
 			case 3: 
- 				 a<<std::to_string(iter.parentid);
+ 				 a<<std::to_string(iter.articlenum);
 				 break;
 			case 4: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.name); 
-				 }else{
-				 a<<iter.name;
-				 }
-				 break;
-			case 5: 
- 				 a<<std::to_string(iter.isview);
-				 break;
-			case 6: 
- 				 a<<std::to_string(iter.sortid);
-				 break;
-			case 7: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
-				 }else{
-				 a<<iter.imgurl;
-				 }
+ 				 a<<std::to_string(iter.languageid);
 				 break;
 
                     }
@@ -2397,39 +1715,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
     std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
-         std::string ktemp,vtemp;
-         for(auto &iter:record)
-         {
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-				 } 
-			switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-
-        
+         
             return a;
         } 
     
@@ -2438,33 +1724,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
@@ -2484,22 +1744,19 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                 {
  
        case 0: 
- 	 ktemp=iter.cid;
+ 	 ktemp=iter.bid;
 	 break;
 case 1: 
  	 ktemp=iter.userid;
 	 break;
 case 2: 
- 	 ktemp=iter.level;
+ 	 ktemp=iter.dateid;
 	 break;
 case 3: 
- 	 ktemp=iter.parentid;
+ 	 ktemp=iter.articlenum;
 	 break;
-case 5: 
- 	 ktemp=iter.isview;
-	 break;
-case 6: 
- 	 ktemp=iter.sortid;
+case 4: 
+ 	 ktemp=iter.languageid;
 	 break;
 	 } 
  		  switch(vpos){
@@ -2529,31 +1786,22 @@ case 6:
                     {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
  			switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
 
                     }
                     if(ktemp.size()>0)
@@ -2580,31 +1828,22 @@ case 6:
                 switch(kpos)
                 {
 
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			  }
+   			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 
                 }
@@ -2633,42 +1872,36 @@ case 6:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 
                 }
@@ -2694,22 +1927,19 @@ case 6:
                 {
 
    			case 0: 
- 				 a.emplace(iter.cid,iter);
+ 				 a.emplace(iter.bid,iter);
 				 break;
 			case 1: 
  				 a.emplace(iter.userid,iter);
 				 break;
 			case 2: 
- 				 a.emplace(iter.level,iter);
+ 				 a.emplace(iter.dateid,iter);
 				 break;
 			case 3: 
- 				 a.emplace(iter.parentid,iter);
+ 				 a.emplace(iter.articlenum,iter);
 				 break;
-			case 5: 
- 				 a.emplace(iter.isview,iter);
-				 break;
-			case 6: 
- 				 a.emplace(iter.sortid,iter);
+			case 4: 
+ 				 a.emplace(iter.languageid,iter);
 				 break;
 
                 }
@@ -2724,24 +1954,6 @@ case 6:
             std::map<std::string,meta> a;
 
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);            
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 a.emplace(iter.name,iter);
-			 break;
-			case 7: 
- 				 a.emplace(iter.imgurl,iter);
-			 break;
-
-                }
-                //a.emplace(ktemp,iter);
-            }       
-    
 
         return a;
     }
@@ -2751,31 +1963,6 @@ case 6:
         {
             std::vector<std::pair<std::string,U>> a;
    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);                   
-            std::string ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-	 		 }
- 			switch(vpos){
-
-                   }
-
-                 a.emplace_back(ktemp,vtemp);
-            }       
-
-     
 
             return a;
         }   
@@ -2796,22 +1983,19 @@ case 6:
                     {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 			 break;
 			case 1: 
  				 ktemp=iter.userid;
 			 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 			 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 			 break;
-			case 5: 
- 				 ktemp=iter.isview;
-			 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 			 break;
 			  }
 			 switch(vpos){
@@ -2843,31 +2027,22 @@ case 6:
                     {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
  			switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
 
                    }
 
@@ -2893,31 +2068,22 @@ case 6:
                     switch(kpos)
                     {
 
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			  }
+   			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 
                    }
@@ -2943,42 +2109,36 @@ case 6:
                     {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 
                    }
@@ -2993,36 +2153,6 @@ case 6:
         {
                 std::vector<std::pair<T,U>> a;
    
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                T ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-   case 4: 
- 	 ktemp=iter.name;
-	 break;
-case 7: 
- 	 ktemp=iter.imgurl;
-	 break;
-	  }
- switch(vpos){
-case 4: 
- 	 vtemp=iter.name;
-	 break;
-case 7: 
- 	 vtemp=iter.imgurl;
-	 break;
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-                }       
-    
             return a;
         }  
     
@@ -3039,22 +2169,19 @@ case 7:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.cid,iter);
+ 	 a.emplace_back(iter.bid,iter);
 	 break;
 case 1: 
  	 a.emplace_back(iter.userid,iter);
 	 break;
 case 2: 
- 	 a.emplace_back(iter.level,iter);
+ 	 a.emplace_back(iter.dateid,iter);
 	 break;
 case 3: 
- 	 a.emplace_back(iter.parentid,iter);
+ 	 a.emplace_back(iter.articlenum,iter);
 	 break;
-case 5: 
- 	 a.emplace_back(iter.isview,iter);
-	 break;
-case 6: 
- 	 a.emplace_back(iter.sortid,iter);
+case 4: 
+ 	 a.emplace_back(iter.languageid,iter);
 	 break;
 
                 }
@@ -3067,23 +2194,6 @@ case 6:
         {
             std::vector<std::pair<std::string,meta>> a;
       
-            unsigned char kpos;
-            kpos=findcolpos(keyname);                     
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   case 4: 
- 	 a.emplace_back(iter.name,iter);
-	 break;
-case 7: 
- 	 a.emplace_back(iter.imgurl,iter);
-	 break;
-
-                }
-            }       
-    
 
         return a;
     }
@@ -3104,43 +2214,37 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 			  }
 
@@ -3172,64 +2276,55 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.cid);
+ 				 a[ktemp][vtemp].emplace_back(iter.bid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+ 				 a[ktemp][vtemp].emplace_back(iter.dateid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+ 				 a[ktemp][vtemp].emplace_back(iter.articlenum);
 				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.isview);
-				 break;
-			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languageid);
 				 break;
 
                 }
@@ -3257,53 +2352,41 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 			 }
 
 			 switch(dpos){
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
-			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
-				 break;
 
                 }
             }       
@@ -3331,32 +2414,23 @@ case 7:
                     {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
 			  }
 
 			 switch(dpos){
@@ -3387,52 +2461,40 @@ case 7:
             {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.cid);
+ 				 a[ktemp][vtemp].emplace_back(iter.bid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+ 				 a[ktemp][vtemp].emplace_back(iter.dateid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+ 				 a[ktemp][vtemp].emplace_back(iter.articlenum);
 				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.isview);
-				 break;
-			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languageid);
 				 break;
 
             }
@@ -3459,41 +2521,26 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
 			  }
 
 			 switch(dpos){
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
-			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
-				 break;
 
                 }
             }       
@@ -3518,32 +2565,23 @@ case 7:
                     switch(kpos)
                     {
 
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			 }
+   			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 			  }
 
@@ -3575,53 +2613,41 @@ case 7:
                 switch(kpos)
                 {
 
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			  }
+   			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.cid);
+ 				 a[ktemp][vtemp].emplace_back(iter.bid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+ 				 a[ktemp][vtemp].emplace_back(iter.dateid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+ 				 a[ktemp][vtemp].emplace_back(iter.articlenum);
 				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.isview);
-				 break;
-			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languageid);
 				 break;
 
                 }
@@ -3650,42 +2676,27 @@ case 7:
             switch(kpos)
             {
 
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			 }
+   			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.cid;
+ 				 vtemp=iter.bid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.dateid;
 				 break;
 			case 3: 
- 				 vtemp=iter.parentid;
+ 				 vtemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 vtemp=iter.isview;
-				 break;
-			case 6: 
- 				 vtemp=iter.sortid;
+			case 4: 
+ 				 vtemp=iter.languageid;
 				 break;
 			 }
 
 			switch(dpos){
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
-			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
-				 break;
 
             }
          }       
@@ -3698,42 +2709,6 @@ case 7:
         {
             std::map<T,std::map<U,std::vector<D>>> a;
    
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);        
-            T ktemp;
-            U vtemp;
-            // D dtemp;
-
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			 }
-
-			 switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
-			  }
-
-			 switch(dpos){
-
-                }
-            }       
-
-    
             return a;
         }
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
@@ -3755,41 +2730,26 @@ case 7:
                 switch(kpos)
                 {
 
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			  }
+   			  }
 
 			 switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.cid);
+ 				 a[ktemp][vtemp].emplace_back(iter.bid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+ 				 a[ktemp][vtemp].emplace_back(iter.dateid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+ 				 a[ktemp][vtemp].emplace_back(iter.articlenum);
 				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.isview);
-				 break;
-			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.languageid);
 				 break;
 
                 }
@@ -3803,47 +2763,6 @@ case 7:
         {
             std::map<T,std::map<U,std::vector<D>>> a;
    
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);        
-            T ktemp;
-            U vtemp;
-            // D dtemp;
-
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			  }
-
-			 switch(vpos){
-			case 4: 
- 				 vtemp=iter.name;
-				 break;
-			case 7: 
- 				 vtemp=iter.imgurl;
-				 break;
-			  }
-
-			 switch(dpos){
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
-			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
-				 break;
-
-                }
-            }       
-    
             return a;
         }
     
@@ -3853,36 +2772,6 @@ case 7:
             std::map<T,std::vector<U>> a;
 
    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            T ktemp;
-            //U vtemp;
-
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			  }
-
-			 switch(vpos){
-			case 4: 
- 				 a[ktemp].emplace_back(iter.name);
-				 break;
-			case 7: 
- 				 a[ktemp].emplace_back(iter.imgurl);
-				 break;
-
-                }
-            }       
-    
             return a;
         }
     
@@ -3891,31 +2780,6 @@ case 7:
         {
             std::map<T,std::vector<U>> a;
    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            T ktemp;
-            //U vtemp;
-
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			 }
-
-			 switch(vpos){
-
-                }
-            }       
-
-    
             return a;
         }
     
@@ -3936,32 +2800,23 @@ case 7:
                 switch(kpos)
                 {
 
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			  }
+   			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.cid);
+ 				 a[ktemp].emplace_back(iter.bid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.level);
+ 				 a[ktemp].emplace_back(iter.dateid);
 				 break;
 			case 3: 
- 				 a[ktemp].emplace_back(iter.parentid);
+ 				 a[ktemp].emplace_back(iter.articlenum);
 				 break;
-			case 5: 
- 				 a[ktemp].emplace_back(iter.isview);
-				 break;
-			case 6: 
- 				 a[ktemp].emplace_back(iter.sortid);
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.languageid);
 				 break;
 
                 }
@@ -3988,32 +2843,23 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 4: 
- 				 a[ktemp].emplace_back(iter.name);
-				 break;
-			case 7: 
- 				 a[ktemp].emplace_back(iter.imgurl);
-				 break;
 
                 }
             }       
@@ -4040,22 +2886,19 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
 
@@ -4085,43 +2928,37 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.cid);
+ 				 a[ktemp].emplace_back(iter.bid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.level);
+ 				 a[ktemp].emplace_back(iter.dateid);
 				 break;
 			case 3: 
- 				 a[ktemp].emplace_back(iter.parentid);
+ 				 a[ktemp].emplace_back(iter.articlenum);
 				 break;
-			case 5: 
- 				 a[ktemp].emplace_back(iter.isview);
-				 break;
-			case 6: 
- 				 a[ktemp].emplace_back(iter.sortid);
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.languageid);
 				 break;
 
                 }
@@ -4144,22 +2981,19 @@ case 7:
                 {
 
    			case 0: 
- 				 a[iter.cid].emplace_back(iter);
+ 				 a[iter.bid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[iter.level].emplace_back(iter);
+ 				 a[iter.dateid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[iter.parentid].emplace_back(iter);
+ 				 a[iter.articlenum].emplace_back(iter);
 				 break;
-			case 5: 
- 				 a[iter.isview].emplace_back(iter);
-				 break;
-			case 6: 
- 				 a[iter.sortid].emplace_back(iter);
+			case 4: 
+ 				 a[iter.languageid].emplace_back(iter);
 				 break;
 
                 }
@@ -4173,25 +3007,6 @@ case 7:
         {
             std::map<T,std::vector<meta>> a;
    
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
-
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 a[iter.name].emplace_back(iter);
-				 break;
-			case 7: 
- 				 a[iter.imgurl].emplace_back(iter);
-				 break;
-
-                }
-            }       
-    
             return a;
         }
     
@@ -4200,36 +3015,6 @@ case 7:
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            T ktemp;
-
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			 }
-
-			 switch(vpos){
-			case 4: 
- 				 a[ktemp][iter.name].emplace_back(iter);
-				 break;
-			case 7: 
- 				 a[ktemp][iter.imgurl].emplace_back(iter);
-				 break;
-
-                }
-            }       
-    
             return a;
         }
     
@@ -4249,32 +3034,23 @@ case 7:
                 switch(kpos)
                 {
 
-   			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-	  }
+   	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.cid].emplace_back(iter);
+ 				 a[ktemp][iter.bid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.level].emplace_back(iter);
+ 				 a[ktemp][iter.dateid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[ktemp][iter.parentid].emplace_back(iter);
+ 				 a[ktemp][iter.articlenum].emplace_back(iter);
 				 break;
-			case 5: 
- 				 a[ktemp][iter.isview].emplace_back(iter);
-				 break;
-			case 6: 
- 				 a[ktemp][iter.sortid].emplace_back(iter);
+			case 4: 
+ 				 a[ktemp][iter.languageid].emplace_back(iter);
 				 break;
 
                 }
@@ -4301,43 +3077,37 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.cid].emplace_back(iter);
+ 				 a[ktemp][iter.bid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.level].emplace_back(iter);
+ 				 a[ktemp][iter.dateid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[ktemp][iter.parentid].emplace_back(iter);
+ 				 a[ktemp][iter.articlenum].emplace_back(iter);
 				 break;
-			case 5: 
- 				 a[ktemp][iter.isview].emplace_back(iter);
-				 break;
-			case 6: 
- 				 a[ktemp][iter.sortid].emplace_back(iter);
+			case 4: 
+ 				 a[ktemp][iter.languageid].emplace_back(iter);
 				 break;
 
                 }
@@ -4364,32 +3134,23 @@ case 7:
                 {
 
    			case 0: 
- 				 ktemp=iter.cid;
+ 				 ktemp=iter.bid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.dateid;
 				 break;
 			case 3: 
- 				 ktemp=iter.parentid;
+ 				 ktemp=iter.articlenum;
 				 break;
-			case 5: 
- 				 ktemp=iter.isview;
-				 break;
-			case 6: 
- 				 ktemp=iter.sortid;
+			case 4: 
+ 				 ktemp=iter.languageid;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 4: 
- 				 a[ktemp][iter.name].emplace_back(iter);
-				 break;
-			case 7: 
- 				 a[ktemp][iter.imgurl].emplace_back(iter);
-				 break;
 
                 }
             }       

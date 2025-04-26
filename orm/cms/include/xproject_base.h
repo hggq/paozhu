@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_XMEETBASEMATA_H
-#define ORM_CMS_XMEETBASEMATA_H
+#ifndef ORM_CMS_XPROJECTBASEMATA_H
+#define ORM_CMS_XPROJECTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,43 +20,48 @@ namespace orm {
    
      namespace cms { 
 
-struct xmeetbase
+struct xproject_base
 {
     struct meta{
-     unsigned  int  xmeetid = 0; ///**/
+     unsigned  int  xpjid = 0; ///**/
  unsigned  int  userid = 0; ///**/
- unsigned  int  xpjid = 0; ///**/
- unsigned  int  xtaskid = 0; ///**/
- unsigned  int  adminid = 0; ///**/
+ unsigned  int  prexpjid = 0; ///**/
+ unsigned  int  dpid = 0; ///**/
+ unsigned  int  grouptype = 0; ///**/
  std::string  title = ""; ///**/
- std::string  zhuchi = ""; ///**/
- std::string  jilu = ""; ///**/
- std::string  meetnotice = ""; ///**/
- std::string  meetfiles = ""; ///**/
- std::string  address = ""; ///**/
- std::string  meettime = ""; ///**/
+ unsigned  int  adminuserid = 0; ///**/
  unsigned  int  regdate = 0; ///**/
- unsigned  int  expecttime = 0; ///**/
- unsigned  int  endtime = 0; ///**/
- std::string  presents = ""; ///**/
- std::string  content = ""; ///**/
- std::string  postresult = ""; ///**/
- std::string  postfiles = ""; ///**/
- std::string  jiluphoto = ""; ///**/
+ unsigned  int  begindate = 0; ///**/
+ unsigned  int  expiredate = 0; ///**/
+ char  isopen = 0; ///**/
+ unsigned  int  clientid = 0; ///**/
+ unsigned  int  totalnum = 0; ///**/
+ unsigned  int  referdocverion = 0; ///**/
+ unsigned  int  xtheme = 0; ///**/
+ std::string  xlogo = ""; ///**/
+ std::string  introduce = ""; ///**/
+ std::string  giturl = ""; ///**/
+ std::string  gitname = ""; ///**/
+ std::string  gitpwd = ""; ///**/
+ std::string  xcolor = ""; ///**/
+ std::string  fupan = ""; ///**/
+ double  totalvalue = 0; ///**/
+ float  expectday = 0; ///**/
+ float  realday = 0; ///**/
  } data;
- std::vector<xmeetbase::meta> record;
+ std::vector<xproject_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<xmeetbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<xmeetbase::meta>::iterator end(){     return record.end(); }
-std::vector<xmeetbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<xmeetbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,20> col_names={"xmeetid","userid","xpjid","xtaskid","adminid","title","zhuchi","jilu","meetnotice","meetfiles","address","meettime","regdate","expecttime","endtime","presents","content","postresult","postfiles","jiluphoto"};
-static constexpr std::array<unsigned char,20> col_types={3,3,3,3,3,253,253,253,252,253,253,253,3,3,3,253,252,252,252,253};
-static constexpr std::array<unsigned char,20> col_length={0,0,0,0,0,120,120,120,0,0,120,120,0,0,0,0,0,0,0,0};
-static constexpr std::array<unsigned char,20> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-std::string tablename="xmeet";
-static constexpr std::string_view modelname="Xmeet";
+std::vector<xproject_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<xproject_base::meta>::iterator end(){     return record.end(); }
+std::vector<xproject_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<xproject_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,25> col_names={"xpjid","userid","prexpjid","dpid","grouptype","title","adminuserid","regdate","begindate","expiredate","isopen","clientid","totalnum","referdocverion","xtheme","xlogo","introduce","giturl","gitname","gitpwd","xcolor","fupan","totalvalue","expectday","realday"};
+static constexpr std::array<unsigned char,25> col_types={3,3,3,3,3,253,3,3,3,3,1,3,3,3,3,253,252,253,252,253,253,252,5,4,4};
+static constexpr std::array<unsigned char,25> col_length={0,0,0,0,0,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,0,0};
+static constexpr std::array<unsigned char,25> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+std::string tablename="xproject";
+static constexpr std::string_view modelname="Xproject";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -73,87 +78,104 @@ static constexpr std::string_view modelname="Xmeet";
 
 
          case 'a':
- switch(coln.size()){  
-case 7:
-  colpospppc=coln.back();
-    if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='d'){ return 4; }
- if(colpospppc=='s'){ return 10; }
-   	 break;
- }
- break;
+   	 return 6;
+break;
+case 'b':
+   	 return 8;
+break;
 case 'c':
-   	 return 16;
+   	 return 11;
+break;
+case 'd':
+   	 return 3;
 break;
 case 'e':
  switch(coln.size()){  
-case 7:
-   	 return 14;
+case 9:
+   	 return 23;
 break;
 case 10:
-   	 return 13;
-break;
- }
- break;
-case 'j':
- switch(coln.size()){  
-case 4:
-   	 return 7;
-break;
-case 9:
-   	 return 19;
-break;
- }
- break;
-case 'm':
- switch(coln.size()){  
-case 8:
-   	 return 11;
-break;
-case 9:
    	 return 9;
 break;
-case 10:
-   	 return 8;
+ }
+ break;
+case 'f':
+   	 return 21;
+break;
+case 'g':
+ switch(coln.size()){  
+case 6:
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='d'){ return 19; }
+ if(colpospppc=='l'){ return 17; }
+   	 break;
+case 7:
+   	 return 18;
+break;
+case 9:
+   	 return 4;
+break;
+ }
+ break;
+case 'i':
+ switch(coln.size()){  
+case 6:
+   	 return 10;
+break;
+case 9:
+   	 return 16;
 break;
  }
  break;
 case 'p':
+   	 return 2;
+break;
+case 'r':
  switch(coln.size()){  
-case 8:
-   	 return 15;
-break;
-case 9:
-   	 return 18;
-break;
-case 10:
-   	 return 17;
+case 7:
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='e'){ return 7; }
+ if(colpospppc=='y'){ return 24; }
+   	 break;
+case 14:
+   	 return 13;
 break;
  }
  break;
-case 'r':
-   	 return 12;
-break;
 case 't':
+ switch(coln.size()){  
+case 5:
    	 return 5;
 break;
+case 8:
+   	 return 12;
+break;
+case 10:
+   	 return 22;
+break;
+ }
+ break;
 case 'u':
    	 return 1;
 break;
 case 'x':
  switch(coln.size()){  
 case 5:
-   	 return 2;
-break;
-case 7:
- if(coln.size()>1&&(coln[1]=='m'||coln[1]=='M')){ return 0; }
- if(coln.size()>1&&(coln[1]=='t'||coln[1]=='T')){ return 3; }
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='d'){ return 0; }
+ if(colpospppc=='o'){ return 15; }
+   	 break;
+case 6:
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='e'){ return 14; }
+ if(colpospppc=='r'){ return 20; }
    	 break;
  }
  break;
-case 'z':
-   	 return 6;
-break;
 
              }
              return 255;
@@ -162,7 +184,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "xmeetid";
+       return "xpjid";
 }
 
       void record_reset()
@@ -170,7 +192,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     xmeetbase::meta metatemp;    
+     xproject_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -233,58 +255,99 @@ break;
         }
         tempsql<<") VALUES (";
 
-        if(data.xmeetid==0){
+        if(data.xpjid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.xmeetid);
+	tempsql<<std::to_string(data.xpjid);
 }
 if(data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.userid);
 }
-if(data.xpjid==0){
+if(data.prexpjid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.xpjid);
+	tempsql<<","<<std::to_string(data.prexpjid);
 }
-if(data.xtaskid==0){
+if(data.dpid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.xtaskid);
+	tempsql<<","<<std::to_string(data.dpid);
 }
-if(data.adminid==0){
+if(data.grouptype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.adminid);
+	tempsql<<","<<std::to_string(data.grouptype);
 }
 tempsql<<",'"<<stringaddslash(data.title)<<"'";
-tempsql<<",'"<<stringaddslash(data.zhuchi)<<"'";
-tempsql<<",'"<<stringaddslash(data.jilu)<<"'";
-tempsql<<",'"<<stringaddslash(data.meetnotice)<<"'";
-tempsql<<",'"<<stringaddslash(data.meetfiles)<<"'";
-tempsql<<",'"<<stringaddslash(data.address)<<"'";
-tempsql<<",'"<<stringaddslash(data.meettime)<<"'";
+if(data.adminuserid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.adminuserid);
+}
 if(data.regdate==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.regdate);
 }
-if(data.expecttime==0){
+if(data.begindate==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.expecttime);
+	tempsql<<","<<std::to_string(data.begindate);
 }
-if(data.endtime==0){
+if(data.expiredate==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.endtime);
+	tempsql<<","<<std::to_string(data.expiredate);
 }
-tempsql<<",'"<<stringaddslash(data.presents)<<"'";
-tempsql<<",'"<<stringaddslash(data.content)<<"'";
-tempsql<<",'"<<stringaddslash(data.postresult)<<"'";
-tempsql<<",'"<<stringaddslash(data.postfiles)<<"'";
-tempsql<<",'"<<stringaddslash(data.jiluphoto)<<"'";
+if(data.isopen==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.isopen);
+}
+if(data.clientid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.clientid);
+}
+if(data.totalnum==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.totalnum);
+}
+if(data.referdocverion==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.referdocverion);
+}
+if(data.xtheme==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.xtheme);
+}
+tempsql<<",'"<<stringaddslash(data.xlogo)<<"'";
+tempsql<<",'"<<stringaddslash(data.introduce)<<"'";
+tempsql<<",'"<<stringaddslash(data.giturl)<<"'";
+tempsql<<",'"<<stringaddslash(data.gitname)<<"'";
+tempsql<<",'"<<stringaddslash(data.gitpwd)<<"'";
+tempsql<<",'"<<stringaddslash(data.xcolor)<<"'";
+tempsql<<",'"<<stringaddslash(data.fupan)<<"'";
+if(data.totalvalue==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.totalvalue);
+}
+if(data.expectday==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.expectday);
+}
+if(data.realday==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.realday);
+}
 tempsql<<")";
 
      
@@ -310,58 +373,99 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.xmeetid==0){
+        if(insert_data.xpjid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.xmeetid);
+	tempsql<<std::to_string(insert_data.xpjid);
 }
 if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.userid);
 }
-if(insert_data.xpjid==0){
+if(insert_data.prexpjid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.xpjid);
+	tempsql<<","<<std::to_string(insert_data.prexpjid);
 }
-if(insert_data.xtaskid==0){
+if(insert_data.dpid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.xtaskid);
+	tempsql<<","<<std::to_string(insert_data.dpid);
 }
-if(insert_data.adminid==0){
+if(insert_data.grouptype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.adminid);
+	tempsql<<","<<std::to_string(insert_data.grouptype);
 }
 tempsql<<",'"<<stringaddslash(insert_data.title)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.zhuchi)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.jilu)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.meetnotice)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.meetfiles)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.address)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.meettime)<<"'";
+if(insert_data.adminuserid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.adminuserid);
+}
 if(insert_data.regdate==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.regdate);
 }
-if(insert_data.expecttime==0){
+if(insert_data.begindate==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.expecttime);
+	tempsql<<","<<std::to_string(insert_data.begindate);
 }
-if(insert_data.endtime==0){
+if(insert_data.expiredate==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.endtime);
+	tempsql<<","<<std::to_string(insert_data.expiredate);
 }
-tempsql<<",'"<<stringaddslash(insert_data.presents)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.postresult)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.postfiles)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.jiluphoto)<<"'";
+if(insert_data.isopen==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.isopen);
+}
+if(insert_data.clientid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.clientid);
+}
+if(insert_data.totalnum==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.totalnum);
+}
+if(insert_data.referdocverion==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.referdocverion);
+}
+if(insert_data.xtheme==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.xtheme);
+}
+tempsql<<",'"<<stringaddslash(insert_data.xlogo)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.introduce)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.giturl)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.gitname)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.gitpwd)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.xcolor)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.fupan)<<"'";
+if(insert_data.totalvalue==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.totalvalue);
+}
+if(insert_data.expectday==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.expectday);
+}
+if(insert_data.realday==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.realday);
+}
 tempsql<<")";
 
      
@@ -396,58 +500,99 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].xmeetid==0){
+            	if(insert_data[i].xpjid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].xmeetid);
+	tempsql<<std::to_string(insert_data[i].xpjid);
 	}
 	if(insert_data[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
-	if(insert_data[i].xpjid==0){
+	if(insert_data[i].prexpjid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].xpjid);
+	tempsql<<","<<std::to_string(insert_data[i].prexpjid);
 	}
-	if(insert_data[i].xtaskid==0){
+	if(insert_data[i].dpid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].xtaskid);
+	tempsql<<","<<std::to_string(insert_data[i].dpid);
 	}
-	if(insert_data[i].adminid==0){
+	if(insert_data[i].grouptype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].adminid);
+	tempsql<<","<<std::to_string(insert_data[i].grouptype);
 	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].title)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].zhuchi)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].jilu)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].meetnotice)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].meetfiles)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].address)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].meettime)<<"'";
+	if(insert_data[i].adminuserid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].adminuserid);
+	}
 	if(insert_data[i].regdate==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].regdate);
 	}
-	if(insert_data[i].expecttime==0){
+	if(insert_data[i].begindate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].expecttime);
+	tempsql<<","<<std::to_string(insert_data[i].begindate);
 	}
-	if(insert_data[i].endtime==0){
+	if(insert_data[i].expiredate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].endtime);
+	tempsql<<","<<std::to_string(insert_data[i].expiredate);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].presents)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].postresult)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].postfiles)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].jiluphoto)<<"'";
+	if(insert_data[i].isopen==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].isopen);
+	}
+	if(insert_data[i].clientid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].clientid);
+	}
+	if(insert_data[i].totalnum==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].totalnum);
+	}
+	if(insert_data[i].referdocverion==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].referdocverion);
+	}
+	if(insert_data[i].xtheme==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].xtheme);
+	}
+		tempsql<<",'"<<stringaddslash(insert_data[i].xlogo)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].introduce)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].giturl)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].gitname)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].gitpwd)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].xcolor)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].fupan)<<"'";
+	if(insert_data[i].totalvalue==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].totalvalue);
+	}
+	if(insert_data[i].expectday==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].expectday);
+	}
+	if(insert_data[i].realday==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].realday);
+	}
 		tempsql<<")";
 	 } 
 
@@ -467,58 +612,99 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.xmeetid==0){
-	tempsql<<"`xmeetid`=0";
+        if(data.xpjid==0){
+	tempsql<<"`xpjid`=0";
  }else{ 
-	tempsql<<"`xmeetid`="<<std::to_string(data.xmeetid);
+	tempsql<<"`xpjid`="<<std::to_string(data.xpjid);
 }
 if(data.userid==0){
 	tempsql<<",`userid`=0";
  }else{ 
 	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
-if(data.xpjid==0){
-	tempsql<<",`xpjid`=0";
+if(data.prexpjid==0){
+	tempsql<<",`prexpjid`=0";
  }else{ 
-	tempsql<<",`xpjid`="<<std::to_string(data.xpjid);
+	tempsql<<",`prexpjid`="<<std::to_string(data.prexpjid);
 }
-if(data.xtaskid==0){
-	tempsql<<",`xtaskid`=0";
+if(data.dpid==0){
+	tempsql<<",`dpid`=0";
  }else{ 
-	tempsql<<",`xtaskid`="<<std::to_string(data.xtaskid);
+	tempsql<<",`dpid`="<<std::to_string(data.dpid);
 }
-if(data.adminid==0){
-	tempsql<<",`adminid`=0";
+if(data.grouptype==0){
+	tempsql<<",`grouptype`=0";
  }else{ 
-	tempsql<<",`adminid`="<<std::to_string(data.adminid);
+	tempsql<<",`grouptype`="<<std::to_string(data.grouptype);
 }
 tempsql<<",`title`='"<<stringaddslash(data.title)<<"'";
-tempsql<<",`zhuchi`='"<<stringaddslash(data.zhuchi)<<"'";
-tempsql<<",`jilu`='"<<stringaddslash(data.jilu)<<"'";
-tempsql<<",`meetnotice`='"<<stringaddslash(data.meetnotice)<<"'";
-tempsql<<",`meetfiles`='"<<stringaddslash(data.meetfiles)<<"'";
-tempsql<<",`address`='"<<stringaddslash(data.address)<<"'";
-tempsql<<",`meettime`='"<<stringaddslash(data.meettime)<<"'";
+if(data.adminuserid==0){
+	tempsql<<",`adminuserid`=0";
+ }else{ 
+	tempsql<<",`adminuserid`="<<std::to_string(data.adminuserid);
+}
 if(data.regdate==0){
 	tempsql<<",`regdate`=0";
  }else{ 
 	tempsql<<",`regdate`="<<std::to_string(data.regdate);
 }
-if(data.expecttime==0){
-	tempsql<<",`expecttime`=0";
+if(data.begindate==0){
+	tempsql<<",`begindate`=0";
  }else{ 
-	tempsql<<",`expecttime`="<<std::to_string(data.expecttime);
+	tempsql<<",`begindate`="<<std::to_string(data.begindate);
 }
-if(data.endtime==0){
-	tempsql<<",`endtime`=0";
+if(data.expiredate==0){
+	tempsql<<",`expiredate`=0";
  }else{ 
-	tempsql<<",`endtime`="<<std::to_string(data.endtime);
+	tempsql<<",`expiredate`="<<std::to_string(data.expiredate);
 }
-tempsql<<",`presents`='"<<stringaddslash(data.presents)<<"'";
-tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
-tempsql<<",`postresult`='"<<stringaddslash(data.postresult)<<"'";
-tempsql<<",`postfiles`='"<<stringaddslash(data.postfiles)<<"'";
-tempsql<<",`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
+if(data.isopen==0){
+	tempsql<<",`isopen`=0";
+ }else{ 
+	tempsql<<",`isopen`="<<std::to_string(data.isopen);
+}
+if(data.clientid==0){
+	tempsql<<",`clientid`=0";
+ }else{ 
+	tempsql<<",`clientid`="<<std::to_string(data.clientid);
+}
+if(data.totalnum==0){
+	tempsql<<",`totalnum`=0";
+ }else{ 
+	tempsql<<",`totalnum`="<<std::to_string(data.totalnum);
+}
+if(data.referdocverion==0){
+	tempsql<<",`referdocverion`=0";
+ }else{ 
+	tempsql<<",`referdocverion`="<<std::to_string(data.referdocverion);
+}
+if(data.xtheme==0){
+	tempsql<<",`xtheme`=0";
+ }else{ 
+	tempsql<<",`xtheme`="<<std::to_string(data.xtheme);
+}
+tempsql<<",`xlogo`='"<<stringaddslash(data.xlogo)<<"'";
+tempsql<<",`introduce`='"<<stringaddslash(data.introduce)<<"'";
+tempsql<<",`giturl`='"<<stringaddslash(data.giturl)<<"'";
+tempsql<<",`gitname`='"<<stringaddslash(data.gitname)<<"'";
+tempsql<<",`gitpwd`='"<<stringaddslash(data.gitpwd)<<"'";
+tempsql<<",`xcolor`='"<<stringaddslash(data.xcolor)<<"'";
+tempsql<<",`fupan`='"<<stringaddslash(data.fupan)<<"'";
+if(data.totalvalue==0){
+	tempsql<<",`totalvalue`=0";
+ }else{ 
+	tempsql<<",`totalvalue`="<<std::to_string(data.totalvalue);
+}
+if(data.expectday==0){
+	tempsql<<",`expectday`=0";
+ }else{ 
+	tempsql<<",`expectday`="<<std::to_string(data.expectday);
+}
+if(data.realday==0){
+	tempsql<<",`realday`=0";
+ }else{ 
+	tempsql<<",`realday`="<<std::to_string(data.realday);
+}
  }else{ 
 
      
@@ -565,10 +751,10 @@ tempsql<<",`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.xmeetid==0){
-	tempsql<<"`xmeetid`=0";
+if(data.xpjid==0){
+	tempsql<<"`xpjid`=0";
  }else{ 
-	tempsql<<"`xmeetid`="<<std::to_string(data.xmeetid);
+	tempsql<<"`xpjid`="<<std::to_string(data.xpjid);
 }
  break;
  case 1:
@@ -581,26 +767,26 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.xpjid==0){
-	tempsql<<"`xpjid`=0";
+if(data.prexpjid==0){
+	tempsql<<"`prexpjid`=0";
  }else{ 
-	tempsql<<"`xpjid`="<<std::to_string(data.xpjid);
+	tempsql<<"`prexpjid`="<<std::to_string(data.prexpjid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(data.xtaskid==0){
-	tempsql<<"`xtaskid`=0";
+if(data.dpid==0){
+	tempsql<<"`dpid`=0";
  }else{ 
-	tempsql<<"`xtaskid`="<<std::to_string(data.xtaskid);
+	tempsql<<"`dpid`="<<std::to_string(data.dpid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.adminid==0){
-	tempsql<<"`adminid`=0";
+if(data.grouptype==0){
+	tempsql<<"`grouptype`=0";
  }else{ 
-	tempsql<<"`adminid`="<<std::to_string(data.adminid);
+	tempsql<<"`grouptype`="<<std::to_string(data.grouptype);
 }
  break;
  case 5:
@@ -609,29 +795,13 @@ tempsql<<"`title`='"<<stringaddslash(data.title)<<"'";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`zhuchi`='"<<stringaddslash(data.zhuchi)<<"'";
+if(data.adminuserid==0){
+	tempsql<<"`adminuserid`=0";
+ }else{ 
+	tempsql<<"`adminuserid`="<<std::to_string(data.adminuserid);
+}
  break;
  case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`jilu`='"<<stringaddslash(data.jilu)<<"'";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`meetnotice`='"<<stringaddslash(data.meetnotice)<<"'";
- break;
- case 9:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`meetfiles`='"<<stringaddslash(data.meetfiles)<<"'";
- break;
- case 10:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`address`='"<<stringaddslash(data.address)<<"'";
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`meettime`='"<<stringaddslash(data.meettime)<<"'";
- break;
- case 12:
  if(jj>0){ tempsql<<","; } 
 if(data.regdate==0){
 	tempsql<<"`regdate`=0";
@@ -639,41 +809,113 @@ if(data.regdate==0){
 	tempsql<<"`regdate`="<<std::to_string(data.regdate);
 }
  break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+if(data.begindate==0){
+	tempsql<<"`begindate`=0";
+ }else{ 
+	tempsql<<"`begindate`="<<std::to_string(data.begindate);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+if(data.expiredate==0){
+	tempsql<<"`expiredate`=0";
+ }else{ 
+	tempsql<<"`expiredate`="<<std::to_string(data.expiredate);
+}
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+if(data.isopen==0){
+	tempsql<<"`isopen`=0";
+ }else{ 
+	tempsql<<"`isopen`="<<std::to_string(data.isopen);
+}
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+if(data.clientid==0){
+	tempsql<<"`clientid`=0";
+ }else{ 
+	tempsql<<"`clientid`="<<std::to_string(data.clientid);
+}
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(data.totalnum==0){
+	tempsql<<"`totalnum`=0";
+ }else{ 
+	tempsql<<"`totalnum`="<<std::to_string(data.totalnum);
+}
+ break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-if(data.expecttime==0){
-	tempsql<<"`expecttime`=0";
+if(data.referdocverion==0){
+	tempsql<<"`referdocverion`=0";
  }else{ 
-	tempsql<<"`expecttime`="<<std::to_string(data.expecttime);
+	tempsql<<"`referdocverion`="<<std::to_string(data.referdocverion);
 }
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-if(data.endtime==0){
-	tempsql<<"`endtime`=0";
+if(data.xtheme==0){
+	tempsql<<"`xtheme`=0";
  }else{ 
-	tempsql<<"`endtime`="<<std::to_string(data.endtime);
+	tempsql<<"`xtheme`="<<std::to_string(data.xtheme);
 }
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`presents`='"<<stringaddslash(data.presents)<<"'";
+tempsql<<"`xlogo`='"<<stringaddslash(data.xlogo)<<"'";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
+tempsql<<"`introduce`='"<<stringaddslash(data.introduce)<<"'";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`postresult`='"<<stringaddslash(data.postresult)<<"'";
+tempsql<<"`giturl`='"<<stringaddslash(data.giturl)<<"'";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`postfiles`='"<<stringaddslash(data.postfiles)<<"'";
+tempsql<<"`gitname`='"<<stringaddslash(data.gitname)<<"'";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
+tempsql<<"`gitpwd`='"<<stringaddslash(data.gitpwd)<<"'";
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`xcolor`='"<<stringaddslash(data.xcolor)<<"'";
+ break;
+ case 21:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`fupan`='"<<stringaddslash(data.fupan)<<"'";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+if(data.totalvalue==0){
+	tempsql<<"`totalvalue`=0";
+ }else{ 
+	tempsql<<"`totalvalue`="<<std::to_string(data.totalvalue);
+}
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+if(data.expectday==0){
+	tempsql<<"`expectday`=0";
+ }else{ 
+	tempsql<<"`expectday`="<<std::to_string(data.expectday);
+}
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+if(data.realday==0){
+	tempsql<<"`realday`=0";
+ }else{ 
+	tempsql<<"`realday`="<<std::to_string(data.realday);
+}
  break;
 
      
@@ -719,58 +961,99 @@ tempsql<<"`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].xmeetid==0){
+            	if(record[i].xpjid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].xmeetid);
+	tempsql<<std::to_string(record[i].xpjid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].xpjid==0){
+	if(record[i].prexpjid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].xpjid);
+	tempsql<<","<<std::to_string(record[i].prexpjid);
 	}
-	if(record[i].xtaskid==0){
+	if(record[i].dpid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].xtaskid);
+	tempsql<<","<<std::to_string(record[i].dpid);
 	}
-	if(record[i].adminid==0){
+	if(record[i].grouptype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].adminid);
+	tempsql<<","<<std::to_string(record[i].grouptype);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].zhuchi)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].jilu)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].meetnotice)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].meetfiles)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].address)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].meettime)<<"'";
+	if(record[i].adminuserid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].adminuserid);
+	}
 	if(record[i].regdate==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].regdate);
 	}
-	if(record[i].expecttime==0){
+	if(record[i].begindate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].expecttime);
+	tempsql<<","<<std::to_string(record[i].begindate);
 	}
-	if(record[i].endtime==0){
+	if(record[i].expiredate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].endtime);
+	tempsql<<","<<std::to_string(record[i].expiredate);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].presents)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].postresult)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].postfiles)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].jiluphoto)<<"'";
+	if(record[i].isopen==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isopen);
+	}
+	if(record[i].clientid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].clientid);
+	}
+	if(record[i].totalnum==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].totalnum);
+	}
+	if(record[i].referdocverion==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].referdocverion);
+	}
+	if(record[i].xtheme==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].xtheme);
+	}
+	tempsql<<",'"<<stringaddslash(record[i].xlogo)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].introduce)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].giturl)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].gitname)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].gitpwd)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].xcolor)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].fupan)<<"'";
+	if(record[i].totalvalue==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].totalvalue);
+	}
+	if(record[i].expectday==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].expectday);
+	}
+	if(record[i].realday==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].realday);
+	}
 	tempsql<<")";
 
  }
@@ -809,58 +1092,99 @@ tempsql<<"`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].xmeetid==0){
+            	if(record[i].xpjid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].xmeetid);
+	tempsql<<std::to_string(record[i].xpjid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].xpjid==0){
+	if(record[i].prexpjid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].xpjid);
+	tempsql<<","<<std::to_string(record[i].prexpjid);
 	}
-	if(record[i].xtaskid==0){
+	if(record[i].dpid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].xtaskid);
+	tempsql<<","<<std::to_string(record[i].dpid);
 	}
-	if(record[i].adminid==0){
+	if(record[i].grouptype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].adminid);
+	tempsql<<","<<std::to_string(record[i].grouptype);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].zhuchi)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].jilu)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].meetnotice)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].meetfiles)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].address)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].meettime)<<"'";
+	if(record[i].adminuserid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].adminuserid);
+	}
 	if(record[i].regdate==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].regdate);
 	}
-	if(record[i].expecttime==0){
+	if(record[i].begindate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].expecttime);
+	tempsql<<","<<std::to_string(record[i].begindate);
 	}
-	if(record[i].endtime==0){
+	if(record[i].expiredate==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].endtime);
+	tempsql<<","<<std::to_string(record[i].expiredate);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].presents)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].postresult)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].postfiles)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].jiluphoto)<<"'";
+	if(record[i].isopen==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isopen);
+	}
+	if(record[i].clientid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].clientid);
+	}
+	if(record[i].totalnum==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].totalnum);
+	}
+	if(record[i].referdocverion==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].referdocverion);
+	}
+	if(record[i].xtheme==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].xtheme);
+	}
+	tempsql<<",'"<<stringaddslash(record[i].xlogo)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].introduce)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].giturl)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].gitname)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].gitpwd)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].xcolor)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].fupan)<<"'";
+	if(record[i].totalvalue==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].totalvalue);
+	}
+	if(record[i].expectday==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].expectday);
+	}
+	if(record[i].realday==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].realday);
+	}
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -941,10 +1265,10 @@ tempsql<<"`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.xmeetid==0){
+if(data.xpjid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.xmeetid));
+	temparray.push_back(std::to_string(data.xpjid));
 }
  break;
  case 1:
@@ -955,82 +1279,133 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.xpjid==0){
+if(data.prexpjid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.xpjid));
+	temparray.push_back(std::to_string(data.prexpjid));
 }
  break;
  case 3:
-if(data.xtaskid==0){
+if(data.dpid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.xtaskid));
+	temparray.push_back(std::to_string(data.dpid));
 }
  break;
  case 4:
-if(data.adminid==0){
+if(data.grouptype==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.adminid));
+	temparray.push_back(std::to_string(data.grouptype));
 }
  break;
  case 5:
 	temparray.push_back(data.title);
  break;
  case 6:
-	temparray.push_back(data.zhuchi);
+if(data.adminuserid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.adminuserid));
+}
  break;
  case 7:
-	temparray.push_back(data.jilu);
- break;
- case 8:
-	temparray.push_back(data.meetnotice);
- break;
- case 9:
-	temparray.push_back(data.meetfiles);
- break;
- case 10:
-	temparray.push_back(data.address);
- break;
- case 11:
-	temparray.push_back(data.meettime);
- break;
- case 12:
 if(data.regdate==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.regdate));
 }
  break;
- case 13:
-if(data.expecttime==0){
+ case 8:
+if(data.begindate==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.expecttime));
+	temparray.push_back(std::to_string(data.begindate));
+}
+ break;
+ case 9:
+if(data.expiredate==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.expiredate));
+}
+ break;
+ case 10:
+if(data.isopen==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.isopen));
+}
+ break;
+ case 11:
+if(data.clientid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.clientid));
+}
+ break;
+ case 12:
+if(data.totalnum==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.totalnum));
+}
+ break;
+ case 13:
+if(data.referdocverion==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.referdocverion));
 }
  break;
  case 14:
-if(data.endtime==0){
+if(data.xtheme==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.endtime));
+	temparray.push_back(std::to_string(data.xtheme));
 }
  break;
  case 15:
-	temparray.push_back(data.presents);
+	temparray.push_back(data.xlogo);
  break;
  case 16:
-	temparray.push_back(data.content);
+	temparray.push_back(data.introduce);
  break;
  case 17:
-	temparray.push_back(data.postresult);
+	temparray.push_back(data.giturl);
  break;
  case 18:
-	temparray.push_back(data.postfiles);
+	temparray.push_back(data.gitname);
  break;
  case 19:
-	temparray.push_back(data.jiluphoto);
+	temparray.push_back(data.gitpwd);
+ break;
+ case 20:
+	temparray.push_back(data.xcolor);
+ break;
+ case 21:
+	temparray.push_back(data.fupan);
+ break;
+ case 22:
+if(data.totalvalue==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.totalvalue));
+}
+ break;
+ case 23:
+if(data.expectday==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.expectday));
+}
+ break;
+ case 24:
+if(data.realday==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.realday));
+}
  break;
 
                              default:
@@ -1073,10 +1448,10 @@ if(data.endtime==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.xmeetid==0){
-	tempsql.insert({"xmeetid","0"});
+if(data.xpjid==0){
+	tempsql.insert({"xpjid","0"});
  }else{ 
-	tempsql.insert({"xmeetid",std::to_string(data.xmeetid)});
+	tempsql.insert({"xpjid",std::to_string(data.xpjid)});
 }
  break;
  case 1:
@@ -1087,82 +1462,133 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.xpjid==0){
-	tempsql.insert({"xpjid","0"});
+if(data.prexpjid==0){
+	tempsql.insert({"prexpjid","0"});
  }else{ 
-	tempsql.insert({"xpjid",std::to_string(data.xpjid)});
+	tempsql.insert({"prexpjid",std::to_string(data.prexpjid)});
 }
  break;
  case 3:
-if(data.xtaskid==0){
-	tempsql.insert({"xtaskid","0"});
+if(data.dpid==0){
+	tempsql.insert({"dpid","0"});
  }else{ 
-	tempsql.insert({"xtaskid",std::to_string(data.xtaskid)});
+	tempsql.insert({"dpid",std::to_string(data.dpid)});
 }
  break;
  case 4:
-if(data.adminid==0){
-	tempsql.insert({"adminid","0"});
+if(data.grouptype==0){
+	tempsql.insert({"grouptype","0"});
  }else{ 
-	tempsql.insert({"adminid",std::to_string(data.adminid)});
+	tempsql.insert({"grouptype",std::to_string(data.grouptype)});
 }
  break;
  case 5:
 	tempsql.insert({"title",data.title});
  break;
  case 6:
-	tempsql.insert({"zhuchi",data.zhuchi});
+if(data.adminuserid==0){
+	tempsql.insert({"adminuserid","0"});
+ }else{ 
+	tempsql.insert({"adminuserid",std::to_string(data.adminuserid)});
+}
  break;
  case 7:
-	tempsql.insert({"jilu",data.jilu});
- break;
- case 8:
-	tempsql.insert({"meetnotice",data.meetnotice});
- break;
- case 9:
-	tempsql.insert({"meetfiles",data.meetfiles});
- break;
- case 10:
-	tempsql.insert({"address",data.address});
- break;
- case 11:
-	tempsql.insert({"meettime",data.meettime});
- break;
- case 12:
 if(data.regdate==0){
 	tempsql.insert({"regdate","0"});
  }else{ 
 	tempsql.insert({"regdate",std::to_string(data.regdate)});
 }
  break;
- case 13:
-if(data.expecttime==0){
-	tempsql.insert({"expecttime","0"});
+ case 8:
+if(data.begindate==0){
+	tempsql.insert({"begindate","0"});
  }else{ 
-	tempsql.insert({"expecttime",std::to_string(data.expecttime)});
+	tempsql.insert({"begindate",std::to_string(data.begindate)});
+}
+ break;
+ case 9:
+if(data.expiredate==0){
+	tempsql.insert({"expiredate","0"});
+ }else{ 
+	tempsql.insert({"expiredate",std::to_string(data.expiredate)});
+}
+ break;
+ case 10:
+if(data.isopen==0){
+	tempsql.insert({"isopen","0"});
+ }else{ 
+	tempsql.insert({"isopen",std::to_string(data.isopen)});
+}
+ break;
+ case 11:
+if(data.clientid==0){
+	tempsql.insert({"clientid","0"});
+ }else{ 
+	tempsql.insert({"clientid",std::to_string(data.clientid)});
+}
+ break;
+ case 12:
+if(data.totalnum==0){
+	tempsql.insert({"totalnum","0"});
+ }else{ 
+	tempsql.insert({"totalnum",std::to_string(data.totalnum)});
+}
+ break;
+ case 13:
+if(data.referdocverion==0){
+	tempsql.insert({"referdocverion","0"});
+ }else{ 
+	tempsql.insert({"referdocverion",std::to_string(data.referdocverion)});
 }
  break;
  case 14:
-if(data.endtime==0){
-	tempsql.insert({"endtime","0"});
+if(data.xtheme==0){
+	tempsql.insert({"xtheme","0"});
  }else{ 
-	tempsql.insert({"endtime",std::to_string(data.endtime)});
+	tempsql.insert({"xtheme",std::to_string(data.xtheme)});
 }
  break;
  case 15:
-	tempsql.insert({"presents",data.presents});
+	tempsql.insert({"xlogo",data.xlogo});
  break;
  case 16:
-	tempsql.insert({"content",data.content});
+	tempsql.insert({"introduce",data.introduce});
  break;
  case 17:
-	tempsql.insert({"postresult",data.postresult});
+	tempsql.insert({"giturl",data.giturl});
  break;
  case 18:
-	tempsql.insert({"postfiles",data.postfiles});
+	tempsql.insert({"gitname",data.gitname});
  break;
  case 19:
-	tempsql.insert({"jiluphoto",data.jiluphoto});
+	tempsql.insert({"gitpwd",data.gitpwd});
+ break;
+ case 20:
+	tempsql.insert({"xcolor",data.xcolor});
+ break;
+ case 21:
+	tempsql.insert({"fupan",data.fupan});
+ break;
+ case 22:
+if(data.totalvalue==0){
+	tempsql.insert({"totalvalue","0"});
+ }else{ 
+	tempsql.insert({"totalvalue",std::to_string(data.totalvalue)});
+}
+ break;
+ case 23:
+if(data.expectday==0){
+	tempsql.insert({"expectday","0"});
+ }else{ 
+	tempsql.insert({"expectday",std::to_string(data.expectday)});
+}
+ break;
+ case 24:
+if(data.realday==0){
+	tempsql.insert({"realday","0"});
+ }else{ 
+	tempsql.insert({"realday",std::to_string(data.realday)});
+}
  break;
 
                              default:
@@ -1177,70 +1603,107 @@ if(data.endtime==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.xmeetid==0){
-	tempsql<<"\"xmeetid\":0";
+if(data.xpjid==0){
+	tempsql<<"\"xpjid\":0";
  }else{ 
-	tempsql<<"\"xmeetid\":"<<std::to_string(data.xmeetid);
+	tempsql<<"\"xpjid\":"<<std::to_string(data.xpjid);
 }
 if(data.userid==0){
 	tempsql<<",\"userid\":0";
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
-if(data.xpjid==0){
-	tempsql<<",\"xpjid\":0";
+if(data.prexpjid==0){
+	tempsql<<",\"prexpjid\":0";
  }else{ 
-	tempsql<<",\"xpjid\":"<<std::to_string(data.xpjid);
+	tempsql<<",\"prexpjid\":"<<std::to_string(data.prexpjid);
 }
-if(data.xtaskid==0){
-	tempsql<<",\"xtaskid\":0";
+if(data.dpid==0){
+	tempsql<<",\"dpid\":0";
  }else{ 
-	tempsql<<",\"xtaskid\":"<<std::to_string(data.xtaskid);
+	tempsql<<",\"dpid\":"<<std::to_string(data.dpid);
 }
-if(data.adminid==0){
-	tempsql<<",\"adminid\":0";
+if(data.grouptype==0){
+	tempsql<<",\"grouptype\":0";
  }else{ 
-	tempsql<<",\"adminid\":"<<std::to_string(data.adminid);
+	tempsql<<",\"grouptype\":"<<std::to_string(data.grouptype);
 }
 tempsql<<",\"title\":\""<<http::utf8_to_jsonstring(data.title);
 tempsql<<"\"";
-tempsql<<",\"zhuchi\":\""<<http::utf8_to_jsonstring(data.zhuchi);
-tempsql<<"\"";
-tempsql<<",\"jilu\":\""<<http::utf8_to_jsonstring(data.jilu);
-tempsql<<"\"";
-tempsql<<",\"meetnotice\":\""<<http::utf8_to_jsonstring(data.meetnotice);
-tempsql<<"\"";
-tempsql<<",\"meetfiles\":\""<<http::utf8_to_jsonstring(data.meetfiles);
-tempsql<<"\"";
-tempsql<<",\"address\":\""<<http::utf8_to_jsonstring(data.address);
-tempsql<<"\"";
-tempsql<<",\"meettime\":\""<<http::utf8_to_jsonstring(data.meettime);
-tempsql<<"\"";
+if(data.adminuserid==0){
+	tempsql<<",\"adminuserid\":0";
+ }else{ 
+	tempsql<<",\"adminuserid\":"<<std::to_string(data.adminuserid);
+}
 if(data.regdate==0){
 	tempsql<<",\"regdate\":0";
  }else{ 
 	tempsql<<",\"regdate\":"<<std::to_string(data.regdate);
 }
-if(data.expecttime==0){
-	tempsql<<",\"expecttime\":0";
+if(data.begindate==0){
+	tempsql<<",\"begindate\":0";
  }else{ 
-	tempsql<<",\"expecttime\":"<<std::to_string(data.expecttime);
+	tempsql<<",\"begindate\":"<<std::to_string(data.begindate);
 }
-if(data.endtime==0){
-	tempsql<<",\"endtime\":0";
+if(data.expiredate==0){
+	tempsql<<",\"expiredate\":0";
  }else{ 
-	tempsql<<",\"endtime\":"<<std::to_string(data.endtime);
+	tempsql<<",\"expiredate\":"<<std::to_string(data.expiredate);
 }
-tempsql<<",\"presents\":\""<<http::utf8_to_jsonstring(data.presents);
+if(data.isopen==0){
+	tempsql<<",\"isopen\":0";
+ }else{ 
+	tempsql<<",\"isopen\":"<<std::to_string(data.isopen);
+}
+if(data.clientid==0){
+	tempsql<<",\"clientid\":0";
+ }else{ 
+	tempsql<<",\"clientid\":"<<std::to_string(data.clientid);
+}
+if(data.totalnum==0){
+	tempsql<<",\"totalnum\":0";
+ }else{ 
+	tempsql<<",\"totalnum\":"<<std::to_string(data.totalnum);
+}
+if(data.referdocverion==0){
+	tempsql<<",\"referdocverion\":0";
+ }else{ 
+	tempsql<<",\"referdocverion\":"<<std::to_string(data.referdocverion);
+}
+if(data.xtheme==0){
+	tempsql<<",\"xtheme\":0";
+ }else{ 
+	tempsql<<",\"xtheme\":"<<std::to_string(data.xtheme);
+}
+tempsql<<",\"xlogo\":\""<<http::utf8_to_jsonstring(data.xlogo);
 tempsql<<"\"";
-tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
+tempsql<<",\"introduce\":\""<<http::utf8_to_jsonstring(data.introduce);
 tempsql<<"\"";
-tempsql<<",\"postresult\":\""<<http::utf8_to_jsonstring(data.postresult);
+tempsql<<",\"giturl\":\""<<http::utf8_to_jsonstring(data.giturl);
 tempsql<<"\"";
-tempsql<<",\"postfiles\":\""<<http::utf8_to_jsonstring(data.postfiles);
+tempsql<<",\"gitname\":\""<<http::utf8_to_jsonstring(data.gitname);
 tempsql<<"\"";
-tempsql<<",\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto);
+tempsql<<",\"gitpwd\":\""<<http::utf8_to_jsonstring(data.gitpwd);
 tempsql<<"\"";
+tempsql<<",\"xcolor\":\""<<http::utf8_to_jsonstring(data.xcolor);
+tempsql<<"\"";
+tempsql<<",\"fupan\":\""<<http::utf8_to_jsonstring(data.fupan);
+tempsql<<"\"";
+if(data.totalvalue==0){
+	tempsql<<",\"totalvalue\":0";
+ }else{ 
+	tempsql<<",\"totalvalue\":"<<std::to_string(data.totalvalue);
+}
+if(data.expectday==0){
+	tempsql<<",\"expectday\":0";
+ }else{ 
+	tempsql<<",\"expectday\":"<<std::to_string(data.expectday);
+}
+if(data.realday==0){
+	tempsql<<",\"realday\":0";
+ }else{ 
+	tempsql<<",\"realday\":"<<std::to_string(data.realday);
+}
 tempsql<<"}";
 
      
@@ -1280,10 +1743,10 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.xmeetid==0){
-	tempsql<<"\"xmeetid\":0";
+if(data.xpjid==0){
+	tempsql<<"\"xpjid\":0";
  }else{ 
-	tempsql<<"\"xmeetid\":"<<std::to_string(data.xmeetid);
+	tempsql<<"\"xpjid\":"<<std::to_string(data.xpjid);
 }
  break;
  case 1:
@@ -1296,26 +1759,26 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.xpjid==0){
-	tempsql<<"\"xpjid\":0";
+if(data.prexpjid==0){
+	tempsql<<"\"prexpjid\":0";
  }else{ 
-	tempsql<<"\"xpjid\":"<<std::to_string(data.xpjid);
+	tempsql<<"\"prexpjid\":"<<std::to_string(data.prexpjid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(data.xtaskid==0){
-	tempsql<<"\"xtaskid\":0";
+if(data.dpid==0){
+	tempsql<<"\"dpid\":0";
  }else{ 
-	tempsql<<"\"xtaskid\":"<<std::to_string(data.xtaskid);
+	tempsql<<"\"dpid\":"<<std::to_string(data.dpid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.adminid==0){
-	tempsql<<"\"adminid\":0";
+if(data.grouptype==0){
+	tempsql<<"\"grouptype\":0";
  }else{ 
-	tempsql<<"\"adminid\":"<<std::to_string(data.adminid);
+	tempsql<<"\"grouptype\":"<<std::to_string(data.grouptype);
 }
  break;
  case 5:
@@ -1324,29 +1787,13 @@ tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"zhuchi\":\""<<http::utf8_to_jsonstring(data.zhuchi)<<"\"";
+if(data.adminuserid==0){
+	tempsql<<"\"adminuserid\":0";
+ }else{ 
+	tempsql<<"\"adminuserid\":"<<std::to_string(data.adminuserid);
+}
  break;
  case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"jilu\":\""<<http::utf8_to_jsonstring(data.jilu)<<"\"";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meetnotice\":\""<<http::utf8_to_jsonstring(data.meetnotice)<<"\"";
- break;
- case 9:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meetfiles\":\""<<http::utf8_to_jsonstring(data.meetfiles)<<"\"";
- break;
- case 10:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(data.address)<<"\"";
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meettime\":\""<<http::utf8_to_jsonstring(data.meettime)<<"\"";
- break;
- case 12:
  if(jj>0){ tempsql<<","; } 
 if(data.regdate==0){
 	tempsql<<"\"regdate\":0";
@@ -1354,41 +1801,113 @@ if(data.regdate==0){
 	tempsql<<"\"regdate\":"<<std::to_string(data.regdate);
 }
  break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+if(data.begindate==0){
+	tempsql<<"\"begindate\":0";
+ }else{ 
+	tempsql<<"\"begindate\":"<<std::to_string(data.begindate);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+if(data.expiredate==0){
+	tempsql<<"\"expiredate\":0";
+ }else{ 
+	tempsql<<"\"expiredate\":"<<std::to_string(data.expiredate);
+}
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+if(data.isopen==0){
+	tempsql<<"\"isopen\":0";
+ }else{ 
+	tempsql<<"\"isopen\":"<<std::to_string(data.isopen);
+}
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+if(data.clientid==0){
+	tempsql<<"\"clientid\":0";
+ }else{ 
+	tempsql<<"\"clientid\":"<<std::to_string(data.clientid);
+}
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(data.totalnum==0){
+	tempsql<<"\"totalnum\":0";
+ }else{ 
+	tempsql<<"\"totalnum\":"<<std::to_string(data.totalnum);
+}
+ break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-if(data.expecttime==0){
-	tempsql<<"\"expecttime\":0";
+if(data.referdocverion==0){
+	tempsql<<"\"referdocverion\":0";
  }else{ 
-	tempsql<<"\"expecttime\":"<<std::to_string(data.expecttime);
+	tempsql<<"\"referdocverion\":"<<std::to_string(data.referdocverion);
 }
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-if(data.endtime==0){
-	tempsql<<"\"endtime\":0";
+if(data.xtheme==0){
+	tempsql<<"\"xtheme\":0";
  }else{ 
-	tempsql<<"\"endtime\":"<<std::to_string(data.endtime);
+	tempsql<<"\"xtheme\":"<<std::to_string(data.xtheme);
 }
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"presents\":\""<<http::utf8_to_jsonstring(data.presents)<<"\"";
+tempsql<<"\"xlogo\":\""<<http::utf8_to_jsonstring(data.xlogo)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
+tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(data.introduce)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"postresult\":\""<<http::utf8_to_jsonstring(data.postresult)<<"\"";
+tempsql<<"\"giturl\":\""<<http::utf8_to_jsonstring(data.giturl)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"postfiles\":\""<<http::utf8_to_jsonstring(data.postfiles)<<"\"";
+tempsql<<"\"gitname\":\""<<http::utf8_to_jsonstring(data.gitname)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
+tempsql<<"\"gitpwd\":\""<<http::utf8_to_jsonstring(data.gitpwd)<<"\"";
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"xcolor\":\""<<http::utf8_to_jsonstring(data.xcolor)<<"\"";
+ break;
+ case 21:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"fupan\":\""<<http::utf8_to_jsonstring(data.fupan)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+if(data.totalvalue==0){
+	tempsql<<"\"totalvalue\":0";
+ }else{ 
+	tempsql<<"\"totalvalue\":"<<std::to_string(data.totalvalue);
+}
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+if(data.expectday==0){
+	tempsql<<"\"expectday\":0";
+ }else{ 
+	tempsql<<"\"expectday\":"<<std::to_string(data.expectday);
+}
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+if(data.realday==0){
+	tempsql<<"\"realday\":0";
+ }else{ 
+	tempsql<<"\"realday\":"<<std::to_string(data.realday);
+}
  break;
 
                              default:
@@ -1402,7 +1921,7 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        xmeetbase::meta metatemp; 
+        xproject_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1639,9 +2158,9 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
         {
     		case 0:
 		 try{
-			data.xmeetid=std::stoul(set_value_name);
+			data.xpjid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.xmeetid=0;
+			data.xpjid=0;
 			 }
 			break;
 		case 1:
@@ -1653,23 +2172,23 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.xpjid=std::stoul(set_value_name);
+			data.prexpjid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.xpjid=0;
+			data.prexpjid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.xtaskid=std::stoul(set_value_name);
+			data.dpid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.xtaskid=0;
+			data.dpid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.adminid=std::stoul(set_value_name);
+			data.grouptype=std::stoul(set_value_name);
 		}catch (...) { 
-			data.adminid=0;
+			data.grouptype=0;
 			 }
 			break;
 		case 5:
@@ -1681,100 +2200,135 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
 			break;
 		case 6:
 		 try{
-			data.zhuchi.append(set_value_name);
+			data.adminuserid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.zhuchi.clear();
+			data.adminuserid=0;
 			 }
 			break;
 		case 7:
-		 try{
-			data.jilu.append(set_value_name);
-		}catch (...) { 
-			data.jilu.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.meetnotice.append(set_value_name);
-		}catch (...) { 
-			data.meetnotice.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.meetfiles.append(set_value_name);
-		}catch (...) { 
-			data.meetfiles.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.address.append(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.meettime.append(set_value_name);
-		}catch (...) { 
-			data.meettime.clear();
-			 }
-			break;
-		case 12:
 		 try{
 			data.regdate=std::stoul(set_value_name);
 		}catch (...) { 
 			data.regdate=0;
 			 }
 			break;
+		case 8:
+		 try{
+			data.begindate=std::stoul(set_value_name);
+		}catch (...) { 
+			data.begindate=0;
+			 }
+			break;
+		case 9:
+		 try{
+			data.expiredate=std::stoul(set_value_name);
+		}catch (...) { 
+			data.expiredate=0;
+			 }
+			break;
+		case 10:
+		 try{
+			data.isopen=std::stoi(set_value_name);
+		}catch (...) { 
+			data.isopen=0;
+			 }
+			break;
+		case 11:
+		 try{
+			data.clientid=std::stoul(set_value_name);
+		}catch (...) { 
+			data.clientid=0;
+			 }
+			break;
+		case 12:
+		 try{
+			data.totalnum=std::stoul(set_value_name);
+		}catch (...) { 
+			data.totalnum=0;
+			 }
+			break;
 		case 13:
 		 try{
-			data.expecttime=std::stoul(set_value_name);
+			data.referdocverion=std::stoul(set_value_name);
 		}catch (...) { 
-			data.expecttime=0;
+			data.referdocverion=0;
 			 }
 			break;
 		case 14:
 		 try{
-			data.endtime=std::stoul(set_value_name);
+			data.xtheme=std::stoul(set_value_name);
 		}catch (...) { 
-			data.endtime=0;
+			data.xtheme=0;
 			 }
 			break;
 		case 15:
 		 try{
-			data.presents.append(set_value_name);
+			data.xlogo.append(set_value_name);
 		}catch (...) { 
-			data.presents.clear();
+			data.xlogo.clear();
 			 }
 			break;
 		case 16:
 		 try{
-			data.content.append(set_value_name);
+			data.introduce.append(set_value_name);
 		}catch (...) { 
-			data.content.clear();
+			data.introduce.clear();
 			 }
 			break;
 		case 17:
 		 try{
-			data.postresult.append(set_value_name);
+			data.giturl.append(set_value_name);
 		}catch (...) { 
-			data.postresult.clear();
+			data.giturl.clear();
 			 }
 			break;
 		case 18:
 		 try{
-			data.postfiles.append(set_value_name);
+			data.gitname.append(set_value_name);
 		}catch (...) { 
-			data.postfiles.clear();
+			data.gitname.clear();
 			 }
 			break;
 		case 19:
 		 try{
-			data.jiluphoto.append(set_value_name);
+			data.gitpwd.append(set_value_name);
 		}catch (...) { 
-			data.jiluphoto.clear();
+			data.gitpwd.clear();
+			 }
+			break;
+		case 20:
+		 try{
+			data.xcolor.append(set_value_name);
+		}catch (...) { 
+			data.xcolor.clear();
+			 }
+			break;
+		case 21:
+		 try{
+			data.fupan.append(set_value_name);
+		}catch (...) { 
+			data.fupan.clear();
+			 }
+			break;
+		case 22:
+		 try{
+			data.totalvalue=std::stod(set_value_name);
+		}catch (...) { 
+			data.totalvalue=0.0;
+			 }
+			break;
+		case 23:
+		 try{
+			data.expectday=std::stof(set_value_name);
+		}catch (...) { 
+			data.expectday=0.0;
+			 }
+			break;
+		case 24:
+		 try{
+			data.realday=std::stof(set_value_name);
+		}catch (...) { 
+			data.realday=0.0;
 			 }
 			break;
 	default:
@@ -1791,9 +2345,9 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
         {
     		case 0:
 		 try{
-			data.xmeetid=set_value_name;
+			data.xpjid=set_value_name;
 		}catch (...) { 
-			data.xmeetid=0;
+			data.xpjid=0;
 			 }
 			break;
 		case 1:
@@ -1805,23 +2359,23 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.xpjid=set_value_name;
+			data.prexpjid=set_value_name;
 		}catch (...) { 
-			data.xpjid=0;
+			data.prexpjid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.xtaskid=set_value_name;
+			data.dpid=set_value_name;
 		}catch (...) { 
-			data.xtaskid=0;
+			data.dpid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.adminid=set_value_name;
+			data.grouptype=set_value_name;
 		}catch (...) { 
-			data.adminid=0;
+			data.grouptype=0;
 			 }
 			break;
 		case 5:
@@ -1833,100 +2387,135 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
 			break;
 		case 6:
 		 try{
-			data.zhuchi=std::to_string(set_value_name);
+			data.adminuserid=set_value_name;
 		}catch (...) { 
-			data.zhuchi.clear();
+			data.adminuserid=0;
 			 }
 			break;
 		case 7:
-		 try{
-			data.jilu=std::to_string(set_value_name);
-		}catch (...) { 
-			data.jilu.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.meetnotice=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meetnotice.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.meetfiles=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meetfiles.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.address=std::to_string(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.meettime=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meettime.clear();
-			 }
-			break;
-		case 12:
 		 try{
 			data.regdate=set_value_name;
 		}catch (...) { 
 			data.regdate=0;
 			 }
 			break;
+		case 8:
+		 try{
+			data.begindate=set_value_name;
+		}catch (...) { 
+			data.begindate=0;
+			 }
+			break;
+		case 9:
+		 try{
+			data.expiredate=set_value_name;
+		}catch (...) { 
+			data.expiredate=0;
+			 }
+			break;
+		case 10:
+		 try{
+			data.isopen=set_value_name;
+		}catch (...) { 
+			data.isopen=0;
+			 }
+			break;
+		case 11:
+		 try{
+			data.clientid=set_value_name;
+		}catch (...) { 
+			data.clientid=0;
+			 }
+			break;
+		case 12:
+		 try{
+			data.totalnum=set_value_name;
+		}catch (...) { 
+			data.totalnum=0;
+			 }
+			break;
 		case 13:
 		 try{
-			data.expecttime=set_value_name;
+			data.referdocverion=set_value_name;
 		}catch (...) { 
-			data.expecttime=0;
+			data.referdocverion=0;
 			 }
 			break;
 		case 14:
 		 try{
-			data.endtime=set_value_name;
+			data.xtheme=set_value_name;
 		}catch (...) { 
-			data.endtime=0;
+			data.xtheme=0;
 			 }
 			break;
 		case 15:
 		 try{
-			data.presents=std::to_string(set_value_name);
+			data.xlogo=std::to_string(set_value_name);
 		}catch (...) { 
-			data.presents.clear();
+			data.xlogo.clear();
 			 }
 			break;
 		case 16:
 		 try{
-			data.content=std::to_string(set_value_name);
+			data.introduce=std::to_string(set_value_name);
 		}catch (...) { 
-			data.content.clear();
+			data.introduce.clear();
 			 }
 			break;
 		case 17:
 		 try{
-			data.postresult=std::to_string(set_value_name);
+			data.giturl=std::to_string(set_value_name);
 		}catch (...) { 
-			data.postresult.clear();
+			data.giturl.clear();
 			 }
 			break;
 		case 18:
 		 try{
-			data.postfiles=std::to_string(set_value_name);
+			data.gitname=std::to_string(set_value_name);
 		}catch (...) { 
-			data.postfiles.clear();
+			data.gitname.clear();
 			 }
 			break;
 		case 19:
 		 try{
-			data.jiluphoto=std::to_string(set_value_name);
+			data.gitpwd=std::to_string(set_value_name);
 		}catch (...) { 
-			data.jiluphoto.clear();
+			data.gitpwd.clear();
+			 }
+			break;
+		case 20:
+		 try{
+			data.xcolor=std::to_string(set_value_name);
+		}catch (...) { 
+			data.xcolor.clear();
+			 }
+			break;
+		case 21:
+		 try{
+			data.fupan=std::to_string(set_value_name);
+		}catch (...) { 
+			data.fupan.clear();
+			 }
+			break;
+		case 22:
+		 try{
+			data.totalvalue=(double)set_value_name;
+		}catch (...) { 
+			data.totalvalue=0.0;
+			 }
+			break;
+		case 23:
+		 try{
+			data.expectday=set_value_name;
+		}catch (...) { 
+			data.expectday=0.0;
+			 }
+			break;
+		case 24:
+		 try{
+			data.realday=set_value_name;
+		}catch (...) { 
+			data.realday=0.0;
 			 }
 			break;
 	default:
@@ -1943,9 +2532,9 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
         {
     		case 0:
 		 try{
-			data.xmeetid=(unsigned int)set_value_name;
+			data.xpjid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.xmeetid=0;
+			data.xpjid=0;
 			 }
 			break;
 		case 1:
@@ -1957,23 +2546,23 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
 			break;
 		case 2:
 		 try{
-			data.xpjid=(unsigned int)set_value_name;
+			data.prexpjid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.xpjid=0;
+			data.prexpjid=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.xtaskid=(unsigned int)set_value_name;
+			data.dpid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.xtaskid=0;
+			data.dpid=0;
 			 }
 			break;
 		case 4:
 		 try{
-			data.adminid=(unsigned int)set_value_name;
+			data.grouptype=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.adminid=0;
+			data.grouptype=0;
 			 }
 			break;
 		case 5:
@@ -1985,100 +2574,135 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
 			break;
 		case 6:
 		 try{
-			data.zhuchi=std::to_string(set_value_name);
+			data.adminuserid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.zhuchi.clear();
+			data.adminuserid=0;
 			 }
 			break;
 		case 7:
-		 try{
-			data.jilu=std::to_string(set_value_name);
-		}catch (...) { 
-			data.jilu.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.meetnotice=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meetnotice.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.meetfiles=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meetfiles.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.address=std::to_string(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.meettime=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meettime.clear();
-			 }
-			break;
-		case 12:
 		 try{
 			data.regdate=(unsigned int)set_value_name;
 		}catch (...) { 
 			data.regdate=0;
 			 }
 			break;
+		case 8:
+		 try{
+			data.begindate=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.begindate=0;
+			 }
+			break;
+		case 9:
+		 try{
+			data.expiredate=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.expiredate=0;
+			 }
+			break;
+		case 10:
+		 try{
+			data.isopen=(int)set_value_name;
+		}catch (...) { 
+			data.isopen=0;
+			 }
+			break;
+		case 11:
+		 try{
+			data.clientid=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.clientid=0;
+			 }
+			break;
+		case 12:
+		 try{
+			data.totalnum=(unsigned int)set_value_name;
+		}catch (...) { 
+			data.totalnum=0;
+			 }
+			break;
 		case 13:
 		 try{
-			data.expecttime=(unsigned int)set_value_name;
+			data.referdocverion=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.expecttime=0;
+			data.referdocverion=0;
 			 }
 			break;
 		case 14:
 		 try{
-			data.endtime=(unsigned int)set_value_name;
+			data.xtheme=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.endtime=0;
+			data.xtheme=0;
 			 }
 			break;
 		case 15:
 		 try{
-			data.presents=std::to_string(set_value_name);
+			data.xlogo=std::to_string(set_value_name);
 		}catch (...) { 
-			data.presents.clear();
+			data.xlogo.clear();
 			 }
 			break;
 		case 16:
 		 try{
-			data.content=std::to_string(set_value_name);
+			data.introduce=std::to_string(set_value_name);
 		}catch (...) { 
-			data.content.clear();
+			data.introduce.clear();
 			 }
 			break;
 		case 17:
 		 try{
-			data.postresult=std::to_string(set_value_name);
+			data.giturl=std::to_string(set_value_name);
 		}catch (...) { 
-			data.postresult.clear();
+			data.giturl.clear();
 			 }
 			break;
 		case 18:
 		 try{
-			data.postfiles=std::to_string(set_value_name);
+			data.gitname=std::to_string(set_value_name);
 		}catch (...) { 
-			data.postfiles.clear();
+			data.gitname.clear();
 			 }
 			break;
 		case 19:
 		 try{
-			data.jiluphoto=std::to_string(set_value_name);
+			data.gitpwd=std::to_string(set_value_name);
 		}catch (...) { 
-			data.jiluphoto.clear();
+			data.gitpwd.clear();
+			 }
+			break;
+		case 20:
+		 try{
+			data.xcolor=std::to_string(set_value_name);
+		}catch (...) { 
+			data.xcolor.clear();
+			 }
+			break;
+		case 21:
+		 try{
+			data.fupan=std::to_string(set_value_name);
+		}catch (...) { 
+			data.fupan.clear();
+			 }
+			break;
+		case 22:
+		 try{
+			data.totalvalue=set_value_name;
+		}catch (...) { 
+			data.totalvalue=0.0;
+			 }
+			break;
+		case 23:
+		 try{
+			data.expectday=(float)set_value_name;
+		}catch (...) { 
+			data.expectday=0.0;
+			 }
+			break;
+		case 24:
+		 try{
+			data.realday=(float)set_value_name;
+		}catch (...) { 
+			data.realday=0.0;
 			 }
 			break;
 	default:
@@ -2129,10 +2753,10 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xmeetid==0){
-	tempsql<<"\"xmeetid\":0";
+if(record[n].xpjid==0){
+	tempsql<<"\"xpjid\":0";
  }else{ 
-	tempsql<<"\"xmeetid\":"<<std::to_string(record[n].xmeetid);
+	tempsql<<"\"xpjid\":"<<std::to_string(record[n].xpjid);
 }
  break;
  case 1:
@@ -2145,26 +2769,26 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xpjid==0){
-	tempsql<<"\"xpjid\":0";
+if(record[n].prexpjid==0){
+	tempsql<<"\"prexpjid\":0";
  }else{ 
-	tempsql<<"\"xpjid\":"<<std::to_string(record[n].xpjid);
+	tempsql<<"\"prexpjid\":"<<std::to_string(record[n].prexpjid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xtaskid==0){
-	tempsql<<"\"xtaskid\":0";
+if(record[n].dpid==0){
+	tempsql<<"\"dpid\":0";
  }else{ 
-	tempsql<<"\"xtaskid\":"<<std::to_string(record[n].xtaskid);
+	tempsql<<"\"dpid\":"<<std::to_string(record[n].dpid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].adminid==0){
-	tempsql<<"\"adminid\":0";
+if(record[n].grouptype==0){
+	tempsql<<"\"grouptype\":0";
  }else{ 
-	tempsql<<"\"adminid\":"<<std::to_string(record[n].adminid);
+	tempsql<<"\"grouptype\":"<<std::to_string(record[n].grouptype);
 }
  break;
  case 5:
@@ -2173,29 +2797,13 @@ tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"zhuchi\":\""<<http::utf8_to_jsonstring(record[n].zhuchi)<<"\"";
+if(record[n].adminuserid==0){
+	tempsql<<"\"adminuserid\":0";
+ }else{ 
+	tempsql<<"\"adminuserid\":"<<std::to_string(record[n].adminuserid);
+}
  break;
  case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"jilu\":\""<<http::utf8_to_jsonstring(record[n].jilu)<<"\"";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meetnotice\":\""<<http::utf8_to_jsonstring(record[n].meetnotice)<<"\"";
- break;
- case 9:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meetfiles\":\""<<http::utf8_to_jsonstring(record[n].meetfiles)<<"\"";
- break;
- case 10:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(record[n].address)<<"\"";
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meettime\":\""<<http::utf8_to_jsonstring(record[n].meettime)<<"\"";
- break;
- case 12:
  if(jj>0){ tempsql<<","; } 
 if(record[n].regdate==0){
 	tempsql<<"\"regdate\":0";
@@ -2203,41 +2811,113 @@ if(record[n].regdate==0){
 	tempsql<<"\"regdate\":"<<std::to_string(record[n].regdate);
 }
  break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].begindate==0){
+	tempsql<<"\"begindate\":0";
+ }else{ 
+	tempsql<<"\"begindate\":"<<std::to_string(record[n].begindate);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].expiredate==0){
+	tempsql<<"\"expiredate\":0";
+ }else{ 
+	tempsql<<"\"expiredate\":"<<std::to_string(record[n].expiredate);
+}
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].isopen==0){
+	tempsql<<"\"isopen\":0";
+ }else{ 
+	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
+}
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].clientid==0){
+	tempsql<<"\"clientid\":0";
+ }else{ 
+	tempsql<<"\"clientid\":"<<std::to_string(record[n].clientid);
+}
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].totalnum==0){
+	tempsql<<"\"totalnum\":0";
+ }else{ 
+	tempsql<<"\"totalnum\":"<<std::to_string(record[n].totalnum);
+}
+ break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-if(record[n].expecttime==0){
-	tempsql<<"\"expecttime\":0";
+if(record[n].referdocverion==0){
+	tempsql<<"\"referdocverion\":0";
  }else{ 
-	tempsql<<"\"expecttime\":"<<std::to_string(record[n].expecttime);
+	tempsql<<"\"referdocverion\":"<<std::to_string(record[n].referdocverion);
 }
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-if(record[n].endtime==0){
-	tempsql<<"\"endtime\":0";
+if(record[n].xtheme==0){
+	tempsql<<"\"xtheme\":0";
  }else{ 
-	tempsql<<"\"endtime\":"<<std::to_string(record[n].endtime);
+	tempsql<<"\"xtheme\":"<<std::to_string(record[n].xtheme);
 }
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"presents\":\""<<http::utf8_to_jsonstring(record[n].presents)<<"\"";
+tempsql<<"\"xlogo\":\""<<http::utf8_to_jsonstring(record[n].xlogo)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
+tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(record[n].introduce)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"postresult\":\""<<http::utf8_to_jsonstring(record[n].postresult)<<"\"";
+tempsql<<"\"giturl\":\""<<http::utf8_to_jsonstring(record[n].giturl)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"postfiles\":\""<<http::utf8_to_jsonstring(record[n].postfiles)<<"\"";
+tempsql<<"\"gitname\":\""<<http::utf8_to_jsonstring(record[n].gitname)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(record[n].jiluphoto)<<"\"";
+tempsql<<"\"gitpwd\":\""<<http::utf8_to_jsonstring(record[n].gitpwd)<<"\"";
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"xcolor\":\""<<http::utf8_to_jsonstring(record[n].xcolor)<<"\"";
+ break;
+ case 21:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"fupan\":\""<<http::utf8_to_jsonstring(record[n].fupan)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].totalvalue==0){
+	tempsql<<"\"totalvalue\":0";
+ }else{ 
+	tempsql<<"\"totalvalue\":"<<std::to_string(record[n].totalvalue);
+}
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].expectday==0){
+	tempsql<<"\"expectday\":0";
+ }else{ 
+	tempsql<<"\"expectday\":"<<std::to_string(record[n].expectday);
+}
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].realday==0){
+	tempsql<<"\"realday\":0";
+ }else{ 
+	tempsql<<"\"realday\":"<<std::to_string(record[n].realday);
+}
  break;
 
                              default:
@@ -2297,10 +2977,10 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(record[n].jiluphoto)<<"\""
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xmeetid==0){
-	tempsql<<"\"xmeetid\":0";
+if(record[n].xpjid==0){
+	tempsql<<"\"xpjid\":0";
  }else{ 
-	tempsql<<"\"xmeetid\":"<<std::to_string(record[n].xmeetid);
+	tempsql<<"\"xpjid\":"<<std::to_string(record[n].xpjid);
 }
  break;
  case 1:
@@ -2313,26 +2993,26 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xpjid==0){
-	tempsql<<"\"xpjid\":0";
+if(record[n].prexpjid==0){
+	tempsql<<"\"prexpjid\":0";
  }else{ 
-	tempsql<<"\"xpjid\":"<<std::to_string(record[n].xpjid);
+	tempsql<<"\"prexpjid\":"<<std::to_string(record[n].prexpjid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-if(record[n].xtaskid==0){
-	tempsql<<"\"xtaskid\":0";
+if(record[n].dpid==0){
+	tempsql<<"\"dpid\":0";
  }else{ 
-	tempsql<<"\"xtaskid\":"<<std::to_string(record[n].xtaskid);
+	tempsql<<"\"dpid\":"<<std::to_string(record[n].dpid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].adminid==0){
-	tempsql<<"\"adminid\":0";
+if(record[n].grouptype==0){
+	tempsql<<"\"grouptype\":0";
  }else{ 
-	tempsql<<"\"adminid\":"<<std::to_string(record[n].adminid);
+	tempsql<<"\"grouptype\":"<<std::to_string(record[n].grouptype);
 }
  break;
  case 5:
@@ -2341,29 +3021,13 @@ tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"zhuchi\":\""<<http::utf8_to_jsonstring(record[n].zhuchi)<<"\"";
+if(record[n].adminuserid==0){
+	tempsql<<"\"adminuserid\":0";
+ }else{ 
+	tempsql<<"\"adminuserid\":"<<std::to_string(record[n].adminuserid);
+}
  break;
  case 7:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"jilu\":\""<<http::utf8_to_jsonstring(record[n].jilu)<<"\"";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meetnotice\":\""<<http::utf8_to_jsonstring(record[n].meetnotice)<<"\"";
- break;
- case 9:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meetfiles\":\""<<http::utf8_to_jsonstring(record[n].meetfiles)<<"\"";
- break;
- case 10:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(record[n].address)<<"\"";
- break;
- case 11:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"meettime\":\""<<http::utf8_to_jsonstring(record[n].meettime)<<"\"";
- break;
- case 12:
  if(jj>0){ tempsql<<","; } 
 if(record[n].regdate==0){
 	tempsql<<"\"regdate\":0";
@@ -2371,41 +3035,113 @@ if(record[n].regdate==0){
 	tempsql<<"\"regdate\":"<<std::to_string(record[n].regdate);
 }
  break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].begindate==0){
+	tempsql<<"\"begindate\":0";
+ }else{ 
+	tempsql<<"\"begindate\":"<<std::to_string(record[n].begindate);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].expiredate==0){
+	tempsql<<"\"expiredate\":0";
+ }else{ 
+	tempsql<<"\"expiredate\":"<<std::to_string(record[n].expiredate);
+}
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].isopen==0){
+	tempsql<<"\"isopen\":0";
+ }else{ 
+	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
+}
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].clientid==0){
+	tempsql<<"\"clientid\":0";
+ }else{ 
+	tempsql<<"\"clientid\":"<<std::to_string(record[n].clientid);
+}
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].totalnum==0){
+	tempsql<<"\"totalnum\":0";
+ }else{ 
+	tempsql<<"\"totalnum\":"<<std::to_string(record[n].totalnum);
+}
+ break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-if(record[n].expecttime==0){
-	tempsql<<"\"expecttime\":0";
+if(record[n].referdocverion==0){
+	tempsql<<"\"referdocverion\":0";
  }else{ 
-	tempsql<<"\"expecttime\":"<<std::to_string(record[n].expecttime);
+	tempsql<<"\"referdocverion\":"<<std::to_string(record[n].referdocverion);
 }
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-if(record[n].endtime==0){
-	tempsql<<"\"endtime\":0";
+if(record[n].xtheme==0){
+	tempsql<<"\"xtheme\":0";
  }else{ 
-	tempsql<<"\"endtime\":"<<std::to_string(record[n].endtime);
+	tempsql<<"\"xtheme\":"<<std::to_string(record[n].xtheme);
 }
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"presents\":\""<<http::utf8_to_jsonstring(record[n].presents)<<"\"";
+tempsql<<"\"xlogo\":\""<<http::utf8_to_jsonstring(record[n].xlogo)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
+tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(record[n].introduce)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"postresult\":\""<<http::utf8_to_jsonstring(record[n].postresult)<<"\"";
+tempsql<<"\"giturl\":\""<<http::utf8_to_jsonstring(record[n].giturl)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"postfiles\":\""<<http::utf8_to_jsonstring(record[n].postfiles)<<"\"";
+tempsql<<"\"gitname\":\""<<http::utf8_to_jsonstring(record[n].gitname)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(record[n].jiluphoto)<<"\"";
+tempsql<<"\"gitpwd\":\""<<http::utf8_to_jsonstring(record[n].gitpwd)<<"\"";
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"xcolor\":\""<<http::utf8_to_jsonstring(record[n].xcolor)<<"\"";
+ break;
+ case 21:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"fupan\":\""<<http::utf8_to_jsonstring(record[n].fupan)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].totalvalue==0){
+	tempsql<<"\"totalvalue\":0";
+ }else{ 
+	tempsql<<"\"totalvalue\":"<<std::to_string(record[n].totalvalue);
+}
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].expectday==0){
+	tempsql<<"\"expectday\":0";
+ }else{ 
+	tempsql<<"\"expectday\":"<<std::to_string(record[n].expectday);
+}
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].realday==0){
+	tempsql<<"\"realday\":0";
+ }else{ 
+	tempsql<<"\"realday\":"<<std::to_string(record[n].realday);
+}
  break;
 
                              default:
@@ -2417,100 +3153,107 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(record[n].jiluphoto)<<"\""
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.xmeetid; } 
- void setPK(long long val){  data.xmeetid=val;} 
- unsigned  int  getXmeetid(){  return data.xmeetid; } 
- void setXmeetid( unsigned  int  val){  data.xmeetid=val;} 
+   long long getPK(){  return data.xpjid; } 
+ void setPK(long long val){  data.xpjid=val;} 
+ unsigned  int  getXpjid(){  return data.xpjid; } 
+ void setXpjid( unsigned  int  val){  data.xpjid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
  void setUserid( unsigned  int  val){  data.userid=val;} 
 
- unsigned  int  getXpjid(){  return data.xpjid; } 
- void setXpjid( unsigned  int  val){  data.xpjid=val;} 
+ unsigned  int  getPrexpjid(){  return data.prexpjid; } 
+ void setPrexpjid( unsigned  int  val){  data.prexpjid=val;} 
 
- unsigned  int  getXtaskid(){  return data.xtaskid; } 
- void setXtaskid( unsigned  int  val){  data.xtaskid=val;} 
+ unsigned  int  getDpid(){  return data.dpid; } 
+ void setDpid( unsigned  int  val){  data.dpid=val;} 
 
- unsigned  int  getAdminid(){  return data.adminid; } 
- void setAdminid( unsigned  int  val){  data.adminid=val;} 
+ unsigned  int  getGrouptype(){  return data.grouptype; } 
+ void setGrouptype( unsigned  int  val){  data.grouptype=val;} 
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 
  void setTitle( std::string  &val){  data.title=val;} 
  void setTitle(std::string_view val){  data.title=val;} 
 
- std::string  getZhuchi(){  return data.zhuchi; } 
- std::string & getRefZhuchi(){  return std::ref(data.zhuchi); } 
- void setZhuchi( std::string  &val){  data.zhuchi=val;} 
- void setZhuchi(std::string_view val){  data.zhuchi=val;} 
-
- std::string  getJilu(){  return data.jilu; } 
- std::string & getRefJilu(){  return std::ref(data.jilu); } 
- void setJilu( std::string  &val){  data.jilu=val;} 
- void setJilu(std::string_view val){  data.jilu=val;} 
-
- std::string  getMeetnotice(){  return data.meetnotice; } 
- std::string & getRefMeetnotice(){  return std::ref(data.meetnotice); } 
- void setMeetnotice( std::string  &val){  data.meetnotice=val;} 
- void setMeetnotice(std::string_view val){  data.meetnotice=val;} 
-
- std::string  getMeetfiles(){  return data.meetfiles; } 
- std::string & getRefMeetfiles(){  return std::ref(data.meetfiles); } 
- void setMeetfiles( std::string  &val){  data.meetfiles=val;} 
- void setMeetfiles(std::string_view val){  data.meetfiles=val;} 
-
- std::string  getAddress(){  return data.address; } 
- std::string & getRefAddress(){  return std::ref(data.address); } 
- void setAddress( std::string  &val){  data.address=val;} 
- void setAddress(std::string_view val){  data.address=val;} 
-
- std::string  getMeettime(){  return data.meettime; } 
- std::string & getRefMeettime(){  return std::ref(data.meettime); } 
- void setMeettime( std::string  &val){  data.meettime=val;} 
- void setMeettime(std::string_view val){  data.meettime=val;} 
+ unsigned  int  getAdminuserid(){  return data.adminuserid; } 
+ void setAdminuserid( unsigned  int  val){  data.adminuserid=val;} 
 
  unsigned  int  getRegdate(){  return data.regdate; } 
  void setRegdate( unsigned  int  val){  data.regdate=val;} 
 
- unsigned  int  getExpecttime(){  return data.expecttime; } 
- void setExpecttime( unsigned  int  val){  data.expecttime=val;} 
+ unsigned  int  getBegindate(){  return data.begindate; } 
+ void setBegindate( unsigned  int  val){  data.begindate=val;} 
 
- unsigned  int  getEndtime(){  return data.endtime; } 
- void setEndtime( unsigned  int  val){  data.endtime=val;} 
+ unsigned  int  getExpiredate(){  return data.expiredate; } 
+ void setExpiredate( unsigned  int  val){  data.expiredate=val;} 
 
- std::string  getPresents(){  return data.presents; } 
- std::string & getRefPresents(){  return std::ref(data.presents); } 
- void setPresents( std::string  &val){  data.presents=val;} 
- void setPresents(std::string_view val){  data.presents=val;} 
+ char  getIsopen(){  return data.isopen; } 
+ void setIsopen( char  val){  data.isopen=val;} 
 
- std::string  getContent(){  return data.content; } 
- std::string & getRefContent(){  return std::ref(data.content); } 
- void setContent( std::string  &val){  data.content=val;} 
- void setContent(std::string_view val){  data.content=val;} 
+ unsigned  int  getClientid(){  return data.clientid; } 
+ void setClientid( unsigned  int  val){  data.clientid=val;} 
 
- std::string  getPostresult(){  return data.postresult; } 
- std::string & getRefPostresult(){  return std::ref(data.postresult); } 
- void setPostresult( std::string  &val){  data.postresult=val;} 
- void setPostresult(std::string_view val){  data.postresult=val;} 
+ unsigned  int  getTotalnum(){  return data.totalnum; } 
+ void setTotalnum( unsigned  int  val){  data.totalnum=val;} 
 
- std::string  getPostfiles(){  return data.postfiles; } 
- std::string & getRefPostfiles(){  return std::ref(data.postfiles); } 
- void setPostfiles( std::string  &val){  data.postfiles=val;} 
- void setPostfiles(std::string_view val){  data.postfiles=val;} 
+ unsigned  int  getReferdocverion(){  return data.referdocverion; } 
+ void setReferdocverion( unsigned  int  val){  data.referdocverion=val;} 
 
- std::string  getJiluphoto(){  return data.jiluphoto; } 
- std::string & getRefJiluphoto(){  return std::ref(data.jiluphoto); } 
- void setJiluphoto( std::string  &val){  data.jiluphoto=val;} 
- void setJiluphoto(std::string_view val){  data.jiluphoto=val;} 
+ unsigned  int  getXtheme(){  return data.xtheme; } 
+ void setXtheme( unsigned  int  val){  data.xtheme=val;} 
 
-xmeetbase::meta getnewData(){
+ std::string  getXlogo(){  return data.xlogo; } 
+ std::string & getRefXlogo(){  return std::ref(data.xlogo); } 
+ void setXlogo( std::string  &val){  data.xlogo=val;} 
+ void setXlogo(std::string_view val){  data.xlogo=val;} 
+
+ std::string  getIntroduce(){  return data.introduce; } 
+ std::string & getRefIntroduce(){  return std::ref(data.introduce); } 
+ void setIntroduce( std::string  &val){  data.introduce=val;} 
+ void setIntroduce(std::string_view val){  data.introduce=val;} 
+
+ std::string  getGiturl(){  return data.giturl; } 
+ std::string & getRefGiturl(){  return std::ref(data.giturl); } 
+ void setGiturl( std::string  &val){  data.giturl=val;} 
+ void setGiturl(std::string_view val){  data.giturl=val;} 
+
+ std::string  getGitname(){  return data.gitname; } 
+ std::string & getRefGitname(){  return std::ref(data.gitname); } 
+ void setGitname( std::string  &val){  data.gitname=val;} 
+ void setGitname(std::string_view val){  data.gitname=val;} 
+
+ std::string  getGitpwd(){  return data.gitpwd; } 
+ std::string & getRefGitpwd(){  return std::ref(data.gitpwd); } 
+ void setGitpwd( std::string  &val){  data.gitpwd=val;} 
+ void setGitpwd(std::string_view val){  data.gitpwd=val;} 
+
+ std::string  getXcolor(){  return data.xcolor; } 
+ std::string & getRefXcolor(){  return std::ref(data.xcolor); } 
+ void setXcolor( std::string  &val){  data.xcolor=val;} 
+ void setXcolor(std::string_view val){  data.xcolor=val;} 
+
+ std::string  getFupan(){  return data.fupan; } 
+ std::string & getRefFupan(){  return std::ref(data.fupan); } 
+ void setFupan( std::string  &val){  data.fupan=val;} 
+ void setFupan(std::string_view val){  data.fupan=val;} 
+
+ double  getTotalvalue(){  return data.totalvalue; } 
+ void setTotalvalue( double  val){  data.totalvalue=val;} 
+
+ float  getExpectday(){  return data.expectday; } 
+ void setExpectday( float  val){  data.expectday=val;} 
+
+ float  getRealday(){  return data.realday; } 
+ void setRealday( float  val){  data.realday=val;} 
+
+xproject_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-xmeetbase::meta getData(){
+xproject_base::meta getData(){
  	 return data; 
 } 
-std::vector<xmeetbase::meta> getRecord(){
+std::vector<xproject_base::meta> getRecord(){
  	 return record; 
 } 
 
@@ -2522,49 +3265,33 @@ std::vector<xmeetbase::meta> getRecord(){
 		{
 			return data.title;
 		}
-		 if(key_name=="zhuchi")
+		 if(key_name=="xlogo")
 		{
-			return data.zhuchi;
+			return data.xlogo;
 		}
-		 if(key_name=="jilu")
+		 if(key_name=="introduce")
 		{
-			return data.jilu;
+			return data.introduce;
 		}
-		 if(key_name=="meetnotice")
+		 if(key_name=="giturl")
 		{
-			return data.meetnotice;
+			return data.giturl;
 		}
-		 if(key_name=="meetfiles")
+		 if(key_name=="gitname")
 		{
-			return data.meetfiles;
+			return data.gitname;
 		}
-		 if(key_name=="address")
+		 if(key_name=="gitpwd")
 		{
-			return data.address;
+			return data.gitpwd;
 		}
-		 if(key_name=="meettime")
+		 if(key_name=="xcolor")
 		{
-			return data.meettime;
+			return data.xcolor;
 		}
-		 if(key_name=="presents")
+		 if(key_name=="fupan")
 		{
-			return data.presents;
-		}
-		 if(key_name=="content")
-		{
-			return data.content;
-		}
-		 if(key_name=="postresult")
-		{
-			return data.postresult;
-		}
-		 if(key_name=="postfiles")
-		{
-			return data.postfiles;
-		}
-		 if(key_name=="jiluphoto")
-		{
-			return data.jiluphoto;
+			return data.fupan;
 		}
 		return nullptr; 
 	}
@@ -2573,37 +3300,61 @@ std::vector<xmeetbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="xmeetid")
+   		 if(key_name=="xpjid")
 		{
-			return data.xmeetid;
+			return data.xpjid;
 		}
 		 if(key_name=="userid")
 		{
 			return data.userid;
 		}
-		 if(key_name=="xpjid")
+		 if(key_name=="prexpjid")
 		{
-			return data.xpjid;
+			return data.prexpjid;
 		}
-		 if(key_name=="xtaskid")
+		 if(key_name=="dpid")
 		{
-			return data.xtaskid;
+			return data.dpid;
 		}
-		 if(key_name=="adminid")
+		 if(key_name=="grouptype")
 		{
-			return data.adminid;
+			return data.grouptype;
+		}
+		 if(key_name=="adminuserid")
+		{
+			return data.adminuserid;
 		}
 		 if(key_name=="regdate")
 		{
 			return data.regdate;
 		}
-		 if(key_name=="expecttime")
+		 if(key_name=="begindate")
 		{
-			return data.expecttime;
+			return data.begindate;
 		}
-		 if(key_name=="endtime")
+		 if(key_name=="expiredate")
 		{
-			return data.endtime;
+			return data.expiredate;
+		}
+		 if(key_name=="isopen")
+		{
+			return data.isopen;
+		}
+		 if(key_name=="clientid")
+		{
+			return data.clientid;
+		}
+		 if(key_name=="totalnum")
+		{
+			return data.totalnum;
+		}
+		 if(key_name=="referdocverion")
+		{
+			return data.referdocverion;
+		}
+		 if(key_name=="xtheme")
+		{
+			return data.xtheme;
 		}
 		return nullptr; 
 	}
@@ -2612,7 +3363,19 @@ std::vector<xmeetbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		return nullptr; 
+   		 if(key_name=="totalvalue")
+		{
+			return data.totalvalue;
+		}
+		 if(key_name=="expectday")
+		{
+			return data.expectday;
+		}
+		 if(key_name=="realday")
+		{
+			return data.realday;
+		}
+		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
@@ -2628,28 +3391,46 @@ std::vector<xmeetbase::meta> getRecord(){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.xmeetid);
+ 				 a.emplace_back(iter.xpjid);
 				 break;
 			case 1: 
  				 a.emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a.emplace_back(iter.xpjid);
+ 				 a.emplace_back(iter.prexpjid);
 				 break;
 			case 3: 
- 				 a.emplace_back(iter.xtaskid);
+ 				 a.emplace_back(iter.dpid);
 				 break;
 			case 4: 
- 				 a.emplace_back(iter.adminid);
+ 				 a.emplace_back(iter.grouptype);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a.emplace_back(iter.adminuserid);
+				 break;
+			case 7: 
  				 a.emplace_back(iter.regdate);
 				 break;
+			case 8: 
+ 				 a.emplace_back(iter.begindate);
+				 break;
+			case 9: 
+ 				 a.emplace_back(iter.expiredate);
+				 break;
+			case 10: 
+ 				 a.emplace_back(iter.isopen);
+				 break;
+			case 11: 
+ 				 a.emplace_back(iter.clientid);
+				 break;
+			case 12: 
+ 				 a.emplace_back(iter.totalnum);
+				 break;
 			case 13: 
- 				 a.emplace_back(iter.expecttime);
+ 				 a.emplace_back(iter.referdocverion);
 				 break;
 			case 14: 
- 				 a.emplace_back(iter.endtime);
+ 				 a.emplace_back(iter.xtheme);
 				 break;
 
                     }
@@ -2664,6 +3445,26 @@ std::vector<xmeetbase::meta> getRecord(){
 				std::vector<T> a;
 				
 
+                unsigned char kpos;
+				kpos = findcolpos(keyname);  
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+			case 22: 
+ 					 a.emplace_back(iter.totalvalue);
+			 break;
+			case 23: 
+ 					 a.emplace_back(iter.expectday);
+			 break;
+			case 24: 
+ 					 a.emplace_back(iter.realday);
+			 break;
+
+                    }
+                }
+    
                 return a;
             }
     
@@ -2677,35 +3478,53 @@ std::vector<xmeetbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 return data.xmeetid;
+ 				 return data.xpjid;
 				 break;
 			case 1: 
  				 return data.userid;
 				 break;
 			case 2: 
- 				 return data.xpjid;
+ 				 return data.prexpjid;
 				 break;
 			case 3: 
- 				 return data.xtaskid;
+ 				 return data.dpid;
 				 break;
 			case 4: 
- 				 return data.adminid;
+ 				 return data.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 return data.adminuserid;
+				 break;
+			case 7: 
  				 return data.regdate;
 				 break;
+			case 8: 
+ 				 return data.begindate;
+				 break;
+			case 9: 
+ 				 return data.expiredate;
+				 break;
+			case 10: 
+ 				 return data.isopen;
+				 break;
+			case 11: 
+ 				 return data.clientid;
+				 break;
+			case 12: 
+ 				 return data.totalnum;
+				 break;
 			case 13: 
- 				 return data.expecttime;
+ 				 return data.referdocverion;
 				 break;
 			case 14: 
- 				 return data.endtime;
+ 				 return data.xtheme;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] xmeetbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] xproject_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2714,28 +3533,46 @@ std::vector<xmeetbase::meta> getRecord(){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.xmeetid;
+ 				 return iter.xpjid;
 				 break;
 			case 1: 
  				 return iter.userid;
 				 break;
 			case 2: 
- 				 return iter.xpjid;
+ 				 return iter.prexpjid;
 				 break;
 			case 3: 
- 				 return iter.xtaskid;
+ 				 return iter.dpid;
 				 break;
 			case 4: 
- 				 return iter.adminid;
+ 				 return iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 return iter.adminuserid;
+				 break;
+			case 7: 
  				 return iter.regdate;
 				 break;
+			case 8: 
+ 				 return iter.begindate;
+				 break;
+			case 9: 
+ 				 return iter.expiredate;
+				 break;
+			case 10: 
+ 				 return iter.isopen;
+				 break;
+			case 11: 
+ 				 return iter.clientid;
+				 break;
+			case 12: 
+ 				 return iter.totalnum;
+				 break;
 			case 13: 
- 				 return iter.expecttime;
+ 				 return iter.referdocverion;
 				 break;
 			case 14: 
- 				 return iter.endtime;
+ 				 return iter.xtheme;
 				 break;
 
 			}
@@ -2752,7 +3589,16 @@ std::vector<xmeetbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-    
+    			case 22: 
+ 				 return data.totalvalue;
+				 break;
+			case 23: 
+ 				 return data.expectday;
+				 break;
+			case 24: 
+ 				 return data.realday;
+				 break;
+
                     }
                    
     
@@ -2760,13 +3606,22 @@ std::vector<xmeetbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] xmeetbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] xproject_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
                 switch(kpos)
                 {
-   
+   			case 22: 
+ 				 return iter.totalvalue;
+				 break;
+			case 23: 
+ 				 return iter.expectday;
+				 break;
+			case 24: 
+ 				 return iter.realday;
+				 break;
+
                 }
                  
     
@@ -2786,38 +3641,26 @@ std::vector<xmeetbase::meta> getRecord(){
    			case 5: 
  				 return data.title;
 				 break;
-			case 6: 
- 				 return data.zhuchi;
-				 break;
-			case 7: 
- 				 return data.jilu;
-				 break;
-			case 8: 
- 				 return data.meetnotice;
-				 break;
-			case 9: 
- 				 return data.meetfiles;
-				 break;
-			case 10: 
- 				 return data.address;
-				 break;
-			case 11: 
- 				 return data.meettime;
-				 break;
 			case 15: 
- 				 return data.presents;
+ 				 return data.xlogo;
 				 break;
 			case 16: 
- 				 return data.content;
+ 				 return data.introduce;
 				 break;
 			case 17: 
- 				 return data.postresult;
+ 				 return data.giturl;
 				 break;
 			case 18: 
- 				 return data.postfiles;
+ 				 return data.gitname;
 				 break;
 			case 19: 
- 				 return data.jiluphoto;
+ 				 return data.gitpwd;
+				 break;
+			case 20: 
+ 				 return data.xcolor;
+				 break;
+			case 21: 
+ 				 return data.fupan;
 				 break;
 
                 }
@@ -2825,7 +3668,7 @@ std::vector<xmeetbase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] xmeetbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] xproject_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2837,38 +3680,26 @@ std::vector<xmeetbase::meta> getRecord(){
    			case 5: 
  				 return iter.title;
 				 break;
-			case 6: 
- 				 return iter.zhuchi;
-				 break;
-			case 7: 
- 				 return iter.jilu;
-				 break;
-			case 8: 
- 				 return iter.meetnotice;
-				 break;
-			case 9: 
- 				 return iter.meetfiles;
-				 break;
-			case 10: 
- 				 return iter.address;
-				 break;
-			case 11: 
- 				 return iter.meettime;
-				 break;
 			case 15: 
- 				 return iter.presents;
+ 				 return iter.xlogo;
 				 break;
 			case 16: 
- 				 return iter.content;
+ 				 return iter.introduce;
 				 break;
 			case 17: 
- 				 return iter.postresult;
+ 				 return iter.giturl;
 				 break;
 			case 18: 
- 				 return iter.postfiles;
+ 				 return iter.gitname;
 				 break;
 			case 19: 
- 				 return iter.jiluphoto;
+ 				 return iter.gitpwd;
+				 break;
+			case 20: 
+ 				 return iter.xcolor;
+				 break;
+			case 21: 
+ 				 return iter.fupan;
 				 break;
 
                 }
@@ -2894,38 +3725,26 @@ std::vector<xmeetbase::meta> getRecord(){
     			case 5: 
  				 a.emplace_back(iter.title);
 					 break;
-			case 6: 
- 				 a.emplace_back(iter.zhuchi);
-					 break;
-			case 7: 
- 				 a.emplace_back(iter.jilu);
-					 break;
-			case 8: 
- 				 a.emplace_back(iter.meetnotice);
-					 break;
-			case 9: 
- 				 a.emplace_back(iter.meetfiles);
-					 break;
-			case 10: 
- 				 a.emplace_back(iter.address);
-					 break;
-			case 11: 
- 				 a.emplace_back(iter.meettime);
-					 break;
 			case 15: 
- 				 a.emplace_back(iter.presents);
+ 				 a.emplace_back(iter.xlogo);
 					 break;
 			case 16: 
- 				 a.emplace_back(iter.content);
+ 				 a.emplace_back(iter.introduce);
 					 break;
 			case 17: 
- 				 a.emplace_back(iter.postresult);
+ 				 a.emplace_back(iter.giturl);
 					 break;
 			case 18: 
- 				 a.emplace_back(iter.postfiles);
+ 				 a.emplace_back(iter.gitname);
 					 break;
 			case 19: 
- 				 a.emplace_back(iter.jiluphoto);
+ 				 a.emplace_back(iter.gitpwd);
+					 break;
+			case 20: 
+ 				 a.emplace_back(iter.xcolor);
+					 break;
+			case 21: 
+ 				 a.emplace_back(iter.fupan);
 					 break;
 					}
 				}
@@ -2959,19 +3778,19 @@ std::vector<xmeetbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.xmeetid);
+ 				 a<<std::to_string(iter.xpjid);
 				 break;
 			case 1: 
  				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
- 				 a<<std::to_string(iter.xpjid);
+ 				 a<<std::to_string(iter.prexpjid);
 				 break;
 			case 3: 
- 				 a<<std::to_string(iter.xtaskid);
+ 				 a<<std::to_string(iter.dpid);
 				 break;
 			case 4: 
- 				 a<<std::to_string(iter.adminid);
+ 				 a<<std::to_string(iter.grouptype);
 				 break;
 			case 5: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
@@ -2980,79 +3799,82 @@ std::vector<xmeetbase::meta> getRecord(){
 				 }
 				 break;
 			case 6: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.zhuchi); 
-				 }else{
-				 a<<iter.zhuchi;
-				 }
+ 				 a<<std::to_string(iter.adminuserid);
 				 break;
 			case 7: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.jilu); 
-				 }else{
-				 a<<iter.jilu;
-				 }
-				 break;
-			case 8: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.meetnotice); 
-				 }else{
-				 a<<iter.meetnotice;
-				 }
-				 break;
-			case 9: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.meetfiles); 
-				 }else{
-				 a<<iter.meetfiles;
-				 }
-				 break;
-			case 10: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.address); 
-				 }else{
-				 a<<iter.address;
-				 }
-				 break;
-			case 11: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.meettime); 
-				 }else{
-				 a<<iter.meettime;
-				 }
-				 break;
-			case 12: 
  				 a<<std::to_string(iter.regdate);
 				 break;
+			case 8: 
+ 				 a<<std::to_string(iter.begindate);
+				 break;
+			case 9: 
+ 				 a<<std::to_string(iter.expiredate);
+				 break;
+			case 10: 
+ 				 a<<std::to_string(iter.isopen);
+				 break;
+			case 11: 
+ 				 a<<std::to_string(iter.clientid);
+				 break;
+			case 12: 
+ 				 a<<std::to_string(iter.totalnum);
+				 break;
 			case 13: 
- 				 a<<std::to_string(iter.expecttime);
+ 				 a<<std::to_string(iter.referdocverion);
 				 break;
 			case 14: 
- 				 a<<std::to_string(iter.endtime);
+ 				 a<<std::to_string(iter.xtheme);
 				 break;
 			case 15: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.presents); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.xlogo); 
 				 }else{
-				 a<<iter.presents;
+				 a<<iter.xlogo;
 				 }
 				 break;
 			case 16: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.content); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
 				 }else{
-				 a<<iter.content;
+				 a<<iter.introduce;
 				 }
 				 break;
 			case 17: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.postresult); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.giturl); 
 				 }else{
-				 a<<iter.postresult;
+				 a<<iter.giturl;
 				 }
 				 break;
 			case 18: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.postfiles); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.gitname); 
 				 }else{
-				 a<<iter.postfiles;
+				 a<<iter.gitname;
 				 }
 				 break;
 			case 19: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.jiluphoto); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.gitpwd); 
 				 }else{
-				 a<<iter.jiluphoto;
+				 a<<iter.gitpwd;
 				 }
+				 break;
+			case 20: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.xcolor); 
+				 }else{
+				 a<<iter.xcolor;
+				 }
+				 break;
+			case 21: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.fupan); 
+				 }else{
+				 a<<iter.fupan;
+				 }
+				 break;
+			case 22: 
+ 				 a<<std::to_string(iter.totalvalue);
+				 break;
+			case 23: 
+ 				 a<<std::to_string(iter.expectday);
+				 break;
+			case 24: 
+ 				 a<<std::to_string(iter.realday);
 				 break;
 
                     }
@@ -3082,76 +3904,52 @@ std::vector<xmeetbase::meta> getRecord(){
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 				 } 
 			switch(vpos){
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 
                 }
@@ -3184,41 +3982,38 @@ std::vector<xmeetbase::meta> getRecord(){
        			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			 } 
 		 switch(vpos){
+			case 22: 
+ 				 vtemp=iter.totalvalue;
+				 break;
+			case 23: 
+ 				 vtemp=iter.expectday;
+				 break;
+			case 24: 
+ 				 vtemp=iter.realday;
+				 break;
 
                     }
                     if(ktemp.size()>0)
@@ -3246,31 +4041,58 @@ std::vector<xmeetbase::meta> getRecord(){
                 {
  
        case 0: 
- 	 ktemp=iter.xmeetid;
+ 	 ktemp=iter.xpjid;
 	 break;
 case 1: 
  	 ktemp=iter.userid;
 	 break;
 case 2: 
- 	 ktemp=iter.xpjid;
+ 	 ktemp=iter.prexpjid;
 	 break;
 case 3: 
- 	 ktemp=iter.xtaskid;
+ 	 ktemp=iter.dpid;
 	 break;
 case 4: 
- 	 ktemp=iter.adminid;
+ 	 ktemp=iter.grouptype;
 	 break;
-case 12: 
+case 6: 
+ 	 ktemp=iter.adminuserid;
+	 break;
+case 7: 
  	 ktemp=iter.regdate;
 	 break;
+case 8: 
+ 	 ktemp=iter.begindate;
+	 break;
+case 9: 
+ 	 ktemp=iter.expiredate;
+	 break;
+case 10: 
+ 	 ktemp=iter.isopen;
+	 break;
+case 11: 
+ 	 ktemp=iter.clientid;
+	 break;
+case 12: 
+ 	 ktemp=iter.totalnum;
+	 break;
 case 13: 
- 	 ktemp=iter.expecttime;
+ 	 ktemp=iter.referdocverion;
 	 break;
 case 14: 
- 	 ktemp=iter.endtime;
+ 	 ktemp=iter.xtheme;
 	 break;
 	 } 
  		  switch(vpos){
+case 22: 
+ 	 vtemp=iter.totalvalue;
+	 break;
+case 23: 
+ 	 vtemp=iter.expectday;
+	 break;
+case 24: 
+ 	 vtemp=iter.realday;
+	 break;
 
                 }
                 if(ktemp.size()>0)
@@ -3297,66 +4119,72 @@ case 14:
                     {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
  			switch(vpos){
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 
                     }
@@ -3387,64 +4215,70 @@ case 14:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 
                 }
@@ -3473,54 +4307,90 @@ case 14:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 
                 }
@@ -3546,28 +4416,46 @@ case 14:
                 {
 
    			case 0: 
- 				 a.emplace(iter.xmeetid,iter);
+ 				 a.emplace(iter.xpjid,iter);
 				 break;
 			case 1: 
  				 a.emplace(iter.userid,iter);
 				 break;
 			case 2: 
- 				 a.emplace(iter.xpjid,iter);
+ 				 a.emplace(iter.prexpjid,iter);
 				 break;
 			case 3: 
- 				 a.emplace(iter.xtaskid,iter);
+ 				 a.emplace(iter.dpid,iter);
 				 break;
 			case 4: 
- 				 a.emplace(iter.adminid,iter);
+ 				 a.emplace(iter.grouptype,iter);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a.emplace(iter.adminuserid,iter);
+				 break;
+			case 7: 
  				 a.emplace(iter.regdate,iter);
 				 break;
+			case 8: 
+ 				 a.emplace(iter.begindate,iter);
+				 break;
+			case 9: 
+ 				 a.emplace(iter.expiredate,iter);
+				 break;
+			case 10: 
+ 				 a.emplace(iter.isopen,iter);
+				 break;
+			case 11: 
+ 				 a.emplace(iter.clientid,iter);
+				 break;
+			case 12: 
+ 				 a.emplace(iter.totalnum,iter);
+				 break;
 			case 13: 
- 				 a.emplace(iter.expecttime,iter);
+ 				 a.emplace(iter.referdocverion,iter);
 				 break;
 			case 14: 
- 				 a.emplace(iter.endtime,iter);
+ 				 a.emplace(iter.xtheme,iter);
 				 break;
 
                 }
@@ -3592,38 +4480,26 @@ case 14:
    			case 5: 
  				 a.emplace(iter.title,iter);
 			 break;
-			case 6: 
- 				 a.emplace(iter.zhuchi,iter);
-			 break;
-			case 7: 
- 				 a.emplace(iter.jilu,iter);
-			 break;
-			case 8: 
- 				 a.emplace(iter.meetnotice,iter);
-			 break;
-			case 9: 
- 				 a.emplace(iter.meetfiles,iter);
-			 break;
-			case 10: 
- 				 a.emplace(iter.address,iter);
-			 break;
-			case 11: 
- 				 a.emplace(iter.meettime,iter);
-			 break;
 			case 15: 
- 				 a.emplace(iter.presents,iter);
+ 				 a.emplace(iter.xlogo,iter);
 			 break;
 			case 16: 
- 				 a.emplace(iter.content,iter);
+ 				 a.emplace(iter.introduce,iter);
 			 break;
 			case 17: 
- 				 a.emplace(iter.postresult,iter);
+ 				 a.emplace(iter.giturl,iter);
 			 break;
 			case 18: 
- 				 a.emplace(iter.postfiles,iter);
+ 				 a.emplace(iter.gitname,iter);
 			 break;
 			case 19: 
- 				 a.emplace(iter.jiluphoto,iter);
+ 				 a.emplace(iter.gitpwd,iter);
+			 break;
+			case 20: 
+ 				 a.emplace(iter.xcolor,iter);
+			 break;
+			case 21: 
+ 				 a.emplace(iter.fupan,iter);
 			 break;
 
                 }
@@ -3652,41 +4528,38 @@ case 14:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 	 		 }
  			switch(vpos){
+			case 22: 
+ 				 vtemp=iter.totalvalue;
+				 break;
+			case 23: 
+ 				 vtemp=iter.expectday;
+				 break;
+			case 24: 
+ 				 vtemp=iter.realday;
+				 break;
 
                    }
 
@@ -3714,31 +4587,58 @@ case 14:
                     {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 			 break;
 			case 1: 
  				 ktemp=iter.userid;
 			 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 			 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 			 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 			 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+			 break;
+			case 7: 
  				 ktemp=iter.regdate;
 			 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+			 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+			 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+			 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+			 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+			 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 			 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 			 break;
 			  }
 			 switch(vpos){
+			case 22: 
+ 				 vtemp=iter.totalvalue;
+				 break;
+			case 23: 
+ 				 vtemp=iter.expectday;
+				 break;
+			case 24: 
+ 				 vtemp=iter.realday;
+				 break;
 
                    }
 
@@ -3767,66 +4667,72 @@ case 14:
                     {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
  			switch(vpos){
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 
                    }
@@ -3856,64 +4762,70 @@ case 14:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 
                    }
@@ -3939,54 +4851,90 @@ case 14:
                     {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 
                    }
@@ -4014,76 +4962,52 @@ case 14:
    case 5: 
  	 ktemp=iter.title;
 	 break;
-case 6: 
- 	 ktemp=iter.zhuchi;
-	 break;
-case 7: 
- 	 ktemp=iter.jilu;
-	 break;
-case 8: 
- 	 ktemp=iter.meetnotice;
-	 break;
-case 9: 
- 	 ktemp=iter.meetfiles;
-	 break;
-case 10: 
- 	 ktemp=iter.address;
-	 break;
-case 11: 
- 	 ktemp=iter.meettime;
-	 break;
 case 15: 
- 	 ktemp=iter.presents;
+ 	 ktemp=iter.xlogo;
 	 break;
 case 16: 
- 	 ktemp=iter.content;
+ 	 ktemp=iter.introduce;
 	 break;
 case 17: 
- 	 ktemp=iter.postresult;
+ 	 ktemp=iter.giturl;
 	 break;
 case 18: 
- 	 ktemp=iter.postfiles;
+ 	 ktemp=iter.gitname;
 	 break;
 case 19: 
- 	 ktemp=iter.jiluphoto;
+ 	 ktemp=iter.gitpwd;
+	 break;
+case 20: 
+ 	 ktemp=iter.xcolor;
+	 break;
+case 21: 
+ 	 ktemp=iter.fupan;
 	 break;
 	  }
  switch(vpos){
 case 5: 
  	 vtemp=iter.title;
 	 break;
-case 6: 
- 	 vtemp=iter.zhuchi;
-	 break;
-case 7: 
- 	 vtemp=iter.jilu;
-	 break;
-case 8: 
- 	 vtemp=iter.meetnotice;
-	 break;
-case 9: 
- 	 vtemp=iter.meetfiles;
-	 break;
-case 10: 
- 	 vtemp=iter.address;
-	 break;
-case 11: 
- 	 vtemp=iter.meettime;
-	 break;
 case 15: 
- 	 vtemp=iter.presents;
+ 	 vtemp=iter.xlogo;
 	 break;
 case 16: 
- 	 vtemp=iter.content;
+ 	 vtemp=iter.introduce;
 	 break;
 case 17: 
- 	 vtemp=iter.postresult;
+ 	 vtemp=iter.giturl;
 	 break;
 case 18: 
- 	 vtemp=iter.postfiles;
+ 	 vtemp=iter.gitname;
 	 break;
 case 19: 
- 	 vtemp=iter.jiluphoto;
+ 	 vtemp=iter.gitpwd;
+	 break;
+case 20: 
+ 	 vtemp=iter.xcolor;
+	 break;
+case 21: 
+ 	 vtemp=iter.fupan;
 	 break;
 
                    }
@@ -4107,28 +5031,46 @@ case 19:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.xmeetid,iter);
+ 	 a.emplace_back(iter.xpjid,iter);
 	 break;
 case 1: 
  	 a.emplace_back(iter.userid,iter);
 	 break;
 case 2: 
- 	 a.emplace_back(iter.xpjid,iter);
+ 	 a.emplace_back(iter.prexpjid,iter);
 	 break;
 case 3: 
- 	 a.emplace_back(iter.xtaskid,iter);
+ 	 a.emplace_back(iter.dpid,iter);
 	 break;
 case 4: 
- 	 a.emplace_back(iter.adminid,iter);
+ 	 a.emplace_back(iter.grouptype,iter);
 	 break;
-case 12: 
+case 6: 
+ 	 a.emplace_back(iter.adminuserid,iter);
+	 break;
+case 7: 
  	 a.emplace_back(iter.regdate,iter);
 	 break;
+case 8: 
+ 	 a.emplace_back(iter.begindate,iter);
+	 break;
+case 9: 
+ 	 a.emplace_back(iter.expiredate,iter);
+	 break;
+case 10: 
+ 	 a.emplace_back(iter.isopen,iter);
+	 break;
+case 11: 
+ 	 a.emplace_back(iter.clientid,iter);
+	 break;
+case 12: 
+ 	 a.emplace_back(iter.totalnum,iter);
+	 break;
 case 13: 
- 	 a.emplace_back(iter.expecttime,iter);
+ 	 a.emplace_back(iter.referdocverion,iter);
 	 break;
 case 14: 
- 	 a.emplace_back(iter.endtime,iter);
+ 	 a.emplace_back(iter.xtheme,iter);
 	 break;
 
                 }
@@ -4151,38 +5093,26 @@ case 14:
    case 5: 
  	 a.emplace_back(iter.title,iter);
 	 break;
-case 6: 
- 	 a.emplace_back(iter.zhuchi,iter);
-	 break;
-case 7: 
- 	 a.emplace_back(iter.jilu,iter);
-	 break;
-case 8: 
- 	 a.emplace_back(iter.meetnotice,iter);
-	 break;
-case 9: 
- 	 a.emplace_back(iter.meetfiles,iter);
-	 break;
-case 10: 
- 	 a.emplace_back(iter.address,iter);
-	 break;
-case 11: 
- 	 a.emplace_back(iter.meettime,iter);
-	 break;
 case 15: 
- 	 a.emplace_back(iter.presents,iter);
+ 	 a.emplace_back(iter.xlogo,iter);
 	 break;
 case 16: 
- 	 a.emplace_back(iter.content,iter);
+ 	 a.emplace_back(iter.introduce,iter);
 	 break;
 case 17: 
- 	 a.emplace_back(iter.postresult,iter);
+ 	 a.emplace_back(iter.giturl,iter);
 	 break;
 case 18: 
- 	 a.emplace_back(iter.postfiles,iter);
+ 	 a.emplace_back(iter.gitname,iter);
 	 break;
 case 19: 
- 	 a.emplace_back(iter.jiluphoto,iter);
+ 	 a.emplace_back(iter.gitpwd,iter);
+	 break;
+case 20: 
+ 	 a.emplace_back(iter.xcolor,iter);
+	 break;
+case 21: 
+ 	 a.emplace_back(iter.fupan,iter);
 	 break;
 
                 }
@@ -4208,59 +5138,104 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 			  }
 
 			 switch(dpos){
+			case 22: 
+ 				 a[ktemp][vtemp].emplace_back(iter.totalvalue);
+				 break;
+			case 23: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expectday);
+				 break;
+			case 24: 
+ 				 a[ktemp][vtemp].emplace_back(iter.realday);
+				 break;
 
                 }
             }       
@@ -4288,82 +5263,136 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.xmeetid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.prexpjid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.xtaskid);
+ 				 a[ktemp][vtemp].emplace_back(iter.dpid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+ 				 a[ktemp][vtemp].emplace_back(iter.grouptype);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.adminuserid);
+				 break;
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.regdate);
 				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.begindate);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expiredate);
+				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.clientid);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.totalnum);
+				 break;
 			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.expecttime);
+ 				 a[ktemp][vtemp].emplace_back(iter.referdocverion);
 				 break;
 			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.endtime);
+ 				 a[ktemp][vtemp].emplace_back(iter.xtheme);
 				 break;
 
                 }
@@ -4391,55 +5420,91 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 			 }
 
@@ -4447,38 +5512,26 @@ case 19:
 			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
-			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.zhuchi);
-				 break;
-			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.jilu);
-				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.meetnotice);
-				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.meetfiles);
-				 break;
-			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.address);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.meettime);
-				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.presents);
+ 				 a[ktemp][vtemp].emplace_back(iter.xlogo);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.content);
+ 				 a[ktemp][vtemp].emplace_back(iter.introduce);
 				 break;
 			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.postresult);
+ 				 a[ktemp][vtemp].emplace_back(iter.giturl);
 				 break;
 			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.postfiles);
+ 				 a[ktemp][vtemp].emplace_back(iter.gitname);
 				 break;
 			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.jiluphoto);
+ 				 a[ktemp][vtemp].emplace_back(iter.gitpwd);
+				 break;
+			case 20: 
+ 				 a[ktemp][vtemp].emplace_back(iter.xcolor);
+				 break;
+			case 21: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fupan);
 				 break;
 
                 }
@@ -4507,28 +5560,46 @@ case 19:
                     {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			 }
 
@@ -4536,42 +5607,39 @@ case 19:
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 			  }
 
 			 switch(dpos){
+			case 22: 
+ 				 a[ktemp][vtemp].emplace_back(iter.totalvalue);
+				 break;
+			case 23: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expectday);
+				 break;
+			case 24: 
+ 				 a[ktemp][vtemp].emplace_back(iter.realday);
+				 break;
 
                    }
                 }       
@@ -4599,28 +5667,46 @@ case 19:
             {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			 }
 
@@ -4628,65 +5714,71 @@ case 19:
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.xmeetid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.prexpjid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.xtaskid);
+ 				 a[ktemp][vtemp].emplace_back(iter.dpid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+ 				 a[ktemp][vtemp].emplace_back(iter.grouptype);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.adminuserid);
+				 break;
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.regdate);
 				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.begindate);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expiredate);
+				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.clientid);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.totalnum);
+				 break;
 			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.expecttime);
+ 				 a[ktemp][vtemp].emplace_back(iter.referdocverion);
 				 break;
 			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.endtime);
+ 				 a[ktemp][vtemp].emplace_back(iter.xtheme);
 				 break;
 
             }
@@ -4713,28 +5805,46 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
 
@@ -4742,38 +5852,26 @@ case 19:
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 			  }
 
@@ -4781,38 +5879,26 @@ case 19:
 			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
-			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.zhuchi);
-				 break;
-			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.jilu);
-				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.meetnotice);
-				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.meetfiles);
-				 break;
-			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.address);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.meettime);
-				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.presents);
+ 				 a[ktemp][vtemp].emplace_back(iter.xlogo);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.content);
+ 				 a[ktemp][vtemp].emplace_back(iter.introduce);
 				 break;
 			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.postresult);
+ 				 a[ktemp][vtemp].emplace_back(iter.giturl);
 				 break;
 			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.postfiles);
+ 				 a[ktemp][vtemp].emplace_back(iter.gitname);
 				 break;
 			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.jiluphoto);
+ 				 a[ktemp][vtemp].emplace_back(iter.gitpwd);
+				 break;
+			case 20: 
+ 				 a[ktemp][vtemp].emplace_back(iter.xcolor);
+				 break;
+			case 21: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fupan);
 				 break;
 
                 }
@@ -4841,69 +5927,84 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 			  }
 
 			 switch(dpos){
+			case 22: 
+ 				 a[ktemp][vtemp].emplace_back(iter.totalvalue);
+				 break;
+			case 23: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expectday);
+				 break;
+			case 24: 
+ 				 a[ktemp][vtemp].emplace_back(iter.realday);
+				 break;
 
                     }
                 }       
@@ -4934,92 +6035,116 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.xmeetid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.prexpjid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.xtaskid);
+ 				 a[ktemp][vtemp].emplace_back(iter.dpid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+ 				 a[ktemp][vtemp].emplace_back(iter.grouptype);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.adminuserid);
+				 break;
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.regdate);
 				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.begindate);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expiredate);
+				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.clientid);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.totalnum);
+				 break;
 			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.expecttime);
+ 				 a[ktemp][vtemp].emplace_back(iter.referdocverion);
 				 break;
 			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.endtime);
+ 				 a[ktemp][vtemp].emplace_back(iter.xtheme);
 				 break;
 
                 }
@@ -5051,65 +6176,71 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.xmeetid;
+ 				 vtemp=iter.xpjid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.xpjid;
+ 				 vtemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 vtemp=iter.xtaskid;
+ 				 vtemp=iter.dpid;
 				 break;
 			case 4: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 vtemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 vtemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 vtemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 vtemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 vtemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 vtemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 vtemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 vtemp=iter.expecttime;
+ 				 vtemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 vtemp=iter.endtime;
+ 				 vtemp=iter.xtheme;
 				 break;
 			 }
 
@@ -5117,38 +6248,26 @@ case 19:
 			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
-			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.zhuchi);
-				 break;
-			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.jilu);
-				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.meetnotice);
-				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.meetfiles);
-				 break;
-			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.address);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.meettime);
-				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.presents);
+ 				 a[ktemp][vtemp].emplace_back(iter.xlogo);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.content);
+ 				 a[ktemp][vtemp].emplace_back(iter.introduce);
 				 break;
 			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.postresult);
+ 				 a[ktemp][vtemp].emplace_back(iter.giturl);
 				 break;
 			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.postfiles);
+ 				 a[ktemp][vtemp].emplace_back(iter.gitname);
 				 break;
 			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.jiluphoto);
+ 				 a[ktemp][vtemp].emplace_back(iter.gitpwd);
+				 break;
+			case 20: 
+ 				 a[ktemp][vtemp].emplace_back(iter.xcolor);
+				 break;
+			case 21: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fupan);
 				 break;
 
             }
@@ -5178,38 +6297,26 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			 }
 
@@ -5217,42 +6324,39 @@ case 19:
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 			  }
 
 			 switch(dpos){
+			case 22: 
+ 				 a[ktemp][vtemp].emplace_back(iter.totalvalue);
+				 break;
+			case 23: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expectday);
+				 break;
+			case 24: 
+ 				 a[ktemp][vtemp].emplace_back(iter.realday);
+				 break;
 
                 }
             }       
@@ -5282,38 +6386,26 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			  }
 
@@ -5321,65 +6413,71 @@ case 19:
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.xmeetid);
+ 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.xpjid);
+ 				 a[ktemp][vtemp].emplace_back(iter.prexpjid);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.xtaskid);
+ 				 a[ktemp][vtemp].emplace_back(iter.dpid);
 				 break;
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+ 				 a[ktemp][vtemp].emplace_back(iter.grouptype);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[ktemp][vtemp].emplace_back(iter.adminuserid);
+				 break;
+			case 7: 
  				 a[ktemp][vtemp].emplace_back(iter.regdate);
 				 break;
+			case 8: 
+ 				 a[ktemp][vtemp].emplace_back(iter.begindate);
+				 break;
+			case 9: 
+ 				 a[ktemp][vtemp].emplace_back(iter.expiredate);
+				 break;
+			case 10: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+				 break;
+			case 11: 
+ 				 a[ktemp][vtemp].emplace_back(iter.clientid);
+				 break;
+			case 12: 
+ 				 a[ktemp][vtemp].emplace_back(iter.totalnum);
+				 break;
 			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.expecttime);
+ 				 a[ktemp][vtemp].emplace_back(iter.referdocverion);
 				 break;
 			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.endtime);
+ 				 a[ktemp][vtemp].emplace_back(iter.xtheme);
 				 break;
 
                 }
@@ -5409,38 +6507,26 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			  }
 
@@ -5448,38 +6534,26 @@ case 19:
 			case 5: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
- 				 vtemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 vtemp=iter.jilu;
-				 break;
-			case 8: 
- 				 vtemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 vtemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 vtemp=iter.address;
-				 break;
-			case 11: 
- 				 vtemp=iter.meettime;
-				 break;
 			case 15: 
- 				 vtemp=iter.presents;
+ 				 vtemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 vtemp=iter.content;
+ 				 vtemp=iter.introduce;
 				 break;
 			case 17: 
- 				 vtemp=iter.postresult;
+ 				 vtemp=iter.giturl;
 				 break;
 			case 18: 
- 				 vtemp=iter.postfiles;
+ 				 vtemp=iter.gitname;
 				 break;
 			case 19: 
- 				 vtemp=iter.jiluphoto;
+ 				 vtemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 vtemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 vtemp=iter.fupan;
 				 break;
 			  }
 
@@ -5487,38 +6561,26 @@ case 19:
 			case 5: 
  				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
-			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.zhuchi);
-				 break;
-			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.jilu);
-				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.meetnotice);
-				 break;
-			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.meetfiles);
-				 break;
-			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.address);
-				 break;
-			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.meettime);
-				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.presents);
+ 				 a[ktemp][vtemp].emplace_back(iter.xlogo);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.content);
+ 				 a[ktemp][vtemp].emplace_back(iter.introduce);
 				 break;
 			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.postresult);
+ 				 a[ktemp][vtemp].emplace_back(iter.giturl);
 				 break;
 			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.postfiles);
+ 				 a[ktemp][vtemp].emplace_back(iter.gitname);
 				 break;
 			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.jiluphoto);
+ 				 a[ktemp][vtemp].emplace_back(iter.gitpwd);
+				 break;
+			case 20: 
+ 				 a[ktemp][vtemp].emplace_back(iter.xcolor);
+				 break;
+			case 21: 
+ 				 a[ktemp][vtemp].emplace_back(iter.fupan);
 				 break;
 
                 }
@@ -5547,38 +6609,26 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			  }
 
@@ -5586,38 +6636,26 @@ case 19:
 			case 5: 
  				 a[ktemp].emplace_back(iter.title);
 				 break;
-			case 6: 
- 				 a[ktemp].emplace_back(iter.zhuchi);
-				 break;
-			case 7: 
- 				 a[ktemp].emplace_back(iter.jilu);
-				 break;
-			case 8: 
- 				 a[ktemp].emplace_back(iter.meetnotice);
-				 break;
-			case 9: 
- 				 a[ktemp].emplace_back(iter.meetfiles);
-				 break;
-			case 10: 
- 				 a[ktemp].emplace_back(iter.address);
-				 break;
-			case 11: 
- 				 a[ktemp].emplace_back(iter.meettime);
-				 break;
 			case 15: 
- 				 a[ktemp].emplace_back(iter.presents);
+ 				 a[ktemp].emplace_back(iter.xlogo);
 				 break;
 			case 16: 
- 				 a[ktemp].emplace_back(iter.content);
+ 				 a[ktemp].emplace_back(iter.introduce);
 				 break;
 			case 17: 
- 				 a[ktemp].emplace_back(iter.postresult);
+ 				 a[ktemp].emplace_back(iter.giturl);
 				 break;
 			case 18: 
- 				 a[ktemp].emplace_back(iter.postfiles);
+ 				 a[ktemp].emplace_back(iter.gitname);
 				 break;
 			case 19: 
- 				 a[ktemp].emplace_back(iter.jiluphoto);
+ 				 a[ktemp].emplace_back(iter.gitpwd);
+				 break;
+			case 20: 
+ 				 a[ktemp].emplace_back(iter.xcolor);
+				 break;
+			case 21: 
+ 				 a[ktemp].emplace_back(iter.fupan);
 				 break;
 
                 }
@@ -5645,42 +6683,39 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			 }
 
 			 switch(vpos){
+			case 22: 
+ 				 a[ktemp].emplace_back(iter.totalvalue);
+				 break;
+			case 23: 
+ 				 a[ktemp].emplace_back(iter.expectday);
+				 break;
+			case 24: 
+ 				 a[ktemp].emplace_back(iter.realday);
+				 break;
 
                 }
             }       
@@ -5709,65 +6744,71 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.xmeetid);
+ 				 a[ktemp].emplace_back(iter.xpjid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.xpjid);
+ 				 a[ktemp].emplace_back(iter.prexpjid);
 				 break;
 			case 3: 
- 				 a[ktemp].emplace_back(iter.xtaskid);
+ 				 a[ktemp].emplace_back(iter.dpid);
 				 break;
 			case 4: 
- 				 a[ktemp].emplace_back(iter.adminid);
+ 				 a[ktemp].emplace_back(iter.grouptype);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[ktemp].emplace_back(iter.adminuserid);
+				 break;
+			case 7: 
  				 a[ktemp].emplace_back(iter.regdate);
 				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.begindate);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.expiredate);
+				 break;
+			case 10: 
+ 				 a[ktemp].emplace_back(iter.isopen);
+				 break;
+			case 11: 
+ 				 a[ktemp].emplace_back(iter.clientid);
+				 break;
+			case 12: 
+ 				 a[ktemp].emplace_back(iter.totalnum);
+				 break;
 			case 13: 
- 				 a[ktemp].emplace_back(iter.expecttime);
+ 				 a[ktemp].emplace_back(iter.referdocverion);
 				 break;
 			case 14: 
- 				 a[ktemp].emplace_back(iter.endtime);
+ 				 a[ktemp].emplace_back(iter.xtheme);
 				 break;
 
                 }
@@ -5794,28 +6835,46 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			 }
 
@@ -5823,38 +6882,26 @@ case 19:
 			case 5: 
  				 a[ktemp].emplace_back(iter.title);
 				 break;
-			case 6: 
- 				 a[ktemp].emplace_back(iter.zhuchi);
-				 break;
-			case 7: 
- 				 a[ktemp].emplace_back(iter.jilu);
-				 break;
-			case 8: 
- 				 a[ktemp].emplace_back(iter.meetnotice);
-				 break;
-			case 9: 
- 				 a[ktemp].emplace_back(iter.meetfiles);
-				 break;
-			case 10: 
- 				 a[ktemp].emplace_back(iter.address);
-				 break;
-			case 11: 
- 				 a[ktemp].emplace_back(iter.meettime);
-				 break;
 			case 15: 
- 				 a[ktemp].emplace_back(iter.presents);
+ 				 a[ktemp].emplace_back(iter.xlogo);
 				 break;
 			case 16: 
- 				 a[ktemp].emplace_back(iter.content);
+ 				 a[ktemp].emplace_back(iter.introduce);
 				 break;
 			case 17: 
- 				 a[ktemp].emplace_back(iter.postresult);
+ 				 a[ktemp].emplace_back(iter.giturl);
 				 break;
 			case 18: 
- 				 a[ktemp].emplace_back(iter.postfiles);
+ 				 a[ktemp].emplace_back(iter.gitname);
 				 break;
 			case 19: 
- 				 a[ktemp].emplace_back(iter.jiluphoto);
+ 				 a[ktemp].emplace_back(iter.gitpwd);
+				 break;
+			case 20: 
+ 				 a[ktemp].emplace_back(iter.xcolor);
+				 break;
+			case 21: 
+ 				 a[ktemp].emplace_back(iter.fupan);
 				 break;
 
                 }
@@ -5882,32 +6929,59 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
 
 			 switch(vpos){
+			case 22: 
+ 				 a[ktemp].emplace_back(iter.totalvalue);
+				 break;
+			case 23: 
+ 				 a[ktemp].emplace_back(iter.expectday);
+				 break;
+			case 24: 
+ 				 a[ktemp].emplace_back(iter.realday);
+				 break;
 
                 }
             }       
@@ -5933,55 +7007,91 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.xmeetid);
+ 				 a[ktemp].emplace_back(iter.xpjid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.xpjid);
+ 				 a[ktemp].emplace_back(iter.prexpjid);
 				 break;
 			case 3: 
- 				 a[ktemp].emplace_back(iter.xtaskid);
+ 				 a[ktemp].emplace_back(iter.dpid);
 				 break;
 			case 4: 
- 				 a[ktemp].emplace_back(iter.adminid);
+ 				 a[ktemp].emplace_back(iter.grouptype);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[ktemp].emplace_back(iter.adminuserid);
+				 break;
+			case 7: 
  				 a[ktemp].emplace_back(iter.regdate);
 				 break;
+			case 8: 
+ 				 a[ktemp].emplace_back(iter.begindate);
+				 break;
+			case 9: 
+ 				 a[ktemp].emplace_back(iter.expiredate);
+				 break;
+			case 10: 
+ 				 a[ktemp].emplace_back(iter.isopen);
+				 break;
+			case 11: 
+ 				 a[ktemp].emplace_back(iter.clientid);
+				 break;
+			case 12: 
+ 				 a[ktemp].emplace_back(iter.totalnum);
+				 break;
 			case 13: 
- 				 a[ktemp].emplace_back(iter.expecttime);
+ 				 a[ktemp].emplace_back(iter.referdocverion);
 				 break;
 			case 14: 
- 				 a[ktemp].emplace_back(iter.endtime);
+ 				 a[ktemp].emplace_back(iter.xtheme);
 				 break;
 
                 }
@@ -6004,28 +7114,46 @@ case 19:
                 {
 
    			case 0: 
- 				 a[iter.xmeetid].emplace_back(iter);
+ 				 a[iter.xpjid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[iter.xpjid].emplace_back(iter);
+ 				 a[iter.prexpjid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[iter.xtaskid].emplace_back(iter);
+ 				 a[iter.dpid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[iter.adminid].emplace_back(iter);
+ 				 a[iter.grouptype].emplace_back(iter);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[iter.adminuserid].emplace_back(iter);
+				 break;
+			case 7: 
  				 a[iter.regdate].emplace_back(iter);
 				 break;
+			case 8: 
+ 				 a[iter.begindate].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[iter.expiredate].emplace_back(iter);
+				 break;
+			case 10: 
+ 				 a[iter.isopen].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[iter.clientid].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[iter.totalnum].emplace_back(iter);
+				 break;
 			case 13: 
- 				 a[iter.expecttime].emplace_back(iter);
+ 				 a[iter.referdocverion].emplace_back(iter);
 				 break;
 			case 14: 
- 				 a[iter.endtime].emplace_back(iter);
+ 				 a[iter.xtheme].emplace_back(iter);
 				 break;
 
                 }
@@ -6051,38 +7179,26 @@ case 19:
    			case 5: 
  				 a[iter.title].emplace_back(iter);
 				 break;
-			case 6: 
- 				 a[iter.zhuchi].emplace_back(iter);
-				 break;
-			case 7: 
- 				 a[iter.jilu].emplace_back(iter);
-				 break;
-			case 8: 
- 				 a[iter.meetnotice].emplace_back(iter);
-				 break;
-			case 9: 
- 				 a[iter.meetfiles].emplace_back(iter);
-				 break;
-			case 10: 
- 				 a[iter.address].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[iter.meettime].emplace_back(iter);
-				 break;
 			case 15: 
- 				 a[iter.presents].emplace_back(iter);
+ 				 a[iter.xlogo].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[iter.content].emplace_back(iter);
+ 				 a[iter.introduce].emplace_back(iter);
 				 break;
 			case 17: 
- 				 a[iter.postresult].emplace_back(iter);
+ 				 a[iter.giturl].emplace_back(iter);
 				 break;
 			case 18: 
- 				 a[iter.postfiles].emplace_back(iter);
+ 				 a[iter.gitname].emplace_back(iter);
 				 break;
 			case 19: 
- 				 a[iter.jiluphoto].emplace_back(iter);
+ 				 a[iter.gitpwd].emplace_back(iter);
+				 break;
+			case 20: 
+ 				 a[iter.xcolor].emplace_back(iter);
+				 break;
+			case 21: 
+ 				 a[iter.fupan].emplace_back(iter);
 				 break;
 
                 }
@@ -6110,38 +7226,26 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 			 }
 
@@ -6149,38 +7253,26 @@ case 19:
 			case 5: 
  				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
-			case 6: 
- 				 a[ktemp][iter.zhuchi].emplace_back(iter);
-				 break;
-			case 7: 
- 				 a[ktemp][iter.jilu].emplace_back(iter);
-				 break;
-			case 8: 
- 				 a[ktemp][iter.meetnotice].emplace_back(iter);
-				 break;
-			case 9: 
- 				 a[ktemp][iter.meetfiles].emplace_back(iter);
-				 break;
-			case 10: 
- 				 a[ktemp][iter.address].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[ktemp][iter.meettime].emplace_back(iter);
-				 break;
 			case 15: 
- 				 a[ktemp][iter.presents].emplace_back(iter);
+ 				 a[ktemp][iter.xlogo].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[ktemp][iter.content].emplace_back(iter);
+ 				 a[ktemp][iter.introduce].emplace_back(iter);
 				 break;
 			case 17: 
- 				 a[ktemp][iter.postresult].emplace_back(iter);
+ 				 a[ktemp][iter.giturl].emplace_back(iter);
 				 break;
 			case 18: 
- 				 a[ktemp][iter.postfiles].emplace_back(iter);
+ 				 a[ktemp][iter.gitname].emplace_back(iter);
 				 break;
 			case 19: 
- 				 a[ktemp][iter.jiluphoto].emplace_back(iter);
+ 				 a[ktemp][iter.gitpwd].emplace_back(iter);
+				 break;
+			case 20: 
+ 				 a[ktemp][iter.xcolor].emplace_back(iter);
+				 break;
+			case 21: 
+ 				 a[ktemp][iter.fupan].emplace_back(iter);
 				 break;
 
                 }
@@ -6208,65 +7300,71 @@ case 19:
    			case 5: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
 			case 15: 
- 				 ktemp=iter.presents;
+ 				 ktemp=iter.xlogo;
 				 break;
 			case 16: 
- 				 ktemp=iter.content;
+ 				 ktemp=iter.introduce;
 				 break;
 			case 17: 
- 				 ktemp=iter.postresult;
+ 				 ktemp=iter.giturl;
 				 break;
 			case 18: 
- 				 ktemp=iter.postfiles;
+ 				 ktemp=iter.gitname;
 				 break;
 			case 19: 
- 				 ktemp=iter.jiluphoto;
+ 				 ktemp=iter.gitpwd;
+				 break;
+			case 20: 
+ 				 ktemp=iter.xcolor;
+				 break;
+			case 21: 
+ 				 ktemp=iter.fupan;
 				 break;
 	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.xmeetid].emplace_back(iter);
+ 				 a[ktemp][iter.xpjid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.xpjid].emplace_back(iter);
+ 				 a[ktemp][iter.prexpjid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[ktemp][iter.xtaskid].emplace_back(iter);
+ 				 a[ktemp][iter.dpid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[ktemp][iter.adminid].emplace_back(iter);
+ 				 a[ktemp][iter.grouptype].emplace_back(iter);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[ktemp][iter.adminuserid].emplace_back(iter);
+				 break;
+			case 7: 
  				 a[ktemp][iter.regdate].emplace_back(iter);
 				 break;
+			case 8: 
+ 				 a[ktemp][iter.begindate].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.expiredate].emplace_back(iter);
+				 break;
+			case 10: 
+ 				 a[ktemp][iter.isopen].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[ktemp][iter.clientid].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[ktemp][iter.totalnum].emplace_back(iter);
+				 break;
 			case 13: 
- 				 a[ktemp][iter.expecttime].emplace_back(iter);
+ 				 a[ktemp][iter.referdocverion].emplace_back(iter);
 				 break;
 			case 14: 
- 				 a[ktemp][iter.endtime].emplace_back(iter);
+ 				 a[ktemp][iter.xtheme].emplace_back(iter);
 				 break;
 
                 }
@@ -6293,55 +7391,91 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.xmeetid].emplace_back(iter);
+ 				 a[ktemp][iter.xpjid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.xpjid].emplace_back(iter);
+ 				 a[ktemp][iter.prexpjid].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[ktemp][iter.xtaskid].emplace_back(iter);
+ 				 a[ktemp][iter.dpid].emplace_back(iter);
 				 break;
 			case 4: 
- 				 a[ktemp][iter.adminid].emplace_back(iter);
+ 				 a[ktemp][iter.grouptype].emplace_back(iter);
 				 break;
-			case 12: 
+			case 6: 
+ 				 a[ktemp][iter.adminuserid].emplace_back(iter);
+				 break;
+			case 7: 
  				 a[ktemp][iter.regdate].emplace_back(iter);
 				 break;
+			case 8: 
+ 				 a[ktemp][iter.begindate].emplace_back(iter);
+				 break;
+			case 9: 
+ 				 a[ktemp][iter.expiredate].emplace_back(iter);
+				 break;
+			case 10: 
+ 				 a[ktemp][iter.isopen].emplace_back(iter);
+				 break;
+			case 11: 
+ 				 a[ktemp][iter.clientid].emplace_back(iter);
+				 break;
+			case 12: 
+ 				 a[ktemp][iter.totalnum].emplace_back(iter);
+				 break;
 			case 13: 
- 				 a[ktemp][iter.expecttime].emplace_back(iter);
+ 				 a[ktemp][iter.referdocverion].emplace_back(iter);
 				 break;
 			case 14: 
- 				 a[ktemp][iter.endtime].emplace_back(iter);
+ 				 a[ktemp][iter.xtheme].emplace_back(iter);
 				 break;
 
                 }
@@ -6368,28 +7502,46 @@ case 19:
                 {
 
    			case 0: 
- 				 ktemp=iter.xmeetid;
+ 				 ktemp=iter.xpjid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.xpjid;
+ 				 ktemp=iter.prexpjid;
 				 break;
 			case 3: 
- 				 ktemp=iter.xtaskid;
+ 				 ktemp=iter.dpid;
 				 break;
 			case 4: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.grouptype;
 				 break;
-			case 12: 
+			case 6: 
+ 				 ktemp=iter.adminuserid;
+				 break;
+			case 7: 
  				 ktemp=iter.regdate;
 				 break;
+			case 8: 
+ 				 ktemp=iter.begindate;
+				 break;
+			case 9: 
+ 				 ktemp=iter.expiredate;
+				 break;
+			case 10: 
+ 				 ktemp=iter.isopen;
+				 break;
+			case 11: 
+ 				 ktemp=iter.clientid;
+				 break;
+			case 12: 
+ 				 ktemp=iter.totalnum;
+				 break;
 			case 13: 
- 				 ktemp=iter.expecttime;
+ 				 ktemp=iter.referdocverion;
 				 break;
 			case 14: 
- 				 ktemp=iter.endtime;
+ 				 ktemp=iter.xtheme;
 				 break;
 			  }
 
@@ -6397,38 +7549,26 @@ case 19:
 			case 5: 
  				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
-			case 6: 
- 				 a[ktemp][iter.zhuchi].emplace_back(iter);
-				 break;
-			case 7: 
- 				 a[ktemp][iter.jilu].emplace_back(iter);
-				 break;
-			case 8: 
- 				 a[ktemp][iter.meetnotice].emplace_back(iter);
-				 break;
-			case 9: 
- 				 a[ktemp][iter.meetfiles].emplace_back(iter);
-				 break;
-			case 10: 
- 				 a[ktemp][iter.address].emplace_back(iter);
-				 break;
-			case 11: 
- 				 a[ktemp][iter.meettime].emplace_back(iter);
-				 break;
 			case 15: 
- 				 a[ktemp][iter.presents].emplace_back(iter);
+ 				 a[ktemp][iter.xlogo].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[ktemp][iter.content].emplace_back(iter);
+ 				 a[ktemp][iter.introduce].emplace_back(iter);
 				 break;
 			case 17: 
- 				 a[ktemp][iter.postresult].emplace_back(iter);
+ 				 a[ktemp][iter.giturl].emplace_back(iter);
 				 break;
 			case 18: 
- 				 a[ktemp][iter.postfiles].emplace_back(iter);
+ 				 a[ktemp][iter.gitname].emplace_back(iter);
 				 break;
 			case 19: 
- 				 a[ktemp][iter.jiluphoto].emplace_back(iter);
+ 				 a[ktemp][iter.gitpwd].emplace_back(iter);
+				 break;
+			case 20: 
+ 				 a[ktemp][iter.xcolor].emplace_back(iter);
+				 break;
+			case 21: 
+ 				 a[ktemp][iter.fupan].emplace_back(iter);
 				 break;
 
                 }

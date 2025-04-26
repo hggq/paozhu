@@ -39887,9 +39887,7 @@ M_MODEL& or_leItemnote(T val)
             }
             wheresql.append(wq);
             wheresql.push_back(bi);
-            std::stringstream _stream;
-            _stream << val;
-            wheresql.append(_stream.str());
+            wheresql.append(std::to_string(val));
             return *mod;
         }
 
@@ -40272,6 +40270,163 @@ M_MODEL& or_leItemnote(T val)
             wheresql.append(_stream.str());
             return *mod;
         }
+
+        template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &whereBT(const std::string &wq, _SQL_Value val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" > ");
+            wheresql.append(std::to_string(val));
+            return *mod;
+        }
+
+        template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &whereBE(const std::string &wq, _SQL_Value val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" >= ");
+            wheresql.append(std::to_string(val));
+            return *mod;
+        }
+
+        template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &whereLT(const std::string &wq, _SQL_Value val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" < ");
+            wheresql.append(std::to_string(val));
+            return *mod;
+        }
+
+        template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &whereLE(const std::string &wq, _SQL_Value val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" <= ");
+            wheresql.append(std::to_string(val));
+            return *mod;
+        }
+
+        M_MODEL &whereEQ(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.push_back('=');
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
+
+            return *mod;
+        }
+
         M_MODEL &whereAnd(const std::string &wq, const std::string &val)
         {
             if (wheresql.empty())
@@ -40311,6 +40466,132 @@ M_MODEL& or_leItemnote(T val)
 
             return *mod;
         }
+
+        //where or
+        template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &whereOrBT(const std::string &wq, _SQL_Value val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" > ");
+            wheresql.append(std::to_string(val));
+            return *mod;
+        }
+
+        template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &whereOrBE(const std::string &wq, _SQL_Value val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" >= ");
+            wheresql.append(std::to_string(val));
+            return *mod;
+        }
+
+        template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &whereOrLT(const std::string &wq, _SQL_Value val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" < ");
+            wheresql.append(std::to_string(val));
+            return *mod;
+        }
+
+        template <typename _SQL_Value>
+        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &whereOrLE(const std::string &wq, _SQL_Value val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" <= ");
+            wheresql.append(std::to_string(val));
+            return *mod;
+        }
+        
         M_MODEL &whereOr(const std::string &wq)
         {
             if (wheresql.empty())
@@ -46520,7 +46801,7 @@ M_MODEL& or_leItemnote(T val)
                 return *mod;
             }
             islock_conn = true;
-            
+
             if (islock_conn)
             {
                 if (!edit_conn)
@@ -46532,16 +46813,15 @@ M_MODEL& or_leItemnote(T val)
             {
                 edit_conn = conn_obj->get_edit_conn();
             }
-            sqlstring="start transaction";
+            sqlstring = "start transaction";
             edit_conn->write_sql(sqlstring);
             iscommit = true;
 
-            
             return *mod;
         }
         M_MODEL &rollback()
         {
-            if(iscommit==false)
+            if (iscommit == false)
             {
                 error_msg = "not begin_commit";
                 iserror   = true;
@@ -46562,16 +46842,16 @@ M_MODEL& or_leItemnote(T val)
             {
                 edit_conn = conn_obj->get_edit_conn();
             }
-            sqlstring="rollback";
+            sqlstring = "rollback";
             edit_conn->write_sql(sqlstring);
 
-            iscommit = false;
+            iscommit    = false;
             islock_conn = false;
             return *mod;
         }
         M_MODEL &commit()
         {
-            if(iscommit==false)
+            if (iscommit == false)
             {
                 error_msg = "not begin_commit";
                 iserror   = true;
@@ -46590,16 +46870,15 @@ M_MODEL& or_leItemnote(T val)
             }
             else
             {
-                edit_conn =conn_obj->get_edit_conn();
+                edit_conn = conn_obj->get_edit_conn();
             }
-            sqlstring="commit";
+            sqlstring = "commit";
             edit_conn->write_sql(sqlstring);
 
-            iscommit = false;
+            iscommit    = false;
             islock_conn = false;
             return *mod;
         }
-
 
         asio::awaitable<bool> async_begin_commit()
         {
@@ -46620,7 +46899,7 @@ M_MODEL& or_leItemnote(T val)
             {
                 edit_conn = co_await conn_obj->async_get_edit_conn();
             }
-            sqlstring="start transaction";
+            sqlstring = "start transaction";
             co_await edit_conn->async_write_sql(sqlstring);
             iscommit = true;
 
@@ -46628,7 +46907,7 @@ M_MODEL& or_leItemnote(T val)
         }
         asio::awaitable<bool> async_rollback()
         {
-            if(iscommit==false)
+            if (iscommit == false)
             {
                 error_msg = "not begin_commit";
                 iserror   = true;
@@ -46649,17 +46928,17 @@ M_MODEL& or_leItemnote(T val)
             {
                 edit_conn = co_await conn_obj->async_get_edit_conn();
             }
-            sqlstring="rollback";
+            sqlstring = "rollback";
             co_await edit_conn->async_write_sql(sqlstring);
 
-            iscommit = false;
+            iscommit    = false;
             islock_conn = false;
             co_return true;
         }
 
         asio::awaitable<bool> async_commit()
         {
-            if(iscommit==false)
+            if (iscommit == false)
             {
                 error_msg = "not begin_commit";
                 iserror   = true;
@@ -46680,10 +46959,10 @@ M_MODEL& or_leItemnote(T val)
             {
                 edit_conn = co_await conn_obj->async_get_edit_conn();
             }
-            sqlstring="commit";
+            sqlstring = "commit";
             co_await edit_conn->async_write_sql(sqlstring);
 
-            iscommit = false;
+            iscommit    = false;
             islock_conn = false;
             co_return true;
         }

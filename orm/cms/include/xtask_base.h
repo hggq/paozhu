@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,7 +20,7 @@ namespace orm {
    
      namespace cms { 
 
-struct xtaskbase
+struct xtask_base
 {
     struct meta{
      unsigned  int  xtaskid = 0; ///**/
@@ -89,13 +89,13 @@ struct xtaskbase
 
 	std::vector<meta_tree> children;
  };
- std::vector<xtaskbase::meta> record;
+ std::vector<xtask_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<xtaskbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<xtaskbase::meta>::iterator end(){     return record.end(); }
-std::vector<xtaskbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<xtaskbase::meta>::const_iterator end() const{     return record.end(); }
+std::vector<xtask_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<xtask_base::meta>::iterator end(){     return record.end(); }
+std::vector<xtask_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<xtask_base::meta>::const_iterator end() const{     return record.end(); }
 static constexpr std::array<std::string_view,30> col_names={"xtaskid","userid","xpjid","adminid","parentid","begindate","enddate","expectbegindate","expectenddate","milestone","subxpjid","depxtaskid","referdocid","isfinish","updatedate","finishdate","iscore","xvalue","expectday","realday","pricevalue","title","introduce","xlogo","xcolor","pullurl","pulltitle","pullauthor","note","itemnote"};
 static constexpr std::array<unsigned char,30> col_types={3,3,3,3,3,3,3,3,3,3,3,3,3,1,3,3,3,5,4,4,4,253,252,253,253,253,253,253,252,252};
 static constexpr std::array<unsigned char,30> col_length={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,60,0,0};
@@ -247,7 +247,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     xtaskbase::meta metatemp;    
+     xtask_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -2258,7 +2258,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        xtaskbase::meta metatemp; 
+        xtask_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -3777,14 +3777,14 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(record[n].itemnote)<<"\"";
  void setItemnote( std::string  &val){  data.itemnote=val;} 
  void setItemnote(std::string_view val){  data.itemnote=val;} 
 
-xtaskbase::meta getnewData(){
+xtask_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-xtaskbase::meta getData(){
+xtask_base::meta getData(){
  	 return data; 
 } 
-std::vector<xtaskbase::meta> getRecord(){
+std::vector<xtask_base::meta> getRecord(){
  	 return record; 
 } 
 
@@ -4614,7 +4614,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] xtaskbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] xtask_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -4708,7 +4708,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] xtaskbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] xtask_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -4776,7 +4776,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] xtaskbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] xtask_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;

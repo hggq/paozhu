@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,7 +20,7 @@ namespace orm {
    
      namespace cms { 
 
-struct sysrolepermsbase
+struct sysroleperms_base
 {
     struct meta{
      unsigned  int  rolepermsid = 0; ///**/
@@ -29,13 +29,13 @@ struct sysrolepermsbase
  unsigned  int  permsid = 0; ///**/
  unsigned  int  sortid = 0; ///**/
  } data;
- std::vector<sysrolepermsbase::meta> record;
+ std::vector<sysroleperms_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<sysrolepermsbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<sysrolepermsbase::meta>::iterator end(){     return record.end(); }
-std::vector<sysrolepermsbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<sysrolepermsbase::meta>::const_iterator end() const{     return record.end(); }
+std::vector<sysroleperms_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<sysroleperms_base::meta>::iterator end(){     return record.end(); }
+std::vector<sysroleperms_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<sysroleperms_base::meta>::const_iterator end() const{     return record.end(); }
 static constexpr std::array<std::string_view,5> col_names={"rolepermsid","userid","roleid","permsid","sortid"};
 static constexpr std::array<unsigned char,5> col_types={3,3,3,3,3};
 static constexpr std::array<unsigned char,5> col_length={0,0,0,0,0};
@@ -92,7 +92,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     sysrolepermsbase::meta metatemp;    
+     sysroleperms_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -865,7 +865,7 @@ if(data.sortid==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        sysrolepermsbase::meta metatemp; 
+        sysroleperms_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1438,14 +1438,14 @@ if(record[n].sortid==0){
  unsigned  int  getSortid(){  return data.sortid; } 
  void setSortid( unsigned  int  val){  data.sortid=val;} 
 
-sysrolepermsbase::meta getnewData(){
+sysroleperms_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-sysrolepermsbase::meta getData(){
+sysroleperms_base::meta getData(){
  	 return data; 
 } 
-std::vector<sysrolepermsbase::meta> getRecord(){
+std::vector<sysroleperms_base::meta> getRecord(){
  	 return record; 
 } 
 
@@ -1562,7 +1562,7 @@ std::vector<sysrolepermsbase::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] sysrolepermsbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] sysroleperms_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1608,7 +1608,7 @@ std::vector<sysrolepermsbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] sysrolepermsbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] sysroleperms_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1637,7 +1637,7 @@ std::vector<sysrolepermsbase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] sysrolepermsbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] sysroleperms_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;

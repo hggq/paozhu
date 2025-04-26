@@ -1,6 +1,6 @@
 
 #include "xtalk_mysql.h"
-#include "cms/include/xtalkbase.h"
+#include "cms/include/xtalk_base.h"
 #include "cms/include/Xtalk.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

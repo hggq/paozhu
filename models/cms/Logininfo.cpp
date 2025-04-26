@@ -1,6 +1,6 @@
 
 #include "logininfo_mysql.h"
-#include "cms/include/logininfobase.h"
+#include "cms/include/logininfo_base.h"
 #include "cms/include/Logininfo.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

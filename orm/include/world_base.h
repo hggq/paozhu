@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_BLOGCATALOGBASEMATA_H
-#define ORM_CMS_BLOGCATALOGBASEMATA_H
+#ifndef ORM_DEFAULT_WORLDBASEMATA_H
+#define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:47 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -18,30 +18,26 @@
 
 namespace orm { 
    
-     namespace cms { 
-
-struct blogcatalogbase
+    
+struct world_base
 {
     struct meta{
-     unsigned  int  bid = 0; ///**/
- unsigned  int  userid = 0; ///**/
- unsigned  int  dateid = 0; ///*月份聚合*/
- unsigned  int  articlenum = 0; ///*月份文章数量聚合*/
- unsigned  int  languageid = 0; ///*语言版本*/
+     unsigned  int  id = 0; ///**/
+ int  randomnumber = 0; ///**/
  } data;
- std::vector<blogcatalogbase::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+ std::vector<world_base::meta> record;
+std::string _rmstag="default";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<blogcatalogbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<blogcatalogbase::meta>::iterator end(){     return record.end(); }
-std::vector<blogcatalogbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<blogcatalogbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,5> col_names={"bid","userid","dateid","articlenum","languageid"};
-static constexpr std::array<unsigned char,5> col_types={3,3,3,3,3};
-static constexpr std::array<unsigned char,5> col_length={0,0,0,0,0};
-static constexpr std::array<unsigned char,5> col_decimals={0,0,0,0,0};
-std::string tablename="blogcatalog";
-static constexpr std::string_view modelname="Blogcatalog";
+std::vector<world_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<world_base::meta>::iterator end(){     return record.end(); }
+std::vector<world_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<world_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,2> col_names={"id","randomnumber"};
+static constexpr std::array<unsigned char,2> col_types={3,3};
+static constexpr std::array<unsigned char,2> col_length={0,0};
+static constexpr std::array<unsigned char,2> col_decimals={0,0};
+std::string tablename="world";
+static constexpr std::string_view modelname="World";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -57,19 +53,10 @@ static constexpr std::string_view modelname="Blogcatalog";
             switch(coln[0]){
 
 
-         case 'a':
-   	 return 3;
-break;
-case 'b':
+         case 'i':
    	 return 0;
 break;
-case 'd':
-   	 return 2;
-break;
-case 'l':
-   	 return 4;
-break;
-case 'u':
+case 'r':
    	 return 1;
 break;
 
@@ -80,7 +67,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "bid";
+       return "id";
 }
 
       void record_reset()
@@ -88,7 +75,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     blogcatalogbase::meta metatemp;    
+     world_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -151,30 +138,15 @@ break;
         }
         tempsql<<") VALUES (";
 
-        if(data.bid==0){
+        if(data.id==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.bid);
+	tempsql<<std::to_string(data.id);
 }
-if(data.userid==0){
+if(data.randomnumber==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.userid);
-}
-if(data.dateid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.dateid);
-}
-if(data.articlenum==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.articlenum);
-}
-if(data.languageid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.languageid);
+	tempsql<<","<<std::to_string(data.randomnumber);
 }
 tempsql<<")";
 
@@ -201,30 +173,15 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.bid==0){
+        if(insert_data.id==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.bid);
+	tempsql<<std::to_string(insert_data.id);
 }
-if(insert_data.userid==0){
+if(insert_data.randomnumber==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.userid);
-}
-if(insert_data.dateid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.dateid);
-}
-if(insert_data.articlenum==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.articlenum);
-}
-if(insert_data.languageid==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.languageid);
+	tempsql<<","<<std::to_string(insert_data.randomnumber);
 }
 tempsql<<")";
 
@@ -260,30 +217,15 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].bid==0){
+            	if(insert_data[i].id==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].bid);
+	tempsql<<std::to_string(insert_data[i].id);
 	}
-	if(insert_data[i].userid==0){
+	if(insert_data[i].randomnumber==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].userid);
-	}
-	if(insert_data[i].dateid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].dateid);
-	}
-	if(insert_data[i].articlenum==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].articlenum);
-	}
-	if(insert_data[i].languageid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].languageid);
+	tempsql<<","<<std::to_string(insert_data[i].randomnumber);
 	}
 		tempsql<<")";
 	 } 
@@ -304,30 +246,15 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.bid==0){
-	tempsql<<"`bid`=0";
+        if(data.id==0){
+	tempsql<<"`id`=0";
  }else{ 
-	tempsql<<"`bid`="<<std::to_string(data.bid);
+	tempsql<<"`id`="<<std::to_string(data.id);
 }
-if(data.userid==0){
-	tempsql<<",`userid`=0";
+if(data.randomnumber==0){
+	tempsql<<",`randomnumber`=0";
  }else{ 
-	tempsql<<",`userid`="<<std::to_string(data.userid);
-}
-if(data.dateid==0){
-	tempsql<<",`dateid`=0";
- }else{ 
-	tempsql<<",`dateid`="<<std::to_string(data.dateid);
-}
-if(data.articlenum==0){
-	tempsql<<",`articlenum`=0";
- }else{ 
-	tempsql<<",`articlenum`="<<std::to_string(data.articlenum);
-}
-if(data.languageid==0){
-	tempsql<<",`languageid`=0";
- }else{ 
-	tempsql<<",`languageid`="<<std::to_string(data.languageid);
+	tempsql<<",`randomnumber`="<<std::to_string(data.randomnumber);
 }
  }else{ 
 
@@ -375,42 +302,18 @@ if(data.languageid==0){
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.bid==0){
-	tempsql<<"`bid`=0";
+if(data.id==0){
+	tempsql<<"`id`=0";
  }else{ 
-	tempsql<<"`bid`="<<std::to_string(data.bid);
+	tempsql<<"`id`="<<std::to_string(data.id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(data.userid==0){
-	tempsql<<"`userid`=0";
+if(data.randomnumber==0){
+	tempsql<<"`randomnumber`=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(data.dateid==0){
-	tempsql<<"`dateid`=0";
- }else{ 
-	tempsql<<"`dateid`="<<std::to_string(data.dateid);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(data.articlenum==0){
-	tempsql<<"`articlenum`=0";
- }else{ 
-	tempsql<<"`articlenum`="<<std::to_string(data.articlenum);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(data.languageid==0){
-	tempsql<<"`languageid`=0";
- }else{ 
-	tempsql<<"`languageid`="<<std::to_string(data.languageid);
+	tempsql<<"`randomnumber`="<<std::to_string(data.randomnumber);
 }
  break;
 
@@ -457,30 +360,15 @@ if(data.languageid==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].bid==0){
+            	if(record[i].id==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].bid);
+	tempsql<<std::to_string(record[i].id);
 	}
-	if(record[i].userid==0){
+	if(record[i].randomnumber==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].userid);
-	}
-	if(record[i].dateid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].dateid);
-	}
-	if(record[i].articlenum==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].articlenum);
-	}
-	if(record[i].languageid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].languageid);
+	tempsql<<","<<std::to_string(record[i].randomnumber);
 	}
 	tempsql<<")";
 
@@ -520,30 +408,15 @@ if(data.languageid==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].bid==0){
+            	if(record[i].id==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].bid);
+	tempsql<<std::to_string(record[i].id);
 	}
-	if(record[i].userid==0){
+	if(record[i].randomnumber==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].userid);
-	}
-	if(record[i].dateid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].dateid);
-	}
-	if(record[i].articlenum==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].articlenum);
-	}
-	if(record[i].languageid==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].languageid);
+	tempsql<<","<<std::to_string(record[i].randomnumber);
 	}
 	tempsql<<")";
 	 }
@@ -625,38 +498,17 @@ if(data.languageid==0){
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.bid==0){
+if(data.id==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.bid));
+	temparray.push_back(std::to_string(data.id));
 }
  break;
  case 1:
-if(data.userid==0){
+if(data.randomnumber==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.userid));
-}
- break;
- case 2:
-if(data.dateid==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.dateid));
-}
- break;
- case 3:
-if(data.articlenum==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.articlenum));
-}
- break;
- case 4:
-if(data.languageid==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.languageid));
+	temparray.push_back(std::to_string(data.randomnumber));
 }
  break;
 
@@ -700,38 +552,17 @@ if(data.languageid==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.bid==0){
-	tempsql.insert({"bid","0"});
+if(data.id==0){
+	tempsql.insert({"id","0"});
  }else{ 
-	tempsql.insert({"bid",std::to_string(data.bid)});
+	tempsql.insert({"id",std::to_string(data.id)});
 }
  break;
  case 1:
-if(data.userid==0){
-	tempsql.insert({"userid","0"});
+if(data.randomnumber==0){
+	tempsql.insert({"randomnumber","0"});
  }else{ 
-	tempsql.insert({"userid",std::to_string(data.userid)});
-}
- break;
- case 2:
-if(data.dateid==0){
-	tempsql.insert({"dateid","0"});
- }else{ 
-	tempsql.insert({"dateid",std::to_string(data.dateid)});
-}
- break;
- case 3:
-if(data.articlenum==0){
-	tempsql.insert({"articlenum","0"});
- }else{ 
-	tempsql.insert({"articlenum",std::to_string(data.articlenum)});
-}
- break;
- case 4:
-if(data.languageid==0){
-	tempsql.insert({"languageid","0"});
- }else{ 
-	tempsql.insert({"languageid",std::to_string(data.languageid)});
+	tempsql.insert({"randomnumber",std::to_string(data.randomnumber)});
 }
  break;
 
@@ -747,30 +578,15 @@ if(data.languageid==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.bid==0){
-	tempsql<<"\"bid\":0";
+if(data.id==0){
+	tempsql<<"\"id\":0";
  }else{ 
-	tempsql<<"\"bid\":"<<std::to_string(data.bid);
+	tempsql<<"\"id\":"<<std::to_string(data.id);
 }
-if(data.userid==0){
-	tempsql<<",\"userid\":0";
+if(data.randomnumber==0){
+	tempsql<<",\"randomnumber\":0";
  }else{ 
-	tempsql<<",\"userid\":"<<std::to_string(data.userid);
-}
-if(data.dateid==0){
-	tempsql<<",\"dateid\":0";
- }else{ 
-	tempsql<<",\"dateid\":"<<std::to_string(data.dateid);
-}
-if(data.articlenum==0){
-	tempsql<<",\"articlenum\":0";
- }else{ 
-	tempsql<<",\"articlenum\":"<<std::to_string(data.articlenum);
-}
-if(data.languageid==0){
-	tempsql<<",\"languageid\":0";
- }else{ 
-	tempsql<<",\"languageid\":"<<std::to_string(data.languageid);
+	tempsql<<",\"randomnumber\":"<<std::to_string(data.randomnumber);
 }
 tempsql<<"}";
 
@@ -811,42 +627,18 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.bid==0){
-	tempsql<<"\"bid\":0";
+if(data.id==0){
+	tempsql<<"\"id\":0";
  }else{ 
-	tempsql<<"\"bid\":"<<std::to_string(data.bid);
+	tempsql<<"\"id\":"<<std::to_string(data.id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(data.userid==0){
-	tempsql<<"\"userid\":0";
+if(data.randomnumber==0){
+	tempsql<<"\"randomnumber\":0";
  }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(data.userid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(data.dateid==0){
-	tempsql<<"\"dateid\":0";
- }else{ 
-	tempsql<<"\"dateid\":"<<std::to_string(data.dateid);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(data.articlenum==0){
-	tempsql<<"\"articlenum\":0";
- }else{ 
-	tempsql<<"\"articlenum\":"<<std::to_string(data.articlenum);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(data.languageid==0){
-	tempsql<<"\"languageid\":0";
- }else{ 
-	tempsql<<"\"languageid\":"<<std::to_string(data.languageid);
+	tempsql<<"\"randomnumber\":"<<std::to_string(data.randomnumber);
 }
  break;
 
@@ -861,7 +653,7 @@ if(data.languageid==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        blogcatalogbase::meta metatemp; 
+        world_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1098,37 +890,16 @@ if(data.languageid==0){
         {
     		case 0:
 		 try{
-			data.bid=std::stoul(set_value_name);
+			data.id=std::stoul(set_value_name);
 		}catch (...) { 
-			data.bid=0;
+			data.id=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.userid=std::stoul(set_value_name);
+			data.randomnumber=std::stoi(set_value_name);
 		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.dateid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.dateid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.articlenum=std::stoul(set_value_name);
-		}catch (...) { 
-			data.articlenum=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.languageid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.languageid=0;
+			data.randomnumber=0;
 			 }
 			break;
 	default:
@@ -1145,37 +916,16 @@ if(data.languageid==0){
         {
     		case 0:
 		 try{
-			data.bid=set_value_name;
+			data.id=set_value_name;
 		}catch (...) { 
-			data.bid=0;
+			data.id=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.userid=set_value_name;
+			data.randomnumber=set_value_name;
 		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.dateid=set_value_name;
-		}catch (...) { 
-			data.dateid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.articlenum=set_value_name;
-		}catch (...) { 
-			data.articlenum=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.languageid=set_value_name;
-		}catch (...) { 
-			data.languageid=0;
+			data.randomnumber=0;
 			 }
 			break;
 	default:
@@ -1192,37 +942,16 @@ if(data.languageid==0){
         {
     		case 0:
 		 try{
-			data.bid=(unsigned int)set_value_name;
+			data.id=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.bid=0;
+			data.id=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.userid=(unsigned int)set_value_name;
+			data.randomnumber=(int)set_value_name;
 		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.dateid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.dateid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.articlenum=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.articlenum=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.languageid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.languageid=0;
+			data.randomnumber=0;
 			 }
 			break;
 	default:
@@ -1273,42 +1002,18 @@ if(data.languageid==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].bid==0){
-	tempsql<<"\"bid\":0";
+if(record[n].id==0){
+	tempsql<<"\"id\":0";
  }else{ 
-	tempsql<<"\"bid\":"<<std::to_string(record[n].bid);
+	tempsql<<"\"id\":"<<std::to_string(record[n].id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(record[n].userid==0){
-	tempsql<<"\"userid\":0";
+if(record[n].randomnumber==0){
+	tempsql<<"\"randomnumber\":0";
  }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(record[n].dateid==0){
-	tempsql<<"\"dateid\":0";
- }else{ 
-	tempsql<<"\"dateid\":"<<std::to_string(record[n].dateid);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(record[n].articlenum==0){
-	tempsql<<"\"articlenum\":0";
- }else{ 
-	tempsql<<"\"articlenum\":"<<std::to_string(record[n].articlenum);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(record[n].languageid==0){
-	tempsql<<"\"languageid\":0";
- }else{ 
-	tempsql<<"\"languageid\":"<<std::to_string(record[n].languageid);
+	tempsql<<"\"randomnumber\":"<<std::to_string(record[n].randomnumber);
 }
  break;
 
@@ -1369,42 +1074,18 @@ if(record[n].languageid==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].bid==0){
-	tempsql<<"\"bid\":0";
+if(record[n].id==0){
+	tempsql<<"\"id\":0";
  }else{ 
-	tempsql<<"\"bid\":"<<std::to_string(record[n].bid);
+	tempsql<<"\"id\":"<<std::to_string(record[n].id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(record[n].userid==0){
-	tempsql<<"\"userid\":0";
+if(record[n].randomnumber==0){
+	tempsql<<"\"randomnumber\":0";
  }else{ 
-	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
-}
- break;
- case 2:
- if(jj>0){ tempsql<<","; } 
-if(record[n].dateid==0){
-	tempsql<<"\"dateid\":0";
- }else{ 
-	tempsql<<"\"dateid\":"<<std::to_string(record[n].dateid);
-}
- break;
- case 3:
- if(jj>0){ tempsql<<","; } 
-if(record[n].articlenum==0){
-	tempsql<<"\"articlenum\":0";
- }else{ 
-	tempsql<<"\"articlenum\":"<<std::to_string(record[n].articlenum);
-}
- break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-if(record[n].languageid==0){
-	tempsql<<"\"languageid\":0";
- }else{ 
-	tempsql<<"\"languageid\":"<<std::to_string(record[n].languageid);
+	tempsql<<"\"randomnumber\":"<<std::to_string(record[n].randomnumber);
 }
  break;
 
@@ -1417,31 +1098,22 @@ if(record[n].languageid==0){
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.bid; } 
- void setPK(long long val){  data.bid=val;} 
- unsigned  int  getBid(){  return data.bid; } 
- void setBid( unsigned  int  val){  data.bid=val;} 
+   long long getPK(){  return data.id; } 
+ void setPK(long long val){  data.id=val;} 
+ unsigned  int  getId(){  return data.id; } 
+ void setId( unsigned  int  val){  data.id=val;} 
 
- unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ int  getRandomnumber(){  return data.randomnumber; } 
+ void setRandomnumber( int  val){  data.randomnumber=val;} 
 
- unsigned  int  getDateid(){  return data.dateid; } 
- void setDateid( unsigned  int  val){  data.dateid=val;} 
-
- unsigned  int  getArticlenum(){  return data.articlenum; } 
- void setArticlenum( unsigned  int  val){  data.articlenum=val;} 
-
- unsigned  int  getLanguageid(){  return data.languageid; } 
- void setLanguageid( unsigned  int  val){  data.languageid=val;} 
-
-blogcatalogbase::meta getnewData(){
+world_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-blogcatalogbase::meta getData(){
+world_base::meta getData(){
  	 return data; 
 } 
-std::vector<blogcatalogbase::meta> getRecord(){
+std::vector<world_base::meta> getRecord(){
  	 return record; 
 } 
 
@@ -1456,25 +1128,13 @@ std::vector<blogcatalogbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="bid")
+   		 if(key_name=="id")
 		{
-			return data.bid;
+			return data.id;
 		}
-		 if(key_name=="userid")
+		 if(key_name=="randomnumber")
 		{
-			return data.userid;
-		}
-		 if(key_name=="dateid")
-		{
-			return data.dateid;
-		}
-		 if(key_name=="articlenum")
-		{
-			return data.articlenum;
-		}
-		 if(key_name=="languageid")
-		{
-			return data.languageid;
+			return data.randomnumber;
 		}
 		return nullptr; 
 	}
@@ -1499,19 +1159,10 @@ std::vector<blogcatalogbase::meta> getRecord(){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.bid);
+ 				 a.emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a.emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a.emplace_back(iter.dateid);
-				 break;
-			case 3: 
- 				 a.emplace_back(iter.articlenum);
-				 break;
-			case 4: 
- 				 a.emplace_back(iter.languageid);
+ 				 a.emplace_back(iter.randomnumber);
 				 break;
 
                     }
@@ -1539,26 +1190,17 @@ std::vector<blogcatalogbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 return data.bid;
+ 				 return data.id;
 				 break;
 			case 1: 
- 				 return data.userid;
-				 break;
-			case 2: 
- 				 return data.dateid;
-				 break;
-			case 3: 
- 				 return data.articlenum;
-				 break;
-			case 4: 
- 				 return data.languageid;
+ 				 return data.randomnumber;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] blogcatalogbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] world_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1567,19 +1209,10 @@ std::vector<blogcatalogbase::meta> getRecord(){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.bid;
+ 				 return iter.id;
 				 break;
 			case 1: 
- 				 return iter.userid;
-				 break;
-			case 2: 
- 				 return iter.dateid;
-				 break;
-			case 3: 
- 				 return iter.articlenum;
-				 break;
-			case 4: 
- 				 return iter.languageid;
+ 				 return iter.randomnumber;
 				 break;
 
 			}
@@ -1604,7 +1237,7 @@ std::vector<blogcatalogbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] blogcatalogbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] world_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1633,7 +1266,7 @@ std::vector<blogcatalogbase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] blogcatalogbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] world_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -1686,19 +1319,10 @@ std::vector<blogcatalogbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.bid);
+ 				 a<<std::to_string(iter.id);
 				 break;
 			case 1: 
- 				 a<<std::to_string(iter.userid);
-				 break;
-			case 2: 
- 				 a<<std::to_string(iter.dateid);
-				 break;
-			case 3: 
- 				 a<<std::to_string(iter.articlenum);
-				 break;
-			case 4: 
- 				 a<<std::to_string(iter.languageid);
+ 				 a<<std::to_string(iter.randomnumber);
 				 break;
 
                     }
@@ -1744,19 +1368,10 @@ std::vector<blogcatalogbase::meta> getRecord(){
                 {
  
        case 0: 
- 	 ktemp=iter.bid;
+ 	 ktemp=iter.id;
 	 break;
 case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.dateid;
-	 break;
-case 3: 
- 	 ktemp=iter.articlenum;
-	 break;
-case 4: 
- 	 ktemp=iter.languageid;
+ 	 ktemp=iter.randomnumber;
 	 break;
 	 } 
  		  switch(vpos){
@@ -1786,19 +1401,10 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
  			switch(vpos){
@@ -1831,19 +1437,10 @@ case 4:
    			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 
                 }
@@ -1872,36 +1469,18 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 
                 }
@@ -1927,19 +1506,10 @@ case 4:
                 {
 
    			case 0: 
- 				 a.emplace(iter.bid,iter);
+ 				 a.emplace(iter.id,iter);
 				 break;
 			case 1: 
- 				 a.emplace(iter.userid,iter);
-				 break;
-			case 2: 
- 				 a.emplace(iter.dateid,iter);
-				 break;
-			case 3: 
- 				 a.emplace(iter.articlenum,iter);
-				 break;
-			case 4: 
- 				 a.emplace(iter.languageid,iter);
+ 				 a.emplace(iter.randomnumber,iter);
 				 break;
 
                 }
@@ -1983,19 +1553,10 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 			 break;
 			case 1: 
- 				 ktemp=iter.userid;
-			 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-			 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-			 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 			 break;
 			  }
 			 switch(vpos){
@@ -2027,19 +1588,10 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
  			switch(vpos){
@@ -2071,19 +1623,10 @@ case 4:
    			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 
                    }
@@ -2109,36 +1652,18 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 
                    }
@@ -2169,19 +1694,10 @@ case 4:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.bid,iter);
+ 	 a.emplace_back(iter.id,iter);
 	 break;
 case 1: 
- 	 a.emplace_back(iter.userid,iter);
-	 break;
-case 2: 
- 	 a.emplace_back(iter.dateid,iter);
-	 break;
-case 3: 
- 	 a.emplace_back(iter.articlenum,iter);
-	 break;
-case 4: 
- 	 a.emplace_back(iter.languageid,iter);
+ 	 a.emplace_back(iter.randomnumber,iter);
 	 break;
 
                 }
@@ -2214,37 +1730,19 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 			  }
 
@@ -2276,55 +1774,28 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.bid);
+ 				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.dateid);
-				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.articlenum);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.languageid);
+ 				 a[ktemp][vtemp].emplace_back(iter.randomnumber);
 				 break;
 
                 }
@@ -2352,37 +1823,19 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 			 }
 
@@ -2414,19 +1867,10 @@ case 4:
                     {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			 }
 
@@ -2461,19 +1905,10 @@ case 4:
             {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			 }
 
@@ -2482,19 +1917,10 @@ case 4:
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.bid);
+ 				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.dateid);
-				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.articlenum);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.languageid);
+ 				 a[ktemp][vtemp].emplace_back(iter.randomnumber);
 				 break;
 
             }
@@ -2521,19 +1947,10 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
 
@@ -2569,19 +1986,10 @@ case 4:
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 			  }
 
@@ -2617,37 +2025,19 @@ case 4:
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.bid);
+ 				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.dateid);
-				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.articlenum);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.languageid);
+ 				 a[ktemp][vtemp].emplace_back(iter.randomnumber);
 				 break;
 
                 }
@@ -2680,19 +2070,10 @@ case 4:
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.bid;
+ 				 vtemp=iter.id;
 				 break;
 			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
+ 				 vtemp=iter.randomnumber;
 				 break;
 			 }
 
@@ -2737,19 +2118,10 @@ case 4:
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.bid);
+ 				 a[ktemp][vtemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.dateid);
-				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.articlenum);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.languageid);
+ 				 a[ktemp][vtemp].emplace_back(iter.randomnumber);
 				 break;
 
                 }
@@ -2804,19 +2176,10 @@ case 4:
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.bid);
+ 				 a[ktemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp].emplace_back(iter.dateid);
-				 break;
-			case 3: 
- 				 a[ktemp].emplace_back(iter.articlenum);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.languageid);
+ 				 a[ktemp].emplace_back(iter.randomnumber);
 				 break;
 
                 }
@@ -2843,19 +2206,10 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			 }
 
@@ -2886,19 +2240,10 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
 
@@ -2928,37 +2273,19 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.bid);
+ 				 a[ktemp].emplace_back(iter.id);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp].emplace_back(iter.dateid);
-				 break;
-			case 3: 
- 				 a[ktemp].emplace_back(iter.articlenum);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.languageid);
+ 				 a[ktemp].emplace_back(iter.randomnumber);
 				 break;
 
                 }
@@ -2981,19 +2308,10 @@ case 4:
                 {
 
    			case 0: 
- 				 a[iter.bid].emplace_back(iter);
+ 				 a[iter.id].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[iter.userid].emplace_back(iter);
-				 break;
-			case 2: 
- 				 a[iter.dateid].emplace_back(iter);
-				 break;
-			case 3: 
- 				 a[iter.articlenum].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[iter.languageid].emplace_back(iter);
+ 				 a[iter.randomnumber].emplace_back(iter);
 				 break;
 
                 }
@@ -3038,19 +2356,10 @@ case 4:
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.bid].emplace_back(iter);
+ 				 a[ktemp][iter.id].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.userid].emplace_back(iter);
-				 break;
-			case 2: 
- 				 a[ktemp][iter.dateid].emplace_back(iter);
-				 break;
-			case 3: 
- 				 a[ktemp][iter.articlenum].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.languageid].emplace_back(iter);
+ 				 a[ktemp][iter.randomnumber].emplace_back(iter);
 				 break;
 
                 }
@@ -3077,37 +2386,19 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.bid].emplace_back(iter);
+ 				 a[ktemp][iter.id].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.userid].emplace_back(iter);
-				 break;
-			case 2: 
- 				 a[ktemp][iter.dateid].emplace_back(iter);
-				 break;
-			case 3: 
- 				 a[ktemp][iter.articlenum].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.languageid].emplace_back(iter);
+ 				 a[ktemp][iter.randomnumber].emplace_back(iter);
 				 break;
 
                 }
@@ -3134,19 +2425,10 @@ case 4:
                 {
 
    			case 0: 
- 				 ktemp=iter.bid;
+ 				 ktemp=iter.id;
 				 break;
 			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
+ 				 ktemp=iter.randomnumber;
 				 break;
 			  }
 
@@ -3160,7 +2442,7 @@ case 4:
     
   };
     
-} 
+
 }
 #endif
    

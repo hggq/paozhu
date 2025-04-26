@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_BRANDBASEMATA_H
-#define ORM_CMS_BRANDBASEMATA_H
+#ifndef ORM_CMS_CATALOGUEBASEMATA_H
+#define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:49 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,32 +20,44 @@ namespace orm {
    
      namespace cms { 
 
-struct brandbase
+struct catalogue_base
 {
     struct meta{
-     unsigned  int  brandid = 0; ///**/
+     unsigned  int  cid = 0; ///**/
  unsigned  int  userid = 0; ///**/
- unsigned  int  topicid = 0; ///**/
+ unsigned  int  level = 0; ///*深度*/
+ unsigned  int  parentid = 0; ///*父id[cid tree]*/
+ std::string  name = ""; ///*分类名称*/
+ char  isview = 0; ///*是否显示*/
  int  sortid = 0; ///*排序*/
- std::string  logo = ""; ///**/
- std::string  title = ""; ///*品牌名称brandname*/
- std::string  name = ""; ///*other name*/
- std::string  introduce = ""; ///*简介*/
- std::string  detailcontent = ""; ///**/
+ std::string  imgurl = ""; ///*图片*/
  } data;
- std::vector<brandbase::meta> record;
+  
+        struct meta_tree{
+         unsigned  int  cid = 0; ///**/
+ unsigned  int  userid = 0; ///**/
+ unsigned  int  level = 0; ///*深度*/
+ unsigned  int  parentid = 0; ///*父id[cid tree]*/
+ std::string  name = ""; ///*分类名称*/
+ char  isview = 0; ///*是否显示*/
+ int  sortid = 0; ///*排序*/
+ std::string  imgurl = ""; ///*图片*/
+
+	std::vector<meta_tree> children;
+ };
+ std::vector<catalogue_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<brandbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<brandbase::meta>::iterator end(){     return record.end(); }
-std::vector<brandbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<brandbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,9> col_names={"brandid","userid","topicid","sortid","logo","title","name","introduce","detailcontent"};
-static constexpr std::array<unsigned char,9> col_types={3,3,3,3,253,253,253,252,252};
-static constexpr std::array<unsigned char,9> col_length={0,0,0,0,0,160,160,0,0};
-static constexpr std::array<unsigned char,9> col_decimals={0,0,0,0,0,0,0,0,0};
-std::string tablename="brand";
-static constexpr std::string_view modelname="Brand";
+std::vector<catalogue_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<catalogue_base::meta>::iterator end(){     return record.end(); }
+std::vector<catalogue_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<catalogue_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,8> col_names={"cid","userid","level","parentid","name","isview","sortid","imgurl"};
+static constexpr std::array<unsigned char,8> col_types={3,3,3,3,253,1,3,253};
+static constexpr std::array<unsigned char,8> col_length={0,0,0,0,64,0,0,254};
+static constexpr std::array<unsigned char,8> col_decimals={0,0,0,0,0,0,0,0};
+std::string tablename="catalogue";
+static constexpr std::string_view modelname="Catalogue";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -53,7 +65,7 @@ static constexpr std::string_view modelname="Brand";
                 return 255;
             }
 		    unsigned char  bi=coln[0];
-         
+         char colpospppc;
 
 	         if(bi<91&&bi>64){
 				bi+=32;
@@ -61,34 +73,31 @@ static constexpr std::string_view modelname="Brand";
             switch(coln[0]){
 
 
-         case 'b':
+         case 'c':
    	 return 0;
 break;
-case 'd':
-   	 return 8;
-break;
 case 'i':
-   	 return 7;
-break;
-case 'l':
-   	 return 4;
-break;
-case 'n':
-   	 return 6;
-break;
-case 's':
-   	 return 3;
-break;
-case 't':
  switch(coln.size()){  
-case 5:
-   	 return 5;
-break;
-case 7:
-   	 return 2;
-break;
+case 6:
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='l'){ return 7; }
+ if(colpospppc=='w'){ return 5; }
+   	 break;
  }
  break;
+case 'l':
+   	 return 2;
+break;
+case 'n':
+   	 return 4;
+break;
+case 'p':
+   	 return 3;
+break;
+case 's':
+   	 return 6;
+break;
 case 'u':
    	 return 1;
 break;
@@ -100,7 +109,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "brandid";
+       return "cid";
 }
 
       void record_reset()
@@ -108,7 +117,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     brandbase::meta metatemp;    
+     catalogue_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -171,31 +180,38 @@ break;
         }
         tempsql<<") VALUES (";
 
-        if(data.brandid==0){
+        if(data.cid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.brandid);
+	tempsql<<std::to_string(data.cid);
 }
 if(data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.userid);
 }
-if(data.topicid==0){
+if(data.level==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.topicid);
+	tempsql<<","<<std::to_string(data.level);
+}
+if(data.parentid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.parentid);
+}
+tempsql<<",'"<<stringaddslash(data.name)<<"'";
+if(data.isview==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.isview);
 }
 if(data.sortid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.sortid);
 }
-tempsql<<",'"<<stringaddslash(data.logo)<<"'";
-tempsql<<",'"<<stringaddslash(data.title)<<"'";
-tempsql<<",'"<<stringaddslash(data.name)<<"'";
-tempsql<<",'"<<stringaddslash(data.introduce)<<"'";
-tempsql<<",'"<<stringaddslash(data.detailcontent)<<"'";
+tempsql<<",'"<<stringaddslash(data.imgurl)<<"'";
 tempsql<<")";
 
      
@@ -221,31 +237,38 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.brandid==0){
+        if(insert_data.cid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.brandid);
+	tempsql<<std::to_string(insert_data.cid);
 }
 if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.userid);
 }
-if(insert_data.topicid==0){
+if(insert_data.level==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.topicid);
+	tempsql<<","<<std::to_string(insert_data.level);
+}
+if(insert_data.parentid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.parentid);
+}
+tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
+if(insert_data.isview==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.isview);
 }
 if(insert_data.sortid==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.sortid);
 }
-tempsql<<",'"<<stringaddslash(insert_data.logo)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.title)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.introduce)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.detailcontent)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.imgurl)<<"'";
 tempsql<<")";
 
      
@@ -280,31 +303,38 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].brandid==0){
+            	if(insert_data[i].cid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].brandid);
+	tempsql<<std::to_string(insert_data[i].cid);
 	}
 	if(insert_data[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
-	if(insert_data[i].topicid==0){
+	if(insert_data[i].level==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].topicid);
+	tempsql<<","<<std::to_string(insert_data[i].level);
+	}
+	if(insert_data[i].parentid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].parentid);
+	}
+		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
+	if(insert_data[i].isview==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].isview);
 	}
 	if(insert_data[i].sortid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].sortid);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].logo)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].title)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].introduce)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].detailcontent)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].imgurl)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -324,31 +354,38 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.brandid==0){
-	tempsql<<"`brandid`=0";
+        if(data.cid==0){
+	tempsql<<"`cid`=0";
  }else{ 
-	tempsql<<"`brandid`="<<std::to_string(data.brandid);
+	tempsql<<"`cid`="<<std::to_string(data.cid);
 }
 if(data.userid==0){
 	tempsql<<",`userid`=0";
  }else{ 
 	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
-if(data.topicid==0){
-	tempsql<<",`topicid`=0";
+if(data.level==0){
+	tempsql<<",`level`=0";
  }else{ 
-	tempsql<<",`topicid`="<<std::to_string(data.topicid);
+	tempsql<<",`level`="<<std::to_string(data.level);
+}
+if(data.parentid==0){
+	tempsql<<",`parentid`=0";
+ }else{ 
+	tempsql<<",`parentid`="<<std::to_string(data.parentid);
+}
+tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
+if(data.isview==0){
+	tempsql<<",`isview`=0";
+ }else{ 
+	tempsql<<",`isview`="<<std::to_string(data.isview);
 }
 if(data.sortid==0){
 	tempsql<<",`sortid`=0";
  }else{ 
 	tempsql<<",`sortid`="<<std::to_string(data.sortid);
 }
-tempsql<<",`logo`='"<<stringaddslash(data.logo)<<"'";
-tempsql<<",`title`='"<<stringaddslash(data.title)<<"'";
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
-tempsql<<",`introduce`='"<<stringaddslash(data.introduce)<<"'";
-tempsql<<",`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
+tempsql<<",`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
  }else{ 
 
      
@@ -395,10 +432,10 @@ tempsql<<",`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.brandid==0){
-	tempsql<<"`brandid`=0";
+if(data.cid==0){
+	tempsql<<"`cid`=0";
  }else{ 
-	tempsql<<"`brandid`="<<std::to_string(data.brandid);
+	tempsql<<"`cid`="<<std::to_string(data.cid);
 }
  break;
  case 1:
@@ -411,13 +448,33 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.topicid==0){
-	tempsql<<"`topicid`=0";
+if(data.level==0){
+	tempsql<<"`level`=0";
  }else{ 
-	tempsql<<"`topicid`="<<std::to_string(data.topicid);
+	tempsql<<"`level`="<<std::to_string(data.level);
 }
  break;
  case 3:
+ if(jj>0){ tempsql<<","; } 
+if(data.parentid==0){
+	tempsql<<"`parentid`=0";
+ }else{ 
+	tempsql<<"`parentid`="<<std::to_string(data.parentid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(data.isview==0){
+	tempsql<<"`isview`=0";
+ }else{ 
+	tempsql<<"`isview`="<<std::to_string(data.isview);
+}
+ break;
+ case 6:
  if(jj>0){ tempsql<<","; } 
 if(data.sortid==0){
 	tempsql<<"`sortid`=0";
@@ -425,25 +482,9 @@ if(data.sortid==0){
 	tempsql<<"`sortid`="<<std::to_string(data.sortid);
 }
  break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`logo`='"<<stringaddslash(data.logo)<<"'";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`title`='"<<stringaddslash(data.title)<<"'";
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
- break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`introduce`='"<<stringaddslash(data.introduce)<<"'";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
+tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
  break;
 
      
@@ -489,31 +530,38 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].brandid==0){
+            	if(record[i].cid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].brandid);
+	tempsql<<std::to_string(record[i].cid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].topicid==0){
+	if(record[i].level==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].topicid);
+	tempsql<<","<<std::to_string(record[i].level);
+	}
+	if(record[i].parentid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].parentid);
+	}
+	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
+	if(record[i].isview==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isview);
 	}
 	if(record[i].sortid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].sortid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].logo)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].introduce)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].detailcontent)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
 	tempsql<<")";
 
  }
@@ -552,31 +600,38 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].brandid==0){
+            	if(record[i].cid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].brandid);
+	tempsql<<std::to_string(record[i].cid);
 	}
 	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].topicid==0){
+	if(record[i].level==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].topicid);
+	tempsql<<","<<std::to_string(record[i].level);
+	}
+	if(record[i].parentid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].parentid);
+	}
+	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
+	if(record[i].isview==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isview);
 	}
 	if(record[i].sortid==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].sortid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].logo)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].introduce)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].detailcontent)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].imgurl)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -657,10 +712,10 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.brandid==0){
+if(data.cid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.brandid));
+	temparray.push_back(std::to_string(data.cid));
 }
  break;
  case 1:
@@ -671,33 +726,38 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.topicid==0){
+if(data.level==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.topicid));
+	temparray.push_back(std::to_string(data.level));
 }
  break;
  case 3:
+if(data.parentid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.parentid));
+}
+ break;
+ case 4:
+	temparray.push_back(data.name);
+ break;
+ case 5:
+if(data.isview==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.isview));
+}
+ break;
+ case 6:
 if(data.sortid==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.sortid));
 }
  break;
- case 4:
-	temparray.push_back(data.logo);
- break;
- case 5:
-	temparray.push_back(data.title);
- break;
- case 6:
-	temparray.push_back(data.name);
- break;
  case 7:
-	temparray.push_back(data.introduce);
- break;
- case 8:
-	temparray.push_back(data.detailcontent);
+	temparray.push_back(data.imgurl);
  break;
 
                              default:
@@ -740,10 +800,10 @@ if(data.sortid==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.brandid==0){
-	tempsql.insert({"brandid","0"});
+if(data.cid==0){
+	tempsql.insert({"cid","0"});
  }else{ 
-	tempsql.insert({"brandid",std::to_string(data.brandid)});
+	tempsql.insert({"cid",std::to_string(data.cid)});
 }
  break;
  case 1:
@@ -754,33 +814,38 @@ if(data.userid==0){
 }
  break;
  case 2:
-if(data.topicid==0){
-	tempsql.insert({"topicid","0"});
+if(data.level==0){
+	tempsql.insert({"level","0"});
  }else{ 
-	tempsql.insert({"topicid",std::to_string(data.topicid)});
+	tempsql.insert({"level",std::to_string(data.level)});
 }
  break;
  case 3:
+if(data.parentid==0){
+	tempsql.insert({"parentid","0"});
+ }else{ 
+	tempsql.insert({"parentid",std::to_string(data.parentid)});
+}
+ break;
+ case 4:
+	tempsql.insert({"name",data.name});
+ break;
+ case 5:
+if(data.isview==0){
+	tempsql.insert({"isview","0"});
+ }else{ 
+	tempsql.insert({"isview",std::to_string(data.isview)});
+}
+ break;
+ case 6:
 if(data.sortid==0){
 	tempsql.insert({"sortid","0"});
  }else{ 
 	tempsql.insert({"sortid",std::to_string(data.sortid)});
 }
  break;
- case 4:
-	tempsql.insert({"logo",data.logo});
- break;
- case 5:
-	tempsql.insert({"title",data.title});
- break;
- case 6:
-	tempsql.insert({"name",data.name});
- break;
  case 7:
-	tempsql.insert({"introduce",data.introduce});
- break;
- case 8:
-	tempsql.insert({"detailcontent",data.detailcontent});
+	tempsql.insert({"imgurl",data.imgurl});
  break;
 
                              default:
@@ -795,35 +860,39 @@ if(data.sortid==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.brandid==0){
-	tempsql<<"\"brandid\":0";
+if(data.cid==0){
+	tempsql<<"\"cid\":0";
  }else{ 
-	tempsql<<"\"brandid\":"<<std::to_string(data.brandid);
+	tempsql<<"\"cid\":"<<std::to_string(data.cid);
 }
 if(data.userid==0){
 	tempsql<<",\"userid\":0";
  }else{ 
 	tempsql<<",\"userid\":"<<std::to_string(data.userid);
 }
-if(data.topicid==0){
-	tempsql<<",\"topicid\":0";
+if(data.level==0){
+	tempsql<<",\"level\":0";
  }else{ 
-	tempsql<<",\"topicid\":"<<std::to_string(data.topicid);
+	tempsql<<",\"level\":"<<std::to_string(data.level);
+}
+if(data.parentid==0){
+	tempsql<<",\"parentid\":0";
+ }else{ 
+	tempsql<<",\"parentid\":"<<std::to_string(data.parentid);
+}
+tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
+tempsql<<"\"";
+if(data.isview==0){
+	tempsql<<",\"isview\":0";
+ }else{ 
+	tempsql<<",\"isview\":"<<std::to_string(data.isview);
 }
 if(data.sortid==0){
 	tempsql<<",\"sortid\":0";
  }else{ 
 	tempsql<<",\"sortid\":"<<std::to_string(data.sortid);
 }
-tempsql<<",\"logo\":\""<<http::utf8_to_jsonstring(data.logo);
-tempsql<<"\"";
-tempsql<<",\"title\":\""<<http::utf8_to_jsonstring(data.title);
-tempsql<<"\"";
-tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
-tempsql<<"\"";
-tempsql<<",\"introduce\":\""<<http::utf8_to_jsonstring(data.introduce);
-tempsql<<"\"";
-tempsql<<",\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent);
+tempsql<<",\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl);
 tempsql<<"\"";
 tempsql<<"}";
 
@@ -864,10 +933,10 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.brandid==0){
-	tempsql<<"\"brandid\":0";
+if(data.cid==0){
+	tempsql<<"\"cid\":0";
  }else{ 
-	tempsql<<"\"brandid\":"<<std::to_string(data.brandid);
+	tempsql<<"\"cid\":"<<std::to_string(data.cid);
 }
  break;
  case 1:
@@ -880,13 +949,33 @@ if(data.userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(data.topicid==0){
-	tempsql<<"\"topicid\":0";
+if(data.level==0){
+	tempsql<<"\"level\":0";
  }else{ 
-	tempsql<<"\"topicid\":"<<std::to_string(data.topicid);
+	tempsql<<"\"level\":"<<std::to_string(data.level);
 }
  break;
  case 3:
+ if(jj>0){ tempsql<<","; } 
+if(data.parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(data.parentid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(data.isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(data.isview);
+}
+ break;
+ case 6:
  if(jj>0){ tempsql<<","; } 
 if(data.sortid==0){
 	tempsql<<"\"sortid\":0";
@@ -894,25 +983,9 @@ if(data.sortid==0){
 	tempsql<<"\"sortid\":"<<std::to_string(data.sortid);
 }
  break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"logo\":\""<<http::utf8_to_jsonstring(data.logo)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
- break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(data.introduce)<<"\"";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"\"";
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
  break;
 
                              default:
@@ -926,7 +999,7 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
     void from_json(const std::string &json_content)
    {
         record.clear();
-        brandbase::meta metatemp; 
+        catalogue_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1163,9 +1236,9 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
         {
     		case 0:
 		 try{
-			data.brandid=std::stoul(set_value_name);
+			data.cid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.brandid=0;
+			data.cid=0;
 			 }
 			break;
 		case 1:
@@ -1177,51 +1250,44 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
 			break;
 		case 2:
 		 try{
-			data.topicid=std::stoul(set_value_name);
+			data.level=std::stoul(set_value_name);
 		}catch (...) { 
-			data.topicid=0;
+			data.level=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.sortid=std::stoi(set_value_name);
+			data.parentid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.sortid=0;
+			data.parentid=0;
 			 }
 			break;
 		case 4:
-		 try{
-			data.logo.append(set_value_name);
-		}catch (...) { 
-			data.logo.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.title.append(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 6:
 		 try{
 			data.name.append(set_value_name);
 		}catch (...) { 
 			data.name.clear();
 			 }
 			break;
-		case 7:
+		case 5:
 		 try{
-			data.introduce.append(set_value_name);
+			data.isview=std::stoi(set_value_name);
 		}catch (...) { 
-			data.introduce.clear();
+			data.isview=0;
 			 }
 			break;
-		case 8:
+		case 6:
 		 try{
-			data.detailcontent.append(set_value_name);
+			data.sortid=std::stoi(set_value_name);
 		}catch (...) { 
-			data.detailcontent.clear();
+			data.sortid=0;
+			 }
+			break;
+		case 7:
+		 try{
+			data.imgurl.append(set_value_name);
+		}catch (...) { 
+			data.imgurl.clear();
 			 }
 			break;
 	default:
@@ -1238,9 +1304,9 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
         {
     		case 0:
 		 try{
-			data.brandid=set_value_name;
+			data.cid=set_value_name;
 		}catch (...) { 
-			data.brandid=0;
+			data.cid=0;
 			 }
 			break;
 		case 1:
@@ -1252,51 +1318,44 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
 			break;
 		case 2:
 		 try{
-			data.topicid=set_value_name;
+			data.level=set_value_name;
 		}catch (...) { 
-			data.topicid=0;
+			data.level=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.sortid=set_value_name;
+			data.parentid=set_value_name;
 		}catch (...) { 
-			data.sortid=0;
+			data.parentid=0;
 			 }
 			break;
 		case 4:
-		 try{
-			data.logo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.logo.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 6:
 		 try{
 			data.name=std::to_string(set_value_name);
 		}catch (...) { 
 			data.name.clear();
 			 }
 			break;
-		case 7:
+		case 5:
 		 try{
-			data.introduce=std::to_string(set_value_name);
+			data.isview=set_value_name;
 		}catch (...) { 
-			data.introduce.clear();
+			data.isview=0;
 			 }
 			break;
-		case 8:
+		case 6:
 		 try{
-			data.detailcontent=std::to_string(set_value_name);
+			data.sortid=set_value_name;
 		}catch (...) { 
-			data.detailcontent.clear();
+			data.sortid=0;
+			 }
+			break;
+		case 7:
+		 try{
+			data.imgurl=std::to_string(set_value_name);
+		}catch (...) { 
+			data.imgurl.clear();
 			 }
 			break;
 	default:
@@ -1313,9 +1372,9 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
         {
     		case 0:
 		 try{
-			data.brandid=(unsigned int)set_value_name;
+			data.cid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.brandid=0;
+			data.cid=0;
 			 }
 			break;
 		case 1:
@@ -1327,51 +1386,44 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
 			break;
 		case 2:
 		 try{
-			data.topicid=(unsigned int)set_value_name;
+			data.level=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.topicid=0;
+			data.level=0;
 			 }
 			break;
 		case 3:
 		 try{
-			data.sortid=(int)set_value_name;
+			data.parentid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.sortid=0;
+			data.parentid=0;
 			 }
 			break;
 		case 4:
-		 try{
-			data.logo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.logo.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 6:
 		 try{
 			data.name=std::to_string(set_value_name);
 		}catch (...) { 
 			data.name.clear();
 			 }
 			break;
-		case 7:
+		case 5:
 		 try{
-			data.introduce=std::to_string(set_value_name);
+			data.isview=(int)set_value_name;
 		}catch (...) { 
-			data.introduce.clear();
+			data.isview=0;
 			 }
 			break;
-		case 8:
+		case 6:
 		 try{
-			data.detailcontent=std::to_string(set_value_name);
+			data.sortid=(int)set_value_name;
 		}catch (...) { 
-			data.detailcontent.clear();
+			data.sortid=0;
+			 }
+			break;
+		case 7:
+		 try{
+			data.imgurl=std::to_string(set_value_name);
+		}catch (...) { 
+			data.imgurl.clear();
 			 }
 			break;
 	default:
@@ -1422,10 +1474,10 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].brandid==0){
-	tempsql<<"\"brandid\":0";
+if(record[n].cid==0){
+	tempsql<<"\"cid\":0";
  }else{ 
-	tempsql<<"\"brandid\":"<<std::to_string(record[n].brandid);
+	tempsql<<"\"cid\":"<<std::to_string(record[n].cid);
 }
  break;
  case 1:
@@ -1438,13 +1490,33 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].topicid==0){
-	tempsql<<"\"topicid\":0";
+if(record[n].level==0){
+	tempsql<<"\"level\":0";
  }else{ 
-	tempsql<<"\"topicid\":"<<std::to_string(record[n].topicid);
+	tempsql<<"\"level\":"<<std::to_string(record[n].level);
 }
  break;
  case 3:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(record[n].isview);
+}
+ break;
+ case 6:
  if(jj>0){ tempsql<<","; } 
 if(record[n].sortid==0){
 	tempsql<<"\"sortid\":0";
@@ -1452,25 +1524,9 @@ if(record[n].sortid==0){
 	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
 }
  break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"logo\":\""<<http::utf8_to_jsonstring(record[n].logo)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
- break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(record[n].introduce)<<"\"";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(record[n].detailcontent)<<"\"";
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
  break;
 
                              default:
@@ -1530,10 +1586,10 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(record[n].detailconten
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].brandid==0){
-	tempsql<<"\"brandid\":0";
+if(record[n].cid==0){
+	tempsql<<"\"cid\":0";
  }else{ 
-	tempsql<<"\"brandid\":"<<std::to_string(record[n].brandid);
+	tempsql<<"\"cid\":"<<std::to_string(record[n].cid);
 }
  break;
  case 1:
@@ -1546,13 +1602,33 @@ if(record[n].userid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-if(record[n].topicid==0){
-	tempsql<<"\"topicid\":0";
+if(record[n].level==0){
+	tempsql<<"\"level\":0";
  }else{ 
-	tempsql<<"\"topicid\":"<<std::to_string(record[n].topicid);
+	tempsql<<"\"level\":"<<std::to_string(record[n].level);
 }
  break;
  case 3:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(record[n].parentid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(record[n].isview);
+}
+ break;
+ case 6:
  if(jj>0){ tempsql<<","; } 
 if(record[n].sortid==0){
 	tempsql<<"\"sortid\":0";
@@ -1560,25 +1636,9 @@ if(record[n].sortid==0){
 	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
 }
  break;
- case 4:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"logo\":\""<<http::utf8_to_jsonstring(record[n].logo)<<"\"";
- break;
- case 5:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
- break;
- case 6:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
- break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(record[n].introduce)<<"\"";
- break;
- case 8:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(record[n].detailcontent)<<"\"";
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
  break;
 
                              default:
@@ -1590,79 +1650,431 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(record[n].detailconten
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.brandid; } 
- void setPK(long long val){  data.brandid=val;} 
- unsigned  int  getBrandid(){  return data.brandid; } 
- void setBrandid( unsigned  int  val){  data.brandid=val;} 
+   long long getPK(){  return data.cid; } 
+ void setPK(long long val){  data.cid=val;} 
+ unsigned  int  getCid(){  return data.cid; } 
+ void setCid( unsigned  int  val){  data.cid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
  void setUserid( unsigned  int  val){  data.userid=val;} 
 
- unsigned  int  getTopicid(){  return data.topicid; } 
- void setTopicid( unsigned  int  val){  data.topicid=val;} 
+ unsigned  int  getLevel(){  return data.level; } 
+ void setLevel( unsigned  int  val){  data.level=val;} 
 
- int  getSortid(){  return data.sortid; } 
- void setSortid( int  val){  data.sortid=val;} 
-
- std::string  getLogo(){  return data.logo; } 
- std::string & getRefLogo(){  return std::ref(data.logo); } 
- void setLogo( std::string  &val){  data.logo=val;} 
- void setLogo(std::string_view val){  data.logo=val;} 
-
- std::string  getTitle(){  return data.title; } 
- std::string & getRefTitle(){  return std::ref(data.title); } 
- void setTitle( std::string  &val){  data.title=val;} 
- void setTitle(std::string_view val){  data.title=val;} 
+ unsigned  int  getParentid(){  return data.parentid; } 
+ void setParentid( unsigned  int  val){  data.parentid=val;} 
 
  std::string  getName(){  return data.name; } 
  std::string & getRefName(){  return std::ref(data.name); } 
  void setName( std::string  &val){  data.name=val;} 
  void setName(std::string_view val){  data.name=val;} 
 
- std::string  getIntroduce(){  return data.introduce; } 
- std::string & getRefIntroduce(){  return std::ref(data.introduce); } 
- void setIntroduce( std::string  &val){  data.introduce=val;} 
- void setIntroduce(std::string_view val){  data.introduce=val;} 
+ char  getIsview(){  return data.isview; } 
+ void setIsview( char  val){  data.isview=val;} 
 
- std::string  getDetailcontent(){  return data.detailcontent; } 
- std::string & getRefDetailcontent(){  return std::ref(data.detailcontent); } 
- void setDetailcontent( std::string  &val){  data.detailcontent=val;} 
- void setDetailcontent(std::string_view val){  data.detailcontent=val;} 
+ int  getSortid(){  return data.sortid; } 
+ void setSortid( int  val){  data.sortid=val;} 
 
-brandbase::meta getnewData(){
+ std::string  getImgurl(){  return data.imgurl; } 
+ std::string & getRefImgurl(){  return std::ref(data.imgurl); } 
+ void setImgurl( std::string  &val){  data.imgurl=val;} 
+ void setImgurl(std::string_view val){  data.imgurl=val;} 
+
+catalogue_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-brandbase::meta getData(){
+catalogue_base::meta getData(){
  	 return data; 
 } 
-std::vector<brandbase::meta> getRecord(){
+std::vector<catalogue_base::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<tree_data.size();n++){
+            if(n>0){
+                tempsql<<",{";
+            }else{
+                tempsql<<"{";
+            }  
+        
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].cid==0){
+	tempsql<<"\"cid\":0";
+ }else{ 
+	tempsql<<"\"cid\":"<<std::to_string(tree_data[n].cid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].level==0){
+	tempsql<<"\"level\":0";
+ }else{ 
+	tempsql<<"\"level\":"<<std::to_string(tree_data[n].level);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(tree_data[n].isview);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
+}
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    tempsql<<"[";
+    for(size_t n=0;n<tree_data.size();n++){
+        keyname.clear();
+        if(func(keyname,tree_data[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+        }else{
+        continue;
+        } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].cid==0){
+	tempsql<<"\"cid\":0";
+ }else{ 
+	tempsql<<"\"cid\":"<<std::to_string(tree_data[n].cid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].level==0){
+	tempsql<<"\"level\":0";
+ }else{ 
+	tempsql<<"\"level\":"<<std::to_string(tree_data[n].level);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].parentid==0){
+	tempsql<<"\"parentid\":0";
+ }else{ 
+	tempsql<<"\"parentid\":"<<std::to_string(tree_data[n].parentid);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isview==0){
+	tempsql<<"\"isview\":0";
+ }else{ 
+	tempsql<<"\"isview\":"<<std::to_string(tree_data[n].isview);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
+}
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+    meta_tree treedata_from_record(unsigned int i=0)
+    {
+        meta_tree temp_obja;
+        if(i>=record.size())
+        {
+           return  temp_obja;   
+        }
+        	temp_obja.cid=record[i].cid;
+	temp_obja.userid=record[i].userid;
+	temp_obja.level=record[i].level;
+	temp_obja.parentid=record[i].parentid;
+	temp_obja.name=record[i].name;
+	temp_obja.isview=record[i].isview;
+	temp_obja.sortid=record[i].sortid;
+	temp_obja.imgurl=record[i].imgurl;
+
+        return  temp_obja;   
+    }
+    meta_tree treedata_from_data()
+    {
+        meta_tree temp_obja;
+
+        	temp_obja.cid=data.cid;
+	temp_obja.userid=data.userid;
+	temp_obja.level=data.level;
+	temp_obja.parentid=data.parentid;
+	temp_obja.name=data.name;
+	temp_obja.isview=data.isview;
+	temp_obja.sortid=data.sortid;
+	temp_obja.imgurl=data.imgurl;
+
+        return  temp_obja;   
+    }      
+    meta_tree treedata_from_data(const meta &tempdata)
+    {
+        meta_tree temp_obja;
+        	temp_obja.cid=tempdata.cid;
+	temp_obja.userid=tempdata.userid;
+	temp_obja.level=tempdata.level;
+	temp_obja.parentid=tempdata.parentid;
+	temp_obja.name=tempdata.name;
+	temp_obja.isview=tempdata.isview;
+	temp_obja.sortid=tempdata.sortid;
+	temp_obja.imgurl=tempdata.imgurl;
+
+        return  temp_obja;   
+    }     
+    std::vector<meta_tree> to_tree(unsigned int beginid=0)
+    {
+       std::vector<meta_tree> temp;
+       unsigned int level=0; 
+       if(beginid==0)
+       {
+            for (unsigned int i = 0; i < record.size(); i++)
+            {
+                if (record[i].parentid == 0)
+                {
+                    		meta_tree temp_obja;
+						temp_obja.cid=record[i].cid;
+						temp_obja.userid=record[i].userid;
+						temp_obja.level=level;
+						temp_obja.parentid=record[i].parentid;
+						temp_obja.name=record[i].name;
+						temp_obja.isview=record[i].isview;
+						temp_obja.sortid=record[i].sortid;
+						temp_obja.imgurl=record[i].imgurl;
+
+                    temp.push_back(temp_obja);
+                }
+            }
+       }
+       else
+       {
+           for (unsigned int i = 0; i < record.size(); i++)
+            {
+                if (record[i].cid == beginid)
+                {
+                    		meta_tree temp_obja;
+						temp_obja.cid=record[i].cid;
+						temp_obja.userid=record[i].userid;
+						temp_obja.level=level;
+						temp_obja.parentid=record[i].parentid;
+						temp_obja.name=record[i].name;
+						temp_obja.isview=record[i].isview;
+						temp_obja.sortid=record[i].sortid;
+						temp_obja.imgurl=record[i].imgurl;
+
+                    temp.push_back(temp_obja);
+                    break;
+                }
+            }
+       }
+
+       if(temp.size()==0)
+       {
+          return temp; 
+       }
+       level+=1;
+       for (unsigned int j = 0; j < temp.size(); j++)
+       {
+         record_to_tree(temp[j].children,temp[j].cid,level);
+       }
+       return temp; 
+    }    
+    void record_to_tree(std::vector<meta_tree> &targetdata,long long t_vid,unsigned int level=0)
+    {
+        for (unsigned int i = 0; i < record.size(); i++)
+        {
+            if (record[i].parentid== t_vid)
+            {
+                		meta_tree temp_obja;
+						temp_obja.cid=record[i].cid;
+						temp_obja.userid=record[i].userid;
+						temp_obja.level=level;
+						temp_obja.parentid=record[i].parentid;
+						temp_obja.name=record[i].name;
+						temp_obja.isview=record[i].isview;
+						temp_obja.sortid=record[i].sortid;
+						temp_obja.imgurl=record[i].imgurl;
+
+                targetdata.push_back(temp_obja);
+            }
+        }
+        level+=1;
+        for (unsigned int j = 0; j < targetdata.size(); j++)
+        {
+         record_to_tree(targetdata[j].children,targetdata[j].cid,level);
+        }
+    }
+    void tree_torecord(const std::vector<meta_tree> &sourcedata,unsigned int level=0)
+    {
+        for (unsigned int i = 0; i < sourcedata.size(); i++)
+        {
+		meta temp_obja;
+			temp_obja.cid=sourcedata[i].cid;
+			temp_obja.userid=sourcedata[i].userid;
+			temp_obja.level=level;
+			temp_obja.parentid=sourcedata[i].parentid;
+			temp_obja.name=sourcedata[i].name;
+			temp_obja.isview=sourcedata[i].isview;
+			temp_obja.sortid=sourcedata[i].sortid;
+			temp_obja.imgurl=sourcedata[i].imgurl;
+
+            record.push_back(temp_obja);
+            if(sourcedata[i].children.size()>0)
+            {
+                tree_torecord(sourcedata[i].children,level+1);
+            }
+        }
+    }      
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="logo")
-		{
-			return data.logo;
-		}
-		 if(key_name=="title")
-		{
-			return data.title;
-		}
-		 if(key_name=="name")
+   		 if(key_name=="name")
 		{
 			return data.name;
 		}
-		 if(key_name=="introduce")
+		 if(key_name=="imgurl")
 		{
-			return data.introduce;
-		}
-		 if(key_name=="detailcontent")
-		{
-			return data.detailcontent;
+			return data.imgurl;
 		}
 		return nullptr; 
 	}
@@ -1671,17 +2083,25 @@ std::vector<brandbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="brandid")
+   		 if(key_name=="cid")
 		{
-			return data.brandid;
+			return data.cid;
 		}
 		 if(key_name=="userid")
 		{
 			return data.userid;
 		}
-		 if(key_name=="topicid")
+		 if(key_name=="level")
 		{
-			return data.topicid;
+			return data.level;
+		}
+		 if(key_name=="parentid")
+		{
+			return data.parentid;
+		}
+		 if(key_name=="isview")
+		{
+			return data.isview;
 		}
 		 if(key_name=="sortid")
 		{
@@ -1710,15 +2130,21 @@ std::vector<brandbase::meta> getRecord(){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.brandid);
+ 				 a.emplace_back(iter.cid);
 				 break;
 			case 1: 
  				 a.emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a.emplace_back(iter.topicid);
+ 				 a.emplace_back(iter.level);
 				 break;
 			case 3: 
+ 				 a.emplace_back(iter.parentid);
+				 break;
+			case 5: 
+ 				 a.emplace_back(iter.isview);
+				 break;
+			case 6: 
  				 a.emplace_back(iter.sortid);
 				 break;
 
@@ -1747,15 +2173,21 @@ std::vector<brandbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 return data.brandid;
+ 				 return data.cid;
 				 break;
 			case 1: 
  				 return data.userid;
 				 break;
 			case 2: 
- 				 return data.topicid;
+ 				 return data.level;
 				 break;
 			case 3: 
+ 				 return data.parentid;
+				 break;
+			case 5: 
+ 				 return data.isview;
+				 break;
+			case 6: 
  				 return data.sortid;
 				 break;
 			}
@@ -1763,7 +2195,7 @@ std::vector<brandbase::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] brandbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] catalogue_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1772,15 +2204,21 @@ std::vector<brandbase::meta> getRecord(){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.brandid;
+ 				 return iter.cid;
 				 break;
 			case 1: 
  				 return iter.userid;
 				 break;
 			case 2: 
- 				 return iter.topicid;
+ 				 return iter.level;
 				 break;
 			case 3: 
+ 				 return iter.parentid;
+				 break;
+			case 5: 
+ 				 return iter.isview;
+				 break;
+			case 6: 
  				 return iter.sortid;
 				 break;
 
@@ -1806,7 +2244,7 @@ std::vector<brandbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] brandbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] catalogue_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1830,19 +2268,10 @@ std::vector<brandbase::meta> getRecord(){
                 {
 
    			case 4: 
- 				 return data.logo;
-				 break;
-			case 5: 
- 				 return data.title;
-				 break;
-			case 6: 
  				 return data.name;
 				 break;
 			case 7: 
- 				 return data.introduce;
-				 break;
-			case 8: 
- 				 return data.detailcontent;
+ 				 return data.imgurl;
 				 break;
 
                 }
@@ -1850,7 +2279,7 @@ std::vector<brandbase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] brandbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] catalogue_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -1860,19 +2289,10 @@ std::vector<brandbase::meta> getRecord(){
                 {
 
    			case 4: 
- 				 return iter.logo;
-				 break;
-			case 5: 
- 				 return iter.title;
-				 break;
-			case 6: 
  				 return iter.name;
 				 break;
 			case 7: 
- 				 return iter.introduce;
-				 break;
-			case 8: 
- 				 return iter.detailcontent;
+ 				 return iter.imgurl;
 				 break;
 
                 }
@@ -1896,19 +2316,10 @@ std::vector<brandbase::meta> getRecord(){
                     {
 
     			case 4: 
- 				 a.emplace_back(iter.logo);
-					 break;
-			case 5: 
- 				 a.emplace_back(iter.title);
-					 break;
-			case 6: 
  				 a.emplace_back(iter.name);
 					 break;
 			case 7: 
- 				 a.emplace_back(iter.introduce);
-					 break;
-			case 8: 
- 				 a.emplace_back(iter.detailcontent);
+ 				 a.emplace_back(iter.imgurl);
 					 break;
 					}
 				}
@@ -1942,45 +2353,33 @@ std::vector<brandbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.brandid);
+ 				 a<<std::to_string(iter.cid);
 				 break;
 			case 1: 
  				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
- 				 a<<std::to_string(iter.topicid);
+ 				 a<<std::to_string(iter.level);
 				 break;
 			case 3: 
- 				 a<<std::to_string(iter.sortid);
+ 				 a<<std::to_string(iter.parentid);
 				 break;
 			case 4: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.logo); 
-				 }else{
-				 a<<iter.logo;
-				 }
-				 break;
-			case 5: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.title); 
-				 }else{
-				 a<<iter.title;
-				 }
-				 break;
-			case 6: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case 7: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
-				 }else{
-				 a<<iter.introduce;
-				 }
+			case 5: 
+ 				 a<<std::to_string(iter.isview);
 				 break;
-			case 8: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.detailcontent); 
+			case 6: 
+ 				 a<<std::to_string(iter.sortid);
+				 break;
+			case 7: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
 				 }else{
-				 a<<iter.detailcontent;
+				 a<<iter.imgurl;
 				 }
 				 break;
 
@@ -2009,36 +2408,18 @@ std::vector<brandbase::meta> getRecord(){
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 				 } 
 			switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 
                 }
@@ -2069,19 +2450,10 @@ std::vector<brandbase::meta> getRecord(){
                     {
  
        			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			 } 
 		 switch(vpos){
@@ -2112,15 +2484,21 @@ std::vector<brandbase::meta> getRecord(){
                 {
  
        case 0: 
- 	 ktemp=iter.brandid;
+ 	 ktemp=iter.cid;
 	 break;
 case 1: 
  	 ktemp=iter.userid;
 	 break;
 case 2: 
- 	 ktemp=iter.topicid;
+ 	 ktemp=iter.level;
 	 break;
 case 3: 
+ 	 ktemp=iter.parentid;
+	 break;
+case 5: 
+ 	 ktemp=iter.isview;
+	 break;
+case 6: 
  	 ktemp=iter.sortid;
 	 break;
 	 } 
@@ -2151,33 +2529,30 @@ case 3:
                     {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
  			switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 
                     }
@@ -2206,32 +2581,29 @@ case 3:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 
@@ -2261,29 +2633,41 @@ case 3:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 
@@ -2310,15 +2694,21 @@ case 3:
                 {
 
    			case 0: 
- 				 a.emplace(iter.brandid,iter);
+ 				 a.emplace(iter.cid,iter);
 				 break;
 			case 1: 
  				 a.emplace(iter.userid,iter);
 				 break;
 			case 2: 
- 				 a.emplace(iter.topicid,iter);
+ 				 a.emplace(iter.level,iter);
 				 break;
 			case 3: 
+ 				 a.emplace(iter.parentid,iter);
+				 break;
+			case 5: 
+ 				 a.emplace(iter.isview,iter);
+				 break;
+			case 6: 
  				 a.emplace(iter.sortid,iter);
 				 break;
 
@@ -2342,19 +2732,10 @@ case 3:
                 {
 
    			case 4: 
- 				 a.emplace(iter.logo,iter);
-			 break;
-			case 5: 
- 				 a.emplace(iter.title,iter);
-			 break;
-			case 6: 
  				 a.emplace(iter.name,iter);
 			 break;
 			case 7: 
- 				 a.emplace(iter.introduce,iter);
-			 break;
-			case 8: 
- 				 a.emplace(iter.detailcontent,iter);
+ 				 a.emplace(iter.imgurl,iter);
 			 break;
 
                 }
@@ -2381,19 +2762,10 @@ case 3:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 	 		 }
  			switch(vpos){
@@ -2424,15 +2796,21 @@ case 3:
                     {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 			 break;
 			case 1: 
  				 ktemp=iter.userid;
 			 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 			 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+			 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+			 break;
+			case 6: 
  				 ktemp=iter.sortid;
 			 break;
 			  }
@@ -2465,33 +2843,30 @@ case 3:
                     {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
  			switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 
                    }
@@ -2519,32 +2894,29 @@ case 3:
                     {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 
@@ -2571,29 +2943,41 @@ case 3:
                     {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 
@@ -2620,36 +3004,18 @@ case 3:
                     {
 
    case 4: 
- 	 ktemp=iter.logo;
-	 break;
-case 5: 
- 	 ktemp=iter.title;
-	 break;
-case 6: 
  	 ktemp=iter.name;
 	 break;
 case 7: 
- 	 ktemp=iter.introduce;
-	 break;
-case 8: 
- 	 ktemp=iter.detailcontent;
+ 	 ktemp=iter.imgurl;
 	 break;
 	  }
  switch(vpos){
 case 4: 
- 	 vtemp=iter.logo;
-	 break;
-case 5: 
- 	 vtemp=iter.title;
-	 break;
-case 6: 
  	 vtemp=iter.name;
 	 break;
 case 7: 
- 	 vtemp=iter.introduce;
-	 break;
-case 8: 
- 	 vtemp=iter.detailcontent;
+ 	 vtemp=iter.imgurl;
 	 break;
 
                    }
@@ -2673,15 +3039,21 @@ case 8:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.brandid,iter);
+ 	 a.emplace_back(iter.cid,iter);
 	 break;
 case 1: 
  	 a.emplace_back(iter.userid,iter);
 	 break;
 case 2: 
- 	 a.emplace_back(iter.topicid,iter);
+ 	 a.emplace_back(iter.level,iter);
 	 break;
 case 3: 
+ 	 a.emplace_back(iter.parentid,iter);
+	 break;
+case 5: 
+ 	 a.emplace_back(iter.isview,iter);
+	 break;
+case 6: 
  	 a.emplace_back(iter.sortid,iter);
 	 break;
 
@@ -2703,19 +3075,10 @@ case 3:
                 {
 
    case 4: 
- 	 a.emplace_back(iter.logo,iter);
-	 break;
-case 5: 
- 	 a.emplace_back(iter.title,iter);
-	 break;
-case 6: 
  	 a.emplace_back(iter.name,iter);
 	 break;
 case 7: 
- 	 a.emplace_back(iter.introduce,iter);
-	 break;
-case 8: 
- 	 a.emplace_back(iter.detailcontent,iter);
+ 	 a.emplace_back(iter.imgurl,iter);
 	 break;
 
                 }
@@ -2741,30 +3104,42 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 			  }
@@ -2797,45 +3172,63 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.brandid);
+ 				 a[ktemp][vtemp].emplace_back(iter.cid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.topicid);
+ 				 a[ktemp][vtemp].emplace_back(iter.level);
 				 break;
 			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isview);
+				 break;
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
 
@@ -2864,49 +3257,52 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.logo);
-				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.title);
-				 break;
-			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.name);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.introduce);
-				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.detailcontent);
+ 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
 
                 }
@@ -2935,34 +3331,31 @@ case 8:
                     {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 			  }
 
@@ -2994,48 +3387,51 @@ case 8:
             {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.brandid);
+ 				 a[ktemp][vtemp].emplace_back(iter.cid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.topicid);
+ 				 a[ktemp][vtemp].emplace_back(iter.level);
 				 break;
 			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isview);
+				 break;
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
 
@@ -3063,52 +3459,40 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.logo);
-				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.title);
-				 break;
-			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.name);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.introduce);
-				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.detailcontent);
+ 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
 
                 }
@@ -3135,33 +3519,30 @@ case 8:
                     {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 			  }
@@ -3195,48 +3576,51 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.brandid);
+ 				 a[ktemp][vtemp].emplace_back(iter.cid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.topicid);
+ 				 a[ktemp][vtemp].emplace_back(iter.level);
 				 break;
 			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isview);
+				 break;
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
 
@@ -3267,52 +3651,40 @@ case 8:
             {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.brandid;
+ 				 vtemp=iter.cid;
 				 break;
 			case 1: 
  				 vtemp=iter.userid;
 				 break;
 			case 2: 
- 				 vtemp=iter.topicid;
+ 				 vtemp=iter.level;
 				 break;
 			case 3: 
+ 				 vtemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 vtemp=iter.isview;
+				 break;
+			case 6: 
  				 vtemp=iter.sortid;
 				 break;
 			 }
 
 			switch(dpos){
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.logo);
-				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.title);
-				 break;
-			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.name);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.introduce);
-				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.detailcontent);
+ 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
 
             }
@@ -3340,37 +3712,19 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 			  }
 
@@ -3402,51 +3756,39 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.brandid);
+ 				 a[ktemp][vtemp].emplace_back(iter.cid);
 				 break;
 			case 1: 
  				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.topicid);
+ 				 a[ktemp][vtemp].emplace_back(iter.level);
 				 break;
 			case 3: 
+ 				 a[ktemp][vtemp].emplace_back(iter.parentid);
+				 break;
+			case 5: 
+ 				 a[ktemp][vtemp].emplace_back(iter.isview);
+				 break;
+			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
 
@@ -3475,55 +3817,28 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 4: 
- 				 vtemp=iter.logo;
-				 break;
-			case 5: 
- 				 vtemp=iter.title;
-				 break;
-			case 6: 
  				 vtemp=iter.name;
 				 break;
 			case 7: 
- 				 vtemp=iter.introduce;
-				 break;
-			case 8: 
- 				 vtemp=iter.detailcontent;
+ 				 vtemp=iter.imgurl;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.logo);
-				 break;
-			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.title);
-				 break;
-			case 6: 
  				 a[ktemp][vtemp].emplace_back(iter.name);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.introduce);
-				 break;
-			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.detailcontent);
+ 				 a[ktemp][vtemp].emplace_back(iter.imgurl);
 				 break;
 
                 }
@@ -3550,37 +3865,19 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 4: 
- 				 a[ktemp].emplace_back(iter.logo);
-				 break;
-			case 5: 
- 				 a[ktemp].emplace_back(iter.title);
-				 break;
-			case 6: 
  				 a[ktemp].emplace_back(iter.name);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.introduce);
-				 break;
-			case 8: 
- 				 a[ktemp].emplace_back(iter.detailcontent);
+ 				 a[ktemp].emplace_back(iter.imgurl);
 				 break;
 
                 }
@@ -3606,19 +3903,10 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			 }
 
@@ -3649,33 +3937,30 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.brandid);
+ 				 a[ktemp].emplace_back(iter.cid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.topicid);
+ 				 a[ktemp].emplace_back(iter.level);
 				 break;
 			case 3: 
+ 				 a[ktemp].emplace_back(iter.parentid);
+				 break;
+			case 5: 
+ 				 a[ktemp].emplace_back(iter.isview);
+				 break;
+			case 6: 
  				 a[ktemp].emplace_back(iter.sortid);
 				 break;
 
@@ -3703,34 +3988,31 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 4: 
- 				 a[ktemp].emplace_back(iter.logo);
-				 break;
-			case 5: 
- 				 a[ktemp].emplace_back(iter.title);
-				 break;
-			case 6: 
  				 a[ktemp].emplace_back(iter.name);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.introduce);
-				 break;
-			case 8: 
- 				 a[ktemp].emplace_back(iter.detailcontent);
+ 				 a[ktemp].emplace_back(iter.imgurl);
 				 break;
 
                 }
@@ -3758,15 +4040,21 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
@@ -3797,30 +4085,42 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.brandid);
+ 				 a[ktemp].emplace_back(iter.cid);
 				 break;
 			case 1: 
  				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.topicid);
+ 				 a[ktemp].emplace_back(iter.level);
 				 break;
 			case 3: 
+ 				 a[ktemp].emplace_back(iter.parentid);
+				 break;
+			case 5: 
+ 				 a[ktemp].emplace_back(iter.isview);
+				 break;
+			case 6: 
  				 a[ktemp].emplace_back(iter.sortid);
 				 break;
 
@@ -3844,15 +4144,21 @@ case 8:
                 {
 
    			case 0: 
- 				 a[iter.brandid].emplace_back(iter);
+ 				 a[iter.cid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[iter.topicid].emplace_back(iter);
+ 				 a[iter.level].emplace_back(iter);
 				 break;
 			case 3: 
+ 				 a[iter.parentid].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[iter.isview].emplace_back(iter);
+				 break;
+			case 6: 
  				 a[iter.sortid].emplace_back(iter);
 				 break;
 
@@ -3877,19 +4183,10 @@ case 8:
                 {
 
    			case 4: 
- 				 a[iter.logo].emplace_back(iter);
-				 break;
-			case 5: 
- 				 a[iter.title].emplace_back(iter);
-				 break;
-			case 6: 
  				 a[iter.name].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[iter.introduce].emplace_back(iter);
-				 break;
-			case 8: 
- 				 a[iter.detailcontent].emplace_back(iter);
+ 				 a[iter.imgurl].emplace_back(iter);
 				 break;
 
                 }
@@ -3915,37 +4212,19 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 4: 
- 				 a[ktemp][iter.logo].emplace_back(iter);
-				 break;
-			case 5: 
- 				 a[ktemp][iter.title].emplace_back(iter);
-				 break;
-			case 6: 
  				 a[ktemp][iter.name].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.introduce].emplace_back(iter);
-				 break;
-			case 8: 
- 				 a[ktemp][iter.detailcontent].emplace_back(iter);
+ 				 a[ktemp][iter.imgurl].emplace_back(iter);
 				 break;
 
                 }
@@ -3971,33 +4250,30 @@ case 8:
                 {
 
    			case 4: 
- 				 ktemp=iter.logo;
-				 break;
-			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
  				 ktemp=iter.name;
 				 break;
 			case 7: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 8: 
- 				 ktemp=iter.detailcontent;
+ 				 ktemp=iter.imgurl;
 				 break;
 	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.brandid].emplace_back(iter);
+ 				 a[ktemp][iter.cid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.topicid].emplace_back(iter);
+ 				 a[ktemp][iter.level].emplace_back(iter);
 				 break;
 			case 3: 
+ 				 a[ktemp][iter.parentid].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[ktemp][iter.isview].emplace_back(iter);
+				 break;
+			case 6: 
  				 a[ktemp][iter.sortid].emplace_back(iter);
 				 break;
 
@@ -4025,30 +4301,42 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.brandid].emplace_back(iter);
+ 				 a[ktemp][iter.cid].emplace_back(iter);
 				 break;
 			case 1: 
  				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 2: 
- 				 a[ktemp][iter.topicid].emplace_back(iter);
+ 				 a[ktemp][iter.level].emplace_back(iter);
 				 break;
 			case 3: 
+ 				 a[ktemp][iter.parentid].emplace_back(iter);
+				 break;
+			case 5: 
+ 				 a[ktemp][iter.isview].emplace_back(iter);
+				 break;
+			case 6: 
  				 a[ktemp][iter.sortid].emplace_back(iter);
 				 break;
 
@@ -4076,34 +4364,31 @@ case 8:
                 {
 
    			case 0: 
- 				 ktemp=iter.brandid;
+ 				 ktemp=iter.cid;
 				 break;
 			case 1: 
  				 ktemp=iter.userid;
 				 break;
 			case 2: 
- 				 ktemp=iter.topicid;
+ 				 ktemp=iter.level;
 				 break;
 			case 3: 
+ 				 ktemp=iter.parentid;
+				 break;
+			case 5: 
+ 				 ktemp=iter.isview;
+				 break;
+			case 6: 
  				 ktemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 4: 
- 				 a[ktemp][iter.logo].emplace_back(iter);
-				 break;
-			case 5: 
- 				 a[ktemp][iter.title].emplace_back(iter);
-				 break;
-			case 6: 
  				 a[ktemp][iter.name].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.introduce].emplace_back(iter);
-				 break;
-			case 8: 
- 				 a[ktemp][iter.detailcontent].emplace_back(iter);
+ 				 a[ktemp][iter.imgurl].emplace_back(iter);
 				 break;
 
                 }

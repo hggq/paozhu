@@ -1,6 +1,6 @@
 
 #include "article_mysql.h"
-#include "cms/include/articlebase.h"
+#include "cms/include/article_base.h"
 #include "cms/include/Article.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

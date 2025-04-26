@@ -1,8 +1,8 @@
-#ifndef ORM_DEFAULT_WORLDBASEMATA_H
-#define ORM_DEFAULT_WORLDBASEMATA_H
+#ifndef ORM_CMS_TESTBBASEMATA_H
+#define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:42 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -18,26 +18,28 @@
 
 namespace orm { 
    
-    
-struct worldbase
+     namespace cms { 
+
+struct testb_base
 {
     struct meta{
-     unsigned  int  id = 0; ///**/
- int  randomnumber = 0; ///**/
+     int  tid = 0; ///**/
+ long long  score = 0; ///*分数[num*100]*/
+ std::string  name = ""; ///**/
  } data;
- std::vector<worldbase::meta> record;
-std::string _rmstag="default";//this value must be default or tag value, tag in mysqlconnect config file .
+ std::vector<testb_base::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<worldbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<worldbase::meta>::iterator end(){     return record.end(); }
-std::vector<worldbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<worldbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,2> col_names={"id","randomnumber"};
-static constexpr std::array<unsigned char,2> col_types={3,3};
-static constexpr std::array<unsigned char,2> col_length={0,0};
-static constexpr std::array<unsigned char,2> col_decimals={0,0};
-std::string tablename="world";
-static constexpr std::string_view modelname="World";
+std::vector<testb_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<testb_base::meta>::iterator end(){     return record.end(); }
+std::vector<testb_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<testb_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,3> col_names={"tid","score","name"};
+static constexpr std::array<unsigned char,3> col_types={3,8,253};
+static constexpr std::array<unsigned char,3> col_length={0,0,30};
+static constexpr std::array<unsigned char,3> col_decimals={0,0,0};
+std::string tablename="testb";
+static constexpr std::string_view modelname="Testb";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -53,11 +55,14 @@ static constexpr std::string_view modelname="World";
             switch(coln[0]){
 
 
-         case 'i':
-   	 return 0;
+         case 'n':
+   	 return 2;
 break;
-case 'r':
+case 's':
    	 return 1;
+break;
+case 't':
+   	 return 0;
 break;
 
              }
@@ -67,7 +72,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "id";
+       return "tid";
 }
 
       void record_reset()
@@ -75,7 +80,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     worldbase::meta metatemp;    
+     testb_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -138,16 +143,17 @@ break;
         }
         tempsql<<") VALUES (";
 
-        if(data.id==0){
+        if(data.tid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.id);
+	tempsql<<std::to_string(data.tid);
 }
-if(data.randomnumber==0){
+if(data.score==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.randomnumber);
+	tempsql<<","<<std::to_string(data.score);
 }
+tempsql<<",'"<<stringaddslash(data.name)<<"'";
 tempsql<<")";
 
      
@@ -173,16 +179,17 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.id==0){
+        if(insert_data.tid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.id);
+	tempsql<<std::to_string(insert_data.tid);
 }
-if(insert_data.randomnumber==0){
+if(insert_data.score==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.randomnumber);
+	tempsql<<","<<std::to_string(insert_data.score);
 }
+tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
 tempsql<<")";
 
      
@@ -217,16 +224,17 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].id==0){
+            	if(insert_data[i].tid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].id);
+	tempsql<<std::to_string(insert_data[i].tid);
 	}
-	if(insert_data[i].randomnumber==0){
+	if(insert_data[i].score==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].randomnumber);
+	tempsql<<","<<std::to_string(insert_data[i].score);
 	}
+		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -246,16 +254,17 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.id==0){
-	tempsql<<"`id`=0";
+        if(data.tid==0){
+	tempsql<<"`tid`=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"`tid`="<<std::to_string(data.tid);
 }
-if(data.randomnumber==0){
-	tempsql<<",`randomnumber`=0";
+if(data.score==0){
+	tempsql<<",`score`=0";
  }else{ 
-	tempsql<<",`randomnumber`="<<std::to_string(data.randomnumber);
+	tempsql<<",`score`="<<std::to_string(data.score);
 }
+tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
  }else{ 
 
      
@@ -302,19 +311,23 @@ if(data.randomnumber==0){
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.id==0){
-	tempsql<<"`id`=0";
+if(data.tid==0){
+	tempsql<<"`tid`=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"`tid`="<<std::to_string(data.tid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(data.randomnumber==0){
-	tempsql<<"`randomnumber`=0";
+if(data.score==0){
+	tempsql<<"`score`=0";
  }else{ 
-	tempsql<<"`randomnumber`="<<std::to_string(data.randomnumber);
+	tempsql<<"`score`="<<std::to_string(data.score);
 }
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
  break;
 
      
@@ -360,16 +373,17 @@ if(data.randomnumber==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].id==0){
+            	if(record[i].tid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].id);
+	tempsql<<std::to_string(record[i].tid);
 	}
-	if(record[i].randomnumber==0){
+	if(record[i].score==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].randomnumber);
+	tempsql<<","<<std::to_string(record[i].score);
 	}
+	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
 	tempsql<<")";
 
  }
@@ -408,16 +422,17 @@ if(data.randomnumber==0){
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].id==0){
+            	if(record[i].tid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].id);
+	tempsql<<std::to_string(record[i].tid);
 	}
-	if(record[i].randomnumber==0){
+	if(record[i].score==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].randomnumber);
+	tempsql<<","<<std::to_string(record[i].score);
 	}
+	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -498,18 +513,21 @@ if(data.randomnumber==0){
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.id==0){
+if(data.tid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.id));
+	temparray.push_back(std::to_string(data.tid));
 }
  break;
  case 1:
-if(data.randomnumber==0){
+if(data.score==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.randomnumber));
+	temparray.push_back(std::to_string(data.score));
 }
+ break;
+ case 2:
+	temparray.push_back(data.name);
  break;
 
                              default:
@@ -552,18 +570,21 @@ if(data.randomnumber==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.id==0){
-	tempsql.insert({"id","0"});
+if(data.tid==0){
+	tempsql.insert({"tid","0"});
  }else{ 
-	tempsql.insert({"id",std::to_string(data.id)});
+	tempsql.insert({"tid",std::to_string(data.tid)});
 }
  break;
  case 1:
-if(data.randomnumber==0){
-	tempsql.insert({"randomnumber","0"});
+if(data.score==0){
+	tempsql.insert({"score","0"});
  }else{ 
-	tempsql.insert({"randomnumber",std::to_string(data.randomnumber)});
+	tempsql.insert({"score",std::to_string(data.score)});
 }
+ break;
+ case 2:
+	tempsql.insert({"name",data.name});
  break;
 
                              default:
@@ -578,16 +599,18 @@ if(data.randomnumber==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.id==0){
-	tempsql<<"\"id\":0";
+if(data.tid==0){
+	tempsql<<"\"tid\":0";
  }else{ 
-	tempsql<<"\"id\":"<<std::to_string(data.id);
+	tempsql<<"\"tid\":"<<std::to_string(data.tid);
 }
-if(data.randomnumber==0){
-	tempsql<<",\"randomnumber\":0";
+if(data.score==0){
+	tempsql<<",\"score\":0";
  }else{ 
-	tempsql<<",\"randomnumber\":"<<std::to_string(data.randomnumber);
+	tempsql<<",\"score\":"<<std::to_string(data.score);
 }
+tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
+tempsql<<"\"";
 tempsql<<"}";
 
      
@@ -627,19 +650,23 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.id==0){
-	tempsql<<"\"id\":0";
+if(data.tid==0){
+	tempsql<<"\"tid\":0";
  }else{ 
-	tempsql<<"\"id\":"<<std::to_string(data.id);
+	tempsql<<"\"tid\":"<<std::to_string(data.tid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(data.randomnumber==0){
-	tempsql<<"\"randomnumber\":0";
+if(data.score==0){
+	tempsql<<"\"score\":0";
  }else{ 
-	tempsql<<"\"randomnumber\":"<<std::to_string(data.randomnumber);
+	tempsql<<"\"score\":"<<std::to_string(data.score);
 }
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
  break;
 
                              default:
@@ -653,7 +680,7 @@ if(data.randomnumber==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        worldbase::meta metatemp; 
+        testb_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -890,16 +917,23 @@ if(data.randomnumber==0){
         {
     		case 0:
 		 try{
-			data.id=std::stoul(set_value_name);
+			data.tid=std::stoi(set_value_name);
 		}catch (...) { 
-			data.id=0;
+			data.tid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.randomnumber=std::stoi(set_value_name);
+			data.score=std::stoll(set_value_name);
 		}catch (...) { 
-			data.randomnumber=0;
+			data.score=0;
+			 }
+			break;
+		case 2:
+		 try{
+			data.name.append(set_value_name);
+		}catch (...) { 
+			data.name.clear();
 			 }
 			break;
 	default:
@@ -916,16 +950,23 @@ if(data.randomnumber==0){
         {
     		case 0:
 		 try{
-			data.id=set_value_name;
+			data.tid=set_value_name;
 		}catch (...) { 
-			data.id=0;
+			data.tid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.randomnumber=set_value_name;
+			data.score=set_value_name;
 		}catch (...) { 
-			data.randomnumber=0;
+			data.score=0;
+			 }
+			break;
+		case 2:
+		 try{
+			data.name=std::to_string(set_value_name);
+		}catch (...) { 
+			data.name.clear();
 			 }
 			break;
 	default:
@@ -942,16 +983,23 @@ if(data.randomnumber==0){
         {
     		case 0:
 		 try{
-			data.id=(unsigned int)set_value_name;
+			data.tid=(int)set_value_name;
 		}catch (...) { 
-			data.id=0;
+			data.tid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.randomnumber=(int)set_value_name;
+			data.score=(long long)set_value_name;
 		}catch (...) { 
-			data.randomnumber=0;
+			data.score=0;
+			 }
+			break;
+		case 2:
+		 try{
+			data.name=std::to_string(set_value_name);
+		}catch (...) { 
+			data.name.clear();
 			 }
 			break;
 	default:
@@ -1002,19 +1050,23 @@ if(data.randomnumber==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].id==0){
-	tempsql<<"\"id\":0";
+if(record[n].tid==0){
+	tempsql<<"\"tid\":0";
  }else{ 
-	tempsql<<"\"id\":"<<std::to_string(record[n].id);
+	tempsql<<"\"tid\":"<<std::to_string(record[n].tid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(record[n].randomnumber==0){
-	tempsql<<"\"randomnumber\":0";
+if(record[n].score==0){
+	tempsql<<"\"score\":0";
  }else{ 
-	tempsql<<"\"randomnumber\":"<<std::to_string(record[n].randomnumber);
+	tempsql<<"\"score\":"<<std::to_string(record[n].score);
 }
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  break;
 
                              default:
@@ -1074,19 +1126,23 @@ if(record[n].randomnumber==0){
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].id==0){
-	tempsql<<"\"id\":0";
+if(record[n].tid==0){
+	tempsql<<"\"tid\":0";
  }else{ 
-	tempsql<<"\"id\":"<<std::to_string(record[n].id);
+	tempsql<<"\"tid\":"<<std::to_string(record[n].tid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-if(record[n].randomnumber==0){
-	tempsql<<"\"randomnumber\":0";
+if(record[n].score==0){
+	tempsql<<"\"score\":0";
  }else{ 
-	tempsql<<"\"randomnumber\":"<<std::to_string(record[n].randomnumber);
+	tempsql<<"\"score\":"<<std::to_string(record[n].score);
 }
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  break;
 
                              default:
@@ -1098,43 +1154,78 @@ if(record[n].randomnumber==0){
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.id; } 
- void setPK(long long val){  data.id=val;} 
- unsigned  int  getId(){  return data.id; } 
- void setId( unsigned  int  val){  data.id=val;} 
+   long long getPK(){  return data.tid; } 
+ void setPK(long long val){  data.tid=val;} 
+ int  getTid(){  return data.tid; } 
+ void setTid( int  val){  data.tid=val;} 
 
- int  getRandomnumber(){  return data.randomnumber; } 
- void setRandomnumber( int  val){  data.randomnumber=val;} 
+ long long  getScore(){  return data.score; } 
+ void setScore( long long  val){  data.score=val;} 
 
-worldbase::meta getnewData(){
+ std::string  getName(){  return data.name; } 
+ std::string & getRefName(){  return std::ref(data.name); } 
+ void setName( std::string  &val){  data.name=val;} 
+ void setName(std::string_view val){  data.name=val;} 
+
+testb_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-worldbase::meta getData(){
+testb_base::meta getData(){
  	 return data; 
 } 
-std::vector<worldbase::meta> getRecord(){
+std::vector<testb_base::meta> getRecord(){
  	 return record; 
 } 
+
+ double getScoreToNum()
+{
+	return (double)data.score/100;
+}
+
+ template<typename T>
+ requires std::is_arithmetic_v<T>
+ double getScoreToNum(T a)
+{
+	return (double)((long double)a/100);
+}
+
+ template<typename T>
+ requires std::is_arithmetic_v<T>
+ long long getNumToScore(T a)
+{
+	return std::round(a*100);
+}
+
+ template<typename T>
+ requires std::is_arithmetic_v<T>
+ void setScoreToNum(T a)
+{
+	data.score=std::round(a*100);
+}
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		return nullptr; 
+   		 if(key_name=="name")
+		{
+			return data.name;
+		}
+		return nullptr; 
 	}
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="id")
+   		 if(key_name=="tid")
 		{
-			return data.id;
+			return data.tid;
 		}
-		 if(key_name=="randomnumber")
+		 if(key_name=="score")
 		{
-			return data.randomnumber;
+			return data.score;
 		}
 		return nullptr; 
 	}
@@ -1159,10 +1250,10 @@ std::vector<worldbase::meta> getRecord(){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.id);
+ 				 a.emplace_back(iter.tid);
 				 break;
 			case 1: 
- 				 a.emplace_back(iter.randomnumber);
+ 				 a.emplace_back(iter.score);
 				 break;
 
                     }
@@ -1190,17 +1281,17 @@ std::vector<worldbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 return data.id;
+ 				 return data.tid;
 				 break;
 			case 1: 
- 				 return data.randomnumber;
+ 				 return data.score;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] worldbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] testb_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1209,10 +1300,10 @@ std::vector<worldbase::meta> getRecord(){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.id;
+ 				 return iter.tid;
 				 break;
 			case 1: 
- 				 return iter.randomnumber;
+ 				 return iter.score;
 				 break;
 
 			}
@@ -1237,7 +1328,7 @@ std::vector<worldbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] worldbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] testb_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1260,13 +1351,16 @@ std::vector<worldbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   
+   			case 2: 
+ 				 return data.name;
+				 break;
+
                 }
                 return "";
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] worldbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] testb_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -1275,7 +1369,10 @@ std::vector<worldbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   
+   			case 2: 
+ 				 return iter.name;
+				 break;
+
                 }
                 
     
@@ -1289,6 +1386,18 @@ std::vector<worldbase::meta> getRecord(){
                 std::vector<std::string> a;
 
            
+                unsigned char kpos;
+                kpos=findcolpos(keyname);                    
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+    			case 2: 
+ 				 a.emplace_back(iter.name);
+					 break;
+					}
+				}
 
         return a;
     }
@@ -1319,10 +1428,16 @@ std::vector<worldbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.id);
+ 				 a<<std::to_string(iter.tid);
 				 break;
 			case 1: 
- 				 a<<std::to_string(iter.randomnumber);
+ 				 a<<std::to_string(iter.score);
+				 break;
+			case 2: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.name); 
+				 }else{
+				 a<<iter.name;
+				 }
 				 break;
 
                     }
@@ -1339,7 +1454,33 @@ std::vector<worldbase::meta> getRecord(){
     std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
     {
         std::map<std::string,std::string> a;
-         
+    
+        unsigned char kpos,vpos;
+        kpos=findcolpos(keyname);
+        vpos=findcolpos(valname);        
+         std::string ktemp,vtemp;
+         for(auto &iter:record)
+         {
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+				 } 
+			switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
+
+                }
+                if(ktemp.size()>0)
+                {
+                    a.emplace(ktemp,vtemp);
+                }
+            }       
+
+        
             return a;
         } 
     
@@ -1348,7 +1489,30 @@ std::vector<worldbase::meta> getRecord(){
         std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
                 std::map<std::string,U> a;
-         
+      
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);            
+                std::string ktemp;
+                U vtemp;
+                for(auto &iter:record)
+                {    
+                    switch(kpos)
+                    {
+ 
+       			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			 } 
+		 switch(vpos){
+
+                    }
+                    if(ktemp.size()>0)
+                    {
+                        a.emplace(ktemp,vtemp);
+                    }
+                }       
+        
             return a;
         } 
     
@@ -1368,10 +1532,10 @@ std::vector<worldbase::meta> getRecord(){
                 {
  
        case 0: 
- 	 ktemp=iter.id;
+ 	 ktemp=iter.tid;
 	 break;
 case 1: 
- 	 ktemp=iter.randomnumber;
+ 	 ktemp=iter.score;
 	 break;
 	 } 
  		  switch(vpos){
@@ -1401,13 +1565,16 @@ case 1:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
  			switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
 
                     }
                     if(ktemp.size()>0)
@@ -1434,13 +1601,16 @@ case 1:
                 switch(kpos)
                 {
 
-   			  }
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 
                 }
@@ -1469,18 +1639,18 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 
                 }
@@ -1506,10 +1676,10 @@ case 1:
                 {
 
    			case 0: 
- 				 a.emplace(iter.id,iter);
+ 				 a.emplace(iter.tid,iter);
 				 break;
 			case 1: 
- 				 a.emplace(iter.randomnumber,iter);
+ 				 a.emplace(iter.score,iter);
 				 break;
 
                 }
@@ -1524,6 +1694,21 @@ case 1:
             std::map<std::string,meta> a;
 
     
+            unsigned char kpos;
+            kpos=findcolpos(keyname);            
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 a.emplace(iter.name,iter);
+			 break;
+
+                }
+                //a.emplace(ktemp,iter);
+            }       
+    
 
         return a;
     }
@@ -1533,6 +1718,28 @@ case 1:
         {
             std::vector<std::pair<std::string,U>> a;
    
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);                   
+            std::string ktemp;
+            U vtemp;
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+	 		 }
+ 			switch(vpos){
+
+                   }
+
+                 a.emplace_back(ktemp,vtemp);
+            }       
+
+     
 
             return a;
         }   
@@ -1553,10 +1760,10 @@ case 1:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 			 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 			 break;
 			  }
 			 switch(vpos){
@@ -1588,13 +1795,16 @@ case 1:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
  			switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
 
                    }
 
@@ -1620,13 +1830,16 @@ case 1:
                     switch(kpos)
                     {
 
-   			  }
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 
                    }
@@ -1652,18 +1865,18 @@ case 1:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 
                    }
@@ -1678,6 +1891,30 @@ case 1:
         {
                 std::vector<std::pair<T,U>> a;
    
+                unsigned char kpos,vpos;
+                kpos=findcolpos(keyname);
+                vpos=findcolpos(valname);
+                T ktemp;
+                U vtemp;
+                for(auto &iter:record)
+                {
+                    switch(kpos)
+                    {
+
+   case 2: 
+ 	 ktemp=iter.name;
+	 break;
+	  }
+ switch(vpos){
+case 2: 
+ 	 vtemp=iter.name;
+	 break;
+
+                   }
+
+                    a.emplace_back(ktemp,vtemp);
+                }       
+    
             return a;
         }  
     
@@ -1694,10 +1931,10 @@ case 1:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.id,iter);
+ 	 a.emplace_back(iter.tid,iter);
 	 break;
 case 1: 
- 	 a.emplace_back(iter.randomnumber,iter);
+ 	 a.emplace_back(iter.score,iter);
 	 break;
 
                 }
@@ -1710,6 +1947,20 @@ case 1:
         {
             std::vector<std::pair<std::string,meta>> a;
       
+            unsigned char kpos;
+            kpos=findcolpos(keyname);                     
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   case 2: 
+ 	 a.emplace_back(iter.name,iter);
+	 break;
+
+                }
+            }       
+    
 
         return a;
     }
@@ -1730,19 +1981,19 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 			  }
 
@@ -1774,28 +2025,28 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.id);
+ 				 a[ktemp][vtemp].emplace_back(iter.tid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.randomnumber);
+ 				 a[ktemp][vtemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -1823,23 +2074,26 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 			 }
 
 			 switch(dpos){
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.name);
+				 break;
 
                 }
             }       
@@ -1867,14 +2121,17 @@ case 1:
                     {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			 }
 
 			 switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
 			  }
 
 			 switch(dpos){
@@ -1905,22 +2162,25 @@ case 1:
             {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			 }
 
 			 switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.id);
+ 				 a[ktemp][vtemp].emplace_back(iter.tid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.randomnumber);
+ 				 a[ktemp][vtemp].emplace_back(iter.score);
 				 break;
 
             }
@@ -1947,17 +2207,23 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
 
 			 switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
 			  }
 
 			 switch(dpos){
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.name);
+				 break;
 
                 }
             }       
@@ -1982,14 +2248,17 @@ case 1:
                     switch(kpos)
                     {
 
-   			 }
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 			  }
 
@@ -2021,23 +2290,26 @@ case 1:
                 switch(kpos)
                 {
 
-   			  }
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.id);
+ 				 a[ktemp][vtemp].emplace_back(iter.tid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.randomnumber);
+ 				 a[ktemp][vtemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -2066,18 +2338,24 @@ case 1:
             switch(kpos)
             {
 
-   			 }
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.id;
+ 				 vtemp=iter.tid;
 				 break;
 			case 1: 
- 				 vtemp=iter.randomnumber;
+ 				 vtemp=iter.score;
 				 break;
 			 }
 
 			switch(dpos){
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.name);
+				 break;
 
             }
          }       
@@ -2090,6 +2368,36 @@ case 1:
         {
             std::map<T,std::map<U,std::vector<D>>> a;
    
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);        
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
+			  }
+
+			 switch(dpos){
+
+                }
+            }       
+
+    
             return a;
         }
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
@@ -2111,17 +2419,23 @@ case 1:
                 switch(kpos)
                 {
 
-   			  }
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			  }
 
 			 switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.id);
+ 				 a[ktemp][vtemp].emplace_back(iter.tid);
 				 break;
 			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.randomnumber);
+ 				 a[ktemp][vtemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -2135,6 +2449,38 @@ case 1:
         {
             std::map<T,std::map<U,std::vector<D>>> a;
    
+            unsigned char kpos,vpos,dpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            dpos=findcolpos(dataname);        
+            T ktemp;
+            U vtemp;
+            // D dtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 2: 
+ 				 vtemp=iter.name;
+				 break;
+			  }
+
+			 switch(dpos){
+			case 2: 
+ 				 a[ktemp][vtemp].emplace_back(iter.name);
+				 break;
+
+                }
+            }       
+    
             return a;
         }
     
@@ -2144,6 +2490,30 @@ case 1:
             std::map<T,std::vector<U>> a;
 
    
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			  }
+
+			 switch(vpos){
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.name);
+				 break;
+
+                }
+            }       
+    
             return a;
         }
     
@@ -2152,6 +2522,28 @@ case 1:
         {
             std::map<T,std::vector<U>> a;
    
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            T ktemp;
+            //U vtemp;
+
+            for(auto &iter:record)
+            {
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			 }
+
+			 switch(vpos){
+
+                }
+            }       
+
+    
             return a;
         }
     
@@ -2172,14 +2564,17 @@ case 1:
                 switch(kpos)
                 {
 
-   			  }
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.id);
+ 				 a[ktemp].emplace_back(iter.tid);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.randomnumber);
+ 				 a[ktemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -2206,14 +2601,17 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			 }
 
 			 switch(vpos){
+			case 2: 
+ 				 a[ktemp].emplace_back(iter.name);
+				 break;
 
                 }
             }       
@@ -2240,10 +2638,10 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
 
@@ -2273,19 +2671,19 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.id);
+ 				 a[ktemp].emplace_back(iter.tid);
 				 break;
 			case 1: 
- 				 a[ktemp].emplace_back(iter.randomnumber);
+ 				 a[ktemp].emplace_back(iter.score);
 				 break;
 
                 }
@@ -2308,10 +2706,10 @@ case 1:
                 {
 
    			case 0: 
- 				 a[iter.id].emplace_back(iter);
+ 				 a[iter.tid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[iter.randomnumber].emplace_back(iter);
+ 				 a[iter.score].emplace_back(iter);
 				 break;
 
                 }
@@ -2325,6 +2723,22 @@ case 1:
         {
             std::map<T,std::vector<meta>> a;
    
+            unsigned char kpos;
+            kpos=findcolpos(keyname);
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 a[iter.name].emplace_back(iter);
+				 break;
+
+                }
+            }       
+    
             return a;
         }
     
@@ -2333,6 +2747,30 @@ case 1:
         {
             std::map<T,std::map<U,std::vector<meta>>> a;
    
+            unsigned char kpos,vpos;
+            kpos=findcolpos(keyname);
+            vpos=findcolpos(valname);
+            T ktemp;
+
+            for(auto &iter:record)
+            {
+                
+                switch(kpos)
+                {
+
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+			 }
+
+			 switch(vpos){
+			case 2: 
+ 				 a[ktemp][iter.name].emplace_back(iter);
+				 break;
+
+                }
+            }       
+    
             return a;
         }
     
@@ -2352,14 +2790,17 @@ case 1:
                 switch(kpos)
                 {
 
-   	  }
+   			case 2: 
+ 				 ktemp=iter.name;
+				 break;
+	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.id].emplace_back(iter);
+ 				 a[ktemp][iter.tid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.randomnumber].emplace_back(iter);
+ 				 a[ktemp][iter.score].emplace_back(iter);
 				 break;
 
                 }
@@ -2386,19 +2827,19 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.id].emplace_back(iter);
+ 				 a[ktemp][iter.tid].emplace_back(iter);
 				 break;
 			case 1: 
- 				 a[ktemp][iter.randomnumber].emplace_back(iter);
+ 				 a[ktemp][iter.score].emplace_back(iter);
 				 break;
 
                 }
@@ -2425,14 +2866,17 @@ case 1:
                 {
 
    			case 0: 
- 				 ktemp=iter.id;
+ 				 ktemp=iter.tid;
 				 break;
 			case 1: 
- 				 ktemp=iter.randomnumber;
+ 				 ktemp=iter.score;
 				 break;
 			  }
 
 			 switch(vpos){
+			case 2: 
+ 				 a[ktemp][iter.name].emplace_back(iter);
+				 break;
 
                 }
             }       
@@ -2442,7 +2886,7 @@ case 1:
     
   };
     
-
+} 
 }
 #endif
    

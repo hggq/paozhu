@@ -1,6 +1,6 @@
 
 #include "sysroleperms_mysql.h"
-#include "cms/include/sysrolepermsbase.h"
+#include "cms/include/sysroleperms_base.h"
 #include "cms/include/Sysroleperms.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

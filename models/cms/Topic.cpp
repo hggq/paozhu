@@ -1,6 +1,6 @@
 
 #include "topic_mysql.h"
-#include "cms/include/topicbase.h"
+#include "cms/include/topic_base.h"
 #include "cms/include/Topic.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

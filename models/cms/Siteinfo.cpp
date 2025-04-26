@@ -1,6 +1,6 @@
 
 #include "siteinfo_mysql.h"
-#include "cms/include/siteinfobase.h"
+#include "cms/include/siteinfo_base.h"
 #include "cms/include/Siteinfo.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

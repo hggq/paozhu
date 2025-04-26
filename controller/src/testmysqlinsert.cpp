@@ -17,8 +17,8 @@ std::string testmysqlinsert(std::shared_ptr<httppeer> peer)
     try
     {
         auto articles = orm::cms::Article();
-        orm::cms::articlebase::meta a_data;
-        std::vector<orm::cms::articlebase::meta> l_data;
+        orm::cms::article_base::meta a_data;
+        std::vector<orm::cms::article_base::meta> l_data;
         std::string content = "<p>this insert content!</p>";
         a_data.isopen       = 1;
         a_data.title        = "aabb";

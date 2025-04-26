@@ -1,6 +1,6 @@
 
 #include "product_mysql.h"
-#include "cms/include/productbase.h"
+#include "cms/include/product_base.h"
 #include "cms/include/Product.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

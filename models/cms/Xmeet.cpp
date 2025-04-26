@@ -1,6 +1,6 @@
 
 #include "xmeet_mysql.h"
-#include "cms/include/xmeetbase.h"
+#include "cms/include/xmeet_base.h"
 #include "cms/include/Xmeet.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。

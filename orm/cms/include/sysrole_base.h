@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,7 +20,7 @@ namespace orm {
    
      namespace cms { 
 
-struct sysrolebase
+struct sysrole_base
 {
     struct meta{
      unsigned  int  roleid = 0; ///**/
@@ -31,13 +31,13 @@ struct sysrolebase
  int  sortid = 0; ///**/
  unsigned  int  rolevalue = 0; ///**/
  } data;
- std::vector<sysrolebase::meta> record;
+ std::vector<sysrole_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<sysrolebase::meta>::iterator begin(){     return record.begin(); }
-std::vector<sysrolebase::meta>::iterator end(){     return record.end(); }
-std::vector<sysrolebase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<sysrolebase::meta>::const_iterator end() const{     return record.end(); }
+std::vector<sysrole_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<sysrole_base::meta>::iterator end(){     return record.end(); }
+std::vector<sysrole_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<sysrole_base::meta>::const_iterator end() const{     return record.end(); }
 static constexpr std::array<std::string_view,7> col_names={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
 static constexpr std::array<unsigned char,7> col_types={3,3,253,1,8,3,3};
 static constexpr std::array<unsigned char,7> col_length={0,0,60,0,0,0,0};
@@ -104,7 +104,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     sysrolebase::meta metatemp;    
+     sysrole_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -964,7 +964,7 @@ if(data.rolevalue==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        sysrolebase::meta metatemp; 
+        sysrole_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1611,14 +1611,14 @@ if(record[n].rolevalue==0){
  unsigned  int  getRolevalue(){  return data.rolevalue; } 
  void setRolevalue( unsigned  int  val){  data.rolevalue=val;} 
 
-sysrolebase::meta getnewData(){
+sysrole_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-sysrolebase::meta getData(){
+sysrole_base::meta getData(){
  	 return data; 
 } 
-std::vector<sysrolebase::meta> getRecord(){
+std::vector<sysrole_base::meta> getRecord(){
  	 return record; 
 } 
 
@@ -1749,7 +1749,7 @@ std::vector<sysrolebase::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] sysrolebase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] sysrole_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1798,7 +1798,7 @@ std::vector<sysrolebase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] sysrolebase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] sysrole_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1830,7 +1830,7 @@ std::vector<sysrolebase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] sysrolebase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] sysrole_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;

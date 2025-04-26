@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:49 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,7 +20,7 @@ namespace orm {
    
      namespace cms { 
 
-struct articlebase
+struct article_base
 {
     struct meta{
      unsigned  int  aid = 0; ///**/
@@ -51,13 +51,13 @@ struct articlebase
  std::string  editauthor = ""; ///*文章编辑*/
  std::string  relatecontent = ""; ///*相关内容*/
  } data;
- std::vector<articlebase::meta> record;
+ std::vector<article_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<articlebase::meta>::iterator begin(){     return record.begin(); }
-std::vector<articlebase::meta>::iterator end(){     return record.end(); }
-std::vector<articlebase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<articlebase::meta>::const_iterator end() const{     return record.end(); }
+std::vector<article_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<article_base::meta>::iterator end(){     return record.end(); }
+std::vector<article_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<article_base::meta>::const_iterator end() const{     return record.end(); }
 static constexpr std::array<std::string_view,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
 static constexpr std::array<unsigned char,27> col_types={3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
 static constexpr std::array<unsigned char,27> col_length={0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,0};
@@ -202,7 +202,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     articlebase::meta metatemp;    
+     article_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -1760,7 +1760,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(data.relatecontent)<<"
     void from_json(const std::string &json_content)
    {
         record.clear();
-        articlebase::meta metatemp; 
+        article_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -3123,14 +3123,14 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relateconten
  void setRelatecontent( std::string  &val){  data.relatecontent=val;} 
  void setRelatecontent(std::string_view val){  data.relatecontent=val;} 
 
-articlebase::meta getnewData(){
+article_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-articlebase::meta getData(){
+article_base::meta getData(){
  	 return data; 
 } 
-std::vector<articlebase::meta> getRecord(){
+std::vector<article_base::meta> getRecord(){
  	 return record; 
 } 
 
@@ -3377,7 +3377,7 @@ std::vector<articlebase::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] articlebase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] article_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3444,7 +3444,7 @@ std::vector<articlebase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] articlebase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] article_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -3518,7 +3518,7 @@ std::vector<articlebase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] articlebase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] article_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;

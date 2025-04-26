@@ -1,8 +1,8 @@
-#ifndef ORM_CMS_SYSUSERBASEMATA_H
-#define ORM_CMS_SYSUSERBASEMATA_H
+#ifndef ORM_CMS_HOMEBLOCKBASEMATA_H
+#define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 11 Apr 2025 14:33:49 GMT
+*本文件为自动生成 Sat, 26 Apr 2025 14:46:49 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,44 +20,35 @@ namespace orm {
    
      namespace cms { 
 
-struct sysuserbase
+struct homeblock_base
 {
     struct meta{
-     unsigned  int  adminid = 0; ///**/
- std::string  name = ""; ///**/
- std::string  password = ""; ///**/
- std::string  textword = ""; ///**/
- char  isopen = 0; ///**/
- int  level = 0; ///**/
- unsigned  int  companyid = 0; ///*所属企业*/
- unsigned  int  dpid = 0; ///**/
- unsigned  int  jobid = 0; ///**/
- unsigned  int  roleid = 0; ///**/
- unsigned  int  postid = 0; ///**/
- unsigned  int  created_at = 0; ///**/
- unsigned  int  enddate = 0; ///**/
- unsigned  int  qrtemp = 0; ///**/
- unsigned  char  gender = 0; ///**/
- std::string  nickname = ""; ///**/
- std::string  realname = ""; ///**/
- std::string  avatar = ""; ///**/
- std::string  mobile = ""; ///**/
- std::string  email = ""; ///**/
- std::string  wxuuid = ""; ///**/
+     unsigned  int  hbid = 0; ///**/
+ unsigned  int  userid = 0; ///**/
+ std::string  title = ""; ///**/
+ std::string  content = ""; ///**/
+ std::string  jsonconfig = ""; ///**/
+ unsigned  char  viewtype = 0; ///*display type sample or list*/
+ unsigned  char  gettype = 0; ///**/
+ unsigned  int  rownum = 0; ///**/
+ unsigned  int  width = 0; ///**/
+ unsigned  int  height = 0; ///**/
+ unsigned  int  strlength = 0; ///**/
+ int  sortid = 0; ///**/
  } data;
- std::vector<sysuserbase::meta> record;
+ std::vector<homeblock_base::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
 unsigned int _offset=0;
-std::vector<sysuserbase::meta>::iterator begin(){     return record.begin(); }
-std::vector<sysuserbase::meta>::iterator end(){     return record.end(); }
-std::vector<sysuserbase::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<sysuserbase::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,21> col_names={"adminid","name","password","textword","isopen","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid"};
-static constexpr std::array<unsigned char,21> col_types={3,253,253,253,1,3,3,3,3,3,3,3,3,3,1,253,253,253,253,253,253};
-static constexpr std::array<unsigned char,21> col_length={0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,60,40,0,40,60,40};
-static constexpr std::array<unsigned char,21> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-std::string tablename="sysuser";
-static constexpr std::string_view modelname="Sysuser";
+std::vector<homeblock_base::meta>::iterator begin(){     return record.begin(); }
+std::vector<homeblock_base::meta>::iterator end(){     return record.end(); }
+std::vector<homeblock_base::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<homeblock_base::meta>::const_iterator end() const{     return record.end(); }
+static constexpr std::array<std::string_view,12> col_names={"hbid","userid","title","content","jsonconfig","viewtype","gettype","rownum","width","height","strlength","sortid"};
+static constexpr std::array<unsigned char,12> col_types={3,3,253,252,252,1,1,3,3,3,3,3};
+static constexpr std::array<unsigned char,12> col_length={0,0,120,0,0,0,0,0,0,0,0,0};
+static constexpr std::array<unsigned char,12> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0};
+std::string tablename="homeblock";
+static constexpr std::string_view modelname="Homeblock";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -73,92 +64,49 @@ static constexpr std::string_view modelname="Sysuser";
             switch(coln[0]){
 
 
-         case 'a':
- switch(coln.size()){  
-case 6:
-   	 return 17;
+         case 'c':
+   	 return 3;
 break;
-case 7:
-   	 return 0;
-break;
- }
- break;
-case 'c':
- switch(coln.size()){  
-case 9:
+case 'g':
    	 return 6;
 break;
-case 10:
-   	 return 11;
-break;
- }
- break;
-case 'd':
-   	 return 7;
-break;
-case 'e':
- switch(coln.size()){  
-case 5:
-   	 return 19;
-break;
-case 7:
-   	 return 12;
-break;
- }
- break;
-case 'g':
-   	 return 14;
-break;
-case 'i':
-   	 return 4;
-break;
-case 'j':
-   	 return 8;
-break;
-case 'l':
-   	 return 5;
-break;
-case 'm':
-   	 return 18;
-break;
-case 'n':
+case 'h':
  switch(coln.size()){  
 case 4:
-   	 return 1;
+   	 return 0;
 break;
-case 8:
-   	 return 15;
-break;
- }
- break;
-case 'p':
- switch(coln.size()){  
-case 6:
-   	 return 10;
-break;
-case 8:
-   	 return 2;
-break;
- }
- break;
-case 'q':
-   	 return 13;
-break;
-case 'r':
- switch(coln.size()){  
 case 6:
    	 return 9;
 break;
-case 8:
-   	 return 16;
+ }
+ break;
+case 'j':
+   	 return 4;
+break;
+case 'r':
+   	 return 7;
+break;
+case 's':
+ switch(coln.size()){  
+case 6:
+   	 return 11;
+break;
+case 9:
+   	 return 10;
 break;
  }
  break;
 case 't':
-   	 return 3;
+   	 return 2;
+break;
+case 'u':
+   	 return 1;
+break;
+case 'v':
+   	 return 5;
 break;
 case 'w':
-   	 return 20;
+   	 return 8;
 break;
 
              }
@@ -168,7 +116,7 @@ break;
     int size(){ return record.size(); }   
 
     std::string getPKname(){ 
-       return "adminid";
+       return "hbid";
 }
 
       void record_reset()
@@ -176,7 +124,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     sysuserbase::meta metatemp;    
+     homeblock_base::meta metatemp;    
             data = metatemp; 
       }
       
@@ -239,75 +187,54 @@ break;
         }
         tempsql<<") VALUES (";
 
-        if(data.adminid==0){
+        if(data.hbid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(data.adminid);
+	tempsql<<std::to_string(data.hbid);
 }
-tempsql<<",'"<<stringaddslash(data.name)<<"'";
-tempsql<<",'"<<stringaddslash(data.password)<<"'";
-tempsql<<",'"<<stringaddslash(data.textword)<<"'";
-if(data.isopen==0){
+if(data.userid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.isopen);
+	tempsql<<","<<std::to_string(data.userid);
 }
-if(data.level==0){
+tempsql<<",'"<<stringaddslash(data.title)<<"'";
+tempsql<<",'"<<stringaddslash(data.content)<<"'";
+tempsql<<",'"<<stringaddslash(data.jsonconfig)<<"'";
+if(data.viewtype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.level);
+	tempsql<<","<<std::to_string(data.viewtype);
 }
-if(data.companyid==0){
+if(data.gettype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.companyid);
+	tempsql<<","<<std::to_string(data.gettype);
 }
-if(data.dpid==0){
+if(data.rownum==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.dpid);
+	tempsql<<","<<std::to_string(data.rownum);
 }
-if(data.jobid==0){
+if(data.width==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.jobid);
+	tempsql<<","<<std::to_string(data.width);
 }
-if(data.roleid==0){
+if(data.height==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.roleid);
+	tempsql<<","<<std::to_string(data.height);
 }
-if(data.postid==0){
+if(data.strlength==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.postid);
+	tempsql<<","<<std::to_string(data.strlength);
 }
-if(data.created_at==0){
+if(data.sortid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(data.created_at);
+	tempsql<<","<<std::to_string(data.sortid);
 }
-if(data.enddate==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.enddate);
-}
-if(data.qrtemp==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.qrtemp);
-}
-if(data.gender==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.gender);
-}
-tempsql<<",'"<<stringaddslash(data.nickname)<<"'";
-tempsql<<",'"<<stringaddslash(data.realname)<<"'";
-tempsql<<",'"<<stringaddslash(data.avatar)<<"'";
-tempsql<<",'"<<stringaddslash(data.mobile)<<"'";
-tempsql<<",'"<<stringaddslash(data.email)<<"'";
-tempsql<<",'"<<stringaddslash(data.wxuuid)<<"'";
 tempsql<<")";
 
      
@@ -333,75 +260,54 @@ tempsql<<")";
         }
         tempsql<<") VALUES (";
 
-        if(insert_data.adminid==0){
+        if(insert_data.hbid==0){
 tempsql<<"null";
  }else{ 
-	tempsql<<std::to_string(insert_data.adminid);
+	tempsql<<std::to_string(insert_data.hbid);
 }
-tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.password)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.textword)<<"'";
-if(insert_data.isopen==0){
+if(insert_data.userid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.isopen);
+	tempsql<<","<<std::to_string(insert_data.userid);
 }
-if(insert_data.level==0){
+tempsql<<",'"<<stringaddslash(insert_data.title)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.jsonconfig)<<"'";
+if(insert_data.viewtype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.level);
+	tempsql<<","<<std::to_string(insert_data.viewtype);
 }
-if(insert_data.companyid==0){
+if(insert_data.gettype==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.companyid);
+	tempsql<<","<<std::to_string(insert_data.gettype);
 }
-if(insert_data.dpid==0){
+if(insert_data.rownum==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.dpid);
+	tempsql<<","<<std::to_string(insert_data.rownum);
 }
-if(insert_data.jobid==0){
+if(insert_data.width==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.jobid);
+	tempsql<<","<<std::to_string(insert_data.width);
 }
-if(insert_data.roleid==0){
+if(insert_data.height==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.roleid);
+	tempsql<<","<<std::to_string(insert_data.height);
 }
-if(insert_data.postid==0){
+if(insert_data.strlength==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.postid);
+	tempsql<<","<<std::to_string(insert_data.strlength);
 }
-if(insert_data.created_at==0){
+if(insert_data.sortid==0){
 	tempsql<<",0";
  }else{ 
-	tempsql<<","<<std::to_string(insert_data.created_at);
+	tempsql<<","<<std::to_string(insert_data.sortid);
 }
-if(insert_data.enddate==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.enddate);
-}
-if(insert_data.qrtemp==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.qrtemp);
-}
-if(insert_data.gender==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.gender);
-}
-tempsql<<",'"<<stringaddslash(insert_data.nickname)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.realname)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.avatar)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.mobile)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.email)<<"'";
-tempsql<<",'"<<stringaddslash(insert_data.wxuuid)<<"'";
 tempsql<<")";
 
      
@@ -436,75 +342,54 @@ tempsql<<")";
             tempsql<<"(";
 
 
-            	if(insert_data[i].adminid==0){
+            	if(insert_data[i].hbid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(insert_data[i].adminid);
+	tempsql<<std::to_string(insert_data[i].hbid);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].password)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].textword)<<"'";
-	if(insert_data[i].isopen==0){
+	if(insert_data[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].isopen);
+	tempsql<<","<<std::to_string(insert_data[i].userid);
 	}
-	if(insert_data[i].level==0){
+		tempsql<<",'"<<stringaddslash(insert_data[i].title)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].jsonconfig)<<"'";
+	if(insert_data[i].viewtype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].level);
+	tempsql<<","<<std::to_string(insert_data[i].viewtype);
 	}
-	if(insert_data[i].companyid==0){
+	if(insert_data[i].gettype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].companyid);
+	tempsql<<","<<std::to_string(insert_data[i].gettype);
 	}
-	if(insert_data[i].dpid==0){
+	if(insert_data[i].rownum==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].dpid);
+	tempsql<<","<<std::to_string(insert_data[i].rownum);
 	}
-	if(insert_data[i].jobid==0){
+	if(insert_data[i].width==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].jobid);
+	tempsql<<","<<std::to_string(insert_data[i].width);
 	}
-	if(insert_data[i].roleid==0){
+	if(insert_data[i].height==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].roleid);
+	tempsql<<","<<std::to_string(insert_data[i].height);
 	}
-	if(insert_data[i].postid==0){
+	if(insert_data[i].strlength==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].postid);
+	tempsql<<","<<std::to_string(insert_data[i].strlength);
 	}
-	if(insert_data[i].created_at==0){
+	if(insert_data[i].sortid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].created_at);
+	tempsql<<","<<std::to_string(insert_data[i].sortid);
 	}
-	if(insert_data[i].enddate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].enddate);
-	}
-	if(insert_data[i].qrtemp==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].qrtemp);
-	}
-	if(insert_data[i].gender==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].gender);
-	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].nickname)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].realname)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].avatar)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].mobile)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].email)<<"'";
-		tempsql<<",'"<<stringaddslash(insert_data[i].wxuuid)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -524,75 +409,54 @@ tempsql<<")";
         }
         if(isall){
 
-        if(data.adminid==0){
-	tempsql<<"`adminid`=0";
+        if(data.hbid==0){
+	tempsql<<"`hbid`=0";
  }else{ 
-	tempsql<<"`adminid`="<<std::to_string(data.adminid);
+	tempsql<<"`hbid`="<<std::to_string(data.hbid);
 }
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
-tempsql<<",`password`='"<<stringaddslash(data.password)<<"'";
-tempsql<<",`textword`='"<<stringaddslash(data.textword)<<"'";
-if(data.isopen==0){
-	tempsql<<",`isopen`=0";
+if(data.userid==0){
+	tempsql<<",`userid`=0";
  }else{ 
-	tempsql<<",`isopen`="<<std::to_string(data.isopen);
+	tempsql<<",`userid`="<<std::to_string(data.userid);
 }
-if(data.level==0){
-	tempsql<<",`level`=0";
+tempsql<<",`title`='"<<stringaddslash(data.title)<<"'";
+tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
+tempsql<<",`jsonconfig`='"<<stringaddslash(data.jsonconfig)<<"'";
+if(data.viewtype==0){
+	tempsql<<",`viewtype`=0";
  }else{ 
-	tempsql<<",`level`="<<std::to_string(data.level);
+	tempsql<<",`viewtype`="<<std::to_string(data.viewtype);
 }
-if(data.companyid==0){
-	tempsql<<",`companyid`=0";
+if(data.gettype==0){
+	tempsql<<",`gettype`=0";
  }else{ 
-	tempsql<<",`companyid`="<<std::to_string(data.companyid);
+	tempsql<<",`gettype`="<<std::to_string(data.gettype);
 }
-if(data.dpid==0){
-	tempsql<<",`dpid`=0";
+if(data.rownum==0){
+	tempsql<<",`rownum`=0";
  }else{ 
-	tempsql<<",`dpid`="<<std::to_string(data.dpid);
+	tempsql<<",`rownum`="<<std::to_string(data.rownum);
 }
-if(data.jobid==0){
-	tempsql<<",`jobid`=0";
+if(data.width==0){
+	tempsql<<",`width`=0";
  }else{ 
-	tempsql<<",`jobid`="<<std::to_string(data.jobid);
+	tempsql<<",`width`="<<std::to_string(data.width);
 }
-if(data.roleid==0){
-	tempsql<<",`roleid`=0";
+if(data.height==0){
+	tempsql<<",`height`=0";
  }else{ 
-	tempsql<<",`roleid`="<<std::to_string(data.roleid);
+	tempsql<<",`height`="<<std::to_string(data.height);
 }
-if(data.postid==0){
-	tempsql<<",`postid`=0";
+if(data.strlength==0){
+	tempsql<<",`strlength`=0";
  }else{ 
-	tempsql<<",`postid`="<<std::to_string(data.postid);
+	tempsql<<",`strlength`="<<std::to_string(data.strlength);
 }
-if(data.created_at==0){
-	tempsql<<",`created_at`=0";
+if(data.sortid==0){
+	tempsql<<",`sortid`=0";
  }else{ 
-	tempsql<<",`created_at`="<<std::to_string(data.created_at);
+	tempsql<<",`sortid`="<<std::to_string(data.sortid);
 }
-if(data.enddate==0){
-	tempsql<<",`enddate`=0";
- }else{ 
-	tempsql<<",`enddate`="<<std::to_string(data.enddate);
-}
-if(data.qrtemp==0){
-	tempsql<<",`qrtemp`=0";
- }else{ 
-	tempsql<<",`qrtemp`="<<std::to_string(data.qrtemp);
-}
-if(data.gender==0){
-	tempsql<<",`gender`=0";
- }else{ 
-	tempsql<<",`gender`="<<std::to_string(data.gender);
-}
-tempsql<<",`nickname`='"<<stringaddslash(data.nickname)<<"'";
-tempsql<<",`realname`='"<<stringaddslash(data.realname)<<"'";
-tempsql<<",`avatar`='"<<stringaddslash(data.avatar)<<"'";
-tempsql<<",`mobile`='"<<stringaddslash(data.mobile)<<"'";
-tempsql<<",`email`='"<<stringaddslash(data.email)<<"'";
-tempsql<<",`wxuuid`='"<<stringaddslash(data.wxuuid)<<"'";
  }else{ 
 
      
@@ -639,135 +503,87 @@ tempsql<<",`wxuuid`='"<<stringaddslash(data.wxuuid)<<"'";
 
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.adminid==0){
-	tempsql<<"`adminid`=0";
+if(data.hbid==0){
+	tempsql<<"`hbid`=0";
  }else{ 
-	tempsql<<"`adminid`="<<std::to_string(data.adminid);
+	tempsql<<"`hbid`="<<std::to_string(data.hbid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+if(data.userid==0){
+	tempsql<<"`userid`=0";
+ }else{ 
+	tempsql<<"`userid`="<<std::to_string(data.userid);
+}
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`password`='"<<stringaddslash(data.password)<<"'";
+tempsql<<"`title`='"<<stringaddslash(data.title)<<"'";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`textword`='"<<stringaddslash(data.textword)<<"'";
+tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.isopen==0){
-	tempsql<<"`isopen`=0";
- }else{ 
-	tempsql<<"`isopen`="<<std::to_string(data.isopen);
-}
+tempsql<<"`jsonconfig`='"<<stringaddslash(data.jsonconfig)<<"'";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(data.level==0){
-	tempsql<<"`level`=0";
+if(data.viewtype==0){
+	tempsql<<"`viewtype`=0";
  }else{ 
-	tempsql<<"`level`="<<std::to_string(data.level);
+	tempsql<<"`viewtype`="<<std::to_string(data.viewtype);
 }
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(data.companyid==0){
-	tempsql<<"`companyid`=0";
+if(data.gettype==0){
+	tempsql<<"`gettype`=0";
  }else{ 
-	tempsql<<"`companyid`="<<std::to_string(data.companyid);
+	tempsql<<"`gettype`="<<std::to_string(data.gettype);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(data.dpid==0){
-	tempsql<<"`dpid`=0";
+if(data.rownum==0){
+	tempsql<<"`rownum`=0";
  }else{ 
-	tempsql<<"`dpid`="<<std::to_string(data.dpid);
+	tempsql<<"`rownum`="<<std::to_string(data.rownum);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(data.jobid==0){
-	tempsql<<"`jobid`=0";
+if(data.width==0){
+	tempsql<<"`width`=0";
  }else{ 
-	tempsql<<"`jobid`="<<std::to_string(data.jobid);
+	tempsql<<"`width`="<<std::to_string(data.width);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(data.roleid==0){
-	tempsql<<"`roleid`=0";
+if(data.height==0){
+	tempsql<<"`height`=0";
  }else{ 
-	tempsql<<"`roleid`="<<std::to_string(data.roleid);
+	tempsql<<"`height`="<<std::to_string(data.height);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(data.postid==0){
-	tempsql<<"`postid`=0";
+if(data.strlength==0){
+	tempsql<<"`strlength`=0";
  }else{ 
-	tempsql<<"`postid`="<<std::to_string(data.postid);
+	tempsql<<"`strlength`="<<std::to_string(data.strlength);
 }
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-if(data.created_at==0){
-	tempsql<<"`created_at`=0";
+if(data.sortid==0){
+	tempsql<<"`sortid`=0";
  }else{ 
-	tempsql<<"`created_at`="<<std::to_string(data.created_at);
+	tempsql<<"`sortid`="<<std::to_string(data.sortid);
 }
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(data.enddate==0){
-	tempsql<<"`enddate`=0";
- }else{ 
-	tempsql<<"`enddate`="<<std::to_string(data.enddate);
-}
- break;
- case 13:
- if(jj>0){ tempsql<<","; } 
-if(data.qrtemp==0){
-	tempsql<<"`qrtemp`=0";
- }else{ 
-	tempsql<<"`qrtemp`="<<std::to_string(data.qrtemp);
-}
- break;
- case 14:
- if(jj>0){ tempsql<<","; } 
-if(data.gender==0){
-	tempsql<<"`gender`=0";
- }else{ 
-	tempsql<<"`gender`="<<std::to_string(data.gender);
-}
- break;
- case 15:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`nickname`='"<<stringaddslash(data.nickname)<<"'";
- break;
- case 16:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`realname`='"<<stringaddslash(data.realname)<<"'";
- break;
- case 17:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`avatar`='"<<stringaddslash(data.avatar)<<"'";
- break;
- case 18:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`mobile`='"<<stringaddslash(data.mobile)<<"'";
- break;
- case 19:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`email`='"<<stringaddslash(data.email)<<"'";
- break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"`wxuuid`='"<<stringaddslash(data.wxuuid)<<"'";
  break;
 
      
@@ -813,75 +629,54 @@ tempsql<<"`wxuuid`='"<<stringaddslash(data.wxuuid)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].adminid==0){
+            	if(record[i].hbid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].adminid);
+	tempsql<<std::to_string(record[i].hbid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].password)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].textword)<<"'";
-	if(record[i].isopen==0){
+	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].isopen);
+	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].level==0){
+	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].jsonconfig)<<"'";
+	if(record[i].viewtype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].level);
+	tempsql<<","<<std::to_string(record[i].viewtype);
 	}
-	if(record[i].companyid==0){
+	if(record[i].gettype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].companyid);
+	tempsql<<","<<std::to_string(record[i].gettype);
 	}
-	if(record[i].dpid==0){
+	if(record[i].rownum==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].dpid);
+	tempsql<<","<<std::to_string(record[i].rownum);
 	}
-	if(record[i].jobid==0){
+	if(record[i].width==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].jobid);
+	tempsql<<","<<std::to_string(record[i].width);
 	}
-	if(record[i].roleid==0){
+	if(record[i].height==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].roleid);
+	tempsql<<","<<std::to_string(record[i].height);
 	}
-	if(record[i].postid==0){
+	if(record[i].strlength==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].postid);
+	tempsql<<","<<std::to_string(record[i].strlength);
 	}
-	if(record[i].created_at==0){
+	if(record[i].sortid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].created_at);
+	tempsql<<","<<std::to_string(record[i].sortid);
 	}
-	if(record[i].enddate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].enddate);
-	}
-	if(record[i].qrtemp==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].qrtemp);
-	}
-	if(record[i].gender==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].gender);
-	}
-	tempsql<<",'"<<stringaddslash(record[i].nickname)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].realname)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].avatar)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].mobile)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].email)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].wxuuid)<<"'";
 	tempsql<<")";
 
  }
@@ -920,75 +715,54 @@ tempsql<<"`wxuuid`='"<<stringaddslash(data.wxuuid)<<"'";
                 tempsql << ",\n";
             }
             tempsql << "(";
-            	if(record[i].adminid==0){
+            	if(record[i].hbid==0){
 	tempsql<<"null";
 	 }else{ 
-	tempsql<<std::to_string(record[i].adminid);
+	tempsql<<std::to_string(record[i].hbid);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].password)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].textword)<<"'";
-	if(record[i].isopen==0){
+	if(record[i].userid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].isopen);
+	tempsql<<","<<std::to_string(record[i].userid);
 	}
-	if(record[i].level==0){
+	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].jsonconfig)<<"'";
+	if(record[i].viewtype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].level);
+	tempsql<<","<<std::to_string(record[i].viewtype);
 	}
-	if(record[i].companyid==0){
+	if(record[i].gettype==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].companyid);
+	tempsql<<","<<std::to_string(record[i].gettype);
 	}
-	if(record[i].dpid==0){
+	if(record[i].rownum==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].dpid);
+	tempsql<<","<<std::to_string(record[i].rownum);
 	}
-	if(record[i].jobid==0){
+	if(record[i].width==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].jobid);
+	tempsql<<","<<std::to_string(record[i].width);
 	}
-	if(record[i].roleid==0){
+	if(record[i].height==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].roleid);
+	tempsql<<","<<std::to_string(record[i].height);
 	}
-	if(record[i].postid==0){
+	if(record[i].strlength==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].postid);
+	tempsql<<","<<std::to_string(record[i].strlength);
 	}
-	if(record[i].created_at==0){
+	if(record[i].sortid==0){
 	tempsql<<",0";
 	 }else{ 
-	tempsql<<","<<std::to_string(record[i].created_at);
+	tempsql<<","<<std::to_string(record[i].sortid);
 	}
-	if(record[i].enddate==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].enddate);
-	}
-	if(record[i].qrtemp==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].qrtemp);
-	}
-	if(record[i].gender==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].gender);
-	}
-	tempsql<<",'"<<stringaddslash(record[i].nickname)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].realname)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].avatar)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].mobile)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].email)<<"'";
-	tempsql<<",'"<<stringaddslash(record[i].wxuuid)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -1069,115 +843,76 @@ tempsql<<"`wxuuid`='"<<stringaddslash(data.wxuuid)<<"'";
             for(jj=0;jj<keypos.size();jj++){
                 switch(keypos[jj]){
          case 0:
-if(data.adminid==0){
+if(data.hbid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.adminid));
+	temparray.push_back(std::to_string(data.hbid));
 }
  break;
  case 1:
-	temparray.push_back(data.name);
- break;
- case 2:
-	temparray.push_back(data.password);
- break;
- case 3:
-	temparray.push_back(data.textword);
- break;
- case 4:
-if(data.isopen==0){
+if(data.userid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.isopen));
+	temparray.push_back(std::to_string(data.userid));
 }
  break;
+ case 2:
+	temparray.push_back(data.title);
+ break;
+ case 3:
+	temparray.push_back(data.content);
+ break;
+ case 4:
+	temparray.push_back(data.jsonconfig);
+ break;
  case 5:
-if(data.level==0){
+if(data.viewtype==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.level));
+	temparray.push_back(std::to_string(data.viewtype));
 }
  break;
  case 6:
-if(data.companyid==0){
+if(data.gettype==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.companyid));
+	temparray.push_back(std::to_string(data.gettype));
 }
  break;
  case 7:
-if(data.dpid==0){
+if(data.rownum==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.dpid));
+	temparray.push_back(std::to_string(data.rownum));
 }
  break;
  case 8:
-if(data.jobid==0){
+if(data.width==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.jobid));
+	temparray.push_back(std::to_string(data.width));
 }
  break;
  case 9:
-if(data.roleid==0){
+if(data.height==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.roleid));
+	temparray.push_back(std::to_string(data.height));
 }
  break;
  case 10:
-if(data.postid==0){
+if(data.strlength==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.postid));
+	temparray.push_back(std::to_string(data.strlength));
 }
  break;
  case 11:
-if(data.created_at==0){
+if(data.sortid==0){
 	temparray.push_back("0");
  }else{ 
-	temparray.push_back(std::to_string(data.created_at));
+	temparray.push_back(std::to_string(data.sortid));
 }
- break;
- case 12:
-if(data.enddate==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.enddate));
-}
- break;
- case 13:
-if(data.qrtemp==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.qrtemp));
-}
- break;
- case 14:
-if(data.gender==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.gender));
-}
- break;
- case 15:
-	temparray.push_back(data.nickname);
- break;
- case 16:
-	temparray.push_back(data.realname);
- break;
- case 17:
-	temparray.push_back(data.avatar);
- break;
- case 18:
-	temparray.push_back(data.mobile);
- break;
- case 19:
-	temparray.push_back(data.email);
- break;
- case 20:
-	temparray.push_back(data.wxuuid);
  break;
 
                              default:
@@ -1220,115 +955,76 @@ if(data.gender==0){
         for(jj=0;jj<keypos.size();jj++){
             switch(keypos[jj]){
          case 0:
-if(data.adminid==0){
-	tempsql.insert({"adminid","0"});
+if(data.hbid==0){
+	tempsql.insert({"hbid","0"});
  }else{ 
-	tempsql.insert({"adminid",std::to_string(data.adminid)});
+	tempsql.insert({"hbid",std::to_string(data.hbid)});
 }
  break;
  case 1:
-	tempsql.insert({"name",data.name});
- break;
- case 2:
-	tempsql.insert({"password",data.password});
- break;
- case 3:
-	tempsql.insert({"textword",data.textword});
- break;
- case 4:
-if(data.isopen==0){
-	tempsql.insert({"isopen","0"});
+if(data.userid==0){
+	tempsql.insert({"userid","0"});
  }else{ 
-	tempsql.insert({"isopen",std::to_string(data.isopen)});
+	tempsql.insert({"userid",std::to_string(data.userid)});
 }
  break;
+ case 2:
+	tempsql.insert({"title",data.title});
+ break;
+ case 3:
+	tempsql.insert({"content",data.content});
+ break;
+ case 4:
+	tempsql.insert({"jsonconfig",data.jsonconfig});
+ break;
  case 5:
-if(data.level==0){
-	tempsql.insert({"level","0"});
+if(data.viewtype==0){
+	tempsql.insert({"viewtype","0"});
  }else{ 
-	tempsql.insert({"level",std::to_string(data.level)});
+	tempsql.insert({"viewtype",std::to_string(data.viewtype)});
 }
  break;
  case 6:
-if(data.companyid==0){
-	tempsql.insert({"companyid","0"});
+if(data.gettype==0){
+	tempsql.insert({"gettype","0"});
  }else{ 
-	tempsql.insert({"companyid",std::to_string(data.companyid)});
+	tempsql.insert({"gettype",std::to_string(data.gettype)});
 }
  break;
  case 7:
-if(data.dpid==0){
-	tempsql.insert({"dpid","0"});
+if(data.rownum==0){
+	tempsql.insert({"rownum","0"});
  }else{ 
-	tempsql.insert({"dpid",std::to_string(data.dpid)});
+	tempsql.insert({"rownum",std::to_string(data.rownum)});
 }
  break;
  case 8:
-if(data.jobid==0){
-	tempsql.insert({"jobid","0"});
+if(data.width==0){
+	tempsql.insert({"width","0"});
  }else{ 
-	tempsql.insert({"jobid",std::to_string(data.jobid)});
+	tempsql.insert({"width",std::to_string(data.width)});
 }
  break;
  case 9:
-if(data.roleid==0){
-	tempsql.insert({"roleid","0"});
+if(data.height==0){
+	tempsql.insert({"height","0"});
  }else{ 
-	tempsql.insert({"roleid",std::to_string(data.roleid)});
+	tempsql.insert({"height",std::to_string(data.height)});
 }
  break;
  case 10:
-if(data.postid==0){
-	tempsql.insert({"postid","0"});
+if(data.strlength==0){
+	tempsql.insert({"strlength","0"});
  }else{ 
-	tempsql.insert({"postid",std::to_string(data.postid)});
+	tempsql.insert({"strlength",std::to_string(data.strlength)});
 }
  break;
  case 11:
-if(data.created_at==0){
-	tempsql.insert({"created_at","0"});
+if(data.sortid==0){
+	tempsql.insert({"sortid","0"});
  }else{ 
-	tempsql.insert({"created_at",std::to_string(data.created_at)});
+	tempsql.insert({"sortid",std::to_string(data.sortid)});
 }
- break;
- case 12:
-if(data.enddate==0){
-	tempsql.insert({"enddate","0"});
- }else{ 
-	tempsql.insert({"enddate",std::to_string(data.enddate)});
-}
- break;
- case 13:
-if(data.qrtemp==0){
-	tempsql.insert({"qrtemp","0"});
- }else{ 
-	tempsql.insert({"qrtemp",std::to_string(data.qrtemp)});
-}
- break;
- case 14:
-if(data.gender==0){
-	tempsql.insert({"gender","0"});
- }else{ 
-	tempsql.insert({"gender",std::to_string(data.gender)});
-}
- break;
- case 15:
-	tempsql.insert({"nickname",data.nickname});
- break;
- case 16:
-	tempsql.insert({"realname",data.realname});
- break;
- case 17:
-	tempsql.insert({"avatar",data.avatar});
- break;
- case 18:
-	tempsql.insert({"mobile",data.mobile});
- break;
- case 19:
-	tempsql.insert({"email",data.email});
- break;
- case 20:
-	tempsql.insert({"wxuuid",data.wxuuid});
  break;
 
                              default:
@@ -1343,84 +1039,57 @@ if(data.gender==0){
        std::ostringstream tempsql;
 
         tempsql<<"{";
-if(data.adminid==0){
-	tempsql<<"\"adminid\":0";
+if(data.hbid==0){
+	tempsql<<"\"hbid\":0";
  }else{ 
-	tempsql<<"\"adminid\":"<<std::to_string(data.adminid);
+	tempsql<<"\"hbid\":"<<std::to_string(data.hbid);
 }
-tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
+if(data.userid==0){
+	tempsql<<",\"userid\":0";
+ }else{ 
+	tempsql<<",\"userid\":"<<std::to_string(data.userid);
+}
+tempsql<<",\"title\":\""<<http::utf8_to_jsonstring(data.title);
 tempsql<<"\"";
-tempsql<<",\"password\":\""<<http::utf8_to_jsonstring(data.password);
+tempsql<<",\"content\":\""<<http::utf8_to_jsonstring(data.content);
 tempsql<<"\"";
-tempsql<<",\"textword\":\""<<http::utf8_to_jsonstring(data.textword);
+tempsql<<",\"jsonconfig\":\""<<http::utf8_to_jsonstring(data.jsonconfig);
 tempsql<<"\"";
-if(data.isopen==0){
-	tempsql<<",\"isopen\":0";
+if(data.viewtype==0){
+	tempsql<<",\"viewtype\":0";
  }else{ 
-	tempsql<<",\"isopen\":"<<std::to_string(data.isopen);
+	tempsql<<",\"viewtype\":"<<std::to_string(data.viewtype);
 }
-if(data.level==0){
-	tempsql<<",\"level\":0";
+if(data.gettype==0){
+	tempsql<<",\"gettype\":0";
  }else{ 
-	tempsql<<",\"level\":"<<std::to_string(data.level);
+	tempsql<<",\"gettype\":"<<std::to_string(data.gettype);
 }
-if(data.companyid==0){
-	tempsql<<",\"companyid\":0";
+if(data.rownum==0){
+	tempsql<<",\"rownum\":0";
  }else{ 
-	tempsql<<",\"companyid\":"<<std::to_string(data.companyid);
+	tempsql<<",\"rownum\":"<<std::to_string(data.rownum);
 }
-if(data.dpid==0){
-	tempsql<<",\"dpid\":0";
+if(data.width==0){
+	tempsql<<",\"width\":0";
  }else{ 
-	tempsql<<",\"dpid\":"<<std::to_string(data.dpid);
+	tempsql<<",\"width\":"<<std::to_string(data.width);
 }
-if(data.jobid==0){
-	tempsql<<",\"jobid\":0";
+if(data.height==0){
+	tempsql<<",\"height\":0";
  }else{ 
-	tempsql<<",\"jobid\":"<<std::to_string(data.jobid);
+	tempsql<<",\"height\":"<<std::to_string(data.height);
 }
-if(data.roleid==0){
-	tempsql<<",\"roleid\":0";
+if(data.strlength==0){
+	tempsql<<",\"strlength\":0";
  }else{ 
-	tempsql<<",\"roleid\":"<<std::to_string(data.roleid);
+	tempsql<<",\"strlength\":"<<std::to_string(data.strlength);
 }
-if(data.postid==0){
-	tempsql<<",\"postid\":0";
+if(data.sortid==0){
+	tempsql<<",\"sortid\":0";
  }else{ 
-	tempsql<<",\"postid\":"<<std::to_string(data.postid);
+	tempsql<<",\"sortid\":"<<std::to_string(data.sortid);
 }
-if(data.created_at==0){
-	tempsql<<",\"created_at\":0";
- }else{ 
-	tempsql<<",\"created_at\":"<<std::to_string(data.created_at);
-}
-if(data.enddate==0){
-	tempsql<<",\"enddate\":0";
- }else{ 
-	tempsql<<",\"enddate\":"<<std::to_string(data.enddate);
-}
-if(data.qrtemp==0){
-	tempsql<<",\"qrtemp\":0";
- }else{ 
-	tempsql<<",\"qrtemp\":"<<std::to_string(data.qrtemp);
-}
-if(data.gender==0){
-	tempsql<<",\"gender\":0";
- }else{ 
-	tempsql<<",\"gender\":"<<std::to_string(data.gender);
-}
-tempsql<<",\"nickname\":\""<<http::utf8_to_jsonstring(data.nickname);
-tempsql<<"\"";
-tempsql<<",\"realname\":\""<<http::utf8_to_jsonstring(data.realname);
-tempsql<<"\"";
-tempsql<<",\"avatar\":\""<<http::utf8_to_jsonstring(data.avatar);
-tempsql<<"\"";
-tempsql<<",\"mobile\":\""<<http::utf8_to_jsonstring(data.mobile);
-tempsql<<"\"";
-tempsql<<",\"email\":\""<<http::utf8_to_jsonstring(data.email);
-tempsql<<"\"";
-tempsql<<",\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid);
-tempsql<<"\"";
 tempsql<<"}";
 
      
@@ -1460,135 +1129,87 @@ tempsql<<"}";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(data.adminid==0){
-	tempsql<<"\"adminid\":0";
+if(data.hbid==0){
+	tempsql<<"\"hbid\":0";
  }else{ 
-	tempsql<<"\"adminid\":"<<std::to_string(data.adminid);
+	tempsql<<"\"hbid\":"<<std::to_string(data.hbid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
+if(data.userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(data.userid);
+}
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(data.password)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(data.title)<<"\"";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"textword\":\""<<http::utf8_to_jsonstring(data.textword)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(data.content)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(data.isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(data.isopen);
-}
+tempsql<<"\"jsonconfig\":\""<<http::utf8_to_jsonstring(data.jsonconfig)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(data.level==0){
-	tempsql<<"\"level\":0";
+if(data.viewtype==0){
+	tempsql<<"\"viewtype\":0";
  }else{ 
-	tempsql<<"\"level\":"<<std::to_string(data.level);
+	tempsql<<"\"viewtype\":"<<std::to_string(data.viewtype);
 }
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(data.companyid==0){
-	tempsql<<"\"companyid\":0";
+if(data.gettype==0){
+	tempsql<<"\"gettype\":0";
  }else{ 
-	tempsql<<"\"companyid\":"<<std::to_string(data.companyid);
+	tempsql<<"\"gettype\":"<<std::to_string(data.gettype);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(data.dpid==0){
-	tempsql<<"\"dpid\":0";
+if(data.rownum==0){
+	tempsql<<"\"rownum\":0";
  }else{ 
-	tempsql<<"\"dpid\":"<<std::to_string(data.dpid);
+	tempsql<<"\"rownum\":"<<std::to_string(data.rownum);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(data.jobid==0){
-	tempsql<<"\"jobid\":0";
+if(data.width==0){
+	tempsql<<"\"width\":0";
  }else{ 
-	tempsql<<"\"jobid\":"<<std::to_string(data.jobid);
+	tempsql<<"\"width\":"<<std::to_string(data.width);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(data.roleid==0){
-	tempsql<<"\"roleid\":0";
+if(data.height==0){
+	tempsql<<"\"height\":0";
  }else{ 
-	tempsql<<"\"roleid\":"<<std::to_string(data.roleid);
+	tempsql<<"\"height\":"<<std::to_string(data.height);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(data.postid==0){
-	tempsql<<"\"postid\":0";
+if(data.strlength==0){
+	tempsql<<"\"strlength\":0";
  }else{ 
-	tempsql<<"\"postid\":"<<std::to_string(data.postid);
+	tempsql<<"\"strlength\":"<<std::to_string(data.strlength);
 }
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-if(data.created_at==0){
-	tempsql<<"\"created_at\":0";
+if(data.sortid==0){
+	tempsql<<"\"sortid\":0";
  }else{ 
-	tempsql<<"\"created_at\":"<<std::to_string(data.created_at);
+	tempsql<<"\"sortid\":"<<std::to_string(data.sortid);
 }
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(data.enddate==0){
-	tempsql<<"\"enddate\":0";
- }else{ 
-	tempsql<<"\"enddate\":"<<std::to_string(data.enddate);
-}
- break;
- case 13:
- if(jj>0){ tempsql<<","; } 
-if(data.qrtemp==0){
-	tempsql<<"\"qrtemp\":0";
- }else{ 
-	tempsql<<"\"qrtemp\":"<<std::to_string(data.qrtemp);
-}
- break;
- case 14:
- if(jj>0){ tempsql<<","; } 
-if(data.gender==0){
-	tempsql<<"\"gender\":0";
- }else{ 
-	tempsql<<"\"gender\":"<<std::to_string(data.gender);
-}
- break;
- case 15:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(data.nickname)<<"\"";
- break;
- case 16:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(data.realname)<<"\"";
- break;
- case 17:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(data.avatar)<<"\"";
- break;
- case 18:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(data.mobile)<<"\"";
- break;
- case 19:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(data.email)<<"\"";
- break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid)<<"\"";
  break;
 
                              default:
@@ -1602,7 +1223,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        sysuserbase::meta metatemp; 
+        homeblock_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1839,149 +1460,86 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid)<<"\"";
         {
     		case 0:
 		 try{
-			data.adminid=std::stoul(set_value_name);
+			data.hbid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.adminid=0;
+			data.hbid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.name.append(set_value_name);
+			data.userid=std::stoul(set_value_name);
 		}catch (...) { 
-			data.name.clear();
+			data.userid=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.password.append(set_value_name);
+			data.title.append(set_value_name);
 		}catch (...) { 
-			data.password.clear();
+			data.title.clear();
 			 }
 			break;
 		case 3:
 		 try{
-			data.textword.append(set_value_name);
+			data.content.append(set_value_name);
 		}catch (...) { 
-			data.textword.clear();
+			data.content.clear();
 			 }
 			break;
 		case 4:
 		 try{
-			data.isopen=std::stoi(set_value_name);
+			data.jsonconfig.append(set_value_name);
 		}catch (...) { 
-			data.isopen=0;
+			data.jsonconfig.clear();
 			 }
 			break;
 		case 5:
 		 try{
-			data.level=std::stoi(set_value_name);
+			data.viewtype=std::stoi(set_value_name);
 		}catch (...) { 
-			data.level=0;
+			data.viewtype=0;
 			 }
 			break;
 		case 6:
 		 try{
-			data.companyid=std::stoul(set_value_name);
+			data.gettype=std::stoi(set_value_name);
 		}catch (...) { 
-			data.companyid=0;
+			data.gettype=0;
 			 }
 			break;
 		case 7:
 		 try{
-			data.dpid=std::stoul(set_value_name);
+			data.rownum=std::stoul(set_value_name);
 		}catch (...) { 
-			data.dpid=0;
+			data.rownum=0;
 			 }
 			break;
 		case 8:
 		 try{
-			data.jobid=std::stoul(set_value_name);
+			data.width=std::stoul(set_value_name);
 		}catch (...) { 
-			data.jobid=0;
+			data.width=0;
 			 }
 			break;
 		case 9:
 		 try{
-			data.roleid=std::stoul(set_value_name);
+			data.height=std::stoul(set_value_name);
 		}catch (...) { 
-			data.roleid=0;
+			data.height=0;
 			 }
 			break;
 		case 10:
 		 try{
-			data.postid=std::stoul(set_value_name);
+			data.strlength=std::stoul(set_value_name);
 		}catch (...) { 
-			data.postid=0;
+			data.strlength=0;
 			 }
 			break;
 		case 11:
 		 try{
-			data.created_at=std::stoul(set_value_name);
+			data.sortid=std::stoi(set_value_name);
 		}catch (...) { 
-			data.created_at=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.enddate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.qrtemp=std::stoul(set_value_name);
-		}catch (...) { 
-			data.qrtemp=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.gender=std::stoi(set_value_name);
-		}catch (...) { 
-			data.gender=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.nickname.append(set_value_name);
-		}catch (...) { 
-			data.nickname.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.realname.append(set_value_name);
-		}catch (...) { 
-			data.realname.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.avatar.append(set_value_name);
-		}catch (...) { 
-			data.avatar.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.mobile.append(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.email.append(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.wxuuid.append(set_value_name);
-		}catch (...) { 
-			data.wxuuid.clear();
+			data.sortid=0;
 			 }
 			break;
 	default:
@@ -1998,149 +1556,86 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid)<<"\"";
         {
     		case 0:
 		 try{
-			data.adminid=set_value_name;
+			data.hbid=set_value_name;
 		}catch (...) { 
-			data.adminid=0;
+			data.hbid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.userid=set_value_name;
 		}catch (...) { 
-			data.name.clear();
+			data.userid=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.password=std::to_string(set_value_name);
+			data.title=std::to_string(set_value_name);
 		}catch (...) { 
-			data.password.clear();
+			data.title.clear();
 			 }
 			break;
 		case 3:
 		 try{
-			data.textword=std::to_string(set_value_name);
+			data.content=std::to_string(set_value_name);
 		}catch (...) { 
-			data.textword.clear();
+			data.content.clear();
 			 }
 			break;
 		case 4:
 		 try{
-			data.isopen=set_value_name;
+			data.jsonconfig=std::to_string(set_value_name);
 		}catch (...) { 
-			data.isopen=0;
+			data.jsonconfig.clear();
 			 }
 			break;
 		case 5:
 		 try{
-			data.level=set_value_name;
+			data.viewtype=set_value_name;
 		}catch (...) { 
-			data.level=0;
+			data.viewtype=0;
 			 }
 			break;
 		case 6:
 		 try{
-			data.companyid=set_value_name;
+			data.gettype=set_value_name;
 		}catch (...) { 
-			data.companyid=0;
+			data.gettype=0;
 			 }
 			break;
 		case 7:
 		 try{
-			data.dpid=set_value_name;
+			data.rownum=set_value_name;
 		}catch (...) { 
-			data.dpid=0;
+			data.rownum=0;
 			 }
 			break;
 		case 8:
 		 try{
-			data.jobid=set_value_name;
+			data.width=set_value_name;
 		}catch (...) { 
-			data.jobid=0;
+			data.width=0;
 			 }
 			break;
 		case 9:
 		 try{
-			data.roleid=set_value_name;
+			data.height=set_value_name;
 		}catch (...) { 
-			data.roleid=0;
+			data.height=0;
 			 }
 			break;
 		case 10:
 		 try{
-			data.postid=set_value_name;
+			data.strlength=set_value_name;
 		}catch (...) { 
-			data.postid=0;
+			data.strlength=0;
 			 }
 			break;
 		case 11:
 		 try{
-			data.created_at=set_value_name;
+			data.sortid=set_value_name;
 		}catch (...) { 
-			data.created_at=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.enddate=set_value_name;
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.qrtemp=set_value_name;
-		}catch (...) { 
-			data.qrtemp=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.gender=set_value_name;
-		}catch (...) { 
-			data.gender=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.nickname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.nickname.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.realname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.realname.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.avatar=std::to_string(set_value_name);
-		}catch (...) { 
-			data.avatar.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.mobile=std::to_string(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.email=std::to_string(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.wxuuid=std::to_string(set_value_name);
-		}catch (...) { 
-			data.wxuuid.clear();
+			data.sortid=0;
 			 }
 			break;
 	default:
@@ -2157,149 +1652,86 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid)<<"\"";
         {
     		case 0:
 		 try{
-			data.adminid=(unsigned int)set_value_name;
+			data.hbid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.adminid=0;
+			data.hbid=0;
 			 }
 			break;
 		case 1:
 		 try{
-			data.name=std::to_string(set_value_name);
+			data.userid=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.name.clear();
+			data.userid=0;
 			 }
 			break;
 		case 2:
 		 try{
-			data.password=std::to_string(set_value_name);
+			data.title=std::to_string(set_value_name);
 		}catch (...) { 
-			data.password.clear();
+			data.title.clear();
 			 }
 			break;
 		case 3:
 		 try{
-			data.textword=std::to_string(set_value_name);
+			data.content=std::to_string(set_value_name);
 		}catch (...) { 
-			data.textword.clear();
+			data.content.clear();
 			 }
 			break;
 		case 4:
 		 try{
-			data.isopen=(int)set_value_name;
+			data.jsonconfig=std::to_string(set_value_name);
 		}catch (...) { 
-			data.isopen=0;
+			data.jsonconfig.clear();
 			 }
 			break;
 		case 5:
 		 try{
-			data.level=(int)set_value_name;
+			data.viewtype=(int)set_value_name;
 		}catch (...) { 
-			data.level=0;
+			data.viewtype=0;
 			 }
 			break;
 		case 6:
 		 try{
-			data.companyid=(unsigned int)set_value_name;
+			data.gettype=(int)set_value_name;
 		}catch (...) { 
-			data.companyid=0;
+			data.gettype=0;
 			 }
 			break;
 		case 7:
 		 try{
-			data.dpid=(unsigned int)set_value_name;
+			data.rownum=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.dpid=0;
+			data.rownum=0;
 			 }
 			break;
 		case 8:
 		 try{
-			data.jobid=(unsigned int)set_value_name;
+			data.width=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.jobid=0;
+			data.width=0;
 			 }
 			break;
 		case 9:
 		 try{
-			data.roleid=(unsigned int)set_value_name;
+			data.height=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.roleid=0;
+			data.height=0;
 			 }
 			break;
 		case 10:
 		 try{
-			data.postid=(unsigned int)set_value_name;
+			data.strlength=(unsigned int)set_value_name;
 		}catch (...) { 
-			data.postid=0;
+			data.strlength=0;
 			 }
 			break;
 		case 11:
 		 try{
-			data.created_at=(unsigned int)set_value_name;
+			data.sortid=(int)set_value_name;
 		}catch (...) { 
-			data.created_at=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.enddate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.qrtemp=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.qrtemp=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.gender=(int)set_value_name;
-		}catch (...) { 
-			data.gender=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.nickname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.nickname.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.realname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.realname.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.avatar=std::to_string(set_value_name);
-		}catch (...) { 
-			data.avatar.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.mobile=std::to_string(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.email=std::to_string(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.wxuuid=std::to_string(set_value_name);
-		}catch (...) { 
-			data.wxuuid.clear();
+			data.sortid=0;
 			 }
 			break;
 	default:
@@ -2350,135 +1782,87 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid)<<"\"";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].adminid==0){
-	tempsql<<"\"adminid\":0";
+if(record[n].hbid==0){
+	tempsql<<"\"hbid\":0";
  }else{ 
-	tempsql<<"\"adminid\":"<<std::to_string(record[n].adminid);
+	tempsql<<"\"hbid\":"<<std::to_string(record[n].hbid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+if(record[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
+}
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(record[n].password)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"textword\":\""<<http::utf8_to_jsonstring(record[n].textword)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
-}
+tempsql<<"\"jsonconfig\":\""<<http::utf8_to_jsonstring(record[n].jsonconfig)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(record[n].level==0){
-	tempsql<<"\"level\":0";
+if(record[n].viewtype==0){
+	tempsql<<"\"viewtype\":0";
  }else{ 
-	tempsql<<"\"level\":"<<std::to_string(record[n].level);
+	tempsql<<"\"viewtype\":"<<std::to_string(record[n].viewtype);
 }
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(record[n].companyid==0){
-	tempsql<<"\"companyid\":0";
+if(record[n].gettype==0){
+	tempsql<<"\"gettype\":0";
  }else{ 
-	tempsql<<"\"companyid\":"<<std::to_string(record[n].companyid);
+	tempsql<<"\"gettype\":"<<std::to_string(record[n].gettype);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(record[n].dpid==0){
-	tempsql<<"\"dpid\":0";
+if(record[n].rownum==0){
+	tempsql<<"\"rownum\":0";
  }else{ 
-	tempsql<<"\"dpid\":"<<std::to_string(record[n].dpid);
+	tempsql<<"\"rownum\":"<<std::to_string(record[n].rownum);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(record[n].jobid==0){
-	tempsql<<"\"jobid\":0";
+if(record[n].width==0){
+	tempsql<<"\"width\":0";
  }else{ 
-	tempsql<<"\"jobid\":"<<std::to_string(record[n].jobid);
+	tempsql<<"\"width\":"<<std::to_string(record[n].width);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(record[n].roleid==0){
-	tempsql<<"\"roleid\":0";
+if(record[n].height==0){
+	tempsql<<"\"height\":0";
  }else{ 
-	tempsql<<"\"roleid\":"<<std::to_string(record[n].roleid);
+	tempsql<<"\"height\":"<<std::to_string(record[n].height);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(record[n].postid==0){
-	tempsql<<"\"postid\":0";
+if(record[n].strlength==0){
+	tempsql<<"\"strlength\":0";
  }else{ 
-	tempsql<<"\"postid\":"<<std::to_string(record[n].postid);
+	tempsql<<"\"strlength\":"<<std::to_string(record[n].strlength);
 }
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-if(record[n].created_at==0){
-	tempsql<<"\"created_at\":0";
+if(record[n].sortid==0){
+	tempsql<<"\"sortid\":0";
  }else{ 
-	tempsql<<"\"created_at\":"<<std::to_string(record[n].created_at);
+	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
 }
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(record[n].enddate==0){
-	tempsql<<"\"enddate\":0";
- }else{ 
-	tempsql<<"\"enddate\":"<<std::to_string(record[n].enddate);
-}
- break;
- case 13:
- if(jj>0){ tempsql<<","; } 
-if(record[n].qrtemp==0){
-	tempsql<<"\"qrtemp\":0";
- }else{ 
-	tempsql<<"\"qrtemp\":"<<std::to_string(record[n].qrtemp);
-}
- break;
- case 14:
- if(jj>0){ tempsql<<","; } 
-if(record[n].gender==0){
-	tempsql<<"\"gender\":0";
- }else{ 
-	tempsql<<"\"gender\":"<<std::to_string(record[n].gender);
-}
- break;
- case 15:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(record[n].nickname)<<"\"";
- break;
- case 16:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(record[n].realname)<<"\"";
- break;
- case 17:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(record[n].avatar)<<"\"";
- break;
- case 18:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(record[n].mobile)<<"\"";
- break;
- case 19:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(record[n].email)<<"\"";
- break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(record[n].wxuuid)<<"\"";
  break;
 
                              default:
@@ -2538,135 +1922,87 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(record[n].wxuuid)<<"\"";
             switch(keypos[jj]){
          case 0:
  if(jj>0){ tempsql<<","; } 
-if(record[n].adminid==0){
-	tempsql<<"\"adminid\":0";
+if(record[n].hbid==0){
+	tempsql<<"\"hbid\":0";
  }else{ 
-	tempsql<<"\"adminid\":"<<std::to_string(record[n].adminid);
+	tempsql<<"\"hbid\":"<<std::to_string(record[n].hbid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+if(record[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(record[n].userid);
+}
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(record[n].password)<<"\"";
+tempsql<<"\"title\":\""<<http::utf8_to_jsonstring(record[n].title)<<"\"";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"textword\":\""<<http::utf8_to_jsonstring(record[n].textword)<<"\"";
+tempsql<<"\"content\":\""<<http::utf8_to_jsonstring(record[n].content)<<"\"";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
-if(record[n].isopen==0){
-	tempsql<<"\"isopen\":0";
- }else{ 
-	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
-}
+tempsql<<"\"jsonconfig\":\""<<http::utf8_to_jsonstring(record[n].jsonconfig)<<"\"";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(record[n].level==0){
-	tempsql<<"\"level\":0";
+if(record[n].viewtype==0){
+	tempsql<<"\"viewtype\":0";
  }else{ 
-	tempsql<<"\"level\":"<<std::to_string(record[n].level);
+	tempsql<<"\"viewtype\":"<<std::to_string(record[n].viewtype);
 }
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-if(record[n].companyid==0){
-	tempsql<<"\"companyid\":0";
+if(record[n].gettype==0){
+	tempsql<<"\"gettype\":0";
  }else{ 
-	tempsql<<"\"companyid\":"<<std::to_string(record[n].companyid);
+	tempsql<<"\"gettype\":"<<std::to_string(record[n].gettype);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-if(record[n].dpid==0){
-	tempsql<<"\"dpid\":0";
+if(record[n].rownum==0){
+	tempsql<<"\"rownum\":0";
  }else{ 
-	tempsql<<"\"dpid\":"<<std::to_string(record[n].dpid);
+	tempsql<<"\"rownum\":"<<std::to_string(record[n].rownum);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-if(record[n].jobid==0){
-	tempsql<<"\"jobid\":0";
+if(record[n].width==0){
+	tempsql<<"\"width\":0";
  }else{ 
-	tempsql<<"\"jobid\":"<<std::to_string(record[n].jobid);
+	tempsql<<"\"width\":"<<std::to_string(record[n].width);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-if(record[n].roleid==0){
-	tempsql<<"\"roleid\":0";
+if(record[n].height==0){
+	tempsql<<"\"height\":0";
  }else{ 
-	tempsql<<"\"roleid\":"<<std::to_string(record[n].roleid);
+	tempsql<<"\"height\":"<<std::to_string(record[n].height);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-if(record[n].postid==0){
-	tempsql<<"\"postid\":0";
+if(record[n].strlength==0){
+	tempsql<<"\"strlength\":0";
  }else{ 
-	tempsql<<"\"postid\":"<<std::to_string(record[n].postid);
+	tempsql<<"\"strlength\":"<<std::to_string(record[n].strlength);
 }
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-if(record[n].created_at==0){
-	tempsql<<"\"created_at\":0";
+if(record[n].sortid==0){
+	tempsql<<"\"sortid\":0";
  }else{ 
-	tempsql<<"\"created_at\":"<<std::to_string(record[n].created_at);
+	tempsql<<"\"sortid\":"<<std::to_string(record[n].sortid);
 }
- break;
- case 12:
- if(jj>0){ tempsql<<","; } 
-if(record[n].enddate==0){
-	tempsql<<"\"enddate\":0";
- }else{ 
-	tempsql<<"\"enddate\":"<<std::to_string(record[n].enddate);
-}
- break;
- case 13:
- if(jj>0){ tempsql<<","; } 
-if(record[n].qrtemp==0){
-	tempsql<<"\"qrtemp\":0";
- }else{ 
-	tempsql<<"\"qrtemp\":"<<std::to_string(record[n].qrtemp);
-}
- break;
- case 14:
- if(jj>0){ tempsql<<","; } 
-if(record[n].gender==0){
-	tempsql<<"\"gender\":0";
- }else{ 
-	tempsql<<"\"gender\":"<<std::to_string(record[n].gender);
-}
- break;
- case 15:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(record[n].nickname)<<"\"";
- break;
- case 16:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(record[n].realname)<<"\"";
- break;
- case 17:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(record[n].avatar)<<"\"";
- break;
- case 18:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(record[n].mobile)<<"\"";
- break;
- case 19:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(record[n].email)<<"\"";
- break;
- case 20:
- if(jj>0){ tempsql<<","; } 
-tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(record[n].wxuuid)<<"\"";
  break;
 
                              default:
@@ -2678,97 +2014,58 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(record[n].wxuuid)<<"\"";
       tempsql<<"]";
      return tempsql.str();             
    }   
-   long long getPK(){  return data.adminid; } 
- void setPK(long long val){  data.adminid=val;} 
- unsigned  int  getAdminid(){  return data.adminid; } 
- void setAdminid( unsigned  int  val){  data.adminid=val;} 
+   long long getPK(){  return data.hbid; } 
+ void setPK(long long val){  data.hbid=val;} 
+ unsigned  int  getHbid(){  return data.hbid; } 
+ void setHbid( unsigned  int  val){  data.hbid=val;} 
 
- std::string  getName(){  return data.name; } 
- std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ unsigned  int  getUserid(){  return data.userid; } 
+ void setUserid( unsigned  int  val){  data.userid=val;} 
 
- std::string  getPassword(){  return data.password; } 
- std::string & getRefPassword(){  return std::ref(data.password); } 
- void setPassword( std::string  &val){  data.password=val;} 
- void setPassword(std::string_view val){  data.password=val;} 
+ std::string  getTitle(){  return data.title; } 
+ std::string & getRefTitle(){  return std::ref(data.title); } 
+ void setTitle( std::string  &val){  data.title=val;} 
+ void setTitle(std::string_view val){  data.title=val;} 
 
- std::string  getTextword(){  return data.textword; } 
- std::string & getRefTextword(){  return std::ref(data.textword); } 
- void setTextword( std::string  &val){  data.textword=val;} 
- void setTextword(std::string_view val){  data.textword=val;} 
+ std::string  getContent(){  return data.content; } 
+ std::string & getRefContent(){  return std::ref(data.content); } 
+ void setContent( std::string  &val){  data.content=val;} 
+ void setContent(std::string_view val){  data.content=val;} 
 
- char  getIsopen(){  return data.isopen; } 
- void setIsopen( char  val){  data.isopen=val;} 
+ std::string  getJsonconfig(){  return data.jsonconfig; } 
+ std::string & getRefJsonconfig(){  return std::ref(data.jsonconfig); } 
+ void setJsonconfig( std::string  &val){  data.jsonconfig=val;} 
+ void setJsonconfig(std::string_view val){  data.jsonconfig=val;} 
 
- int  getLevel(){  return data.level; } 
- void setLevel( int  val){  data.level=val;} 
+ unsigned  char  getViewtype(){  return data.viewtype; } 
+ void setViewtype( unsigned  char  val){  data.viewtype=val;} 
 
- unsigned  int  getCompanyid(){  return data.companyid; } 
- void setCompanyid( unsigned  int  val){  data.companyid=val;} 
+ unsigned  char  getGettype(){  return data.gettype; } 
+ void setGettype( unsigned  char  val){  data.gettype=val;} 
 
- unsigned  int  getDpid(){  return data.dpid; } 
- void setDpid( unsigned  int  val){  data.dpid=val;} 
+ unsigned  int  getRownum(){  return data.rownum; } 
+ void setRownum( unsigned  int  val){  data.rownum=val;} 
 
- unsigned  int  getJobid(){  return data.jobid; } 
- void setJobid( unsigned  int  val){  data.jobid=val;} 
+ unsigned  int  getWidth(){  return data.width; } 
+ void setWidth( unsigned  int  val){  data.width=val;} 
 
- unsigned  int  getRoleid(){  return data.roleid; } 
- void setRoleid( unsigned  int  val){  data.roleid=val;} 
+ unsigned  int  getHeight(){  return data.height; } 
+ void setHeight( unsigned  int  val){  data.height=val;} 
 
- unsigned  int  getPostid(){  return data.postid; } 
- void setPostid( unsigned  int  val){  data.postid=val;} 
+ unsigned  int  getStrlength(){  return data.strlength; } 
+ void setStrlength( unsigned  int  val){  data.strlength=val;} 
 
- unsigned  int  getCreatedAt(){  return data.created_at; } 
- void setCreatedAt( unsigned  int  val){  data.created_at=val;} 
+ int  getSortid(){  return data.sortid; } 
+ void setSortid( int  val){  data.sortid=val;} 
 
- unsigned  int  getEnddate(){  return data.enddate; } 
- void setEnddate( unsigned  int  val){  data.enddate=val;} 
-
- unsigned  int  getQrtemp(){  return data.qrtemp; } 
- void setQrtemp( unsigned  int  val){  data.qrtemp=val;} 
-
- unsigned  char  getGender(){  return data.gender; } 
- void setGender( unsigned  char  val){  data.gender=val;} 
-
- std::string  getNickname(){  return data.nickname; } 
- std::string & getRefNickname(){  return std::ref(data.nickname); } 
- void setNickname( std::string  &val){  data.nickname=val;} 
- void setNickname(std::string_view val){  data.nickname=val;} 
-
- std::string  getRealname(){  return data.realname; } 
- std::string & getRefRealname(){  return std::ref(data.realname); } 
- void setRealname( std::string  &val){  data.realname=val;} 
- void setRealname(std::string_view val){  data.realname=val;} 
-
- std::string  getAvatar(){  return data.avatar; } 
- std::string & getRefAvatar(){  return std::ref(data.avatar); } 
- void setAvatar( std::string  &val){  data.avatar=val;} 
- void setAvatar(std::string_view val){  data.avatar=val;} 
-
- std::string  getMobile(){  return data.mobile; } 
- std::string & getRefMobile(){  return std::ref(data.mobile); } 
- void setMobile( std::string  &val){  data.mobile=val;} 
- void setMobile(std::string_view val){  data.mobile=val;} 
-
- std::string  getEmail(){  return data.email; } 
- std::string & getRefEmail(){  return std::ref(data.email); } 
- void setEmail( std::string  &val){  data.email=val;} 
- void setEmail(std::string_view val){  data.email=val;} 
-
- std::string  getWxuuid(){  return data.wxuuid; } 
- std::string & getRefWxuuid(){  return std::ref(data.wxuuid); } 
- void setWxuuid( std::string  &val){  data.wxuuid=val;} 
- void setWxuuid(std::string_view val){  data.wxuuid=val;} 
-
-sysuserbase::meta getnewData(){
+homeblock_base::meta getnewData(){
  	 struct meta newdata;
 	 return newdata; 
 } 
-sysuserbase::meta getData(){
+homeblock_base::meta getData(){
  	 return data; 
 } 
-std::vector<sysuserbase::meta> getRecord(){
+std::vector<homeblock_base::meta> getRecord(){
  	 return record; 
 } 
 
@@ -2776,41 +2073,17 @@ std::vector<sysuserbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="name")
+   		 if(key_name=="title")
 		{
-			return data.name;
+			return data.title;
 		}
-		 if(key_name=="password")
+		 if(key_name=="content")
 		{
-			return data.password;
+			return data.content;
 		}
-		 if(key_name=="textword")
+		 if(key_name=="jsonconfig")
 		{
-			return data.textword;
-		}
-		 if(key_name=="nickname")
-		{
-			return data.nickname;
-		}
-		 if(key_name=="realname")
-		{
-			return data.realname;
-		}
-		 if(key_name=="avatar")
-		{
-			return data.avatar;
-		}
-		 if(key_name=="mobile")
-		{
-			return data.mobile;
-		}
-		 if(key_name=="email")
-		{
-			return data.email;
-		}
-		 if(key_name=="wxuuid")
-		{
-			return data.wxuuid;
+			return data.jsonconfig;
 		}
 		return nullptr; 
 	}
@@ -2819,53 +2092,41 @@ std::vector<sysuserbase::meta> getRecord(){
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
     T& ref_meta([[maybe_unused]] std::string key_name)
     {
-   		 if(key_name=="adminid")
+   		 if(key_name=="hbid")
 		{
-			return data.adminid;
+			return data.hbid;
 		}
-		 if(key_name=="isopen")
+		 if(key_name=="userid")
 		{
-			return data.isopen;
+			return data.userid;
 		}
-		 if(key_name=="level")
+		 if(key_name=="viewtype")
 		{
-			return data.level;
+			return data.viewtype;
 		}
-		 if(key_name=="companyid")
+		 if(key_name=="gettype")
 		{
-			return data.companyid;
+			return data.gettype;
 		}
-		 if(key_name=="dpid")
+		 if(key_name=="rownum")
 		{
-			return data.dpid;
+			return data.rownum;
 		}
-		 if(key_name=="jobid")
+		 if(key_name=="width")
 		{
-			return data.jobid;
+			return data.width;
 		}
-		 if(key_name=="roleid")
+		 if(key_name=="height")
 		{
-			return data.roleid;
+			return data.height;
 		}
-		 if(key_name=="postid")
+		 if(key_name=="strlength")
 		{
-			return data.postid;
+			return data.strlength;
 		}
-		 if(key_name=="created_at")
+		 if(key_name=="sortid")
 		{
-			return data.created_at;
-		}
-		 if(key_name=="enddate")
-		{
-			return data.enddate;
-		}
-		 if(key_name=="qrtemp")
-		{
-			return data.qrtemp;
-		}
-		 if(key_name=="gender")
-		{
-			return data.gender;
+			return data.sortid;
 		}
 		return nullptr; 
 	}
@@ -2890,40 +2151,31 @@ std::vector<sysuserbase::meta> getRecord(){
                     switch(kpos)
                     {
    			case 0: 
- 				 a.emplace_back(iter.adminid);
+ 				 a.emplace_back(iter.hbid);
 				 break;
-			case 4: 
- 				 a.emplace_back(iter.isopen);
+			case 1: 
+ 				 a.emplace_back(iter.userid);
 				 break;
 			case 5: 
- 				 a.emplace_back(iter.level);
+ 				 a.emplace_back(iter.viewtype);
 				 break;
 			case 6: 
- 				 a.emplace_back(iter.companyid);
+ 				 a.emplace_back(iter.gettype);
 				 break;
 			case 7: 
- 				 a.emplace_back(iter.dpid);
+ 				 a.emplace_back(iter.rownum);
 				 break;
 			case 8: 
- 				 a.emplace_back(iter.jobid);
+ 				 a.emplace_back(iter.width);
 				 break;
 			case 9: 
- 				 a.emplace_back(iter.roleid);
+ 				 a.emplace_back(iter.height);
 				 break;
 			case 10: 
- 				 a.emplace_back(iter.postid);
+ 				 a.emplace_back(iter.strlength);
 				 break;
 			case 11: 
- 				 a.emplace_back(iter.created_at);
-				 break;
-			case 12: 
- 				 a.emplace_back(iter.enddate);
-				 break;
-			case 13: 
- 				 a.emplace_back(iter.qrtemp);
-				 break;
-			case 14: 
- 				 a.emplace_back(iter.gender);
+ 				 a.emplace_back(iter.sortid);
 				 break;
 
                     }
@@ -2951,47 +2203,38 @@ std::vector<sysuserbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 return data.adminid;
+ 				 return data.hbid;
 				 break;
-			case 4: 
- 				 return data.isopen;
+			case 1: 
+ 				 return data.userid;
 				 break;
 			case 5: 
- 				 return data.level;
+ 				 return data.viewtype;
 				 break;
 			case 6: 
- 				 return data.companyid;
+ 				 return data.gettype;
 				 break;
 			case 7: 
- 				 return data.dpid;
+ 				 return data.rownum;
 				 break;
 			case 8: 
- 				 return data.jobid;
+ 				 return data.width;
 				 break;
 			case 9: 
- 				 return data.roleid;
+ 				 return data.height;
 				 break;
 			case 10: 
- 				 return data.postid;
+ 				 return data.strlength;
 				 break;
 			case 11: 
- 				 return data.created_at;
-				 break;
-			case 12: 
- 				 return data.enddate;
-				 break;
-			case 13: 
- 				 return data.qrtemp;
-				 break;
-			case 14: 
- 				 return data.gender;
+ 				 return data.sortid;
 				 break;
 			}
                 return 0;
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] sysuserbase::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] homeblock_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3000,40 +2243,31 @@ std::vector<sysuserbase::meta> getRecord(){
             switch(kpos)
             {
    			case 0: 
- 				 return iter.adminid;
+ 				 return iter.hbid;
 				 break;
-			case 4: 
- 				 return iter.isopen;
+			case 1: 
+ 				 return iter.userid;
 				 break;
 			case 5: 
- 				 return iter.level;
+ 				 return iter.viewtype;
 				 break;
 			case 6: 
- 				 return iter.companyid;
+ 				 return iter.gettype;
 				 break;
 			case 7: 
- 				 return iter.dpid;
+ 				 return iter.rownum;
 				 break;
 			case 8: 
- 				 return iter.jobid;
+ 				 return iter.width;
 				 break;
 			case 9: 
- 				 return iter.roleid;
+ 				 return iter.height;
 				 break;
 			case 10: 
- 				 return iter.postid;
+ 				 return iter.strlength;
 				 break;
 			case 11: 
- 				 return iter.created_at;
-				 break;
-			case 12: 
- 				 return iter.enddate;
-				 break;
-			case 13: 
- 				 return iter.qrtemp;
-				 break;
-			case 14: 
- 				 return iter.gender;
+ 				 return iter.sortid;
 				 break;
 
 			}
@@ -3058,7 +2292,7 @@ std::vector<sysuserbase::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] sysuserbase::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] homeblock_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -3081,32 +2315,14 @@ std::vector<sysuserbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 return data.name;
-				 break;
-			case 2: 
- 				 return data.password;
+   			case 2: 
+ 				 return data.title;
 				 break;
 			case 3: 
- 				 return data.textword;
+ 				 return data.content;
 				 break;
-			case 15: 
- 				 return data.nickname;
-				 break;
-			case 16: 
- 				 return data.realname;
-				 break;
-			case 17: 
- 				 return data.avatar;
-				 break;
-			case 18: 
- 				 return data.mobile;
-				 break;
-			case 19: 
- 				 return data.email;
-				 break;
-			case 20: 
- 				 return data.wxuuid;
+			case 4: 
+ 				 return data.jsonconfig;
 				 break;
 
                 }
@@ -3114,7 +2330,7 @@ std::vector<sysuserbase::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] sysuserbase::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] homeblock_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -3123,32 +2339,14 @@ std::vector<sysuserbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 return iter.name;
-				 break;
-			case 2: 
- 				 return iter.password;
+   			case 2: 
+ 				 return iter.title;
 				 break;
 			case 3: 
- 				 return iter.textword;
+ 				 return iter.content;
 				 break;
-			case 15: 
- 				 return iter.nickname;
-				 break;
-			case 16: 
- 				 return iter.realname;
-				 break;
-			case 17: 
- 				 return iter.avatar;
-				 break;
-			case 18: 
- 				 return iter.mobile;
-				 break;
-			case 19: 
- 				 return iter.email;
-				 break;
-			case 20: 
- 				 return iter.wxuuid;
+			case 4: 
+ 				 return iter.jsonconfig;
 				 break;
 
                 }
@@ -3171,32 +2369,14 @@ std::vector<sysuserbase::meta> getRecord(){
                     switch(kpos)
                     {
 
-    			case 1: 
- 				 a.emplace_back(iter.name);
-					 break;
-			case 2: 
- 				 a.emplace_back(iter.password);
+    			case 2: 
+ 				 a.emplace_back(iter.title);
 					 break;
 			case 3: 
- 				 a.emplace_back(iter.textword);
+ 				 a.emplace_back(iter.content);
 					 break;
-			case 15: 
- 				 a.emplace_back(iter.nickname);
-					 break;
-			case 16: 
- 				 a.emplace_back(iter.realname);
-					 break;
-			case 17: 
- 				 a.emplace_back(iter.avatar);
-					 break;
-			case 18: 
- 				 a.emplace_back(iter.mobile);
-					 break;
-			case 19: 
- 				 a.emplace_back(iter.email);
-					 break;
-			case 20: 
- 				 a.emplace_back(iter.wxuuid);
+			case 4: 
+ 				 a.emplace_back(iter.jsonconfig);
 					 break;
 					}
 				}
@@ -3230,94 +2410,49 @@ std::vector<sysuserbase::meta> getRecord(){
                     {
 
    			case 0: 
- 				 a<<std::to_string(iter.adminid);
+ 				 a<<std::to_string(iter.hbid);
 				 break;
 			case 1: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.name); 
-				 }else{
-				 a<<iter.name;
-				 }
+ 				 a<<std::to_string(iter.userid);
 				 break;
 			case 2: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.password); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
-				 a<<iter.password;
+				 a<<iter.title;
 				 }
 				 break;
 			case 3: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.textword); 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
-				 a<<iter.textword;
+				 a<<iter.content;
 				 }
 				 break;
 			case 4: 
- 				 a<<std::to_string(iter.isopen);
+ 				 if(isyinhao){ a<<jsonaddslash(iter.jsonconfig); 
+				 }else{
+				 a<<iter.jsonconfig;
+				 }
 				 break;
 			case 5: 
- 				 a<<std::to_string(iter.level);
+ 				 a<<std::to_string(iter.viewtype);
 				 break;
 			case 6: 
- 				 a<<std::to_string(iter.companyid);
+ 				 a<<std::to_string(iter.gettype);
 				 break;
 			case 7: 
- 				 a<<std::to_string(iter.dpid);
+ 				 a<<std::to_string(iter.rownum);
 				 break;
 			case 8: 
- 				 a<<std::to_string(iter.jobid);
+ 				 a<<std::to_string(iter.width);
 				 break;
 			case 9: 
- 				 a<<std::to_string(iter.roleid);
+ 				 a<<std::to_string(iter.height);
 				 break;
 			case 10: 
- 				 a<<std::to_string(iter.postid);
+ 				 a<<std::to_string(iter.strlength);
 				 break;
 			case 11: 
- 				 a<<std::to_string(iter.created_at);
-				 break;
-			case 12: 
- 				 a<<std::to_string(iter.enddate);
-				 break;
-			case 13: 
- 				 a<<std::to_string(iter.qrtemp);
-				 break;
-			case 14: 
- 				 a<<std::to_string(iter.gender);
-				 break;
-			case 15: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.nickname); 
-				 }else{
-				 a<<iter.nickname;
-				 }
-				 break;
-			case 16: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.realname); 
-				 }else{
-				 a<<iter.realname;
-				 }
-				 break;
-			case 17: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.avatar); 
-				 }else{
-				 a<<iter.avatar;
-				 }
-				 break;
-			case 18: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.mobile); 
-				 }else{
-				 a<<iter.mobile;
-				 }
-				 break;
-			case 19: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.email); 
-				 }else{
-				 a<<iter.email;
-				 }
-				 break;
-			case 20: 
- 				 if(isyinhao){ a<<jsonaddslash(iter.wxuuid); 
-				 }else{
-				 a<<iter.wxuuid;
-				 }
+ 				 a<<std::to_string(iter.sortid);
 				 break;
 
                     }
@@ -3344,61 +2479,25 @@ std::vector<sysuserbase::meta> getRecord(){
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 				 } 
 			switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 
                 }
@@ -3428,32 +2527,14 @@ std::vector<sysuserbase::meta> getRecord(){
                     switch(kpos)
                     {
  
-       			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+       			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			 } 
 		 switch(vpos){
@@ -3484,40 +2565,31 @@ std::vector<sysuserbase::meta> getRecord(){
                 {
  
        case 0: 
- 	 ktemp=iter.adminid;
+ 	 ktemp=iter.hbid;
 	 break;
-case 4: 
- 	 ktemp=iter.isopen;
+case 1: 
+ 	 ktemp=iter.userid;
 	 break;
 case 5: 
- 	 ktemp=iter.level;
+ 	 ktemp=iter.viewtype;
 	 break;
 case 6: 
- 	 ktemp=iter.companyid;
+ 	 ktemp=iter.gettype;
 	 break;
 case 7: 
- 	 ktemp=iter.dpid;
+ 	 ktemp=iter.rownum;
 	 break;
 case 8: 
- 	 ktemp=iter.jobid;
+ 	 ktemp=iter.width;
 	 break;
 case 9: 
- 	 ktemp=iter.roleid;
+ 	 ktemp=iter.height;
 	 break;
 case 10: 
- 	 ktemp=iter.postid;
+ 	 ktemp=iter.strlength;
 	 break;
 case 11: 
- 	 ktemp=iter.created_at;
-	 break;
-case 12: 
- 	 ktemp=iter.enddate;
-	 break;
-case 13: 
- 	 ktemp=iter.qrtemp;
-	 break;
-case 14: 
- 	 ktemp=iter.gender;
+ 	 ktemp=iter.sortid;
 	 break;
 	 } 
  		  switch(vpos){
@@ -3547,69 +2619,42 @@ case 14:
                     {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
  			switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 
                     }
@@ -3637,70 +2682,43 @@ case 14:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 
                 }
@@ -3729,78 +2747,60 @@ case 14:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
  			switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 
                 }
@@ -3826,40 +2826,31 @@ case 14:
                 {
 
    			case 0: 
- 				 a.emplace(iter.adminid,iter);
+ 				 a.emplace(iter.hbid,iter);
 				 break;
-			case 4: 
- 				 a.emplace(iter.isopen,iter);
+			case 1: 
+ 				 a.emplace(iter.userid,iter);
 				 break;
 			case 5: 
- 				 a.emplace(iter.level,iter);
+ 				 a.emplace(iter.viewtype,iter);
 				 break;
 			case 6: 
- 				 a.emplace(iter.companyid,iter);
+ 				 a.emplace(iter.gettype,iter);
 				 break;
 			case 7: 
- 				 a.emplace(iter.dpid,iter);
+ 				 a.emplace(iter.rownum,iter);
 				 break;
 			case 8: 
- 				 a.emplace(iter.jobid,iter);
+ 				 a.emplace(iter.width,iter);
 				 break;
 			case 9: 
- 				 a.emplace(iter.roleid,iter);
+ 				 a.emplace(iter.height,iter);
 				 break;
 			case 10: 
- 				 a.emplace(iter.postid,iter);
+ 				 a.emplace(iter.strlength,iter);
 				 break;
 			case 11: 
- 				 a.emplace(iter.created_at,iter);
-				 break;
-			case 12: 
- 				 a.emplace(iter.enddate,iter);
-				 break;
-			case 13: 
- 				 a.emplace(iter.qrtemp,iter);
-				 break;
-			case 14: 
- 				 a.emplace(iter.gender,iter);
+ 				 a.emplace(iter.sortid,iter);
 				 break;
 
                 }
@@ -3881,32 +2872,14 @@ case 14:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 a.emplace(iter.name,iter);
-			 break;
-			case 2: 
- 				 a.emplace(iter.password,iter);
+   			case 2: 
+ 				 a.emplace(iter.title,iter);
 			 break;
 			case 3: 
- 				 a.emplace(iter.textword,iter);
+ 				 a.emplace(iter.content,iter);
 			 break;
-			case 15: 
- 				 a.emplace(iter.nickname,iter);
-			 break;
-			case 16: 
- 				 a.emplace(iter.realname,iter);
-			 break;
-			case 17: 
- 				 a.emplace(iter.avatar,iter);
-			 break;
-			case 18: 
- 				 a.emplace(iter.mobile,iter);
-			 break;
-			case 19: 
- 				 a.emplace(iter.email,iter);
-			 break;
-			case 20: 
- 				 a.emplace(iter.wxuuid,iter);
+			case 4: 
+ 				 a.emplace(iter.jsonconfig,iter);
 			 break;
 
                 }
@@ -3932,32 +2905,14 @@ case 14:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 	 		 }
  			switch(vpos){
@@ -3988,40 +2943,31 @@ case 14:
                     {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 			 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 			 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 			 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 			 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 			 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 			 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 			 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 			 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-			 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-			 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-			 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 			 break;
 			  }
 			 switch(vpos){
@@ -4053,69 +2999,42 @@ case 14:
                     {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
  			switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 
                    }
@@ -4142,70 +3061,43 @@ case 14:
                     switch(kpos)
                     {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			  }
  			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 
                    }
@@ -4231,78 +3123,60 @@ case 14:
                     {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 
                    }
@@ -4327,61 +3201,25 @@ case 14:
                     switch(kpos)
                     {
 
-   case 1: 
- 	 ktemp=iter.name;
-	 break;
-case 2: 
- 	 ktemp=iter.password;
+   case 2: 
+ 	 ktemp=iter.title;
 	 break;
 case 3: 
- 	 ktemp=iter.textword;
+ 	 ktemp=iter.content;
 	 break;
-case 15: 
- 	 ktemp=iter.nickname;
-	 break;
-case 16: 
- 	 ktemp=iter.realname;
-	 break;
-case 17: 
- 	 ktemp=iter.avatar;
-	 break;
-case 18: 
- 	 ktemp=iter.mobile;
-	 break;
-case 19: 
- 	 ktemp=iter.email;
-	 break;
-case 20: 
- 	 ktemp=iter.wxuuid;
+case 4: 
+ 	 ktemp=iter.jsonconfig;
 	 break;
 	  }
  switch(vpos){
-case 1: 
- 	 vtemp=iter.name;
-	 break;
 case 2: 
- 	 vtemp=iter.password;
+ 	 vtemp=iter.title;
 	 break;
 case 3: 
- 	 vtemp=iter.textword;
+ 	 vtemp=iter.content;
 	 break;
-case 15: 
- 	 vtemp=iter.nickname;
-	 break;
-case 16: 
- 	 vtemp=iter.realname;
-	 break;
-case 17: 
- 	 vtemp=iter.avatar;
-	 break;
-case 18: 
- 	 vtemp=iter.mobile;
-	 break;
-case 19: 
- 	 vtemp=iter.email;
-	 break;
-case 20: 
- 	 vtemp=iter.wxuuid;
+case 4: 
+ 	 vtemp=iter.jsonconfig;
 	 break;
 
                    }
@@ -4405,40 +3243,31 @@ case 20:
                 {
 
    case 0: 
- 	 a.emplace_back(iter.adminid,iter);
+ 	 a.emplace_back(iter.hbid,iter);
 	 break;
-case 4: 
- 	 a.emplace_back(iter.isopen,iter);
+case 1: 
+ 	 a.emplace_back(iter.userid,iter);
 	 break;
 case 5: 
- 	 a.emplace_back(iter.level,iter);
+ 	 a.emplace_back(iter.viewtype,iter);
 	 break;
 case 6: 
- 	 a.emplace_back(iter.companyid,iter);
+ 	 a.emplace_back(iter.gettype,iter);
 	 break;
 case 7: 
- 	 a.emplace_back(iter.dpid,iter);
+ 	 a.emplace_back(iter.rownum,iter);
 	 break;
 case 8: 
- 	 a.emplace_back(iter.jobid,iter);
+ 	 a.emplace_back(iter.width,iter);
 	 break;
 case 9: 
- 	 a.emplace_back(iter.roleid,iter);
+ 	 a.emplace_back(iter.height,iter);
 	 break;
 case 10: 
- 	 a.emplace_back(iter.postid,iter);
+ 	 a.emplace_back(iter.strlength,iter);
 	 break;
 case 11: 
- 	 a.emplace_back(iter.created_at,iter);
-	 break;
-case 12: 
- 	 a.emplace_back(iter.enddate,iter);
-	 break;
-case 13: 
- 	 a.emplace_back(iter.qrtemp,iter);
-	 break;
-case 14: 
- 	 a.emplace_back(iter.gender,iter);
+ 	 a.emplace_back(iter.sortid,iter);
 	 break;
 
                 }
@@ -4458,32 +3287,14 @@ case 14:
                 switch(kpos)
                 {
 
-   case 1: 
- 	 a.emplace_back(iter.name,iter);
-	 break;
-case 2: 
- 	 a.emplace_back(iter.password,iter);
+   case 2: 
+ 	 a.emplace_back(iter.title,iter);
 	 break;
 case 3: 
- 	 a.emplace_back(iter.textword,iter);
+ 	 a.emplace_back(iter.content,iter);
 	 break;
-case 15: 
- 	 a.emplace_back(iter.nickname,iter);
-	 break;
-case 16: 
- 	 a.emplace_back(iter.realname,iter);
-	 break;
-case 17: 
- 	 a.emplace_back(iter.avatar,iter);
-	 break;
-case 18: 
- 	 a.emplace_back(iter.mobile,iter);
-	 break;
-case 19: 
- 	 a.emplace_back(iter.email,iter);
-	 break;
-case 20: 
- 	 a.emplace_back(iter.wxuuid,iter);
+case 4: 
+ 	 a.emplace_back(iter.jsonconfig,iter);
 	 break;
 
                 }
@@ -4509,79 +3320,61 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 			  }
 
@@ -4613,118 +3406,91 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+ 				 a[ktemp][vtemp].emplace_back(iter.hbid);
 				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+ 				 a[ktemp][vtemp].emplace_back(iter.viewtype);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.companyid);
+ 				 a[ktemp][vtemp].emplace_back(iter.gettype);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.dpid);
+ 				 a[ktemp][vtemp].emplace_back(iter.rownum);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.jobid);
+ 				 a[ktemp][vtemp].emplace_back(iter.width);
 				 break;
 			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.roleid);
+ 				 a[ktemp][vtemp].emplace_back(iter.height);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.postid);
+ 				 a[ktemp][vtemp].emplace_back(iter.strlength);
 				 break;
 			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_at);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.enddate);
-				 break;
-			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.qrtemp);
-				 break;
-			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.gender);
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
 
                 }
@@ -4752,109 +3518,73 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 				  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(dpos){
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.password);
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.textword);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
-			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.nickname);
-				 break;
-			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.realname);
-				 break;
-			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.avatar);
-				 break;
-			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.mobile);
-				 break;
-			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.email);
-				 break;
-			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.wxuuid);
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.jsonconfig);
 				 break;
 
                 }
@@ -4883,70 +3613,43 @@ case 20:
                     {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 			  }
 
@@ -4978,109 +3681,73 @@ case 20:
             {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+ 				 a[ktemp][vtemp].emplace_back(iter.hbid);
 				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+ 				 a[ktemp][vtemp].emplace_back(iter.viewtype);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.companyid);
+ 				 a[ktemp][vtemp].emplace_back(iter.gettype);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.dpid);
+ 				 a[ktemp][vtemp].emplace_back(iter.rownum);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.jobid);
+ 				 a[ktemp][vtemp].emplace_back(iter.width);
 				 break;
 			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.roleid);
+ 				 a[ktemp][vtemp].emplace_back(iter.height);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.postid);
+ 				 a[ktemp][vtemp].emplace_back(iter.strlength);
 				 break;
 			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_at);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.enddate);
-				 break;
-			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.qrtemp);
-				 break;
-			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.gender);
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
 
             }
@@ -5107,100 +3774,55 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.password);
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.textword);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
-			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.nickname);
-				 break;
-			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.realname);
-				 break;
-			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.avatar);
-				 break;
-			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.mobile);
-				 break;
-			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.email);
-				 break;
-			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.wxuuid);
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.jsonconfig);
 				 break;
 
                 }
@@ -5226,71 +3848,44 @@ case 20:
                     switch(kpos)
                     {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 			  }
 
@@ -5322,110 +3917,74 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+ 				 a[ktemp][vtemp].emplace_back(iter.hbid);
 				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+ 				 a[ktemp][vtemp].emplace_back(iter.viewtype);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.companyid);
+ 				 a[ktemp][vtemp].emplace_back(iter.gettype);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.dpid);
+ 				 a[ktemp][vtemp].emplace_back(iter.rownum);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.jobid);
+ 				 a[ktemp][vtemp].emplace_back(iter.width);
 				 break;
 			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.roleid);
+ 				 a[ktemp][vtemp].emplace_back(iter.height);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.postid);
+ 				 a[ktemp][vtemp].emplace_back(iter.strlength);
 				 break;
 			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_at);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.enddate);
-				 break;
-			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.qrtemp);
-				 break;
-			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.gender);
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
 
                 }
@@ -5454,101 +4013,56 @@ case 20:
             switch(kpos)
             {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			 }
 
 			switch(vpos){
 			case 0: 
- 				 vtemp=iter.adminid;
+ 				 vtemp=iter.hbid;
 				 break;
-			case 4: 
- 				 vtemp=iter.isopen;
+			case 1: 
+ 				 vtemp=iter.userid;
 				 break;
 			case 5: 
- 				 vtemp=iter.level;
+ 				 vtemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 vtemp=iter.companyid;
+ 				 vtemp=iter.gettype;
 				 break;
 			case 7: 
- 				 vtemp=iter.dpid;
+ 				 vtemp=iter.rownum;
 				 break;
 			case 8: 
- 				 vtemp=iter.jobid;
+ 				 vtemp=iter.width;
 				 break;
 			case 9: 
- 				 vtemp=iter.roleid;
+ 				 vtemp=iter.height;
 				 break;
 			case 10: 
- 				 vtemp=iter.postid;
+ 				 vtemp=iter.strlength;
 				 break;
 			case 11: 
- 				 vtemp=iter.created_at;
-				 break;
-			case 12: 
- 				 vtemp=iter.enddate;
-				 break;
-			case 13: 
- 				 vtemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 vtemp=iter.gender;
+ 				 vtemp=iter.sortid;
 				 break;
 			 }
 
 			switch(dpos){
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.password);
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.textword);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
-			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.nickname);
-				 break;
-			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.realname);
-				 break;
-			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.avatar);
-				 break;
-			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.mobile);
-				 break;
-			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.email);
-				 break;
-			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.wxuuid);
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.jsonconfig);
 				 break;
 
             }
@@ -5575,62 +4089,26 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 			  }
 
@@ -5661,101 +4139,56 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 			 }
 
 			 switch(dpos){
 			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.adminid);
+ 				 a[ktemp][vtemp].emplace_back(iter.hbid);
 				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.isopen);
+			case 1: 
+ 				 a[ktemp][vtemp].emplace_back(iter.userid);
 				 break;
 			case 5: 
- 				 a[ktemp][vtemp].emplace_back(iter.level);
+ 				 a[ktemp][vtemp].emplace_back(iter.viewtype);
 				 break;
 			case 6: 
- 				 a[ktemp][vtemp].emplace_back(iter.companyid);
+ 				 a[ktemp][vtemp].emplace_back(iter.gettype);
 				 break;
 			case 7: 
- 				 a[ktemp][vtemp].emplace_back(iter.dpid);
+ 				 a[ktemp][vtemp].emplace_back(iter.rownum);
 				 break;
 			case 8: 
- 				 a[ktemp][vtemp].emplace_back(iter.jobid);
+ 				 a[ktemp][vtemp].emplace_back(iter.width);
 				 break;
 			case 9: 
- 				 a[ktemp][vtemp].emplace_back(iter.roleid);
+ 				 a[ktemp][vtemp].emplace_back(iter.height);
 				 break;
 			case 10: 
- 				 a[ktemp][vtemp].emplace_back(iter.postid);
+ 				 a[ktemp][vtemp].emplace_back(iter.strlength);
 				 break;
 			case 11: 
- 				 a[ktemp][vtemp].emplace_back(iter.created_at);
-				 break;
-			case 12: 
- 				 a[ktemp][vtemp].emplace_back(iter.enddate);
-				 break;
-			case 13: 
- 				 a[ktemp][vtemp].emplace_back(iter.qrtemp);
-				 break;
-			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.gender);
+ 				 a[ktemp][vtemp].emplace_back(iter.sortid);
 				 break;
 
                 }
@@ -5782,92 +4215,38 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 vtemp=iter.name;
-				 break;
 			case 2: 
- 				 vtemp=iter.password;
+ 				 vtemp=iter.title;
 				 break;
 			case 3: 
- 				 vtemp=iter.textword;
+ 				 vtemp=iter.content;
 				 break;
-			case 15: 
- 				 vtemp=iter.nickname;
-				 break;
-			case 16: 
- 				 vtemp=iter.realname;
-				 break;
-			case 17: 
- 				 vtemp=iter.avatar;
-				 break;
-			case 18: 
- 				 vtemp=iter.mobile;
-				 break;
-			case 19: 
- 				 vtemp=iter.email;
-				 break;
-			case 20: 
- 				 vtemp=iter.wxuuid;
+			case 4: 
+ 				 vtemp=iter.jsonconfig;
 				 break;
 			  }
 
 			 switch(dpos){
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.password);
+ 				 a[ktemp][vtemp].emplace_back(iter.title);
 				 break;
 			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.textword);
+ 				 a[ktemp][vtemp].emplace_back(iter.content);
 				 break;
-			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.nickname);
-				 break;
-			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.realname);
-				 break;
-			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.avatar);
-				 break;
-			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.mobile);
-				 break;
-			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.email);
-				 break;
-			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.wxuuid);
+			case 4: 
+ 				 a[ktemp][vtemp].emplace_back(iter.jsonconfig);
 				 break;
 
                 }
@@ -5893,62 +4272,26 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 a[ktemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.password);
+ 				 a[ktemp].emplace_back(iter.title);
 				 break;
 			case 3: 
- 				 a[ktemp].emplace_back(iter.textword);
+ 				 a[ktemp].emplace_back(iter.content);
 				 break;
-			case 15: 
- 				 a[ktemp].emplace_back(iter.nickname);
-				 break;
-			case 16: 
- 				 a[ktemp].emplace_back(iter.realname);
-				 break;
-			case 17: 
- 				 a[ktemp].emplace_back(iter.avatar);
-				 break;
-			case 18: 
- 				 a[ktemp].emplace_back(iter.mobile);
-				 break;
-			case 19: 
- 				 a[ktemp].emplace_back(iter.email);
-				 break;
-			case 20: 
- 				 a[ktemp].emplace_back(iter.wxuuid);
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.jsonconfig);
 				 break;
 
                 }
@@ -5973,32 +4316,14 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			 }
 
@@ -6028,71 +4353,44 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			  }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.adminid);
+ 				 a[ktemp].emplace_back(iter.hbid);
 				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.isopen);
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 5: 
- 				 a[ktemp].emplace_back(iter.level);
+ 				 a[ktemp].emplace_back(iter.viewtype);
 				 break;
 			case 6: 
- 				 a[ktemp].emplace_back(iter.companyid);
+ 				 a[ktemp].emplace_back(iter.gettype);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.dpid);
+ 				 a[ktemp].emplace_back(iter.rownum);
 				 break;
 			case 8: 
- 				 a[ktemp].emplace_back(iter.jobid);
+ 				 a[ktemp].emplace_back(iter.width);
 				 break;
 			case 9: 
- 				 a[ktemp].emplace_back(iter.roleid);
+ 				 a[ktemp].emplace_back(iter.height);
 				 break;
 			case 10: 
- 				 a[ktemp].emplace_back(iter.postid);
+ 				 a[ktemp].emplace_back(iter.strlength);
 				 break;
 			case 11: 
- 				 a[ktemp].emplace_back(iter.created_at);
-				 break;
-			case 12: 
- 				 a[ktemp].emplace_back(iter.enddate);
-				 break;
-			case 13: 
- 				 a[ktemp].emplace_back(iter.qrtemp);
-				 break;
-			case 14: 
- 				 a[ktemp].emplace_back(iter.gender);
+ 				 a[ktemp].emplace_back(iter.sortid);
 				 break;
 
                 }
@@ -6119,70 +4417,43 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 a[ktemp].emplace_back(iter.name);
-				 break;
 			case 2: 
- 				 a[ktemp].emplace_back(iter.password);
+ 				 a[ktemp].emplace_back(iter.title);
 				 break;
 			case 3: 
- 				 a[ktemp].emplace_back(iter.textword);
+ 				 a[ktemp].emplace_back(iter.content);
 				 break;
-			case 15: 
- 				 a[ktemp].emplace_back(iter.nickname);
-				 break;
-			case 16: 
- 				 a[ktemp].emplace_back(iter.realname);
-				 break;
-			case 17: 
- 				 a[ktemp].emplace_back(iter.avatar);
-				 break;
-			case 18: 
- 				 a[ktemp].emplace_back(iter.mobile);
-				 break;
-			case 19: 
- 				 a[ktemp].emplace_back(iter.email);
-				 break;
-			case 20: 
- 				 a[ktemp].emplace_back(iter.wxuuid);
+			case 4: 
+ 				 a[ktemp].emplace_back(iter.jsonconfig);
 				 break;
 
                 }
@@ -6210,40 +4481,31 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
 
@@ -6273,79 +4535,61 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp].emplace_back(iter.adminid);
+ 				 a[ktemp].emplace_back(iter.hbid);
 				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.isopen);
+			case 1: 
+ 				 a[ktemp].emplace_back(iter.userid);
 				 break;
 			case 5: 
- 				 a[ktemp].emplace_back(iter.level);
+ 				 a[ktemp].emplace_back(iter.viewtype);
 				 break;
 			case 6: 
- 				 a[ktemp].emplace_back(iter.companyid);
+ 				 a[ktemp].emplace_back(iter.gettype);
 				 break;
 			case 7: 
- 				 a[ktemp].emplace_back(iter.dpid);
+ 				 a[ktemp].emplace_back(iter.rownum);
 				 break;
 			case 8: 
- 				 a[ktemp].emplace_back(iter.jobid);
+ 				 a[ktemp].emplace_back(iter.width);
 				 break;
 			case 9: 
- 				 a[ktemp].emplace_back(iter.roleid);
+ 				 a[ktemp].emplace_back(iter.height);
 				 break;
 			case 10: 
- 				 a[ktemp].emplace_back(iter.postid);
+ 				 a[ktemp].emplace_back(iter.strlength);
 				 break;
 			case 11: 
- 				 a[ktemp].emplace_back(iter.created_at);
-				 break;
-			case 12: 
- 				 a[ktemp].emplace_back(iter.enddate);
-				 break;
-			case 13: 
- 				 a[ktemp].emplace_back(iter.qrtemp);
-				 break;
-			case 14: 
- 				 a[ktemp].emplace_back(iter.gender);
+ 				 a[ktemp].emplace_back(iter.sortid);
 				 break;
 
                 }
@@ -6368,40 +4612,31 @@ case 20:
                 {
 
    			case 0: 
- 				 a[iter.adminid].emplace_back(iter);
+ 				 a[iter.hbid].emplace_back(iter);
 				 break;
-			case 4: 
- 				 a[iter.isopen].emplace_back(iter);
+			case 1: 
+ 				 a[iter.userid].emplace_back(iter);
 				 break;
 			case 5: 
- 				 a[iter.level].emplace_back(iter);
+ 				 a[iter.viewtype].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[iter.companyid].emplace_back(iter);
+ 				 a[iter.gettype].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[iter.dpid].emplace_back(iter);
+ 				 a[iter.rownum].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[iter.jobid].emplace_back(iter);
+ 				 a[iter.width].emplace_back(iter);
 				 break;
 			case 9: 
- 				 a[iter.roleid].emplace_back(iter);
+ 				 a[iter.height].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[iter.postid].emplace_back(iter);
+ 				 a[iter.strlength].emplace_back(iter);
 				 break;
 			case 11: 
- 				 a[iter.created_at].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[iter.enddate].emplace_back(iter);
-				 break;
-			case 13: 
- 				 a[iter.qrtemp].emplace_back(iter);
-				 break;
-			case 14: 
- 				 a[iter.gender].emplace_back(iter);
+ 				 a[iter.sortid].emplace_back(iter);
 				 break;
 
                 }
@@ -6424,32 +4659,14 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 a[iter.name].emplace_back(iter);
-				 break;
-			case 2: 
- 				 a[iter.password].emplace_back(iter);
+   			case 2: 
+ 				 a[iter.title].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[iter.textword].emplace_back(iter);
+ 				 a[iter.content].emplace_back(iter);
 				 break;
-			case 15: 
- 				 a[iter.nickname].emplace_back(iter);
-				 break;
-			case 16: 
- 				 a[iter.realname].emplace_back(iter);
-				 break;
-			case 17: 
- 				 a[iter.avatar].emplace_back(iter);
-				 break;
-			case 18: 
- 				 a[iter.mobile].emplace_back(iter);
-				 break;
-			case 19: 
- 				 a[iter.email].emplace_back(iter);
-				 break;
-			case 20: 
- 				 a[iter.wxuuid].emplace_back(iter);
+			case 4: 
+ 				 a[iter.jsonconfig].emplace_back(iter);
 				 break;
 
                 }
@@ -6474,62 +4691,26 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 			 }
 
 			 switch(vpos){
-			case 1: 
- 				 a[ktemp][iter.name].emplace_back(iter);
-				 break;
 			case 2: 
- 				 a[ktemp][iter.password].emplace_back(iter);
+ 				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[ktemp][iter.textword].emplace_back(iter);
+ 				 a[ktemp][iter.content].emplace_back(iter);
 				 break;
-			case 15: 
- 				 a[ktemp][iter.nickname].emplace_back(iter);
-				 break;
-			case 16: 
- 				 a[ktemp][iter.realname].emplace_back(iter);
-				 break;
-			case 17: 
- 				 a[ktemp][iter.avatar].emplace_back(iter);
-				 break;
-			case 18: 
- 				 a[ktemp][iter.mobile].emplace_back(iter);
-				 break;
-			case 19: 
- 				 a[ktemp][iter.email].emplace_back(iter);
-				 break;
-			case 20: 
- 				 a[ktemp][iter.wxuuid].emplace_back(iter);
+			case 4: 
+ 				 a[ktemp][iter.jsonconfig].emplace_back(iter);
 				 break;
 
                 }
@@ -6554,71 +4735,44 @@ case 20:
                 switch(kpos)
                 {
 
-   			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
+   			case 2: 
+ 				 ktemp=iter.title;
 				 break;
 			case 3: 
- 				 ktemp=iter.textword;
+ 				 ktemp=iter.content;
 				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
+			case 4: 
+ 				 ktemp=iter.jsonconfig;
 				 break;
 	  }
 
  switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.adminid].emplace_back(iter);
+ 				 a[ktemp][iter.hbid].emplace_back(iter);
 				 break;
-			case 4: 
- 				 a[ktemp][iter.isopen].emplace_back(iter);
+			case 1: 
+ 				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 5: 
- 				 a[ktemp][iter.level].emplace_back(iter);
+ 				 a[ktemp][iter.viewtype].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[ktemp][iter.companyid].emplace_back(iter);
+ 				 a[ktemp][iter.gettype].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.dpid].emplace_back(iter);
+ 				 a[ktemp][iter.rownum].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[ktemp][iter.jobid].emplace_back(iter);
+ 				 a[ktemp][iter.width].emplace_back(iter);
 				 break;
 			case 9: 
- 				 a[ktemp][iter.roleid].emplace_back(iter);
+ 				 a[ktemp][iter.height].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[ktemp][iter.postid].emplace_back(iter);
+ 				 a[ktemp][iter.strlength].emplace_back(iter);
 				 break;
 			case 11: 
- 				 a[ktemp][iter.created_at].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[ktemp][iter.enddate].emplace_back(iter);
-				 break;
-			case 13: 
- 				 a[ktemp][iter.qrtemp].emplace_back(iter);
-				 break;
-			case 14: 
- 				 a[ktemp][iter.gender].emplace_back(iter);
+ 				 a[ktemp][iter.sortid].emplace_back(iter);
 				 break;
 
                 }
@@ -6645,79 +4799,61 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			 }
 
 			 switch(vpos){
 			case 0: 
- 				 a[ktemp][iter.adminid].emplace_back(iter);
+ 				 a[ktemp][iter.hbid].emplace_back(iter);
 				 break;
-			case 4: 
- 				 a[ktemp][iter.isopen].emplace_back(iter);
+			case 1: 
+ 				 a[ktemp][iter.userid].emplace_back(iter);
 				 break;
 			case 5: 
- 				 a[ktemp][iter.level].emplace_back(iter);
+ 				 a[ktemp][iter.viewtype].emplace_back(iter);
 				 break;
 			case 6: 
- 				 a[ktemp][iter.companyid].emplace_back(iter);
+ 				 a[ktemp][iter.gettype].emplace_back(iter);
 				 break;
 			case 7: 
- 				 a[ktemp][iter.dpid].emplace_back(iter);
+ 				 a[ktemp][iter.rownum].emplace_back(iter);
 				 break;
 			case 8: 
- 				 a[ktemp][iter.jobid].emplace_back(iter);
+ 				 a[ktemp][iter.width].emplace_back(iter);
 				 break;
 			case 9: 
- 				 a[ktemp][iter.roleid].emplace_back(iter);
+ 				 a[ktemp][iter.height].emplace_back(iter);
 				 break;
 			case 10: 
- 				 a[ktemp][iter.postid].emplace_back(iter);
+ 				 a[ktemp][iter.strlength].emplace_back(iter);
 				 break;
 			case 11: 
- 				 a[ktemp][iter.created_at].emplace_back(iter);
-				 break;
-			case 12: 
- 				 a[ktemp][iter.enddate].emplace_back(iter);
-				 break;
-			case 13: 
- 				 a[ktemp][iter.qrtemp].emplace_back(iter);
-				 break;
-			case 14: 
- 				 a[ktemp][iter.gender].emplace_back(iter);
+ 				 a[ktemp][iter.sortid].emplace_back(iter);
 				 break;
 
                 }
@@ -6744,70 +4880,43 @@ case 20:
                 {
 
    			case 0: 
- 				 ktemp=iter.adminid;
+ 				 ktemp=iter.hbid;
 				 break;
-			case 4: 
- 				 ktemp=iter.isopen;
+			case 1: 
+ 				 ktemp=iter.userid;
 				 break;
 			case 5: 
- 				 ktemp=iter.level;
+ 				 ktemp=iter.viewtype;
 				 break;
 			case 6: 
- 				 ktemp=iter.companyid;
+ 				 ktemp=iter.gettype;
 				 break;
 			case 7: 
- 				 ktemp=iter.dpid;
+ 				 ktemp=iter.rownum;
 				 break;
 			case 8: 
- 				 ktemp=iter.jobid;
+ 				 ktemp=iter.width;
 				 break;
 			case 9: 
- 				 ktemp=iter.roleid;
+ 				 ktemp=iter.height;
 				 break;
 			case 10: 
- 				 ktemp=iter.postid;
+ 				 ktemp=iter.strlength;
 				 break;
 			case 11: 
- 				 ktemp=iter.created_at;
-				 break;
-			case 12: 
- 				 ktemp=iter.enddate;
-				 break;
-			case 13: 
- 				 ktemp=iter.qrtemp;
-				 break;
-			case 14: 
- 				 ktemp=iter.gender;
+ 				 ktemp=iter.sortid;
 				 break;
 			  }
 
 			 switch(vpos){
-			case 1: 
- 				 a[ktemp][iter.name].emplace_back(iter);
-				 break;
 			case 2: 
- 				 a[ktemp][iter.password].emplace_back(iter);
+ 				 a[ktemp][iter.title].emplace_back(iter);
 				 break;
 			case 3: 
- 				 a[ktemp][iter.textword].emplace_back(iter);
+ 				 a[ktemp][iter.content].emplace_back(iter);
 				 break;
-			case 15: 
- 				 a[ktemp][iter.nickname].emplace_back(iter);
-				 break;
-			case 16: 
- 				 a[ktemp][iter.realname].emplace_back(iter);
-				 break;
-			case 17: 
- 				 a[ktemp][iter.avatar].emplace_back(iter);
-				 break;
-			case 18: 
- 				 a[ktemp][iter.mobile].emplace_back(iter);
-				 break;
-			case 19: 
- 				 a[ktemp][iter.email].emplace_back(iter);
-				 break;
-			case 20: 
- 				 a[ktemp][iter.wxuuid].emplace_back(iter);
+			case 4: 
+ 				 a[ktemp][iter.jsonconfig].emplace_back(iter);
 				 break;
 
                 }

@@ -5660,7 +5660,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
-        filemodelstremcpp << tablenamebase << "base.h\"\n";
+        filemodelstremcpp << tablenamebase << "_base.h\"\n";
         filemodelstremcpp << "#include \"";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
@@ -5671,7 +5671,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << model_name;
         filemodelstremcpp << "_mysql.h\"";
-        filemodelstremcpp << "\n#include \"" << tablenamebase << "base.h\"\n#include \""
+        filemodelstremcpp << "\n#include \"" << tablenamebase << "_base.h\"\n#include \""
                           << model_name_obj << ".h\"\n";
     }
 
@@ -5742,7 +5742,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "_mysql.h\" \n#include \"";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
-        filemodelstremcpp << tablenamebase << "base.h\"\n";
+        filemodelstremcpp << tablenamebase << "_base.h\"\n";
 
     }
     else
@@ -5750,7 +5750,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << model_name;
         filemodelstremcpp << "_mysql.h\" \n#include \"";
-        filemodelstremcpp << tablenamebase << "base.h\"\n";
+        filemodelstremcpp << tablenamebase << "_base.h\"\n";
     }
     filemodelstremcpp << "\n/* 如果此文件存在不会自动覆盖，没有则会自动生成。\n*If this file exists, it will not be "
                          "overwritten automatically. If not, it will be generated automatically. */\n";
@@ -5765,7 +5765,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     }
     filemodelstremcpp << "\t\tclass " << model_name_obj << " : public "
                       << model_name << "_mysql<" << model_name_obj << ","
-                      << tablenamebase << "base>{\n";
+                      << tablenamebase << "_base>{\n";
 
     filemodelstremcpp << "\t\t public:\n";
     filemodelstremcpp << "\t\t " << model_name_obj << "(std::string dbtag);\n";
@@ -5800,7 +5800,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     filebasename.append("include/");
 
     filebasename.append(filebasefilename);
-    filebasename.append("base.h");
+    filebasename.append("_base.h");
 
     FILE *f = fopen(filebasename.c_str(), "wb");
     if (!f)
@@ -5856,7 +5856,7 @@ namespace orm {
     headtxt += R"(
 struct )";
     headtxt.append(tablenamebase);
-    headtxt += R"(base
+    headtxt += R"(_base
 {
     struct meta{
     )";
@@ -5880,19 +5880,19 @@ struct )";
         filemodelstrem << "\n\tstd::vector<meta_tree> children;\n };\n ";
     }
 
-    filemodelstrem << "std::vector<" << tablenamebase << "base::meta> record;\n";
+    filemodelstrem << "std::vector<" << tablenamebase << "_base::meta> record;\n";
     filemodelstrem << "std::string _rmstag=\"" << rmstag
                    << "\";//this value must be default or tag value, tag in mysqlconnect config file .\n";
     filemodelstrem << "unsigned int _offset=0;\n";
     //filemodelstrem << "MYSQL_ROW _row;\n";
 
     filemodelstrem << "std::vector<" << tablenamebase
-                   << "base::meta>::iterator begin(){     return record.begin(); }\n";
-    filemodelstrem << "std::vector<" << tablenamebase << "base::meta>::iterator end(){     return record.end(); }\n";
+                   << "_base::meta>::iterator begin(){     return record.begin(); }\n";
+    filemodelstrem << "std::vector<" << tablenamebase << "_base::meta>::iterator end(){     return record.end(); }\n";
     filemodelstrem << "std::vector<" << tablenamebase
-                   << "base::meta>::const_iterator begin() const{     return record.begin(); }\n";
+                   << "_base::meta>::const_iterator begin() const{     return record.begin(); }\n";
     filemodelstrem << "std::vector<" << tablenamebase
-                   << "base::meta>::const_iterator end() const{     return record.end(); }\n";
+                   << "_base::meta>::const_iterator end() const{     return record.end(); }\n";
 
     // may be used to optimize the const static std::array<std::string,N> col_names={"xxx"};
     filemodelstrem << "static constexpr std::array<std::string_view," << std::to_string(table_column_info_lists.size()) << "> col_names={";
@@ -6132,7 +6132,7 @@ struct )";
       void data_reset(){
      )";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta metatemp;    
+    headtxt += R"(_base::meta metatemp;    
             data = metatemp; 
       }
       )";
@@ -7777,7 +7777,7 @@ struct )";
         record.clear();
         )";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta metatemp; 
+    headtxt += R"(_base::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -8780,13 +8780,13 @@ struct )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    headtxt = tablenamebase + "base::meta getnewData(){\n \t struct meta newdata;\n\t return newdata; \n} \n";
+    headtxt = tablenamebase + "_base::meta getnewData(){\n \t struct meta newdata;\n\t return newdata; \n} \n";
 
     headtxt.append(tablenamebase);
-    headtxt.append("base::meta getData(){\n \t return data; \n} \n");
+    headtxt.append("_base::meta getData(){\n \t return data; \n} \n");
     headtxt.append("std::vector<");
     headtxt.append(tablenamebase);
-    headtxt.append("base::meta> getRecord(){\n \t return record; \n} \n");
+    headtxt.append("_base::meta> getRecord(){\n \t return record; \n} \n");
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -9649,7 +9649,7 @@ struct )";
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
         T getVal([[maybe_unused]] )";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta & iter,[[maybe_unused]] std::string keyname)
+    headtxt += R"(_base::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           )";
@@ -9731,7 +9731,7 @@ struct )";
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
             T getVal([[maybe_unused]] )";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta & iter,std::string keyname)
+    headtxt += R"(_base::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -9818,7 +9818,7 @@ struct )";
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
             std::string getVal([[maybe_unused]] )";
     headtxt += tablenamebase;
-    headtxt += R"(base::meta & iter,std::string keyname)
+    headtxt += R"(_base::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;

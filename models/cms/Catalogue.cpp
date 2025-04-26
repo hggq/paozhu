@@ -1,6 +1,6 @@
 
 #include "catalogue_mysql.h"
-#include "cms/include/cataloguebase.h"
+#include "cms/include/catalogue_base.h"
 #include "cms/include/Catalogue.h"
 
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。
