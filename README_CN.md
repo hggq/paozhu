@@ -39,7 +39,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 
 - C++ standard request c++20
 - asio openssl zlib brotli [可选](gd qrencode)
-  
+- Supports Linux MacOS Windows
 
 ### 3.环境配置
 
@@ -69,7 +69,7 @@ brew install brotli
 - 系统要求：
 
 ```
-Ubuntu>= 20.04 , test on Fedora38 需要按装asan（sudo yum install libasan）
+Ubuntu>= 22.04 , test on Fedora38 需要按装asan（sudo yum install libasan）
 ```
 
 ```
@@ -81,8 +81,6 @@ sudo apt-get install openssl libssl-dev
 sudo apt-get install mysql-server
  
 ```
-
-**注意：** 需要gcc11支持，安装详情请查看
 
 - 环境配置  
   [MacOS 环境配置](https://hggq.github.io/paozhudocs/macos.html)  

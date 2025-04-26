@@ -43,7 +43,7 @@ Discussing the joy of C++ web development with community developers.
 C++ standard request c++20   
 asio openssl zlib brotli [options](gd qrencode)
 
-
+Supports Linux MacOS Windows
 
 ### 3.environment configuration
 
@@ -71,7 +71,7 @@ brew install brotli
 - system requirements
 
 ```
-Ubuntu>= 20.04 , test on Fedora38, need install asan（sudo yum install libasan）
+Ubuntu>= 22.04 , test on Fedora38, need install asan（sudo yum install libasan）
 ```
 
 ```
@@ -83,8 +83,6 @@ sudo apt-get install openssl libssl-dev
 sudo apt-get install mysql-server
  
 ```
-
-**Notice：** Requires gcc11 support. For more installation details, please see 
 
 - Environment configuration  
  [MacOS environment configuration](https://hggq.github.io/paozhudocs/macos_en.html)  
