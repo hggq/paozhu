@@ -17101,18 +17101,8 @@ M_MODEL& or_leFileext(T val)
                 ishascontent = true;
             }
             wheresql.append(wq);
-            char bi = wq.back();
-            if (bi == '=' || bi == '>' || bi == '<')
-            {
-            }
-            else
-            {
-                wheresql.push_back('=');
-            }
-
-            std::stringstream _stream;
-            _stream << val;
-            wheresql.append(_stream.str());
+            wheresql.push_back('=');
+            wheresql.append(std::to_string(val));
             return *mod;
         }
 
@@ -17178,14 +17168,7 @@ M_MODEL& or_leFileext(T val)
                 ishascontent = true;
             }
             wheresql.append(wq);
-            char bi = wq.back();
-            if (bi == '=' || bi == '>' || bi == '<')
-            {
-            }
-            else
-            {
-                wheresql.push_back('=');
-            }
+            wheresql.push_back('=');
 
             if (obj.is_string())
             {
@@ -17286,14 +17269,135 @@ M_MODEL& or_leFileext(T val)
                 ishascontent = true;
             }
             wheresql.append(wq);
-            char bi = wq.back();
-            if (bi == '=' || bi == '>' || bi == '<')
+            wheresql.push_back('=');
+
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
+            return *mod;
+        }
+
+        M_MODEL &whereBT(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
             {
             }
             else
             {
-                wheresql.push_back('=');
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
             }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.push_back('>');
+
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
+            return *mod;
+        }
+
+        M_MODEL &whereBE(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(">=");
+
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
+            return *mod;
+        }
+
+        M_MODEL &whereLT(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" < ");
+
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
+            return *mod;
+        }
+
+        M_MODEL &whereLE(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" <= ");
 
             wheresql.push_back('\'');
             wheresql.append(val);
@@ -17597,17 +17701,8 @@ M_MODEL& or_leFileext(T val)
                 ishascontent = true;
             }
             wheresql.append(wq);
-            char bi = wq.back();
-            if (bi == '=' || bi == '>' || bi == '<')
-            {
-            }
-            else
-            {
-                wheresql.push_back('=');
-            }
-            std::stringstream _stream;
-            _stream << val;
-            wheresql.append(_stream.str());
+            wheresql.push_back('=');
+            wheresql.append(std::to_string(val));
             return *mod;
         }
 
@@ -17734,7 +17829,7 @@ M_MODEL& or_leFileext(T val)
             wheresql.append(std::to_string(val));
             return *mod;
         }
-
+        //where and 
         M_MODEL &whereEQ(const std::string &wq, const std::string &val)
         {
             if (wheresql.empty())
@@ -17791,19 +17886,140 @@ M_MODEL& or_leFileext(T val)
                 ishascontent = true;
             }
             wheresql.append(wq);
-            char bi = wq.back();
-            if (bi == '=' || bi == '>' || bi == '<')
-            {
-            }
-            else
-            {
-                wheresql.push_back('=');
-            }
-
+            wheresql.push_back('=');
             wheresql.push_back('\'');
             wheresql.append(val);
             wheresql.push_back('\'');
 
+            return *mod;
+        }
+        //where string or
+
+        M_MODEL &whereOrBT(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.push_back('>');
+
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
+            return *mod;
+        }
+
+        M_MODEL &whereOrBE(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(">=");
+
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
+            return *mod;
+        }
+
+        M_MODEL &whereOrLT(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" < ");
+
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
+            return *mod;
+        }
+
+        M_MODEL &whereOrLE(const std::string &wq, const std::string &val)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(wq);
+            wheresql.append(" <= ");
+
+            wheresql.push_back('\'');
+            wheresql.append(val);
+            wheresql.push_back('\'');
             return *mod;
         }
 
@@ -17984,17 +18200,8 @@ M_MODEL& or_leFileext(T val)
                 ishascontent = true;
             }
             wheresql.append(wq);
-            char bi = wq.back();
-            if (bi == '=' || bi == '>' || bi == '<')
-            {
-            }
-            else
-            {
-                wheresql.push_back('=');
-            }
-            std::stringstream _stream;
-            _stream << val;
-            wheresql.append(_stream.str());
+            wheresql.push_back('=');
+            wheresql.append(std::to_string(val));
             return *mod;
         }
         M_MODEL &whereOr(const std::string &wq, const std::string &val)
@@ -18021,15 +18228,7 @@ M_MODEL& or_leFileext(T val)
                 ishascontent = true;
             }
             wheresql.append(wq);
-            char bi = wq.back();
-            if (bi == '=' || bi == '>' || bi == '<')
-            {
-            }
-            else
-            {
-                wheresql.push_back('=');
-            }
-
+            wheresql.push_back('=');
             wheresql.push_back('\'');
             wheresql.append(val);
             wheresql.push_back('\'');
