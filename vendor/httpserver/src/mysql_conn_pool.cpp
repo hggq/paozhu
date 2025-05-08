@@ -156,7 +156,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                         mysqlconf.user.clear();
                         mysqlconf.password.clear();
                         mysqlconf.pretable.clear();
-
+                        mysqlconf.charset.clear();  
                         //mysqlconf.tag = keyname;
 
                         mysqlconf.tag.clear();
@@ -387,6 +387,10 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 {
                     mysqlconf.dbtype = strval;
                 }
+                if (str_casecmp(linestr, "charset"))
+                {
+                    mysqlconf.charset = strval;
+                }
             }
 
             linestr.clear();
@@ -514,8 +518,11 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
         }
         if (str_casecmp(linestr, "dbtype"))
         {
-
             mysqlconf.dbtype = strval;
+        }
+        if (str_casecmp(linestr, "charset"))
+        {
+            mysqlconf.charset = strval;
         }
         //mysqlconf.tag = keyname;
         mysqlconf.tag.clear();
