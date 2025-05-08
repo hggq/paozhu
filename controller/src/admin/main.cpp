@@ -36,7 +36,7 @@ std::string admin_loginpost(std::shared_ptr<httppeer> peer)
         md5string            = md5(password);
         unsigned int userid  = 0;
         unsigned int adminid = 0;
-        users.where("name=", username).whereAnd("password=", md5string).fetch_one();
+        users.where("name", username).whereAnd("password", md5string).fetch_one();
         // view orm create sql
         // client<<"<p>"<<users.sqlstring<<"</p>";
         auto loginfo = orm::cms::Logininfo();
