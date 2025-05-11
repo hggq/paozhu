@@ -59,6 +59,13 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
         iserror = true;
         co_return true;
     }
+    catch (...)
+    {
+        log_item.append("---read_some---");
+        isclose = true;
+        iserror = true;
+        co_return true;
+    }
     co_return false;
 }
 

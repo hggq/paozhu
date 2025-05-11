@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <map>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>
@@ -84,10 +85,10 @@ enum enum_field_types
      CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | \
      CLIENT_MULTI_RESULTS | CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF | CLIENT_OPTIONAL_RESULTSET_METADATA)
 
-#define CLIENT_PZORM_SSL_FLAGS                                               \
+#define CLIENT_PZORM_SSL_FLAGS                                                  \
     (CLIENT_LONG_PASSWORD | CLIENT_FOUND_ROWS | CLIENT_LONG_FLAG | CLIENT_SSL | \
-      CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | \
-      CLIENT_MULTI_RESULTS | CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF | CLIENT_OPTIONAL_RESULTSET_METADATA)     
+     CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS |        \
+     CLIENT_MULTI_RESULTS | CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF | CLIENT_OPTIONAL_RESULTSET_METADATA)
 
 struct mysql_server_hello_data_t
 {
@@ -111,7 +112,7 @@ struct pack_info_t
     unsigned char seq_id        = 0;
     unsigned char error         = 0;
     unsigned char padd_length   = 0;
-    unsigned char padd_str[5]   ={0x00};
+    unsigned char padd_str[5]   = {0x00};
     std::string data;
 };
 
@@ -143,13 +144,14 @@ struct orm_conn_t
     std::string tag;
     std::string charset;
 
-    bool isssl              = false;
-    bool issock             = false;
-    bool isdebug            = false;
-    bool islocal            = false;
-    unsigned char link_type = 0;// 0 edit 1 select 2 backup
-    unsigned char max_pool  = 0;
-    unsigned char min_pool  = 0;
+    bool isssl                = false;
+    bool issock               = false;
+    bool isdebug              = false;
+    bool islocal              = false;
+    unsigned char link_type   = 0;// 0 edit 1 select 2 backup
+    unsigned char max_pool    = 0;
+    unsigned char min_pool    = 0;
+    unsigned char charset_val = 0;
 };
 
 class mysql_conn_base
@@ -188,19 +190,20 @@ class mysql_conn_base
     void begin_time();
     void finish_time();
     long long count_time();
+
   public:
     unsigned char *_cache_data = nullptr;
 
-    bool server_enable_ssl  = false;
-    bool isclose            = false;
-    bool isdebug            = false;
-    std::atomic_bool  issynch = false;
-    unsigned char sock_type = 0;
+    bool server_enable_ssl   = false;
+    bool isclose             = false;
+    bool isdebug             = false;
+    std::atomic_bool issynch = false;
+    unsigned char sock_type  = 0;
     unsigned char seq_next_id;
     unsigned short error_code = 0;
     unsigned int client_flags = 0;
-    unsigned int time_start = 0;
-    unsigned int query_num = 0;
+    unsigned int time_start   = 0;
+    unsigned int query_num    = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;
     std::string send_data;
@@ -214,5 +217,19 @@ class mysql_conn_base
     asio::io_context *io_ctx = nullptr;
     mysql_server_hello_data_t server_hello;
 };
+class mysql_charset_store
+{
+  public:
+    void mysql_charset_init();
+    void mysql_charset_clear();
+    unsigned int mysql_charset_find(const std::string &str);
+    ~mysql_charset_store();
+
+  public:
+    std::map<std::string, unsigned int> mysql_charset;
+};
+
+mysql_charset_store &get_orm_mysql_charset();
+
 }// namespace orm
 #endif

@@ -72,7 +72,7 @@ unsigned char *client_data_cache::get_data_ptr()
             }
             catch (...)
             {
-                std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+                std::this_thread::sleep_for(std::chrono::microseconds(500));
             }
         }
     }
