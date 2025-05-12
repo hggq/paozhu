@@ -393,7 +393,8 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 if (str_casecmp(linestr, "charset"))
                 {
                     mysqlconf.charset     = strval;
-                    mysqlconf.charset_val = charset_obj->mysql_charset_find(strval);
+                    std::transform(mysqlconf.charset.begin(), mysqlconf.charset.end(), mysqlconf.charset.begin(), ::tolower);
+                    mysqlconf.charset_val = charset_obj->mysql_charset_find(mysqlconf.charset);
                 }
             }
 
@@ -527,8 +528,8 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
         if (str_casecmp(linestr, "charset"))
         {
             mysqlconf.charset = strval;
-
-            mysqlconf.charset_val = charset_obj->mysql_charset_find(strval);
+            std::transform(mysqlconf.charset.begin(), mysqlconf.charset.end(), mysqlconf.charset.begin(), ::tolower);
+            mysqlconf.charset_val = charset_obj->mysql_charset_find(mysqlconf.charset);
         }
         //mysqlconf.tag = keyname;
         mysqlconf.tag.clear();
