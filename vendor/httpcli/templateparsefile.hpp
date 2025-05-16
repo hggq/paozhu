@@ -690,6 +690,38 @@ namespace http
             tempsv.append("::");
             tempsv.append(filename_namespace);
             filename_namespace = tempsv;
+
+            //check three level directory
+            tempsv.clear();
+            for (; j > 0; j--)
+            {
+                if (savefilename[j] == '/')
+                {
+                    continue;
+                }
+                break;
+            }
+            for (; j > 0; j--)
+            {
+                if (savefilename[j] == '.')
+                {
+                    continue;
+                }
+                if (savefilename[j] == '/')
+                {
+
+                    break;
+                }
+                tempsv.push_back(savefilename[j]);
+            }
+            std::reverse(tempsv.begin(), tempsv.end());
+            if (tempsv.size() > 0 && tempsv != "view")
+            {
+                tempsv.append("::");
+                tempsv.append(filename_namespace);
+                filename_namespace = tempsv;
+            }
+
         }
 
         fs::path paths = savefilename;
