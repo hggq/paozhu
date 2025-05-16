@@ -14,7 +14,7 @@
 namespace http { 
 namespace view { 
 
-namespace admin{ 
+namespace  admin{ 
 
 	std::string addarticle(const struct view_param &vinfo,http::obj_val &obj);
 	std::string addhomecontent(const struct view_param &vinfo,http::obj_val &obj);
@@ -53,7 +53,7 @@ namespace admin{
 	std::string welcome(const struct view_param &vinfo,http::obj_val &obj);
 }
 
-namespace cms{ 
+namespace  cms{ 
 
 	std::string add(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edit(const struct view_param &vinfo,http::obj_val &obj);
@@ -61,17 +61,17 @@ namespace cms{
 	std::string show(const struct view_param &vinfo,http::obj_val &obj);
 }
 
-namespace home{ 
+namespace  home{ 
 
 	std::string header(const struct view_param &vinfo,http::obj_val &obj);
 }
 
-namespace login{ 
+namespace  login{ 
 
 	std::string login(const struct view_param &vinfo,http::obj_val &obj);
 }
 
-namespace superadmin{ 
+namespace  superadmin{ 
 
 	std::string addsiteinfo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string adduser(const struct view_param &vinfo,http::obj_val &obj);
@@ -88,7 +88,7 @@ namespace superadmin{
 	std::string welcome(const struct view_param &vinfo,http::obj_val &obj);
 }
 
-namespace techempower{ 
+namespace  techempower{ 
 
 	std::string fortunes(const struct view_param &vinfo,http::obj_val &obj);
 }

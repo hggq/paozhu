@@ -16,7 +16,7 @@
 #include "viewso_param.h"
 #include "http_so_common_api.h"
 #include "viewsrc.h"
-//g++ viewsrc/view/admin/listproduct.cpp
+//This file create by paozhu Fri, 16 May 2025 06:02:27 GMT
 namespace http {
 
 namespace view {

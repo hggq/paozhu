@@ -3282,6 +3282,39 @@ bool httpparse::getfinish()
     }
 }
 
+void httpparse::waituphttp1(asio::io_context &ioc)
+{
+    try
+    {
+        std::unique_lock lk(waituphttp2_mutex);
+        http2_need_wakeup = false;
+        if (user_code_handler_call.size() > 0)
+        {
+            //auto ex = asio::get_associated_executor(user_code_handler_call.front());
+            auto handle = std::move(user_code_handler_call.front());
+            user_code_handler_call.pop_front();
+            lk.unlock();
+            asio::dispatch(ioc,
+                           [handler =std::move(handle) ]() mutable -> void
+                           {
+                               /////////////
+                               handler(1);
+                               //////////
+                           });
+            
+            DEBUG_LOG("peer_session user_code_handler_call return");
+        }
+        else
+        {
+            lk.unlock();
+        }
+    }
+    catch (...)
+    {
+        DEBUG_LOG("peer_session user_code_handler_call error");
+    }
+}
+
 void httpparse::clear()
 {
     peer->state.gzip              = false;

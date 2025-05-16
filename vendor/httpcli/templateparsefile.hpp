@@ -13,16 +13,16 @@
 #ifndef PROJECT_TEMPLATEPARSEFILE_HPP
 #define PROJECT_TEMPLATEPARSEFILE_HPP
 
-#include <iostream>
-#include <cstdio>
-#include <string>
-#include <sstream>
 #include <algorithm>
-#include <filesystem>
-#include <ctime>
 #include <array>
-#include <map>
+#include <cstdio>
 #include <cstring>
+#include <ctime>
+#include <filesystem>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <string>
 
 namespace http
 {
@@ -82,8 +82,9 @@ class viewtemplatefile
 
                     auto timeEntry = fs::last_write_time(entry);
 
-                    time_t systimeid =
-                        std::chrono::duration_cast<std::chrono::seconds>(timeEntry.time_since_epoch()).count();
+                    time_t systimeid = std::chrono::duration_cast<std::chrono::seconds>(
+                                           timeEntry.time_since_epoch())
+                                           .count();
                     if (t)
                     {
                         fileslist[entry.path().string()] = systimeid;
@@ -103,67 +104,73 @@ class viewtemplatefile
         std::string regitem;
         std::string filename_methold, regtemp;
         std::string filename_namespace;
+        std::vector<std::string> pathlists;
+
         for (auto iter = fileslist.begin(); iter != fileslist.end(); iter++)
         {
             fs::path paths       = iter->first;
             std::string extfile  = paths.extension().string();
             std::string filename = iter->first;
+
             if (stringcasecmp(extfile, ".html"))
             {
-
                 filename_methold.clear();
                 filename_namespace.clear();
+                regtemp.clear();
+                pathlists.clear();
 
-                int j = filename.size() - 1;
-                for (; j > 0; j--)
+                for (unsigned int ii = 0; ii < filename.size(); ii++)
                 {
-                    if (filename[j] == '.')
+                    if (filename[ii] == '.')
                     {
+                        break;
+                    }
+                    if (filename[ii] == '/')
+                    {
+                        if (filename_methold.size() > 0)
+                        {
+                            if (ii > 5)
+                            {
+                                pathlists.push_back(filename_methold);
+                            }
+                        }
                         filename_methold.clear();
                         continue;
                     }
-                    if (filename[j] == '/')
-                    {
-                        j--;
-                        break;
-                    }
-                    filename_methold.push_back(filename[j]);
+                    filename_methold.push_back(filename[ii]);
                 }
-                std::reverse(filename_methold.begin(), filename_methold.end());
-
-                for (; j > 0; j--)
+                filename_namespace.append(" ");
+                for (unsigned int i = 0; i < pathlists.size(); i++)
                 {
-                    if (filename[j] == '.')
-                    {
-                        continue;
-                    }
-                    if (filename[j] == '/')
-                    {
+                    regtemp.append(pathlists[i]);
+                    regtemp.append("/");
 
-                        break;
+                    if (i > 0)
+                    {
+                        filename_namespace.append("::");
                     }
-                    filename_namespace.push_back(filename[j]);
+
+                    filename_namespace.append(pathlists[i]);
                 }
-                std::reverse(filename_namespace.begin(), filename_namespace.end());
 
-                regtemp = filename_namespace;
-                regtemp.append("/");
                 regtemp.append(filename_methold);
-
-                // filename_namespace.append("::");
-                // filename_namespace.append(filename_methold);
 
                 filename = "\n\tstd::string ";
                 filename.append(filename_methold);
                 filename.append("(const struct view_param &vinfo,http::obj_val &obj);");
-                // includetemp.append(filename);
+
                 includelist[filename_namespace].push_back(filename);
 
                 filename = "\n\t_viewmetholdreg.emplace(\"";
                 filename.append(regtemp);
                 filename.append("\",http::view::");
 
-                filename_namespace.append("::");
+                filename_namespace.clear();
+                for (unsigned int i = 0; i < pathlists.size(); i++)
+                {
+                    filename_namespace.append(pathlists[i]);
+                    filename_namespace.append("::");
+                }
                 filename_namespace.append(filename_methold);
 
                 filename.append(filename_namespace);
@@ -210,8 +217,10 @@ namespace http
 
         f = fopen(includefilename.c_str(), "wb");
         content.clear();
-        content = "#pragma once\n#include<string>\n#include<map>\n#include<functional>\n#include "
-                  "\"request.h\"\n#include \"viewso_param.h\"\n";
+        content =
+            "#pragma "
+            "once\n#include<string>\n#include<map>\n#include<functional>\n#include "
+            "\"request.h\"\n#include \"viewso_param.h\"\n";
         content = R"(#ifndef __HTTP_VIEWSRC_ALL_METHOD_H
 #define __HTTP_VIEWSRC_ALL_METHOD_H
 
@@ -228,6 +237,7 @@ namespace http
 )";
         content.append("namespace http { \n");
         content.append("namespace view { \n");
+
         for (auto [first, second] : includelist)
         {
             content.append("\nnamespace ");
@@ -244,6 +254,7 @@ namespace http
         content.append(includetemp);
         content.append("\n");
         content.append("\n}\n");
+
         content.append("\n}\n#endif");
 
         fwrite(&content[0], 1, content.size(), f);
@@ -378,7 +389,8 @@ namespace http
         for (unsigned int i = 0; i < viewcontent.size(); i++)
         {
 
-            if (codein && viewcontent[i] == '<' && viewcontent[i + 1] == '%' && viewcontent[i + 2] == 'c')
+            if (codein && viewcontent[i] == '<' && viewcontent[i + 1] == '%' &&
+                viewcontent[i + 2] == 'c')
             {
                 i += 3;
                 if (viewcontent[i] == '+')
@@ -398,7 +410,8 @@ namespace http
 
                 continue;
             }
-            else if (codein && viewcontent[i] == '<' && viewcontent[i + 1] == '%' && viewcontent[i + 2] == ' ')
+            else if (codein && viewcontent[i] == '<' && viewcontent[i + 1] == '%' &&
+                     viewcontent[i + 2] == ' ')
             {
                 i += 3;
                 if (viewcontent[i] == 'c' && viewcontent[i + 1] == ' ')
@@ -462,16 +475,20 @@ namespace http
             else
             {
                 // include_sub("aa/bbb",obj);
-                if (viewcontent[i] == 'i' && viewcontent[i + 1] == 'n' && viewcontent[i + 2] == 'c')
+                if (viewcontent[i] == 'i' && viewcontent[i + 1] == 'n' &&
+                    viewcontent[i + 2] == 'c')
                 {
 
-                    if (viewcontent[i + 3] == 'l' && viewcontent[i + 4] == 'u' && viewcontent[i + 5] == 'd')
+                    if (viewcontent[i + 3] == 'l' && viewcontent[i + 4] == 'u' &&
+                        viewcontent[i + 5] == 'd')
                     {
 
-                        if (viewcontent[i + 6] == 'e' && viewcontent[i + 7] == '_' && viewcontent[i + 8] == 's')
+                        if (viewcontent[i + 6] == 'e' && viewcontent[i + 7] == '_' &&
+                            viewcontent[i + 8] == 's')
                         {
 
-                            if (viewcontent[i + 9] == 'u' && viewcontent[i + 10] == 'b' && viewcontent[i + 11] == '(')
+                            if (viewcontent[i + 9] == 'u' && viewcontent[i + 10] == 'b' &&
+                                viewcontent[i + 11] == '(')
                             {
 
                                 // echo<<render["view"]("show/after")(obj);
@@ -511,7 +528,8 @@ namespace http
                                     nn++;
                                     if (nn > 72)
                                     {
-                                        value.append("(vinfo,obj);  }catch (std::exception& e)   {          echo<< "
+                                        value.append("(vinfo,obj);  }catch (std::exception& e)   { "
+                                                     "         echo<< "
                                                      "\"--- include_sub ");
                                         value.append(tempmodelname);
                                         value.append(" error ---\";  }");
@@ -543,7 +561,8 @@ namespace http
                                         value.push_back(viewcontent[jj]);
                                     }
                                     i = jj;
-                                    value.append(" }catch (std::exception& e)   {          echo<< \"--- include_sub ");
+                                    value.append(" }catch (std::exception& e)   {          "
+                                                 "echo<< \"--- include_sub ");
                                     value.append(tempmodelname);
                                     value.append(" error ---\";  }");
                                     continue;
@@ -552,12 +571,12 @@ namespace http
                         }
                     }
                 }
-                else if (viewcontent[i] == '#' && viewcontent[i + 1] == 'i' && viewcontent[i + 2] == 'n' &&
-                         viewcontent[i + 3] == 'c')
+                else if (viewcontent[i] == '#' && viewcontent[i + 1] == 'i' &&
+                         viewcontent[i + 2] == 'n' && viewcontent[i + 3] == 'c')
                 {
 
-                    if (viewcontent[i + 4] == 'l' && viewcontent[i + 5] == 'u' && viewcontent[i + 6] == 'd' &&
-                        viewcontent[i + 7] == 'e')
+                    if (viewcontent[i + 4] == 'l' && viewcontent[i + 5] == 'u' &&
+                        viewcontent[i + 6] == 'd' && viewcontent[i + 7] == 'e')
                     {
                         unsigned int jj = i + 8;
                         for (; jj < viewcontent.size(); jj++)
@@ -634,18 +653,51 @@ namespace http
             }
             if (savefilename[j] == '/')
             {
-
                 break;
             }
             filename_namespace.push_back(savefilename[j]);
         }
 
         std::reverse(filename_namespace.begin(), filename_namespace.end());
+
+        std::string tempsv;
+        for (; j > 0; j--)
+        {
+            if (savefilename[j] == '/')
+            {
+                continue;
+            }
+            break;
+        }
+        for (; j > 0; j--)
+        {
+            if (savefilename[j] == '.')
+            {
+                continue;
+            }
+            if (savefilename[j] == '/')
+            {
+
+                break;
+            }
+            tempsv.push_back(savefilename[j]);
+        }
+
+        std::reverse(tempsv.begin(), tempsv.end());
+
+        if (tempsv.size() > 0 && tempsv != "view")
+        {
+            tempsv.append("::");
+            tempsv.append(filename_namespace);
+            filename_namespace = tempsv;
+        }
+
         fs::path paths = savefilename;
         fs::path mulu  = paths.remove_filename();
         fs::create_directories(mulu);
         fs::permissions(mulu,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                        fs::perms::owner_all | fs::perms::group_all |
+                            fs::perms::others_read,
                         fs::perm_options::add);
 
         FILE *f = fopen(savefilename.c_str(), "wb");
@@ -676,8 +728,8 @@ namespace http
             fwrite(&custrominclude[0], 1, custrominclude.size(), f);
         }
 
-        headtxt = "//g++ ";
-        headtxt.append(savefilename);
+        headtxt = "//This file create by paozhu ";
+        headtxt.append(viewgetgmtdatetime(0));
 
         headtxt.append("\nnamespace http {\n");
         headtxt.append("\nnamespace view {\n");
@@ -685,8 +737,8 @@ namespace http
         headtxt.append(filename_namespace);
         headtxt.append("{\n \t\t std::string ");
         headtxt.append(filename_methold);
-        headtxt.append(
-            "([[maybe_unused]] const struct view_param &vinfo,[[maybe_unused]] http::obj_val &obj)\n\t\t\t{\n ");
+        headtxt.append("([[maybe_unused]] const struct view_param "
+                       "&vinfo,[[maybe_unused]] http::obj_val &obj)\n\t\t\t{\n ");
 
         fwrite(&headtxt[0], 1, headtxt.size(), f);
 
@@ -716,7 +768,8 @@ namespace http
         fclose(f);
 
         fs::permissions(savefilename,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_write,
+                        fs::perms::owner_all | fs::perms::group_all |
+                            fs::perms::others_read | fs::perms::others_write,
                         fs::perm_options::add);
     }
 
