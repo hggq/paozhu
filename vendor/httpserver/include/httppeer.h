@@ -69,6 +69,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     unsigned long long get_groupid();
     std::string get_theme();
     std::string get_themeurl();
+    void theme_view(const std::string &a);
+
     unsigned char has_urlfileext();
     bool isuse_fastcgi();
     void goto_url(const std::string &url, unsigned char second = 0, const std::string &msg = "");

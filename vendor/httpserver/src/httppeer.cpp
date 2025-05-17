@@ -515,6 +515,48 @@ std::string httppeer::get_themeurl()
     }
     return sysconfigpath.sitehostinfos[host_index].themes_url;
 }
+void httppeer::theme_view(const std::string &a)
+{
+    std::string view_name;
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (host_index >= sysconfigpath.sitehostinfos.size())
+    {
+        view_name = a;
+    }
+    else 
+    {
+        if(sysconfigpath.sitehostinfos[host_index].themes.size()>0)
+        {
+            view_name = sysconfigpath.sitehostinfos[host_index].themes;
+            view_name.push_back('/');
+        }
+        
+        view_name.append(a);
+    }
+    
+    struct view_param tempvp(get, post, cookie, session);
+    if (!isso)
+    {
+        try
+        {
+            VIEW_REG &viewreg = get_viewmetholdreg();
+            auto viter        = viewreg.find(view_name);
+            if (viter != viewreg.end())
+            {
+                output.append(viter->second(tempvp, val));
+                return;
+            }
+            output.append("Not Found View ");
+            output.append(view_name);
+        }
+        catch (const std::exception &e)
+        {
+            output.append(std::string(e.what()));
+            return;
+        }
+    }
+    return;
+}
 bool httppeer::is_ssl()
 {
     if (isssl)
