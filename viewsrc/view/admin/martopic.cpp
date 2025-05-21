@@ -16,7 +16,7 @@
 #include "viewso_param.h"
 #include "http_so_common_api.h"
 #include "viewsrc.h"
-//This file create by paozhu Fri, 16 May 2025 06:02:27 GMT
+//This file create by paozhu Wed, 21 May 2025 02:24:02 GMT
 namespace http {
 
 namespace view {
@@ -70,6 +70,12 @@ namespace view {
                             case 7:
                                  echo<<"产品展示";
                                  break;     
+                            case 9:
+                                  echo<<"产品栏目";
+                                  break;  
+                            case 10:
+                                  echo<<"产品列表";
+                                  break;       
                             case 13:
                                  echo<<"博客类型";
                                  break;   
@@ -89,7 +95,9 @@ namespace view {
                                  echo<<"文章列表无日期1";
                                  break;  
                             case 35:
-                                 echo<<"文章单页图片4";                                 
+                                 echo<<"文章单页图片4";            
+                            case 100:
+                                 echo<<"网站首页";                               
                                  break;                
                       }
                   
@@ -117,7 +125,7 @@ namespace view {
  echo<<a["id"].to_string(); 
  			 echo<<")\">删除</a>\n                </td>\n              </tr>\n              ";
  } 
- 			 echo<<"          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n  \n  <script lang=\"javascript\">\n  \n    function deletetopic(id)\n    {\n      if(confirm('是否删除?'))\n      {          \n          $.getJSON(\"/admin/deletetopic?id=\"+id,function(result){\n                if(result.code==0)\n                {\n                \n                     $(\"#topicid_\"+id).remove();\n                }\n                \n          });\n\n      }\n      return false;\n    }\n      function updatetopic(id,sortid)\n    {\n       $.getJSON(\"/admin/updatetopicsort?id=\"+id+\"&sortid=\"+sortid,function(result){\n                               \n       });\n    }\n    function artupdateview(obj)\n    {\n      let isview=0;\n      if(obj.checked)\n        {\n           isview=1;\n        }\n        $.post(\"/admin/updatetopicview?id=\"+obj.value,{isview:isview},function(result){\n                               \n       });\n    }\n  </script>\n</body>\n\n</html>";
+ 			 echo<<"          </tbody>\n\n        </table>\n      </div>\n    </div>\n\n  </div>\n\n  <script src=\"/assets/dist/js/bootstrap.bundle.min.js\"></script>\n  \n  <script lang=\"javascript\">\n  \n    function deletetopic(id)\n    {\n      if(confirm('是否删除?'))\n      {          \n          $.getJSON(\"/admin/deletetopic?id=\"+id,function(result){\n                if(result.code==0)\n                {\n                \n                     $(\"#topicid_\"+id).remove();\n                }\n                \n          });\n\n      }\n      return false;\n    }\n      function updatetopic(id,sortid)\n    {\n       $.getJSON(\"/admin/updatetopicsort?id=\"+id+\"&sortid=\"+sortid,function(result){\n                               \n       });\n    }\n    function artupdateview(obj)\n    {\n      let isview=0;\n      if(obj.checked)\n        {\n           isview=1;\n        }\n        $.post(\"/admin/updatetopicview?id=\"+obj.value,{isview:isview},function(result){\n                               \n       });\n    }\n  </script>\n</body>\n\n</html>\n";
 
                     }
                     catch(const char *e)
