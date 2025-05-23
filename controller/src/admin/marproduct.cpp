@@ -93,11 +93,11 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
 
     pro.data.smallid = client.post["smallid"].to_int();
 
-    objtemp = client.post["header_urlpath"].to_json();
+    //objtemp = client.post["header_urlpath"].to_json();
     urltemp_array.set_array();
-    if(objtemp.is_array())
+    if(client.post["header_urlpath"].is_array())
     {
-        for(auto &a:objtemp.as_array())
+        for(auto &a:client.post["header_urlpath"].as_array())
         {
             if(a.size()>0)
             {
@@ -105,9 +105,9 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
             }
         }
     }
-    else if(objtemp.is_object())
+    else if(client.post["header_urlpath"].is_object())
     {
-        for(auto &a:objtemp.as_object())
+        for(auto &a:client.post["header_urlpath"].as_object())
         {
             if(a.second.size()>0)
             {
@@ -199,11 +199,11 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
 
     
 
-    objtemp = client.post["header_urlpath"].to_json();
+    //objtemp = client.post["header_urlpath"].to_json();
     urltemp_array.set_array();
-    if(objtemp.is_array())
+    if(client.post["header_urlpath"].is_array())
     {
-        for(auto &a:objtemp)
+        for(auto &a:client.post["header_urlpath"].as_array())
         {
             if(a.size()>0)
             {
@@ -211,9 +211,9 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
             }
         }
     }
-    else if(objtemp.is_object())
+    else if(client.post["header_urlpath"].is_object())
     {
-        for(auto &a:objtemp.as_object())
+        for(auto &a:client.post["header_urlpath"].as_object())
         {
             if(a.second.size()>0)
             {

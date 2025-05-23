@@ -16,7 +16,7 @@
 #include "viewso_param.h"
 #include "http_so_common_api.h"
 #include "viewsrc.h"
-//This file create by paozhu Wed, 21 May 2025 02:24:02 GMT
+//This file create by paozhu Fri, 23 May 2025 02:34:46 GMT
 namespace http {
 
 namespace view {
@@ -95,7 +95,8 @@ namespace view {
                                  echo<<"文章列表无日期1";
                                  break;  
                             case 35:
-                                 echo<<"文章单页图片4";            
+                                 echo<<"文章单页图片4";  
+                                 break;            
                             case 100:
                                  echo<<"网站首页";                               
                                  break;                
