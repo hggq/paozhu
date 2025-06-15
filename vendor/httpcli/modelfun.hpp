@@ -5674,7 +5674,9 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "\n#include \"" << tablenamebase << "_base.h\"\n#include \""
                           << model_name_obj << ".h\"\n";
     }
-
+    filemodelstremcpp << "\n/* ";
+    filemodelstremcpp << getgmtdatetime();
+    filemodelstremcpp << " */";
     filemodelstremcpp << "\n/* 如果此文件存在不会自动覆盖，没有则会自动生成。\n*If this file exists, it will not be "
                          "overwritten automatically. If not, it will be generated automatically. */\n";
     filemodelstremcpp << "\n";
@@ -5752,6 +5754,9 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "_mysql.h\" \n#include \"";
         filemodelstremcpp << tablenamebase << "_base.h\"\n";
     }
+    filemodelstremcpp << "\n/* ";
+    filemodelstremcpp << getgmtdatetime();
+    filemodelstremcpp << " */";
     filemodelstremcpp << "\n/* 如果此文件存在不会自动覆盖，没有则会自动生成。\n*If this file exists, it will not be "
                          "overwritten automatically. If not, it will be generated automatically. */\n";
     filemodelstremcpp << "\n namespace orm {\n";

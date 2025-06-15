@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 26 Apr 2025 15:58:24 GMT
+*本文件为自动生成 Sun, 15 Jun 2025 01:41:48 GMT
 ***/
 #include <iostream>
 #include <cstdio>
