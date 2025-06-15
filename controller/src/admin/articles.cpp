@@ -133,7 +133,6 @@ std::string admin_editarticle(std::shared_ptr<httppeer> peer)
         client.val["info"]["icoimg"]        = artmodel.getIcoimg();
         client.val["info"]["relatecontent"] = artmodel.getRelatecontent();
         client.val["info"]["texturl"]       = artmodel.getTexturl();
-        client.val["info"]["texturl"]       = artmodel.getTexturl();
         client.val["info"]["keywords"]      = artmodel.getKeywords();
         client.val["info"]["content"]       = html_encode(artmodel.getRefContent());
         client.val["info"]["summary"]       = html_encode(artmodel.getRefSummary());
