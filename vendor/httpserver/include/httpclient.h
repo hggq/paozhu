@@ -81,7 +81,7 @@ class client : public std::enable_shared_from_this<client>
     void respcontenttypeprocess(std::string_view);
     void processcode();
     void finishprocess();
-    void process(const char *buffer, unsigned int buffersize);
+    bool process(const char *buffer, unsigned int buffersize);
     void close_file(std::FILE *fp) { std::fclose(fp); }
 
     void buildheader();
@@ -159,6 +159,7 @@ class client : public std::enable_shared_from_this<client>
     std::shared_ptr<asio::ssl::context> ssl_context                   = {nullptr};
 
     std::function<void(const std::string &, std::shared_ptr<http::client>)> onload = nullptr;
+    std::function<bool(const char *buffer, unsigned int readoffset,unsigned int httpcode)> onheader = nullptr;
     std::function<void(unsigned long long, unsigned long long)> upload_process     = nullptr;
     std::string use_certificate_file;
     std::string use_private_key_file;

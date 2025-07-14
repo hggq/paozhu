@@ -554,6 +554,12 @@ namespace http
 		temp.regfun = testhttpclient_get_range;
 		methodcallback.emplace("testclientgetrange",temp);
 		temp.pre = nullptr;
+		temp.regfun = testhttpclient_downfilelist;
+		methodcallback.emplace("downfilelist",temp);
+		temp.pre = nullptr;
+		temp.regfun = testhttpclient_getdownfile;
+		methodcallback.emplace("downfilecontent",temp);
+		temp.pre = nullptr;
 		temp.regfun = testcors;
 		methodcallback.emplace("api/user/message",temp);
 		temp.pre = nullptr;

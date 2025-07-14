@@ -307,9 +307,9 @@ asio::awaitable<bool> client::async_init_http_sock()
     sock = std::make_shared<asio::ip::tcp::socket>(executor);
     asio::error_code ec;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-    auto endpoints = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+    auto endpoints                 = co_await resolver.async_resolve(host, port, asio::use_awaitable);
 
-    for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
+    for (auto iter = endpoints.cbegin(); iter != endpoints.cend();)
     {
         std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
         if (ec)
@@ -370,9 +370,9 @@ asio::awaitable<bool> client::async_init_https_sock()
     asio::error_code ec;
 
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-    auto endpoints = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+    auto endpoints                 = co_await resolver.async_resolve(host, port, asio::use_awaitable);
 
-    for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
+    for (auto iter = endpoints.cbegin(); iter != endpoints.cend();)
     {
         std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
         if (ec)
@@ -383,7 +383,7 @@ asio::awaitable<bool> client::async_init_https_sock()
     }
 
     // asio::connect(sslsock->lowest_layer(), endpoints);
-    
+
     // constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
     // while (iter != end)
     // {
@@ -405,7 +405,7 @@ asio::awaitable<bool> client::async_init_https_sock()
     ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
 
     //sslsock->handshake(asio::ssl::stream_base::client, ec);
-    std::tie(ec)  = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
+    std::tie(ec) = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
     if (ec)
     {
         error_msg = host + " handshake error! ";
@@ -423,7 +423,7 @@ bool client::init_http_sock()
     asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
     auto endpoints = resolver.resolve(host, port);
     //socket->connect(endpoints, ec);
-    asio::connect(*sock,endpoints,ec);
+    asio::connect(*sock, endpoints, ec);
     //asio::ip::tcp::resolver::query checkquery(host, port);
     // asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
     // asio::ip::tcp::resolver::iterator end;
@@ -616,7 +616,10 @@ asio::awaitable<void> client::async_send_data()
                 break;
             }
             readoffset = 0;
-            process(data, n);
+            if (process(data, n))
+            {
+                break;
+            }
             if (state.page.size > 0 && (state.page.size == state.content.size()))
             {
                 break;
@@ -822,7 +825,10 @@ client &client::send_data()
                 break;
             }
             readoffset = 0;
-            process(data, n);
+            if (process(data, n))
+            {
+                break;
+            }
             if (state.page.size > 0 && (state.page.size == state.content.size()))
             {
                 break;
@@ -857,8 +863,8 @@ bool client::init_https_sock()
     auto endpoints = resolver.resolve(host.c_str(), port);
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
-    
-    asio::connect(sslsock->lowest_layer(), endpoints,ec);
+
+    asio::connect(sslsock->lowest_layer(), endpoints, ec);
     if (ec)
     {
         error_msg = host + " connect error! ";
@@ -926,8 +932,8 @@ asio::awaitable<void> client::async_send_ssl_data()
             SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
 
             constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-            auto endpoints = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-            for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
+            auto endpoints                 = co_await resolver.async_resolve(host, port, asio::use_awaitable);
+            for (auto iter = endpoints.cbegin(); iter != endpoints.cend();)
             {
                 std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
                 if (ec)
@@ -959,8 +965,8 @@ asio::awaitable<void> client::async_send_ssl_data()
             sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
             ssl_context->set_verify_mode(asio::ssl::verify_peer);
             ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
-             
-            std::tie(ec)  = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
+
+            std::tie(ec) = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
             if (ec)
             {
                 error_msg = host + " handshake error! ";
@@ -1092,7 +1098,10 @@ asio::awaitable<void> client::async_send_ssl_data()
                 break;
             }
             readoffset = 0;
-            process(data, n);
+            if (process(data, n))
+            {
+                break;
+            }
             if (state.page.size > 0 && (state.page.size == state.content.size()))
             {
                 break;
@@ -1294,7 +1303,10 @@ client &client::send_ssl_data()
                 break;
             }
             readoffset = 0;
-            process(data, n);
+            if (process(data, n))
+            {
+                break;
+            }
             if (state.page.size > 0 && (state.page.size == state.content.size()))
             {
                 break;
@@ -1339,7 +1351,6 @@ void client::processcode()
     {
         if (contentline[j] != 0x20)
         {
-
             break;
         }
     }
@@ -1358,7 +1369,6 @@ void client::processcode()
     state.code = code;
     if (code == 0)
     {
-
         error = 1;
         return;
     }
@@ -1431,7 +1441,6 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
             response_header.append("\r\n");
             if (state.code == 0)
             {
-
                 processcode();
                 if (state.code == 0)
                 {
@@ -1538,35 +1547,91 @@ void client::respattachmentprocess(std::string_view str)
 {
     // Content-Disposition: attachment; filename="filename.jpg"
     std::string name, value;
-    for (unsigned int i = 0; i < str.length(); i++)
+    unsigned int i = 0;
+    for (; i < str.length(); i++)
+    {
+        if (str[i] == 0x20)
+        {
+            continue;
+        }
+        break;
+    }
+    for (; i < str.length(); i++)
     {
         if (str[i] == '=')
         {
-            name = value;
-
-            value.clear();
-            continue;
-        }
-        if (name.size() > 0 && str[i] == 0x22)
-        {
-            // value.clear();
-            continue;
-        }
-        if (str[i] == ';')
-        {
-            if (value == "attachment")
+            if (value.size() > 0 && value.back() == 0x20)
             {
-                state.istxt = false;
+                value.pop_back();
+            }
+
+            if (str_casecmp(value, "filename"))
+            {
+                name = value;
+                i++;
+                for (; i < str.length(); i++)
+                {
+                    if (str[i] == 0x20)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                value.clear();
+                break;
             }
             value.clear();
             continue;
         }
+
+        if (str[i] == ';')
+        {
+            if (str_casecmp(value, "attachment"))
+            {
+                state.istxt = false;
+            }
+            value.clear();
+            for (; i < str.length(); i++)
+            {
+                if (str[i + 1] == 0x20)
+                {
+                    continue;
+                }
+                break;
+            }
+            continue;
+        }
         value.push_back(str[i]);
     }
-    if (name == "filename")
+
+    if (str_casecmp(name, "filename"))
     {
-        state.istxt         = false;
-        state.page.filename = std::move(value);
+        state.istxt = false;
+        state.page.filename.clear();
+
+        for (; i < str.length(); i++)
+        {
+            if (str[i] == 0x22 || str[i] == 0x27)
+            {
+                continue;
+            }
+            break;
+        }
+
+        for (; i < str.length(); i++)
+        {
+            //" ' / ; char is end of filename
+            if (str[i] == 0x22 || str[i] == 0x27 || str[i] == 0x2F || str[i] == 0x3B)
+            {
+                break;
+            }
+            state.page.filename.push_back(str[i]);
+        }
+    }
+
+    if (value.size() > 0 && str_casecmp(value, "attachment"))
+    {
+        state.istxt = false;
     }
 }
 void client::respcontenttypeprocess(std::string_view str)
@@ -1968,15 +2033,15 @@ void client::finishprocess()
             state.isjson = true;
     }
 }
-void client::process(const char *buffer, unsigned int buffersize)
+bool client::process(const char *buffer, unsigned int buffersize)
 {
     if (readoffset >= buffersize)
     {
-        return;
+        return true;
     }
     if (error > 0)
     {
-        return;
+        return true;
     }
     if (headerfinish == 0)
     {
@@ -1989,6 +2054,13 @@ void client::process(const char *buffer, unsigned int buffersize)
             }
             if (headerfinish == 1)
             {
+                if (onheader != nullptr)
+                {
+                    if (onheader(buffer, readoffset, state.code))
+                    {
+                        return true;
+                    }
+                }
                 break;
             }
         }
@@ -2005,6 +2077,7 @@ void client::process(const char *buffer, unsigned int buffersize)
             respreadtofile(buffer, buffersize);
         }
     }
+    return false;
 }
 client &client::data_type(std::string str = "")
 {
@@ -2042,7 +2115,15 @@ client &client::save(std::string path = "")
     if (path.empty())
     {
         path.append("./");
-        path.append(state.page.filename);
+        if (state.page.filename.empty())
+        {
+            unsigned long long tetime = time((time_t *)NULL);
+            state.page.filename       = std::to_string(tetime);
+        }
+        else
+        {
+            path.append(state.page.filename);
+        }
     }
 
     struct stat s;
@@ -2992,7 +3073,7 @@ void client::buildcontent()
             ptemp.name.clear();
             ptemp.size = 0;
             ptemp.type.clear();
-            if (!data.is_array()&&!data.is_object())
+            if (!data.is_array() && !data.is_object())
             {
                 ptemp.tempfile = data.to_string();
             }
@@ -3000,7 +3081,7 @@ void client::buildcontent()
             {
                 for (auto [first, second] : data.as_object())
                 {
-                    if (!second.is_array()&&!second.is_object())
+                    if (!second.is_array() && !second.is_object())
                     {
                         ptemp.tempfile = second.to_string();
                         break;
