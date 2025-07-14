@@ -602,6 +602,7 @@ asio::awaitable<void> client::async_send_data()
         while (true)
         {
             memset(data, 0x00, 2048);
+            //BUG Not considering the file state
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
                 n = co_await sock->async_read_some(asio::buffer(data, state.page.size - state.content.size()), asio::use_awaitable);
@@ -811,6 +812,7 @@ client &client::send_data()
         while (true)
         {
             memset(data, 0x00, 2048);
+            //BUG Not considering the file state
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
                 n = sock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
@@ -1084,6 +1086,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         while (true)
         {
             memset(data, 0x00, 2048);
+            //BUG Not considering the file state
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
                 n = co_await sslsock->async_read_some(asio::buffer(data, state.page.size - state.content.size()), asio::use_awaitable);
@@ -1289,6 +1292,7 @@ client &client::send_ssl_data()
         while (true)
         {
             memset(data, 0x00, 2048);
+            //BUG Not considering the file state
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
                 n = sslsock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
@@ -2008,7 +2012,6 @@ void client::respreadtofile(const char *buffer, unsigned int buffersize)
     }
     if (i < buffersize && rawfile)
     {
-
         fwrite(&buffer[i], offset, 1, rawfile.get());
     }
 }
@@ -2054,6 +2057,7 @@ bool client::process(const char *buffer, unsigned int buffersize)
             }
             if (headerfinish == 1)
             {
+                state.length = 0;
                 if (onheader != nullptr)
                 {
                     if (onheader(buffer, readoffset, state.code))
@@ -2074,7 +2078,12 @@ bool client::process(const char *buffer, unsigned int buffersize)
         }
         else
         {
+            state.length = state.length + (buffersize - readoffset);
             respreadtofile(buffer, buffersize);
+            if (download_process != nullptr)
+            {
+                download_process(state.length, state.page.size);
+            }
         }
     }
     return false;

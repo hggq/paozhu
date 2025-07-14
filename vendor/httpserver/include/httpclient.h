@@ -23,17 +23,17 @@ struct upload_file
     std::string filename;
     std::string tempfile;
     std::string type;
-    unsigned int size;
-    unsigned char error;
+    unsigned long long size = 0;
+    unsigned char error     = 0;
 };
 
 class client : public std::enable_shared_from_this<client>
 {
 
   public:
-    client() : rawfile(nullptr, std::fclose){};
+    client() : rawfile(nullptr, std::fclose) {};
     ~client();
-    client(std::string_view url) : _url(url), rawfile(nullptr, std::fclose){};
+    client(std::string_view url) : _url(url), rawfile(nullptr, std::fclose) {};
     client &get(std::string_view url, http::obj_val parmter);
     client &get(std::string_view url);
     client &post(std::string_view url, http::obj_val parmter);
@@ -139,12 +139,13 @@ class client : public std::enable_shared_from_this<client>
     bool isssl                 = false;
     struct state_t
     {
-        unsigned int code   = 0;
-        unsigned int length = 0;
-        bool istxt          = false;
-        bool isjson         = false;
-        bool chunked        = false;
-        bool keeplive       = false;
+        long long length  = 0;
+        unsigned int code = 0;
+
+        bool istxt    = false;
+        bool isjson   = false;
+        bool chunked  = false;
+        bool keeplive = false;
         char encode;
         std::string content;
         std::string codemessage;
@@ -158,9 +159,10 @@ class client : public std::enable_shared_from_this<client>
     std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsock = {nullptr};
     std::shared_ptr<asio::ssl::context> ssl_context                   = {nullptr};
 
-    std::function<void(const std::string &, std::shared_ptr<http::client>)> onload = nullptr;
-    std::function<bool(const char *buffer, unsigned int readoffset,unsigned int httpcode)> onheader = nullptr;
-    std::function<void(unsigned long long, unsigned long long)> upload_process     = nullptr;
+    std::function<void(const std::string &, std::shared_ptr<http::client>)> onload                   = nullptr;
+    std::function<bool(const char *buffer, unsigned int readoffset, unsigned int httpcode)> onheader = nullptr;
+    std::function<void(unsigned long long, unsigned long long)> upload_process                       = nullptr;
+    std::function<void(unsigned long long, unsigned long long)> download_process                     = nullptr;
     std::string use_certificate_file;
     std::string use_private_key_file;
     std::string load_verify_file;
