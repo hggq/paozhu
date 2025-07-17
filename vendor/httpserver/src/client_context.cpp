@@ -102,26 +102,20 @@ void client_context::time_out_loop()
                 {
                     if (peer)
                     {
-                        DEBUG_LOG("time out:%d", (nowtimeid - peer->timeout_end));
-                        if (peer->timeout_end < nowtimeid)
+                        DEBUG_LOG("time out:%d > %d", peer->get_timeout(), nowtimeid);
+                        if (peer->get_timeout() < nowtimeid)
                         {
-                            if (peer->isssl)
+                            if(peer->iswait_exit)
                             {
-                                peer->sslsock->shutdown(peer->ec);
-                                if (peer->sslsock->lowest_layer().is_open())
-                                {
-                                    peer->sock->close();
-                                }
+                                DEBUG_LOG("time out erase %d",peer->get_timeout());
+                                peer->close_connect();
+                                timeout_lists.erase(iter++);
                             }
-                            else
+                            else 
                             {
-                                if (peer->sock->is_open())
-                                {
-                                    peer->sock->close();
-                                }
-                            }
-                            //peer.reset();
-                            timeout_lists.erase(iter++);
+                                peer->iswait_exit = true;
+                                ++iter;
+                            }                            
                         }
                         else
                         {
@@ -263,9 +257,9 @@ asio::awaitable<void> client_context::websocket_client_task(std::shared_ptr<clie
     co_return;
 }
 
-asio::io_context& client_context::get_ctx()
+asio::io_context &client_context::get_ctx()
 {
-     return *ioc;
+    return *ioc;
 }
 
 void client_context::stop()

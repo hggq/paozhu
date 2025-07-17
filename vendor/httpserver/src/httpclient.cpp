@@ -38,26 +38,55 @@ client::~client()
     {
         if (sslsock)
         {
-            sslsock->shutdown(ec);
-            if (sslsock->lowest_layer().is_open())
-            {
-                sslsock->lowest_layer().close();
-            }
+            // sslsock->shutdown(ec);
+            // if (sslsock->lowest_layer().is_open())
+            // {
+            //     sslsock->lowest_layer().close();
+            // }
+            sslsock.reset();
         }
     }
     else
     {
         if (sock && sock->is_open())
         {
-            sock->close();
+            //sock->close();
+            sock.reset();
         }
     }
 }
+
+void client::close_connect()
+{
+    std::lock_guard<std::mutex> lk(lock_close);
+    if (isssl)
+    {
+        if (sslsock)
+        {
+            // sslsock->shutdown(ec);
+            // if (sslsock->lowest_layer().is_open())
+            // {
+            //     sslsock->lowest_layer().close();
+            // }
+            sslsock.reset();
+        }
+    }
+    else
+    {
+        if (sock && sock->is_open())
+        {
+            //sock->close();
+            sock.reset();
+        }
+    }
+}
+
 client &client::requst_clear()
 {
     senddata.clear();
     header.clear();
     data.clear();
+    error = 0;
     return *this;
 }
 client &client::get(std::string_view url)
@@ -460,8 +489,9 @@ asio::awaitable<void> client::async_send_data()
 {
     try
     {
-        headerfinish = 0;
-        machnum      = 0;
+        headerfinish  = 0;
+        timeout_count = 0;
+        machnum       = 0;
         response_header.clear();
         state.code     = 0;
         state.length   = 0;
@@ -494,12 +524,11 @@ asio::awaitable<void> client::async_send_data()
 
         if (exptime > 30)
         {
-            exptime = 10;
+            exptime = 30;
         }
         if (exptime > 0)
         {
-            timeout_end = timeid() + exptime;
-
+            set_timeout(exptime);
             client_context &temp_io_context = get_client_context_obj();
             try
             {
@@ -514,6 +543,7 @@ asio::awaitable<void> client::async_send_data()
         }
         co_await async_write(*sock, asio::buffer(request), asio::use_awaitable);
 
+        timeout_total = timeid() + timeout_total;
         char data[2051];
         unsigned int n;
         if (requesttype == 1)
@@ -548,7 +578,6 @@ asio::awaitable<void> client::async_send_data()
                     data[2048] = 0x00;
                     while (readnum < n)
                     {
-
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
                         if (readnum >= n)
@@ -559,8 +588,34 @@ asio::awaitable<void> client::async_send_data()
                             nread += 1;
                         }
                         co_await async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
+                        if (upload_process != nullptr)
+                        {
+                            upload_process(readnum, n);
+                        }
+                        if (exptime > 0)
+                        {
+                            if (iswait_exit)
+                            {
+                                iswait_exit = false;
+                                reset_connect_timeout();
+                                if (timeout_total > 0)
+                                {
+                                    if (timeout_count > timeout_total)
+                                    {
+                                        state.code = 0;
+                                        error      = 2;
+                                        error_msg  = "time out";
+                                        close_connect();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-
+                    if (error > 0)
+                    {
+                        co_return;
+                    }
                     // fclose(fp);
                 }
                 break;
@@ -584,12 +639,38 @@ asio::awaitable<void> client::async_send_data()
                     data[2048] = 0x00;
                     while (readnum < n)
                     {
-
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
                         co_await async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
-                    }
+                        if (upload_process != nullptr)
+                        {
+                            upload_process(readnum, n);
+                        }
 
+                        if (exptime > 0)
+                        {
+                            if (iswait_exit)
+                            {
+                                iswait_exit = false;
+                                reset_connect_timeout();
+                                if (timeout_total > 0)
+                                {
+                                    if (timeout_count > timeout_total)
+                                    {
+                                        state.code = 0;
+                                        error      = 2;
+                                        error_msg  = "time out";
+                                        close_connect();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (error > 0)
+                    {
+                        co_return;
+                    }
                     // fclose(fp);
                 }
                 break;
@@ -599,6 +680,7 @@ asio::awaitable<void> client::async_send_data()
 
         // unsigned long long totalsize;
         // rawfile = NULL;
+
         while (true)
         {
             memset(data, 0x00, 2048);
@@ -625,6 +707,25 @@ asio::awaitable<void> client::async_send_data()
             {
                 break;
             }
+            if (exptime > 0)
+            {
+                if (iswait_exit)
+                {
+                    iswait_exit = false;
+                    reset_connect_timeout();
+                    if (timeout_total > 0)
+                    {
+                        if (timeout_count > timeout_total)
+                        {
+                            state.code = 0;
+                            error      = 2;
+                            error_msg  = "time out";
+                            close_connect();
+                            break;
+                        }
+                    }
+                }
+            }
         }
         finishprocess();
         if (onload != nullptr)
@@ -635,7 +736,9 @@ asio::awaitable<void> client::async_send_data()
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg = e.what();
+        error_msg  = e.what();
+        state.code = 0;
+        error      = 3;
     }
 
     co_return;
@@ -645,8 +748,9 @@ client &client::send_data()
 {
     try
     {
-        headerfinish = 0;
-        machnum      = 0;
+        headerfinish  = 0;
+        timeout_count = 0;
+        machnum       = 0;
         response_header.clear();
         state.code     = 0;
         state.length   = 0;
@@ -707,12 +811,11 @@ client &client::send_data()
 
         if (exptime > 30)
         {
-            exptime = 10;
+            exptime = 30;
         }
         if (exptime > 0)
         {
-            timeout_end = timeid() + exptime;
-
+            set_timeout(exptime);
             client_context &temp_io_context = get_client_context_obj();
             try
             {
@@ -727,6 +830,7 @@ client &client::send_data()
         }
         sock->write_some(asio::buffer(request));
 
+        timeout_total = timeid() + timeout_total;
         char data[2051];
         unsigned int n;
         if (requesttype == 1)
@@ -758,7 +862,6 @@ client &client::send_data()
                     data[2048] = 0x00;
                     while (readnum < n)
                     {
-
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
                         if (readnum >= n)
@@ -769,8 +872,34 @@ client &client::send_data()
                             nread += 1;
                         }
                         asio::write(*sock, asio::buffer(data, nread));
+                        if (upload_process != nullptr)
+                        {
+                            upload_process(readnum, n);
+                        }
+                        if (exptime > 0)
+                        {
+                            if (iswait_exit)
+                            {
+                                iswait_exit = false;
+                                reset_connect_timeout();
+                                if (timeout_total > 0)
+                                {
+                                    if (timeout_count > timeout_total)
+                                    {
+                                        state.code = 0;
+                                        error      = 2;
+                                        error_msg  = "time out";
+                                        close_connect();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-
+                    if (error > 0)
+                    {
+                        return *this;
+                    }
                     // fclose(fp);
                 }
                 break;
@@ -794,12 +923,37 @@ client &client::send_data()
                     data[2048] = 0x00;
                     while (readnum < n)
                     {
-
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
                         asio::write(*sock, asio::buffer(data, nread));
+                        if (upload_process != nullptr)
+                        {
+                            upload_process(readnum, n);
+                        }
+                        if (exptime > 0)
+                        {
+                            if (iswait_exit)
+                            {
+                                iswait_exit = false;
+                                reset_connect_timeout();
+                                if (timeout_total > 0)
+                                {
+                                    if (timeout_count > timeout_total)
+                                    {
+                                        state.code = 0;
+                                        error      = 2;
+                                        error_msg  = "time out";
+                                        close_connect();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-
+                    if (error > 0)
+                    {
+                        return *this;
+                    }
                     // fclose(fp);
                 }
                 break;
@@ -809,6 +963,7 @@ client &client::send_data()
 
         // unsigned long long totalsize;
         // rawfile = NULL;
+
         while (true)
         {
             memset(data, 0x00, 2048);
@@ -835,6 +990,25 @@ client &client::send_data()
             {
                 break;
             }
+            if (exptime > 0)
+            {
+                if (iswait_exit)
+                {
+                    iswait_exit = false;
+                    reset_connect_timeout();
+                    if (timeout_total > 0)
+                    {
+                        if (timeout_count > timeout_total)
+                        {
+                            state.code = 0;
+                            error      = 2;
+                            error_msg  = "time out";
+                            close_connect();
+                            break;
+                        }
+                    }
+                }
+            }
         }
         finishprocess();
         DEBUG_LOG(" http finishprocess: %zu", state.content.size());
@@ -844,7 +1018,9 @@ client &client::send_data()
         // std::printf("Exception: %s\n", e.what());
         //std::cerr << "Exception:  " << e.what() << "\r\n";
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg = e.what();
+        error_msg  = e.what();
+        state.code = 0;
+        error      = 3;
     }
 
     return *this;
@@ -895,8 +1071,9 @@ asio::awaitable<void> client::async_send_ssl_data()
     // ssl请求
     try
     {
-        headerfinish = 0;
-        machnum      = 0;
+        headerfinish  = 0;
+        timeout_count = 0;
+        machnum       = 0;
         response_header.clear();
         state.code     = 0;
         state.length   = 0;
@@ -978,12 +1155,11 @@ asio::awaitable<void> client::async_send_ssl_data()
         }
         if (exptime > 30)
         {
-            exptime = 10;
+            exptime = 30;
         }
         if (exptime > 0)
         {
-            timeout_end = timeid() + exptime;
-
+            set_timeout(exptime);
             client_context &temp_io_context = get_client_context_obj();
             try
             {
@@ -999,6 +1175,8 @@ asio::awaitable<void> client::async_send_ssl_data()
         int n;
 
         n = co_await async_write(*sslsock, asio::buffer(request), asio::use_awaitable);
+
+        timeout_total = timeid() + timeout_total;
         char data[2051];
         if (requesttype == 1)
         {
@@ -1033,7 +1211,6 @@ asio::awaitable<void> client::async_send_ssl_data()
                     data[2048] = 0x00;
                     while (readnum < n)
                     {
-
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
                         if (readnum >= n)
@@ -1044,8 +1221,34 @@ asio::awaitable<void> client::async_send_ssl_data()
                             nread += 1;
                         }
                         co_await async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
+                        if (upload_process != nullptr)
+                        {
+                            upload_process(readnum, n);
+                        }
+                        if (exptime > 0)
+                        {
+                            if (iswait_exit)
+                            {
+                                iswait_exit = false;
+                                reset_connect_timeout();
+                                if (timeout_total > 0)
+                                {
+                                    if (timeout_count > timeout_total)
+                                    {
+                                        state.code = 0;
+                                        error      = 2;
+                                        error_msg  = "time out";
+                                        close_connect();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-
+                    if (error > 0)
+                    {
+                        co_return;
+                    }
                     // fclose(fp);
                 }
                 break;
@@ -1069,12 +1272,37 @@ asio::awaitable<void> client::async_send_ssl_data()
                     data[2048] = 0x00;
                     while (readnum < n)
                     {
-
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
                         co_await async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
+                        if (upload_process != nullptr)
+                        {
+                            upload_process(readnum, n);
+                        }
+                        if (exptime > 0)
+                        {
+                            if (iswait_exit)
+                            {
+                                iswait_exit = false;
+                                reset_connect_timeout();
+                                if (timeout_total > 0)
+                                {
+                                    if (timeout_count > timeout_total)
+                                    {
+                                        state.code = 0;
+                                        error      = 2;
+                                        error_msg  = "time out";
+                                        close_connect();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-
+                    if (error > 0)
+                    {
+                        co_return;
+                    }
                     // fclose(fp);
                 }
                 break;
@@ -1083,6 +1311,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         }
 
         DEBUG_LOG("while async_read_some: %s", host.c_str());
+
         while (true)
         {
             memset(data, 0x00, 2048);
@@ -1109,6 +1338,26 @@ asio::awaitable<void> client::async_send_ssl_data()
             {
                 break;
             }
+
+            if (exptime > 0)
+            {
+                if (iswait_exit)
+                {
+                    iswait_exit = false;
+                    reset_connect_timeout();
+                    if (timeout_total > 0)
+                    {
+                        if (timeout_count > timeout_total)
+                        {
+                            state.code = 0;
+                            error      = 2;
+                            error_msg  = "time out";
+                            close_connect();
+                            break;
+                        }
+                    }
+                }
+            }
         }
         finishprocess();
         if (onload != nullptr)
@@ -1121,7 +1370,9 @@ asio::awaitable<void> client::async_send_ssl_data()
     {
         //std::printf("Exception: %s\n", e.what());
         DEBUG_LOG("Exception co ssl: %s", e.what());
-        error_msg = std::string(e.what());
+        error_msg  = std::string(e.what());
+        state.code = 0;
+        error      = 3;
     }
     co_return;
 }
@@ -1130,8 +1381,9 @@ client &client::send_ssl_data()
     // ssl请求
     try
     {
-        headerfinish = 0;
-        machnum      = 0;
+        headerfinish  = 0;
+        timeout_count = 0;
+        machnum       = 0;
         response_header.clear();
         state.code     = 0;
         state.length   = 0;
@@ -1188,12 +1440,11 @@ client &client::send_ssl_data()
         }
         if (exptime > 30)
         {
-            exptime = 10;
+            exptime = 30;
         }
         if (exptime > 0)
         {
-            timeout_end = timeid() + exptime;
-
+            set_timeout(exptime);
             client_context &temp_io_context = get_client_context_obj();
             try
             {
@@ -1209,6 +1460,7 @@ client &client::send_ssl_data()
         int n;
         n = sslsock->write_some(asio::buffer(request));
 
+        timeout_total = timeid() + timeout_total;
         char data[2051];
         if (requesttype == 1)
         {
@@ -1240,7 +1492,6 @@ client &client::send_ssl_data()
                     data[2048] = 0x00;
                     while (readnum < n)
                     {
-
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
                         if (readnum >= n)
@@ -1251,8 +1502,34 @@ client &client::send_ssl_data()
                             nread += 1;
                         }
                         asio::write(*sslsock, asio::buffer(data, nread));
+                        if (upload_process != nullptr)
+                        {
+                            upload_process(readnum, n);
+                        }
+                        if (exptime > 0)
+                        {
+                            if (iswait_exit)
+                            {
+                                iswait_exit = false;
+                                reset_connect_timeout();
+                                if (timeout_total > 0)
+                                {
+                                    if (timeout_count > timeout_total)
+                                    {
+                                        state.code = 0;
+                                        error      = 2;
+                                        error_msg  = "time out";
+                                        close_connect();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-
+                    if (error > 0)
+                    {
+                        return *this;
+                    }
                     // fclose(fp);
                 }
                 break;
@@ -1276,12 +1553,38 @@ client &client::send_ssl_data()
                     data[2048] = 0x00;
                     while (readnum < n)
                     {
-
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
                         asio::write(*sslsock, asio::buffer(data, nread));
-                    }
+                        if (upload_process != nullptr)
+                        {
+                            upload_process(readnum, n);
+                        }
 
+                        if (exptime > 0)
+                        {
+                            if (iswait_exit)
+                            {
+                                iswait_exit = false;
+                                reset_connect_timeout();
+                                if (timeout_total > 0)
+                                {
+                                    if (timeout_count > timeout_total)
+                                    {
+                                        state.code = 0;
+                                        error      = 2;
+                                        error_msg  = "time out";
+                                        close_connect();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (error > 0)
+                    {
+                        return *this;
+                    }
                     // fclose(fp);
                 }
                 break;
@@ -1289,17 +1592,18 @@ client &client::send_ssl_data()
             }
         }
         DEBUG_LOG("while ssl_read_some: %s", host.c_str());
+
         while (true)
         {
             memset(data, 0x00, 2048);
             //BUG Not considering the file state
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
-                n = sslsock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
+                n = sslsock->read_some(asio::buffer(data, state.page.size - state.content.size()),ec);
             }
             else
             {
-                n = sslsock->read_some(asio::buffer(data, 2048), ec);
+                n = sslsock->read_some(asio::buffer(data, 2048),ec);
             }
             data[2048] = 0x00;
             if (n == 0)
@@ -1315,6 +1619,25 @@ client &client::send_ssl_data()
             {
                 break;
             }
+            if (exptime > 0)
+            {
+                if (iswait_exit)
+                {
+                    iswait_exit = false;
+                    reset_connect_timeout();
+                    if (timeout_total > 0)
+                    {
+                        if (timeout_count > timeout_total)
+                        {
+                            state.code = 0;
+                            error      = 2;
+                            error_msg  = "time out";
+                            close_connect();
+                            break;
+                        }
+                    }
+                }
+            }
         }
         finishprocess();
         DEBUG_LOG("ssl_finishprocess %zu", state.content.size());
@@ -1324,7 +1647,9 @@ client &client::send_ssl_data()
     {
         //std::printf("Exception: %s\n", e.what());
         DEBUG_LOG("Exception ssl: %s", e.what());
-        error_msg = e.what();
+        error_msg  = e.what();
+        state.code = 0;
+        error      = 3;
     }
 
     return *this;

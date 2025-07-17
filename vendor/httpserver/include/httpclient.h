@@ -4,6 +4,7 @@
 #include <string>
 #include <cstddef>
 #include <vector>
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <list>
@@ -12,6 +13,7 @@
 #include <functional>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
+#include "datetime.h"
 #include "cookie.h"
 #include "request.h"
 
@@ -83,11 +85,31 @@ class client : public std::enable_shared_from_this<client>
     void finishprocess();
     bool process(const char *buffer, unsigned int buffersize);
     void close_file(std::FILE *fp) { std::fclose(fp); }
-
+    void close_connect();
     void buildheader();
     void buildcontent();
     void timeout(unsigned int t) { exptime = t; };
     unsigned int timeout() { return exptime; };
+    void reset_timeout()
+    {
+      timeout_end.store(timeid()+exptime);
+    };
+    void reset_connect_timeout()
+    {
+      timeout_end.fetch_add(exptime, std::memory_order_relaxed);
+      timeout_count = timeout_end.load();
+    };
+    void set_timeout(unsigned int t)
+    {
+      timeout_end.store(timeid()+t);
+    };
+    unsigned int get_timeout()
+    {
+        return timeout_end.load();
+    };
+    void set_limit_time(unsigned short t) { timeout_total = t; };
+    void clear_limit_time_count() { timeout_count = 0; };
+
     bool is_file() { return !state.istxt; };
     bool is_json() { return state.isjson; };
     bool init_http_sock();
@@ -131,12 +153,16 @@ class client : public std::enable_shared_from_this<client>
 
     std::string temppath;
 
-    unsigned int exptime       = 0;
-    unsigned int timeout_end   = 0;
-    unsigned int linktype      = 0;
-    unsigned int serial_number = 0;
-    unsigned char requesttype  = 0;
-    bool isssl                 = false;
+    std::atomic<unsigned int> timeout_end = 0;
+
+    unsigned int exptime         = 0;
+    unsigned int linktype        = 0;
+    unsigned int serial_number   = 0;
+    unsigned short timeout_total = 0;
+    unsigned short timeout_count = 0;
+    unsigned char requesttype    = 0;
+    bool isssl                   = false;
+    std::atomic_bool iswait_exit = false;
     struct state_t
     {
         long long length  = 0;
@@ -184,6 +210,7 @@ class client : public std::enable_shared_from_this<client>
     unsigned int readoffset    = 0;
     //FILE *rawfile = NULL;
     std::unique_ptr<std::FILE, int (*)(FILE *)> rawfile;
+    std::mutex lock_close;
 };
 }// namespace http
 #endif// PROJECT_HTTPCLIENT_H
