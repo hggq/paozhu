@@ -92,16 +92,16 @@ class client : public std::enable_shared_from_this<client>
     unsigned int timeout() { return exptime; };
     void reset_timeout()
     {
-      timeout_end.store(timeid()+exptime);
+        timeout_end.store(timeid() + exptime);
     };
     void reset_connect_timeout()
     {
-      timeout_end.fetch_add(exptime, std::memory_order_relaxed);
-      timeout_count = timeout_end.load();
+        timeout_end.fetch_add(exptime, std::memory_order_relaxed);
+        timeout_count = timeout_end.load();
     };
     void set_timeout(unsigned int t)
     {
-      timeout_end.store(timeid()+t);
+        timeout_end.store(timeid() + t);
     };
     unsigned int get_timeout()
     {
@@ -187,6 +187,7 @@ class client : public std::enable_shared_from_this<client>
 
     std::function<void(const std::string &, std::shared_ptr<http::client>)> onload                   = nullptr;
     std::function<bool(const char *buffer, unsigned int readoffset, unsigned int httpcode)> onheader = nullptr;
+    std::function<void(std::string &header_str)> onrequest                                           = nullptr;
     std::function<void(unsigned long long, unsigned long long)> upload_process                       = nullptr;
     std::function<void(unsigned long long, unsigned long long)> download_process                     = nullptr;
     std::string use_certificate_file;

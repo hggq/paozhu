@@ -1599,11 +1599,11 @@ client &client::send_ssl_data()
             //BUG Not considering the file state
             if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
             {
-                n = sslsock->read_some(asio::buffer(data, state.page.size - state.content.size()),ec);
+                n = sslsock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
             }
             else
             {
-                n = sslsock->read_some(asio::buffer(data, 2048),ec);
+                n = sslsock->read_some(asio::buffer(data, 2048), ec);
             }
             data[2048] = 0x00;
             if (n == 0)
@@ -2888,6 +2888,10 @@ void client::buildheader()
     }
 
     request.append("\r\n");
+    if (onrequest != nullptr)
+    {
+        onrequest(request);
+    }
 }
 client &client::add_cookie(const std::string &k, const std::string &v)
 {

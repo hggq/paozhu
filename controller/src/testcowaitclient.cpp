@@ -367,6 +367,14 @@ std::string testhttpclient_getdownfile(std::shared_ptr<httppeer> peer)
         std::cout<<"\n----end header----"<<std::endl;
         return false;
     };
+    a->onrequest=[](std::string &str) -> void
+    {
+        std::cout<<"----begin request--"<<std::endl;
+        std::cout<<str;
+        std::cout<<"\n----end request----"<<std::endl;
+    };
+    //a->timeout(10);
+    //a->set_limit_time(800);
     a->send();
 
     if (a->get_status() == 200)
