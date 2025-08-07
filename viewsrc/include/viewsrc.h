@@ -24,6 +24,8 @@ namespace  admin{
 	std::string addhometopic(const struct view_param &vinfo,http::obj_val &obj);
 	std::string addproduct(const struct view_param &vinfo,http::obj_val &obj);
 	std::string addtopic(const struct view_param &vinfo,http::obj_val &obj);
+	std::string addtopicsidepick(const struct view_param &vinfo,http::obj_val &obj);
+	std::string addtopicsidetext(const struct view_param &vinfo,http::obj_val &obj);
 	std::string copyright(const struct view_param &vinfo,http::obj_val &obj);
 	std::string editarticle(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edithomeblockmulit(const struct view_param &vinfo,http::obj_val &obj);
@@ -35,6 +37,8 @@ namespace  admin{
 	std::string editpassword(const struct view_param &vinfo,http::obj_val &obj);
 	std::string editproduct(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edittopic(const struct view_param &vinfo,http::obj_val &obj);
+	std::string edittopicsidepick(const struct view_param &vinfo,http::obj_val &obj);
+	std::string edittopicsidetext(const struct view_param &vinfo,http::obj_val &obj);
 	std::string fileupload(const struct view_param &vinfo,http::obj_val &obj);
 	std::string footscript(const struct view_param &vinfo,http::obj_val &obj);
 	std::string homedesign(const struct view_param &vinfo,http::obj_val &obj);
@@ -47,6 +51,7 @@ namespace  admin{
 	std::string marhome(const struct view_param &vinfo,http::obj_val &obj);
 	std::string marproductattach(const struct view_param &vinfo,http::obj_val &obj);
 	std::string martopic(const struct view_param &vinfo,http::obj_val &obj);
+	std::string martopicside(const struct view_param &vinfo,http::obj_val &obj);
 	std::string siteinfo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string sitelogo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string userinfo(const struct view_param &vinfo,http::obj_val &obj);

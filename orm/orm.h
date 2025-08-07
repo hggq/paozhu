@@ -24,3 +24,5 @@
 #include "cms/include/Xproject.h"
 #include "cms/include/Xtalk.h"
 #include "cms/include/Xtask.h"
+#include "cms/include/Sitelog.h"
+#include "cms/include/Topicset.h"

@@ -17,7 +17,7 @@ namespace http
 {
   void _initview_method_regto(VIEW_REG  &_viewmetholdreg)
   {
-            	 //create time: Fri, 23 May 2025 02:34:45 GMT
+            	 //create time: Thu, 07 Aug 2025 02:38:23 GMT
 
 	_viewmetholdreg.emplace("admin/addarticle",http::view::admin::addarticle);
 	_viewmetholdreg.emplace("admin/addhomecontent",http::view::admin::addhomecontent);
@@ -27,6 +27,8 @@ namespace http
 	_viewmetholdreg.emplace("admin/addhometopic",http::view::admin::addhometopic);
 	_viewmetholdreg.emplace("admin/addproduct",http::view::admin::addproduct);
 	_viewmetholdreg.emplace("admin/addtopic",http::view::admin::addtopic);
+	_viewmetholdreg.emplace("admin/addtopicsidepick",http::view::admin::addtopicsidepick);
+	_viewmetholdreg.emplace("admin/addtopicsidetext",http::view::admin::addtopicsidetext);
 	_viewmetholdreg.emplace("admin/copyright",http::view::admin::copyright);
 	_viewmetholdreg.emplace("admin/editarticle",http::view::admin::editarticle);
 	_viewmetholdreg.emplace("admin/edithomeblockmulit",http::view::admin::edithomeblockmulit);
@@ -38,6 +40,8 @@ namespace http
 	_viewmetholdreg.emplace("admin/editpassword",http::view::admin::editpassword);
 	_viewmetholdreg.emplace("admin/editproduct",http::view::admin::editproduct);
 	_viewmetholdreg.emplace("admin/edittopic",http::view::admin::edittopic);
+	_viewmetholdreg.emplace("admin/edittopicsidepick",http::view::admin::edittopicsidepick);
+	_viewmetholdreg.emplace("admin/edittopicsidetext",http::view::admin::edittopicsidetext);
 	_viewmetholdreg.emplace("admin/fileupload",http::view::admin::fileupload);
 	_viewmetholdreg.emplace("admin/footscript",http::view::admin::footscript);
 	_viewmetholdreg.emplace("admin/homedesign",http::view::admin::homedesign);
@@ -50,6 +54,7 @@ namespace http
 	_viewmetholdreg.emplace("admin/marhome",http::view::admin::marhome);
 	_viewmetholdreg.emplace("admin/marproductattach",http::view::admin::marproductattach);
 	_viewmetholdreg.emplace("admin/martopic",http::view::admin::martopic);
+	_viewmetholdreg.emplace("admin/martopicside",http::view::admin::martopicside);
 	_viewmetholdreg.emplace("admin/siteinfo",http::view::admin::siteinfo);
 	_viewmetholdreg.emplace("admin/sitelogo",http::view::admin::sitelogo);
 	_viewmetholdreg.emplace("admin/userinfo",http::view::admin::userinfo);

@@ -496,4 +496,349 @@ std::string admin_updatetopicview(std::shared_ptr<httppeer> peer)
     return "";
 }
 
+//@urlpath(admin_isloginjson,admin/updatetopicsideblocksort)
+std::string admin_updatetopicsideblocksort(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    try
+    {
+        auto topicm          = orm::cms::Topicset();
+        unsigned char sortid = client.get["sortid"].to_int();
+
+        topicm.setSort(sortid);
+        topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicsetid", client.get["id"].to_int());
+        client.val["code"] = topicm.update("sort");
+        client.val["msg"]  = "ok";
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 0;
+    }
+    client.out_json();
+    return "";
+}
+
+//@urlpath(admin_isloginjson,admin/edittopicside)
+std::string admin_edittopicside(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client.val["list"].set_array();
+    unsigned int topicid  = client.get["topicid"].to_int();
+    client.val["topicid"] = topicid;
+
+    try
+    {
+        auto topicsetm = orm::cms::Topicset();
+        topicsetm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", topicid).order("sort").fetch();
+
+        obj_val temp;
+        for (unsigned int i = 0; i < topicsetm.record.size(); i++)
+        {
+            temp["id"]       = topicsetm.record[i].topicsetid;
+            temp["title"]    = topicsetm.record[i].sidename;
+            temp["viewtype"] = topicsetm.record[i].sidetype;
+            temp["sortid"] = topicsetm.record[i].sort;
+            client.val["list"].push(temp);
+        }
+    }
+    catch (std::exception &e)
+    {
+    }
+    peer->view("admin/martopicside");
+    return "";
+}
+
+//@urlpath(admin_isloginjson,admin/addtopicsidepick)
+std::string admin_addtopicsidepick(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    unsigned int topicid  = client.get["topicid"].to_int();
+    client.val["topicid"] = topicid;
+
+    try
+    {
+        auto topicm = orm::cms::Topic();
+        // define out
+        psy::topics_tree_outjson_t topicone;
+        std::vector<psy::topics_tree_outjson_t> topiclists;
+
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
+
+        for (unsigned int i = 0; i < topicm.record.size(); i++)
+        {
+            topicone.id       = topicm.record[i].topicid;
+            topicone.parentid = topicm.record[i].parentid;
+            topicone.value    = topicm.record[i].title;
+            topicone.cateid   = topicm.record[i].cateid;
+            topicone.sortid   = topicm.record[i].sortid;
+            topicone.urlpath  = topicm.record[i].urlpath;
+            topicone.isview   = topicm.record[i].isview > 0 ? true : false;
+
+            topiclists.push_back(topicone);
+        }
+        std::vector<psy::topics_tree_outjson_t> topiclists_data, list_data;
+        array_to_tree<psy::topics_tree_outjson_t>(topiclists_data, topiclists);
+        tree_to_array<psy::topics_tree_outjson_t>(list_data, topiclists_data);
+
+        client.val["list"].set_array();
+        obj_val temp;
+        for (unsigned int i = 0; i < list_data.size(); i++)
+        {
+            temp["id"]       = list_data[i].id;
+            temp["parentid"] = list_data[i].parentid;
+            temp["value"]    = list_data[i].value;
+            temp["cateid"]   = list_data[i].cateid;
+            temp["urlpath"]  = list_data[i].urlpath;
+            temp["isview"]   = list_data[i].isview;
+            temp["level"]    = list_data[i]._level;
+            temp["sortid"]   = list_data[i].sortid;
+            client.val["list"].push(temp);
+        }
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"] = 1;
+    }
+
+    peer->view("admin/addtopicsidepick");
+    return "";
+}
+
+//@urlpath(admin_isloginjson,admin/addtopicsidetext)
+std::string admin_addtopicsidetext(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    unsigned int topicid  = client.get["topicid"].to_int();
+    client.val["topicid"] = topicid;
+
+    peer->view("admin/addtopicsidetext");
+    return "";
+}
+
+//@urlpath(admin_isloginjson,admin/addtopicsideblockpost)
+std::string admin_addtopicsideblockpost(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client     = peer->get_peer();
+    unsigned int topicid = client.post["topicid"].to_int();
+    try
+    {
+        auto topicm = orm::cms::Topicset();
+        topicm.setSidename(client.post["title"].as_string());
+        topicm.setTxtcontent(client.post["content"].to_string());
+
+        unsigned int typetemp = client.post["viewtype"].to_int();
+        if (typetemp > 2)
+        {
+            typetemp = 0;
+        }
+        topicm.setSidetype(typetemp);
+
+        typetemp = client.post["picktopicid"].to_int();
+        topicm.setLinktopicid(typetemp);
+        topicm.setTopicid(topicid);
+
+        typetemp = client.post["rownum"].to_int();
+        topicm.setLinkrownum(typetemp);
+
+        topicm.setUserid(client.session["userid"].to_int());
+
+        auto [effect_num, insert_last_id] = topicm.save();
+
+        if (insert_last_id > 0)
+        {
+            client.val["code"]    = 0;
+            client.val["topicid"] = topicid;
+        }
+        else
+        {
+            client.val["code"]    = 2;
+            client.val["topicid"] = 0;
+        }
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"]    = 1;
+        client.val["topicid"] = 0;
+    }
+    client.out_json();
+    return "";
+}
+
+//@urlpath(admin_isloginjson,admin/deletetopicsideblock)
+std::string admin_deletetopicsideblock(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client        = peer->get_peer();
+    unsigned int topicsetid = client.get["id"].to_int();
+    try
+    {
+        auto topicm         = orm::cms::Topicset();
+        unsigned int tempid = topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicsetid", topicsetid).remove();
+
+        if (tempid > 0)
+        {
+            client.val["code"]    = 0;
+            client.val["topicid"] = topicsetid;
+        }
+        else
+        {
+            client.val["code"]    = 2;
+            client.val["topicid"] = 0;
+        }
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"]    = 1;
+        client.val["topicid"] = 0;
+    }
+    client.out_json();
+    return "";
+}
+
+//@urlpath(admin_isloginjson,admin/edittopicsideblocktext)
+std::string admin_edittopicsideblocktext(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    unsigned int topicsetid  = client.get["id"].to_int();
+    client.val["topicsetid"] = topicsetid;
+
+    try
+    {
+        auto topicm = orm::cms::Topicset();
+        topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicsetid", topicsetid).fetch_one();
+
+        client.val["info"].set_object();
+
+        client.val["info"]["title"]      = topicm.data.sidename;
+        client.val["info"]["content"]    = topicm.data.txtcontent;
+        client.val["info"]["topicsetid"] = topicm.data.topicsetid;
+        client.val["info"]["topicid"]    = topicm.data.topicid;
+        client.val["topicid"]            = topicm.data.topicid;
+    }
+    catch (std::exception &e)
+    {
+    }
+    peer->view("admin/edittopicsidetext");
+    return "";
+}
+
+//@urlpath(admin_isloginjson,admin/edittopicsideblockpick)
+std::string admin_edittopicsideblockpick(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    unsigned int topicsetid  = client.get["id"].to_int();
+    client.val["topicsetid"] = topicsetid;
+
+    try
+    {
+        auto topicm = orm::cms::Topic();
+        // define out
+        psy::topics_tree_outjson_t topicone;
+        std::vector<psy::topics_tree_outjson_t> topiclists;
+
+        topicm.where("userid", client.session["userid"].to_int()).asc("parentid").fetch();
+
+        for (unsigned int i = 0; i < topicm.record.size(); i++)
+        {
+            topicone.id       = topicm.record[i].topicid;
+            topicone.parentid = topicm.record[i].parentid;
+            topicone.value    = topicm.record[i].title;
+            topicone.cateid   = topicm.record[i].cateid;
+            topicone.sortid   = topicm.record[i].sortid;
+            topicone.urlpath  = topicm.record[i].urlpath;
+            topicone.isview   = topicm.record[i].isview > 0 ? true : false;
+
+            topiclists.push_back(topicone);
+        }
+        std::vector<psy::topics_tree_outjson_t> topiclists_data, list_data;
+        array_to_tree<psy::topics_tree_outjson_t>(topiclists_data, topiclists);
+        tree_to_array<psy::topics_tree_outjson_t>(list_data, topiclists_data);
+
+        client.val["list"].set_array();
+        obj_val temp;
+        for (unsigned int i = 0; i < list_data.size(); i++)
+        {
+            temp["id"]       = list_data[i].id;
+            temp["parentid"] = list_data[i].parentid;
+            temp["value"]    = list_data[i].value;
+            temp["cateid"]   = list_data[i].cateid;
+            temp["urlpath"]  = list_data[i].urlpath;
+            temp["isview"]   = list_data[i].isview;
+            temp["level"]    = list_data[i]._level;
+            temp["sortid"]   = list_data[i].sortid;
+            client.val["list"].push(temp);
+        }
+
+        auto topicsetm = orm::cms::Topicset();
+        topicsetm.where("userid", client.session["userid"].to_int()).whereAnd("topicsetid", topicsetid).fetch_one();
+
+        client.val["info"].set_object();
+
+        client.val["info"]["title"]      = topicsetm.data.sidename;
+        client.val["info"]["content"]    = topicsetm.data.txtcontent;
+        client.val["info"]["topicsetid"] = topicsetm.data.topicsetid;
+        client.val["info"]["topicid"]    = topicsetm.data.topicid;
+        client.val["info"]["rownum"]    = topicsetm.data.linkrownum;
+        client.val["info"]["picktopicid"]    = topicsetm.data.linktopicid;
+        client.val["topicid"]            = topicsetm.data.topicid;
+    }
+    catch (std::exception &e)
+    {
+    }
+    peer->view("admin/edittopicsidepick");
+    return "";
+}
+
+//@urlpath(admin_isloginjson,admin/edittopicsideblockpost)
+std::string admin_edittopicsideblockpost(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client        = peer->get_peer();
+    unsigned int topicsetid = client.post["topicsetid"].to_int();
+    try
+    {
+        auto topicm = orm::cms::Topicset();
+        topicm.setSidename(client.post["title"].as_string());
+        topicm.setTxtcontent(client.post["content"].as_string());
+
+        unsigned int typetemp = client.post["viewtype"].to_int();
+        if (typetemp > 2)
+        {
+            typetemp = 0;
+        }
+        // topicm.setSidetype(typetemp);
+
+        typetemp = client.post["picktopicid"].to_int();
+        topicm.setLinktopicid(typetemp);
+
+        typetemp = client.post["rownum"].to_int();
+        topicm.setLinkrownum(typetemp);
+
+
+        topicm.where("userid", client.session["userid"].to_int()).whereAnd("topicsetid", topicsetid);
+
+        unsigned int tempeffect = topicm.update("sidename,txtcontent,linkrownum,linktopicid");
+        if (tempeffect > 0)
+        {
+            client.val["code"]    = 0;
+            client.val["topicid"] = client.post["topicid"].to_int();
+        }
+        else
+        {
+            client.val["code"]    = 2;
+            client.val["topicid"] = 0;
+        }
+    }
+    catch (std::exception &e)
+    {
+        client.val["code"]    = 1;
+        client.val["topicid"] = 0;
+    }
+    client.out_json();
+    return "";
+}
+
 }// namespace http

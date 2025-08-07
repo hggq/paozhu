@@ -88,12 +88,16 @@
           头图设置
         </button>
       </div>   
-      <div class="col-md-6">
+      <div class="col-md-3">
         <label for="isside" class="form-label">是否有边栏</label>
         <div class="form-check form-switch mt-2">
           <input class="form-check-input" type="checkbox" role="switch" name="isside" id="isside" value="1" <% if(obj["info"]["isside"].to_bool()){ %>checked<% } %>>
           <label class="form-check-label" for="isside">是否边栏</label>
         </div>
+      </div>
+      <div class="col-md-3">
+        <div style="text-align: center">边栏内容设置</div>
+        <div style="text-align: center"><a href="/admin/edittopicside?topicid=<% echo<<obj["info"]["topicid"].to_string(); %>">编辑</a></div>
       </div>
       <div class="col-md-6">
         <label for="sorttype" class="form-label">栏目内容排序</label>

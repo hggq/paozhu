@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 15 Jun 2025 01:41:48 GMT
+*本文件为自动生成 Thu, 07 Aug 2025 02:38:20 GMT
 ***/
 #include <iostream>
 #include <cstdio>

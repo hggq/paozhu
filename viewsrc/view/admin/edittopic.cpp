@@ -16,7 +16,7 @@
 #include "viewso_param.h"
 #include "http_so_common_api.h"
 #include "viewsrc.h"
-//This file create by paozhu Wed, 21 May 2025 02:24:02 GMT
+//This file create by paozhu Thu, 07 Aug 2025 02:38:24 GMT
 namespace http {
 
 namespace view {
@@ -37,11 +37,13 @@ if(obj["info"]["topicstatus"].to_bool()){
 } 
  			 echo<<">\n          <label class=\"form-check-label\" for=\"topicstatus\">是否显示</label>\n        </div>\n\n      </div>\n\n      <div class=\"col-md-6\">\n        <label for=\"urlpath\" class=\"form-label\">栏目urlpath</label>\n        <input type=\"text\" class=\"form-control\" id=\"urlpath\" name=\"urlpath\" value=\"";
 echo<<obj["info"]["urlpath"].to_string(); 
- 			 echo<<"\">\n      </div>\n      \n      <div class=\"col-md-12\">\n        <button type=\"button\" class=\"btn btn-outline-info\" data-bs-toggle=\"modal\" data-bs-target=\"#staticBackdrop\">\n          头图设置\n        </button>\n      </div>   \n      <div class=\"col-md-6\">\n        <label for=\"isside\" class=\"form-label\">是否有边栏</label>\n        <div class=\"form-check form-switch mt-2\">\n          <input class=\"form-check-input\" type=\"checkbox\" role=\"switch\" name=\"isside\" id=\"isside\" value=\"1\" ";
+ 			 echo<<"\">\n      </div>\n      \n      <div class=\"col-md-12\">\n        <button type=\"button\" class=\"btn btn-outline-info\" data-bs-toggle=\"modal\" data-bs-target=\"#staticBackdrop\">\n          头图设置\n        </button>\n      </div>   \n      <div class=\"col-md-3\">\n        <label for=\"isside\" class=\"form-label\">是否有边栏</label>\n        <div class=\"form-check form-switch mt-2\">\n          <input class=\"form-check-input\" type=\"checkbox\" role=\"switch\" name=\"isside\" id=\"isside\" value=\"1\" ";
 if(obj["info"]["isside"].to_bool()){ 
  			 echo<<"checked";
 } 
- 			 echo<<">\n          <label class=\"form-check-label\" for=\"isside\">是否边栏</label>\n        </div>\n      </div>\n      <div class=\"col-md-6\">\n        <label for=\"sorttype\" class=\"form-label\">栏目内容排序</label>\n        <select class=\"form-select\" id=\"sorttype\" name=\"sorttype\">\n            <option  value=\"0\" ";
+ 			 echo<<">\n          <label class=\"form-check-label\" for=\"isside\">是否边栏</label>\n        </div>\n      </div>\n      <div class=\"col-md-3\">\n        <div style=\"text-align: center\">边栏内容设置</div>\n        <div style=\"text-align: center\"><a href=\"/admin/edittopicside?topicid=";
+echo<<obj["info"]["topicid"].to_string(); 
+ 			 echo<<"\">编辑</a></div>\n      </div>\n      <div class=\"col-md-6\">\n        <label for=\"sorttype\" class=\"form-label\">栏目内容排序</label>\n        <select class=\"form-select\" id=\"sorttype\" name=\"sorttype\">\n            <option  value=\"0\" ";
 if(obj["info"]["sorttype"].to_int()==0){ 
  			 echo<<"selected";
 } 

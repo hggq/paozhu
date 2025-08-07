@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>栏目边栏模块</title>
+
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+
+  <link href="/css/dashboard.css" rel="stylesheet">
+  <script src="/js/jquery.min.js"></script>  
+</head>
+
+<body>
+
+  <div class="container-fluid">
+
+    <h5 class="card-title mt-2">栏目边栏模块</h5>
+    <hr>
+    <div class="row p-3">
+      <div class="col-10">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">名称</th>
+              <th scope="col">类型</th>
+              <th scope="col">排序</th>
+              <th scope="col">编辑</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%c for(auto &a:obj["list"].as_array()){ %>
+              <tr id="topicid_<%c echo<<a["id"].to_string(); %>">
+                <td>
+                  <%c echo<<a["id"].to_string(); %>
+                </td>
+                <td>
+                  <%c echo<<a["title"].as_string(); %>
+                </td>
+                <td>
+                  <%c 
+                      switch(a["viewtype"].to_int())
+                      {
+                            case 0:
+                                 echo<<"图文内容";
+                                 break;
+                            case 1:
+                                 echo<<"栏目内容";
+                                 break;             
+                      }
+                  %>
+                </td>
+                <td>
+                  <input type="text" class="form-inline topicsort col-md-3" id="title_<%c echo<<a["id"].to_string(); %>" name="title_<%c echo<<a["id"].to_string(); %>" value="<%c echo<<a["sortid"].to_string(); %>" onchange="updatehomeblocksort(<%c echo<<a["id"].to_string(); %>,this.value)">
+                </td>
+                </td>
+                <td>
+
+                  <a href="/admin/edittopicsideblock<%c 
+                  switch(a["viewtype"].to_int())
+                  {
+                        case 0:
+                             echo<<"text";
+                             break;
+                        case 1:
+                             echo<<"pick";
+                             break;
+           
+                  }
+              %>?id=<%c echo<<a["id"].to_string(); %>">编辑</a>
+                  
+                  ｜
+                  <a href="/admin/deletetopicsideblock?id=<%c echo<<a["id"].to_string(); %>" onclick="return deletehomeblock(<%c echo<<a["id"].to_string(); %>)">删除</a>
+                </td>
+              </tr>
+              <%c } %>
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+
+
+    <div class="row p-3">
+      <div class="col-md-6">
+             <div class="row p-3">
+              <div class="col-md-12">
+                <label for="viewtype" class="form-label">模块类型</label> 
+              </div>
+            </div> 
+            <div class="row p-3">
+              <div class="col-6">
+                <select id="viewtype" class="form-select" name="viewtype">
+                  <option  value="0">图文内容</option>
+                  <option  value="1">栏目内容</option>
+                </select>  
+              </div>
+              <div class="col-6">
+
+                  <a href="/admin/addtopicsideblock" class="btn btn-primary" onclick="return addblcok();">添加模块内容</a>
+        
+                
+              </div>
+            </div> 
+            <div class="row p-3">
+              <div class="col-md-4">
+                <a href="/admin/edittopic?id=<%c echo<<obj["topicid"].to_string(); %>">返回</a>
+              </div>
+            </div> 
+      </div>
+      <div class="col-md-6">
+        <img src="/images/topicsidedemo.png">
+      </div>
+    </div>  
+
+
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script lang="javascript">
+      function addblcok()
+    {
+      var blid=jQuery('#viewtype').val();
+      switch(blid)
+      {
+        case "0":
+          window.location.href="/admin/addtopicsidetext?topicid=<%c echo<<obj["topicid"].to_string(); %>";
+          break;
+        case "1":
+          window.location.href="/admin/addtopicsidepick?topicid=<%c echo<<obj["topicid"].to_string(); %>";
+          break;         
+        default:
+          window.location.href="/admin/addtopicsidetext?topicid=<%c echo<<obj["topicid"].to_string(); %>";
+      }   
+      return false;
+    }
+
+    function deletehomeblock(id)
+    {
+      if(confirm('是否删除?'))
+      {          
+          $.getJSON("/admin/deletetopicsideblock?id="+id,function(result){
+                if(result.code==0)
+                {
+                
+                     $("#topicid_"+id).remove();
+                }
+                
+          });
+
+      }
+      return false;
+    }
+      function updatehomeblocksort(id,sortid)
+    {
+       $.getJSON("/admin/updatetopicsideblocksort?id="+id+"&sortid="+sortid,function(result){
+                               
+       });
+    }
+
+  </script>
+</body>
+
+</html>
