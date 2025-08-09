@@ -425,6 +425,8 @@ std::string admin_sitelogo(std::shared_ptr<httppeer> peer)
 
         client.val["info"]["sid"]      = stinfo.getSid();
         client.val["info"]["sitelogo"] = html_encode(stinfo.data.sitelogo);//stinfo.getCopyright();
+        client.val["info"]["sitebanner"] = html_encode(stinfo.data.sitebanner);
+
     }
     catch (...)
     {
@@ -594,6 +596,192 @@ std::string admin_sitelogopost(std::shared_ptr<httppeer> peer)
                                     }
                                     std::filesystem::copy_file(sitepath, newlogositepath);
                                     msg = "已经复制到新的LOGO！";
+                                }
+                                catch (fs::filesystem_error &e)
+                                {
+                                    msg = "复制文件失败！";
+                                    msg.append(e.what());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            msg = "添加失败！";
+        }
+    }
+    catch (...)
+    {
+        msg = "数据操作有误！";
+    }
+
+    client.goto_url("/admin/sitelogo", 3, msg);
+    return "";
+}
+
+//@urlpath(admin_islogin,admin/sitebannerpost)
+std::string admin_sitebannerpost(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    std::string msg;
+    try
+    {
+        auto stinfo      = orm::cms::Siteinfo();
+        unsigned int sid = 0;
+        sid              = client.post["sid"].to_int();
+
+        //stinfo.data.sid    = client.post["sid"].to_int();
+        stinfo.data.sitebanner = client.post["sitebanner"].to_string();
+
+        if (sid > 0)
+        {
+            //stinfo.setPK(sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
+
+            int result_status = stinfo.update("sitebanner");
+            if (result_status > 0)
+            {
+                msg = "修改成功！";
+            }
+            else
+            {
+                msg = "修改失败或没有修改！";
+            }
+            result_status = 0;
+            result_status = client.post["upbannertoimages"].to_int();
+            if (result_status == 1)
+            {
+                std::string sitepath = client.session["sitepath"].to_string();
+                if (sitepath.size() > 0 && sitepath.back() != '/')
+                {
+                    sitepath.push_back('/');
+                }
+                if (sitepath.size() == 0)
+                {
+                    sitepath = client.get_sitepath();
+                }
+                std::string newlogositepath = sitepath + "images/banner";
+
+                bool ispath    = false;
+                bool isgoodurl = true;
+
+                if (stinfo.data.sitebanner.size() > 5)
+                {
+                    if (stinfo.data.sitebanner[4] == ':' || stinfo.data.sitebanner[5] == ':')
+                    {
+                        if (stinfo.data.sitebanner.size() > 8)
+                        {
+                            for (unsigned int i = 8; i < stinfo.data.sitebanner.size(); i++)
+                            {
+                                if (stinfo.data.sitebanner[i] == '/')
+                                {
+
+                                    i++;
+                                    for (; i < stinfo.data.sitebanner.size(); i++)
+                                    {
+                                        if (stinfo.data.sitebanner[i] == '.')
+                                        {
+                                            if (i > 0 && stinfo.data.sitebanner[i - 1] == '.')
+                                            {
+                                                sitepath.clear();
+                                                break;
+                                            }
+                                            if (ispath)
+                                            {
+                                                isgoodurl = false;
+                                                break;
+                                            }
+                                            ispath = true;
+                                        }
+                                        else
+                                        {
+                                            ispath = false;
+                                        }
+                                        sitepath.push_back(stinfo.data.sitebanner[i]);
+                                    }
+
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        unsigned int i = 0;
+                        if (stinfo.data.sitebanner.size() > 0 && stinfo.data.sitebanner[0] == '/')
+                        {
+                            i = 1;
+                        }
+                        for (; i < stinfo.data.sitebanner.size(); i++)
+                        {
+                            if (stinfo.data.sitebanner[i] == '.')
+                            {
+                                if (i > 0 && stinfo.data.sitebanner[i - 1] == '.')
+                                {
+                                    sitepath.clear();
+                                    break;
+                                }
+                                if (ispath)
+                                {
+                                    isgoodurl = false;
+                                    break;
+                                }
+                                ispath = true;
+                            }
+                            else
+                            {
+                                ispath = false;
+                            }
+                            sitepath.push_back(stinfo.data.sitebanner[i]);
+                        }
+                    }
+                }
+                else
+                {
+                    sitepath.clear();
+                }
+
+                if (sitepath.size() > 0)
+                {
+
+                    if (isgoodurl)
+                    {
+                        bool isshowfile          = true;
+                        unsigned int extfilesize = sitepath.size();
+                        if (extfilesize > 4)
+                        {
+                            if (sitepath[extfilesize - 1] == 'g' && sitepath[extfilesize - 2] == 'n' &&
+                                sitepath[extfilesize - 3] == 'p' && sitepath[extfilesize - 4] == '.')
+                            {
+                                newlogositepath.append(".png");
+                                isshowfile = false;
+                            }
+                            if (isshowfile && sitepath[extfilesize - 1] == 'g' && sitepath[extfilesize - 2] == 'p' &&
+                                sitepath[extfilesize - 3] == 'j' && sitepath[extfilesize - 4] == '.')
+                            {
+                                newlogositepath.append(".jpg");
+                                isshowfile = false;
+                            }
+                            if (isshowfile && sitepath[extfilesize - 1] == 'g' && sitepath[extfilesize - 2] == 'v' &&
+                                sitepath[extfilesize - 3] == 's' && sitepath[extfilesize - 4] == '.')
+                            {
+                                newlogositepath.append(".svg");
+                                isshowfile = false;
+                            }
+
+                            if (!isshowfile)
+                            {
+                                try
+                                {
+                                    if (std::filesystem::exists(newlogositepath))
+                                    {
+                                        std::filesystem::remove(newlogositepath);
+                                    }
+                                    std::filesystem::copy_file(sitepath, newlogositepath);
+                                    msg = "已经复制到新的Banner！";
                                 }
                                 catch (fs::filesystem_error &e)
                                 {

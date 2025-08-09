@@ -1134,96 +1134,102 @@ namespace cms
             std::memcpy(data_temp.sitelogo.data(), result_temp_data, value_size);
             break;
                 case 14:
+            data_temp.sitebanner.clear();
+            data_temp.sitebanner.resize(value_size);
+            
+            std::memcpy(data_temp.sitebanner.data(), result_temp_data, value_size);
+            break;
+                case 15:
             data_temp.contactman.clear();
             data_temp.contactman.resize(value_size);
             
             std::memcpy(data_temp.contactman.data(), result_temp_data, value_size);
             break;
-                case 15:
+                case 16:
             data_temp.phone.clear();
             data_temp.phone.resize(value_size);
             
             std::memcpy(data_temp.phone.data(), result_temp_data, value_size);
             break;
-                case 16:
+                case 17:
             data_temp.mobile.clear();
             data_temp.mobile.resize(value_size);
             
             std::memcpy(data_temp.mobile.data(), result_temp_data, value_size);
             break;
-                case 17:
+                case 18:
             data_temp.email.clear();
             data_temp.email.resize(value_size);
             
             std::memcpy(data_temp.email.data(), result_temp_data, value_size);
             break;
-                case 18:
+                case 19:
             data_temp.bankname.clear();
             data_temp.bankname.resize(value_size);
             
             std::memcpy(data_temp.bankname.data(), result_temp_data, value_size);
             break;
-                case 19:
+                case 20:
             data_temp.banksn.clear();
             data_temp.banksn.resize(value_size);
             
             std::memcpy(data_temp.banksn.data(), result_temp_data, value_size);
             break;
-                case 20:
+                case 21:
             data_temp.address.clear();
             data_temp.address.resize(value_size);
             
             std::memcpy(data_temp.address.data(), result_temp_data, value_size);
             break;
-                case 21:
+                case 22:
             data_temp.zipnum.clear();
             data_temp.zipnum.resize(value_size);
             
             std::memcpy(data_temp.zipnum.data(), result_temp_data, value_size);
             break;
-                case 22:
+                case 23:
             data_temp.taxsn.clear();
             data_temp.taxsn.resize(value_size);
             
             std::memcpy(data_temp.taxsn.data(), result_temp_data, value_size);
             break;
-                case 23:
+                case 24:
             data_temp.companyname.clear();
             data_temp.companyname.resize(value_size);
             
             std::memcpy(data_temp.companyname.data(), result_temp_data, value_size);
             break;
-                case 24:
+                case 25:
             data_temp.linkname.clear();
             data_temp.linkname.resize(value_size);
             
             std::memcpy(data_temp.linkname.data(), result_temp_data, value_size);
             break;
-                case 25:
+                case 26:
             data_temp.linkmobile.clear();
             data_temp.linkmobile.resize(value_size);
             
             std::memcpy(data_temp.linkmobile.data(), result_temp_data, value_size);
             break;
-                case 26:
+                case 27:
             data_temp.linkaddress.clear();
             data_temp.linkaddress.resize(value_size);
             
             std::memcpy(data_temp.linkaddress.data(), result_temp_data, value_size);
             break;
-                case 27:
+                case 28:
             data_temp.theme.clear();
             data_temp.theme.resize(value_size);
             
             std::memcpy(data_temp.theme.data(), result_temp_data, value_size);
             break;
-                case 28:
+                case 29:
             data_temp.sitepath.clear();
             data_temp.sitepath.resize(value_size);
             
             std::memcpy(data_temp.sitepath.data(), result_temp_data, value_size);
             break;
-                case 29:
+                case 30:
             data_temp.isopen=0;
             
             for(unsigned int i=0; i< value_size; i++)
@@ -1239,7 +1245,7 @@ namespace cms
                 }
             }
             break;
-                case 30:
+                case 31:
             data_temp.created_at=0;
             
             for(unsigned int i=0; i< value_size; i++)
@@ -1255,7 +1261,7 @@ namespace cms
                 }
             }
             break;
-                case 31:
+                case 32:
             data_temp.enddate=0;
             
             for(unsigned int i=0; i< value_size; i++)
@@ -22121,6 +22127,1544 @@ M_MODEL& or_leSitelogo(T val)
             ishascontent = true;
         }
         wheresql.append(" sitelogo <= '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& nullSitebanner()
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner = NULL ");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& nnullSitebanner()
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner != NULL ");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& eqSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner = '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& nqSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner != '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& inSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner IN(");
+				wheresql.append(val);
+				wheresql.push_back(')');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& inSitebanner(const std::vector<std::string> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
+            wheresql.append(B_BASE::stringaddslash(val[i]));
+            wheresql.push_back('\'');    
+        }
+    
+
+    
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& inSitebanner(const std::vector<T> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
+            wheresql.append(std::to_string(val[i]));
+            wheresql.push_back('\'');    
+        }
+    
+
+    
+        return *mod;   
+    }   
+    
+
+M_MODEL& ninSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner NOT IN(");
+				wheresql.append(val);
+				wheresql.push_back(')');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& ninSitebanner(const std::vector<std::string> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner NOT IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
+            wheresql.append(B_BASE::stringaddslash(val[i]));
+            wheresql.push_back('\'');    
+        }
+    
+
+    
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& ninSitebanner(const std::vector<T> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner NOT IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
+            wheresql.append(std::to_string(val[i]));
+            wheresql.push_back('\'');    
+        }
+    
+
+    
+        return *mod;   
+    }   
+    
+
+M_MODEL& likeSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner LIKE '%");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("%'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& l_likeSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner LIKE '%");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& r_likeSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner LIKE '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("%'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& btSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner > '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& beSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner >= '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& ltSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner < '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& leSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner <= '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_nullSitebanner()
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner = NULL ");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_nnullSitebanner()
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner != NULL ");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_eqSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner = '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_nqSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner != '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_inSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner IN(");
+				wheresql.append(val);
+				wheresql.push_back(')');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_inSitebanner(const std::vector<std::string> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
+            wheresql.append(B_BASE::stringaddslash(val[i]));
+            wheresql.push_back('\'');    
+        }
+    
+
+    
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& or_inSitebanner(const std::vector<T> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
+            wheresql.append(std::to_string(val[i]));
+            wheresql.push_back('\'');    
+        }
+    
+
+    
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_ninSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner NOT IN(");
+				wheresql.append(val);
+				wheresql.push_back(')');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_ninSitebanner(const std::vector<std::string> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner NOT IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
+            wheresql.append(B_BASE::stringaddslash(val[i]));
+            wheresql.push_back('\'');    
+        }
+    
+
+    
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& or_ninSitebanner(const std::vector<T> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner NOT IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
+            wheresql.append(std::to_string(val[i]));
+            wheresql.push_back('\'');    
+        }
+    
+
+    
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_likeSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner LIKE '%");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("%'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& orl_likeSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner LIKE '%");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& orr_likeSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner LIKE '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("%'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_btSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner > '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_beSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner >= '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_ltSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner < '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_leSitebanner(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner <= '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& eqSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner = '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& nqSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner != '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& btSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner > '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& beSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner >= '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& ltSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner < '");
+		wheresql.append(std::to_string(val));
+		wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& leSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner <= '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_eqSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner = '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_nqSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner != '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_btSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner > '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_beSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner >= '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_ltSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner < '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+template <typename T>
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_leSitebanner(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" sitebanner <= '");
 				wheresql.append(std::to_string(val));
 				wheresql.push_back('\'');
 

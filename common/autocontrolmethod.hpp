@@ -452,6 +452,9 @@ namespace http
 		temp.regfun = admin_sitelogopost;
 		methodcallback.emplace("admin/sitelogopost",temp);
 		temp.pre = admin_islogin;
+		temp.regfun = admin_sitebannerpost;
+		methodcallback.emplace("admin/sitebannerpost",temp);
+		temp.pre = admin_islogin;
 		temp.regfun = admin_userinfo;
 		methodcallback.emplace("admin/userinfo",temp);
 		temp.pre = admin_islogin;

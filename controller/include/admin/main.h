@@ -21,6 +21,7 @@ namespace http
 	std::string admin_copyrightpost(std::shared_ptr<httppeer> peer);
 	std::string admin_sitelogo(std::shared_ptr<httppeer> peer);
 	std::string admin_sitelogopost(std::shared_ptr<httppeer> peer);
+	std::string admin_sitebannerpost(std::shared_ptr<httppeer> peer);
 	std::string admin_userinfo(std::shared_ptr<httppeer> peer);
 	std::string admin_editpassword(std::shared_ptr<httppeer> peer);
 	std::string admin_editpwdpost(std::shared_ptr<httppeer> peer);

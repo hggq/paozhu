@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 07 Aug 2025 02:38:20 GMT
+*本文件为自动生成 Sat, 09 Aug 2025 05:08:02 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -37,6 +37,7 @@ struct siteinfo_base
  std::string  headscript = ""; ///*头部script*/
  std::string  introduce = ""; ///**/
  std::string  sitelogo = ""; ///*logo url*/
+ std::string  sitebanner = ""; ///**/
  std::string  contactman = ""; ///**/
  std::string  phone = ""; ///**/
  std::string  mobile = ""; ///**/
@@ -63,10 +64,10 @@ std::vector<siteinfo_base::meta>::iterator begin(){     return record.begin(); }
 std::vector<siteinfo_base::meta>::iterator end(){     return record.end(); }
 std::vector<siteinfo_base::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<siteinfo_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,32> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
-static constexpr std::array<unsigned char,32> col_types={3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
-static constexpr std::array<unsigned char,32> col_length={0,0,0,0,120,120,0,0,0,0,0,0,0,0,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
-static constexpr std::array<unsigned char,32> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static constexpr std::array<std::string_view,33> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","sitebanner","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
+static constexpr std::array<unsigned char,33> col_types={3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
+static constexpr std::array<unsigned char,33> col_length={0,0,0,0,120,120,0,0,0,0,0,0,0,0,0,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
+static constexpr std::array<unsigned char,33> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 std::string tablename="siteinfo";
 static constexpr std::string_view modelname="Siteinfo";
 
@@ -90,20 +91,20 @@ case 7:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
  if(colpospppc=='d'){ return 2; }
- if(colpospppc=='s'){ return 20; }
+ if(colpospppc=='s'){ return 21; }
    	 break;
  }
  break;
 case 'b':
  switch(coln.size()){  
 case 6:
-   	 return 19;
+   	 return 20;
 break;
 case 7:
    	 return 9;
 break;
 case 8:
-   	 return 18;
+   	 return 19;
 break;
  }
  break;
@@ -115,21 +116,21 @@ break;
 case 10:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='n'){ return 14; }
- if(colpospppc=='t'){ return 30; }
+ if(colpospppc=='n'){ return 15; }
+ if(colpospppc=='t'){ return 31; }
    	 break;
 case 11:
-   	 return 23;
+   	 return 24;
 break;
  }
  break;
 case 'e':
  switch(coln.size()){  
 case 5:
-   	 return 17;
+   	 return 18;
 break;
 case 7:
-   	 return 31;
+   	 return 32;
 break;
  }
  break;
@@ -142,7 +143,7 @@ break;
 case 'i':
  switch(coln.size()){  
 case 6:
-   	 return 29;
+   	 return 30;
 break;
 case 9:
    	 return 12;
@@ -152,13 +153,13 @@ break;
 case 'l':
  switch(coln.size()){  
 case 8:
-   	 return 24;
-break;
-case 10:
    	 return 25;
 break;
-case 11:
+case 10:
    	 return 26;
+break;
+case 11:
+   	 return 27;
 break;
 case 12:
    	 return 3;
@@ -168,7 +169,7 @@ break;
 case 'm':
  switch(coln.size()){  
 case 6:
-   	 return 16;
+   	 return 17;
 break;
 case 8:
   colpospppc=coln.back();
@@ -179,7 +180,7 @@ case 8:
  }
  break;
 case 'p':
-   	 return 15;
+   	 return 16;
 break;
 case 's':
  switch(coln.size()){  
@@ -190,12 +191,15 @@ case 8:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
  if(colpospppc=='e'){ return 4; }
- if(colpospppc=='h'){ return 28; }
+ if(colpospppc=='h'){ return 29; }
  if(colpospppc=='o'){ return 13; }
    	 break;
 case 10:
-   	 return 5;
-break;
+  colpospppc=coln.back();
+    if(colpospppc<91){ colpospppc+=32; }
+ if(colpospppc=='n'){ return 5; }
+ if(colpospppc=='r'){ return 14; }
+   	 break;
  }
  break;
 case 't':
@@ -203,8 +207,8 @@ case 't':
 case 5:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='e'){ return 27; }
- if(colpospppc=='n'){ return 22; }
+ if(colpospppc=='e'){ return 28; }
+ if(colpospppc=='n'){ return 23; }
    	 break;
  }
  break;
@@ -212,7 +216,7 @@ case 'u':
    	 return 1;
 break;
 case 'z':
-   	 return 21;
+   	 return 22;
 break;
 
              }
@@ -323,6 +327,7 @@ tempsql<<",'"<<stringaddslash(data.footscript)<<"'";
 tempsql<<",'"<<stringaddslash(data.headscript)<<"'";
 tempsql<<",'"<<stringaddslash(data.introduce)<<"'";
 tempsql<<",'"<<stringaddslash(data.sitelogo)<<"'";
+tempsql<<",'"<<stringaddslash(data.sitebanner)<<"'";
 tempsql<<",'"<<stringaddslash(data.contactman)<<"'";
 tempsql<<",'"<<stringaddslash(data.phone)<<"'";
 tempsql<<",'"<<stringaddslash(data.mobile)<<"'";
@@ -408,6 +413,7 @@ tempsql<<",'"<<stringaddslash(insert_data.footscript)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.headscript)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.introduce)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.sitelogo)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.sitebanner)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.contactman)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.phone)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.mobile)<<"'";
@@ -502,6 +508,7 @@ tempsql<<")";
 		tempsql<<",'"<<stringaddslash(insert_data[i].headscript)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].introduce)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].sitelogo)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].sitebanner)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].contactman)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].phone)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].mobile)<<"'";
@@ -581,6 +588,7 @@ tempsql<<",`footscript`='"<<stringaddslash(data.footscript)<<"'";
 tempsql<<",`headscript`='"<<stringaddslash(data.headscript)<<"'";
 tempsql<<",`introduce`='"<<stringaddslash(data.introduce)<<"'";
 tempsql<<",`sitelogo`='"<<stringaddslash(data.sitelogo)<<"'";
+tempsql<<",`sitebanner`='"<<stringaddslash(data.sitebanner)<<"'";
 tempsql<<",`contactman`='"<<stringaddslash(data.contactman)<<"'";
 tempsql<<",`phone`='"<<stringaddslash(data.phone)<<"'";
 tempsql<<",`mobile`='"<<stringaddslash(data.mobile)<<"'";
@@ -729,65 +737,69 @@ tempsql<<"`sitelogo`='"<<stringaddslash(data.sitelogo)<<"'";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`contactman`='"<<stringaddslash(data.contactman)<<"'";
+tempsql<<"`sitebanner`='"<<stringaddslash(data.sitebanner)<<"'";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`phone`='"<<stringaddslash(data.phone)<<"'";
+tempsql<<"`contactman`='"<<stringaddslash(data.contactman)<<"'";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`mobile`='"<<stringaddslash(data.mobile)<<"'";
+tempsql<<"`phone`='"<<stringaddslash(data.phone)<<"'";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`email`='"<<stringaddslash(data.email)<<"'";
+tempsql<<"`mobile`='"<<stringaddslash(data.mobile)<<"'";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`bankname`='"<<stringaddslash(data.bankname)<<"'";
+tempsql<<"`email`='"<<stringaddslash(data.email)<<"'";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`banksn`='"<<stringaddslash(data.banksn)<<"'";
+tempsql<<"`bankname`='"<<stringaddslash(data.bankname)<<"'";
  break;
  case 20:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`address`='"<<stringaddslash(data.address)<<"'";
+tempsql<<"`banksn`='"<<stringaddslash(data.banksn)<<"'";
  break;
  case 21:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`zipnum`='"<<stringaddslash(data.zipnum)<<"'";
+tempsql<<"`address`='"<<stringaddslash(data.address)<<"'";
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`taxsn`='"<<stringaddslash(data.taxsn)<<"'";
+tempsql<<"`zipnum`='"<<stringaddslash(data.zipnum)<<"'";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`companyname`='"<<stringaddslash(data.companyname)<<"'";
+tempsql<<"`taxsn`='"<<stringaddslash(data.taxsn)<<"'";
  break;
  case 24:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`linkname`='"<<stringaddslash(data.linkname)<<"'";
+tempsql<<"`companyname`='"<<stringaddslash(data.companyname)<<"'";
  break;
  case 25:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`linkmobile`='"<<stringaddslash(data.linkmobile)<<"'";
+tempsql<<"`linkname`='"<<stringaddslash(data.linkname)<<"'";
  break;
  case 26:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`linkaddress`='"<<stringaddslash(data.linkaddress)<<"'";
+tempsql<<"`linkmobile`='"<<stringaddslash(data.linkmobile)<<"'";
  break;
  case 27:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`theme`='"<<stringaddslash(data.theme)<<"'";
+tempsql<<"`linkaddress`='"<<stringaddslash(data.linkaddress)<<"'";
  break;
  case 28:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`sitepath`='"<<stringaddslash(data.sitepath)<<"'";
+tempsql<<"`theme`='"<<stringaddslash(data.theme)<<"'";
  break;
  case 29:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"`sitepath`='"<<stringaddslash(data.sitepath)<<"'";
+ break;
+ case 30:
  if(jj>0){ tempsql<<","; } 
 if(data.isopen==0){
 	tempsql<<"`isopen`=0";
@@ -795,7 +807,7 @@ if(data.isopen==0){
 	tempsql<<"`isopen`="<<std::to_string(data.isopen);
 }
  break;
- case 30:
+ case 31:
  if(jj>0){ tempsql<<","; } 
 if(data.created_at==0){
 	tempsql<<"`created_at`=0";
@@ -803,7 +815,7 @@ if(data.created_at==0){
 	tempsql<<"`created_at`="<<std::to_string(data.created_at);
 }
  break;
- case 31:
+ case 32:
  if(jj>0){ tempsql<<","; } 
 if(data.enddate==0){
 	tempsql<<"`enddate`=0";
@@ -885,6 +897,7 @@ if(data.enddate==0){
 	tempsql<<",'"<<stringaddslash(record[i].headscript)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].introduce)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].sitelogo)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].sitebanner)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].contactman)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].phone)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].mobile)<<"'";
@@ -983,6 +996,7 @@ if(data.enddate==0){
 	tempsql<<",'"<<stringaddslash(record[i].headscript)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].introduce)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].sitelogo)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].sitebanner)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].contactman)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].phone)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].mobile)<<"'";
@@ -1151,65 +1165,68 @@ if(data.languagetype==0){
 	temparray.push_back(data.sitelogo);
  break;
  case 14:
-	temparray.push_back(data.contactman);
+	temparray.push_back(data.sitebanner);
  break;
  case 15:
-	temparray.push_back(data.phone);
+	temparray.push_back(data.contactman);
  break;
  case 16:
-	temparray.push_back(data.mobile);
+	temparray.push_back(data.phone);
  break;
  case 17:
-	temparray.push_back(data.email);
+	temparray.push_back(data.mobile);
  break;
  case 18:
-	temparray.push_back(data.bankname);
+	temparray.push_back(data.email);
  break;
  case 19:
-	temparray.push_back(data.banksn);
+	temparray.push_back(data.bankname);
  break;
  case 20:
-	temparray.push_back(data.address);
+	temparray.push_back(data.banksn);
  break;
  case 21:
-	temparray.push_back(data.zipnum);
+	temparray.push_back(data.address);
  break;
  case 22:
-	temparray.push_back(data.taxsn);
+	temparray.push_back(data.zipnum);
  break;
  case 23:
-	temparray.push_back(data.companyname);
+	temparray.push_back(data.taxsn);
  break;
  case 24:
-	temparray.push_back(data.linkname);
+	temparray.push_back(data.companyname);
  break;
  case 25:
-	temparray.push_back(data.linkmobile);
+	temparray.push_back(data.linkname);
  break;
  case 26:
-	temparray.push_back(data.linkaddress);
+	temparray.push_back(data.linkmobile);
  break;
  case 27:
-	temparray.push_back(data.theme);
+	temparray.push_back(data.linkaddress);
  break;
  case 28:
-	temparray.push_back(data.sitepath);
+	temparray.push_back(data.theme);
  break;
  case 29:
+	temparray.push_back(data.sitepath);
+ break;
+ case 30:
 if(data.isopen==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.isopen));
 }
  break;
- case 30:
+ case 31:
 if(data.created_at==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.created_at));
 }
  break;
- case 31:
+ case 32:
 if(data.enddate==0){
 	temparray.push_back("0");
  }else{ 
@@ -1315,65 +1332,68 @@ if(data.languagetype==0){
 	tempsql.insert({"sitelogo",data.sitelogo});
  break;
  case 14:
-	tempsql.insert({"contactman",data.contactman});
+	tempsql.insert({"sitebanner",data.sitebanner});
  break;
  case 15:
-	tempsql.insert({"phone",data.phone});
+	tempsql.insert({"contactman",data.contactman});
  break;
  case 16:
-	tempsql.insert({"mobile",data.mobile});
+	tempsql.insert({"phone",data.phone});
  break;
  case 17:
-	tempsql.insert({"email",data.email});
+	tempsql.insert({"mobile",data.mobile});
  break;
  case 18:
-	tempsql.insert({"bankname",data.bankname});
+	tempsql.insert({"email",data.email});
  break;
  case 19:
-	tempsql.insert({"banksn",data.banksn});
+	tempsql.insert({"bankname",data.bankname});
  break;
  case 20:
-	tempsql.insert({"address",data.address});
+	tempsql.insert({"banksn",data.banksn});
  break;
  case 21:
-	tempsql.insert({"zipnum",data.zipnum});
+	tempsql.insert({"address",data.address});
  break;
  case 22:
-	tempsql.insert({"taxsn",data.taxsn});
+	tempsql.insert({"zipnum",data.zipnum});
  break;
  case 23:
-	tempsql.insert({"companyname",data.companyname});
+	tempsql.insert({"taxsn",data.taxsn});
  break;
  case 24:
-	tempsql.insert({"linkname",data.linkname});
+	tempsql.insert({"companyname",data.companyname});
  break;
  case 25:
-	tempsql.insert({"linkmobile",data.linkmobile});
+	tempsql.insert({"linkname",data.linkname});
  break;
  case 26:
-	tempsql.insert({"linkaddress",data.linkaddress});
+	tempsql.insert({"linkmobile",data.linkmobile});
  break;
  case 27:
-	tempsql.insert({"theme",data.theme});
+	tempsql.insert({"linkaddress",data.linkaddress});
  break;
  case 28:
-	tempsql.insert({"sitepath",data.sitepath});
+	tempsql.insert({"theme",data.theme});
  break;
  case 29:
+	tempsql.insert({"sitepath",data.sitepath});
+ break;
+ case 30:
 if(data.isopen==0){
 	tempsql.insert({"isopen","0"});
  }else{ 
 	tempsql.insert({"isopen",std::to_string(data.isopen)});
 }
  break;
- case 30:
+ case 31:
 if(data.created_at==0){
 	tempsql.insert({"created_at","0"});
  }else{ 
 	tempsql.insert({"created_at",std::to_string(data.created_at)});
 }
  break;
- case 31:
+ case 32:
 if(data.enddate==0){
 	tempsql.insert({"enddate","0"});
  }else{ 
@@ -1432,6 +1452,8 @@ tempsql<<"\"";
 tempsql<<",\"introduce\":\""<<http::utf8_to_jsonstring(data.introduce);
 tempsql<<"\"";
 tempsql<<",\"sitelogo\":\""<<http::utf8_to_jsonstring(data.sitelogo);
+tempsql<<"\"";
+tempsql<<",\"sitebanner\":\""<<http::utf8_to_jsonstring(data.sitebanner);
 tempsql<<"\"";
 tempsql<<",\"contactman\":\""<<http::utf8_to_jsonstring(data.contactman);
 tempsql<<"\"";
@@ -1589,65 +1611,69 @@ tempsql<<"\"sitelogo\":\""<<http::utf8_to_jsonstring(data.sitelogo)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"contactman\":\""<<http::utf8_to_jsonstring(data.contactman)<<"\"";
+tempsql<<"\"sitebanner\":\""<<http::utf8_to_jsonstring(data.sitebanner)<<"\"";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"phone\":\""<<http::utf8_to_jsonstring(data.phone)<<"\"";
+tempsql<<"\"contactman\":\""<<http::utf8_to_jsonstring(data.contactman)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(data.mobile)<<"\"";
+tempsql<<"\"phone\":\""<<http::utf8_to_jsonstring(data.phone)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(data.email)<<"\"";
+tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(data.mobile)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"bankname\":\""<<http::utf8_to_jsonstring(data.bankname)<<"\"";
+tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(data.email)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"banksn\":\""<<http::utf8_to_jsonstring(data.banksn)<<"\"";
+tempsql<<"\"bankname\":\""<<http::utf8_to_jsonstring(data.bankname)<<"\"";
  break;
  case 20:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(data.address)<<"\"";
+tempsql<<"\"banksn\":\""<<http::utf8_to_jsonstring(data.banksn)<<"\"";
  break;
  case 21:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"zipnum\":\""<<http::utf8_to_jsonstring(data.zipnum)<<"\"";
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(data.address)<<"\"";
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"taxsn\":\""<<http::utf8_to_jsonstring(data.taxsn)<<"\"";
+tempsql<<"\"zipnum\":\""<<http::utf8_to_jsonstring(data.zipnum)<<"\"";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"companyname\":\""<<http::utf8_to_jsonstring(data.companyname)<<"\"";
+tempsql<<"\"taxsn\":\""<<http::utf8_to_jsonstring(data.taxsn)<<"\"";
  break;
  case 24:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkname\":\""<<http::utf8_to_jsonstring(data.linkname)<<"\"";
+tempsql<<"\"companyname\":\""<<http::utf8_to_jsonstring(data.companyname)<<"\"";
  break;
  case 25:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkmobile\":\""<<http::utf8_to_jsonstring(data.linkmobile)<<"\"";
+tempsql<<"\"linkname\":\""<<http::utf8_to_jsonstring(data.linkname)<<"\"";
  break;
  case 26:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkaddress\":\""<<http::utf8_to_jsonstring(data.linkaddress)<<"\"";
+tempsql<<"\"linkmobile\":\""<<http::utf8_to_jsonstring(data.linkmobile)<<"\"";
  break;
  case 27:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"theme\":\""<<http::utf8_to_jsonstring(data.theme)<<"\"";
+tempsql<<"\"linkaddress\":\""<<http::utf8_to_jsonstring(data.linkaddress)<<"\"";
  break;
  case 28:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitepath\":\""<<http::utf8_to_jsonstring(data.sitepath)<<"\"";
+tempsql<<"\"theme\":\""<<http::utf8_to_jsonstring(data.theme)<<"\"";
  break;
  case 29:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitepath\":\""<<http::utf8_to_jsonstring(data.sitepath)<<"\"";
+ break;
+ case 30:
  if(jj>0){ tempsql<<","; } 
 if(data.isopen==0){
 	tempsql<<"\"isopen\":0";
@@ -1655,7 +1681,7 @@ if(data.isopen==0){
 	tempsql<<"\"isopen\":"<<std::to_string(data.isopen);
 }
  break;
- case 30:
+ case 31:
  if(jj>0){ tempsql<<","; } 
 if(data.created_at==0){
 	tempsql<<"\"created_at\":0";
@@ -1663,7 +1689,7 @@ if(data.created_at==0){
 	tempsql<<"\"created_at\":"<<std::to_string(data.created_at);
 }
  break;
- case 31:
+ case 32:
  if(jj>0){ tempsql<<","; } 
 if(data.enddate==0){
 	tempsql<<"\"enddate\":0";
@@ -2018,124 +2044,131 @@ if(data.enddate==0){
 			break;
 		case 14:
 		 try{
+			data.sitebanner.append(set_value_name);
+		}catch (...) { 
+			data.sitebanner.clear();
+			 }
+			break;
+		case 15:
+		 try{
 			data.contactman.append(set_value_name);
 		}catch (...) { 
 			data.contactman.clear();
 			 }
 			break;
-		case 15:
+		case 16:
 		 try{
 			data.phone.append(set_value_name);
 		}catch (...) { 
 			data.phone.clear();
 			 }
 			break;
-		case 16:
+		case 17:
 		 try{
 			data.mobile.append(set_value_name);
 		}catch (...) { 
 			data.mobile.clear();
 			 }
 			break;
-		case 17:
+		case 18:
 		 try{
 			data.email.append(set_value_name);
 		}catch (...) { 
 			data.email.clear();
 			 }
 			break;
-		case 18:
+		case 19:
 		 try{
 			data.bankname.append(set_value_name);
 		}catch (...) { 
 			data.bankname.clear();
 			 }
 			break;
-		case 19:
+		case 20:
 		 try{
 			data.banksn.append(set_value_name);
 		}catch (...) { 
 			data.banksn.clear();
 			 }
 			break;
-		case 20:
+		case 21:
 		 try{
 			data.address.append(set_value_name);
 		}catch (...) { 
 			data.address.clear();
 			 }
 			break;
-		case 21:
+		case 22:
 		 try{
 			data.zipnum.append(set_value_name);
 		}catch (...) { 
 			data.zipnum.clear();
 			 }
 			break;
-		case 22:
+		case 23:
 		 try{
 			data.taxsn.append(set_value_name);
 		}catch (...) { 
 			data.taxsn.clear();
 			 }
 			break;
-		case 23:
+		case 24:
 		 try{
 			data.companyname.append(set_value_name);
 		}catch (...) { 
 			data.companyname.clear();
 			 }
 			break;
-		case 24:
+		case 25:
 		 try{
 			data.linkname.append(set_value_name);
 		}catch (...) { 
 			data.linkname.clear();
 			 }
 			break;
-		case 25:
+		case 26:
 		 try{
 			data.linkmobile.append(set_value_name);
 		}catch (...) { 
 			data.linkmobile.clear();
 			 }
 			break;
-		case 26:
+		case 27:
 		 try{
 			data.linkaddress.append(set_value_name);
 		}catch (...) { 
 			data.linkaddress.clear();
 			 }
 			break;
-		case 27:
+		case 28:
 		 try{
 			data.theme.append(set_value_name);
 		}catch (...) { 
 			data.theme.clear();
 			 }
 			break;
-		case 28:
+		case 29:
 		 try{
 			data.sitepath.append(set_value_name);
 		}catch (...) { 
 			data.sitepath.clear();
 			 }
 			break;
-		case 29:
+		case 30:
 		 try{
 			data.isopen=std::stoi(set_value_name);
 		}catch (...) { 
 			data.isopen=0;
 			 }
 			break;
-		case 30:
+		case 31:
 		 try{
 			data.created_at=std::stoul(set_value_name);
 		}catch (...) { 
 			data.created_at=0;
 			 }
 			break;
-		case 31:
+		case 32:
 		 try{
 			data.enddate=std::stoul(set_value_name);
 		}catch (...) { 
@@ -2254,124 +2287,131 @@ if(data.enddate==0){
 			break;
 		case 14:
 		 try{
+			data.sitebanner=std::to_string(set_value_name);
+		}catch (...) { 
+			data.sitebanner.clear();
+			 }
+			break;
+		case 15:
+		 try{
 			data.contactman=std::to_string(set_value_name);
 		}catch (...) { 
 			data.contactman.clear();
 			 }
 			break;
-		case 15:
+		case 16:
 		 try{
 			data.phone=std::to_string(set_value_name);
 		}catch (...) { 
 			data.phone.clear();
 			 }
 			break;
-		case 16:
+		case 17:
 		 try{
 			data.mobile=std::to_string(set_value_name);
 		}catch (...) { 
 			data.mobile.clear();
 			 }
 			break;
-		case 17:
+		case 18:
 		 try{
 			data.email=std::to_string(set_value_name);
 		}catch (...) { 
 			data.email.clear();
 			 }
 			break;
-		case 18:
+		case 19:
 		 try{
 			data.bankname=std::to_string(set_value_name);
 		}catch (...) { 
 			data.bankname.clear();
 			 }
 			break;
-		case 19:
+		case 20:
 		 try{
 			data.banksn=std::to_string(set_value_name);
 		}catch (...) { 
 			data.banksn.clear();
 			 }
 			break;
-		case 20:
+		case 21:
 		 try{
 			data.address=std::to_string(set_value_name);
 		}catch (...) { 
 			data.address.clear();
 			 }
 			break;
-		case 21:
+		case 22:
 		 try{
 			data.zipnum=std::to_string(set_value_name);
 		}catch (...) { 
 			data.zipnum.clear();
 			 }
 			break;
-		case 22:
+		case 23:
 		 try{
 			data.taxsn=std::to_string(set_value_name);
 		}catch (...) { 
 			data.taxsn.clear();
 			 }
 			break;
-		case 23:
+		case 24:
 		 try{
 			data.companyname=std::to_string(set_value_name);
 		}catch (...) { 
 			data.companyname.clear();
 			 }
 			break;
-		case 24:
+		case 25:
 		 try{
 			data.linkname=std::to_string(set_value_name);
 		}catch (...) { 
 			data.linkname.clear();
 			 }
 			break;
-		case 25:
+		case 26:
 		 try{
 			data.linkmobile=std::to_string(set_value_name);
 		}catch (...) { 
 			data.linkmobile.clear();
 			 }
 			break;
-		case 26:
+		case 27:
 		 try{
 			data.linkaddress=std::to_string(set_value_name);
 		}catch (...) { 
 			data.linkaddress.clear();
 			 }
 			break;
-		case 27:
+		case 28:
 		 try{
 			data.theme=std::to_string(set_value_name);
 		}catch (...) { 
 			data.theme.clear();
 			 }
 			break;
-		case 28:
+		case 29:
 		 try{
 			data.sitepath=std::to_string(set_value_name);
 		}catch (...) { 
 			data.sitepath.clear();
 			 }
 			break;
-		case 29:
+		case 30:
 		 try{
 			data.isopen=set_value_name;
 		}catch (...) { 
 			data.isopen=0;
 			 }
 			break;
-		case 30:
+		case 31:
 		 try{
 			data.created_at=set_value_name;
 		}catch (...) { 
 			data.created_at=0;
 			 }
 			break;
-		case 31:
+		case 32:
 		 try{
 			data.enddate=set_value_name;
 		}catch (...) { 
@@ -2490,124 +2530,131 @@ if(data.enddate==0){
 			break;
 		case 14:
 		 try{
+			data.sitebanner=std::to_string(set_value_name);
+		}catch (...) { 
+			data.sitebanner.clear();
+			 }
+			break;
+		case 15:
+		 try{
 			data.contactman=std::to_string(set_value_name);
 		}catch (...) { 
 			data.contactman.clear();
 			 }
 			break;
-		case 15:
+		case 16:
 		 try{
 			data.phone=std::to_string(set_value_name);
 		}catch (...) { 
 			data.phone.clear();
 			 }
 			break;
-		case 16:
+		case 17:
 		 try{
 			data.mobile=std::to_string(set_value_name);
 		}catch (...) { 
 			data.mobile.clear();
 			 }
 			break;
-		case 17:
+		case 18:
 		 try{
 			data.email=std::to_string(set_value_name);
 		}catch (...) { 
 			data.email.clear();
 			 }
 			break;
-		case 18:
+		case 19:
 		 try{
 			data.bankname=std::to_string(set_value_name);
 		}catch (...) { 
 			data.bankname.clear();
 			 }
 			break;
-		case 19:
+		case 20:
 		 try{
 			data.banksn=std::to_string(set_value_name);
 		}catch (...) { 
 			data.banksn.clear();
 			 }
 			break;
-		case 20:
+		case 21:
 		 try{
 			data.address=std::to_string(set_value_name);
 		}catch (...) { 
 			data.address.clear();
 			 }
 			break;
-		case 21:
+		case 22:
 		 try{
 			data.zipnum=std::to_string(set_value_name);
 		}catch (...) { 
 			data.zipnum.clear();
 			 }
 			break;
-		case 22:
+		case 23:
 		 try{
 			data.taxsn=std::to_string(set_value_name);
 		}catch (...) { 
 			data.taxsn.clear();
 			 }
 			break;
-		case 23:
+		case 24:
 		 try{
 			data.companyname=std::to_string(set_value_name);
 		}catch (...) { 
 			data.companyname.clear();
 			 }
 			break;
-		case 24:
+		case 25:
 		 try{
 			data.linkname=std::to_string(set_value_name);
 		}catch (...) { 
 			data.linkname.clear();
 			 }
 			break;
-		case 25:
+		case 26:
 		 try{
 			data.linkmobile=std::to_string(set_value_name);
 		}catch (...) { 
 			data.linkmobile.clear();
 			 }
 			break;
-		case 26:
+		case 27:
 		 try{
 			data.linkaddress=std::to_string(set_value_name);
 		}catch (...) { 
 			data.linkaddress.clear();
 			 }
 			break;
-		case 27:
+		case 28:
 		 try{
 			data.theme=std::to_string(set_value_name);
 		}catch (...) { 
 			data.theme.clear();
 			 }
 			break;
-		case 28:
+		case 29:
 		 try{
 			data.sitepath=std::to_string(set_value_name);
 		}catch (...) { 
 			data.sitepath.clear();
 			 }
 			break;
-		case 29:
+		case 30:
 		 try{
 			data.isopen=(int)set_value_name;
 		}catch (...) { 
 			data.isopen=0;
 			 }
 			break;
-		case 30:
+		case 31:
 		 try{
 			data.created_at=(unsigned int)set_value_name;
 		}catch (...) { 
 			data.created_at=0;
 			 }
 			break;
-		case 31:
+		case 32:
 		 try{
 			data.enddate=(unsigned int)set_value_name;
 		}catch (...) { 
@@ -2734,65 +2781,69 @@ tempsql<<"\"sitelogo\":\""<<http::utf8_to_jsonstring(record[n].sitelogo)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"contactman\":\""<<http::utf8_to_jsonstring(record[n].contactman)<<"\"";
+tempsql<<"\"sitebanner\":\""<<http::utf8_to_jsonstring(record[n].sitebanner)<<"\"";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"phone\":\""<<http::utf8_to_jsonstring(record[n].phone)<<"\"";
+tempsql<<"\"contactman\":\""<<http::utf8_to_jsonstring(record[n].contactman)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(record[n].mobile)<<"\"";
+tempsql<<"\"phone\":\""<<http::utf8_to_jsonstring(record[n].phone)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(record[n].email)<<"\"";
+tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(record[n].mobile)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"bankname\":\""<<http::utf8_to_jsonstring(record[n].bankname)<<"\"";
+tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(record[n].email)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"banksn\":\""<<http::utf8_to_jsonstring(record[n].banksn)<<"\"";
+tempsql<<"\"bankname\":\""<<http::utf8_to_jsonstring(record[n].bankname)<<"\"";
  break;
  case 20:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(record[n].address)<<"\"";
+tempsql<<"\"banksn\":\""<<http::utf8_to_jsonstring(record[n].banksn)<<"\"";
  break;
  case 21:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"zipnum\":\""<<http::utf8_to_jsonstring(record[n].zipnum)<<"\"";
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(record[n].address)<<"\"";
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"taxsn\":\""<<http::utf8_to_jsonstring(record[n].taxsn)<<"\"";
+tempsql<<"\"zipnum\":\""<<http::utf8_to_jsonstring(record[n].zipnum)<<"\"";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"companyname\":\""<<http::utf8_to_jsonstring(record[n].companyname)<<"\"";
+tempsql<<"\"taxsn\":\""<<http::utf8_to_jsonstring(record[n].taxsn)<<"\"";
  break;
  case 24:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkname\":\""<<http::utf8_to_jsonstring(record[n].linkname)<<"\"";
+tempsql<<"\"companyname\":\""<<http::utf8_to_jsonstring(record[n].companyname)<<"\"";
  break;
  case 25:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkmobile\":\""<<http::utf8_to_jsonstring(record[n].linkmobile)<<"\"";
+tempsql<<"\"linkname\":\""<<http::utf8_to_jsonstring(record[n].linkname)<<"\"";
  break;
  case 26:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkaddress\":\""<<http::utf8_to_jsonstring(record[n].linkaddress)<<"\"";
+tempsql<<"\"linkmobile\":\""<<http::utf8_to_jsonstring(record[n].linkmobile)<<"\"";
  break;
  case 27:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"theme\":\""<<http::utf8_to_jsonstring(record[n].theme)<<"\"";
+tempsql<<"\"linkaddress\":\""<<http::utf8_to_jsonstring(record[n].linkaddress)<<"\"";
  break;
  case 28:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitepath\":\""<<http::utf8_to_jsonstring(record[n].sitepath)<<"\"";
+tempsql<<"\"theme\":\""<<http::utf8_to_jsonstring(record[n].theme)<<"\"";
  break;
  case 29:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitepath\":\""<<http::utf8_to_jsonstring(record[n].sitepath)<<"\"";
+ break;
+ case 30:
  if(jj>0){ tempsql<<","; } 
 if(record[n].isopen==0){
 	tempsql<<"\"isopen\":0";
@@ -2800,7 +2851,7 @@ if(record[n].isopen==0){
 	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
 }
  break;
- case 30:
+ case 31:
  if(jj>0){ tempsql<<","; } 
 if(record[n].created_at==0){
 	tempsql<<"\"created_at\":0";
@@ -2808,7 +2859,7 @@ if(record[n].created_at==0){
 	tempsql<<"\"created_at\":"<<std::to_string(record[n].created_at);
 }
  break;
- case 31:
+ case 32:
  if(jj>0){ tempsql<<","; } 
 if(record[n].enddate==0){
 	tempsql<<"\"enddate\":0";
@@ -2946,65 +2997,69 @@ tempsql<<"\"sitelogo\":\""<<http::utf8_to_jsonstring(record[n].sitelogo)<<"\"";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"contactman\":\""<<http::utf8_to_jsonstring(record[n].contactman)<<"\"";
+tempsql<<"\"sitebanner\":\""<<http::utf8_to_jsonstring(record[n].sitebanner)<<"\"";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"phone\":\""<<http::utf8_to_jsonstring(record[n].phone)<<"\"";
+tempsql<<"\"contactman\":\""<<http::utf8_to_jsonstring(record[n].contactman)<<"\"";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(record[n].mobile)<<"\"";
+tempsql<<"\"phone\":\""<<http::utf8_to_jsonstring(record[n].phone)<<"\"";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(record[n].email)<<"\"";
+tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(record[n].mobile)<<"\"";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"bankname\":\""<<http::utf8_to_jsonstring(record[n].bankname)<<"\"";
+tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(record[n].email)<<"\"";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"banksn\":\""<<http::utf8_to_jsonstring(record[n].banksn)<<"\"";
+tempsql<<"\"bankname\":\""<<http::utf8_to_jsonstring(record[n].bankname)<<"\"";
  break;
  case 20:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(record[n].address)<<"\"";
+tempsql<<"\"banksn\":\""<<http::utf8_to_jsonstring(record[n].banksn)<<"\"";
  break;
  case 21:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"zipnum\":\""<<http::utf8_to_jsonstring(record[n].zipnum)<<"\"";
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(record[n].address)<<"\"";
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"taxsn\":\""<<http::utf8_to_jsonstring(record[n].taxsn)<<"\"";
+tempsql<<"\"zipnum\":\""<<http::utf8_to_jsonstring(record[n].zipnum)<<"\"";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"companyname\":\""<<http::utf8_to_jsonstring(record[n].companyname)<<"\"";
+tempsql<<"\"taxsn\":\""<<http::utf8_to_jsonstring(record[n].taxsn)<<"\"";
  break;
  case 24:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkname\":\""<<http::utf8_to_jsonstring(record[n].linkname)<<"\"";
+tempsql<<"\"companyname\":\""<<http::utf8_to_jsonstring(record[n].companyname)<<"\"";
  break;
  case 25:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkmobile\":\""<<http::utf8_to_jsonstring(record[n].linkmobile)<<"\"";
+tempsql<<"\"linkname\":\""<<http::utf8_to_jsonstring(record[n].linkname)<<"\"";
  break;
  case 26:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"linkaddress\":\""<<http::utf8_to_jsonstring(record[n].linkaddress)<<"\"";
+tempsql<<"\"linkmobile\":\""<<http::utf8_to_jsonstring(record[n].linkmobile)<<"\"";
  break;
  case 27:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"theme\":\""<<http::utf8_to_jsonstring(record[n].theme)<<"\"";
+tempsql<<"\"linkaddress\":\""<<http::utf8_to_jsonstring(record[n].linkaddress)<<"\"";
  break;
  case 28:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"sitepath\":\""<<http::utf8_to_jsonstring(record[n].sitepath)<<"\"";
+tempsql<<"\"theme\":\""<<http::utf8_to_jsonstring(record[n].theme)<<"\"";
  break;
  case 29:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitepath\":\""<<http::utf8_to_jsonstring(record[n].sitepath)<<"\"";
+ break;
+ case 30:
  if(jj>0){ tempsql<<","; } 
 if(record[n].isopen==0){
 	tempsql<<"\"isopen\":0";
@@ -3012,7 +3067,7 @@ if(record[n].isopen==0){
 	tempsql<<"\"isopen\":"<<std::to_string(record[n].isopen);
 }
  break;
- case 30:
+ case 31:
  if(jj>0){ tempsql<<","; } 
 if(record[n].created_at==0){
 	tempsql<<"\"created_at\":0";
@@ -3020,7 +3075,7 @@ if(record[n].created_at==0){
 	tempsql<<"\"created_at\":"<<std::to_string(record[n].created_at);
 }
  break;
- case 31:
+ case 32:
  if(jj>0){ tempsql<<","; } 
 if(record[n].enddate==0){
 	tempsql<<"\"enddate\":0";
@@ -3101,6 +3156,11 @@ if(record[n].enddate==0){
  std::string & getRefSitelogo(){  return std::ref(data.sitelogo); } 
  void setSitelogo( std::string  &val){  data.sitelogo=val;} 
  void setSitelogo(std::string_view val){  data.sitelogo=val;} 
+
+ std::string  getSitebanner(){  return data.sitebanner; } 
+ std::string & getRefSitebanner(){  return std::ref(data.sitebanner); } 
+ void setSitebanner( std::string  &val){  data.sitebanner=val;} 
+ void setSitebanner(std::string_view val){  data.sitebanner=val;} 
 
  std::string  getContactman(){  return data.contactman; } 
  std::string & getRefContactman(){  return std::ref(data.contactman); } 
@@ -3241,6 +3301,10 @@ std::vector<siteinfo_base::meta> getRecord(){
 		{
 			return data.sitelogo;
 		}
+		 if(key_name=="sitebanner")
+		{
+			return data.sitebanner;
+		}
 		 if(key_name=="contactman")
 		{
 			return data.contactman;
@@ -3370,13 +3434,13 @@ std::vector<siteinfo_base::meta> getRecord(){
 			case 3: 
  				 a.emplace_back(iter.languagetype);
 				 break;
-			case 29: 
+			case 30: 
  				 a.emplace_back(iter.isopen);
 				 break;
-			case 30: 
+			case 31: 
  				 a.emplace_back(iter.created_at);
 				 break;
-			case 31: 
+			case 32: 
  				 a.emplace_back(iter.enddate);
 				 break;
 
@@ -3416,13 +3480,13 @@ std::vector<siteinfo_base::meta> getRecord(){
 			case 3: 
  				 return data.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 return data.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 return data.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 return data.enddate;
 				 break;
 			}
@@ -3450,13 +3514,13 @@ std::vector<siteinfo_base::meta> getRecord(){
 			case 3: 
  				 return iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 return iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 return iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 return iter.enddate;
 				 break;
 
@@ -3536,48 +3600,51 @@ std::vector<siteinfo_base::meta> getRecord(){
  				 return data.sitelogo;
 				 break;
 			case 14: 
- 				 return data.contactman;
+ 				 return data.sitebanner;
 				 break;
 			case 15: 
- 				 return data.phone;
+ 				 return data.contactman;
 				 break;
 			case 16: 
- 				 return data.mobile;
+ 				 return data.phone;
 				 break;
 			case 17: 
- 				 return data.email;
+ 				 return data.mobile;
 				 break;
 			case 18: 
- 				 return data.bankname;
+ 				 return data.email;
 				 break;
 			case 19: 
- 				 return data.banksn;
+ 				 return data.bankname;
 				 break;
 			case 20: 
- 				 return data.address;
+ 				 return data.banksn;
 				 break;
 			case 21: 
- 				 return data.zipnum;
+ 				 return data.address;
 				 break;
 			case 22: 
- 				 return data.taxsn;
+ 				 return data.zipnum;
 				 break;
 			case 23: 
- 				 return data.companyname;
+ 				 return data.taxsn;
 				 break;
 			case 24: 
- 				 return data.linkname;
+ 				 return data.companyname;
 				 break;
 			case 25: 
- 				 return data.linkmobile;
+ 				 return data.linkname;
 				 break;
 			case 26: 
- 				 return data.linkaddress;
+ 				 return data.linkmobile;
 				 break;
 			case 27: 
- 				 return data.theme;
+ 				 return data.linkaddress;
 				 break;
 			case 28: 
+ 				 return data.theme;
+				 break;
+			case 29: 
  				 return data.sitepath;
 				 break;
 
@@ -3626,48 +3693,51 @@ std::vector<siteinfo_base::meta> getRecord(){
  				 return iter.sitelogo;
 				 break;
 			case 14: 
- 				 return iter.contactman;
+ 				 return iter.sitebanner;
 				 break;
 			case 15: 
- 				 return iter.phone;
+ 				 return iter.contactman;
 				 break;
 			case 16: 
- 				 return iter.mobile;
+ 				 return iter.phone;
 				 break;
 			case 17: 
- 				 return iter.email;
+ 				 return iter.mobile;
 				 break;
 			case 18: 
- 				 return iter.bankname;
+ 				 return iter.email;
 				 break;
 			case 19: 
- 				 return iter.banksn;
+ 				 return iter.bankname;
 				 break;
 			case 20: 
- 				 return iter.address;
+ 				 return iter.banksn;
 				 break;
 			case 21: 
- 				 return iter.zipnum;
+ 				 return iter.address;
 				 break;
 			case 22: 
- 				 return iter.taxsn;
+ 				 return iter.zipnum;
 				 break;
 			case 23: 
- 				 return iter.companyname;
+ 				 return iter.taxsn;
 				 break;
 			case 24: 
- 				 return iter.linkname;
+ 				 return iter.companyname;
 				 break;
 			case 25: 
- 				 return iter.linkmobile;
+ 				 return iter.linkname;
 				 break;
 			case 26: 
- 				 return iter.linkaddress;
+ 				 return iter.linkmobile;
 				 break;
 			case 27: 
- 				 return iter.theme;
+ 				 return iter.linkaddress;
 				 break;
 			case 28: 
+ 				 return iter.theme;
+				 break;
+			case 29: 
  				 return iter.sitepath;
 				 break;
 
@@ -3722,48 +3792,51 @@ std::vector<siteinfo_base::meta> getRecord(){
  				 a.emplace_back(iter.sitelogo);
 					 break;
 			case 14: 
- 				 a.emplace_back(iter.contactman);
+ 				 a.emplace_back(iter.sitebanner);
 					 break;
 			case 15: 
- 				 a.emplace_back(iter.phone);
+ 				 a.emplace_back(iter.contactman);
 					 break;
 			case 16: 
- 				 a.emplace_back(iter.mobile);
+ 				 a.emplace_back(iter.phone);
 					 break;
 			case 17: 
- 				 a.emplace_back(iter.email);
+ 				 a.emplace_back(iter.mobile);
 					 break;
 			case 18: 
- 				 a.emplace_back(iter.bankname);
+ 				 a.emplace_back(iter.email);
 					 break;
 			case 19: 
- 				 a.emplace_back(iter.banksn);
+ 				 a.emplace_back(iter.bankname);
 					 break;
 			case 20: 
- 				 a.emplace_back(iter.address);
+ 				 a.emplace_back(iter.banksn);
 					 break;
 			case 21: 
- 				 a.emplace_back(iter.zipnum);
+ 				 a.emplace_back(iter.address);
 					 break;
 			case 22: 
- 				 a.emplace_back(iter.taxsn);
+ 				 a.emplace_back(iter.zipnum);
 					 break;
 			case 23: 
- 				 a.emplace_back(iter.companyname);
+ 				 a.emplace_back(iter.taxsn);
 					 break;
 			case 24: 
- 				 a.emplace_back(iter.linkname);
+ 				 a.emplace_back(iter.companyname);
 					 break;
 			case 25: 
- 				 a.emplace_back(iter.linkmobile);
+ 				 a.emplace_back(iter.linkname);
 					 break;
 			case 26: 
- 				 a.emplace_back(iter.linkaddress);
+ 				 a.emplace_back(iter.linkmobile);
 					 break;
 			case 27: 
- 				 a.emplace_back(iter.theme);
+ 				 a.emplace_back(iter.linkaddress);
 					 break;
 			case 28: 
+ 				 a.emplace_back(iter.theme);
+					 break;
+			case 29: 
  				 a.emplace_back(iter.sitepath);
 					 break;
 					}
@@ -3870,102 +3943,108 @@ std::vector<siteinfo_base::meta> getRecord(){
 				 }
 				 break;
 			case 14: 
+ 				 if(isyinhao){ a<<jsonaddslash(iter.sitebanner); 
+				 }else{
+				 a<<iter.sitebanner;
+				 }
+				 break;
+			case 15: 
  				 if(isyinhao){ a<<jsonaddslash(iter.contactman); 
 				 }else{
 				 a<<iter.contactman;
 				 }
 				 break;
-			case 15: 
+			case 16: 
  				 if(isyinhao){ a<<jsonaddslash(iter.phone); 
 				 }else{
 				 a<<iter.phone;
 				 }
 				 break;
-			case 16: 
+			case 17: 
  				 if(isyinhao){ a<<jsonaddslash(iter.mobile); 
 				 }else{
 				 a<<iter.mobile;
 				 }
 				 break;
-			case 17: 
+			case 18: 
  				 if(isyinhao){ a<<jsonaddslash(iter.email); 
 				 }else{
 				 a<<iter.email;
 				 }
 				 break;
-			case 18: 
+			case 19: 
  				 if(isyinhao){ a<<jsonaddslash(iter.bankname); 
 				 }else{
 				 a<<iter.bankname;
 				 }
 				 break;
-			case 19: 
+			case 20: 
  				 if(isyinhao){ a<<jsonaddslash(iter.banksn); 
 				 }else{
 				 a<<iter.banksn;
 				 }
 				 break;
-			case 20: 
+			case 21: 
  				 if(isyinhao){ a<<jsonaddslash(iter.address); 
 				 }else{
 				 a<<iter.address;
 				 }
 				 break;
-			case 21: 
+			case 22: 
  				 if(isyinhao){ a<<jsonaddslash(iter.zipnum); 
 				 }else{
 				 a<<iter.zipnum;
 				 }
 				 break;
-			case 22: 
+			case 23: 
  				 if(isyinhao){ a<<jsonaddslash(iter.taxsn); 
 				 }else{
 				 a<<iter.taxsn;
 				 }
 				 break;
-			case 23: 
+			case 24: 
  				 if(isyinhao){ a<<jsonaddslash(iter.companyname); 
 				 }else{
 				 a<<iter.companyname;
 				 }
 				 break;
-			case 24: 
+			case 25: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkname); 
 				 }else{
 				 a<<iter.linkname;
 				 }
 				 break;
-			case 25: 
+			case 26: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkmobile); 
 				 }else{
 				 a<<iter.linkmobile;
 				 }
 				 break;
-			case 26: 
+			case 27: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkaddress); 
 				 }else{
 				 a<<iter.linkaddress;
 				 }
 				 break;
-			case 27: 
+			case 28: 
  				 if(isyinhao){ a<<jsonaddslash(iter.theme); 
 				 }else{
 				 a<<iter.theme;
 				 }
 				 break;
-			case 28: 
+			case 29: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitepath); 
 				 }else{
 				 a<<iter.sitepath;
 				 }
 				 break;
-			case 29: 
+			case 30: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case 30: 
+			case 31: 
  				 a<<std::to_string(iter.created_at);
 				 break;
-			case 31: 
+			case 32: 
  				 a<<std::to_string(iter.enddate);
 				 break;
 
@@ -4024,48 +4103,51 @@ std::vector<siteinfo_base::meta> getRecord(){
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 				 } 
@@ -4101,48 +4183,51 @@ std::vector<siteinfo_base::meta> getRecord(){
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 
@@ -4204,48 +4289,51 @@ std::vector<siteinfo_base::meta> getRecord(){
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			 } 
@@ -4288,13 +4376,13 @@ case 2:
 case 3: 
  	 ktemp=iter.languagetype;
 	 break;
-case 29: 
+case 30: 
  	 ktemp=iter.isopen;
 	 break;
-case 30: 
+case 31: 
  	 ktemp=iter.created_at;
 	 break;
-case 31: 
+case 32: 
  	 ktemp=iter.enddate;
 	 break;
 	 } 
@@ -4336,13 +4424,13 @@ case 31:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -4378,48 +4466,51 @@ case 31:
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 
@@ -4479,48 +4570,51 @@ case 31:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			  }
@@ -4537,13 +4631,13 @@ case 31:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 
@@ -4584,13 +4678,13 @@ case 31:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -4607,13 +4701,13 @@ case 31:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 
@@ -4651,13 +4745,13 @@ case 31:
 			case 3: 
  				 a.emplace(iter.languagetype,iter);
 				 break;
-			case 29: 
+			case 30: 
  				 a.emplace(iter.isopen,iter);
 				 break;
-			case 30: 
+			case 31: 
  				 a.emplace(iter.created_at,iter);
 				 break;
-			case 31: 
+			case 32: 
  				 a.emplace(iter.enddate,iter);
 				 break;
 
@@ -4711,48 +4805,51 @@ case 31:
  				 a.emplace(iter.sitelogo,iter);
 			 break;
 			case 14: 
- 				 a.emplace(iter.contactman,iter);
+ 				 a.emplace(iter.sitebanner,iter);
 			 break;
 			case 15: 
- 				 a.emplace(iter.phone,iter);
+ 				 a.emplace(iter.contactman,iter);
 			 break;
 			case 16: 
- 				 a.emplace(iter.mobile,iter);
+ 				 a.emplace(iter.phone,iter);
 			 break;
 			case 17: 
- 				 a.emplace(iter.email,iter);
+ 				 a.emplace(iter.mobile,iter);
 			 break;
 			case 18: 
- 				 a.emplace(iter.bankname,iter);
+ 				 a.emplace(iter.email,iter);
 			 break;
 			case 19: 
- 				 a.emplace(iter.banksn,iter);
+ 				 a.emplace(iter.bankname,iter);
 			 break;
 			case 20: 
- 				 a.emplace(iter.address,iter);
+ 				 a.emplace(iter.banksn,iter);
 			 break;
 			case 21: 
- 				 a.emplace(iter.zipnum,iter);
+ 				 a.emplace(iter.address,iter);
 			 break;
 			case 22: 
- 				 a.emplace(iter.taxsn,iter);
+ 				 a.emplace(iter.zipnum,iter);
 			 break;
 			case 23: 
- 				 a.emplace(iter.companyname,iter);
+ 				 a.emplace(iter.taxsn,iter);
 			 break;
 			case 24: 
- 				 a.emplace(iter.linkname,iter);
+ 				 a.emplace(iter.companyname,iter);
 			 break;
 			case 25: 
- 				 a.emplace(iter.linkmobile,iter);
+ 				 a.emplace(iter.linkname,iter);
 			 break;
 			case 26: 
- 				 a.emplace(iter.linkaddress,iter);
+ 				 a.emplace(iter.linkmobile,iter);
 			 break;
 			case 27: 
- 				 a.emplace(iter.theme,iter);
+ 				 a.emplace(iter.linkaddress,iter);
 			 break;
 			case 28: 
+ 				 a.emplace(iter.theme,iter);
+			 break;
+			case 29: 
  				 a.emplace(iter.sitepath,iter);
 			 break;
 
@@ -4810,48 +4907,51 @@ case 31:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 	 		 }
@@ -4894,13 +4994,13 @@ case 31:
 			case 3: 
  				 ktemp=iter.languagetype;
 			 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 			 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 			 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 			 break;
 			  }
@@ -4944,13 +5044,13 @@ case 31:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -4986,48 +5086,51 @@ case 31:
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 
@@ -5086,48 +5189,51 @@ case 31:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			  }
@@ -5144,13 +5250,13 @@ case 31:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 
@@ -5188,13 +5294,13 @@ case 31:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -5211,13 +5317,13 @@ case 31:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 
@@ -5274,48 +5380,51 @@ case 13:
  	 ktemp=iter.sitelogo;
 	 break;
 case 14: 
- 	 ktemp=iter.contactman;
+ 	 ktemp=iter.sitebanner;
 	 break;
 case 15: 
- 	 ktemp=iter.phone;
+ 	 ktemp=iter.contactman;
 	 break;
 case 16: 
- 	 ktemp=iter.mobile;
+ 	 ktemp=iter.phone;
 	 break;
 case 17: 
- 	 ktemp=iter.email;
+ 	 ktemp=iter.mobile;
 	 break;
 case 18: 
- 	 ktemp=iter.bankname;
+ 	 ktemp=iter.email;
 	 break;
 case 19: 
- 	 ktemp=iter.banksn;
+ 	 ktemp=iter.bankname;
 	 break;
 case 20: 
- 	 ktemp=iter.address;
+ 	 ktemp=iter.banksn;
 	 break;
 case 21: 
- 	 ktemp=iter.zipnum;
+ 	 ktemp=iter.address;
 	 break;
 case 22: 
- 	 ktemp=iter.taxsn;
+ 	 ktemp=iter.zipnum;
 	 break;
 case 23: 
- 	 ktemp=iter.companyname;
+ 	 ktemp=iter.taxsn;
 	 break;
 case 24: 
- 	 ktemp=iter.linkname;
+ 	 ktemp=iter.companyname;
 	 break;
 case 25: 
- 	 ktemp=iter.linkmobile;
+ 	 ktemp=iter.linkname;
 	 break;
 case 26: 
- 	 ktemp=iter.linkaddress;
+ 	 ktemp=iter.linkmobile;
 	 break;
 case 27: 
- 	 ktemp=iter.theme;
+ 	 ktemp=iter.linkaddress;
 	 break;
 case 28: 
+ 	 ktemp=iter.theme;
+	 break;
+case 29: 
  	 ktemp=iter.sitepath;
 	 break;
 	  }
@@ -5351,48 +5460,51 @@ case 13:
  	 vtemp=iter.sitelogo;
 	 break;
 case 14: 
- 	 vtemp=iter.contactman;
+ 	 vtemp=iter.sitebanner;
 	 break;
 case 15: 
- 	 vtemp=iter.phone;
+ 	 vtemp=iter.contactman;
 	 break;
 case 16: 
- 	 vtemp=iter.mobile;
+ 	 vtemp=iter.phone;
 	 break;
 case 17: 
- 	 vtemp=iter.email;
+ 	 vtemp=iter.mobile;
 	 break;
 case 18: 
- 	 vtemp=iter.bankname;
+ 	 vtemp=iter.email;
 	 break;
 case 19: 
- 	 vtemp=iter.banksn;
+ 	 vtemp=iter.bankname;
 	 break;
 case 20: 
- 	 vtemp=iter.address;
+ 	 vtemp=iter.banksn;
 	 break;
 case 21: 
- 	 vtemp=iter.zipnum;
+ 	 vtemp=iter.address;
 	 break;
 case 22: 
- 	 vtemp=iter.taxsn;
+ 	 vtemp=iter.zipnum;
 	 break;
 case 23: 
- 	 vtemp=iter.companyname;
+ 	 vtemp=iter.taxsn;
 	 break;
 case 24: 
- 	 vtemp=iter.linkname;
+ 	 vtemp=iter.companyname;
 	 break;
 case 25: 
- 	 vtemp=iter.linkmobile;
+ 	 vtemp=iter.linkname;
 	 break;
 case 26: 
- 	 vtemp=iter.linkaddress;
+ 	 vtemp=iter.linkmobile;
 	 break;
 case 27: 
- 	 vtemp=iter.theme;
+ 	 vtemp=iter.linkaddress;
 	 break;
 case 28: 
+ 	 vtemp=iter.theme;
+	 break;
+case 29: 
  	 vtemp=iter.sitepath;
 	 break;
 
@@ -5428,13 +5540,13 @@ case 2:
 case 3: 
  	 a.emplace_back(iter.languagetype,iter);
 	 break;
-case 29: 
+case 30: 
  	 a.emplace_back(iter.isopen,iter);
 	 break;
-case 30: 
+case 31: 
  	 a.emplace_back(iter.created_at,iter);
 	 break;
-case 31: 
+case 32: 
  	 a.emplace_back(iter.enddate,iter);
 	 break;
 
@@ -5486,48 +5598,51 @@ case 13:
  	 a.emplace_back(iter.sitelogo,iter);
 	 break;
 case 14: 
- 	 a.emplace_back(iter.contactman,iter);
+ 	 a.emplace_back(iter.sitebanner,iter);
 	 break;
 case 15: 
- 	 a.emplace_back(iter.phone,iter);
+ 	 a.emplace_back(iter.contactman,iter);
 	 break;
 case 16: 
- 	 a.emplace_back(iter.mobile,iter);
+ 	 a.emplace_back(iter.phone,iter);
 	 break;
 case 17: 
- 	 a.emplace_back(iter.email,iter);
+ 	 a.emplace_back(iter.mobile,iter);
 	 break;
 case 18: 
- 	 a.emplace_back(iter.bankname,iter);
+ 	 a.emplace_back(iter.email,iter);
 	 break;
 case 19: 
- 	 a.emplace_back(iter.banksn,iter);
+ 	 a.emplace_back(iter.bankname,iter);
 	 break;
 case 20: 
- 	 a.emplace_back(iter.address,iter);
+ 	 a.emplace_back(iter.banksn,iter);
 	 break;
 case 21: 
- 	 a.emplace_back(iter.zipnum,iter);
+ 	 a.emplace_back(iter.address,iter);
 	 break;
 case 22: 
- 	 a.emplace_back(iter.taxsn,iter);
+ 	 a.emplace_back(iter.zipnum,iter);
 	 break;
 case 23: 
- 	 a.emplace_back(iter.companyname,iter);
+ 	 a.emplace_back(iter.taxsn,iter);
 	 break;
 case 24: 
- 	 a.emplace_back(iter.linkname,iter);
+ 	 a.emplace_back(iter.companyname,iter);
 	 break;
 case 25: 
- 	 a.emplace_back(iter.linkmobile,iter);
+ 	 a.emplace_back(iter.linkname,iter);
 	 break;
 case 26: 
- 	 a.emplace_back(iter.linkaddress,iter);
+ 	 a.emplace_back(iter.linkmobile,iter);
 	 break;
 case 27: 
- 	 a.emplace_back(iter.theme,iter);
+ 	 a.emplace_back(iter.linkaddress,iter);
 	 break;
 case 28: 
+ 	 a.emplace_back(iter.theme,iter);
+	 break;
+case 29: 
  	 a.emplace_back(iter.sitepath,iter);
 	 break;
 
@@ -5565,13 +5680,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -5589,13 +5704,13 @@ case 28:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 			  }
@@ -5639,13 +5754,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -5663,13 +5778,13 @@ case 28:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 			  }
@@ -5687,13 +5802,13 @@ case 28:
 			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
-			case 29: 
+			case 30: 
  				 a[ktemp][vtemp].emplace_back(iter.isopen);
 				 break;
-			case 30: 
+			case 31: 
  				 a[ktemp][vtemp].emplace_back(iter.created_at);
 				 break;
-			case 31: 
+			case 32: 
  				 a[ktemp][vtemp].emplace_back(iter.enddate);
 				 break;
 
@@ -5733,13 +5848,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 				  }
@@ -5757,13 +5872,13 @@ case 28:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 			 }
@@ -5800,48 +5915,51 @@ case 28:
  				 a[ktemp][vtemp].emplace_back(iter.sitelogo);
 				 break;
 			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.contactman);
+ 				 a[ktemp][vtemp].emplace_back(iter.sitebanner);
 				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.phone);
+ 				 a[ktemp][vtemp].emplace_back(iter.contactman);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.mobile);
+ 				 a[ktemp][vtemp].emplace_back(iter.phone);
 				 break;
 			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.email);
+ 				 a[ktemp][vtemp].emplace_back(iter.mobile);
 				 break;
 			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.bankname);
+ 				 a[ktemp][vtemp].emplace_back(iter.email);
 				 break;
 			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.banksn);
+ 				 a[ktemp][vtemp].emplace_back(iter.bankname);
 				 break;
 			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.address);
+ 				 a[ktemp][vtemp].emplace_back(iter.banksn);
 				 break;
 			case 21: 
- 				 a[ktemp][vtemp].emplace_back(iter.zipnum);
+ 				 a[ktemp][vtemp].emplace_back(iter.address);
 				 break;
 			case 22: 
- 				 a[ktemp][vtemp].emplace_back(iter.taxsn);
+ 				 a[ktemp][vtemp].emplace_back(iter.zipnum);
 				 break;
 			case 23: 
- 				 a[ktemp][vtemp].emplace_back(iter.companyname);
+ 				 a[ktemp][vtemp].emplace_back(iter.taxsn);
 				 break;
 			case 24: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkname);
+ 				 a[ktemp][vtemp].emplace_back(iter.companyname);
 				 break;
 			case 25: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkmobile);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkname);
 				 break;
 			case 26: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkaddress);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkmobile);
 				 break;
 			case 27: 
- 				 a[ktemp][vtemp].emplace_back(iter.theme);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkaddress);
 				 break;
 			case 28: 
+ 				 a[ktemp][vtemp].emplace_back(iter.theme);
+				 break;
+			case 29: 
  				 a[ktemp][vtemp].emplace_back(iter.sitepath);
 				 break;
 
@@ -5882,13 +6000,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			 }
@@ -5925,48 +6043,51 @@ case 28:
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 			  }
@@ -6010,13 +6131,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			 }
@@ -6053,48 +6174,51 @@ case 28:
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 			 }
@@ -6112,13 +6236,13 @@ case 28:
 			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
-			case 29: 
+			case 30: 
  				 a[ktemp][vtemp].emplace_back(iter.isopen);
 				 break;
-			case 30: 
+			case 31: 
  				 a[ktemp][vtemp].emplace_back(iter.created_at);
 				 break;
-			case 31: 
+			case 32: 
  				 a[ktemp][vtemp].emplace_back(iter.enddate);
 				 break;
 
@@ -6157,13 +6281,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -6200,48 +6324,51 @@ case 28:
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 			  }
@@ -6278,48 +6405,51 @@ case 28:
  				 a[ktemp][vtemp].emplace_back(iter.sitelogo);
 				 break;
 			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.contactman);
+ 				 a[ktemp][vtemp].emplace_back(iter.sitebanner);
 				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.phone);
+ 				 a[ktemp][vtemp].emplace_back(iter.contactman);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.mobile);
+ 				 a[ktemp][vtemp].emplace_back(iter.phone);
 				 break;
 			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.email);
+ 				 a[ktemp][vtemp].emplace_back(iter.mobile);
 				 break;
 			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.bankname);
+ 				 a[ktemp][vtemp].emplace_back(iter.email);
 				 break;
 			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.banksn);
+ 				 a[ktemp][vtemp].emplace_back(iter.bankname);
 				 break;
 			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.address);
+ 				 a[ktemp][vtemp].emplace_back(iter.banksn);
 				 break;
 			case 21: 
- 				 a[ktemp][vtemp].emplace_back(iter.zipnum);
+ 				 a[ktemp][vtemp].emplace_back(iter.address);
 				 break;
 			case 22: 
- 				 a[ktemp][vtemp].emplace_back(iter.taxsn);
+ 				 a[ktemp][vtemp].emplace_back(iter.zipnum);
 				 break;
 			case 23: 
- 				 a[ktemp][vtemp].emplace_back(iter.companyname);
+ 				 a[ktemp][vtemp].emplace_back(iter.taxsn);
 				 break;
 			case 24: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkname);
+ 				 a[ktemp][vtemp].emplace_back(iter.companyname);
 				 break;
 			case 25: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkmobile);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkname);
 				 break;
 			case 26: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkaddress);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkmobile);
 				 break;
 			case 27: 
- 				 a[ktemp][vtemp].emplace_back(iter.theme);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkaddress);
 				 break;
 			case 28: 
+ 				 a[ktemp][vtemp].emplace_back(iter.theme);
+				 break;
+			case 29: 
  				 a[ktemp][vtemp].emplace_back(iter.sitepath);
 				 break;
 
@@ -6377,48 +6507,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			 }
@@ -6436,13 +6569,13 @@ case 28:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 			  }
@@ -6506,48 +6639,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			  }
@@ -6565,13 +6701,13 @@ case 28:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 			 }
@@ -6589,13 +6725,13 @@ case 28:
 			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
-			case 29: 
+			case 30: 
  				 a[ktemp][vtemp].emplace_back(iter.isopen);
 				 break;
-			case 30: 
+			case 31: 
  				 a[ktemp][vtemp].emplace_back(iter.created_at);
 				 break;
-			case 31: 
+			case 32: 
  				 a[ktemp][vtemp].emplace_back(iter.enddate);
 				 break;
 
@@ -6656,48 +6792,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			 }
@@ -6715,13 +6854,13 @@ case 28:
 			case 3: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 vtemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 vtemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 vtemp=iter.enddate;
 				 break;
 			 }
@@ -6758,48 +6897,51 @@ case 28:
  				 a[ktemp][vtemp].emplace_back(iter.sitelogo);
 				 break;
 			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.contactman);
+ 				 a[ktemp][vtemp].emplace_back(iter.sitebanner);
 				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.phone);
+ 				 a[ktemp][vtemp].emplace_back(iter.contactman);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.mobile);
+ 				 a[ktemp][vtemp].emplace_back(iter.phone);
 				 break;
 			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.email);
+ 				 a[ktemp][vtemp].emplace_back(iter.mobile);
 				 break;
 			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.bankname);
+ 				 a[ktemp][vtemp].emplace_back(iter.email);
 				 break;
 			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.banksn);
+ 				 a[ktemp][vtemp].emplace_back(iter.bankname);
 				 break;
 			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.address);
+ 				 a[ktemp][vtemp].emplace_back(iter.banksn);
 				 break;
 			case 21: 
- 				 a[ktemp][vtemp].emplace_back(iter.zipnum);
+ 				 a[ktemp][vtemp].emplace_back(iter.address);
 				 break;
 			case 22: 
- 				 a[ktemp][vtemp].emplace_back(iter.taxsn);
+ 				 a[ktemp][vtemp].emplace_back(iter.zipnum);
 				 break;
 			case 23: 
- 				 a[ktemp][vtemp].emplace_back(iter.companyname);
+ 				 a[ktemp][vtemp].emplace_back(iter.taxsn);
 				 break;
 			case 24: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkname);
+ 				 a[ktemp][vtemp].emplace_back(iter.companyname);
 				 break;
 			case 25: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkmobile);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkname);
 				 break;
 			case 26: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkaddress);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkmobile);
 				 break;
 			case 27: 
- 				 a[ktemp][vtemp].emplace_back(iter.theme);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkaddress);
 				 break;
 			case 28: 
+ 				 a[ktemp][vtemp].emplace_back(iter.theme);
+				 break;
+			case 29: 
  				 a[ktemp][vtemp].emplace_back(iter.sitepath);
 				 break;
 
@@ -6858,48 +7000,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			 }
@@ -6936,48 +7081,51 @@ case 28:
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 			  }
@@ -7040,48 +7188,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			  }
@@ -7118,48 +7269,51 @@ case 28:
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 			 }
@@ -7177,13 +7331,13 @@ case 28:
 			case 3: 
  				 a[ktemp][vtemp].emplace_back(iter.languagetype);
 				 break;
-			case 29: 
+			case 30: 
  				 a[ktemp][vtemp].emplace_back(iter.isopen);
 				 break;
-			case 30: 
+			case 31: 
  				 a[ktemp][vtemp].emplace_back(iter.created_at);
 				 break;
-			case 31: 
+			case 32: 
  				 a[ktemp][vtemp].emplace_back(iter.enddate);
 				 break;
 
@@ -7242,48 +7396,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			  }
@@ -7320,48 +7477,51 @@ case 28:
  				 vtemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 vtemp=iter.contactman;
+ 				 vtemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 vtemp=iter.phone;
+ 				 vtemp=iter.contactman;
 				 break;
 			case 16: 
- 				 vtemp=iter.mobile;
+ 				 vtemp=iter.phone;
 				 break;
 			case 17: 
- 				 vtemp=iter.email;
+ 				 vtemp=iter.mobile;
 				 break;
 			case 18: 
- 				 vtemp=iter.bankname;
+ 				 vtemp=iter.email;
 				 break;
 			case 19: 
- 				 vtemp=iter.banksn;
+ 				 vtemp=iter.bankname;
 				 break;
 			case 20: 
- 				 vtemp=iter.address;
+ 				 vtemp=iter.banksn;
 				 break;
 			case 21: 
- 				 vtemp=iter.zipnum;
+ 				 vtemp=iter.address;
 				 break;
 			case 22: 
- 				 vtemp=iter.taxsn;
+ 				 vtemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 vtemp=iter.companyname;
+ 				 vtemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 vtemp=iter.linkname;
+ 				 vtemp=iter.companyname;
 				 break;
 			case 25: 
- 				 vtemp=iter.linkmobile;
+ 				 vtemp=iter.linkname;
 				 break;
 			case 26: 
- 				 vtemp=iter.linkaddress;
+ 				 vtemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 vtemp=iter.theme;
+ 				 vtemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 vtemp=iter.theme;
+				 break;
+			case 29: 
  				 vtemp=iter.sitepath;
 				 break;
 			  }
@@ -7398,48 +7558,51 @@ case 28:
  				 a[ktemp][vtemp].emplace_back(iter.sitelogo);
 				 break;
 			case 14: 
- 				 a[ktemp][vtemp].emplace_back(iter.contactman);
+ 				 a[ktemp][vtemp].emplace_back(iter.sitebanner);
 				 break;
 			case 15: 
- 				 a[ktemp][vtemp].emplace_back(iter.phone);
+ 				 a[ktemp][vtemp].emplace_back(iter.contactman);
 				 break;
 			case 16: 
- 				 a[ktemp][vtemp].emplace_back(iter.mobile);
+ 				 a[ktemp][vtemp].emplace_back(iter.phone);
 				 break;
 			case 17: 
- 				 a[ktemp][vtemp].emplace_back(iter.email);
+ 				 a[ktemp][vtemp].emplace_back(iter.mobile);
 				 break;
 			case 18: 
- 				 a[ktemp][vtemp].emplace_back(iter.bankname);
+ 				 a[ktemp][vtemp].emplace_back(iter.email);
 				 break;
 			case 19: 
- 				 a[ktemp][vtemp].emplace_back(iter.banksn);
+ 				 a[ktemp][vtemp].emplace_back(iter.bankname);
 				 break;
 			case 20: 
- 				 a[ktemp][vtemp].emplace_back(iter.address);
+ 				 a[ktemp][vtemp].emplace_back(iter.banksn);
 				 break;
 			case 21: 
- 				 a[ktemp][vtemp].emplace_back(iter.zipnum);
+ 				 a[ktemp][vtemp].emplace_back(iter.address);
 				 break;
 			case 22: 
- 				 a[ktemp][vtemp].emplace_back(iter.taxsn);
+ 				 a[ktemp][vtemp].emplace_back(iter.zipnum);
 				 break;
 			case 23: 
- 				 a[ktemp][vtemp].emplace_back(iter.companyname);
+ 				 a[ktemp][vtemp].emplace_back(iter.taxsn);
 				 break;
 			case 24: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkname);
+ 				 a[ktemp][vtemp].emplace_back(iter.companyname);
 				 break;
 			case 25: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkmobile);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkname);
 				 break;
 			case 26: 
- 				 a[ktemp][vtemp].emplace_back(iter.linkaddress);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkmobile);
 				 break;
 			case 27: 
- 				 a[ktemp][vtemp].emplace_back(iter.theme);
+ 				 a[ktemp][vtemp].emplace_back(iter.linkaddress);
 				 break;
 			case 28: 
+ 				 a[ktemp][vtemp].emplace_back(iter.theme);
+				 break;
+			case 29: 
  				 a[ktemp][vtemp].emplace_back(iter.sitepath);
 				 break;
 
@@ -7497,48 +7660,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			  }
@@ -7575,48 +7741,51 @@ case 28:
  				 a[ktemp].emplace_back(iter.sitelogo);
 				 break;
 			case 14: 
- 				 a[ktemp].emplace_back(iter.contactman);
+ 				 a[ktemp].emplace_back(iter.sitebanner);
 				 break;
 			case 15: 
- 				 a[ktemp].emplace_back(iter.phone);
+ 				 a[ktemp].emplace_back(iter.contactman);
 				 break;
 			case 16: 
- 				 a[ktemp].emplace_back(iter.mobile);
+ 				 a[ktemp].emplace_back(iter.phone);
 				 break;
 			case 17: 
- 				 a[ktemp].emplace_back(iter.email);
+ 				 a[ktemp].emplace_back(iter.mobile);
 				 break;
 			case 18: 
- 				 a[ktemp].emplace_back(iter.bankname);
+ 				 a[ktemp].emplace_back(iter.email);
 				 break;
 			case 19: 
- 				 a[ktemp].emplace_back(iter.banksn);
+ 				 a[ktemp].emplace_back(iter.bankname);
 				 break;
 			case 20: 
- 				 a[ktemp].emplace_back(iter.address);
+ 				 a[ktemp].emplace_back(iter.banksn);
 				 break;
 			case 21: 
- 				 a[ktemp].emplace_back(iter.zipnum);
+ 				 a[ktemp].emplace_back(iter.address);
 				 break;
 			case 22: 
- 				 a[ktemp].emplace_back(iter.taxsn);
+ 				 a[ktemp].emplace_back(iter.zipnum);
 				 break;
 			case 23: 
- 				 a[ktemp].emplace_back(iter.companyname);
+ 				 a[ktemp].emplace_back(iter.taxsn);
 				 break;
 			case 24: 
- 				 a[ktemp].emplace_back(iter.linkname);
+ 				 a[ktemp].emplace_back(iter.companyname);
 				 break;
 			case 25: 
- 				 a[ktemp].emplace_back(iter.linkmobile);
+ 				 a[ktemp].emplace_back(iter.linkname);
 				 break;
 			case 26: 
- 				 a[ktemp].emplace_back(iter.linkaddress);
+ 				 a[ktemp].emplace_back(iter.linkmobile);
 				 break;
 			case 27: 
- 				 a[ktemp].emplace_back(iter.theme);
+ 				 a[ktemp].emplace_back(iter.linkaddress);
 				 break;
 			case 28: 
+ 				 a[ktemp].emplace_back(iter.theme);
+				 break;
+			case 29: 
  				 a[ktemp].emplace_back(iter.sitepath);
 				 break;
 
@@ -7673,48 +7842,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			 }
@@ -7776,48 +7948,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			  }
@@ -7835,13 +8010,13 @@ case 28:
 			case 3: 
  				 a[ktemp].emplace_back(iter.languagetype);
 				 break;
-			case 29: 
+			case 30: 
  				 a[ktemp].emplace_back(iter.isopen);
 				 break;
-			case 30: 
+			case 31: 
  				 a[ktemp].emplace_back(iter.created_at);
 				 break;
-			case 31: 
+			case 32: 
  				 a[ktemp].emplace_back(iter.enddate);
 				 break;
 
@@ -7880,13 +8055,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			 }
@@ -7923,48 +8098,51 @@ case 28:
  				 a[ktemp].emplace_back(iter.sitelogo);
 				 break;
 			case 14: 
- 				 a[ktemp].emplace_back(iter.contactman);
+ 				 a[ktemp].emplace_back(iter.sitebanner);
 				 break;
 			case 15: 
- 				 a[ktemp].emplace_back(iter.phone);
+ 				 a[ktemp].emplace_back(iter.contactman);
 				 break;
 			case 16: 
- 				 a[ktemp].emplace_back(iter.mobile);
+ 				 a[ktemp].emplace_back(iter.phone);
 				 break;
 			case 17: 
- 				 a[ktemp].emplace_back(iter.email);
+ 				 a[ktemp].emplace_back(iter.mobile);
 				 break;
 			case 18: 
- 				 a[ktemp].emplace_back(iter.bankname);
+ 				 a[ktemp].emplace_back(iter.email);
 				 break;
 			case 19: 
- 				 a[ktemp].emplace_back(iter.banksn);
+ 				 a[ktemp].emplace_back(iter.bankname);
 				 break;
 			case 20: 
- 				 a[ktemp].emplace_back(iter.address);
+ 				 a[ktemp].emplace_back(iter.banksn);
 				 break;
 			case 21: 
- 				 a[ktemp].emplace_back(iter.zipnum);
+ 				 a[ktemp].emplace_back(iter.address);
 				 break;
 			case 22: 
- 				 a[ktemp].emplace_back(iter.taxsn);
+ 				 a[ktemp].emplace_back(iter.zipnum);
 				 break;
 			case 23: 
- 				 a[ktemp].emplace_back(iter.companyname);
+ 				 a[ktemp].emplace_back(iter.taxsn);
 				 break;
 			case 24: 
- 				 a[ktemp].emplace_back(iter.linkname);
+ 				 a[ktemp].emplace_back(iter.companyname);
 				 break;
 			case 25: 
- 				 a[ktemp].emplace_back(iter.linkmobile);
+ 				 a[ktemp].emplace_back(iter.linkname);
 				 break;
 			case 26: 
- 				 a[ktemp].emplace_back(iter.linkaddress);
+ 				 a[ktemp].emplace_back(iter.linkmobile);
 				 break;
 			case 27: 
- 				 a[ktemp].emplace_back(iter.theme);
+ 				 a[ktemp].emplace_back(iter.linkaddress);
 				 break;
 			case 28: 
+ 				 a[ktemp].emplace_back(iter.theme);
+				 break;
+			case 29: 
  				 a[ktemp].emplace_back(iter.sitepath);
 				 break;
 
@@ -8004,13 +8182,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -8052,13 +8230,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			 }
@@ -8076,13 +8254,13 @@ case 28:
 			case 3: 
  				 a[ktemp].emplace_back(iter.languagetype);
 				 break;
-			case 29: 
+			case 30: 
  				 a[ktemp].emplace_back(iter.isopen);
 				 break;
-			case 30: 
+			case 31: 
  				 a[ktemp].emplace_back(iter.created_at);
 				 break;
-			case 31: 
+			case 32: 
  				 a[ktemp].emplace_back(iter.enddate);
 				 break;
 
@@ -8117,13 +8295,13 @@ case 28:
 			case 3: 
  				 a[iter.languagetype].emplace_back(iter);
 				 break;
-			case 29: 
+			case 30: 
  				 a[iter.isopen].emplace_back(iter);
 				 break;
-			case 30: 
+			case 31: 
  				 a[iter.created_at].emplace_back(iter);
 				 break;
-			case 31: 
+			case 32: 
  				 a[iter.enddate].emplace_back(iter);
 				 break;
 
@@ -8178,48 +8356,51 @@ case 28:
  				 a[iter.sitelogo].emplace_back(iter);
 				 break;
 			case 14: 
- 				 a[iter.contactman].emplace_back(iter);
+ 				 a[iter.sitebanner].emplace_back(iter);
 				 break;
 			case 15: 
- 				 a[iter.phone].emplace_back(iter);
+ 				 a[iter.contactman].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[iter.mobile].emplace_back(iter);
+ 				 a[iter.phone].emplace_back(iter);
 				 break;
 			case 17: 
- 				 a[iter.email].emplace_back(iter);
+ 				 a[iter.mobile].emplace_back(iter);
 				 break;
 			case 18: 
- 				 a[iter.bankname].emplace_back(iter);
+ 				 a[iter.email].emplace_back(iter);
 				 break;
 			case 19: 
- 				 a[iter.banksn].emplace_back(iter);
+ 				 a[iter.bankname].emplace_back(iter);
 				 break;
 			case 20: 
- 				 a[iter.address].emplace_back(iter);
+ 				 a[iter.banksn].emplace_back(iter);
 				 break;
 			case 21: 
- 				 a[iter.zipnum].emplace_back(iter);
+ 				 a[iter.address].emplace_back(iter);
 				 break;
 			case 22: 
- 				 a[iter.taxsn].emplace_back(iter);
+ 				 a[iter.zipnum].emplace_back(iter);
 				 break;
 			case 23: 
- 				 a[iter.companyname].emplace_back(iter);
+ 				 a[iter.taxsn].emplace_back(iter);
 				 break;
 			case 24: 
- 				 a[iter.linkname].emplace_back(iter);
+ 				 a[iter.companyname].emplace_back(iter);
 				 break;
 			case 25: 
- 				 a[iter.linkmobile].emplace_back(iter);
+ 				 a[iter.linkname].emplace_back(iter);
 				 break;
 			case 26: 
- 				 a[iter.linkaddress].emplace_back(iter);
+ 				 a[iter.linkmobile].emplace_back(iter);
 				 break;
 			case 27: 
- 				 a[iter.theme].emplace_back(iter);
+ 				 a[iter.linkaddress].emplace_back(iter);
 				 break;
 			case 28: 
+ 				 a[iter.theme].emplace_back(iter);
+				 break;
+			case 29: 
  				 a[iter.sitepath].emplace_back(iter);
 				 break;
 
@@ -8276,48 +8457,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 			 }
@@ -8354,48 +8538,51 @@ case 28:
  				 a[ktemp][iter.sitelogo].emplace_back(iter);
 				 break;
 			case 14: 
- 				 a[ktemp][iter.contactman].emplace_back(iter);
+ 				 a[ktemp][iter.sitebanner].emplace_back(iter);
 				 break;
 			case 15: 
- 				 a[ktemp][iter.phone].emplace_back(iter);
+ 				 a[ktemp][iter.contactman].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[ktemp][iter.mobile].emplace_back(iter);
+ 				 a[ktemp][iter.phone].emplace_back(iter);
 				 break;
 			case 17: 
- 				 a[ktemp][iter.email].emplace_back(iter);
+ 				 a[ktemp][iter.mobile].emplace_back(iter);
 				 break;
 			case 18: 
- 				 a[ktemp][iter.bankname].emplace_back(iter);
+ 				 a[ktemp][iter.email].emplace_back(iter);
 				 break;
 			case 19: 
- 				 a[ktemp][iter.banksn].emplace_back(iter);
+ 				 a[ktemp][iter.bankname].emplace_back(iter);
 				 break;
 			case 20: 
- 				 a[ktemp][iter.address].emplace_back(iter);
+ 				 a[ktemp][iter.banksn].emplace_back(iter);
 				 break;
 			case 21: 
- 				 a[ktemp][iter.zipnum].emplace_back(iter);
+ 				 a[ktemp][iter.address].emplace_back(iter);
 				 break;
 			case 22: 
- 				 a[ktemp][iter.taxsn].emplace_back(iter);
+ 				 a[ktemp][iter.zipnum].emplace_back(iter);
 				 break;
 			case 23: 
- 				 a[ktemp][iter.companyname].emplace_back(iter);
+ 				 a[ktemp][iter.taxsn].emplace_back(iter);
 				 break;
 			case 24: 
- 				 a[ktemp][iter.linkname].emplace_back(iter);
+ 				 a[ktemp][iter.companyname].emplace_back(iter);
 				 break;
 			case 25: 
- 				 a[ktemp][iter.linkmobile].emplace_back(iter);
+ 				 a[ktemp][iter.linkname].emplace_back(iter);
 				 break;
 			case 26: 
- 				 a[ktemp][iter.linkaddress].emplace_back(iter);
+ 				 a[ktemp][iter.linkmobile].emplace_back(iter);
 				 break;
 			case 27: 
- 				 a[ktemp][iter.theme].emplace_back(iter);
+ 				 a[ktemp][iter.linkaddress].emplace_back(iter);
 				 break;
 			case 28: 
+ 				 a[ktemp][iter.theme].emplace_back(iter);
+				 break;
+			case 29: 
  				 a[ktemp][iter.sitepath].emplace_back(iter);
 				 break;
 
@@ -8452,48 +8639,51 @@ case 28:
  				 ktemp=iter.sitelogo;
 				 break;
 			case 14: 
- 				 ktemp=iter.contactman;
+ 				 ktemp=iter.sitebanner;
 				 break;
 			case 15: 
- 				 ktemp=iter.phone;
+ 				 ktemp=iter.contactman;
 				 break;
 			case 16: 
- 				 ktemp=iter.mobile;
+ 				 ktemp=iter.phone;
 				 break;
 			case 17: 
- 				 ktemp=iter.email;
+ 				 ktemp=iter.mobile;
 				 break;
 			case 18: 
- 				 ktemp=iter.bankname;
+ 				 ktemp=iter.email;
 				 break;
 			case 19: 
- 				 ktemp=iter.banksn;
+ 				 ktemp=iter.bankname;
 				 break;
 			case 20: 
- 				 ktemp=iter.address;
+ 				 ktemp=iter.banksn;
 				 break;
 			case 21: 
- 				 ktemp=iter.zipnum;
+ 				 ktemp=iter.address;
 				 break;
 			case 22: 
- 				 ktemp=iter.taxsn;
+ 				 ktemp=iter.zipnum;
 				 break;
 			case 23: 
- 				 ktemp=iter.companyname;
+ 				 ktemp=iter.taxsn;
 				 break;
 			case 24: 
- 				 ktemp=iter.linkname;
+ 				 ktemp=iter.companyname;
 				 break;
 			case 25: 
- 				 ktemp=iter.linkmobile;
+ 				 ktemp=iter.linkname;
 				 break;
 			case 26: 
- 				 ktemp=iter.linkaddress;
+ 				 ktemp=iter.linkmobile;
 				 break;
 			case 27: 
- 				 ktemp=iter.theme;
+ 				 ktemp=iter.linkaddress;
 				 break;
 			case 28: 
+ 				 ktemp=iter.theme;
+				 break;
+			case 29: 
  				 ktemp=iter.sitepath;
 				 break;
 	  }
@@ -8511,13 +8701,13 @@ case 28:
 			case 3: 
  				 a[ktemp][iter.languagetype].emplace_back(iter);
 				 break;
-			case 29: 
+			case 30: 
  				 a[ktemp][iter.isopen].emplace_back(iter);
 				 break;
-			case 30: 
+			case 31: 
  				 a[ktemp][iter.created_at].emplace_back(iter);
 				 break;
-			case 31: 
+			case 32: 
  				 a[ktemp][iter.enddate].emplace_back(iter);
 				 break;
 
@@ -8556,13 +8746,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			 }
@@ -8580,13 +8770,13 @@ case 28:
 			case 3: 
  				 a[ktemp][iter.languagetype].emplace_back(iter);
 				 break;
-			case 29: 
+			case 30: 
  				 a[ktemp][iter.isopen].emplace_back(iter);
 				 break;
-			case 30: 
+			case 31: 
  				 a[ktemp][iter.created_at].emplace_back(iter);
 				 break;
-			case 31: 
+			case 32: 
  				 a[ktemp][iter.enddate].emplace_back(iter);
 				 break;
 
@@ -8625,13 +8815,13 @@ case 28:
 			case 3: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 29: 
+			case 30: 
  				 ktemp=iter.isopen;
 				 break;
-			case 30: 
+			case 31: 
  				 ktemp=iter.created_at;
 				 break;
-			case 31: 
+			case 32: 
  				 ktemp=iter.enddate;
 				 break;
 			  }
@@ -8668,48 +8858,51 @@ case 28:
  				 a[ktemp][iter.sitelogo].emplace_back(iter);
 				 break;
 			case 14: 
- 				 a[ktemp][iter.contactman].emplace_back(iter);
+ 				 a[ktemp][iter.sitebanner].emplace_back(iter);
 				 break;
 			case 15: 
- 				 a[ktemp][iter.phone].emplace_back(iter);
+ 				 a[ktemp][iter.contactman].emplace_back(iter);
 				 break;
 			case 16: 
- 				 a[ktemp][iter.mobile].emplace_back(iter);
+ 				 a[ktemp][iter.phone].emplace_back(iter);
 				 break;
 			case 17: 
- 				 a[ktemp][iter.email].emplace_back(iter);
+ 				 a[ktemp][iter.mobile].emplace_back(iter);
 				 break;
 			case 18: 
- 				 a[ktemp][iter.bankname].emplace_back(iter);
+ 				 a[ktemp][iter.email].emplace_back(iter);
 				 break;
 			case 19: 
- 				 a[ktemp][iter.banksn].emplace_back(iter);
+ 				 a[ktemp][iter.bankname].emplace_back(iter);
 				 break;
 			case 20: 
- 				 a[ktemp][iter.address].emplace_back(iter);
+ 				 a[ktemp][iter.banksn].emplace_back(iter);
 				 break;
 			case 21: 
- 				 a[ktemp][iter.zipnum].emplace_back(iter);
+ 				 a[ktemp][iter.address].emplace_back(iter);
 				 break;
 			case 22: 
- 				 a[ktemp][iter.taxsn].emplace_back(iter);
+ 				 a[ktemp][iter.zipnum].emplace_back(iter);
 				 break;
 			case 23: 
- 				 a[ktemp][iter.companyname].emplace_back(iter);
+ 				 a[ktemp][iter.taxsn].emplace_back(iter);
 				 break;
 			case 24: 
- 				 a[ktemp][iter.linkname].emplace_back(iter);
+ 				 a[ktemp][iter.companyname].emplace_back(iter);
 				 break;
 			case 25: 
- 				 a[ktemp][iter.linkmobile].emplace_back(iter);
+ 				 a[ktemp][iter.linkname].emplace_back(iter);
 				 break;
 			case 26: 
- 				 a[ktemp][iter.linkaddress].emplace_back(iter);
+ 				 a[ktemp][iter.linkmobile].emplace_back(iter);
 				 break;
 			case 27: 
- 				 a[ktemp][iter.theme].emplace_back(iter);
+ 				 a[ktemp][iter.linkaddress].emplace_back(iter);
 				 break;
 			case 28: 
+ 				 a[ktemp][iter.theme].emplace_back(iter);
+				 break;
+			case 29: 
  				 a[ktemp][iter.sitepath].emplace_back(iter);
 				 break;
 
