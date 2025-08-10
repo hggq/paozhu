@@ -70,6 +70,23 @@ std::string admin_addarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.addtime       = timeid();
         artmodel.data.addip         = client.client_ip;
 
+        msg.clear();
+        for (unsigned int i = 0; i < artmodel.data.relatecontent.size(); i++)
+        {
+            if (artmodel.data.relatecontent[i] >= '0' && artmodel.data.relatecontent[i] <= '9')
+            {
+                msg.push_back(artmodel.data.relatecontent[i]);
+            }
+            else if (artmodel.data.relatecontent[i] == ',')
+            {
+                if (msg.size() > 0)
+                {
+                    msg.push_back(',');
+                }
+            }
+        }
+        artmodel.data.relatecontent = msg;
+        
         artmodel.save();
 
         unsigned int aid = 0;
@@ -169,6 +186,23 @@ std::string admin_editarticlepost(std::shared_ptr<httppeer> peer)
         artmodel.data.texturl       = client.post["texturl"].to_string();
         artmodel.data.relatecontent = client.post["relatecontent"].to_string();
         artmodel.data.showtype      = client.post["showtype"].to_int();
+
+        msg.clear();
+        for (unsigned int i = 0; i < artmodel.data.relatecontent.size(); i++)
+        {
+            if (artmodel.data.relatecontent[i] >= '0' && artmodel.data.relatecontent[i] <= '9')
+            {
+                msg.push_back(artmodel.data.relatecontent[i]);
+            }
+            else if (artmodel.data.relatecontent[i] == ',')
+            {
+                if (msg.size() > 0)
+                {
+                    msg.push_back(',');
+                }
+            }
+        }
+        artmodel.data.relatecontent = msg;
 
         artmodel.where("userid", client.session["userid"].to_int()).whereAnd("aid", aid).limit(1);
         int result_status =
@@ -274,7 +308,7 @@ std::string admin_gettoparticle(std::shared_ptr<httppeer> peer)
         }
         auto [bar_min, bar_max, current_page, total_page] = artmodel.page(page, 10, 5);
 
-        client.val["pageinfo"].set_array();
+        client.val["pageinfo"].set_object();
         client.val["pageinfo"]["min"]     = bar_min;
         client.val["pageinfo"]["max"]     = bar_max;
         client.val["pageinfo"]["current"] = current_page;
