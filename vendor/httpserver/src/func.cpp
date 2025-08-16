@@ -188,6 +188,119 @@ bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int len
     }
     return true;
 }
+
+std::string mb_reverse(std::string_view str)
+{
+    std::string temp;
+    if (str.size() == 0)
+    {
+        return temp;
+    }
+    int i = str.size() - 1;
+    unsigned int j = 0;
+    for (; i >= 0; i--)
+    {
+        unsigned char cc = str[i];
+        if (cc < 0x80)
+        {
+            temp.push_back(str[i]);
+        }
+        else
+        {
+            j = i;
+            for (; i >= 0; i--)
+            {
+                unsigned char dd = str[i];
+                if (dd & 0x40)
+                {
+                    if (i > 2)
+                    {
+                        //emoji 0x200D
+                        //https://unicode.org/Public/emoji/5.0/emoji-data.txt
+                        dd               = str[i - 1];
+                        unsigned char ee = str[i - 2];
+                        unsigned char ff = str[i - 3];
+                        if (ff == 0xE2 && ee == 0x80 && dd == 0x8D)
+                        {
+                            i = i - 3;
+                            //1F3FB..1F3FF  ; Emoji_Modifier       #  8.0  [5] (🏻..🏿)    light skin tone..dark skin tone
+
+                            // if(i>3)
+                            // {
+                            //     cc = str[i-1];
+                            //     dd = str[i-2];
+                            //     ee = str[i-3];
+                            //     ff = str[i-4];
+                            //     //F09F8FBB
+                            //     if (cc == 0xBB && dd == 0x8F && ee == 0x9F && ff == 0xF0 )
+                            //     {
+                            //         i = i - 4;
+                            //     }
+                            //     else if (cc == 0xBC && dd == 0x8F && ee == 0x9F && ff == 0xF0 )
+                            //     {
+                            //         i = i - 4;
+                            //     }
+                            //     else if (cc == 0xBD && dd == 0x8F && ee == 0x9F && ff == 0xF0 )
+                            //     {
+                            //         i = i - 4;
+                            //     }
+                            //     else if (cc == 0xBE && dd == 0x8F && ee == 0x9F && ff == 0xF0 )
+                            //     {
+                            //         i = i - 4;
+                            //     }
+                            //     else if (cc == 0xBF && dd == 0x8F && ee == 0x9F && ff == 0xF0 )
+                            //     {
+                            //         i = i - 4;
+                            //     }
+                            // }
+                            continue;
+                        }
+                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8B) 
+                        {
+                            //Used for separating longer words with line breaks
+                            i = i - 3;
+                            continue;
+                        }
+                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8C) 
+                        {
+                            //Arabic, German, Hindi
+                            i = i - 3;
+                            continue;
+                        }
+                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8E) 
+                        {
+                            //Right to Left
+                            i = i - 3;
+                            continue;
+                        }
+                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8F) 
+                        {
+                            //Right to Left
+                            i = i - 3;
+                            continue;
+                        }
+                    }
+                    //May be check colour of skin
+                    for (unsigned int k = i; k <= j; k++)
+                    {
+                        temp.push_back(str[k]);
+                    }
+                    break;
+                }
+                if (i == 0)
+                {
+                    break;
+                }
+            }
+        }
+        if (i == 0)
+        {
+            break;
+        }
+    }
+    return temp;
+}
+
 bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length)
 {
     if (length == 0)

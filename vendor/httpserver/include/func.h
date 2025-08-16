@@ -27,6 +27,7 @@ bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int leng
 bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length = 0);
 bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int length = 0);
 bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length = 0);
+std::string mb_reverse(std::string_view str);
 void get_filename(const std::string &filename, std::string &filename_name, std::string &filename_ext);
 std::string get_filename(const std::string &filename);
 std::string get_fileext(const std::string &filename);
