@@ -404,7 +404,20 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
 
         if (regmethold_path.empty())
         {
-            regmethold_path = "home";
+            if (peer->pathinfos.size() > 0)
+            {
+                if (domain_method_map_iter != _domain_regmethod_table.end())
+                {
+                    if (domain_method_map_iter->second.contains("404"))//!= _http_regmethod_table.end()
+                    {
+                        regmethold_path = "404";
+                    }
+                }
+            }
+            if (regmethold_path.empty())
+            {
+                regmethold_path = "home";
+            }
         }
         DEBUG_LOG("http_regmethod pre in");
 
@@ -430,9 +443,8 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                                                {
                                                    handler(1);
                                                });
-                                
                             }
-                            else 
+                            else
                             {
                                 lock.unlock();
                             }
@@ -636,9 +648,8 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
                            {
                                handler(1);
                            });
-            
         }
-        else 
+        else
         {
             lock.unlock();
         }
@@ -686,7 +697,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
         {
             peer->status(500);
             peer->output = "Internal Server Error";
-            auto handle = std::move(peer->user_code_handler_call.front());
+            auto handle  = std::move(peer->user_code_handler_call.front());
             peer->user_code_handler_call.pop_front();
             asio::dispatch(*io_context,
                            [handler = std::move(handle)]() mutable -> void
