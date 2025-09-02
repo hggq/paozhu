@@ -18,9 +18,9 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
         # brew install mysql
         # brew install mysql-client
+        # brew install cmake
       - name: Install dependencies
         run: |
-          brew install cmake
           brew install asio
           brew install zlib
           brew install brotli
