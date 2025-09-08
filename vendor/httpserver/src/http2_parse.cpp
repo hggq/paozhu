@@ -2690,6 +2690,7 @@ void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[
     if (http_data.contains(block_steamid))
     {
         http_data[block_steamid]->isclose = true;
+        http_data[block_steamid]->issend = true;
     }
 }
 void http2parse::procssxformurlencoded()
