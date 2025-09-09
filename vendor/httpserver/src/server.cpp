@@ -2814,7 +2814,7 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                         DEBUG_LOG("-- get_http2_send_queue -- %d", sp->peer->socket_session->http2_ring_queue->has_size());
                         if (sp->peer->socket_session->http2_ring_queue->has_size() > 0)
                         {
-                            if ((!sp->peer->socket_session->isclose) && (!sp->peer->issend))
+                            if (!sp->peer->socket_session->isclose)
                             {
                                 sp->peer->socket_session->waituphttp2(this->io_context);
                                 iter++;
