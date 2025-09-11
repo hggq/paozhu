@@ -107,7 +107,7 @@ target("paozhu")
     add_files("controller/src/**.cpp")
     add_files("viewsrc/view/**.cpp")
     add_files("libs/**.cpp")
-    add_files("test/test.cpp")
+    add_files("startup/main_dev.cpp")
 
     on_load(function (target)
         if is_plat("linux", "macosx") then
