@@ -121,6 +121,7 @@ class client : public std::enable_shared_from_this<client>
     asio::awaitable<void> async_send_ssl_data();
     bool parse();
     std::string get_body();
+    const std::string &ref_body();
     std::string get_header();
     std::string get_tempfile();
     std::map<std::string, std::string> get_headers();
@@ -129,6 +130,7 @@ class client : public std::enable_shared_from_this<client>
     unsigned int get_status();
     std::string get_status_msg();
     http::cookie get_cookie();
+    std::string &get_cookie(const std::string &cookie_key);
     http::obj_val json();
 
   public:

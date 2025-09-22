@@ -2194,7 +2194,35 @@ std::string client::get_body()
     }
     return state.content;
 }
+const std::string &client::ref_body()
+{
+    if (state.istxt)
+    {
+        return state.content;
+    }
+    else
+    {
+        // FILE *ffp = fopen(state.page.tempfile.c_str(), "rb");
+        std::unique_ptr<std::FILE, int (*)(FILE *)> ffp(fopen(state.page.tempfile.c_str(), "rb"), std::fclose);
+        if (!ffp)
+        {
+            return state.content;
+        }
+        fseek(ffp.get(), 0, SEEK_END);
+        unsigned int nsize = ftell(ffp.get());
+        fseek(ffp.get(), 0, SEEK_SET);
+
+        state.content.resize(nsize);
+
+        unsigned int nread = fread(&state.content[0], 1, nsize, ffp.get());
+        state.content.resize(nread);
+        // fclose(ffp);
+    }
+    return state.content;
+}
+
 http::cookie client::get_cookie() { return state.cookie; }
+std::string &client::get_cookie(const std::string &cookie_key) { return state.cookie[cookie_key]; }
 http::obj_val client::json() { return state.json; }
 void client::respreadtocontent(const char *buffer, unsigned int buffersize)
 {

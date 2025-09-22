@@ -1,4 +1,5 @@
 #include "httppeer.h"
+#include "orm.h"
 #include "func.h"
 #include "testcowaitclient.h"
 #include "client_context.h"
@@ -130,7 +131,7 @@ std::string testhttpclient_cowait_post(std::shared_ptr<httppeer> peer)
             std::cout << "http://www.xxxxxx.net/main.php" << std::endl;
             a->get("http://www.xxxxxx.net/main.php");
             a->requst_clear();
-            a->add_cookie("PHPSESSID", a->state.cookie["PHPSESSID"]);
+            a->add_cookie("PHPSESSID", a->get_cookie("PHPSESSID"));
             a->add_header("Connection", "Close");
 
             a->send();

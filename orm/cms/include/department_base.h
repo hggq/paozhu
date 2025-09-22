@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 09 Aug 2025 05:08:02 GMT
+*本文件为自动生成 Mon, 22 Sep 2025 03:53:32 GMT
 ***/
 #include <iostream>
 #include <cstdio>
