@@ -5655,6 +5655,8 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     if (rmstag != "default")
     {
         filemodelstremcpp << "\n#include \"";
+        filemodelstremcpp << rmstag;
+        filemodelstremcpp << "/include/";
         filemodelstremcpp << model_name;
         filemodelstremcpp << "_mysql.h\"";
         filemodelstremcpp << "\n#include \"";
@@ -5740,6 +5742,8 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     if (rmstag != "default")
     {
         filemodelstremcpp << "\n#include \"";
+        filemodelstremcpp << rmstag;
+        filemodelstremcpp << "/include/";        
         filemodelstremcpp << model_name;
         filemodelstremcpp << "_mysql.h\" \n#include \"";
         filemodelstremcpp << rmstag;
