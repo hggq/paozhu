@@ -62,31 +62,7 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
     else
     {
         asio::ip::tcp::resolver resolver(executor);
-       // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-        // asio::ip::tcp::resolver::iterator end;
-        // asio::ip::tcp::endpoint endpoint;
         sock = std::make_shared<asio::ip::tcp::socket>(executor);
-
-        // if (iter == end)
-        // {
-        //     error_msg = "php-fpm resolver " + host + port;
-        //     DEBUG_LOG("%s", error_msg.c_str());
-        //     co_return false;
-        // }
-
-        // while (iter != end)
-        // {
-        //     endpoint     = *iter++;
-        //     std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
-        //     if (ec)
-        //     {
-        //         continue;
-        //     }
-        //     else
-        //     {
-        //         break;
-        //     }
-        // }
         auto endpoints = co_await resolver.async_resolve(host, port, asio::use_awaitable);
         for(auto iter=endpoints.cbegin();iter!=endpoints.cend();)
         {
@@ -102,7 +78,7 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
     if (ec)
     {
         error_msg = "php-fpm Unable to connect\r\n";
-        DEBUG_LOG("%s", error_msg.c_str());
+       // DEBUG_LOG("%s", error_msg.c_str());
         co_return false;
     }
     co_return true;
@@ -113,9 +89,8 @@ asio::awaitable<void> fastcgi::async_send()
     std::shared_ptr<httppeer> peer = peer_ptr.lock();
     if (sock == nullptr && socklocal == nullptr)
     {
-        DEBUG_LOG("co_await co_init_http_sock");
+        //DEBUG_LOG("co_await co_init_http_sock");
         bool isinit = co_await co_init_http_sock();
-        DEBUG_LOG("co_init_http_sock: %s", error_msg.c_str());
         if (!isinit)
         {
             add_error_msg(error_msg);
@@ -124,7 +99,7 @@ asio::awaitable<void> fastcgi::async_send()
             co_return;
         }
     }
-    DEBUG_LOG("co_init_http_sock");
+    //DEBUG_LOG("co_init_http_sock");
     unsigned int ret;
     
     if (!peer)
@@ -153,7 +128,6 @@ asio::awaitable<void> fastcgi::async_send()
         request_url.append("index.php");
         params.push_back({"SCRIPT_NAME", request_url});
         params.push_back({"SCRIPT_FILENAME", (document_root + request_url)});
-        DEBUG_LOG("request_url: %s", request_url.c_str());
     }
     else if (peer->linktype == 15)
     {
@@ -161,7 +135,6 @@ asio::awaitable<void> fastcgi::async_send()
         request_url.append(peer->sendfilename);
         params.push_back({"SCRIPT_NAME", request_url});
         params.push_back({"SCRIPT_FILENAME", (document_root + request_url)});
-        DEBUG_LOG("request_url: %s", request_url.c_str());
     }
     else if (peer->linktype == 19)
     {
@@ -228,7 +201,7 @@ asio::awaitable<void> fastcgi::async_send()
         }
         params.push_back({"PATH_INFO", respbody});
 
-        DEBUG_LOG("SCRIPT_NAME: %s", request_url.c_str());
+        //DEBUG_LOG("SCRIPT_NAME: %s", request_url.c_str());
     }
     else
     {
@@ -249,7 +222,7 @@ asio::awaitable<void> fastcgi::async_send()
         params.push_back({"REQUEST_METHOD", "POST"});
         params.push_back({"CONTENT_LENGTH", std::to_string(peer->output.size())});
         params.push_back({"CONTENT_TYPE", peer->header["Content-Type"]});
-        DEBUG_LOG("POST size: %zu", peer->output.size());
+        //DEBUG_LOG("POST size: %zu", peer->output.size());
     }
     else if (peer->method == 3)
     {
@@ -284,11 +257,18 @@ asio::awaitable<void> fastcgi::async_send()
 
     for (const auto &[first, second] : peer->header)
     {
-        DEBUG_LOG("%s: %s", first.c_str(), second.c_str());
         if (first.size() == 0)
         {
             continue;
         }
+#ifdef DEBUG
+        //asan crash
+        if(first.size() > 0 && second.size() > 0)
+        {
+            DEBUG_LOG("%s: %s", first.c_str(), second.c_str());
+        }
+#endif
+
         respbody.clear();
         if (first[0] == ':')
         {
@@ -309,7 +289,12 @@ asio::awaitable<void> fastcgi::async_send()
 
     for (unsigned i = 0; i < params.size(); i++)
     {
-        DEBUG_LOG("%s: %s", params[i].first.c_str(), params[i].second.c_str());
+#ifdef DEBUG       
+    // if(params[i].first.size() > 0 && params[i].second.size() > 0 )
+    // {
+    //     DEBUG_LOG("%s: %s", params[i].first.c_str(), params[i].second.c_str());
+    // }
+#endif
         params_body.append(pack_length(params[i].first.size(), params[i].second.size()));
         params_body.append(params[i].first);
         params_body.append(params[i].second);
@@ -376,7 +361,7 @@ asio::awaitable<void> fastcgi::async_send()
             {
                 contentLen = (respHeader.contentLengthB1 << 8) + (respHeader.contentLengthB0);
                 params_body.clear();
-                DEBUG_LOG("FASTCGI_STDOUT %u", contentLen);
+                //DEBUG_LOG("FASTCGI_STDOUT %u", contentLen);
                 if (issock)
                 {
                     std::string temp_read_some;
@@ -534,7 +519,7 @@ asio::awaitable<void> fastcgi::async_send()
             else if (respHeader.type == FASTCGI_STDERR)
             {
                 contentLen = (respHeader.contentLengthB1 << 8) + (respHeader.contentLengthB0);
-                DEBUG_LOG("FASTCGI_STDERR %u", contentLen);
+                //DEBUG_LOG("FASTCGI_STDERR %u", contentLen);
                 params_body.clear();
                 params_body.resize(contentLen);
                 if (issock)
@@ -578,10 +563,10 @@ asio::awaitable<void> fastcgi::async_send()
     catch (std::exception &e)
     {
         error_msg.append(e.what());
-        DEBUG_LOG("std::exception %s", e.what());
+        //DEBUG_LOG("std::exception %s", e.what());
         peer->output = params_body;
     }
-    DEBUG_LOG("php fastcgi return %zu", respbody.size());
+    //DEBUG_LOG("php fastcgi return %zu", respbody.size());
     ret = 0;
     std::string line_header;
     std::string line_name;
@@ -591,7 +576,7 @@ asio::awaitable<void> fastcgi::async_send()
         if ((ret + 2) < respbody.size() && respbody[ret] == '\r' && respbody[ret + 1] == '\n' && respbody[ret + 2] == '\r' && respbody[ret + 3] == '\n')
         {
             ret += 4;
-            DEBUG_LOG("%s:s%s", line_name.c_str(), line_header.c_str());
+            //DEBUG_LOG("%s:s%s", line_name.c_str(), line_header.c_str());
             if (line_name.size() == 12 && str_casecmp(line_name, "Content-type"))
             {
                 peer->type(line_header);
@@ -616,7 +601,12 @@ asio::awaitable<void> fastcgi::async_send()
         else if (respbody[ret] == '\r' && respbody[ret + 1] == '\n')
         {
             ret += 1;
-            DEBUG_LOG("%s:s%s", line_name.c_str(), line_header.c_str());
+#ifdef DEBUG           
+        // if(line_name.size()>0 && line_header.size()>0)
+        // {
+        //     DEBUG_LOG("%s:%s", line_name.c_str(), line_header.c_str());
+        // }    
+#endif
             if (line_name.size() == 12 && str_casecmp(line_name, "Content-type"))
             {
                 peer->type(line_header);
@@ -693,7 +683,7 @@ asio::awaitable<void> fastcgi::send_exit(std::shared_ptr<httppeer> peer)
 }
 asio::awaitable<void> fastcgi::send_postbody(std::shared_ptr<httppeer> peer)
 {
-    DEBUG_LOG("bodypost size: %zu", peer->output.size());
+   // DEBUG_LOG("bodypost size: %zu", peer->output.size());
     unsigned int bodylen = 0;
     unsigned int len = peer->output.size(), bodyoffset = 0;
     size_t ret;

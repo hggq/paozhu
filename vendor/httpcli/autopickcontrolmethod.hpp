@@ -548,13 +548,29 @@ class pickcontrol
 
         return temp;
     }
-    void createhfile(const std::string &filename, const std::vector<struct reg_autoitem> &methodpathfile)
+    void createhfile(const std::string &filename, const std::vector<struct reg_autoitem> &methodpathfile, const std::string &domain_value, bool isdomain)
     {
         std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp(std::fopen(filename.c_str(), "wb"), std::fclose);
 
         if (!fp.get())
         {
             return;
+        }
+
+        std::string domain_namespace;
+        if (isdomain)
+        {
+            for (unsigned int jjjjj = 0; jjjjj < domain_value.size(); jjjjj++)
+            {
+                if (domain_value[jjjjj] == '.')
+                {
+                    break;
+                }
+                else
+                {
+                    domain_namespace.push_back(domain_value[jjjjj]);
+                }
+            }
         }
 
         std::string header_content = R"(
@@ -566,6 +582,14 @@ class pickcontrol
 namespace http
 {        
 )";
+        //domain pre
+        if (domain_namespace.size() > 0)
+        {
+            header_content.append(" namespace ");
+            header_content.append(domain_namespace);
+            header_content.append(" { \n");
+        }
+
         for (unsigned int i = 0; i < methodpathfile.size(); i++)
         {
             if (methodpathfile[i].func_type == "std::string")
@@ -581,6 +605,12 @@ namespace http
                 header_content.append("(std::shared_ptr<httppeer> peer);\r\n");
             }
         }
+
+        if (domain_namespace.size() > 0)
+        {
+            header_content.append(" }\n");
+        }
+
         header_content.append("}\r\n");
 
         fwrite(&header_content[0], 1, header_content.size(), fp.get());

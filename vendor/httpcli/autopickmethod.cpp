@@ -244,7 +244,8 @@ int main(int argc, char *argv[])
             }
             else
             {
-                lp.createhfile(fileinh, method_item);
+
+                lp.createhfile(fileinh, method_item, domain_value, is_file_domain);
 
                 memset(&sessfileinfo, 0, sizeof(sessfileinfo));
                 if (stat(fileinh.c_str(), &sessfileinfo) == 0)
@@ -565,6 +566,19 @@ namespace http
 
     for (unsigned int j = 0; j < domain_method_lists.size(); j++)
     {
+        domain_value.clear();
+        for (unsigned int jjjjj = 0; jjjjj < domain_method_lists[j].domain.size(); jjjjj++)
+        {
+            if (domain_method_lists[j].domain[jjjjj] == '.')
+            {
+                break;
+            }
+            else
+            {
+                domain_value.push_back(domain_method_lists[j].domain[jjjjj]);
+            }
+        }
+        domain_value.append("::");
         if (stringcasecmp(domain_method_lists[j].pre, "null") ||
             stringcasecmp(domain_method_lists[j].pre, "nullptr"))
         {
@@ -573,10 +587,12 @@ namespace http
         else
         {
             automethod_content.append("\ttemp.pre = ");
+            automethod_content.append(domain_value);
             automethod_content.append(domain_method_lists[j].pre);
             automethod_content.append(";\r\n");
         }
         automethod_content.append("\t\ttemp.regfun = ");
+        automethod_content.append(domain_value);
         automethod_content.append(domain_method_lists[j].func);
         automethod_content.append(";\r\n");
 
@@ -711,6 +727,20 @@ namespace http
 
     for (unsigned int j = 0; j < co_domain_method_lists.size(); j++)
     {
+        domain_value.clear();
+        for (unsigned int jjjjj = 0; jjjjj < domain_method_lists[j].domain.size(); jjjjj++)
+        {
+            if (domain_method_lists[j].domain[jjjjj] == '.')
+            {
+                break;
+            }
+            else
+            {
+                domain_value.push_back(domain_method_lists[j].domain[jjjjj]);
+            }
+        }
+        domain_value.append("::");
+
         if (stringcasecmp(co_domain_method_lists[j].pre, "null") ||
             stringcasecmp(co_domain_method_lists[j].pre, "nullptr"))
         {
@@ -719,10 +749,12 @@ namespace http
         else
         {
             automethod_content.append("\ttemp.pre = ");
+            automethod_content.append(domain_value);
             automethod_content.append(co_domain_method_lists[j].pre);
             automethod_content.append(";\r\n");
         }
         automethod_content.append("\t\ttemp.regfun = ");
+        automethod_content.append(domain_value);
         automethod_content.append(co_domain_method_lists[j].func);
         automethod_content.append(";\r\n");
 
