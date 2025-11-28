@@ -5250,7 +5250,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     }
 
     template_file.append("include/");
-    template_file.append(table_name);
+    template_file.append(model_name);//fix pre table_name
     template_file.append("_mysql");
     template_file.append(".h");
     fp = fopen(template_file.c_str(), "wb");
@@ -5657,7 +5657,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
-        filemodelstremcpp << model_name;
+        filemodelstremcpp << tablenamebase;
         filemodelstremcpp << "_mysql.h\"";
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << rmstag;
@@ -5671,7 +5671,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     else
     {
         filemodelstremcpp << "\n#include \"";
-        filemodelstremcpp << model_name;
+        filemodelstremcpp << tablenamebase;
         filemodelstremcpp << "_mysql.h\"";
         filemodelstremcpp << "\n#include \"" << tablenamebase << "_base.h\"\n#include \""
                           << model_name_obj << ".h\"\n";
@@ -5744,7 +5744,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
-        filemodelstremcpp << model_name;
+        filemodelstremcpp << tablenamebase;
         filemodelstremcpp << "_mysql.h\" \n#include \"";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
@@ -5754,7 +5754,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     else
     {
         filemodelstremcpp << "\n#include \"";
-        filemodelstremcpp << model_name;
+        filemodelstremcpp << tablenamebase;
         filemodelstremcpp << "_mysql.h\" \n#include \"";
         filemodelstremcpp << tablenamebase << "_base.h\"\n";
     }
@@ -5773,7 +5773,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 
     }
     filemodelstremcpp << "\t\tclass " << model_name_obj << " : public "
-                      << model_name << "_mysql<" << model_name_obj << ","
+                      << tablenamebase << "_mysql<" << model_name_obj << ","
                       << tablenamebase << "_base>{\n";
 
     filemodelstremcpp << "\t\t public:\n";
