@@ -26,7 +26,7 @@ if is_plat("mingw") then
     add_defines("WIN32_LEAN_AND_MEAN")
 end
 
-add_requires("openssl >= 3.0.0","asio","zlib", "brotli")
+add_requires("openssl","asio","zlib", "brotli")
 
 add_includedirs("common")
 add_includedirs("controller")
