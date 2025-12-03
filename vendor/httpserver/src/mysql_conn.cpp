@@ -716,25 +716,36 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
 bool mysql_conn_base::server_public_key_encrypt(const std::string &password, unsigned char *data, unsigned int length)
 {
     send_data.clear();
+    send_data.reserve(512);
+    for (size_t i = 0; i <length; i++)
+    {
+        send_data.push_back(data[i]);
+    }
+    BIO *bio = BIO_new_mem_buf(&send_data[0], send_data.size());
+    EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    BIO_free(bio);
+    
+    send_data.clear();
     send_data = password;
     send_data.push_back(0x00);
 
     mysqlnd_xor_string(&send_data[0], send_data.size(), server_hello.auth_plugin_salt_data.data(), 20);
 
-    BIO *bio             = BIO_new_mem_buf(data, length);
-    EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    BIO_free(bio);
+    // BIO *bio             = BIO_new_mem_buf(data, length);
+    // EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    // BIO_free(bio);
 
-    std::size_t server_public_key_len = 0;// EVP_PKEY_get_size(public_key);
+    std::size_t server_public_key_len = EVP_PKEY_get_size(public_key);// 0;// EVP_PKEY_get_size(public_key);
     //std::string public_key_str(256, 0x00);
     std::memset(_cache_data, 0x00, 256);
     // see sql-common/client_authenthication.cc line 144 or 968 php-src ext/mysqlnd/mysqlnd_auth.c
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(public_key, NULL);
     if (!ctx || EVP_PKEY_encrypt_init(ctx) <= 0 ||
         EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0 ||
-        EVP_PKEY_encrypt(ctx, _cache_data, &server_public_key_len, (unsigned char *)&send_data[0], send_data.size()) <= 0)
+        EVP_PKEY_encrypt(ctx,(unsigned char *)_cache_data, &server_public_key_len, (unsigned char *)&send_data[0], send_data.size()) <= 0)
     {
         EVP_PKEY_CTX_free(ctx);
+        EVP_PKEY_free(public_key);
         error_msg.append(" server_public_key encrypt error ! ");
         error_code = 4;
         return false;
