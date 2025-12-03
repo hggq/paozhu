@@ -739,7 +739,7 @@ bool mysql_conn_base::server_public_key_encrypt(const std::string &password, uns
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
         server_public_key_len = EVP_PKEY_get_size(public_key);
 #else  /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
-        server_public_key_len = RSA_size(public_key);
+        server_public_key_len = EVP_PKEY_size(public_key);
 #endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
 
     //std::string public_key_str(256, 0x00);
