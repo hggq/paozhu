@@ -715,15 +715,15 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
 
 bool mysql_conn_base::server_public_key_encrypt(const std::string &password, unsigned char *data, unsigned int length)
 {
-    send_data.clear();
-    send_data.reserve(512);
-    for (size_t i = 0; i <length; i++)
-    {
-        send_data.push_back(data[i]);
-    }
-    BIO *bio = BIO_new_mem_buf(&send_data[0], send_data.size());
-    EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    BIO_free(bio);
+    // send_data.clear();
+    // send_data.reserve(512);
+    // for (size_t i = 0; i <length; i++)
+    // {
+    //     send_data.push_back(data[i]);
+    // }
+    // BIO *bio = BIO_new_mem_buf(&send_data[0], send_data.size());
+    // EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    // BIO_free(bio);
     
     send_data.clear();
     send_data = password;
@@ -731,11 +731,17 @@ bool mysql_conn_base::server_public_key_encrypt(const std::string &password, uns
 
     mysqlnd_xor_string(&send_data[0], send_data.size(), server_hello.auth_plugin_salt_data.data(), 20);
 
-    // BIO *bio             = BIO_new_mem_buf(data, length);
-    // EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    // BIO_free(bio);
+    BIO *bio             = BIO_new_mem_buf((const char *)data, length);
+    EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    BIO_free(bio);
 
-    std::size_t server_public_key_len = EVP_PKEY_get_size(public_key);// 0;// EVP_PKEY_get_size(public_key);
+    std::size_t server_public_key_len = 0;// EVP_PKEY_get_size(public_key);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        server_public_key_len = EVP_PKEY_get_size(public_key);
+#else  /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
+        server_public_key_len = RSA_size(public_key);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
+
     //std::string public_key_str(256, 0x00);
     std::memset(_cache_data, 0x00, 256);
     // see sql-common/client_authenthication.cc line 144 or 968 php-src ext/mysqlnd/mysqlnd_auth.c
