@@ -327,11 +327,11 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     send_data.push_back(0xFF);
 
     send_data.push_back(0x00);
-    if(conn_config.charset_val > 0)
+    if (conn_config.charset_val > 0)
     {
         send_data.push_back(conn_config.charset_val);
     }
-    else 
+    else
     {
         send_data.push_back(0x2D);// charset utf8mb4_general_ci
     }
@@ -715,16 +715,6 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
 
 bool mysql_conn_base::server_public_key_encrypt(const std::string &password, unsigned char *data, unsigned int length)
 {
-    // send_data.clear();
-    // send_data.reserve(512);
-    // for (size_t i = 0; i <length; i++)
-    // {
-    //     send_data.push_back(data[i]);
-    // }
-    // BIO *bio = BIO_new_mem_buf(&send_data[0], send_data.size());
-    // EVP_PKEY *public_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    // BIO_free(bio);
-    
     send_data.clear();
     send_data = password;
     send_data.push_back(0x00);
@@ -737,18 +727,25 @@ bool mysql_conn_base::server_public_key_encrypt(const std::string &password, uns
 
     std::size_t server_public_key_len = 0;// EVP_PKEY_get_size(public_key);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        server_public_key_len = EVP_PKEY_get_size(public_key);
+    server_public_key_len = EVP_PKEY_get_size(public_key);
 #else  /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
-        server_public_key_len = EVP_PKEY_size(public_key);
+    server_public_key_len = EVP_PKEY_size(public_key);
 #endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
 
-    //std::string public_key_str(256, 0x00);
-    std::memset(_cache_data, 0x00, 256);
+    if (256 < CACHE_DATA_LENGTH)
+    {
+        std::memset(_cache_data, 0x00, 256);
+    }
+    else
+    {
+        std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+    }
+
     // see sql-common/client_authenthication.cc line 144 or 968 php-src ext/mysqlnd/mysqlnd_auth.c
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(public_key, NULL);
     if (!ctx || EVP_PKEY_encrypt_init(ctx) <= 0 ||
         EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0 ||
-        EVP_PKEY_encrypt(ctx,(unsigned char *)_cache_data, &server_public_key_len, (unsigned char *)&send_data[0], send_data.size()) <= 0)
+        EVP_PKEY_encrypt(ctx, (unsigned char *)_cache_data, &server_public_key_len, (unsigned char *)&send_data[0], send_data.size()) <= 0)
     {
         EVP_PKEY_CTX_free(ctx);
         EVP_PKEY_free(public_key);
@@ -882,15 +879,15 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     send_data.push_back(0xFF);
 
     send_data.push_back(0x00);
-    if(conn_config.charset_val > 0)
+    if (conn_config.charset_val > 0)
     {
         send_data.push_back(conn_config.charset_val);
     }
-    else 
+    else
     {
         send_data.push_back(0x2D);// charset utf8mb4_general_ci
     }
-    
+
     for (size_t i = 0; i < 23; i++)
     {
         send_data.push_back(0x00);
