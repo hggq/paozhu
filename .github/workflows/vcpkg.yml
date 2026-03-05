@@ -17,9 +17,9 @@ jobs:
       - name: Restore vcpkg packages
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
-          powershell Invoke-WebRequest -OutFile vcpkg2024.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2024.09.30.zip
+          powershell Invoke-WebRequest -OutFile vcpkg2024.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2026.02.27.zip
           unzip vcpkg2024.zip
-          mv vcpkg-2024.09.30 vcpkg
+          mv vcpkg-2026.02.27 vcpkg
           cd vcpkg
       #   We'll need it later  -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg is fix vcpkg directory
       - run: |
