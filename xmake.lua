@@ -51,6 +51,7 @@ add_includedirs("libs/types")
 add_includedirs("libs/ipdata")
 add_includedirs("libs/markdown")
 add_includedirs("libs/pinyin")
+add_includedirs("libs/weixin/include")
 add_includedirs("asio")
 --download https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
 --copy include lib to current workspace

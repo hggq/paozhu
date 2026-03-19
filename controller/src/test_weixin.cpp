@@ -5,9 +5,9 @@
 #include "httppeer.h"
 #include "test_weixin.h"
 #include "func.h"
-#include "weixinxcx.h"
 #include "request.h"
 #include "httpclient.h"
+#include "weixinxcx.h"
 
 namespace http
 {
