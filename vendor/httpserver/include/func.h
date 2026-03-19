@@ -36,6 +36,7 @@ std::string html_encode(std::string_view);
 std::string strip_html(std::string_view);
 std::string strip_annot(std::string_view);
 std::string str_trim(std::string_view);
+std::string str_nl2br(std::string_view);
 std::string_view str_trim_view(std::string_view);
 std::string mb_substr(std::string_view, int, int length = 0);
 bool tidy_domainname(std::string &filename);
@@ -46,6 +47,8 @@ unsigned int mb_strlen(std::string_view);
 std::map<std::string, std::string> filepath(std::string &);
 struct stat filestat(std::string &);
 
+unsigned long long str2uint(std::string_view);
+unsigned long long str2uint(const char *source, unsigned int str_length);
 long long str2int(std::string_view);
 long long str2int(const char *source, unsigned int str_length);
 std::string char2hex(const unsigned char *source, unsigned int str_length, unsigned char sp = 0);

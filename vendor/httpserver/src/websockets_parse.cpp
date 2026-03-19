@@ -168,7 +168,6 @@ void websocketparse::parsedata(unsigned char *inputdata, unsigned int buffersize
                 unsigned char nn = j % 4;
                 char b           = inputdata[j] ^ mask_key[nn];
                 indata.push_back(b);
-                std::cout << b << std::endl;
             }
         }
         else

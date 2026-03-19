@@ -53,6 +53,7 @@ class client : public std::enable_shared_from_this<client>
 
     client &add_cookie(const std::string &k, const std::string &v);
     client &requst_clear();
+    client &clear();
 
     client &add_file(std::string);
     client &add_file(std::string, std::string);

@@ -12,7 +12,7 @@ class httppeer;
 class websockets_api
 {
   public:
-    websockets_api(unsigned int t, unsigned char s, std::weak_ptr<httppeer> p) : timeloop_num(t), state(s), weak_peer(p) {}
+    websockets_api(unsigned int t,unsigned int m, unsigned char s, std::weak_ptr<httppeer> p) : timeloop_num(t),myid(m), state(s),  weak_peer(p) {}
     virtual void onopen()                    = 0;
     virtual void onmessage(std::string_view) = 0;
     virtual void onfiles(std::string_view)   = 0;
@@ -23,6 +23,7 @@ class websockets_api
     virtual void onpong() = 0;
     virtual ~websockets_api() {}
     unsigned int timeloop_num;
+    unsigned int myid=0;
     unsigned char state;
     std::weak_ptr<httppeer> weak_peer;
 };

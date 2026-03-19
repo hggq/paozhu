@@ -35,6 +35,7 @@
 #include "testformpost.h"
 #include "teststr2int.h"
 #include "testfield_num.h"
+#include "test_weixin.h"
 #include "testqrcode.h"
 #include "imageapi.h"
 #include "testpzcache.h"
@@ -488,6 +489,15 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testfieldnum;
 		methodcallback.emplace("testfieldnum",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_weixinpay;
+		methodcallback.emplace("testweixinpay",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_xcxnotify;
+		methodcallback.emplace("xcxnotify",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_xcxgetphone;
+		methodcallback.emplace("xcxgetphone",temp);
 		temp.pre = nullptr;
 		temp.regfun = testqrcode;
 		methodcallback.emplace("testqrcode",temp);

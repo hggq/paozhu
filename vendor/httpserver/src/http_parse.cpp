@@ -1089,6 +1089,15 @@ void httpparse::callposttype()
             return;
         }
         break;
+    case 8:
+        if (str_casecmp(buffer_value, "text/xml"))
+        {
+            poststate->type = "text/xml";
+            posttype        = 4;
+            peer->posttype  = 4;
+            return;
+        }
+        break;        
     case 6:
         if (str_casecmp(buffer_value, "binary"))
         {

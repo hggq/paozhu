@@ -16,7 +16,7 @@ class mywebsockets : public websockets_api
     //    unsigned int timeloop_num;
     //    unsigned char state;
     unsigned int outcount = 0;
-    mywebsockets(std::weak_ptr<httppeer> p) : websockets_api(4, 0, p) {}
+    mywebsockets(std::weak_ptr<httppeer> p) : websockets_api(4,0, 0, p) {}
     ~mywebsockets() { DEBUG_LOG(" ~mywebsockets "); }
 
   public:

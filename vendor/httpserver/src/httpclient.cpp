@@ -89,11 +89,43 @@ client &client::requst_clear()
     error = 0;
     return *this;
 }
+client &client::clear()
+{
+    senddata.clear();
+    header.clear();
+    data.clear();
+    error = 0;
+    headerfinish  = 0;
+    timeout_count = 0;
+    machnum       = 0;
+    response_header.clear();
+    state.code     = 0;
+    state.length   = 0;
+    state.istxt    = false;
+    state.isjson   = false;
+    state.chunked  = false;
+    state.keeplive = false;
+    state.encode   = 0x00;
+
+    state.content.clear();
+    state.codemessage.clear();
+    state.cookie.clear();
+
+    state.page.name.clear();
+    state.page.filename.clear();
+    state.page.tempfile.clear();
+    state.page.type.clear();
+    state.page.size  = 0;
+    state.page.error = 0;
+    state.json.clear();
+    close_connect();
+    return *this;
+}
 client &client::get(std::string_view url)
 {
     requesttype = 0;
-    senddata.clear();
-    header.clear();
+    // senddata.clear();
+    // header.clear();
     if (url.length() > 0)
     {
         _url = url;
@@ -108,8 +140,8 @@ client &client::get(std::string_view url)
 client &client::get(std::string_view url, http::obj_val param)
 {
     requesttype = 0;
-    senddata.clear();
-    header.clear();
+    // senddata.clear();
+    // header.clear();
     data = std::move(param);
     if (url.length() > 0)
     {
@@ -125,8 +157,8 @@ client &client::get(std::string_view url, http::obj_val param)
 client &client::post(std::string_view url)
 {
     requesttype = 1;
-    senddata.clear();
-    header.clear();
+    // senddata.clear();
+    // header.clear();
     if (url.length() > 0)
     {
         _url = url;
@@ -141,7 +173,7 @@ client &client::post(std::string_view url)
 client &client::post(std::string_view url, http::obj_val param)
 {
     requesttype = 1;
-    senddata.clear();
+    // senddata.clear();
     parameter = std::move(param);
     if (url.length() > 0)
     {
@@ -159,8 +191,8 @@ client &client::get_json(std::string_view url)
 {
     requesttype = 0;
     parsetojson = 1;
-    header.clear();
-    senddata.clear();
+    // header.clear();
+    // senddata.clear();
     if (url.length() > 0)
     {
         _url = url;
@@ -176,8 +208,8 @@ client &client::get_json(std::string_view url, http::obj_val param)
 {
     requesttype = 0;
     parsetojson = 1;
-    header.clear();
-    senddata.clear();
+    // header.clear();
+    // senddata.clear();
     data = std::move(param);
     if (url.length() > 0)
     {
@@ -193,8 +225,8 @@ client &client::get_json(std::string_view url, http::obj_val param)
 
 client &client::post_json(std::string_view url)
 {
-    header.clear();
-    senddata.clear();
+    // header.clear();
+    // senddata.clear();
     requesttype            = 1;
     parsetojson            = 1;
     header["Content-Type"] = "application/json";
@@ -211,8 +243,8 @@ client &client::post_json(std::string_view url)
 }
 client &client::post_json(std::string_view url, http::obj_val param)
 {
-    header.clear();
-    senddata.clear();
+    // header.clear();
+    // senddata.clear();
     requesttype            = 1;
     header["Content-Type"] = "application/json";
 
@@ -2039,6 +2071,10 @@ void client::respcontenttypeprocess(std::string_view str)
         {
             state.istxt = true;
         }
+        else if (state.page.type == "text/xml")
+        {
+            state.istxt = true;
+        }
         break;
     case 7:
         if (state.page.type == "text/js")
@@ -3310,10 +3346,6 @@ void client::buildcontent()
     case 16:
         if (contenttype == "application/json")
         {
-
-            data.set_array();
-            parameter.set_array();
-
             if (data.size() > 0)
             {
 
@@ -3396,6 +3428,44 @@ void client::buildcontent()
         }
 
         break;
+    case 15:
+        if (contenttype == "application/xml")
+        {
+            ptemp.error = 0;
+            ptemp.tempfile.clear();
+            ptemp.filename.clear();
+            ptemp.name.clear();
+            ptemp.size = 0;
+            ptemp.type.clear();
+
+            ptemp.size     = state.content.size();
+            ptemp.tempfile = state.content;
+            contentlength  = state.content.size();
+
+            state.content.clear();
+            senddata.push_back(ptemp);
+            header["Content-Length"] = contentlength;
+        }
+        break;   
+    case 8:
+        if (contenttype == "text/xml")
+        {
+            ptemp.error = 0;
+            ptemp.tempfile.clear();
+            ptemp.filename.clear();
+            ptemp.name.clear();
+            ptemp.size = 0;
+            ptemp.type.clear();
+
+            ptemp.size     = state.content.size();
+            ptemp.tempfile = state.content;
+            contentlength  = state.content.size();
+
+            state.content.clear();
+            senddata.push_back(ptemp);
+            header["Content-Length"] = contentlength;
+        }
+        break;     
     default:
         if (files.size() > 0)
         {

@@ -13,7 +13,7 @@ class loopwebsockets : public websockets_api
 {
   public:
     unsigned int outcount = 0;
-    loopwebsockets(std::weak_ptr<http::httppeer> p) : websockets_api(4, 0, p) {}
+    loopwebsockets(std::weak_ptr<http::httppeer> p) : websockets_api(4,0, 0, p) {}
     ~loopwebsockets() { std::cout << "~loopwebsockets" << std::endl; }
 
   public:

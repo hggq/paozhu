@@ -1463,6 +1463,25 @@ std::string str_trim(std::string_view str)
     }
     return temp;
 }
+
+std::string str_nl2br(std::string_view str)
+{
+    std::string temp;
+ 
+    unsigned int i = 0;
+    for (; i < str.size(); i++)
+    {
+        if (str[i] == 0x0A || str[i] == 0x0D)
+        {
+            temp.append("<br />");
+            continue;
+        }
+        temp.push_back(str[i]);
+    }
+ 
+    return temp;
+}
+
 std::string_view str_trim_view(std::string_view str)
 {
     unsigned int tlen = str.size();
@@ -1529,6 +1548,51 @@ std::string html_encode(std::string_view str)
     }
     return temp;
 }
+unsigned long long str2uint(std::string_view source)
+{
+    unsigned long long temp     = 0;
+    unsigned int qi     = 0;
+    unsigned int length = source.size();
+    for (; qi < length; qi++)
+    {
+        if (source[qi] != 0x20)
+        {
+            break;
+        }
+    }
+    for (; qi < length; qi++)
+    {
+        if (source[qi] < 0x3A && source[qi] > 0x2F)
+        {
+            temp = temp * 10 + (source[qi] - 0x30);
+        }
+    }
+    return temp;
+}
+
+unsigned long long str2uint(const char *source, unsigned int str_length)
+{
+    unsigned long long temp  = 0;
+    unsigned int qi = 0;
+    for (; qi < str_length; qi++)
+    {
+        if (source[qi] != 0x20)
+        {
+            break;
+        }
+    }
+ 
+    for (; qi < str_length; qi++)
+    {
+        if (source[qi] < 0x3A && source[qi] > 0x2F)
+        {
+            temp = temp * 10 + (source[qi] - 0x30);
+        }
+    }
+ 
+    return temp;
+}
+
 long long str2int(std::string_view source)
 {
     long long temp      = 0;
