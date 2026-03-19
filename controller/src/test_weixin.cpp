@@ -14,13 +14,13 @@ namespace http
 //@urlpath(null,testweixinpay)
 std::string test_weixinpay(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->get_peer();
-    std::string openid = client.get["openid"].to_string();
+    httppeer &client         = peer->get_peer();
+    std::string openid       = client.get["openid"].to_string();
     std::string out_trade_no = get_date("%Y%m%d%H%M%S") + rand_string(4, 4);
 
     /*
     小程序下单
-    var geturl="https://myweixin.xxx.com/testweixinpay";            
+    var geturl="https://myweixin.xxx.com/testweixinpay";
     wx.request({
         //请求地址
         url: geturl,
@@ -49,7 +49,7 @@ std::string test_weixinpay(std::shared_ptr<httppeer> peer)
         },
         //请求失败回调
         fail(res){
-            
+
         }
         });
     */
@@ -63,8 +63,7 @@ std::string test_weixinpay(std::shared_ptr<httppeer> peer)
     wxpay.setBody("测试购买");
     wxpay.setTotalFee("1");// 1分钱
     wxpay.setClientIp(client.client_ip);
-    wxpay.settNotifyUrl("https://myweixin.xxx.com/xcxnotify"); //下面方法接收异步通知
-    
+    wxpay.settNotifyUrl("https://myweixin.xxx.com/xcxnotify");//下面方法接收异步通知
 
     client.output = wxpay.getpay();
 
@@ -85,7 +84,6 @@ std::string test_xcxnotify(std::shared_ptr<httppeer> peer)
     if (resp_kv["status_code"] == "0")
     {
         //unsigned int userid = client.get_siteid();
- 
     }
     client.output = resp_kv["error_msg"];
     return "";
@@ -124,52 +122,52 @@ std::string test_xcxgetphone(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
 
     //unsigned int userid   = client.get_siteid();
-    std::string code = client.json["code"].to_string();
+    std::string code   = client.json["code"].to_string();
     std::string openid = client.json["openid"].to_string();
-    if(code.size()==0)
+    if (code.size() == 0)
     {
-        code = client.post["code"].to_string();
+        code   = client.post["code"].to_string();
         openid = client.post["openid"].to_string();
     }
 
-    if (openid.size()< 5)
+    if (openid.size() < 5)
     {
-        client.val["error_msg"]="微信openid获取失败";
+        client.val["error_msg"] = "微信openid获取失败";
         client.out_json();
-        return ""; 
+        return "";
     }
 
-    if (code.size()< 5)
+    if (code.size() < 5)
     {
-        client.val["error_msg"]="微信code获取失败";
+        client.val["error_msg"] = "微信code获取失败";
         client.out_json();
-        return ""; 
+        return "";
     }
 
     std::shared_ptr<http::client> a = std::make_shared<http::client>();
     /*
     从缓存中取 access_token 这样不用再次获取 参考
-    
+
     pzcache<std::string> &temp_cache = pzcache<std::string>::conn();
     std::string namestring = "access_token";
     std::string access_token = temp_cache.get(namestring);
 
     */
 
-    std::string response="https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=";
+    std::string response = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=";
     response.append("你的小程序appid");
     response.append("&secret=");
     response.append("你的小程序密钥");
-    
+
     a->get(response);
     a->timeout(20);
     a->send();
 
     if (a->get_status() != 200)
     {
-        client.val["error_msg"]="access_token 请求失败！";
+        client.val["error_msg"] = "access_token 请求失败！";
         client.out_json();
-        return ""; 
+        return "";
     }
 
     /*
@@ -180,33 +178,33 @@ std::string test_xcxgetphone(std::shared_ptr<httppeer> peer)
 
     */
 
-    response="https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=";
+    response = "https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=";
     response.append(a->state.json["access_token"].to_string());
     http::obj_val postitem;
-    postitem["code"]=code;
+    postitem["code"] = code;
     //std::shared_ptr<http::client> b = std::make_shared<http::client>();
     a->clear();
-    a->post_json(response,postitem);
+    a->post_json(response, postitem);
     a->timeout(20);
     a->send();
 
     if (a->get_status() != 200)
     {
-        client.val["error_msg"]="code 获取手机号请求失败！";
+        client.val["error_msg"] = "code 获取手机号请求失败！";
         client.out_json();
-        return ""; 
+        return "";
     }
     response.clear();
     response = a->state.json["phone_info"]["phoneNumber"].to_string();
 
-    if (response.size()< 6)
+    if (response.size() < 6)
     {
-        client.val["error_msg"]="获取手机号失败";
+        client.val["error_msg"] = "获取手机号失败";
         client.out_json();
-        return ""; 
+        return "";
     }
 
-    client.val["phoneNumber"]=response;
+    client.val["phoneNumber"] = response;
     client.out_json();
 
     return "";
