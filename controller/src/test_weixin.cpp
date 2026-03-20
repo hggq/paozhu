@@ -11,6 +11,73 @@
 
 namespace http
 {
+
+//@urlpath(null,testgetopenid)
+std::string test_getopenid(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+/*
+小程序js代码  app.js文件
+wx.login({
+        success(res) {
+          if (res.code) {
+            //发起网络请求
+            wx.request({
+              url: 'https://myweixin.xxx.com/testgetopenid',
+              data: {
+                code: res.code
+              },
+              success: (res) => {
+                console.log(res)
+                if (res.data.openid) {
+                  wx.setStorageSync("openid", res.data.openid);
+                }
+            }});
+        }
+        }
+});
+*/
+    std::string response = "https://api.weixin.qq.com/sns/jscode2session?appid=";
+    response.append("小程序appid");
+    response.append("&secret=");
+    response.append("小程序密钥");
+    response.append("&js_code=");
+    // //{$code}&grant_type=authorization_code";
+    response.append(client.get["code"].to_string());
+    response.append("&grant_type=authorization_code");
+
+    std::shared_ptr<http::client> a = std::make_shared<http::client>();
+
+    a->get(response);
+    a->timeout(10);
+    a->send();
+
+    if (a->get_status() == 200)
+    {
+        if (a->page.isjson == 1)
+        {
+            if (a->page.json["code"].to_int() == 0)
+            {
+                peer->output = "{\"openid:\"\"";
+                peer->output.append(a->page.json["openid"].to_string());
+                peer->output.append("\"}");
+            }
+        }
+        else
+        {
+            peer->output = a->get_body();
+        }
+    }
+    else
+    {
+        peer->output = "{\"code:\"\"";
+        peer->output.append(client.get["code"].to_string());
+        peer->output.append("\"}");
+    }
+
+    return "";
+}
 //@urlpath(null,testweixinpay)
 std::string test_weixinpay(std::shared_ptr<httppeer> peer)
 {

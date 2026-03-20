@@ -490,6 +490,9 @@ namespace http
 		temp.regfun = testfieldnum;
 		methodcallback.emplace("testfieldnum",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_getopenid;
+		methodcallback.emplace("testgetopenid",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_weixinpay;
 		methodcallback.emplace("testweixinpay",temp);
 		temp.pre = nullptr;
