@@ -99,25 +99,25 @@ client &client::clear()
     timeout_count = 0;
     machnum       = 0;
     response_header.clear();
-    state.code     = 0;
-    state.length   = 0;
-    state.istxt    = false;
-    state.isjson   = false;
-    state.chunked  = false;
-    state.keeplive = false;
-    state.encode   = 0x00;
+    page.code     = 0;
+    page.length   = 0;
+    page.istxt    = false;
+    page.isjson   = false;
+    page.chunked  = false;
+    page.keeplive = false;
+    page.encode   = 0x00;
 
-    state.content.clear();
-    state.codemessage.clear();
-    state.cookie.clear();
+    page.content.clear();
+    page.codemessage.clear();
+    page.cookie.clear();
 
-    state.page.name.clear();
-    state.page.filename.clear();
-    state.page.tempfile.clear();
-    state.page.type.clear();
-    state.page.size  = 0;
-    state.page.error = 0;
-    state.json.clear();
+    page.file.name.clear();
+    page.file.filename.clear();
+    page.file.tempfile.clear();
+    page.file.type.clear();
+    page.file.size  = 0;
+    page.file.error = 0;
+    page.json.clear();
     close_connect();
     return *this;
 }
@@ -525,25 +525,25 @@ asio::awaitable<void> client::async_send_data()
         timeout_count = 0;
         machnum       = 0;
         response_header.clear();
-        state.code     = 0;
-        state.length   = 0;
-        state.istxt    = false;
-        state.isjson   = false;
-        state.chunked  = false;
-        state.keeplive = false;
-        state.encode   = 0x00;
+        page.code     = 0;
+        page.length   = 0;
+        page.istxt    = false;
+        page.isjson   = false;
+        page.chunked  = false;
+        page.keeplive = false;
+        page.encode   = 0x00;
 
-        state.content.clear();
-        state.codemessage.clear();
-        state.cookie.clear();
+        page.content.clear();
+        page.codemessage.clear();
+        page.cookie.clear();
 
-        state.page.name.clear();
-        state.page.filename.clear();
-        state.page.tempfile.clear();
-        state.page.type.clear();
-        state.page.size  = 0;
-        state.page.error = 0;
-        state.json.clear();
+        page.file.name.clear();
+        page.file.filename.clear();
+        page.file.tempfile.clear();
+        page.file.type.clear();
+        page.file.size  = 0;
+        page.file.error = 0;
+        page.json.clear();
 
         if (!sock)
         {
@@ -634,7 +634,7 @@ asio::awaitable<void> client::async_send_data()
                                 {
                                     if (timeout_count > timeout_total)
                                     {
-                                        state.code = 0;
+                                        page.code = 0;
                                         error      = 2;
                                         error_msg  = "time out";
                                         close_connect();
@@ -689,7 +689,7 @@ asio::awaitable<void> client::async_send_data()
                                 {
                                     if (timeout_count > timeout_total)
                                     {
-                                        state.code = 0;
+                                        page.code = 0;
                                         error      = 2;
                                         error_msg  = "time out";
                                         close_connect();
@@ -717,9 +717,9 @@ asio::awaitable<void> client::async_send_data()
         {
             memset(data, 0x00, 2048);
             //BUG Not considering the file state
-            if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
+            if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
             {
-                n = co_await sock->async_read_some(asio::buffer(data, state.page.size - state.content.size()), asio::use_awaitable);
+                n = co_await sock->async_read_some(asio::buffer(data, page.file.size - page.content.size()), asio::use_awaitable);
             }
             else
             {
@@ -735,7 +735,7 @@ asio::awaitable<void> client::async_send_data()
             {
                 break;
             }
-            if (state.page.size > 0 && (state.page.size == state.content.size()))
+            if (page.file.size > 0 && (page.file.size == page.content.size()))
             {
                 break;
             }
@@ -749,7 +749,7 @@ asio::awaitable<void> client::async_send_data()
                     {
                         if (timeout_count > timeout_total)
                         {
-                            state.code = 0;
+                            page.code = 0;
                             error      = 2;
                             error_msg  = "time out";
                             close_connect();
@@ -762,14 +762,14 @@ asio::awaitable<void> client::async_send_data()
         finishprocess();
         if (onload != nullptr)
         {
-            onload(state.content, shared_from_this());
+            onload(page.content, shared_from_this());
         }
     }
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
         error_msg  = e.what();
-        state.code = 0;
+        page.code = 0;
         error      = 3;
     }
 
@@ -784,25 +784,25 @@ client &client::send_data()
         timeout_count = 0;
         machnum       = 0;
         response_header.clear();
-        state.code     = 0;
-        state.length   = 0;
-        state.istxt    = false;
-        state.isjson   = false;
-        state.chunked  = false;
-        state.keeplive = false;
-        state.encode   = 0x00;
+        page.code     = 0;
+        page.length   = 0;
+        page.istxt    = false;
+        page.isjson   = false;
+        page.chunked  = false;
+        page.keeplive = false;
+        page.encode   = 0x00;
 
-        state.content.clear();
-        state.codemessage.clear();
-        state.cookie.clear();
+        page.content.clear();
+        page.codemessage.clear();
+        page.cookie.clear();
 
-        state.page.name.clear();
-        state.page.filename.clear();
-        state.page.tempfile.clear();
-        state.page.type.clear();
-        state.page.size  = 0;
-        state.page.error = 0;
-        state.json.clear();
+        page.file.name.clear();
+        page.file.filename.clear();
+        page.file.tempfile.clear();
+        page.file.type.clear();
+        page.file.size  = 0;
+        page.file.error = 0;
+        page.json.clear();
 
         //asio::io_context clientio_context(1);
         //client_context &temp_io_context = get_client_context_obj();
@@ -918,7 +918,7 @@ client &client::send_data()
                                 {
                                     if (timeout_count > timeout_total)
                                     {
-                                        state.code = 0;
+                                        page.code = 0;
                                         error      = 2;
                                         error_msg  = "time out";
                                         close_connect();
@@ -972,7 +972,7 @@ client &client::send_data()
                                 {
                                     if (timeout_count > timeout_total)
                                     {
-                                        state.code = 0;
+                                        page.code = 0;
                                         error      = 2;
                                         error_msg  = "time out";
                                         close_connect();
@@ -1000,9 +1000,9 @@ client &client::send_data()
         {
             memset(data, 0x00, 2048);
             //BUG Not considering the file state
-            if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
+            if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
             {
-                n = sock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
+                n = sock->read_some(asio::buffer(data, page.file.size - page.content.size()), ec);
             }
             else
             {
@@ -1018,7 +1018,7 @@ client &client::send_data()
             {
                 break;
             }
-            if (state.page.size > 0 && (state.page.size == state.content.size()))
+            if (page.file.size > 0 && (page.file.size == page.content.size()))
             {
                 break;
             }
@@ -1032,7 +1032,7 @@ client &client::send_data()
                     {
                         if (timeout_count > timeout_total)
                         {
-                            state.code = 0;
+                            page.code = 0;
                             error      = 2;
                             error_msg  = "time out";
                             close_connect();
@@ -1043,7 +1043,7 @@ client &client::send_data()
             }
         }
         finishprocess();
-        DEBUG_LOG(" http finishprocess: %zu", state.content.size());
+        DEBUG_LOG(" http finishprocess: %zu", page.content.size());
     }
     catch (std::exception &e)
     {
@@ -1051,7 +1051,7 @@ client &client::send_data()
         //std::cerr << "Exception:  " << e.what() << "\r\n";
         DEBUG_LOG("Exception: %s", e.what());
         error_msg  = e.what();
-        state.code = 0;
+        page.code = 0;
         error      = 3;
     }
 
@@ -1107,25 +1107,25 @@ asio::awaitable<void> client::async_send_ssl_data()
         timeout_count = 0;
         machnum       = 0;
         response_header.clear();
-        state.code     = 0;
-        state.length   = 0;
-        state.istxt    = false;
-        state.isjson   = false;
-        state.chunked  = false;
-        state.keeplive = false;
-        state.encode   = 0x00;
+        page.code     = 0;
+        page.length   = 0;
+        page.istxt    = false;
+        page.isjson   = false;
+        page.chunked  = false;
+        page.keeplive = false;
+        page.encode   = 0x00;
 
-        state.content.clear();
-        state.codemessage.clear();
-        state.cookie.clear();
+        page.content.clear();
+        page.codemessage.clear();
+        page.cookie.clear();
 
-        state.page.name.clear();
-        state.page.filename.clear();
-        state.page.tempfile.clear();
-        state.page.type.clear();
-        state.page.size  = 0;
-        state.page.error = 0;
-        state.json.clear();
+        page.file.name.clear();
+        page.file.filename.clear();
+        page.file.tempfile.clear();
+        page.file.type.clear();
+        page.file.size  = 0;
+        page.file.error = 0;
+        page.json.clear();
 
         if (!sslsock)
         {
@@ -1267,7 +1267,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                                 {
                                     if (timeout_count > timeout_total)
                                     {
-                                        state.code = 0;
+                                        page.code = 0;
                                         error      = 2;
                                         error_msg  = "time out";
                                         close_connect();
@@ -1321,7 +1321,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                                 {
                                     if (timeout_count > timeout_total)
                                     {
-                                        state.code = 0;
+                                        page.code = 0;
                                         error      = 2;
                                         error_msg  = "time out";
                                         close_connect();
@@ -1348,9 +1348,9 @@ asio::awaitable<void> client::async_send_ssl_data()
         {
             memset(data, 0x00, 2048);
             //BUG Not considering the file state
-            if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
+            if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
             {
-                n = co_await sslsock->async_read_some(asio::buffer(data, state.page.size - state.content.size()), asio::use_awaitable);
+                n = co_await sslsock->async_read_some(asio::buffer(data, page.file.size - page.content.size()), asio::use_awaitable);
             }
             else
             {
@@ -1366,7 +1366,7 @@ asio::awaitable<void> client::async_send_ssl_data()
             {
                 break;
             }
-            if (state.page.size > 0 && (state.page.size == state.content.size()))
+            if (page.file.size > 0 && (page.file.size == page.content.size()))
             {
                 break;
             }
@@ -1381,7 +1381,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                     {
                         if (timeout_count > timeout_total)
                         {
-                            state.code = 0;
+                            page.code = 0;
                             error      = 2;
                             error_msg  = "time out";
                             close_connect();
@@ -1394,7 +1394,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         finishprocess();
         if (onload != nullptr)
         {
-            onload(state.content, shared_from_this());
+            onload(page.content, shared_from_this());
         }
         co_return;
     }
@@ -1403,7 +1403,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         //std::printf("Exception: %s\n", e.what());
         DEBUG_LOG("Exception co ssl: %s", e.what());
         error_msg  = std::string(e.what());
-        state.code = 0;
+        page.code = 0;
         error      = 3;
     }
     co_return;
@@ -1417,25 +1417,25 @@ client &client::send_ssl_data()
         timeout_count = 0;
         machnum       = 0;
         response_header.clear();
-        state.code     = 0;
-        state.length   = 0;
-        state.istxt    = false;
-        state.isjson   = false;
-        state.chunked  = false;
-        state.keeplive = false;
-        state.encode   = 0x00;
+        page.code     = 0;
+        page.length   = 0;
+        page.istxt    = false;
+        page.isjson   = false;
+        page.chunked  = false;
+        page.keeplive = false;
+        page.encode   = 0x00;
 
-        state.content.clear();
-        state.codemessage.clear();
-        state.cookie.clear();
+        page.content.clear();
+        page.codemessage.clear();
+        page.cookie.clear();
 
-        state.page.name.clear();
-        state.page.filename.clear();
-        state.page.tempfile.clear();
-        state.page.type.clear();
-        state.page.size  = 0;
-        state.page.error = 0;
-        state.json.clear();
+        page.file.name.clear();
+        page.file.filename.clear();
+        page.file.tempfile.clear();
+        page.file.type.clear();
+        page.file.size  = 0;
+        page.file.error = 0;
+        page.json.clear();
 
         //asio::io_context io_context;
         // client_context &temp_io_context = get_client_context_obj();
@@ -1548,7 +1548,7 @@ client &client::send_ssl_data()
                                 {
                                     if (timeout_count > timeout_total)
                                     {
-                                        state.code = 0;
+                                        page.code = 0;
                                         error      = 2;
                                         error_msg  = "time out";
                                         close_connect();
@@ -1603,7 +1603,7 @@ client &client::send_ssl_data()
                                 {
                                     if (timeout_count > timeout_total)
                                     {
-                                        state.code = 0;
+                                        page.code = 0;
                                         error      = 2;
                                         error_msg  = "time out";
                                         close_connect();
@@ -1629,9 +1629,9 @@ client &client::send_ssl_data()
         {
             memset(data, 0x00, 2048);
             //BUG Not considering the file state
-            if (state.page.size > 0 && (state.page.size - state.content.size() < 2048))
+            if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
             {
-                n = sslsock->read_some(asio::buffer(data, state.page.size - state.content.size()), ec);
+                n = sslsock->read_some(asio::buffer(data, page.file.size - page.content.size()), ec);
             }
             else
             {
@@ -1647,7 +1647,7 @@ client &client::send_ssl_data()
             {
                 break;
             }
-            if (state.page.size > 0 && (state.page.size == state.content.size()))
+            if (page.file.size > 0 && (page.file.size == page.content.size()))
             {
                 break;
             }
@@ -1661,7 +1661,7 @@ client &client::send_ssl_data()
                     {
                         if (timeout_count > timeout_total)
                         {
-                            state.code = 0;
+                            page.code = 0;
                             error      = 2;
                             error_msg  = "time out";
                             close_connect();
@@ -1672,7 +1672,7 @@ client &client::send_ssl_data()
             }
         }
         finishprocess();
-        DEBUG_LOG("ssl_finishprocess %zu", state.content.size());
+        DEBUG_LOG("ssl_finishprocess %zu", page.content.size());
         return *this;
     }
     catch (std::exception &e)
@@ -1680,7 +1680,7 @@ client &client::send_ssl_data()
         //std::printf("Exception: %s\n", e.what());
         DEBUG_LOG("Exception ssl: %s", e.what());
         error_msg  = e.what();
-        state.code = 0;
+        page.code = 0;
         error      = 3;
     }
 
@@ -1701,7 +1701,7 @@ void client::processcode()
     }
     if (value[0] != 'H' && value[0] != 'h')
     {
-        state.code = 0;
+        page.code = 0;
         error      = 1;
 
         return;
@@ -1727,7 +1727,7 @@ void client::processcode()
             code = code * 10 + (contentline[j] - '0');
         }
     }
-    state.code = code;
+    page.code = code;
     if (code == 0)
     {
         error = 1;
@@ -1736,7 +1736,7 @@ void client::processcode()
     j++;
     for (; j < contentline.size(); j++)
     {
-        state.codemessage.push_back(contentline[j]);
+        page.codemessage.push_back(contentline[j]);
     }
 }
 void client::readheaderline(const char *buffer, unsigned int buffersize)
@@ -1800,10 +1800,10 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
         {
             response_header.append(contentline);
             response_header.append("\r\n");
-            if (state.code == 0)
+            if (page.code == 0)
             {
                 processcode();
-                if (state.code == 0)
+                if (page.code == 0)
                 {
                     error      = 1;
                     readoffset = i;
@@ -1843,7 +1843,7 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
                     }
                     else
                     {
-                        state.header[key] = value;
+                        page.header[key] = value;
                         responseheader(key, value);
                     }
                 }
@@ -1901,7 +1901,7 @@ void client::respcookieprocess(std::string_view str)
     {
         name  = url_decode(name.data(), name.size());
         value = url_decode(value.data(), value.size());
-        state.cookie.set(name, value);
+        page.cookie.set(name, value);
     }
 }
 void client::respattachmentprocess(std::string_view str)
@@ -1949,7 +1949,7 @@ void client::respattachmentprocess(std::string_view str)
         {
             if (str_casecmp(value, "attachment"))
             {
-                state.istxt = false;
+                page.istxt = false;
             }
             value.clear();
             for (; i < str.length(); i++)
@@ -1967,8 +1967,8 @@ void client::respattachmentprocess(std::string_view str)
 
     if (str_casecmp(name, "filename"))
     {
-        state.istxt = false;
-        state.page.filename.clear();
+        page.istxt = false;
+        page.file.filename.clear();
 
         for (; i < str.length(); i++)
         {
@@ -1986,13 +1986,13 @@ void client::respattachmentprocess(std::string_view str)
             {
                 break;
             }
-            state.page.filename.push_back(str[i]);
+            page.file.filename.push_back(str[i]);
         }
     }
 
     if (value.size() > 0 && str_casecmp(value, "attachment"))
     {
-        state.istxt = false;
+        page.istxt = false;
     }
 }
 void client::respcontenttypeprocess(std::string_view str)
@@ -2013,7 +2013,7 @@ void client::respcontenttypeprocess(std::string_view str)
         {
             if (name.empty())
             {
-                state.page.type = value;
+                page.file.type = value;
             }
             value.clear();
             continue;
@@ -2022,78 +2022,78 @@ void client::respcontenttypeprocess(std::string_view str)
     }
     if (name.empty())
     {
-        if (state.page.type.empty())
+        if (page.file.type.empty())
         {
-            state.page.type = value;
+            page.file.type = value;
         }
     }
-    switch (state.page.type.size())
+    switch (page.file.type.size())
     {
     case 22:
-        if (state.page.type == "application/javascript")
+        if (page.file.type == "application/javascript")
         {
-            state.istxt = true;
+            page.istxt = true;
         }
         break;
     case 21:
-        if (state.page.type == "application/xhtml+xml")
+        if (page.file.type == "application/xhtml+xml")
         {
-            state.istxt = true;
+            page.istxt = true;
         }
         break;
     case 16:
-        if (state.page.type == "application/json")
+        if (page.file.type == "application/json")
         {
-            state.istxt  = true;
-            state.isjson = true;
+            page.istxt  = true;
+            page.isjson = true;
         }
         break;
     case 15:
-        if (state.page.type == "application/xml")
+        if (page.file.type == "application/xml")
         {
-            state.istxt = true;
+            page.istxt = true;
         }
         break;
     case 10:
-        if (state.page.type == "text/plain")
+        if (page.file.type == "text/plain")
         {
-            state.istxt = true;
+            page.istxt = true;
         }
         break;
     case 9:
-        if (state.page.type == "text/html")
+        if (page.file.type == "text/html")
         {
-            state.istxt = true;
+            page.istxt = true;
         }
         break;
     case 8:
-        if (state.page.type == "text/css")
+        if (page.file.type == "text/css")
         {
-            state.istxt = true;
+            page.istxt = true;
         }
-        else if (state.page.type == "text/xml")
+        else if (page.file.type == "text/xml")
         {
-            state.istxt = true;
+            page.istxt = true;
         }
         break;
     case 7:
-        if (state.page.type == "text/js")
+        if (page.file.type == "text/js")
         {
-            state.istxt = true;
+            page.istxt = true;
         }
         break;
     }
-    if (state.istxt == false)
+    if (page.istxt == false)
     {
-        if (state.page.filename.empty())
+        if (page.file.filename.empty())
         {
             std::string::size_type lastpos = path.find_last_of(0x2F);
             if (lastpos != std::string::npos)
             {
-                state.page.filename = path.substr(lastpos + 1);
-                if (state.page.filename.size() > 120)
+                page.file.filename = path.substr(lastpos + 1);
+                if (page.file.filename.size() > 120)
                 {
-                    state.page.filename.resize(120);
+                    page.file.filename.resize(120);
                 }
             }
         }
@@ -2117,7 +2117,7 @@ void client::responseheader(std::string_view key, std::string_view value)
         {
             if (value.size() > 0 && str_casecmp(value, "chunked"))
             {
-                state.chunked = true;
+                page.chunked = true;
             }
         }
         break;
@@ -2130,24 +2130,24 @@ void client::responseheader(std::string_view key, std::string_view value)
             case 2:
                 if (value[0] == 'b')
                 {
-                    // state.br=true;
-                    state.encode = 'b';
+                    // page.br=true;
+                    page.encode = 'b';
                 }
 
                 break;
             case 4:
                 if (value[0] == 'g')
                 {
-                    //  state.gzip=true;
-                    state.encode = 'g';
+                    //  page.gzip=true;
+                    page.encode = 'g';
                 }
 
                 break;
             case 7:
                 if (value[0] == 'd')
                 {
-                    //     state.deflate=true;
-                    state.encode = 'd';
+                    //     page.deflate=true;
+                    page.encode = 'd';
                 }
 
                 break;
@@ -2160,11 +2160,11 @@ void client::responseheader(std::string_view key, std::string_view value)
         {
             try
             {
-                state.page.size = std::stoi(value.data());
+                page.file.size = std::stoi(value.data());
             }
             catch (...)
             {
-                state.page.size = 0;
+                page.file.size = 0;
             }
         }
         break;
@@ -2181,39 +2181,39 @@ void client::responseheader(std::string_view key, std::string_view value)
             if (value[0] == 'K' || value[0] == 'k')
             {
                 //    if(value[1]=='e'&&value[2]=='e'){
-                state.keeplive = true;
+                page.keeplive = true;
                 //     }
             }
             else
             {
-                state.keeplive = false;
+                page.keeplive = false;
             }
         }
         break;
     }
 }
-unsigned int client::get_length() { return state.page.size; }
-unsigned int client::get_status() { return state.code; }
-std::string client::get_status_msg() { return state.codemessage; }
+unsigned int client::get_length() { return page.file.size; }
+unsigned int client::get_status() { return page.code; }
+std::string client::get_status_msg() { return page.codemessage; }
 std::string client::get_header() { return response_header; }
-std::string client::get_tempfile() { return state.page.tempfile; }
-std::map<std::string, std::string> client::get_headers() { return state.header; }
-std::string client::get_type() { return state.page.type; }
+std::string client::get_tempfile() { return page.file.tempfile; }
+std::map<std::string, std::string> client::get_headers() { return page.header; }
+std::string client::get_type() { return page.file.type; }
 client &client::set_body(const std::string &a)
 {
-    state.content = a;
+    page.content = a;
     return *this;
 }
 std::string client::get_body()
 {
-    if (state.istxt)
+    if (page.istxt)
     {
-        return state.content;
+        return page.content;
     }
     else
     {
-        // FILE *ffp = fopen(state.page.tempfile.c_str(), "rb");
-        std::unique_ptr<std::FILE, int (*)(FILE *)> ffp(fopen(state.page.tempfile.c_str(), "rb"), std::fclose);
+        // FILE *ffp = fopen(page.file.tempfile.c_str(), "rb");
+        std::unique_ptr<std::FILE, int (*)(FILE *)> ffp(fopen(page.file.tempfile.c_str(), "rb"), std::fclose);
         if (!ffp)
         {
             return "";
@@ -2222,52 +2222,52 @@ std::string client::get_body()
         unsigned int nsize = ftell(ffp.get());
         fseek(ffp.get(), 0, SEEK_SET);
 
-        state.content.resize(nsize);
+        page.content.resize(nsize);
 
-        unsigned int nread = fread(&state.content[0], 1, nsize, ffp.get());
-        state.content.resize(nread);
+        unsigned int nread = fread(&page.content[0], 1, nsize, ffp.get());
+        page.content.resize(nread);
         // fclose(ffp);
     }
-    return state.content;
+    return page.content;
 }
 const std::string &client::ref_body()
 {
-    if (state.istxt)
+    if (page.istxt)
     {
-        return state.content;
+        return page.content;
     }
     else
     {
-        // FILE *ffp = fopen(state.page.tempfile.c_str(), "rb");
-        std::unique_ptr<std::FILE, int (*)(FILE *)> ffp(fopen(state.page.tempfile.c_str(), "rb"), std::fclose);
+        // FILE *ffp = fopen(page.file.tempfile.c_str(), "rb");
+        std::unique_ptr<std::FILE, int (*)(FILE *)> ffp(fopen(page.file.tempfile.c_str(), "rb"), std::fclose);
         if (!ffp)
         {
-            return state.content;
+            return page.content;
         }
         fseek(ffp.get(), 0, SEEK_END);
         unsigned int nsize = ftell(ffp.get());
         fseek(ffp.get(), 0, SEEK_SET);
 
-        state.content.resize(nsize);
+        page.content.resize(nsize);
 
-        unsigned int nread = fread(&state.content[0], 1, nsize, ffp.get());
-        state.content.resize(nread);
+        unsigned int nread = fread(&page.content[0], 1, nsize, ffp.get());
+        page.content.resize(nread);
         // fclose(ffp);
     }
-    return state.content;
+    return page.content;
 }
 
-http::cookie client::get_cookie() { return state.cookie; }
-std::string &client::get_cookie(const std::string &cookie_key) { return state.cookie[cookie_key]; }
-http::obj_val client::json() { return state.json; }
+http::cookie client::get_cookie() { return page.cookie; }
+std::string &client::get_cookie(const std::string &cookie_key) { return page.cookie[cookie_key]; }
+http::obj_val client::json() { return page.json; }
 void client::respreadtocontent(const char *buffer, unsigned int buffersize)
 {
     unsigned int i = readoffset;
     // unsigned int offset = buffersize - i;
 
-    if (state.chunked)
+    if (page.chunked)
     {
-        if (state.length == 0)
+        if (page.length == 0)
         {
             int n = 0;
             for (; i < buffersize; i++)
@@ -2293,7 +2293,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
                 }
             }
 
-            state.length = n;
+            page.length = n;
 
             if (buffer[i] == 0x0D)
             {
@@ -2308,9 +2308,9 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
                 i++;
             }
 
-            if (state.length == 0)
+            if (page.length == 0)
             {
-                state.page.size = state.content.size();
+                page.file.size = page.content.size();
                 if (buffer[i] == 0x0D)
                 {
                     i++;
@@ -2327,9 +2327,9 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             }
             readoffset = i;
         }
-        for (; i < buffersize && state.length > 0; i++, state.length -= 1)
+        for (; i < buffersize && page.length > 0; i++, page.length -= 1)
         {
-            state.content.push_back(buffer[i]);
+            page.content.push_back(buffer[i]);
         }
         readoffset = i;
         if (readoffset < buffersize)
@@ -2341,7 +2341,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
     {
         for (; i < buffersize; i++)
         {
-            state.content.push_back(buffer[i]);
+            page.content.push_back(buffer[i]);
         }
     }
 }
@@ -2366,8 +2366,8 @@ void client::respreadtofile(const char *buffer, unsigned int buffersize)
         srand(tetime);
         unsigned long long randnum = rand() % 100000 + 100000;
 
-        state.page.tempfile = "c" + std::to_string(tetime) + std::to_string(randnum);
-        state.page.tempfile.append("_t");
+        page.file.tempfile = "c" + std::to_string(tetime) + std::to_string(randnum);
+        page.file.tempfile.append("_t");
 
         struct stat s;
         std::string tempfilename;
@@ -2383,21 +2383,21 @@ void client::respreadtofile(const char *buffer, unsigned int buffersize)
                 if (temppath.back() == '/')
                 {
                     tempfilename = temppath;
-                    tempfilename.append(state.page.tempfile);
-                    state.page.tempfile = tempfilename;
+                    tempfilename.append(page.file.tempfile);
+                    page.file.tempfile = tempfilename;
                 }
                 else
                 {
                     tempfilename = temppath;
                     tempfilename.push_back('/');
-                    tempfilename.append(state.page.tempfile);
-                    state.page.tempfile = tempfilename;
+                    tempfilename.append(page.file.tempfile);
+                    page.file.tempfile = tempfilename;
                 }
             }
         }
 
-        // rawfile = fopen(state.page.tempfile.c_str(), "wb");
-        rawfile.reset(fopen(state.page.tempfile.c_str(), "wb"));
+        // rawfile = fopen(page.file.tempfile.c_str(), "wb");
+        rawfile.reset(fopen(page.file.tempfile.c_str(), "wb"));
     }
     if (i < buffersize && rawfile)
     {
@@ -2412,17 +2412,17 @@ void client::finishprocess()
         // fclose(rawfile);
         // rawfile = NULL;
     }
-    if (state.encode == 'g')
+    if (page.encode == 'g')
     {
         std::string content;
-        uncompress(state.content, content);
-        state.content = std::move(content);
+        uncompress(page.content, content);
+        page.content = std::move(content);
     }
-    if (state.isjson || parsetojson == 1)
+    if (page.isjson || parsetojson == 1)
     {
-        state.json.from_json(state.content);
+        page.json.from_json(page.content);
         if (parsetojson == 1)
-            state.isjson = true;
+            page.isjson = true;
     }
 }
 bool client::process(const char *buffer, unsigned int buffersize)
@@ -2446,10 +2446,10 @@ bool client::process(const char *buffer, unsigned int buffersize)
             }
             if (headerfinish == 1)
             {
-                state.length = 0;
+                page.length = 0;
                 if (onheader != nullptr)
                 {
-                    if (onheader(buffer, readoffset, state.code))
+                    if (onheader(buffer, readoffset, page.code))
                     {
                         return true;
                     }
@@ -2461,17 +2461,17 @@ bool client::process(const char *buffer, unsigned int buffersize)
     if (headerfinish == 1 && error == 0 && readoffset < buffersize)
     {
         // type length chunked
-        if (state.istxt)
+        if (page.istxt)
         {
             respreadtocontent(buffer, buffersize);
         }
         else
         {
-            state.length = state.length + (buffersize - readoffset);
+            page.length = page.length + (buffersize - readoffset);
             respreadtofile(buffer, buffersize);
             if (download_process != nullptr)
             {
-                download_process(state.length, state.page.size);
+                download_process(page.length, page.file.size);
             }
         }
     }
@@ -2513,14 +2513,14 @@ client &client::save(std::string path = "")
     if (path.empty())
     {
         path.append("./");
-        if (state.page.filename.empty())
+        if (page.file.filename.empty())
         {
             unsigned long long tetime = time((time_t *)NULL);
-            state.page.filename       = std::to_string(tetime);
+            page.file.filename       = std::to_string(tetime);
         }
         else
         {
-            path.append(state.page.filename);
+            path.append(page.file.filename);
         }
     }
 
@@ -2532,18 +2532,18 @@ client &client::save(std::string path = "")
         {
             if (path.back() == '/')
             {
-                path.append(state.page.filename);
+                path.append(page.file.filename);
             }
             else
             {
                 path.push_back('/');
-                path.append(state.page.filename);
+                path.append(page.file.filename);
             }
         }
     }
-    if (state.page.tempfile.size() > 0 && state.page.tempfile.size() < 138)
+    if (page.file.tempfile.size() > 0 && page.file.tempfile.size() < 138)
     {
-        rename(state.page.tempfile.c_str(), path.c_str());
+        rename(page.file.tempfile.c_str(), path.c_str());
     }
 
     return *this;
@@ -3408,7 +3408,7 @@ void client::buildcontent()
                 }
                 senddata.push_back(ptemp);
             }
-            else if (state.content.size() > 0)
+            else if (page.content.size() > 0)
             {
                 ptemp.error = 0;
                 ptemp.tempfile.clear();
@@ -3417,11 +3417,11 @@ void client::buildcontent()
                 ptemp.size = 0;
                 ptemp.type.clear();
 
-                ptemp.size     = state.content.size();
-                ptemp.tempfile = state.content;
-                contentlength  = state.content.size();
+                ptemp.size     = page.content.size();
+                ptemp.tempfile = page.content;
+                contentlength  = page.content.size();
 
-                state.content.clear();
+                page.content.clear();
                 senddata.push_back(ptemp);
             }
             header["Content-Length"] = contentlength;
@@ -3438,11 +3438,11 @@ void client::buildcontent()
             ptemp.size = 0;
             ptemp.type.clear();
 
-            ptemp.size     = state.content.size();
-            ptemp.tempfile = state.content;
-            contentlength  = state.content.size();
+            ptemp.size     = page.content.size();
+            ptemp.tempfile = page.content;
+            contentlength  = page.content.size();
 
-            state.content.clear();
+            page.content.clear();
             senddata.push_back(ptemp);
             header["Content-Length"] = contentlength;
         }
@@ -3457,11 +3457,11 @@ void client::buildcontent()
             ptemp.size = 0;
             ptemp.type.clear();
 
-            ptemp.size     = state.content.size();
-            ptemp.tempfile = state.content;
-            contentlength  = state.content.size();
+            ptemp.size     = page.content.size();
+            ptemp.tempfile = page.content;
+            contentlength  = page.content.size();
 
-            state.content.clear();
+            page.content.clear();
             senddata.push_back(ptemp);
             header["Content-Length"] = contentlength;
         }

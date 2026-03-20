@@ -111,8 +111,8 @@ class client : public std::enable_shared_from_this<client>
     void set_limit_time(unsigned short t) { timeout_total = t; };
     void clear_limit_time_count() { timeout_count = 0; };
 
-    bool is_file() { return !state.istxt; };
-    bool is_json() { return state.isjson; };
+    bool is_file() { return !page.istxt; };
+    bool is_json() { return page.isjson; };
     bool init_http_sock();
     bool init_https_sock();
 
@@ -166,7 +166,7 @@ class client : public std::enable_shared_from_this<client>
     unsigned char requesttype    = 0;
     bool isssl                   = false;
     std::atomic_bool iswait_exit = false;
-    struct state_t
+    struct page_t
     {
         long long length  = 0;
         unsigned int code = 0;
@@ -180,9 +180,9 @@ class client : public std::enable_shared_from_this<client>
         std::string codemessage;
         std::map<std::string, std::string> header;
         http::cookie cookie;
-        upload_file page;
+        upload_file file;
         http::obj_val json;
-    } state;
+    } page;
 
     std::shared_ptr<asio::ip::tcp::socket> sock                       = {nullptr};
     std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsock = {nullptr};

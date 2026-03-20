@@ -277,7 +277,7 @@ std::string testhttpclient_downfilelist(std::shared_ptr<httppeer> peer)
         tempurl.append(std::to_string(i));
         tempurl.append(urls[1]);
         a->requst_clear();
-        a->state.json.clear();
+        a->page.json.clear();
         std::cout<<tempurl<<std::endl;
         a->get_json(tempurl);
         a->add_header("Connection", "keep-alive");
@@ -289,18 +289,18 @@ std::string testhttpclient_downfilelist(std::shared_ptr<httppeer> peer)
         if (a->get_status() == 200)
         {
             std::cout<<"resp ok"<<std::endl;
-            if(a->state.isjson ==1)
+            if(a->page.isjson ==1)
             {
                 std::cout<<"begin json"<<std::endl;
-                if(a->state.json["code"].to_int()==0)
+                if(a->page.json["code"].to_int()==0)
                 {
-                    if(a->state.json["data"].is_array())
+                    if(a->page.json["data"].is_array())
                     {
                         std::cout<<"is_array"<<std::endl;
                         unsigned int j=0;
-                        for(;j<a->state.json["data"].size();j++)
+                        for(;j<a->page.json["data"].size();j++)
                         {
-                           std::cout<<"fid:" <<a->state.json["data"][j]["aritcleid"].to_string()<<std::endl;
+                           std::cout<<"fid:" <<a->page.json["data"][j]["aritcleid"].to_string()<<std::endl;
                         }
 
                         if(j>0)
@@ -310,12 +310,12 @@ std::string testhttpclient_downfilelist(std::shared_ptr<httppeer> peer)
                         }
 
                     }
-                    else if(a->state.json["data"].is_obj())
+                    else if(a->page.json["data"].is_obj())
                     {
                     
                         std::cout<<"is_obj"<<std::endl;
                     }
-                    std::cout << a->state.content << std::endl;
+                    std::cout << a->page.content << std::endl;
                     continue;
                 }
                 std::cout<<"json error!"<<std::endl;
@@ -381,12 +381,12 @@ std::string testhttpclient_getdownfile(std::shared_ptr<httppeer> peer)
     if (a->get_status() == 200)
     {
         std::cout<<"----get ok----\n"<<std::endl;
-        if(a->state.istxt==false)
+        if(a->page.istxt==false)
         {
-            if(a->state.page.tempfile.size()>0)
+            if(a->page.file.tempfile.size()>0)
             {
-                std::cout<<"filename:"<<a->state.page.filename<<std::endl;
-                fileurl = a->state.page.filename;
+                std::cout<<"filename:"<<a->page.file.filename<<std::endl;
+                fileurl = a->page.file.filename;
  
                 client << "<html><head>";
                 client <<"<meta http-equiv=\"refresh\" content=\"1;url=/downfilecontent\">";

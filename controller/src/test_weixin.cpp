@@ -173,13 +173,13 @@ std::string test_xcxgetphone(std::shared_ptr<httppeer> peer)
     /*
     缓存 access_token
 
-    td::string cache_data = a->state.json["access_token"].to_string();
+    td::string cache_data = a->page.json["access_token"].to_string();
     temp_cache.save(access_token, cache_data, 30);
 
     */
 
     response = "https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=";
-    response.append(a->state.json["access_token"].to_string());
+    response.append(a->page.json["access_token"].to_string());
     http::obj_val postitem;
     postitem["code"] = code;
     //std::shared_ptr<http::client> b = std::make_shared<http::client>();
@@ -195,7 +195,7 @@ std::string test_xcxgetphone(std::shared_ptr<httppeer> peer)
         return "";
     }
     response.clear();
-    response = a->state.json["phone_info"]["phoneNumber"].to_string();
+    response = a->page.json["phone_info"]["phoneNumber"].to_string();
 
     if (response.size() < 6)
     {
