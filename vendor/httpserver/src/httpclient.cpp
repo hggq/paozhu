@@ -485,27 +485,20 @@ bool client::init_http_sock()
     auto endpoints = resolver.resolve(host, port);
     //socket->connect(endpoints, ec);
     asio::connect(*sock, endpoints, ec);
-    //asio::ip::tcp::resolver::query checkquery(host, port);
-    // asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
-    // asio::ip::tcp::resolver::iterator end;
     // asio::ip::tcp::endpoint endpoint;
-    // if (iter == end)
-    // {
-    //     error_msg = "resolver " + host + port;
-    //     DEBUG_LOG("%s", error_msg.c_str());
-    //     return false;
-    // }
-    // while (iter != end)
-    // {
-    //     endpoint = *iter++;
-    //     // at here  maybe under code
+    // for (const auto& entry : results) {
+    //     endpoint = entry.endpoint();
+    //     // ... 使用 endpoint
     //     sock->connect(endpoint, ec);
     //     if (ec)
     //     {
     //         continue;
     //     }
+    //     else
+    //     {
+    //         break;
+    //     }
     // }
-    // asio::error_code ec;
 
     if (ec)
     {

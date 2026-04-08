@@ -1287,6 +1287,13 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
                 while (readnum < send_file_obj->content_length)
                 {
                     send_file_obj->content.resize(4096);
+                    if(!send_file_obj->fp.get())
+                    {
+                        peer_session->isclose = true;
+                        peer->isclose         = true;
+                        peer->state.keepalive = false;
+                        break;
+                    }
                     unsigned int nread = fread(&send_file_obj->content[0], 1, 4096, send_file_obj->fp.get());
                     if (nread == 0)
                     {
@@ -1441,6 +1448,13 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
                 while (readnum < send_file_obj->content_length)
                 {
                     send_file_obj->content.resize(4096);
+                    if(!send_file_obj->fp.get())
+                    {
+                        peer_session->isclose = true;
+                        peer->isclose         = true;
+                        peer->state.keepalive = false;
+                        break;
+                    }
                     unsigned int nread = fread(&send_file_obj->content[0], 1, 4096, send_file_obj->fp.get());
                     if (nread == 0)
                     {
@@ -2663,6 +2677,17 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
         // send file
         if (sq_obj->current_num < sq_obj->content_length)
         {
+            if(!sq_obj->fp.get())
+            {
+                peer->socket_session->http2_send_enddata(peer->stream_id);
+                peer->issend         = true;
+                sq_obj->standby_next = true;
+                if (peer->socket_session->http2_need_wakeup)
+                {
+                    peer->socket_session->waituphttp2(this->io_context);
+                }
+                return false;
+            }
             per_size = fread(&sq_obj->cache_data[9], 1, vsize_send, sq_obj->fp.get());
             if (per_size == 0 && vsize_send > 0)
             {
@@ -3239,6 +3264,7 @@ void httpserver::listeners()
     unsigned long long temp_domain = 0;
     SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
 
+    unsigned int error_count = 0;
     for (;;)
     {
         try
@@ -3254,17 +3280,30 @@ void httpserver::listeners()
                 if (ec_error)
                 {
                     std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back("https accept ec_error ");
+                    error_loglist.emplace_back("https accept ec_error\n");
                     lock.unlock();
-                    std::this_thread::sleep_for(std::chrono::nanoseconds(200));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    error_count++;
+                    if(error_count > 128)
+                    {
+                        isstop = true;
+                    }
                     continue;
                 }
+                total_http2_count++;
+                //The IP should be available now
+                peer_session->getremoteip();
+                peer_session->getremoteport();
+
 #ifndef BENCHMARK
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
                 socket_session_lists.push_back(peer_session);
                 lock_sock.unlock();
 #endif
-                total_http2_count++;
+                
+
+ 
+
                 co_spawn(this->io_context, sslhandshake(peer_session), asio::detached);
                 if (isstop)
                 {
@@ -3275,7 +3314,7 @@ void httpserver::listeners()
         catch (...)
         {
             std::unique_lock<std::mutex> lock(log_mutex);
-            error_loglist.emplace_back("https accept ec_error ");
+            error_loglist.emplace_back("https accept catch\n");
             lock.unlock();
         }
         if (isstop)
@@ -3316,6 +3355,7 @@ void httpserver::listener()
         exit(1);
     }
     DEBUG_LOG("http accept");
+    unsigned int error_count = 0;
     for (;;)
     {
         try
@@ -3331,17 +3371,27 @@ void httpserver::listener()
                 if (ec)
                 {
                     std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back("http accept ec_error ");
+                    error_loglist.emplace_back("http accept ec_error\n");
                     lock.unlock();
-                    std::this_thread::sleep_for(std::chrono::nanoseconds(200));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    error_count++;
+                    if(error_count > 128)
+                    {
+                        isstop = true;
+                    }
                     continue;
                 }
+                total_http1_count++;
+                //The IP should be available now
+                peer_session->getremoteip();
+                peer_session->getremoteport();
+
 #ifndef BENCHMARK
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
                 socket_session_lists.push_back(peer_session);
                 lock_sock.unlock();
 #endif
-                total_http1_count++;
+                
                 co_spawn(this->io_context, clientpeerfun(peer_session, false), asio::detached);
                 if (isstop)
                 {
@@ -3352,7 +3402,7 @@ void httpserver::listener()
         catch (...)
         {
             std::unique_lock<std::mutex> lock(log_mutex);
-            error_loglist.emplace_back("http accept ec_error ");
+            error_loglist.emplace_back("http accept catch\n");
             lock.unlock();
         }
         if (isstop)

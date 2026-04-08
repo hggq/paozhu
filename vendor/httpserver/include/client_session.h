@@ -126,6 +126,8 @@ class client_session : public std::enable_shared_from_this<client_session>
     bool half_close = false;
 
     unsigned char httpv = 0;
+    std::string client_ip;
+    unsigned int client_port = 0;
 
     std::unique_ptr<asio::ip::tcp::socket> socket = nullptr;
     std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket = nullptr;

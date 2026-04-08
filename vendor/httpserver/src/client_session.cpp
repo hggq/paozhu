@@ -516,11 +516,11 @@ asio::awaitable<void> client_session::async_stop()
     {
         if (isssl)
         {
-            co_await sslsocket->async_shutdown(asio::use_awaitable);
-            if (sslsocket->lowest_layer().is_open())
-            {
-                sslsocket->lowest_layer().close();
-            }
+            // co_await sslsocket->async_shutdown(asio::use_awaitable);
+            // if (sslsocket->lowest_layer().is_open())
+            // {
+            //     sslsocket->lowest_layer().close();
+            // }
         }
         else
         {
@@ -547,18 +547,18 @@ void client_session::stop()
     {
         if (isssl)
         {
-            asio::error_code ec;
-            sslsocket->shutdown(ec);
-            if(ec)
-            {
-                iserror = true;
-                return;
-            }
+            // asio::error_code ec;
+            // sslsocket->shutdown(ec);
+            // if(ec)
+            // {
+            //     iserror = true;
+            //     return;
+            // }
 
-            if (sslsocket->lowest_layer().is_open())
-            {
-                sslsocket->lowest_layer().close();
-            }
+            // if (sslsocket->lowest_layer().is_open())
+            // {
+            //     sslsocket->lowest_layer().close();
+            // }
         }
         else
         {
@@ -575,7 +575,10 @@ void client_session::stop()
 
 std::string client_session::getremoteip()
 {
-    std::string client_ip;
+    if(client_ip.size() > 2)
+    {
+        return client_ip;
+    }
     if (iserror)
     {
         return "";
@@ -592,7 +595,10 @@ std::string client_session::getremoteip()
 }
 unsigned int client_session::getremoteport()
 {
-    unsigned int client_port = 0;
+    if(client_port > 2)
+    {
+        return client_port;
+    }
     if (iserror)
     {
         return 0;
