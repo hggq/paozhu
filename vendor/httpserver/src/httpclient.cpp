@@ -43,6 +43,11 @@ client::~client()
             // {
             //     sslsock->lowest_layer().close();
             // }
+            if (sslsock->lowest_layer().is_open())
+            {
+                sslsock->lowest_layer().cancel(ec);
+                sslsock->lowest_layer().close(ec);
+            }
             sslsock.reset();
         }
     }
@@ -50,7 +55,7 @@ client::~client()
     {
         if (sock && sock->is_open())
         {
-            //sock->close();
+            sock->close(ec);
             sock.reset();
         }
     }
@@ -68,6 +73,11 @@ void client::close_connect()
             // {
             //     sslsock->lowest_layer().close();
             // }
+            if (sslsock->lowest_layer().is_open())
+            {
+                sslsock->lowest_layer().cancel(ec);
+                sslsock->lowest_layer().close(ec);
+            }
             sslsock.reset();
         }
     }
@@ -75,7 +85,7 @@ void client::close_connect()
     {
         if (sock && sock->is_open())
         {
-            //sock->close();
+            sock->close(ec);
             sock.reset();
         }
     }

@@ -109,16 +109,21 @@ mysql_conn_base::~mysql_conn_base()
 {
     if (isclose == false)
     {
-        //hard_close();
-        //alone use orm , exit the program, need here release smart ptr, why?
-        //may be use static connect pool obj relation
         if (sock_type == 1)
         {
-            //socket.release();
+            if (socket->is_open())
+            {
+                socket->close(ec);
+            }
         }
         else if (sock_type == 2)
         {
-            //sslsocket.release();
+            //Do not use sslsocket->shutdown(ec); instead, let the smart pointer automatically use openssl SSL_free to close the underlying layer
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
+            }
         }
     }
     isclose = true;
@@ -1606,16 +1611,16 @@ bool mysql_conn_base::close()
             if (socket->is_open())
             {
                 asio::write(*socket, asio::buffer(data_send, 5), ec);
-                socket->close();
+                socket->close(ec);
             }
         }
         else if (sock_type == 2)
         {
             asio::write(*sslsocket, asio::buffer(data_send, 5), ec);
-            sslsocket->shutdown(ec);
             if (sslsocket->lowest_layer().is_open())
             {
-                sslsocket->lowest_layer().close();
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
             }
         }
         return true;
@@ -1639,7 +1644,6 @@ asio::awaitable<bool> mysql_conn_base::async_close()
     try
     {
         isclose = true;
-
         if (sock_type == 1)
         {
             if (socket->is_open())
@@ -1651,10 +1655,10 @@ asio::awaitable<bool> mysql_conn_base::async_close()
         else if (sock_type == 2)
         {
             co_await asio::async_write(*sslsocket, asio::buffer(data_send, 5), asio::use_awaitable);
-            co_await sslsocket->async_shutdown(asio::use_awaitable);
             if (sslsocket->lowest_layer().is_open())
             {
-                sslsocket->lowest_layer().close();
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
             }
         }
 
@@ -1677,15 +1681,15 @@ bool mysql_conn_base::hard_close()
         {
             if (socket->is_open())
             {
-                socket->close();
+                socket->close(ec);
             }
         }
         else if (sock_type == 2)
         {
-            sslsocket->shutdown(ec);
             if (sslsocket->lowest_layer().is_open())
             {
-                sslsocket->lowest_layer().close();
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
             }
         }
     }

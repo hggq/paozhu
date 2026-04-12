@@ -39,17 +39,36 @@ client_session::~client_session()
 }
 asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::string &log_item)
 {
+    auto self = shared_from_this(); 
     memset(_cache_data, 0x00, 4096);
     try
     {
+        if(isclose || iserror)
+        {
+            co_return true; 
+        }
         if (isssl)
         {
-            readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, 4096), asio::use_awaitable);
+            readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
         }
         else
         {
-            readnum = co_await socket->async_read_some(asio::buffer(_cache_data, 4096), asio::use_awaitable);
+            readnum = co_await socket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
         }
+
+        if (ec)
+        {
+            DEBUG_LOG("read_some exception %s", ec.message().c_str());
+            log_item.append(ec.message());
+            isclose = true;
+            iserror = true;
+            co_return true;
+        }
+        if(isclose || iserror)
+        {
+            co_return true; 
+        }
+        co_return false;
     }
     catch (const std::exception &e)
     {
@@ -516,16 +535,31 @@ asio::awaitable<void> client_session::async_stop()
     {
         if (isssl)
         {
-            // co_await sslsocket->async_shutdown(asio::use_awaitable);
-            // if (sslsocket->lowest_layer().is_open())
-            // {
-            //     sslsocket->lowest_layer().close();
-            // }
+            //co_await sslsocket->async_shutdown(asio::use_awaitable);
+            
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
+            }
         }
         else
         {
-            socket->close();
+            //asio::error_code ec;
+            if(socket->is_open())
+            {
+                socket->cancel(ec);
+                socket->close(ec);
+            }
         }
+    }
+    catch (const std::system_error& e) 
+    {
+        iserror = true;
+    }
+    catch (std::exception &e)
+    {
+        iserror = true;
     }
     catch (...)
     {
@@ -547,23 +581,34 @@ void client_session::stop()
     {
         if (isssl)
         {
-            // asio::error_code ec;
-            // sslsocket->shutdown(ec);
-            // if(ec)
-            // {
-            //     iserror = true;
-            //     return;
-            // }
-
-            // if (sslsocket->lowest_layer().is_open())
-            // {
-            //     sslsocket->lowest_layer().close();
-            // }
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
+            }
+            //sslsocket->shutdown(ec);
+            if(ec)
+            {
+                iserror = true;
+                return;
+            }
         }
         else
         {
-            socket->close();
+            if(socket->is_open())
+            {
+                socket->cancel(ec);
+                socket->close(ec);
+            }
         }
+    }
+    catch (const std::system_error& e) 
+    {
+        iserror = true;
+    }
+    catch (std::exception &e)
+    {
+        iserror = true;
     }
     catch (...)
     {
