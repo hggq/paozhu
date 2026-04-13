@@ -2527,7 +2527,6 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             peer_session->stop();
         }
         
-        peer_session->isclose = true;
         peer->isclose         = true;
 
         DEBUG_LOG("\033[35mclient run exit:%s\033[0m", peer->client_ip.c_str());
@@ -3712,7 +3711,7 @@ void httpserver::httpwatch()
     unsigned char cron_hour = 0x00;
 
     unsigned int clean_cron_min      = 60;
-    unsigned int clean_cron_time_ago = 640;
+    unsigned int clean_cron_time_ago = 0;
 
     unsigned int restart_process_num = 0;
     int restart_process_time_start   = 0;
