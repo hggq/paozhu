@@ -1588,9 +1588,9 @@ asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer,
     auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
                                   std::shared_ptr<httppeer> peer) mutable
     {
-        std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
+        //std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
         peer->user_code_handler_call.push_back(std::move(handler));
-        lock.unlock();
+        //lock.unlock();
         self->clientrunpool.addclient(peer);
     };
     return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
@@ -1830,18 +1830,18 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         {
             DEBUG_LOG("---  http1 pool pre --------");
             //Prevent multiple invocations user_code_handler_call
-            std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
-            if(peer->user_code_handler_call.size() > 0)
-            {
-                lock.unlock();
-                co_await http1_send_bad_server(peer,peer_session);
-                peer->state.keepalive = false;
-                co_return;
-            }
-            else
-            {
-                lock.unlock();
-            }
+            // std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
+            // if(peer->user_code_handler_call.size() > 0)
+            // {
+            //     lock.unlock();
+            //     co_await http1_send_bad_server(peer,peer_session);
+            //     peer->state.keepalive = false;
+            //     co_return;
+            // }
+            // else
+            // {
+            //     lock.unlock();
+            // }
             sendtype = co_await co_user_task(peer);
             DEBUG_LOG("---  http1 pool post re_num [%d]--------", sendtype);
             if (sendtype == 0)
@@ -3357,12 +3357,29 @@ void httpserver::listeners()
                         record_error_http2_count = total_count;
                         std::this_thread::sleep_for(std::chrono::seconds(3));
                     }
+                    peer_session->stop();
+                    continue;
+                }
+                //The IP should be available now
+                peer_session->getremoteip();
+                if(peer_session->isclose)
+                {
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back(peer_session->client_ip);
+                    error_loglist.emplace_back(" https accept client close\n");
+                    lock.unlock();
+                    continue;
+                }
+                peer_session->getremoteport();
+                if(peer_session->isclose)
+                {
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back(peer_session->client_ip);
+                    error_loglist.emplace_back(" https accept client close\n");
+                    lock.unlock();
                     continue;
                 }
                 total_http2_count++;
-                //The IP should be available now
-                peer_session->getremoteip();
-                peer_session->getremoteport();
 
 #ifndef BENCHMARK
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
@@ -3467,13 +3484,29 @@ void httpserver::listener()
                         record_error_http1_count = total_count;
                         std::this_thread::sleep_for(std::chrono::seconds(3));
                     }
-
+                    peer_session->stop();
+                    continue;
+                }
+                //The IP should be available now
+                peer_session->getremoteip();
+                if(peer_session->isclose)
+                {
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back(peer_session->client_ip);
+                    error_loglist.emplace_back(" http accept client close\n");
+                    lock.unlock();
+                    continue;
+                }
+                peer_session->getremoteport();
+                if(peer_session->isclose)
+                {
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back(peer_session->client_ip);
+                    error_loglist.emplace_back(" http accept client close\n");
+                    lock.unlock();
                     continue;
                 }
                 total_http1_count++;
-                //The IP should be available now
-                peer_session->getremoteip();
-                peer_session->getremoteport();
 
 #ifndef BENCHMARK
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);

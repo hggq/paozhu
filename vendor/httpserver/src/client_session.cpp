@@ -24,6 +24,23 @@ client_session::client_session()
 client_session::~client_session()
 {
     isclose = true;
+    if (isssl)
+    {
+        if (sslsocket->lowest_layer().is_open())
+        {
+            sslsocket->lowest_layer().cancel(ec);
+            sslsocket->lowest_layer().close(ec);
+        }
+    }
+    else
+    {
+        if(socket->is_open())
+        {
+            socket->cancel(ec);
+            socket->close(ec);
+        }
+    }
+
     if (_cache_data != nullptr)
     {
         auto &cc = get_client_data_cache();
@@ -36,6 +53,8 @@ client_session::~client_session()
         cc.back_cache_ptr(std::move(http2_ring_queue));
         http2_ring_queue = nullptr;
     }
+
+
 }
 asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::string &log_item)
 {
@@ -628,19 +647,49 @@ std::string client_session::getremoteip()
     {
         return "";
     }
+    asio::ip::tcp::endpoint ep;
     if (isssl)
     {
-        client_ip = sslsocket->lowest_layer().remote_endpoint().address().to_string();
+        //client_ip = sslsocket->lowest_layer().remote_endpoint().address().to_string();
+        ep = sslsocket->lowest_layer().remote_endpoint(ec);
     }
     else
     {
-        client_ip = socket->remote_endpoint().address().to_string();
+        ep = socket->remote_endpoint(ec);
+        //client_ip = socket->remote_endpoint().address().to_string();
     }
+    if (ec)
+    {
+        //已经断开不用关闭
+        iserror = true;
+        isclose = true;
+        client_ip = ec.message();
+
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
+            }
+        }
+        else
+        {
+            if(socket->is_open())
+            {
+                socket->cancel(ec);
+                socket->close(ec);
+            }
+        }
+
+        return "";
+    }
+    client_ip = ep.address().to_string();
     return client_ip;
 }
 unsigned int client_session::getremoteport()
 {
-    if(client_port > 2)
+    if(client_port > 1)
     {
         return client_port;
     }
@@ -648,32 +697,92 @@ unsigned int client_session::getremoteport()
     {
         return 0;
     }
+    asio::ip::tcp::endpoint ep;
     if (isssl)
     {
-        client_port = sslsocket->lowest_layer().remote_endpoint().port();
+        ep = sslsocket->lowest_layer().remote_endpoint(ec);
+        //client_port = sslsocket->lowest_layer().remote_endpoint().port();
     }
     else
     {
-        client_port = socket->remote_endpoint().port();
+        ep = socket->remote_endpoint(ec);
+       // client_port = socket->remote_endpoint().port();
     }
+    
+    if (ec)
+    {
+        //已经断开不用关闭
+        iserror = true;
+        isclose = true;
+        client_ip = ec.message();
+
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
+            }
+        }
+        else
+        {
+            if(socket->is_open())
+            {
+                socket->cancel(ec);
+                socket->close(ec);
+            }
+        }
+
+        return 0;
+    }
+    client_port = ep.port();
     return client_port;
 }
 std::string client_session::getlocalip()
 {
-    std::string server_ip;
     if (iserror)
     {
         return "";
     }
+
+    asio::ip::tcp::endpoint ep;
     if (isssl)
     {
-        server_ip = sslsocket->lowest_layer().local_endpoint().address().to_string();
+        ep = sslsocket->lowest_layer().local_endpoint(ec);
+        //server_ip = sslsocket->lowest_layer().local_endpoint().address().to_string();
     }
     else
     {
-        server_ip = socket->local_endpoint().address().to_string();
+        ep = socket->local_endpoint(ec);
+        //server_ip = socket->local_endpoint().address().to_string();
     }
-    return server_ip;
+    if (ec)
+    {
+        //已经断开不用关闭
+        iserror = true;
+        isclose = true;
+
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
+            }
+        }
+        else
+        {
+            if(socket->is_open())
+            {
+                socket->cancel(ec);
+                socket->close(ec);
+            }
+        }
+
+        return "";
+    }
+
+    return ep.address().to_string();
 }
 unsigned int client_session::getlocalport()
 {
@@ -682,14 +791,45 @@ unsigned int client_session::getlocalport()
     {
         return 0;
     }
+
+    asio::ip::tcp::endpoint ep;
     if (isssl)
     {
-        server_port = sslsocket->lowest_layer().local_endpoint().port();
+        ep = sslsocket->lowest_layer().local_endpoint(ec);
+        //server_port = sslsocket->lowest_layer().local_endpoint().port();
     }
     else
     {
-        server_port = socket->local_endpoint().port();
+        ep = socket->local_endpoint(ec);
+        //server_port = socket->local_endpoint().port();
     }
+
+    if (ec)
+    {
+        //已经断开不用关闭
+        iserror = true;
+        isclose = true;
+
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+                sslsocket->lowest_layer().cancel(ec);
+                sslsocket->lowest_layer().close(ec);
+            }
+        }
+        else
+        {
+            if(socket->is_open())
+            {
+                socket->cancel(ec);
+                socket->close(ec);
+            }
+        }
+
+        return 0;
+    }
+    server_port = ep.port();
     return server_port;
 }
 
