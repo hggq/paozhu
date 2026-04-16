@@ -26,7 +26,7 @@ client_session::~client_session()
     isclose = true;
     if (isssl)
     {
-        if (sslsocket->lowest_layer().is_open())
+        if (sslsocket && sslsocket->lowest_layer().is_open())
         {
             sslsocket->lowest_layer().cancel(ec);
             sslsocket->lowest_layer().close(ec);
@@ -34,7 +34,7 @@ client_session::~client_session()
     }
     else
     {
-        if(socket->is_open())
+        if(socket && socket->is_open())
         {
             socket->cancel(ec);
             socket->close(ec);
@@ -542,71 +542,83 @@ void client_session::half_stop()
         isclose = true;
     }
 }
-asio::awaitable<void> client_session::async_stop()
+asio::awaitable<std::string> client_session::async_stop()
 {
     DEBUG_LOG("socket async_stop");
+    std::string temp_msg = "async_stop ";
     isclose = true;
-    if (iserror)
-    {
-        co_return;
-    }
     try
     {
+        asio::error_code ec_a;
         if (isssl)
         {
-            //co_await sslsocket->async_shutdown(asio::use_awaitable);
-            
             if (sslsocket->lowest_layer().is_open())
             {
-                sslsocket->lowest_layer().cancel(ec);
-                sslsocket->lowest_layer().close(ec);
+                sslsocket->lowest_layer().cancel(ec_a);
+                if(ec_a)
+                {
+                    temp_msg =temp_msg + ec_a.message();
+                }
+                sslsocket->lowest_layer().close(ec_a);
+                if(ec_a)
+                {
+                    temp_msg =temp_msg + ec_a.message();
+                }
             }
         }
         else
         {
-            //asio::error_code ec;
             if(socket->is_open())
             {
-                socket->cancel(ec);
-                socket->close(ec);
+                socket->cancel(ec_a);
+                if(ec_a)
+                {
+                    temp_msg =temp_msg + ec_a.message();
+                }
+                socket->close(ec_a);
+                if(ec_a)
+                {
+                    temp_msg =temp_msg + ec_a.message();
+                }
             }
         }
     }
     catch (const std::system_error& e) 
     {
         iserror = true;
+        temp_msg =temp_msg + e.what();
     }
     catch (std::exception &e)
     {
+        temp_msg =temp_msg + e.what();
         iserror = true;
     }
     catch (...)
     {
         DEBUG_LOG("socket exp ");
+        temp_msg =temp_msg + " exception ";
         iserror = true;
     }
     // timer_.cancel();
+    temp_msg.append("\n");
+    co_return temp_msg;
 }
 
 void client_session::stop()
 {
     DEBUG_LOG("socket stop");
     isclose = true;
-    if (iserror)
-    {
-        return;
-    }
     try
     {
+        asio::error_code ec_b;
         if (isssl)
         {
             if (sslsocket->lowest_layer().is_open())
             {
-                sslsocket->lowest_layer().cancel(ec);
-                sslsocket->lowest_layer().close(ec);
+                sslsocket->lowest_layer().cancel(ec_b);
+                sslsocket->lowest_layer().close(ec_b);
             }
-            //sslsocket->shutdown(ec);
-            if(ec)
+            if(ec_b)
             {
                 iserror = true;
                 return;
@@ -616,8 +628,13 @@ void client_session::stop()
         {
             if(socket->is_open())
             {
-                socket->cancel(ec);
-                socket->close(ec);
+                socket->cancel(ec_b);
+                socket->close(ec_b);
+            }
+            if(ec_b)
+            {
+                iserror = true;
+                return;
             }
         }
     }

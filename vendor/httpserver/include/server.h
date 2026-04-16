@@ -180,6 +180,7 @@ class httpserver
 
     bool isstop                  = false;
     bool istraffic               = false;
+    bool hard_kill_old_link      = false;
     std::atomic_uint total_count = 0;
 
     std::atomic_uint total_http2_count = 0;

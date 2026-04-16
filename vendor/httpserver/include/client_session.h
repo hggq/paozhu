@@ -103,7 +103,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     void http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code);
     void stop();
     void half_stop();
-    asio::awaitable<void> async_stop();
+    asio::awaitable<std::string> async_stop();
     asio::awaitable<void> co_send_goway();
 
     asio::awaitable<void> co_send_writer(const std::string &msg);
@@ -116,20 +116,21 @@ class client_session : public std::enable_shared_from_this<client_session>
     void waituphttp2(asio::io_context &ioc);
 
   public:
-    unsigned char *_cache_data  = nullptr;
-    std::atomic_uint time_limit = 0;
+    
+    
 
     bool isssl      = false;
     bool isgoway    = false;
     bool isclose    = false;
     bool iserror    = false;
     bool half_close = false;
-
     unsigned char httpv = 0;
-    std::string client_ip;
     unsigned int client_port = 0;
+    unsigned int time_begin = 0;
+    unsigned char *_cache_data  = nullptr;
+    std::atomic_uint time_limit = 0;
     asio::error_code ec;
-
+    std::string client_ip;
     std::unique_ptr<asio::ip::tcp::socket> socket = nullptr;
     std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket = nullptr;
     std::atomic<unsigned int> last_time_interval          = 0;
