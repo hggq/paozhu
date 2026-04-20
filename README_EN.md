@@ -37,6 +37,7 @@ Discussing the joy of C++ web development with community developers.
 ✅19. Struct or class annotation to JSON Object, json_encode json_decode function  
 ✅20. Support full demo admin backend, visit url /admin/main  
 ✅21. Support PHP-FPM fastcgi running, which can replace Apache, allowing PHP programmers to smoothly transition to C++development mode  
+✅22. Built-in WeChat Mini Program payment function  
 
 ### 2.Runtime environment
 

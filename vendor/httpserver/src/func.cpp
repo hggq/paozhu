@@ -1675,6 +1675,88 @@ std::string char2hex(const unsigned char *source, unsigned int str_length, unsig
     }
     return obj;
 }
+
+std::string str2hex(std::string_view source,bool is_space)
+{
+    std::string hexchar;
+    for (unsigned char i = 0; i < source.size(); i++)
+    {
+        unsigned char a, b;
+        a = source[i];
+        if(is_space)
+        {
+            if(a == 0x20 || a == '\t')
+            {
+                continue;
+            }
+        }
+        
+        if (a >= '0' && a <= '9')
+        {
+            a = a - '0';
+        }
+        else if (a >= 'A' && a <= 'F')
+        {
+            a = a - 'A' + 10;
+        }
+        else if (a >= 'a' && a <= 'f')
+        {
+            a = a - 'a' + 10;
+        }
+        else
+        {
+            a = 0;
+        }
+
+        b = source[i + 1];
+        i++;
+
+        if (b >= '0' && b <= '9')
+        {
+            b = b - '0';
+        }
+        else if (b >= 'A' && b <= 'F')
+        {
+            b = b - 'A' + 10;
+        }
+        else if (b >= 'a' && b <= 'f')
+        {
+            b = b - 'a' + 10;
+        }
+        else
+        {
+            b= 0;
+        }
+
+        a = a << 4;
+        a = a & 0xF0;
+        b = b & 0x0F;
+        a = a + b;
+        hexchar.push_back(a);
+    }
+    return hexchar;
+}
+std::string hex2str(std::string_view source,unsigned char is_space)
+{
+    static const unsigned char str[] = "0123456789ABCDEF";
+    std::string obj;
+    unsigned int qi = 0;
+    
+    for (; qi < source.size(); qi++)
+    {
+        unsigned char tmc = source[qi];
+        obj.push_back(str[tmc >> 4 & 0x0F]);
+        obj.push_back(str[tmc & 0x0F]);
+        if (is_space > 0)
+        {
+            if ((qi + 1) % is_space == 0)
+            {
+                obj.push_back(0x20);
+            }
+        }
+    }
+    return obj;
+}
 std::string str2safepath(const char *source, unsigned int str_length)
 {
     std::string temp;

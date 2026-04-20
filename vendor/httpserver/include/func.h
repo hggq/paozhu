@@ -52,6 +52,8 @@ unsigned long long str2uint(const char *source, unsigned int str_length);
 long long str2int(std::string_view);
 long long str2int(const char *source, unsigned int str_length);
 std::string char2hex(const unsigned char *source, unsigned int str_length, unsigned char sp = 0);
+std::string str2hex(std::string_view source,bool is_space=false);
+std::string hex2str(std::string_view source,unsigned char sp = 0);
 std::string str2safepath(const char *source, unsigned int str_length);
 std::string str2safefile(const char *source, unsigned int str_length);
 std::string str2safemethold(const char *source, unsigned int str_length);
