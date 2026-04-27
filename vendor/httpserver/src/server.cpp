@@ -3415,16 +3415,7 @@ void httpserver::listeners()
                 }
                 time_head = cur_offset;
 
-                unsigned int total_link_http_ring = 0;
-                for (; cur_offset != time_tail;)
-                {
-                    total_link_http_ring = total_link_http_ring + time_num_count[cur_offset];
-
-                    cur_offset = (cur_offset + 1) % 60;
-                }
-
                 //update time_tail num
-                has_save_link_count = total_link_http_ring / 60;
                 if (sp_time > time_record[time_tail])
                 {
                     time_tail                 = (time_tail + 1) % 60;
@@ -3435,6 +3426,7 @@ void httpserver::listeners()
                 {
                     time_num_count[time_tail] = total_count.load();
                 }
+                has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
 
                 //This 500 should be saved in the server.conf file
                 if (has_save_link_count > rate_limit_accept_wait_num.load())
@@ -3601,16 +3593,7 @@ void httpserver::listener()
                 }
                 time_head = cur_offset;
 
-                unsigned int total_link_http_ring = 0;
-                for (; cur_offset != time_tail;)
-                {
-                    total_link_http_ring = total_link_http_ring + time_num_count[cur_offset];
-
-                    cur_offset = (cur_offset + 1) % 60;
-                }
-
                 //update time_tail num
-                has_save_link_count = total_link_http_ring / 60;
                 if (sp_time > time_record[time_tail])
                 {
                     time_tail                 = (time_tail + 1) % 60;
@@ -3621,13 +3604,14 @@ void httpserver::listener()
                 {
                     time_num_count[time_tail] = total_count.load();
                 }
+                has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
 
                 //This 500 should be saved in the server.conf file
                 if (has_save_link_count > rate_limit_accept_wait_num.load())
                 {
                     std::unique_lock<std::mutex> lock(log_mutex);
                     error_loglist.emplace_back(peer_session->client_ip);
-                    error_loglist.emplace_back(" http1 rate limiting\n");
+                    error_loglist.emplace_back(" http rate limiting\n");
                     lock.unlock();
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
