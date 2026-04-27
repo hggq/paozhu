@@ -929,4 +929,93 @@ std::string admin_editpwdpost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
+
+//@urlpath(admin_islogin,admin/favicon)
+std::string admin_favicon(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer(); 
+    client.view("admin/favicon");
+    return "";
+}
+
+//@urlpath(admin_islogin,admin/faviconpost)
+std::string admin_faviconpost(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer(); 
+    
+    std::string sitepath = client.get_sitepath();
+
+    // 确保目标目录存在
+    if (!std::filesystem::exists(sitepath)) {
+        client.goto_url("/admin/favicon", 3, "不存在WWW目录");
+        return "";
+    }
+
+    if (sitepath.size() == 0)
+    {
+        client.goto_url("/admin/favicon", 3, "WWW目录出错");
+        return "";
+    }
+
+    std::string msg;
+    msg = client.files["upfile"]["filename"].to_string();
+
+    unsigned int extfilesize = msg.size();
+    if (extfilesize > 4)
+    {
+        if (msg[extfilesize - 1] == 'o' && msg[extfilesize - 2] == 'c' &&
+            msg[extfilesize - 3] == 'i' && msg[extfilesize - 4] == '.')
+        {
+           
+             
+        }
+        else
+        {
+            client.goto_url("/admin/favicon", 3, "不是.ioc文件");
+            return "";    
+        }
+    }
+    else
+    {
+        client.goto_url("/admin/favicon", 3, "请上传.ioc文件");
+        return "";
+    }
+
+    msg.clear();
+
+    if (sitepath.back() != '/')
+    {
+        sitepath.push_back('/');
+    }
+    sitepath.append("favicon.ico");
+    std::error_code ec;
+    fs::rename(client.files["upfile"]["tempfile"].to_string(), sitepath, ec);
+
+    
+    if (ec) 
+    {
+        try
+        {
+            if (std::filesystem::exists(sitepath))
+            {
+                std::filesystem::remove(sitepath);
+            }
+            std::filesystem::copy_file(client.files["upfile"]["tempfile"].as_string(), sitepath);
+            msg = "上传成功！";
+        }
+        catch (fs::filesystem_error &e)
+        {
+            msg = "复制文件失败！";
+            msg.append(e.what());
+        }
+    }
+    else
+    {
+        msg = "上传成功！";
+    }
+    
+    client.goto_url("/admin/favicon", 3, msg);
+    return "";
+}
+
 }//namespace http

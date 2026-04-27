@@ -928,6 +928,163 @@ bool serverconfig::loadserverglobalconfig()
         tempinfo_default.action_after_lists.clear();
     }
 
+    if (map_value["default"]["rate_limit_new_wait_num"].size() > 0)
+    {
+        rate_limit_new_wait_num = 0;
+        for (unsigned int i = 0; i < map_value["default"]["rate_limit_new_wait_num"].size(); i++)
+        {
+            if (map_value["default"]["rate_limit_new_wait_num"][i] >= '0' && map_value["default"]["rate_limit_new_wait_num"][i] <= '9')
+            {
+                rate_limit_new_wait_num = rate_limit_new_wait_num * 10 + (map_value["default"]["rate_limit_new_wait_num"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["rate_limit_new_wait_num"][i] == 0x20)
+            {
+                continue;
+            }
+            break;
+        }
+
+        if (rate_limit_new_wait_num < 300)
+        {
+            rate_limit_new_wait_num = 300;
+        }
+    }
+    else
+    {
+        rate_limit_new_wait_num = 300;
+    }
+
+    if (map_value["default"]["rate_limit_new_wait_time_down"].size() > 0)
+    {
+        rate_limit_new_wait_time_down = 0;
+        for (unsigned int i = 0; i < map_value["default"]["rate_limit_new_wait_time_down"].size(); i++)
+        {
+            if (map_value["default"]["rate_limit_new_wait_time_down"][i] >= '0' && map_value["default"]["rate_limit_new_wait_time_down"][i] <= '9')
+            {
+                rate_limit_new_wait_time_down = rate_limit_new_wait_time_down * 10 + (map_value["default"]["rate_limit_new_wait_time_down"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["rate_limit_new_wait_time_down"][i] == 0x20)
+            {
+                continue;
+            }
+            break;
+        }
+
+        if (rate_limit_new_wait_time_down < 2)
+        {
+            rate_limit_new_wait_time_down = 2;
+        }
+
+        if (rate_limit_new_wait_time_down > 5)
+        {
+            rate_limit_new_wait_time_down = 5;
+        }
+    }
+    else
+    {
+        rate_limit_new_wait_time_down = 2;
+    }
+
+    if (map_value["default"]["rate_limit_new_wait_time_up"].size() > 0)
+    {
+        rate_limit_new_wait_time_up = 0;
+        for (unsigned int i = 0; i < map_value["default"]["rate_limit_new_wait_time_up"].size(); i++)
+        {
+            if (map_value["default"]["rate_limit_new_wait_time_up"][i] >= '0' && map_value["default"]["rate_limit_new_wait_time_up"][i] <= '9')
+            {
+                rate_limit_new_wait_time_up = rate_limit_new_wait_time_up * 10 + (map_value["default"]["rate_limit_new_wait_time_up"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["rate_limit_new_wait_time_up"][i] == 0x20)
+            {
+                continue;
+            }
+            break;
+        }
+
+        if (rate_limit_new_wait_time_up < 7)
+        {
+            rate_limit_new_wait_time_up = 7;
+        }
+
+        if (rate_limit_new_wait_time_up > 10)
+        {
+            rate_limit_new_wait_time_up = 10;
+        }
+    }
+    else
+    {
+        rate_limit_new_wait_time_up = 7;
+    }
+
+    if (map_value["default"]["rate_limit_accept_wait_num"].size() > 0)
+    {
+        rate_limit_accept_wait_num = 0;
+        for (unsigned int i = 0; i < map_value["default"]["rate_limit_accept_wait_num"].size(); i++)
+        {
+            if (map_value["default"]["rate_limit_accept_wait_num"][i] >= '0' && map_value["default"]["rate_limit_accept_wait_num"][i] <= '9')
+            {
+                rate_limit_accept_wait_num = rate_limit_accept_wait_num * 10 + (map_value["default"]["rate_limit_accept_wait_num"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["rate_limit_accept_wait_num"][i] == 0x20)
+            {
+                continue;
+            }
+            break;
+        }
+
+        if (rate_limit_accept_wait_num < 600)
+        {
+            rate_limit_accept_wait_num = 600;
+        }
+
+        if ((rate_limit_new_wait_num + 100) >= rate_limit_accept_wait_num)
+        {
+            rate_limit_accept_wait_num = rate_limit_new_wait_num * 2;
+        }
+    }
+    else
+    {
+        rate_limit_accept_wait_num = 600;
+    }
+
+
+    if (map_value["default"]["rate_limit_accept_time"].size() > 0)
+    {
+        rate_limit_accept_time = 0;
+        for (unsigned int i = 0; i < map_value["default"]["rate_limit_accept_time"].size(); i++)
+        {
+            if (map_value["default"]["rate_limit_accept_time"][i] >= '0' && map_value["default"]["rate_limit_accept_time"][i] <= '9')
+            {
+                rate_limit_accept_time = rate_limit_accept_time * 10 + (map_value["default"]["rate_limit_accept_time"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["rate_limit_accept_time"][i] == 0x20)
+            {
+                continue;
+            }
+            break;
+        }
+
+        if (rate_limit_accept_time < 500)
+        {
+            rate_limit_accept_time = 500;
+        }
+
+        if (rate_limit_accept_time > 1500)
+        {
+            rate_limit_accept_time = 1500;
+        }
+    }
+    else
+    {
+        rate_limit_accept_time = 500;
+    }
+
+
     tempinfo_default.php_root_document = tempinfo_default.wwwpath;
     sitehostinfos.push_back(std::move(tempinfo_default));
     for (auto [first, second] : map_value)

@@ -95,6 +95,13 @@ class serverconfig
     unsigned int upload_max_size       = 0;
     unsigned int http_header_max_size  = 0;
 
+    unsigned int rate_limit_new_wait_num       = 300;
+    unsigned int rate_limit_new_wait_time_down = 2;
+    unsigned int rate_limit_new_wait_time_up   = 7;
+
+    unsigned int rate_limit_accept_wait_num = 600;
+    unsigned int rate_limit_accept_time     = 500;
+
     std::map<std::string, SSL_CTX *> g_ctxMap;
     std::map<unsigned long long, bool> domain_http2;
     std::vector<struct site_host_info_t> sitehostinfos;

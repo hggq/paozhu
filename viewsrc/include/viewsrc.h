@@ -39,6 +39,7 @@ namespace  admin{
 	std::string edittopic(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edittopicsidepick(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edittopicsidetext(const struct view_param &vinfo,http::obj_val &obj);
+	std::string favicon(const struct view_param &vinfo,http::obj_val &obj);
 	std::string fileupload(const struct view_param &vinfo,http::obj_val &obj);
 	std::string footscript(const struct view_param &vinfo,http::obj_val &obj);
 	std::string homedesign(const struct view_param &vinfo,http::obj_val &obj);

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>网站信息</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+
+  <div class="container-fluid">
+    <h5 class="card-title mt-2">底部Javascript代码</h5>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+        <form id="form" action="/admin/faviconpost" method="post" enctype="multipart/form-data">
+          <div class="row mb-3">
+            <div class="ml-2">favicon.ico文件放在网站根目录</div>
+          </div>
+          <div class="mb-3">
+            <label for="upfile" class="form-label">点击上传文件</label>
+            <input class="form-control" type="file" id="upfile" name="upfile">
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-sm-10 offset-sm-2">
+              <button type="submit" class="btn btn-primary">确认</button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+  
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -468,6 +468,12 @@ namespace http
 		temp.pre = admin_islogin;
 		temp.regfun = admin_editpwdpost;
 		methodcallback.emplace("admin/editpwdpost",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_favicon;
+		methodcallback.emplace("admin/favicon",temp);
+		temp.pre = admin_islogin;
+		temp.regfun = admin_faviconpost;
+		methodcallback.emplace("admin/faviconpost",temp);
 		temp.pre = nullptr;
 		temp.regfun = testurlencoded;
 		methodcallback.emplace("tformpost",temp);

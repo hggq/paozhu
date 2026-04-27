@@ -68,11 +68,25 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
         }
         if (isssl)
         {
-            readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+            if (sslsocket->lowest_layer().is_open())
+            {
+                readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+            }
+            else
+            {
+                isclose = true;
+            }
         }
         else
         {
-            readnum = co_await socket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+            if (socket->is_open())
+            {
+                readnum = co_await socket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+            }
+            else
+            {
+                isclose = true;
+            }
         }
 
         if (ec)
@@ -125,6 +139,7 @@ bool client_session::send_data(const std::string &msg)
             }
             else
             {
+                isclose = true;
                 return false;
             }
         }
@@ -136,6 +151,7 @@ bool client_session::send_data(const std::string &msg)
             }
             else
             {
+                isclose = true;
                 return false;
             }
         }
@@ -189,11 +205,29 @@ bool client_session::send_switch101()
         std::string tempswitch = "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: h2c\r\n\r\n";
         if (isssl)
         {
-            asio::write(*sslsocket, asio::buffer(tempswitch));
+            if (sslsocket->lowest_layer().is_open())
+            {
+                asio::write(*sslsocket, asio::buffer(tempswitch));
+            }
+            else
+            {
+                isclose = true;
+                return false;
+            }
+            
         }
         else
         {
-            asio::write(*socket, asio::buffer(tempswitch));
+            if (socket->is_open())
+            {
+                asio::write(*socket, asio::buffer(tempswitch));
+            }
+            else
+            {
+                isclose = true;
+                return false;
+            }
+            
         }
         return true;
     }
@@ -479,6 +513,7 @@ void client_session::waituphttp2(asio::io_context &ioc)
 }
 asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer, unsigned int buffersize)
 {
+    auto self = shared_from_this(); 
     if (isclose)
     {
         co_return;
@@ -491,11 +526,26 @@ asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer
         }
         if (isssl)
         {
-            co_await asio::async_write(*sslsocket, asio::buffer(buffer, buffersize), asio::use_awaitable);
+            if (sslsocket->lowest_layer().is_open())
+            {
+                co_await asio::async_write(*sslsocket, asio::buffer(buffer, buffersize), asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+            }
         }
         else
         {
-            co_await asio::async_write(*socket, asio::buffer(buffer, buffersize), asio::use_awaitable);
+            if(socket->is_open())
+            {
+                co_await asio::async_write(*socket, asio::buffer(buffer, buffersize), asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+            }
+            
         }
     }
     catch (...)
@@ -508,6 +558,7 @@ asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer
 
 asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
 {
+    auto self = shared_from_this(); 
     if (isclose)
     {
         co_return;
@@ -520,11 +571,25 @@ asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
         }
         if (isssl)
         {
-            co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
+            if (sslsocket->lowest_layer().is_open())
+            {
+                co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+            }
         }
         else
         {
-            co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
+            if(socket->is_open())
+            {
+                co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+            }
         }
     }
     catch (...)

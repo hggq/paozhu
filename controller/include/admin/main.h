@@ -25,4 +25,6 @@ namespace http
 	std::string admin_userinfo(std::shared_ptr<httppeer> peer);
 	std::string admin_editpassword(std::shared_ptr<httppeer> peer);
 	std::string admin_editpwdpost(std::shared_ptr<httppeer> peer);
+	std::string admin_favicon(std::shared_ptr<httppeer> peer);
+	std::string admin_faviconpost(std::shared_ptr<httppeer> peer);
 }

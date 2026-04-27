@@ -140,7 +140,7 @@ class httpserver
     asio::awaitable<void> http1_send_file_range(std::shared_ptr<httppeer> peer,
                                                 std::shared_ptr<client_session> peer_session);
 
-    void set_thread_priority(std::thread& thread, int priority);
+    void set_thread_priority(std::thread &thread, int priority);
     void run(const std::string &);
 
     void add_nullptrlog(const std::string &logstrb);
@@ -148,7 +148,7 @@ class httpserver
 
     void save_traffic_arrays();
     void stop();
-    asio::io_context& get_ctx();
+    asio::io_context &get_ctx();
     ~httpserver()
     {
         std::printf("~httpserver\n");
@@ -178,13 +178,21 @@ class httpserver
     std::string traffic_arrays;
     std::queue<httpsocket_t> tasks;
 
-    bool isstop                  = false;
-    bool istraffic               = false;
-    bool hard_kill_old_link      = false;
-    std::atomic_uint total_count = 0;
+    bool isstop             = false;
+    bool istraffic          = false;
+    bool hard_kill_old_link = false;
 
-    std::atomic_uint total_http2_count = 0;
-    std::atomic_uint total_http1_count = 0;
+    std::atomic_uint has_save_link_count = 0;
+    std::atomic_uint total_count         = 0;
+    std::atomic_uint total_http2_count   = 0;
+    std::atomic_uint total_http1_count   = 0;
+
+    std::atomic_uint rate_limit_new_wait_num       = 300;
+    std::atomic_uint rate_limit_new_wait_time_down = 2;
+    std::atomic_uint rate_limit_new_wait_time_up   = 7;
+
+    std::atomic_uint rate_limit_accept_wait_num = 600;
+    std::atomic_uint rate_limit_accept_time     = 500;
 
     std::mutex socket_session_lists_mutex;
     std::list<std::weak_ptr<client_session>> socket_session_lists;
