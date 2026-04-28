@@ -945,9 +945,9 @@ bool serverconfig::loadserverglobalconfig()
             break;
         }
 
-        if (rate_limit_new_wait_num < 300)
+        if (rate_limit_new_wait_num < 200)
         {
-            rate_limit_new_wait_num = 300;
+            rate_limit_new_wait_num = 200;
         }
     }
     else
@@ -1009,14 +1009,14 @@ bool serverconfig::loadserverglobalconfig()
             rate_limit_new_wait_time_up = 7;
         }
 
-        if (rate_limit_new_wait_time_up > 10)
+        if (rate_limit_new_wait_time_up > 22)
         {
-            rate_limit_new_wait_time_up = 10;
+            rate_limit_new_wait_time_up = 22;
         }
     }
     else
     {
-        rate_limit_new_wait_time_up = 7;
+        rate_limit_new_wait_time_up = 18;
     }
 
     if (map_value["default"]["rate_limit_accept_wait_num"].size() > 0)
@@ -1036,9 +1036,9 @@ bool serverconfig::loadserverglobalconfig()
             break;
         }
 
-        if (rate_limit_accept_wait_num < 600)
+        if (rate_limit_accept_wait_num < 400)
         {
-            rate_limit_accept_wait_num = 600;
+            rate_limit_accept_wait_num = 400;
         }
 
         if ((rate_limit_new_wait_num + 100) >= rate_limit_accept_wait_num)
@@ -1069,9 +1069,9 @@ bool serverconfig::loadserverglobalconfig()
             break;
         }
 
-        if (rate_limit_accept_time < 500)
+        if (rate_limit_accept_time < 333)
         {
-            rate_limit_accept_time = 500;
+            rate_limit_accept_time = 333;
         }
 
         if (rate_limit_accept_time > 1500)

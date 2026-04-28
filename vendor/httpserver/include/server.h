@@ -189,7 +189,7 @@ class httpserver
 
     std::atomic_uint rate_limit_new_wait_num       = 300;
     std::atomic_uint rate_limit_new_wait_time_down = 2;
-    std::atomic_uint rate_limit_new_wait_time_up   = 7;
+    std::atomic_uint rate_limit_new_wait_time_up   = 18;
 
     std::atomic_uint rate_limit_accept_wait_num = 600;
     std::atomic_uint rate_limit_accept_time     = 500;

@@ -2153,19 +2153,9 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
 #ifndef BENCHMARK
                 if (linktype == 0 && has_save_link_count > rate_limit_new_wait_num)
                 {
-                    for (unsigned int kkk = 0; kkk < 3; kkk++)
-                    {
-                        asio::steady_timer timer(co_await asio::this_coro::executor);
-                        timer.expires_after(std::chrono::seconds(rand_range(rate_limit_new_wait_time_down.load(), rate_limit_new_wait_time_up.load())));
-                        co_await timer.async_wait(asio::use_awaitable);
-                        if (has_save_link_count < rate_limit_new_wait_num)
-                        {
-                            if (kkk > 0)
-                            {
-                                break;
-                            }
-                        }
-                    }
+                    asio::steady_timer timer(co_await asio::this_coro::executor);
+                    timer.expires_after(std::chrono::seconds(rand_range(rate_limit_new_wait_time_down.load(), rate_limit_new_wait_time_up.load())));
+                    co_await timer.async_wait(asio::use_awaitable);
                 }
 #endif
 
