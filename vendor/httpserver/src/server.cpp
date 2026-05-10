@@ -3053,9 +3053,14 @@ void httpserver::websocket_loop(int fps)
                     std::shared_ptr<httppeer> peer = iter->lock();
                     try
                     {
-
                         if (peer)
                         {
+                            if(peer->socket_session && peer->socket_session->isclose)
+                            {
+                                websockettasks.erase(iter++);
+                                continue;
+                            }
+                            
                             if (peer->websockets->timeloop_num > 0 && fps % peer->websockets->timeloop_num == 0)
                             {
                                 peer->websockets->pushloop();

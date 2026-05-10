@@ -945,9 +945,9 @@ bool serverconfig::loadserverglobalconfig()
             break;
         }
 
-        if (rate_limit_new_wait_num < 200)
+        if (rate_limit_new_wait_num < 60)
         {
-            rate_limit_new_wait_num = 200;
+            rate_limit_new_wait_num = 60;
         }
     }
     else
@@ -1069,9 +1069,9 @@ bool serverconfig::loadserverglobalconfig()
             break;
         }
 
-        if (rate_limit_accept_time < 333)
+        if (rate_limit_accept_time < 10)
         {
-            rate_limit_accept_time = 333;
+            rate_limit_accept_time = 10;
         }
 
         if (rate_limit_accept_time > 1500)
