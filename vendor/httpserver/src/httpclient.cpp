@@ -452,7 +452,12 @@ asio::awaitable<bool> client::async_init_https_sock()
         }
         break;
     }
-
+    if (ec)
+    {
+        error_msg = host + " ssl async_connect error! ";
+        DEBUG_LOG("%s", error_msg.c_str());
+        co_return false;
+    }
     // asio::connect(sslsock->lowest_layer(), endpoints);
 
     // constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);

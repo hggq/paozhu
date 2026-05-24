@@ -192,7 +192,7 @@ sudo ./bin/paozhu
 
 ###  7.压力测试
 
-使用 h2load 和 ab 测试
+使用 h2load 和 ab 测试, 你必须启用cmake编译选项`-DENABLE_BENCHMARK=ON`，即执行命令`cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_BENCHMARK=ON`，因为框架默认启用了流量限制措施。
 
 ```shell
  ab -n 120000 -c 20 http://www.xxx.com  

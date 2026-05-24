@@ -46,7 +46,7 @@ asio openssl zlib brotli [options](gd qrencode)
 
 Supports Linux MacOS Windows
 
-### 3.environment configuration
+### 3.Environment configuration
 
 #### 3.1 MacOS
 
@@ -191,7 +191,7 @@ for more details, please see the source code under the `controller` directory, w
 
 ###  7.Stress testing
 
-Use h2load and ab testing
+Use h2load and ab testing, you must enable the cmake compilation option `-DENABLE_BENCHMARK=ON`, `cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_BENCHMARK=ON`, Because the framework has enabled traffic limiting measures by default.  
 
 ```shell
  ab -n 120000 -c 20 http://www.xxx.com  
