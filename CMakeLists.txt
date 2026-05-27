@@ -134,6 +134,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/controller)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/websockets/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/sockets)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/orm)
 

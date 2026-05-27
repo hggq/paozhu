@@ -15,6 +15,7 @@
 #include <array>
 #include <string>
 #include <string_view>
+#include <random>
 #include <sys/stat.h>
 #include <cstdlib>
 #include "http_socket.h"
@@ -31,7 +32,15 @@
 #include "func.h"
 namespace http
 {
-
+client::client() :strand_(asio::make_strand(*(get_client_context_obj().ioc))),rawfile(nullptr, std::fclose) {};
+client::client(std::string_view url) :_url(url), strand_(asio::make_strand(*(get_client_context_obj().ioc))), rawfile(nullptr, std::fclose){
+    requesttype = 0;
+    if (url.length() > 0)
+    {
+        _url = url;
+        parse();
+    }
+};
 client::~client()
 {
     if (isssl)
@@ -96,7 +105,7 @@ client &client::requst_clear()
     senddata.clear();
     header.clear();
     data.clear();
-    error = 0;
+    iserror = 0;
     return *this;
 }
 client &client::clear()
@@ -104,7 +113,7 @@ client &client::clear()
     senddata.clear();
     header.clear();
     data.clear();
-    error = 0;
+    iserror = 0;
     headerfinish  = 0;
     timeout_count = 0;
     machnum       = 0;
@@ -131,6 +140,18 @@ client &client::clear()
     close_connect();
     return *this;
 }
+client &client::get(std::string_view url, unsigned int time_out_num)
+{
+    requesttype = 0;
+    exptime = time_out_num;
+    if (url.length() > 0)
+    {
+        _url = url;
+        parse();
+    }
+    return *this;
+}
+
 client &client::get(std::string_view url)
 {
     requesttype = 0;
@@ -369,13 +390,9 @@ client &client::send(http::obj_val param)
 asio::awaitable<bool> client::async_init_http_sock()
 {
     error_msg.clear();
-    auto executor = co_await asio::this_coro::executor;
-    asio::ip::tcp::resolver resolver(executor);
-    // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-    // asio::ip::tcp::resolver::iterator end;
-    // asio::ip::tcp::endpoint endpoint;
-
-    sock = std::make_shared<asio::ip::tcp::socket>(executor);
+    asio::ip::tcp::resolver resolver(strand_);
+ 
+    sock = std::make_shared<asio::ip::tcp::socket>(strand_);
     asio::error_code ec;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
     auto endpoints                 = co_await resolver.async_resolve(host, port, asio::use_awaitable);
@@ -389,27 +406,6 @@ asio::awaitable<bool> client::async_init_http_sock()
         }
         break;
     }
-    // constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-    // while (iter != end)
-    // {
-    //     endpoint     = *iter++;
-    //     std::tie(ec) = co_await sock->async_connect(endpoint, tuple_awaitable);
-    //     if (ec)
-    //     {
-    //         continue;
-    //     }
-    //     else
-    //     {
-    //         break;
-    //     }
-    // }
-
-    // if (iter == end)
-    // {
-    //     error_msg = "resolver " + host + port;
-    //     DEBUG_LOG("%s", error_msg.c_str());
-    //     co_return false;
-    // }
 
     if (ec)
     {
@@ -423,19 +419,12 @@ asio::awaitable<bool> client::async_init_http_sock()
 asio::awaitable<bool> client::async_init_https_sock()
 {
     error_msg.clear();
-    auto executor = co_await asio::this_coro::executor;
-    //asio::ssl::context ssl_context(asio::ssl::context::sslv23);
-
     ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
-    sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(executor, *ssl_context);
+    sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
 
-    //asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
     ssl_context->set_default_verify_paths();
 
-    asio::ip::tcp::resolver resolver(executor);
-    // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
-    // asio::ip::tcp::resolver::iterator end;
-    // asio::ip::tcp::endpoint endpoint;
+    asio::ip::tcp::resolver resolver(strand_);
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
     asio::error_code ec;
@@ -452,28 +441,6 @@ asio::awaitable<bool> client::async_init_https_sock()
         }
         break;
     }
-    if (ec)
-    {
-        error_msg = host + " ssl async_connect error! ";
-        DEBUG_LOG("%s", error_msg.c_str());
-        co_return false;
-    }
-    // asio::connect(sslsock->lowest_layer(), endpoints);
-
-    // constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-    // while (iter != end)
-    // {
-    //     endpoint     = *iter++;
-    //     std::tie(ec) = co_await sslsock->lowest_layer().async_connect(endpoint, tuple_awaitable);
-    //     if (ec)
-    //     {
-    //         continue;
-    //     }
-    //     else
-    //     {
-    //         break;
-    //     }
-    // }
 
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
 
@@ -494,26 +461,33 @@ asio::awaitable<bool> client::async_init_https_sock()
 bool client::init_http_sock()
 {
     error_msg.clear();
-    client_context &temp_io_context = get_client_context_obj();
-    sock                            = std::make_shared<asio::ip::tcp::socket>(temp_io_context.get_ctx());
-    asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
+    //client_context &temp_io_context = get_client_context_obj();
+    sock                            = std::make_shared<asio::ip::tcp::socket>(strand_);
+    asio::ip::tcp::resolver resolver(strand_);
     auto endpoints = resolver.resolve(host, port);
     //socket->connect(endpoints, ec);
     asio::connect(*sock, endpoints, ec);
+    //asio::ip::tcp::resolver::query checkquery(host, port);
+    // asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
+    // asio::ip::tcp::resolver::iterator end;
     // asio::ip::tcp::endpoint endpoint;
-    // for (const auto& entry : results) {
-    //     endpoint = entry.endpoint();
-    //     // ... 使用 endpoint
+    // if (iter == end)
+    // {
+    //     error_msg = "resolver " + host + port;
+    //     DEBUG_LOG("%s", error_msg.c_str());
+    //     return false;
+    // }
+    // while (iter != end)
+    // {
+    //     endpoint = *iter++;
+    //     // at here  maybe under code
     //     sock->connect(endpoint, ec);
     //     if (ec)
     //     {
     //         continue;
     //     }
-    //     else
-    //     {
-    //         break;
-    //     }
     // }
+    // asio::error_code ec;
 
     if (ec)
     {
@@ -581,7 +555,7 @@ asio::awaitable<void> client::async_send_data()
                 error_msg = e.what();
             }
         }
-        co_await async_write(*sock, asio::buffer(request), asio::use_awaitable);
+        co_await asio::async_write(*sock, asio::buffer(request), asio::use_awaitable);
 
         timeout_total = timeid() + timeout_total;
         char data[2051];
@@ -593,21 +567,21 @@ asio::awaitable<void> client::async_send_data()
                 switch (p.error)
                 {
                 case 0:
-                    co_await async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    co_await asio::async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
                     break;
                 case 3:
-                    co_await async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    co_await asio::async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
                     break;
                 case 1:
                 {
                     unsigned int readnum = 0;
-                    co_await async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    co_await asio::async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
                         data[1] = 0x0A;
-                        co_await async_write(*sock, asio::buffer(data, 2), asio::use_awaitable);
+                        co_await asio::async_write(*sock, asio::buffer(data, 2), asio::use_awaitable);
                         break;
                     }
 
@@ -627,7 +601,7 @@ asio::awaitable<void> client::async_send_data()
                             data[nread] = 0x0A;
                             nread += 1;
                         }
-                        co_await async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
+                        co_await asio::async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -643,7 +617,7 @@ asio::awaitable<void> client::async_send_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        error      = 2;
+                                        iserror      = 2;
                                         error_msg  = "time out";
                                         close_connect();
                                         break;
@@ -652,7 +626,7 @@ asio::awaitable<void> client::async_send_data()
                             }
                         }
                     }
-                    if (error > 0)
+                    if (iserror > 0)
                     {
                         co_return;
                     }
@@ -668,7 +642,7 @@ asio::awaitable<void> client::async_send_data()
                     {
                         data[0] = 0x0D;
                         data[1] = 0x0A;
-                        co_await async_write(*sock, asio::buffer(data, 2), asio::use_awaitable);
+                        co_await asio::async_write(*sock, asio::buffer(data, 2), asio::use_awaitable);
                         break;
                     }
 
@@ -681,7 +655,7 @@ asio::awaitable<void> client::async_send_data()
                     {
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
-                        co_await async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
+                        co_await asio::async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -698,7 +672,7 @@ asio::awaitable<void> client::async_send_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        error      = 2;
+                                        iserror      = 2;
                                         error_msg  = "time out";
                                         close_connect();
                                         break;
@@ -707,7 +681,7 @@ asio::awaitable<void> client::async_send_data()
                             }
                         }
                     }
-                    if (error > 0)
+                    if (iserror > 0)
                     {
                         co_return;
                     }
@@ -758,7 +732,7 @@ asio::awaitable<void> client::async_send_data()
                         if (timeout_count > timeout_total)
                         {
                             page.code = 0;
-                            error      = 2;
+                            iserror      = 2;
                             error_msg  = "time out";
                             close_connect();
                             break;
@@ -778,7 +752,7 @@ asio::awaitable<void> client::async_send_data()
         DEBUG_LOG("Exception: %s", e.what());
         error_msg  = e.what();
         page.code = 0;
-        error      = 3;
+        iserror      = 3;
     }
 
     co_return;
@@ -927,7 +901,7 @@ client &client::send_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        error      = 2;
+                                        iserror      = 2;
                                         error_msg  = "time out";
                                         close_connect();
                                         break;
@@ -936,7 +910,7 @@ client &client::send_data()
                             }
                         }
                     }
-                    if (error > 0)
+                    if (iserror > 0)
                     {
                         return *this;
                     }
@@ -981,7 +955,7 @@ client &client::send_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        error      = 2;
+                                        iserror      = 2;
                                         error_msg  = "time out";
                                         close_connect();
                                         break;
@@ -990,7 +964,7 @@ client &client::send_data()
                             }
                         }
                     }
-                    if (error > 0)
+                    if (iserror > 0)
                     {
                         return *this;
                     }
@@ -1041,7 +1015,7 @@ client &client::send_data()
                         if (timeout_count > timeout_total)
                         {
                             page.code = 0;
-                            error      = 2;
+                            iserror      = 2;
                             error_msg  = "time out";
                             close_connect();
                             break;
@@ -1060,7 +1034,7 @@ client &client::send_data()
         DEBUG_LOG("Exception: %s", e.what());
         error_msg  = e.what();
         page.code = 0;
-        error      = 3;
+        iserror      = 3;
     }
 
     return *this;
@@ -1069,15 +1043,15 @@ client &client::send_data()
 bool client::init_https_sock()
 {
     error_msg.clear();
-    client_context &temp_io_context = get_client_context_obj();
+    //client_context &temp_io_context = get_client_context_obj();
     //asio::ssl::context ssl_context(asio::ssl::context::sslv23);
     ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
     //std::shared_ptr<httpclient_t> clientpeer = std::make_shared<httpclient_t>();
-    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(temp_io_context.get_ctx(), *ssl_context);
+    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
 
     //asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
     ssl_context->set_default_verify_paths();
-    asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
+    asio::ip::tcp::resolver resolver(strand_);
     auto endpoints = resolver.resolve(host.c_str(), port);
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
@@ -1138,12 +1112,12 @@ asio::awaitable<void> client::async_send_ssl_data()
         if (!sslsock)
         {
             error_msg.clear();
-            auto executor = co_await asio::this_coro::executor;
+            //auto executor = co_await asio::this_coro::executor;
             ssl_context   = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
-            sslsock       = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(executor, *ssl_context);
+            sslsock       = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
             ssl_context->set_default_verify_paths();
 
-            asio::ip::tcp::resolver resolver(executor);
+            asio::ip::tcp::resolver resolver(strand_);
             // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
             // asio::ip::tcp::resolver::iterator end;
             // asio::ip::tcp::endpoint endpoint;
@@ -1214,7 +1188,7 @@ asio::awaitable<void> client::async_send_ssl_data()
 
         int n;
 
-        n = co_await async_write(*sslsock, asio::buffer(request), asio::use_awaitable);
+        n = co_await asio::async_write(*sslsock, asio::buffer(request), asio::use_awaitable);
 
         timeout_total = timeid() + timeout_total;
         char data[2051];
@@ -1226,21 +1200,21 @@ asio::awaitable<void> client::async_send_ssl_data()
                 switch (p.error)
                 {
                 case 0:
-                    co_await async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    co_await asio::async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
                     break;
                 case 3:
-                    co_await async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    co_await asio::async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
                     break;
                 case 1:
                 {
                     int readnum = 0;
-                    co_await async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
+                    co_await asio::async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
                         data[0] = 0x0D;
                         data[1] = 0x0A;
-                        co_await async_write(*sslsock, asio::buffer(data, 2), asio::use_awaitable);
+                        co_await asio::async_write(*sslsock, asio::buffer(data, 2), asio::use_awaitable);
                         break;
                     }
 
@@ -1260,7 +1234,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                             data[nread] = 0x0A;
                             nread += 1;
                         }
-                        co_await async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
+                        co_await asio::async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -1276,7 +1250,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        error      = 2;
+                                        iserror      = 2;
                                         error_msg  = "time out";
                                         close_connect();
                                         break;
@@ -1285,7 +1259,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                             }
                         }
                     }
-                    if (error > 0)
+                    if (iserror > 0)
                     {
                         co_return;
                     }
@@ -1301,7 +1275,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                     {
                         data[0] = 0x0D;
                         data[1] = 0x0A;
-                        co_await async_write(*sslsock, asio::buffer(data, 2), asio::use_awaitable);
+                        co_await asio::async_write(*sslsock, asio::buffer(data, 2), asio::use_awaitable);
                         break;
                     }
 
@@ -1314,7 +1288,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                     {
                         auto nread = fread(data, 1, 2048, fp.get());
                         readnum += nread;
-                        co_await async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
+                        co_await asio::async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -1330,7 +1304,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        error      = 2;
+                                        iserror      = 2;
                                         error_msg  = "time out";
                                         close_connect();
                                         break;
@@ -1339,7 +1313,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                             }
                         }
                     }
-                    if (error > 0)
+                    if (iserror > 0)
                     {
                         co_return;
                     }
@@ -1390,7 +1364,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                         if (timeout_count > timeout_total)
                         {
                             page.code = 0;
-                            error      = 2;
+                            iserror      = 2;
                             error_msg  = "time out";
                             close_connect();
                             break;
@@ -1412,7 +1386,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         DEBUG_LOG("Exception co ssl: %s", e.what());
         error_msg  = std::string(e.what());
         page.code = 0;
-        error      = 3;
+        iserror      = 3;
     }
     co_return;
 }
@@ -1557,7 +1531,7 @@ client &client::send_ssl_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        error      = 2;
+                                        iserror      = 2;
                                         error_msg  = "time out";
                                         close_connect();
                                         break;
@@ -1566,7 +1540,7 @@ client &client::send_ssl_data()
                             }
                         }
                     }
-                    if (error > 0)
+                    if (iserror > 0)
                     {
                         return *this;
                     }
@@ -1612,7 +1586,7 @@ client &client::send_ssl_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        error      = 2;
+                                        iserror      = 2;
                                         error_msg  = "time out";
                                         close_connect();
                                         break;
@@ -1621,7 +1595,7 @@ client &client::send_ssl_data()
                             }
                         }
                     }
-                    if (error > 0)
+                    if (iserror > 0)
                     {
                         return *this;
                     }
@@ -1670,7 +1644,7 @@ client &client::send_ssl_data()
                         if (timeout_count > timeout_total)
                         {
                             page.code = 0;
-                            error      = 2;
+                            iserror      = 2;
                             error_msg  = "time out";
                             close_connect();
                             break;
@@ -1689,7 +1663,7 @@ client &client::send_ssl_data()
         DEBUG_LOG("Exception ssl: %s", e.what());
         error_msg  = e.what();
         page.code = 0;
-        error      = 3;
+        iserror      = 3;
     }
 
     return *this;
@@ -1710,7 +1684,7 @@ void client::processcode()
     if (value[0] != 'H' && value[0] != 'h')
     {
         page.code = 0;
-        error      = 1;
+        iserror      = 1;
 
         return;
     }
@@ -1738,7 +1712,7 @@ void client::processcode()
     page.code = code;
     if (code == 0)
     {
-        error = 1;
+        iserror = 1;
         return;
     }
     j++;
@@ -1813,7 +1787,7 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
                 processcode();
                 if (page.code == 0)
                 {
-                    error      = 1;
+                    iserror      = 1;
                     readoffset = i;
                     return;
                 }
@@ -2439,7 +2413,7 @@ bool client::process(const char *buffer, unsigned int buffersize)
     {
         return true;
     }
-    if (error > 0)
+    if (iserror > 0)
     {
         return true;
     }
@@ -2448,7 +2422,7 @@ bool client::process(const char *buffer, unsigned int buffersize)
         for (; readoffset < buffersize;)
         {
             readheaderline(buffer, buffersize);
-            if (error > 0)
+            if (iserror > 0)
             {
                 break;
             }
@@ -2466,7 +2440,7 @@ bool client::process(const char *buffer, unsigned int buffersize)
             }
         }
     }
-    if (headerfinish == 1 && error == 0 && readoffset < buffersize)
+    if (headerfinish == 1 && iserror == 0 && readoffset < buffersize)
     {
         // type length chunked
         if (page.istxt)
@@ -3046,10 +3020,16 @@ void client::buildcontent()
 
     if (contenttype == "multipart/form-data")
     {
-        unsigned long long tetime = time((time_t *)NULL);
-        srand(tetime);
-        unsigned long long randnum = rand() % 100000 + 100000;
-        boundary                   = "----------httpclient21198" + std::to_string(tetime) + std::to_string(randnum);
+        std::random_device rd; 
+        std::mt19937 gen(rd()); 
+        std::uniform_int_distribution<> dis(1000000, 1999999);
+        unsigned int rdnum = dis(gen);
+        unsigned long long randnum = rdnum * 1000000;
+        rdnum = dis(gen);
+        randnum = randnum + rdnum;
+        rdnum = time((time_t *)NULL);
+ 
+        boundary= "----------paozhuhttpclient" + std::to_string(randnum) + std::to_string(rdnum);
 
         header["Content-Type"] = (contenttype + "; boundary=" + boundary);
     }
@@ -3542,4 +3522,497 @@ void client::buildcontent()
         ;
     }
 }
+
+bool client::connect(std::string_view url,unsigned int time_out_num)
+{
+    requesttype = 0;
+    if (url.length() < 3)
+    {
+        iserror = true;
+        error_msg = "url to short";
+        return false;
+    }
+    exptime = time_out_num;
+    _url = url;
+    parse();
+ 
+    buildheader();
+
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            return false;
+        }
+    }
+    
+    if (scheme == "https")
+    {
+       return init_https_sock();
+    }
+    else
+    {
+       return init_http_sock();
+    }
+
+    return false;
+}
+bool client::connect()
+{
+    requesttype = 0;
+    if (_url.length() < 3)
+    {
+        iserror = true;
+        error_msg = "url to short";
+        return false;
+    }
+
+    buildheader();
+
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            return false;
+        }
+    }
+
+    if (scheme == "https")
+    {
+       return init_https_sock();
+    }
+    else
+    {
+       return init_http_sock();
+    }
+
+    return false;
+}
+asio::awaitable<bool> client::async_connect(std::string_view url,unsigned int time_out_num)
+{
+    requesttype = 0;
+    if (url.length() < 3)
+    {
+        iserror = true;
+        error_msg = "url to short";
+        co_return false;
+    }
+    exptime = time_out_num;
+    _url = url;
+    parse();
+ 
+    buildheader();
+
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+    
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            co_return false;
+        }
+    }
+
+    if (scheme == "https")
+    {
+       co_return co_await async_init_https_sock();
+    }
+    else
+    {
+       co_return co_await async_init_http_sock();
+    }    
+    co_return false;
+}
+asio::awaitable<bool> client::async_connect()
+{
+    requesttype = 0;
+    if (_url.length() < 3)
+    {
+        iserror = true;
+        error_msg = "url to short";
+        co_return false;
+    }
+
+    buildheader();
+
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            co_return false;
+        }
+    }
+
+    if (scheme == "https")
+    {
+       co_return co_await async_init_https_sock();
+    }
+    else
+    {
+       co_return co_await async_init_http_sock();
+    }
+
+    co_return false;
+}
+
+asio::awaitable<unsigned int> client::async_read(unsigned char *buffer_data, unsigned int buffersize)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        co_return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        co_return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = co_await sslsock->async_read_some(asio::buffer(buffer_data, buffersize), asio::use_awaitable);
+        }
+        else
+        {
+            n = co_await sock->async_read_some(asio::buffer(buffer_data, buffersize), asio::use_awaitable);
+        }
+        socket_read_lock.clear();
+        co_return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> client::async_read(std::string &buffer_data)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        co_return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        co_return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = co_await sslsock->async_read_some(asio::buffer(buffer_data), asio::use_awaitable);
+        }
+        else
+        {
+            n = co_await sock->async_read_some(asio::buffer(buffer_data), asio::use_awaitable);
+        }
+        socket_read_lock.clear();
+        co_return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> client::async_write(unsigned char *data, unsigned int buffersize)
+{
+
+    if(iserror)
+    {
+        co_return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = co_await asio::async_write(*sslsock, asio::buffer(data, buffersize), asio::use_awaitable);
+        }
+        else
+        {
+            n = co_await asio::async_write(*sock, asio::buffer(data, buffersize), asio::use_awaitable);
+        }
+        co_return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> client::async_write(std::string_view value)
+{
+    if(iserror)
+    {
+        co_return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = co_await asio::async_write(*sslsock, asio::buffer(value), asio::use_awaitable);
+        }
+        else
+        {
+            n = co_await asio::async_write(*sock, asio::buffer(value), asio::use_awaitable);
+        }
+        co_return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    co_return 0;
+}
+
+ 
+
+unsigned int client::write(unsigned char *data, unsigned int buffersize)
+{
+    if(iserror)
+    {
+        return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = asio::write(*sslsock, asio::buffer(data, buffersize));
+        }
+        else
+        {
+            n = asio::write(*sock, asio::buffer(data, buffersize));
+        }
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    return 0;
+}
+
+unsigned int client::write(std::string_view value)
+{
+    if(iserror)
+    {
+        return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = asio::write(*sslsock, asio::buffer(value));
+        }
+        else
+        {
+            n = asio::write(*sock, asio::buffer(value));
+        }
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    return 0;
+}
+
+unsigned int client::read(unsigned char *buffer_data, unsigned int buffersize)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = sslsock->read_some(asio::buffer(buffer_data, buffersize));
+        }
+        else
+        {
+            n = sock->read_some(asio::buffer(buffer_data, buffersize));
+        }
+        socket_read_lock.clear();
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    return 0;
+}
+
+unsigned int client::read(std::string &buffer_data)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = sslsock->read_some(asio::buffer(buffer_data));
+        }
+        else
+        {
+            n = sock->read_some(asio::buffer(buffer_data));
+        }
+        socket_read_lock.clear();
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    return 0;
+}
+
+
 }// namespace http

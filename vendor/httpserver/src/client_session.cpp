@@ -14,7 +14,7 @@
 
 namespace http
 {
-client_session::client_session()
+client_session::client_session(asio::io_context &io_context):strand_(asio::make_strand(io_context))
 {
     auto &cc    = get_client_data_cache();
     _cache_data = cc.get_data_ptr();
@@ -53,8 +53,6 @@ client_session::~client_session()
         cc.back_cache_ptr(std::move(http2_ring_queue));
         http2_ring_queue = nullptr;
     }
-
-
 }
 asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::string &log_item)
 {
@@ -105,17 +103,91 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
     }
     catch (const std::exception &e)
     {
-        log_item.append(e.what());
-        DEBUG_LOG("read_some exception %s", e.what());
+        
+        for(readnum=0; readnum<128; readnum++)
+        {
+            if(e.what()[readnum]==0x00)
+            {
+                break;
+            }
+            _cache_data[readnum]=e.what()[readnum];
+        }
         isclose = true;
         iserror = true;
+        cancel();
         co_return true;
     }
     catch (...)
     {
-        log_item.append("---read_some---");
         isclose = true;
         iserror = true;
+        cancel();
+        co_return true;
+    }
+    co_return false;
+}
+
+asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
+{
+    auto self = shared_from_this(); 
+    memset(_cache_data, 0x00, 4096);
+    try
+    {
+        if(isclose || iserror)
+        {
+            co_return true; 
+        }
+        if (isssl)
+        {
+            readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+        }
+        else
+        {
+            readnum = co_await socket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+        }
+
+        if (ec)
+        {
+            DEBUG_LOG("read_some exception %s", ec.message().c_str());
+            for(readnum=0; readnum<128; readnum++)
+            {
+                if(ec.message()[readnum]==0x00)
+                {
+                    break;
+                }
+                _cache_data[readnum]=ec.message()[readnum];
+            }
+            isclose = true;
+            iserror = true;
+            co_return true;
+        }
+        if(isclose || iserror)
+        {
+            co_return true; 
+        }
+        co_return false;
+    }
+    catch (const std::exception &e)
+    {
+        
+        for(readnum=0; readnum<128; readnum++)
+        {
+            if(e.what()[readnum]==0x00)
+            {
+                break;
+            }
+            _cache_data[readnum]=e.what()[readnum];
+        }
+        isclose = true;
+        iserror = true;
+        cancel();
+        co_return true;
+    }
+    catch (...)
+    {
+        isclose = true;
+        iserror = true;
+        cancel();
         co_return true;
     }
     co_return false;
@@ -161,6 +233,7 @@ bool client_session::send_data(const std::string &msg)
     {
         isclose = true;
         iserror = true;
+        cancel();
         return false;
     }
 }
@@ -214,7 +287,6 @@ bool client_session::send_switch101()
                 isclose = true;
                 return false;
             }
-            
         }
         else
         {
@@ -227,7 +299,6 @@ bool client_session::send_switch101()
                 isclose = true;
                 return false;
             }
-            
         }
         return true;
     }
@@ -235,8 +306,54 @@ bool client_session::send_switch101()
     {
         isclose = true;
         iserror = true;
+        cancel();
         return false;
     }
+}
+
+asio::awaitable<bool> client_session::co_send_switch101()
+{
+    if (isclose)
+    {
+        co_return false;
+    }
+    try
+    {
+        std::string tempswitch = "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: h2c\r\n\r\n";
+
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+                co_await asio::async_write(*sslsocket, asio::buffer(tempswitch), asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+                co_return false;
+            }
+        }
+        else
+        {
+            if (socket->is_open())
+            {
+                co_await asio::async_write(*socket, asio::buffer(tempswitch), asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+                co_return false;
+            }
+        }
+        co_return true;
+    }
+    catch (...)
+    {
+        isclose = true;
+        iserror = true;
+        cancel();
+    }
+    co_return false;
 }
 
 asio::awaitable<void> client_session::co_send_setting()
@@ -461,6 +578,7 @@ bool client_session::send_data(const unsigned char *buffer, unsigned int buffers
     {
         isclose = true;
         iserror = true;
+        cancel();
         return false;
     }
 }
@@ -479,7 +597,7 @@ bool client_session::send_data(const unsigned char *buffer, unsigned int buffers
 //     lk.unlock();
 // }
 
-void client_session::waituphttp2(asio::io_context &ioc)
+void client_session::waituphttp2()
 {
     try
     {
@@ -491,7 +609,7 @@ void client_session::waituphttp2(asio::io_context &ioc)
             auto handle = std::move(user_code_handler_call.front());
             user_code_handler_call.pop_front();
             lk.unlock();
-            asio::dispatch(ioc,
+            asio::dispatch(strand_,
                            [handler =std::move(handle) ]() mutable -> void
                            {
                                /////////////
@@ -513,7 +631,7 @@ void client_session::waituphttp2(asio::io_context &ioc)
 }
 asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer, unsigned int buffersize)
 {
-    auto self = shared_from_this(); 
+    auto self = shared_from_this();
     if (isclose)
     {
         co_return;
@@ -569,6 +687,7 @@ asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
         {
             co_return;
         }
+
         if (isssl)
         {
             if (sslsocket->lowest_layer().is_open())
@@ -596,12 +715,27 @@ asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
     {
         isclose = true;
         iserror = true;
+        cancel();
     }
     co_return;
 }
+
+void client_session::cancel()
+{
+    if (isssl)
+    {
+        sslsocket->lowest_layer().cancel(ec);
+    }
+    else
+    {
+        socket->cancel(ec);
+    }
+    isclose = true;
+}
+
 void client_session::half_stop()
 {
-    half_close = true;
+    //half_close = true;
     if (iserror)
     {
         isclose = true;
@@ -610,7 +744,7 @@ void client_session::half_stop()
 asio::awaitable<std::string> client_session::async_stop()
 {
     DEBUG_LOG("socket async_stop");
-    std::string temp_msg = "async_stop ";
+    std::string temp_msg;
     isclose = true;
     try
     {
@@ -623,6 +757,32 @@ asio::awaitable<std::string> client_session::async_stop()
                 if(ec_a)
                 {
                     temp_msg =temp_msg + ec_a.message();
+                }
+                
+                if(!half_close)
+                {
+                    half_close = true;
+                    temp_msg = temp_msg + " SSL_Shutdown next time";
+                    temp_msg.append("\n");
+                    co_return temp_msg;
+                }
+                
+
+                asio::error_code shutdown_ec;
+                try {
+                    co_await sslsocket->async_shutdown(asio::redirect_error(asio::use_awaitable, shutdown_ec));
+                } catch (...) {
+
+                }
+
+                if (shutdown_ec)
+                {
+                    // 记录 shutdown 的错误，但不中断流程
+                    temp_msg = temp_msg + " SSL_Shutdown_Error: " + shutdown_ec.message();
+                }
+                else
+                {
+                    temp_msg = temp_msg + " SSL_Shutdown end time";
                 }
                 sslsocket->lowest_layer().close(ec_a);
                 if(ec_a)
@@ -769,6 +929,7 @@ std::string client_session::getremoteip()
     client_ip = ep.address().to_string();
     return client_ip;
 }
+
 unsigned int client_session::getremoteport()
 {
     if(client_port > 1)
@@ -820,6 +981,7 @@ unsigned int client_session::getremoteport()
     client_port = ep.port();
     return client_port;
 }
+
 std::string client_session::getlocalip()
 {
     if (iserror)
@@ -866,6 +1028,7 @@ std::string client_session::getlocalip()
 
     return ep.address().to_string();
 }
+
 unsigned int client_session::getlocalport()
 {
     unsigned int server_port = 0;

@@ -72,7 +72,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
             }
             else
             {
-                a->data[hkey] = vvalue;
+                a->set_header(hkey, vvalue);
             }
         }
 

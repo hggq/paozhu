@@ -28,6 +28,7 @@ namespace http
 struct headstate_t
 {
     bool gzip              = false;
+    bool zstd              = false;
     bool deflate           = false;
     bool br                = false;
     bool avif              = false;
@@ -52,6 +53,9 @@ struct websocket_t
     bool perframedeflate   = false;
     bool deflateframe      = false;
     bool isopen            = false;
+    bool gzip              = false;
+    bool zstd              = false;
+    bool br                = false;
     unsigned char version;
     std::string key;
     std::string ext;

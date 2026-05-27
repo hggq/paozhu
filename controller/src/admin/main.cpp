@@ -8,7 +8,7 @@
 #include <filesystem>
 namespace http
 {
-
+namespace fs = std::filesystem;
 //@urlpath(null,admin/login)
 std::string admin_login(std::shared_ptr<httppeer> peer)
 {

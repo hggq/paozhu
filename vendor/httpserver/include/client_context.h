@@ -22,6 +22,10 @@
 #include <asio/ssl.hpp>
 #include "httpclient.h"
 #include "fastcgi.h"
+#include "http_rpcclient.h"
+#include "http_socket_client.h"
+#include "http_websocket_client.h"
+
 namespace http
 {
 
@@ -44,7 +48,7 @@ class client_context
   public:
     unsigned int thread_size      = 3;
     unsigned int thread_task_size = 1;
-    asio::io_context *ioc = nullptr;;
+    asio::io_context *ioc = nullptr;
 
     // std::unique_ptr<asio::io_context::work> worker;
     std::vector<std::thread> threads;
@@ -60,6 +64,10 @@ class client_context
     std::mutex timeout_mutex;
     std::condition_variable timeout_condition;
     std::list<std::weak_ptr<client>> timeout_lists;
+    std::list<std::weak_ptr<rpc_client>> rpc_timeout_lists;
+    std::list<std::weak_ptr<socket_client>> socket_timeout_lists;
+    std::list<std::weak_ptr<websocket_client>> websocket_timeout_lists;
+    
 };
 client_context &get_client_context_obj(asio::io_context *io_context=nullptr);
 

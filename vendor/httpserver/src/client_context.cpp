@@ -32,6 +32,9 @@
 #include "httpclient.h"
 #include "fastcgi.h"
 #include "terminal_color.h"
+#include "http_rpcclient.h"
+#include "http_socket_client.h"
+#include "http_websocket_client.h"
 
 namespace http
 {
@@ -75,15 +78,17 @@ void client_context::time_out_loop()
     auto m_EndFrame           = m_BeginFrame + invFpsLimit;
     auto prev_time_in_seconds = time_point_cast<seconds>(m_BeginFrame);
     // unsigned frame_count_per_second = 0;
+    unsigned int fps=0;
     for (;;)
     {
-        if (this->timeout_lists.empty())
+        if (this->timeout_lists.empty() && this->rpc_timeout_lists.empty() && this->socket_timeout_lists.empty() && this->websocket_timeout_lists.empty())
         {
+            fps = 0;
             std::unique_lock<std::mutex> lock(this->timeout_mutex);
             this->timeout_condition.wait(
                 lock,
                 [this]
-                { return this->isstop || !this->timeout_lists.empty(); });
+                { return this->isstop || !this->timeout_lists.empty() || !this->rpc_timeout_lists.empty() || !this->socket_timeout_lists.empty() || !this->websocket_timeout_lists.empty(); });
         }
 
         auto time_in_seconds = time_point_cast<seconds>(system_clock::now());
@@ -103,6 +108,45 @@ void client_context::time_out_loop()
                     if (peer)
                     {
                         DEBUG_LOG("time out:%d > %d", peer->get_timeout(), nowtimeid);
+
+
+                        if(peer->iserror > 0 || peer->iswait_exit)
+                        {
+                            peer->close_connect();
+                            timeout_lists.erase(iter++);
+                            continue;
+                        }
+
+                        if(peer->dur_time_loop_fun!=nullptr || peer->async_dur_time_loop_fun !=nullptr)
+                        {
+                            if(peer->durtime > 0 )
+                            {
+                                if( (fps % peer->durtime) == 0 )
+                                {
+                                    if(peer->async_dur_time_loop_fun !=nullptr)
+                                    {
+                                        co_spawn(peer->strand_, [peer]() mutable
+                                        { return peer->async_dur_time_loop_fun(peer->shared_from_this()); }, asio::detached);
+                                        ++iter;
+                                        continue;
+                                    }
+                                    
+                                    if(peer->dur_time_loop_fun != nullptr)
+                                    {
+                                        peer->dur_time_loop_fun(peer->shared_from_this());
+                                        ++iter;
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    ++iter;
+                                    continue;
+                                }
+                            }
+
+                        }
+
                         if (peer->get_timeout() < nowtimeid)
                         {
                             if(peer->iswait_exit)
@@ -134,11 +178,245 @@ void client_context::time_out_loop()
                     timeout_lists.erase(iter++);
                 }
             }
+
+            //rpc    
+            for (auto iter = rpc_timeout_lists.begin(); iter != rpc_timeout_lists.end();)
+            {
+                std::shared_ptr<rpc_client> peer = iter->lock();
+                try
+                {
+                    if (peer)
+                    {
+                        DEBUG_LOG("time out:%d > %d", peer->get_timeout(), nowtimeid);
+
+                        if(peer->iserror || peer->iswait_exit)
+                        {
+                            peer->close_connect();
+                            rpc_timeout_lists.erase(iter++);
+                            continue;
+                        }
+
+                        if(peer->dur_time_loop_fun!=nullptr || peer->async_dur_time_loop_fun !=nullptr)
+                        {
+                            if(peer->durtime > 0)
+                            {
+                                if((fps % peer->durtime) == 0 )
+                                {
+                                    if(peer->async_dur_time_loop_fun !=nullptr)
+                                    {
+                                        co_spawn(peer->strand_, [peer]() mutable
+                                        { return peer->async_dur_time_loop_fun(peer->shared_from_this()); }, asio::detached);
+                                        ++iter;
+                                        continue;
+                                    }
+                                    
+                                    if(peer->dur_time_loop_fun != nullptr)
+                                    {
+                                        peer->dur_time_loop_fun(peer->shared_from_this());
+                                        ++iter;
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    ++iter;
+                                    continue;
+                                }
+                            }
+
+                        }
+
+                        if (peer->get_timeout() < nowtimeid)
+                        {
+                            if(peer->iswait_exit)
+                            {
+                                DEBUG_LOG("time out erase %d",peer->get_timeout());
+                                peer->close_connect();
+                                rpc_timeout_lists.erase(iter++);
+                            }
+                            else 
+                            {
+                                peer->iswait_exit = true;
+                                ++iter;
+                            }                            
+                        }
+                        else
+                        {
+                            ++iter;
+                        }
+                    }
+                    else
+                    {
+                        DEBUG_LOG(" peer empty");
+                        rpc_timeout_lists.erase(iter++);
+                    }
+                }
+                catch (...)
+                {
+                    DEBUG_LOG("catch");
+                    rpc_timeout_lists.erase(iter++);
+                }
+            }
+            //socket     
+            for (auto iter = socket_timeout_lists.begin(); iter != socket_timeout_lists.end();)
+            {
+                std::shared_ptr<socket_client> peer = iter->lock();
+                try
+                {
+                    if (peer)
+                    {
+                        DEBUG_LOG("time out:%d > %d", peer->get_timeout(), nowtimeid);
+                        if(peer->iserror || peer->iswait_exit)
+                        {
+                            peer->close_connect();
+                            socket_timeout_lists.erase(iter++);
+                            continue;
+                        }
+
+                        if(peer->dur_time_loop_fun!=nullptr || peer->async_dur_time_loop_fun !=nullptr)
+                        {
+                            if(peer->durtime > 0)
+                            {
+                                if((fps % peer->durtime) == 0 )
+                                {
+                                    if(peer->async_dur_time_loop_fun !=nullptr)
+                                    {
+                                        co_spawn(peer->strand_, [peer]() mutable
+                                        { return peer->async_dur_time_loop_fun(peer->shared_from_this()); }, asio::detached);
+                                        ++iter;
+                                        continue;
+                                    }
+                                    
+                                    if(peer->dur_time_loop_fun != nullptr)
+                                    {
+                                        peer->dur_time_loop_fun(peer->shared_from_this());
+                                        ++iter;
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    ++iter;
+                                    continue;
+                                }
+                            }
+                        }
+
+                        if (peer->get_timeout() < nowtimeid)
+                        {
+                            if(peer->iswait_exit)
+                            {
+                                DEBUG_LOG("time out erase %d",peer->get_timeout());
+                                peer->close_connect();
+                                socket_timeout_lists.erase(iter++);
+                            }
+                            else 
+                            {
+                                peer->iswait_exit = true;
+                                ++iter;
+                            }                            
+                        }
+                        else
+                        {
+                            ++iter;
+                        }
+                    }
+                    else
+                    {
+                        DEBUG_LOG(" peer empty");
+                        socket_timeout_lists.erase(iter++);
+                    }
+                }
+                catch (...)
+                {
+                    DEBUG_LOG("catch");
+                    socket_timeout_lists.erase(iter++);
+                }
+            }
+            
+            //websocket     
+            for (auto iter = websocket_timeout_lists.begin(); iter != websocket_timeout_lists.end();)
+            {
+                std::shared_ptr<websocket_client> peer = iter->lock();
+                try
+                {
+                    if (peer)
+                    {
+                        DEBUG_LOG("time out:%d > %d", peer->get_timeout(), nowtimeid);
+                        if(peer->iserror || peer->iswait_exit)
+                        {
+                            peer->close_connect();
+                            websocket_timeout_lists.erase(iter++);
+                            continue;
+                        }
+
+                        if(peer->dur_time_loop_fun!=nullptr || peer->async_dur_time_loop_fun !=nullptr)
+                        {
+                            if(peer->durtime > 0)
+                            {
+                                if((fps % peer->durtime) == 0 )
+                                {
+                                    if(peer->async_dur_time_loop_fun !=nullptr)
+                                    {
+                                        co_spawn(peer->strand_, [peer]() mutable
+                                        { return peer->async_dur_time_loop_fun(peer->shared_from_this()); }, asio::detached);
+                                        ++iter;
+                                        continue;
+                                    }
+                                    
+                                    if(peer->dur_time_loop_fun != nullptr)
+                                    {
+                                        peer->dur_time_loop_fun(peer->shared_from_this());
+                                        ++iter;
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    ++iter;
+                                    continue;
+                                }
+                            }
+                        }
+                        
+                        if (peer->get_timeout() < nowtimeid)
+                        {
+                            if(peer->iswait_exit)
+                            {
+                                DEBUG_LOG("time out erase %d",peer->get_timeout());
+                                peer->close_connect();
+                                websocket_timeout_lists.erase(iter++);
+                            }
+                            else 
+                            {
+                                peer->iswait_exit = true;
+                                ++iter;
+                            }                            
+                        }
+                        else
+                        {
+                            ++iter;
+                        }
+                    }
+                    else
+                    {
+                        DEBUG_LOG(" peer empty");
+                        websocket_timeout_lists.erase(iter++);
+                    }
+                }
+                catch (...)
+                {
+                    DEBUG_LOG("catch");
+                    websocket_timeout_lists.erase(iter++);
+                }
+            }
+
         }
 
         std::this_thread::sleep_until(m_EndFrame);
         m_BeginFrame = m_EndFrame;
         m_EndFrame   = m_BeginFrame + invFpsLimit;
+        fps++;
         if (isstop)
         {
             break;

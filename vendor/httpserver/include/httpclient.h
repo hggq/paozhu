@@ -13,6 +13,7 @@
 #include <functional>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
+#include <asio/strand.hpp>
 #include "datetime.h"
 #include "cookie.h"
 #include "request.h"
@@ -33,11 +34,12 @@ class client : public std::enable_shared_from_this<client>
 {
 
   public:
-    client() : rawfile(nullptr, std::fclose) {};
+    client();
     ~client();
-    client(std::string_view url) : _url(url), rawfile(nullptr, std::fclose) {};
+    client(std::string_view url);
     client &get(std::string_view url, http::obj_val parmter);
     client &get(std::string_view url);
+    client &get(std::string_view url,unsigned int time_out_num);
     client &post(std::string_view url, http::obj_val parmter);
     client &post(std::string_view url);
     client &get_json(std::string_view url, http::obj_val parmter);
@@ -134,6 +136,21 @@ class client : public std::enable_shared_from_this<client>
     std::string &get_cookie(const std::string &cookie_key);
     http::obj_val json();
 
+    bool connect(std::string_view url,unsigned int time_out_num=0);
+    bool connect();
+    asio::awaitable<bool> async_connect(std::string_view url,unsigned int time_out_num=0);
+    asio::awaitable<bool> async_connect();
+
+    asio::awaitable<unsigned int> async_write(unsigned char *data, unsigned int buffersize);
+    asio::awaitable<unsigned int> async_write(std::string_view value);
+    asio::awaitable<unsigned int> async_read(unsigned char *data,unsigned int buffersize);
+    asio::awaitable<unsigned int> async_read(std::string &data);
+
+    unsigned int write(unsigned char *data, unsigned int buffersize);
+    unsigned int write(std::string_view value);
+    unsigned int read(unsigned char *data,unsigned int buffersize);
+    unsigned int read(std::string &data);
+
   public:
     http::obj_val header;
     std::map<std::string, std::string> cookie;
@@ -161,11 +178,14 @@ class client : public std::enable_shared_from_this<client>
     unsigned int exptime         = 0;
     unsigned int linktype        = 0;
     unsigned int serial_number   = 0;
+    unsigned int durtime         = 0;
     unsigned short timeout_total = 0;
     unsigned short timeout_count = 0;
     unsigned char requesttype    = 0;
     bool isssl                   = false;
+    bool ischunked               = false;
     std::atomic_bool iswait_exit = false;
+    std::atomic_flag socket_read_lock = ATOMIC_FLAG_INIT;
     struct page_t
     {
         long long length  = 0;
@@ -188,11 +208,16 @@ class client : public std::enable_shared_from_this<client>
     std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsock = {nullptr};
     std::shared_ptr<asio::ssl::context> ssl_context                   = {nullptr};
 
-    std::function<void(const std::string &, std::shared_ptr<http::client>)> onload                   = nullptr;
+    std::function<void(const std::string &, std::shared_ptr<client>)> onload                   = nullptr;
     std::function<bool(const char *buffer, unsigned int readoffset, unsigned int httpcode)> onheader = nullptr;
     std::function<void(std::string &header_str)> onrequest                                           = nullptr;
     std::function<void(unsigned long long, unsigned long long)> upload_process                       = nullptr;
     std::function<void(unsigned long long, unsigned long long)> download_process                     = nullptr;
+
+    asio::strand<asio::io_context::executor_type> strand_;
+    std::function<void(std::shared_ptr<client>)> dur_time_loop_fun = nullptr;
+    std::function<asio::awaitable<void>(std::shared_ptr<client>)> async_dur_time_loop_fun = nullptr;
+
     std::string use_certificate_file;
     std::string use_private_key_file;
     std::string load_verify_file;
@@ -200,7 +225,7 @@ class client : public std::enable_shared_from_this<client>
     std::list<upload_file> files;
     std::list<upload_file> senddata;
 
-  private:
+  public:
     std::string contenttype;
     std::string contentline;
 
@@ -210,7 +235,7 @@ class client : public std::enable_shared_from_this<client>
     unsigned char headerfinish = 0;
     unsigned char machnum      = 0;
     unsigned char islineend    = 0;
-    unsigned char error        = 0;
+    unsigned char iserror      = 0;
     unsigned int readoffset    = 0;
     //FILE *rawfile = NULL;
     std::unique_ptr<std::FILE, int (*)(FILE *)> rawfile;

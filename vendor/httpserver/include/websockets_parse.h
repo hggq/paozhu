@@ -8,6 +8,9 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <string_view>
+#include "http_header.h"
+
 namespace http
 {
 enum FRAMETYPE
@@ -63,22 +66,27 @@ class websocketparse
 
   public:
     bool isfinish = false;
-    std::string indata;
     bool islock       = false;
     bool isopen       = false;// 是否还活着
     bool isfile       = false;
     bool ispack       = false;
+    bool iserror      = false;
+
     unsigned char fin = 0x0B;
     unsigned char opcode;
+    unsigned char mask;
+    unsigned char mask_key[4];
+
     unsigned int pos                 = 0;
     unsigned long long contentlength = 0;
     unsigned long long readlength    = 0;
     unsigned long long contentoffset = 0;
+
     // FILE *rawfile; // 临时文件
     std::unique_ptr<std::FILE, int (*)(std::FILE *)> rawfile;
     std::string filename;
-    unsigned char mask;
-    unsigned char mask_key[4];
+    std::string indata;
+    std::unique_ptr<websocket_t> websocket =nullptr;
 };
 }// namespace http
 #endif// PROJECT_WEBSOCKET_H

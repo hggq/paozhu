@@ -2132,14 +2132,14 @@ std::string httppeer::pop_flow()
     flow_method->pop_back();
     return tempmethod;
 }
-void httppeer::clsoesend(asio::io_context &ioc)
+void httppeer::clsoesend()
 {
     try
     {
         std::unique_lock<std::mutex> lock(pop_user_handleer_mutex);
         if (user_code_handler_call.size() > 0)
         {
-            asio::dispatch(ioc,
+            asio::dispatch(socket_session->strand_,
                            [handler = std::move(user_code_handler_call.front())]() mutable -> void
                            {
                                /////////////

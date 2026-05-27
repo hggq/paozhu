@@ -3,7 +3,6 @@
 #include <string_view>
 
 #include "orm.h"
-#include "httppeer.h"
 #include "websockets.h"
 
 namespace http
@@ -12,55 +11,98 @@ namespace http
 class loopwebsockets : public websockets_api
 {
   public:
-    unsigned int outcount = 0;
-    loopwebsockets(std::weak_ptr<http::httppeer> p) : websockets_api(4,0, 0, p) {}
+
+    loopwebsockets(unsigned int m, unsigned int g) : websockets_api(8, m, g, 0) {}
     ~loopwebsockets() { std::cout << "~loopwebsockets" << std::endl; }
 
   public:
-    void onopen() { std::cout << "onopen" << std::endl; }
-    void onclose() { std::cout << "onclose" << std::endl; }
-    void onpong() {}
-    void pushloop()
+    void onopen() override
+    { 
+        isco=true;
+        loop_num = 8; 
+        std::cout << "onopen" << std::endl; 
+    }
+    void onclose() override
     {
-        std::shared_ptr<http::httppeer> peer = weakpeer.lock();
-        if (peer)
+        isclose = true;
+        std::cout << "onclose" << std::endl; 
+    }
+    void onpong() override {}
+    void run_loop() override
+    {
+        if (session_sock)
         {
             std::cout << "timeloop:" << std::endl;
-            std::string aa = "looptests";
+            std::string aa = "test run_loop";
             std::string outhello;
-            peer->ws->makeWSText(aa, outhello);
-            peer->send(outhello);
+            ws_parse->makeWSText(aa, outhello);
+            session_sock->send_data(outhello);
 
             //   peer->send(aa);
-            if (outcount == 4)
+            if (loop_num == 4)
             {
-                timeloop_num = 0;
-                outcount     = 0;
+                loop_num = 0;
                 return;
             }
-            outcount++;
+            loop_num--;
         }
         else
         {
-            std::cout << "peer is die!" << std::endl;
+            isclose = true;
+            loop_num = 0;
+            std::cout << "session_sock is die!" << std::endl;
         }
     }
-    void onfiles(std::string_view filename) { std::cout << "--------onfiles:--------" << filename << std::endl; }
-    void onmessage(std::string_view data)
+    asio::awaitable<void> async_run_loop() override
     {
-        std::cout << "onmessage:" << data << std::endl;
-        std::shared_ptr<http::httppeer> peer = weak_peer.lock();
-        if (peer)
+        if (session_sock)
+        {
+            std::cout << "async timeloop:" << std::endl;
+            std::string aa = "test async_run_loop";
+            std::string outhello;
+            ws_parse->makeWSText(aa, outhello);
+            session_sock->send_data(outhello);
+
+            //   peer->send(aa);
+            if (loop_num == 4)
+            {
+                loop_num = 0;
+                co_return;
+            }
+            loop_num--;
+        }
+        else
+        {
+            isclose = true;
+            loop_num = 0;
+            std::cout << "session_sock is die!" << std::endl;
+        }
+        co_return;
+    }
+    void onfiles(std::string_view filename) override { std::cout << "--------onfiles:--------" << filename << std::endl; }
+    asio::awaitable<void> async_onfiles(std::string_view filename) override
+    { 
+        std::cout << "--------onfiles:--------" << filename << std::endl;
+        co_return; 
+    }
+
+    asio::awaitable<void> async_onmessage(std::string_view data) override 
+    {
+        std::string outhello;
+        ws_parse->makeWSText(data, outhello);
+        co_await session_sock->co_send_writer(outhello);
+        co_return;
+    }
+    void onmessage(std::string_view data) override
+    {
+        if (session_sock)
         {
             std::string outhello;
-            peer->ws->makeWSText(data, outhello);
-            peer->send(outhello);
+            ws_parse->makeWSText(data, outhello);
+            session_sock->send_data(outhello);
         }
     }
-    static std::shared_ptr<loopwebsockets> create(std::weak_ptr<http::httppeer> p)
-    {
-        return std::make_shared<loopwebsockets>(p);
-    }
+ 
 };
 
 }// namespace http

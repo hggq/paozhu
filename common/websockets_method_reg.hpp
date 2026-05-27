@@ -2,18 +2,16 @@
 #include <map>
 #include "httppeer.h"
 #include "websockets.h"
-#include "mywebsockets.hpp"
+#include "loopwebsockets.hpp"
 #include "websockets_callback.h"
 namespace http
 {
 void _initwebsocketmethodregto(WEBSOCKET_REG &methodcallback)
 {
 
-    methodcallback.emplace("wstest", [](std::weak_ptr<httppeer> p) -> std::shared_ptr<websockets_api>
-                           { return http::mywebsockets::create(p); });
-    //    methodcallback.emplace("looptest",[](std::weak_ptr<clientpeer> p)->std::shared_ptr<websockets_api>{
-    //      return http::loopwebsockets::create(p);
-    //   });
+    methodcallback.emplace("wstest", [](unsigned int m, unsigned int g) -> std::shared_ptr<websockets_api>
+                           { return std::make_shared<loopwebsockets>(m,g); });
+ 
 }
 
 }// namespace http

@@ -10,6 +10,7 @@
 
 namespace http
 {
+namespace fs = std::filesystem;    
 serverconfig &getserversysconfig()
 {
     static serverconfig instance;

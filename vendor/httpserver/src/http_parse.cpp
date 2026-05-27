@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <cstdio>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <sstream>
@@ -1349,15 +1350,21 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                     case 24:
                         if (str_casecmp(header_key, "Sec-WebSocket-Extensions"))
                         {
-
+                            if(peer->websocket == nullptr)
+                            {
+                               peer->websocket = std::make_unique<websocket_t>();
+                            }
                             getwebsocketextensions();
                         }
                         break;
                     case 21:
                         if (str_casecmp(header_key, "Sec-WebSocket-Version"))
                         {
-
-                            peer->websocket.version = (unsigned char)header_valuetoint();
+                             if(peer->websocket == nullptr)
+                            {
+                               peer->websocket = std::make_unique<websocket_t>();
+                            }
+                            peer->websocket->version = (unsigned char)header_valuetoint();
                         }
                         break;
                     case 19:
@@ -1374,8 +1381,11 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         case 'S':
                             if (str_casecmp(header_key, "Sec-WebSocket-Key"))
                             {
-
-                                peer->websocket.key = header_value;
+                                 if(peer->websocket == nullptr)
+                                {
+                                    peer->websocket = std::make_unique<websocket_t>();
+                                }
+                                peer->websocket->key = header_value;
                             }
                             break;
                         case 'i':
@@ -1649,47 +1659,47 @@ void httpparse::getwebsocketextensions()
     case 22:
         if (str_casecmp(header_value, "x-webkit-deflate-frame"))
         {
-            peer->websocket.deflateframe = true;
-            peer->websocket.deflate      = true;
+            peer->websocket->deflateframe = true;
+            peer->websocket->deflate      = true;
         }
         break;
     case 18:
 
         if (str_casecmp(header_value, "permessage-deflate"))
         {
-            peer->websocket.permessagedeflate = true;
-            peer->websocket.deflate           = true;
+            peer->websocket->permessagedeflate = true;
+            peer->websocket->deflate           = true;
         }
         break;
     case 16:
         if (str_casecmp(header_value, "perframe-deflate"))
         {
-            peer->websocket.perframedeflate = true;
-            peer->websocket.deflate         = true;
+            peer->websocket->perframedeflate = true;
+            peer->websocket->deflate         = true;
         }
         break;
     default:;
     }
-    if (peer->websocket.deflate)
+    if (peer->websocket->deflate)
     {
         return;
     }
     if (header_value.find("permessage-deflate") != std::string::npos)
     {
-        peer->websocket.permessagedeflate = true;
-        peer->websocket.deflate           = true;
+        peer->websocket->permessagedeflate = true;
+        peer->websocket->deflate           = true;
         return;
     }
     if (header_value.find("perframe-deflate") != std::string::npos)
     {
-        peer->websocket.perframedeflate = true;
-        peer->websocket.deflate         = true;
+        peer->websocket->perframedeflate = true;
+        peer->websocket->deflate         = true;
         return;
     }
     if (header_value.find("x-webkit-deflate-frame") != std::string::npos)
     {
-        peer->websocket.deflateframe = true;
-        peer->websocket.deflate      = true;
+        peer->websocket->deflateframe = true;
+        peer->websocket->deflate      = true;
         return;
     }
 }
@@ -1770,6 +1780,10 @@ void httpparse::getacceptencoding()
                     // state.gzip = true;
                     peer->state.gzip = true;
                 }
+                else if (buffer_value[0] == 'z')
+                {
+                    peer->state.zstd = true;
+                }
                 break;
             case 7:
                 if (buffer_value[0] == 'd')
@@ -1806,6 +1820,10 @@ void httpparse::getacceptencoding()
             {
                 // state.gzip = true;
                 peer->state.gzip = true;
+            }
+            else if (buffer_value[0] == 'z')
+            {
+                peer->state.zstd = true;
             }
             break;
         case 7:
@@ -3343,14 +3361,19 @@ void httpparse::clear()
     peer->isso                        = false;
     peer->compress                    = 0;
     peer->upload_length               = 0;
-    peer->websocket.deflate           = false;
-    peer->websocket.permessagedeflate = false;
-    peer->websocket.perframedeflate   = false;
-    peer->websocket.deflateframe      = false;
-    peer->websocket.isopen            = false;
-    peer->websocket.version           = 0x00;
-    peer->websocket.key.clear();
-    peer->websocket.ext.clear();
+
+    if(peer->websocket !=nullptr)
+    {
+        peer->websocket->deflate           = false;
+        peer->websocket->permessagedeflate = false;
+        peer->websocket->perframedeflate   = false;
+        peer->websocket->deflateframe      = false;
+        peer->websocket->isopen            = false;
+        peer->websocket->version           = 0x00;
+        peer->websocket->key.clear();
+        peer->websocket->ext.clear();
+    }
+
 }
 
 }// namespace http

@@ -42,6 +42,28 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
         isfile = false;
         ispack = false;
     }
+
+    switch (opcode)
+    {
+    case 0x00:
+        iserror = true;
+        return 0;
+        break;
+    case 0x01:
+    case 0x02:
+        break;
+    case 0x08: 
+    case 0x09:
+    case 0x0A:
+        isfinish = true;
+        return 0;
+        break;             
+    default:
+        iserror = true;
+        return 0;
+        break;
+    }
+
     // unsigned char mask_key[4];
     if (fixlength < 126)
     {
@@ -84,10 +106,8 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
         rawfile.reset(fopen(filename.c_str(), "wb"));
         if (rawfile)
         {
-
             if (mask == 1)
             {
-
                 for (unsigned int j = 0; j < contentoffset; j++)
                 {
                     unsigned char nn   = j % 4;
@@ -139,12 +159,9 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
 }
 void websocketparse::parsedata(unsigned char *inputdata, unsigned int buffersize)
 {
-
     contentoffset += buffersize;
-
     if (isfile && rawfile)
     {
-
         if (mask == 1)
         {
             for (unsigned int j = 0; j < buffersize; j++)

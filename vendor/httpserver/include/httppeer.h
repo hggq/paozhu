@@ -26,8 +26,6 @@
 
 #include "request.h"
 #include "client_session.h"
-#include "websockets_parse.h"
-#include "websockets.h"
 
 namespace http
 {
@@ -132,7 +130,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void clear_timeloop_task();
     unsigned int get_timeloop_count();
     void add_timeloop_count(unsigned int a = 1);
-    void clsoesend(asio::io_context &);
+    void clsoesend();
 
     bool find_host_index();
     unsigned int check_upload_limit();
@@ -183,10 +181,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     //std::atomic_uint time_limit  = 0;
     struct headstate_t state;
-    struct websocket_t websocket;
-
-    std::unique_ptr<websocketparse> ws;
-    std::shared_ptr<websockets_api> websockets;
+    std::unique_ptr<websocket_t> websocket =nullptr;
 
     http::obj_val session;
 

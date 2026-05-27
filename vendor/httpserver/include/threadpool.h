@@ -45,7 +45,7 @@
 #include <functional>
 #include <stdexcept>
 #include "httppeer.h"
-// #include "threadlocalvariable.h"
+#include "websockets.h"
 
 namespace http
 {
@@ -73,9 +73,11 @@ class ThreadPool
     void threadloop(std::shared_ptr<threadinfo_t>);
     bool addthread(size_t);
     bool addclient(std::shared_ptr<httppeer>);
+    bool addwsclient(std::shared_ptr<websockets_api>);
+    
     void http_clientrun(std::shared_ptr<httppeer>, std::shared_ptr<threadinfo_t> mythread_info);
     void timetasks_run(std::shared_ptr<httppeer>, std::shared_ptr<threadinfo_t> mythread_info);
-    void http_websocketsrun(std::shared_ptr<httppeer>, std::shared_ptr<threadinfo_t> mythread_info);
+    void http_websocketsrun(std::shared_ptr<websockets_api>, std::shared_ptr<threadinfo_t> mythread_info);
     bool fixthread();
     unsigned int getpoolthreadnum();
     std::string printthreads(bool);
@@ -98,6 +100,7 @@ class ThreadPool
     bool isclose_add         = true;
     unsigned int cpu_threads = 2;
     std::queue<std::shared_ptr<httppeer>> clienttasks;
+    std::queue<std::shared_ptr<websockets_api>> wsclienttasks;
     std::mutex queue_mutex;
     std::condition_variable condition;
 

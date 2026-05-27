@@ -184,7 +184,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
     readoffset    = readoffset + 9;
     processheader = 1;
 }
-void http2parse::clsoesend(asio::io_context &ioc)
+void http2parse::clsoesend()
 {
     for (auto iter = http_data.begin(); iter != http_data.end();)
     {
@@ -193,7 +193,7 @@ void http2parse::clsoesend(asio::io_context &ioc)
             try
             {
                 iter->second->isclose = true;
-                iter->second->clsoesend(ioc);
+                iter->second->clsoesend();
             }
             catch (const std::exception &e)
             {
@@ -355,6 +355,7 @@ void http2parse::readheaders(const unsigned char *buffer, unsigned int buffersiz
                 block_steam_httppeer = http_data_iter->second;
 
                 block_steam_httppeer->state.gzip              = false;
+                block_steam_httppeer->state.zstd              = false;
                 block_steam_httppeer->state.deflate           = false;
                 block_steam_httppeer->state.br                = false;
                 block_steam_httppeer->state.avif              = false;
@@ -1497,6 +1498,10 @@ void http2parse::getacceptencoding(const std::string &header_name, const std::st
                 {
                     block_steam_httppeer->state.gzip = true;
                 }
+                else if (block_data_info_ptr->buffer_value[0] == 'z')
+                {
+                    block_steam_httppeer->state.zstd = true;
+                }
                 break;
             case 7:
                 if (block_data_info_ptr->buffer_value[0] == 'd')
@@ -1533,6 +1538,10 @@ void http2parse::getacceptencoding(const std::string &header_name, const std::st
             if (block_data_info_ptr->buffer_value[0] == 'g')
             {
                 block_steam_httppeer->state.gzip = true;
+            }
+            else if (block_data_info_ptr->buffer_value[0] == 'z')
+            {
+                block_steam_httppeer->state.zstd = true;
             }
             break;
         case 7:

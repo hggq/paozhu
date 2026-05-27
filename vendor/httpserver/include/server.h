@@ -75,6 +75,11 @@ class httpserver
   public:
     httpserver() {}
     asio::awaitable<void> clientpeerfun(std::shared_ptr<client_session>, bool isssl);
+    asio::awaitable<unsigned int> client_http1_loop(bool isssl, unsigned int readnum, std::shared_ptr<client_session>);
+    asio::awaitable<unsigned int> client_http2_loop(unsigned int offset,unsigned int readnum, std::shared_ptr<client_session>);
+    asio::awaitable<unsigned int> client_websocket_loop(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
+    asio::awaitable<unsigned int> client_rpc_loop(unsigned int readnum, std::shared_ptr<client_session>);
+    asio::awaitable<unsigned int> client_tcp_loop(unsigned int readnum, std::shared_ptr<client_session>);
     asio::awaitable<void>
         sslhandshake(std::shared_ptr<client_session>);
 
@@ -104,6 +109,8 @@ class httpserver
     void http2_send_queue_loop(unsigned char index_id);
 
     asio::awaitable<void> http2_ring_client_server(std::shared_ptr<client_session> peer_session);
+    asio::awaitable<void> websocket_ring_client_server(std::shared_ptr<client_session> peer_session);
+    asio::awaitable<void> socket_ring_client_server(std::shared_ptr<client_session> peer_session);
 
     void websocket_loop(int myid);
     asio::awaitable<void> clientpeerstop(std::shared_ptr<client_session> peer_session);
@@ -140,7 +147,7 @@ class httpserver
     asio::awaitable<void> http1_send_file_range(std::shared_ptr<httppeer> peer,
                                                 std::shared_ptr<client_session> peer_session);
 
-    void set_thread_priority(std::thread &thread, int priority);
+    void set_thread_priority(std::thread& thread, int priority);
     void run(const std::string &);
 
     void add_nullptrlog(const std::string &logstrb);
@@ -148,7 +155,7 @@ class httpserver
 
     void save_traffic_arrays();
     void stop();
-    asio::io_context &get_ctx();
+    asio::io_context& get_ctx();
     ~httpserver()
     {
         std::printf("~httpserver\n");
@@ -172,20 +179,22 @@ class httpserver
     std::vector<std::thread> websocketthreads;
     std::vector<std::thread> http2_send_data_threads;
     std::vector<std::thread> http2_ring_send_thread_list;
-    std::list<std::weak_ptr<httppeer>> websockettasks;
+    std::list<std::weak_ptr<websockets_api>> websockettasks;
+    std::list<std::weak_ptr<socket_api>> sockettasks;
     std::list<std::pair<std::size_t, std::shared_ptr<httppeer>>> clientlooptasks;
 
     std::string traffic_arrays;
-    std::queue<httpsocket_t> tasks;
-
-    bool isstop             = false;
-    bool istraffic          = false;
+ 
+    bool isstop                  = false;
+    bool istraffic               = false;
     bool hard_kill_old_link = false;
 
     std::atomic_uint has_save_link_count = 0;
-    std::atomic_uint total_count         = 0;
-    std::atomic_uint total_http2_count   = 0;
-    std::atomic_uint total_http1_count   = 0;
+
+    std::atomic_uint total_count = 0;
+
+    std::atomic_uint total_http2_count = 0;
+    std::atomic_uint total_http1_count = 0;
 
     std::atomic_uint rate_limit_new_wait_num       = 300;
     std::atomic_uint rate_limit_new_wait_time_down = 2;
@@ -214,6 +223,7 @@ class httpserver
     // std::list<struct http2sendblock_t> http2send_tasks;
 
     std::mutex websocket_task_mutex;
+    std::mutex socket_task_mutex;
     std::condition_variable websocketcondition;
 
     const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32, 0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};

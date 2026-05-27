@@ -5,27 +5,46 @@
 #include <string>
 #include <string_view>
 #include <memory>
-#include "httppeer.h"
+#include "client_session.h"
+#include "websockets_parse.h"
+
 namespace http
 {
-class httppeer;
+struct websockets_api_data_t
+{
+    std::string name;
+    std::string value;
+}; 
 class websockets_api
 {
   public:
-    websockets_api(unsigned int t,unsigned int m, unsigned char s, std::weak_ptr<httppeer> p) : timeloop_num(t),myid(m), state(s),  weak_peer(p) {}
+    websockets_api(unsigned char t,unsigned int m, unsigned int g, unsigned char s) :state(s), durtime(t), myid(m), groupid(g){}
     virtual void onopen()                    = 0;
     virtual void onmessage(std::string_view) = 0;
+    virtual asio::awaitable<void> async_onmessage(std::string_view) = 0;
     virtual void onfiles(std::string_view)   = 0;
-    virtual void pushloop()                  = 0;
+    virtual asio::awaitable<void> async_onfiles(std::string_view) = 0;
+    virtual void run_loop()                  = 0;
+    virtual asio::awaitable<void> async_run_loop()  = 0;
     //  virtual void timeloop(clientpeer*) = 0;
     virtual void onclose() = 0;
     //  virtual void onping() const = 0;
     virtual void onpong() = 0;
     virtual ~websockets_api() {}
-    unsigned int timeloop_num;
-    unsigned int myid=0;
+  public:
+    bool isclose = false;
+    bool iserror = false;
+    bool isco = false;
     unsigned char state;
-    std::weak_ptr<httppeer> weak_peer;
+    unsigned int durtime=8;
+    unsigned int loop_num=1;
+    unsigned int myid=0;
+    unsigned int groupid=0;
+    unsigned int siteid=0;
+    std::string url;
+    std::vector<websockets_api_data_t> header;
+    std::shared_ptr<client_session> session_sock = nullptr;
+    std::shared_ptr<websocketparse> ws_parse = nullptr;
 };
 }// namespace http
 #endif

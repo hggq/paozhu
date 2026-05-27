@@ -9,6 +9,7 @@
 #include "httppeer.h" 
 
 #include "testhttpclient.h"
+#include "test_websocket_handle.h"
 #include "testmysqlinsert.h"
 #include "testrestfulpath.h"
 #include "testdownloadauth.h"
@@ -33,6 +34,7 @@
 #include "admin/marhome.h"
 #include "admin/main.h"
 #include "testformpost.h"
+#include "test_socket_handle.h"
 #include "teststr2int.h"
 #include "testfield_num.h"
 #include "test_weixin.h"
@@ -58,6 +60,7 @@
 #include "testsiteid.h"
 #include "testsessionid.h"
 #include "devcors.h"
+#include "test_rpc_handle.h"
  
 namespace http
 { 
@@ -641,6 +644,9 @@ namespace http
     {
         struct regmethold_co_t temp;
 		temp.pre = nullptr;
+		temp.regfun = test_websocket_client;
+		methodcallback.emplace("test_websocket_client",temp);
+		temp.pre = nullptr;
 		temp.regfun = techempowerplaintext;
 		methodcallback.emplace("plaintext",temp);
 		temp.pre = nullptr;
@@ -668,11 +674,29 @@ namespace http
 		temp.regfun = test_co_handle;
 		methodcallback.emplace("testcohandle",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_socket_client;
+		methodcallback.emplace("test_socket_client",temp);
+		temp.pre = nullptr;
 		temp.regfun = testhttpclient21_cowait_body;
 		methodcallback.emplace("testcowaitclient21",temp);
 		temp.pre = nullptr;
 		temp.regfun = testhttpclient22_cowait_body;
 		methodcallback.emplace("testcowaitclient22",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_rpcclient;
+		methodcallback.emplace("test_rpcclient",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_rpcclientssl;
+		methodcallback.emplace("test_rpcclientssl",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_rpcserver;
+		methodcallback.emplace("test_rpcserver",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_rpc_chunkc;
+		methodcallback.emplace("test_rpc_chunkc",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_rpc_chunks;
+		methodcallback.emplace("test_rpc_chunks",temp);
 
 
     }

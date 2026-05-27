@@ -58,6 +58,8 @@
 
 #include "debug_log.h"
 #include "server_localvar.h"
+#include "websockets.h"
+
 namespace http
 {
 
@@ -103,39 +105,50 @@ void ThreadPool::threadloop(std::shared_ptr<threadinfo_t> mythread_info)
             std::unique_lock<std::mutex> lock(this->queue_mutex);
             this->condition.wait(lock,
                                  [&, this]
-                                 { return this->isstop || mythread_info->stop || !this->clienttasks.empty(); });
+                                 { return this->isstop || mythread_info->stop || !this->clienttasks.empty() || !this->wsclienttasks.empty(); });
 
-            if (mythread_info->stop)
+            if (mythread_info->stop || this->isstop)
             {
                 break;
             }
 
-            if (this->isstop && this->clienttasks.empty())
-                break;
-
-            if (this->clienttasks.empty())
-                continue;
-
-            auto task = std::move(this->clienttasks.front());
-            this->clienttasks.pop();
-            lock.unlock();
-
-            mythread_info->begin = time((time_t *)NULL);
-            livethreadcount += 1;
-            mythread_info->busy = true;
-
-            if (task->linktype == 0)
+            if (this->wsclienttasks.empty())
             {
-                this->http_clientrun(std::move(task), mythread_info);
+                if (this->clienttasks.empty())
+                {
+                    continue;
+                }
+
+                auto task = std::move(this->clienttasks.front());
+                this->clienttasks.pop();
+                lock.unlock();
+
+                mythread_info->begin = time((time_t *)NULL);
+                livethreadcount += 1;
+                mythread_info->busy = true;
+
+                if (task->linktype == 0)
+                {
+                    this->http_clientrun(std::move(task), mythread_info);
+                }
+                else if (task->linktype == 7)
+                {
+                    this->timetasks_run(std::move(task), mythread_info);
+                }
             }
-            else if (task->linktype == 3)
+            else
             {
+                auto task = std::move(this->wsclienttasks.front());
+                this->wsclienttasks.pop();
+                lock.unlock();
+
+                mythread_info->begin = time((time_t *)NULL);
+                livethreadcount += 1;
+                mythread_info->busy = true;
+
                 this->http_websocketsrun(std::move(task), mythread_info);
-            }
-            else if (task->linktype == 7)
-            {
-                this->timetasks_run(std::move(task), mythread_info);
-            }
+            }     
+
             livethreadcount -= 1;
             mythread_info->busy = false;
             mythread_info->end  = time((time_t *)NULL);
@@ -279,7 +292,21 @@ bool ThreadPool::addclient(std::shared_ptr<httppeer> peer)
     condition.notify_one();
     return false;
 }
+bool ThreadPool::addwsclient(std::shared_ptr<websockets_api> peer)
+{
+    if (isclose_add)
+    {
+        return false;
+    }
+    if (!isstop)
+    {
+        std::unique_lock<std::mutex> lock(queue_mutex);
+        wsclienttasks.emplace(peer);
+    }
 
+    condition.notify_one();
+    return false;
+}
 //
 void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<threadinfo_t> mythread_info)
 {
@@ -710,13 +737,12 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
     }
 }
 //
-void ThreadPool::http_websocketsrun(std::shared_ptr<httppeer> peer, std::shared_ptr<threadinfo_t> mythread_info)
+void ThreadPool::http_websocketsrun(std::shared_ptr<websockets_api> peer, std::shared_ptr<threadinfo_t> mythread_info)
 {
     try
     {
         DEBUG_LOG("websockets pool");
         server_loaclvar &static_server_var = get_server_global_var();
-
         if (static_server_var.show_visitinfo == true)
         {
             unsigned int offsetnum = 0;
@@ -730,27 +756,18 @@ void ThreadPool::http_websocketsrun(std::shared_ptr<httppeer> peer, std::shared_
                 memcpy(mythread_info->url, peer->url.data(), offsetnum);
             }
             mythread_info->url[offsetnum] = 0x00;
-
-            {
-                unsigned int offsetnum = peer->client_ip.size();
-                if (offsetnum < 61)
-                {
-                    memcpy(mythread_info->ip, peer->client_ip.data(), offsetnum);
-                    mythread_info->ip[offsetnum] = 0x00;
-                }
-            }
         }
-
-        if (peer->ws->isfile)
+        
+        if (peer->ws_parse->isfile)
         {
-            peer->websockets->onfiles(peer->ws->filename);
+            peer->onfiles(peer->ws_parse->filename);
         }
         else
         {
-            peer->websockets->onmessage(peer->ws->indata);
+            peer->onmessage(peer->ws_parse->indata);
         }
-        peer->ws->filename.clear();
-        peer->ws->indata.clear();
+        peer->ws_parse->filename.clear();
+        peer->ws_parse->indata.clear();
     }
     catch (std::exception &e)
     {

@@ -8,7 +8,7 @@
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>
-
+#include <asio/strand.hpp>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -60,7 +60,6 @@
 
 #include "sendqueue.h"
 #include "http_header.h"
-#include "http_socket.h"
 #include "http2_frame.h"
 #include "cookie.h"
 #include "clientdatacache.h"
@@ -72,7 +71,7 @@ namespace http
 class client_session : public std::enable_shared_from_this<client_session>
 {
   public:
-    client_session();
+    client_session(asio::io_context &);
     ~client_session();
     bool send_data(const std::string &msg);
     bool send_data(const unsigned char *, unsigned int);
@@ -92,6 +91,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<void> co_send_setting();
 
     bool send_switch101();
+    asio::awaitable<bool> co_send_switch101();
 
     void send_ping();
     asio::awaitable<void> http2_send_ping();
@@ -102,6 +102,7 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     void http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code);
     void stop();
+    void cancel();
     void half_stop();
     asio::awaitable<std::string> async_stop();
     asio::awaitable<void> co_send_goway();
@@ -109,30 +110,32 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<void> co_send_writer(const std::string &msg);
     asio::awaitable<void> co_send_writer(const unsigned char *, unsigned int);
     asio::awaitable<bool> read_some(unsigned int &readnum, std::string &log_item);
-
+    asio::awaitable<bool> read_first(unsigned int &readnum);
     // void append(const std::string &item);
     // void append(const unsigned char *buffer, unsigned int buffersize);
 
-    void waituphttp2(asio::io_context &ioc);
+    void waituphttp2();
 
   public:
-    
-    
+    unsigned char *_cache_data  = nullptr;
+    std::atomic_uint time_limit = 0;
 
     bool isssl      = false;
     bool isgoway    = false;
     bool isclose    = false;
     bool iserror    = false;
     bool half_close = false;
+
     unsigned char httpv = 0;
+    std::string client_ip;
     unsigned int client_port = 0;
     unsigned int time_begin = 0;
-    unsigned char *_cache_data  = nullptr;
-    std::atomic_uint time_limit = 0;
     asio::error_code ec;
-    std::string client_ip;
+
     std::unique_ptr<asio::ip::tcp::socket> socket = nullptr;
     std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket = nullptr;
+    asio::strand<asio::io_context::executor_type> strand_;
+
     std::atomic<unsigned int> last_time_interval          = 0;
     std::atomic<unsigned long long> window_update_num     = 0;
     std::atomic<unsigned long long> old_window_update_num = 0;
