@@ -2946,6 +2946,15 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             co_return;
         }
 
+#ifndef BENCHMARK
+        if (has_save_link_count > rate_limit_new_wait_num)
+        {
+            asio::steady_timer timer(co_await asio::this_coro::executor);
+            timer.expires_after(std::chrono::seconds(rand_range(rate_limit_new_wait_time_down.load(), rate_limit_new_wait_time_up.load())));
+            co_await timer.async_wait(asio::use_awaitable);
+        }
+#endif
+
         if(readnum > 6)
         {
             client_type_num = checkhttp2(peer_session);
@@ -3863,6 +3872,7 @@ void httpserver::listeners()
 
     std::memset(time_num_count, 0, sizeof(time_num_count));
     std::memset(time_record, 0, sizeof(time_record));
+    std::string logtemp;
 
     for (;;)
     {
@@ -3879,18 +3889,14 @@ void httpserver::listeners()
                 acceptor.accept(peer_session->sslsocket->lowest_layer(), ec_error);
                 if (ec_error)
                 {
-                    peer_session->client_port = peer_session->client_ip.size();
-                    peer_session->client_ip.append("https accept ec_error ");
-                    peer_session->client_ip.append(ec_error.message());
-                    peer_session->client_ip.append(" ");
-                    peer_session->client_ip.append(std::to_string(error_count));
-                    peer_session->client_ip.append("\n");
+                    logtemp = "https accept ec_error ";
+                    logtemp.append(ec_error.message());
+                    logtemp.append(" ");
+                    logtemp.append(std::to_string(error_count));
+                    logtemp.append("\n");
                     std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(peer_session->client_ip);
+                    error_loglist.emplace_back(logtemp);
                     lock.unlock();
-
-                    peer_session->client_ip.resize(peer_session->client_port);
-                    peer_session->client_port = 0;
 
                     hard_kill_old_link = true;
                     std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -3964,9 +3970,22 @@ void httpserver::listeners()
                 //This 500 should be saved in the server.conf file
                 if (has_save_link_count > rate_limit_accept_wait_num.load())
                 {
+                    logtemp = "https rate limiting b:";
+                    logtemp.append(std::to_string(time_num_count[time_head]));
+                    logtemp.append(" e:");
+                    logtemp.append(std::to_string(time_num_count[time_tail]));
+                    logtemp.append(" has:");
+                    logtemp.append(std::to_string(has_save_link_count));
+                    logtemp.append(" rate:");
+                    logtemp.append(std::to_string(rate_limit_accept_wait_num.load()));
+                    logtemp.append(" time:");
+                    logtemp.append(std::to_string(rate_limit_accept_time.load()));
+                    logtemp.append(" ");
+                    logtemp.append(peer_session->client_ip);
+                    logtemp.append("\n");
+
                     std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(peer_session->client_ip);
-                    error_loglist.emplace_back(" https rate limiting\n");
+                    error_loglist.emplace_back(logtemp);
                     lock.unlock();
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
@@ -4048,6 +4067,7 @@ void httpserver::listener()
 
     std::memset(time_num_count, 0, sizeof(time_num_count));
     std::memset(time_record, 0, sizeof(time_record));
+    std::string logtemp;
 
     for (;;)
     {
@@ -4063,18 +4083,14 @@ void httpserver::listener()
                 acceptor.accept(*peer_session->socket, ec_error);
                 if (ec_error)
                 {
-                    peer_session->client_port = peer_session->client_ip.size();
-                    peer_session->client_ip.append("http accept ec_error ");
-                    peer_session->client_ip.append(ec_error.message());
-                    peer_session->client_ip.append(" ");
-                    peer_session->client_ip.append(std::to_string(error_count));
-                    peer_session->client_ip.append("\n");
+                    logtemp = "http accept ec_error ";
+                    logtemp.append(ec_error.message());
+                    logtemp.append(" ");
+                    logtemp.append(std::to_string(error_count));
+                    logtemp.append("\n");
                     std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(peer_session->client_ip);
+                    error_loglist.emplace_back(logtemp);
                     lock.unlock();
-
-                    peer_session->client_ip.resize(peer_session->client_port);
-                    peer_session->client_port = 0;
 
                     hard_kill_old_link = true;
                     std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -4149,9 +4165,22 @@ void httpserver::listener()
                 //This 500 should be saved in the server.conf file
                 if (has_save_link_count > rate_limit_accept_wait_num.load())
                 {
+                    logtemp = "http rate limiting b:";
+                    logtemp.append(std::to_string(time_num_count[time_head]));
+                    logtemp.append(" e:");
+                    logtemp.append(std::to_string(time_num_count[time_tail]));
+                    logtemp.append(" has:");
+                    logtemp.append(std::to_string(has_save_link_count));
+                    logtemp.append(" rate:");
+                    logtemp.append(std::to_string(rate_limit_accept_wait_num.load()));
+                    logtemp.append(" time:");
+                    logtemp.append(std::to_string(rate_limit_accept_time.load()));
+                    logtemp.append(" ");
+                    logtemp.append(peer_session->client_ip);
+                    logtemp.append("\n");
+
                     std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(peer_session->client_ip);
-                    error_loglist.emplace_back(" http rate limiting\n");
+                    error_loglist.emplace_back(logtemp);
                     lock.unlock();
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
