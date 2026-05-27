@@ -21,7 +21,7 @@ Discussing the joy of C++ web development with community developers.
 ✅ 3. Support multiple domain name ssl server  
 ✅ 4. Support http/1.1 and http/2 protocols  
 ✅ 5. Supports WebSocket server and client, with duplex sending and receiving  
-✅ 6. The framework comes with websocket push, which supports regular push to websocket client  
+✅ 6. The framework comes with WebSocket push, which supports regular push to WebSocket client  
 ✅ 7. Support httpclient get or post  
 ✅ 8. Built in ORM, currently only supports MySQL, providing coroutine and connection pooling functionality  
 ✅ 9. Framework has two thread pool,framework thread pool,user program runing thread pool  
