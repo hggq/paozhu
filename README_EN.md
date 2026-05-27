@@ -20,7 +20,7 @@ Discussing the joy of C++ web development with community developers.
 ✅ 2. Support multiple domain name websites  
 ✅ 3. Support multiple domain name ssl server  
 ✅ 4. Support http/1.1 and http/2 protocols  
-✅ 5. Support WebSocket server  
+✅ 5. Supports WebSocket server and client, with duplex sending and receiving  
 ✅ 6. The framework comes with websocket push, which supports regular push to websocket client  
 ✅ 7. Support httpclient get or post  
 ✅ 8. Built in ORM, currently only supports MySQL, providing coroutine and connection pooling functionality  
@@ -38,6 +38,9 @@ Discussing the joy of C++ web development with community developers.
 ✅20. Support full demo admin backend, visit url /admin/main  
 ✅21. Support PHP-FPM fastcgi running, which can replace Apache, allowing PHP programmers to smoothly transition to C++development mode  
 ✅22. Built-in WeChat Mini Program payment function  
+✅23. Supports Socket server and client, supports Socket SSL connection  
+✅24. Supports RPC server and client, uses HTTP registered URL functions  
+
 
 ### 2.Runtime environment
 
@@ -409,11 +412,9 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 ### 10.Roadmap
 
 * [ ] 1.Improved HTTP features  
-* [ ] 2.Use C++ parse JSX file , Server Side Rendering  
-* [ ] 3.HttpClient Improved,Support Protocol forwarding  
-* [ ] 4.WebSocket client  
-* [ ] 5.HTTP/2 client  
-* [ ] 6.PostgresSQL,SQLite ORM  
+* [ ] 2.HttpClient Improved
+* [ ] 3.HTTP/2 client  
+* [ ] 4.PostgresSQL,SQLite ORM  
 
 
 
