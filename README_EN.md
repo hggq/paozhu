@@ -210,7 +210,7 @@ Use h2load and ab testing, you must enable the cmake compilation option `-DENABL
 
 ###  8.1 Sample Hello world
 
-On `controller` directory ,testhello.cpp file
+In the `controller/src` directory of the project `testhello.cpp` file, It is recommended to place all business code entries in `controller/src`, as annotations will be automatically extracted for URL mapping.
 
 ```c++
 #include "orm.h"

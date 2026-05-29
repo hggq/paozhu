@@ -1037,9 +1037,9 @@ bool serverconfig::loadserverglobalconfig()
             break;
         }
 
-        if (rate_limit_accept_wait_num < 400)
+        if (rate_limit_accept_wait_num < 120)
         {
-            rate_limit_accept_wait_num = 400;
+            rate_limit_accept_wait_num = 120;
         }
 
         if ((rate_limit_new_wait_num + 100) >= rate_limit_accept_wait_num)

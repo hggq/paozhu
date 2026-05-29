@@ -211,7 +211,7 @@ sudo ./bin/paozhu
 
 ###  8.1代码例子 Hello world
 
-在 `controller` 目录 ,testhello.cpp 文件
+在项目 `controller/src` 目录里面 `testhello.cpp` 文件，建议所有业务代码入口放在 `controller/src`,因为自动提取注解到URL映射。
 
 ```c++
 #include "orm.h"
