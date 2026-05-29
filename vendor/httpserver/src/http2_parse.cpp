@@ -1131,6 +1131,103 @@ void http2parse::range_process([[maybe_unused]] const std::string &header_name, 
     }
 }
 
+bool http2parse::header_host_process(const std::string &header_value)
+{
+    bool ishasport = false;
+    block_steam_httppeer->host.clear();
+    unsigned char i=0;
+    for (; i < header_value.size(); i++)
+    {
+        if (header_value[i] == 0x3A)
+        {
+            ishasport = true;
+            i++;
+            break;
+        }
+        else if(header_value[i]>='0' && header_value[i]<='9')
+        {
+            block_steam_httppeer->host.push_back(header_value[i]);
+        }
+        else if(header_value[i]>='a' && header_value[i]<='z')
+        {
+            block_steam_httppeer->host.push_back(header_value[i]);
+        }
+        else if(header_value[i]>='A' && header_value[i]<='Z')
+        {
+            block_steam_httppeer->host.push_back(header_value[i]+32);
+        }      
+        else if(header_value[i]=='.' || header_value[i]=='-')
+        {
+            block_steam_httppeer->host.push_back(header_value[i]);
+        } 
+        else if(header_value[i]=='[')
+        {
+            if(block_steam_httppeer->host.size()>0)
+            {
+                error = 4140;
+                return false;
+            }
+
+            i++;
+            for (; i < header_value.size(); i++)
+            {
+                if(header_value[i]>='0' && header_value[i]<='9')
+                {
+                    block_steam_httppeer->host.push_back(header_value[i]);
+                }
+                else if(header_value[i]>='a' && header_value[i]<='f')
+                {
+                    block_steam_httppeer->host.push_back(header_value[i]);
+                }
+                else if(header_value[i]>='A' && header_value[i]<='F')
+                {
+                    block_steam_httppeer->host.push_back(header_value[i]+32);
+                }      
+                else if(header_value[i]==':')
+                {
+                    block_steam_httppeer->host.push_back(header_value[i]);
+                } 
+                else if(header_value[i]==']')
+                {
+                    i++;
+                    if(i < header_value.size() && header_value[i] == 0x3A)
+                    {
+                        ishasport = true;
+                        i++;
+                        break;
+                    }
+                    break;
+                }
+                else
+                {
+                    error = 4140;
+                    return false;
+                }
+            }
+        } 
+        else
+        {
+            error = 4140;
+            return false;
+        }         
+    }
+
+    unsigned int port_temp = 0;
+    if (ishasport)
+    {
+        for (; i < header_value.size(); i++)
+        {
+            if (header_value[i] < 0x3A && header_value[i] > 0x2F)
+            {
+                port_temp = port_temp * 10 + (header_value[i] - 0x30);
+            }
+        }
+    }
+    // state.port = port;
+    block_steam_httppeer->state.port = port_temp;
+    return true;
+}
+
 void http2parse::header_process(const std::string &header_name, const std::string &header_value, int table_num)
 {
     DEBUG_LOG("header:%s:%s|%d", header_name.c_str(), header_value.c_str(), table_num);
@@ -1145,10 +1242,20 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 error = 4140;
                 return;
             }
-            block_steam_httppeer->host                 = header_value;
-            block_steam_httppeer->header["Host"]       = header_value;
-            block_steam_httppeer->header[":authority"] = header_value;
-            block_steam_httppeer->find_host_index();
+            if(header_host_process(header_value))
+            {
+                block_steam_httppeer->header["Host"]       = header_value;
+                block_steam_httppeer->header[":authority"] = header_value;
+                block_steam_httppeer->find_host_index();
+            }
+            else
+            {
+                if(error > 0)
+                {
+                    return;
+                }
+            }
+            //block_steam_httppeer->host                 = header_value;
             break;
         case 2:
             if (str_casecmp(header_value, "OPTIONS"))
@@ -1234,7 +1341,18 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             cookie_process(header_name, header_value);
             break;
         case 38:
-            block_steam_httppeer->header["Host"] = header_value;
+            if(header_host_process(header_value))
+            {
+                block_steam_httppeer->header["Host"]       = header_value;
+                block_steam_httppeer->find_host_index();
+            }
+            else
+            {
+                if(error > 0)
+                {
+                    return;
+                }
+            }
             break;
         case 41:
             getifnonematch(header_name, header_value);
@@ -1359,10 +1477,19 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                     error = 4140;
                     return;
                 }
-                block_steam_httppeer->host                 = header_value;
-                block_steam_httppeer->header["Host"]       = header_value;
-                block_steam_httppeer->header[":authority"] = header_value;
-                block_steam_httppeer->find_host_index();
+                 if(header_host_process(header_value))
+                {
+                    block_steam_httppeer->header["Host"]       = header_value;
+                    block_steam_httppeer->header[":authority"] = header_value;
+                    block_steam_httppeer->find_host_index();
+                }
+                else
+                {
+                    if(error > 0)
+                    {
+                        return;
+                    }
+                }
             }
             else if (str_casecmp(header_name, "User-Agent"))
             {

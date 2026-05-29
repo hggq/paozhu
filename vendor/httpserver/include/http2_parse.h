@@ -103,6 +103,7 @@ class http2parse
     void headers_parse();
     void process(const unsigned char *buffer, unsigned int buffersize);
     void data_process();
+    bool header_host_process(const std::string &header_value);
     void getacceptencoding(const std::string &, const std::string &);
     void header_process(const std::string &, const std::string &, int);
     void cookie_process(const std::string &, const std::string &);

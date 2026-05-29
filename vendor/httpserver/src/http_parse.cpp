@@ -1914,16 +1914,78 @@ void httpparse::getheaderhost()
             ioffset++;
             break;
         }
-        peer->host.push_back(header_value[ioffset]);
+        else if(header_value[ioffset]>='0' && header_value[ioffset]<='9')
+        {
+            peer->host.push_back(header_value[ioffset]);
+        }
+        else if(header_value[ioffset]>='a' && header_value[ioffset]<='z')
+        {
+            peer->host.push_back(header_value[ioffset]);
+        }
+        else if(header_value[ioffset]>='A' && header_value[ioffset]<='Z')
+        {
+            peer->host.push_back(header_value[ioffset]+32);
+        }      
+        else if(header_value[ioffset]=='.' || header_value[ioffset]=='-')
+        {
+            peer->host.push_back(header_value[ioffset]);
+        } 
+        else if(header_value[ioffset]=='[')
+        {
+            if(peer->host.size()>0)
+            {
+                error = 414;
+                return;
+            }
+
+            ioffset++;
+            for (; ioffset < linesize; ioffset++)
+            {
+                if(header_value[ioffset]>='0' && header_value[ioffset]<='9')
+                {
+                    peer->host.push_back(header_value[ioffset]);
+                }
+                else if(header_value[ioffset]>='a' && header_value[ioffset]<='f')
+                {
+                    peer->host.push_back(header_value[ioffset]);
+                }
+                else if(header_value[ioffset]>='A' && header_value[ioffset]<='F')
+                {
+                    peer->host.push_back(header_value[ioffset]+32);
+                }      
+                else if(header_value[ioffset]==':')
+                {
+                    peer->host.push_back(header_value[ioffset]);
+                } 
+                else if(header_value[ioffset]==']')
+                {
+                    ioffset++;
+                    if(ioffset < linesize && header_value[ioffset] == 0x3A)
+                    {
+                        ishasport = 1;
+                        ioffset++;
+                        break;
+                    }
+                    break;
+                }
+                else
+                {
+                    error = 414;
+                    return;
+                }
+            }
+        } 
+        else
+        {
+            error = 414;
+            return;
+        }         
     }
     if (peer->host.size() > 72)
     {
         error = 414;
         return;
     }
-    std::transform(peer->host.begin(), peer->host.end(), peer->host.begin(), ::tolower);
-    // peer_session->stream[1].host=host;
-    // peer->host = host;
     peer->find_host_index();
     if (ishasport == 1)
     {
