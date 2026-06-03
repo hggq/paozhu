@@ -15,7 +15,7 @@ namespace http
         std::string name;
         std::string value;
     };
-    class socket_api
+    class socket_api : public std::enable_shared_from_this<socket_api> 
     {
     public:
         socket_api(unsigned int t, unsigned int m, unsigned int g, unsigned char s) : state(s), timeloop_num(t), myid(m), groupid(g){}
@@ -320,6 +320,7 @@ namespace http
         bool isbegin = false;
         bool isbody = false;
         bool isfinish = false;
+        bool isloopco = false;
         unsigned char state;
         unsigned char cur_state;
         unsigned int timeloop_num;

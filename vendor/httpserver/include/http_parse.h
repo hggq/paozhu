@@ -35,7 +35,6 @@
 #include "request.h"
 #include "client_session.h"
 #include "httppeer.h"
-// #include "WebSocket.h"
 
 namespace http
 {
@@ -138,6 +137,7 @@ class httpparse
     // std::vector<std::string> pathinfo;
     //std::shared_ptr<client_session> peer_session;
     std::shared_ptr<httppeer> peer;
+    std::unique_ptr<websocket_t> websocket =nullptr;
 };
 }// namespace http
 #endif

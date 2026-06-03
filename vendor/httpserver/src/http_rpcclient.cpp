@@ -10,6 +10,7 @@
  *
  */
 #include <memory> 
+#include <string>
 #include "server_localvar.h" 
 #include "http_rpcclient.h"
 #include "client_context.h"
@@ -302,12 +303,145 @@ asio::awaitable<void> rpc_client::async_send()
 
 void rpc_client::send()
 {
+    std::string send_content;
+    send_content.append("rpc");
+    send_content.push_back(0x20);
+    send_content.append(url);
+    send_content.push_back(0x0A);
+    send_content.append("HOST ");
+    
+    unsigned short value_size = host.size();
+    unsigned char a = value_size & 0xFF;
+    
+    value_size = value_size & 0xFF00;
+    unsigned char b = value_size >> 8;
+    send_content.push_back(b);
+    send_content.push_back(a);
 
+    send_content.append(host);
+    send_content.push_back(0x0A);
+
+    send_content.append("size ");
+
+    if(content.size() <=  0xFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x04);
+
+        unsigned int value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x05);
+
+        unsigned long long value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF00000000) >> 32;
+        send_content.push_back(a);
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else
+    {
+        iserror = true;
+        return;
+    }
+    send_content.push_back(0x0A);
+
+    send_content.append("type ");
+
+    if(content_type.size() ==0 )
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x09);
+        send_content.append("text/html");
+    }
+    else
+    {
+        if(content_type.size() > 0xFFFF)
+        {
+            send_content.push_back(0x00);
+            send_content.push_back(0x09);
+            send_content.append("text/html");               
+            iserror = true;
+            return;
+        }
+
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content_type.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    send_content.push_back(0x0A);
+
+    for(unsigned int i=0; i < parameter.size(); i++)
+    {
+        send_content.append(parameter[i].name);
+        send_content.push_back(0x20);
+        unsigned short value_size = parameter[i].value.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+        send_content.append(parameter[i].value);
+        send_content.push_back(0x0A);
+    }
+    send_content.push_back(0x0A);
+    send_content.append(content);
+
+    if(isssl)
+    {
+        if(port == 0)
+        {
+            port = 443;
+        }
+        ssl_send_data(send_content);
+    }
+    else
+    {
+        if(port == 0)
+        {
+            port = 80;
+        }
+        send_data(send_content);
+    }
+    return;
 } 
 
 asio::awaitable<bool> rpc_client::async_init_https_sock()
 {
-    //auto executor = co_await asio::this_coro::executor;
     ssl_context   = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
     sslsock       = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
     ssl_context->set_default_verify_paths();
@@ -417,7 +551,7 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
             }
 
             unsigned int n=0;
-            n = co_await async_write(*sslsock, asio::buffer(send_content), asio::use_awaitable);
+            n = co_await asio::async_write(*sslsock, asio::buffer(send_content), asio::use_awaitable);
             unsigned char data[2052];
             
             bool begin_data=true;
@@ -1132,23 +1266,38 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
 
 void rpc_client::run_loop()
 {
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return;
+    }
+
     auto self = shared_from_this();
     if(data == nullptr)
     {
         data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
     }
+
     for(;;)
     {
         if(iserror)
         {
+            socket_read_lock.clear();
             return;
         }
+
+        if(isclose)
+        {
+            socket_read_lock.clear();
+            return;
+        }
+
         if (exptime > 0)
         {
             reset_timeout();
         }
         unsigned int n = 0;
-        unsigned char data[512];
         try
         {
 
@@ -1160,6 +1309,7 @@ void rpc_client::run_loop()
                 }
                 else
                 {
+                    socket_read_lock.clear();
                     return;
                 }
             }
@@ -1171,23 +1321,24 @@ void rpc_client::run_loop()
                 }
                 else
                 {
+                    socket_read_lock.clear();
                     return;
                 }
             }
 
-            std::cout<<"++++++async_read_some+++++++"<<std::endl;
             if(run_loop_fun != nullptr)
             {
                 run_loop_fun(self,n);
             }
             else if(async_run_loop_fun != nullptr)
             {
-                co_spawn(strand_, [self, n]() mutable
+                asio::co_spawn(strand_, [self, n]() mutable
                  { return self->async_run_loop_fun(self, n); },
                  asio::detached);
             }
             else
             {
+                socket_read_lock.clear();
                 return;
             }
         }
@@ -1196,25 +1347,42 @@ void rpc_client::run_loop()
             DEBUG_LOG("Exception: %s", e.what());
             error_msg  = e.what();
             iserror = true;
+            socket_read_lock.clear();
             return;
         }
     }
+    socket_read_lock.clear();
     return;
 }
 
 asio::awaitable<void> rpc_client::async_run_loop()
 {
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        co_return;
+    }
     auto self = shared_from_this();
     if(data == nullptr)
     {
         data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
     }
+
     for(;;)
     {
         if(iserror)
         {
+            socket_read_lock.clear();
             co_return;
         }
+
+        if(isclose)
+        {
+            socket_read_lock.clear();
+            co_return;
+        }
+
         if (exptime > 0)
         {
             reset_timeout();
@@ -1230,7 +1398,7 @@ asio::awaitable<void> rpc_client::async_run_loop()
             {
                 n = co_await sock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
             }
-            std::cout<<"++++++async_read_some+++++++"<<std::endl;
+ 
             if(run_loop_fun != nullptr)
             {
                 run_loop_fun(self,n);
@@ -1241,6 +1409,7 @@ asio::awaitable<void> rpc_client::async_run_loop()
             }
             else
             {
+                socket_read_lock.clear();
                 co_return;
             }
         }
@@ -1249,11 +1418,1239 @@ asio::awaitable<void> rpc_client::async_run_loop()
             DEBUG_LOG("Exception: %s", e.what());
             error_msg  = e.what();
             iserror = true;
+            socket_read_lock.clear();
             co_return;
         }
     }
+    socket_read_lock.clear();
     co_return;
 }
 
+asio::awaitable<unsigned int> rpc_client::async_read(unsigned char *buffer_data, unsigned int buffersize)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        co_return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        co_return 0;
+    }
+
+    if(isclose)
+    {
+        socket_read_lock.clear();
+        co_return 0;
+    }
+
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = co_await sslsock->async_read_some(asio::buffer(buffer_data, buffersize), asio::use_awaitable);
+        }
+        else
+        {
+            n = co_await sock->async_read_some(asio::buffer(buffer_data, buffersize), asio::use_awaitable);
+        }
+        socket_read_lock.clear();
+        co_return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> rpc_client::async_read(std::string &buffer_data)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        co_return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        co_return 0;
+    }
+
+    if(isclose)
+    {
+        socket_read_lock.clear();
+        co_return 0;
+    }
+
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = co_await sslsock->async_read_some(asio::buffer(buffer_data), asio::use_awaitable);
+        }
+        else
+        {
+            n = co_await sock->async_read_some(asio::buffer(buffer_data), asio::use_awaitable);
+        }
+        socket_read_lock.clear();
+        co_return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> rpc_client::async_write(unsigned char *data, unsigned int buffersize)
+{
+    if(iserror)
+    {
+        co_return 0;
+    }
+
+    if(isclose)
+    {
+        co_return 0;
+    }
+
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = co_await asio::async_write(*sslsock, asio::buffer(data, buffersize), asio::use_awaitable);
+        }
+        else
+        {
+            n = co_await asio::async_write(*sock, asio::buffer(data, buffersize), asio::use_awaitable);
+        }
+        co_return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> rpc_client::async_write(std::string_view value)
+{
+    if(iserror)
+    {
+        co_return 0;
+    }
+
+    if(isclose)
+    {
+        co_return 0;
+    }
+
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = co_await asio::async_write(*sslsock, asio::buffer(value), asio::use_awaitable);
+        }
+        else
+        {
+            n = co_await asio::async_write(*sock, asio::buffer(value), asio::use_awaitable);
+        }
+        co_return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    co_return 0;
+}
+
+//synchronous
+unsigned int rpc_client::write(unsigned char *data, unsigned int buffersize)
+{
+    if(iserror)
+    {
+        return 0;
+    }
+
+    if(isclose)
+    {
+        return 0;
+    }
+
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = asio::write(*sslsock, asio::buffer(data, buffersize));
+        }
+        else
+        {
+            n = asio::write(*sock, asio::buffer(data, buffersize));
+        }
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    return 0;
+}
+
+unsigned int rpc_client::write(std::string_view value)
+{
+    if(iserror)
+    {
+        return 0;
+    }
+
+    if(isclose)
+    {
+        return 0;
+    }
+
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = asio::write(*sslsock, asio::buffer(value));
+        }
+        else
+        {
+            n = asio::write(*sock, asio::buffer(value));
+        }
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    return 0;
+}
+
+unsigned int rpc_client::read(unsigned char *buffer_data, unsigned int buffersize)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        return 0;
+    }
+
+    if(isclose)
+    {
+        socket_read_lock.clear();
+        return 0;
+    }
+
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = sslsock->read_some(asio::buffer(buffer_data, buffersize));
+        }
+        else
+        {
+            n = sock->read_some(asio::buffer(buffer_data, buffersize));
+        }
+        socket_read_lock.clear();
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    return 0;
+}
+
+unsigned int rpc_client::read(std::string &buffer_data)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        return 0;
+    }
+
+    if(isclose)
+    {
+        socket_read_lock.clear();
+        return 0;
+    }
+
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = sslsock->read_some(asio::buffer(buffer_data));
+        }
+        else
+        {
+            n = sock->read_some(asio::buffer(buffer_data));
+        }
+        socket_read_lock.clear();
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    return 0;
+}
+
+
+bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
+{
+    set_url(rpcurl);
+    std::string send_content;
+    send_content.append("rpc");
+    send_content.push_back(0x20);
+    send_content.append(url);
+    send_content.push_back(0x0A);
+    send_content.append("HOST ");
+    
+    unsigned short value_size = host.size();
+    unsigned char a = value_size & 0xFF;
+    
+    value_size = value_size & 0xFF00;
+    unsigned char b = value_size >> 8;
+    send_content.push_back(b);
+    send_content.push_back(a);
+
+    send_content.append(host);
+    send_content.push_back(0x0A);
+
+    send_content.append("size ");
+
+    if(content.size() <=  0xFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x04);
+
+        unsigned int value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x05);
+
+        unsigned long long value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF00000000) >> 32;
+        send_content.push_back(a);
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else
+    {
+        iserror = true;
+        return false;
+    }
+    send_content.push_back(0x0A);
+
+    send_content.append("type ");
+
+    if(content_type.size() ==0 )
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x09);
+        send_content.append("text/html");
+    }
+    else
+    {
+        if(content_type.size() > 0xFFFF)
+        {
+            send_content.push_back(0x00);
+            send_content.push_back(0x09);
+            send_content.append("text/html");               
+            iserror = true;
+            return false;
+        }
+
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content_type.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    send_content.push_back(0x0A);
+
+    for(unsigned int i=0; i < parameter.size(); i++)
+    {
+        send_content.append(parameter[i].name);
+        send_content.push_back(0x20);
+        unsigned short value_size = parameter[i].value.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+        send_content.append(parameter[i].value);
+        send_content.push_back(0x0A);
+    }
+    send_content.push_back(0x0A);
+    send_content.append(content);
+
+    exptime = time_out_num;
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+    
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            iserror = true;
+        }
+    }
+    if(iserror)
+    {
+        return false;
+    }
+
+    if (isssl)
+    {
+       return init_https_sock();
+    }
+    else
+    {
+       return init_http_sock();
+    }    
+    return false;
+}
+bool rpc_client::connect()
+{
+    std::string send_content;
+    send_content.append("rpc");
+    send_content.push_back(0x20);
+    send_content.append(url);
+    send_content.push_back(0x0A);
+    send_content.append("HOST ");
+
+    unsigned short value_size = host.size();
+    unsigned char a = value_size & 0xFF;
+
+    value_size = value_size & 0xFF00;
+    unsigned char b = value_size >> 8;
+    send_content.push_back(b);
+    send_content.push_back(a);
+
+    send_content.append(host);
+    send_content.push_back(0x0A);
+
+    send_content.append("size ");
+
+    if(content.size() <=  0xFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x04);
+
+        unsigned int value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x05);
+
+        unsigned long long value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF00000000) >> 32;
+        send_content.push_back(a);
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else
+    {
+        iserror = true;
+        return false;
+    }
+    send_content.push_back(0x0A);
+
+    send_content.append("type ");
+
+    if(content_type.size() ==0 )
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x09);
+        send_content.append("text/html");
+    }
+    else
+    {
+        if(content_type.size() > 0xFFFF)
+        {
+            send_content.push_back(0x00);
+            send_content.push_back(0x09);
+            send_content.append("text/html");               
+            iserror = true;
+            return false;
+        }
+
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content_type.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    send_content.push_back(0x0A);
+
+    for(unsigned int i=0; i < parameter.size(); i++)
+    {
+        send_content.append(parameter[i].name);
+        send_content.push_back(0x20);
+        unsigned short value_size = parameter[i].value.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+        send_content.append(parameter[i].value);
+        send_content.push_back(0x0A);
+    }
+    send_content.push_back(0x0A);
+    send_content.append(content);
+
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            iserror = true;
+        }
+    }
+    if(iserror)
+    {
+        return false;
+    }
+
+    if (isssl)
+    {
+        return init_https_sock();
+    }
+    else
+    {
+        return init_http_sock();
+    }    
+    return false;
+}
+asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned int time_out_num)
+{
+    set_url(rpcurl);
+    std::string send_content;
+    send_content.append("rpc");
+    send_content.push_back(0x20);
+    send_content.append(url);
+    send_content.push_back(0x0A);
+    send_content.append("HOST ");
+    
+    unsigned short value_size = host.size();
+    unsigned char a = value_size & 0xFF;
+    
+    value_size = value_size & 0xFF00;
+    unsigned char b = value_size >> 8;
+    send_content.push_back(b);
+    send_content.push_back(a);
+
+    send_content.append(host);
+    send_content.push_back(0x0A);
+
+    send_content.append("size ");
+
+    if(content.size() <=  0xFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x04);
+
+        unsigned int value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x05);
+
+        unsigned long long value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF00000000) >> 32;
+        send_content.push_back(a);
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else
+    {
+        iserror = true;
+        co_return false;
+    }
+    send_content.push_back(0x0A);
+
+    send_content.append("type ");
+
+    if(content_type.size() ==0 )
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x09);
+        send_content.append("text/html");
+    }
+    else
+    {
+        if(content_type.size() > 0xFFFF)
+        {
+            send_content.push_back(0x00);
+            send_content.push_back(0x09);
+            send_content.append("text/html");               
+            iserror = true;
+            co_return false;
+        }
+
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content_type.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    send_content.push_back(0x0A);
+
+    for(unsigned int i=0; i < parameter.size(); i++)
+    {
+        send_content.append(parameter[i].name);
+        send_content.push_back(0x20);
+        unsigned short value_size = parameter[i].value.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+        send_content.append(parameter[i].value);
+        send_content.push_back(0x0A);
+    }
+    send_content.push_back(0x0A);
+    send_content.append(content);
+
+    exptime = time_out_num;
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+    
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            iserror = true;
+        }
+    }
+    if(iserror)
+    {
+        co_return false;
+    }
+
+    if (isssl )
+    {
+       co_return co_await async_init_https_sock();
+    }
+    else
+    {
+       co_return co_await async_init_http_sock();
+    }    
+    co_return false;
+}
+asio::awaitable<bool> rpc_client::async_connect()
+{
+    std::string send_content;
+    send_content.append("rpc");
+    send_content.push_back(0x20);
+    send_content.append(url);
+    send_content.push_back(0x0A);
+    send_content.append("HOST ");
+    
+    unsigned short value_size = host.size();
+    unsigned char a = value_size & 0xFF;
+    
+    value_size = value_size & 0xFF00;
+    unsigned char b = value_size >> 8;
+    send_content.push_back(b);
+    send_content.push_back(a);
+
+    send_content.append(host);
+    send_content.push_back(0x0A);
+
+    send_content.append("size ");
+
+    if(content.size() <=  0xFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x04);
+
+        unsigned int value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else if(content.size() <=  0xFFFFFFFFFF)
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x05);
+
+        unsigned long long value_size = content.size();
+        unsigned char a;
+        a = (value_size & 0xFF00000000) >> 32;
+        send_content.push_back(a);
+        a = (value_size & 0xFF000000) >> 24;
+        send_content.push_back(a);
+        a = (value_size & 0xFF0000) >> 16;
+        send_content.push_back(a);
+        a = (value_size & 0xFF00) >> 8;
+        send_content.push_back(a);
+        a = value_size & 0xFF;
+        send_content.push_back(a);
+    }
+    else
+    {
+        iserror = true;
+        co_return false;
+    }
+    send_content.push_back(0x0A);
+
+    send_content.append("type ");
+
+    if(content_type.size() ==0 )
+    {
+        send_content.push_back(0x00);
+        send_content.push_back(0x09);
+        send_content.append("text/html");
+    }
+    else
+    {
+        if(content_type.size() > 0xFFFF)
+        {
+            send_content.push_back(0x00);
+            send_content.push_back(0x09);
+            send_content.append("text/html");               
+            iserror = true;
+            co_return false;
+        }
+
+        send_content.push_back(0x00);
+        send_content.push_back(0x02);
+        unsigned short value_size = content_type.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+    }
+    send_content.push_back(0x0A);
+
+    for(unsigned int i=0; i < parameter.size(); i++)
+    {
+        send_content.append(parameter[i].name);
+        send_content.push_back(0x20);
+        unsigned short value_size = parameter[i].value.size();
+        unsigned char a = value_size & 0xFF;
+        value_size = value_size & 0xFF00;
+        unsigned char b = value_size >> 8;
+        send_content.push_back(b);
+        send_content.push_back(a);
+        send_content.append(parameter[i].value);
+        send_content.push_back(0x0A);
+    }
+    send_content.push_back(0x0A);
+    send_content.append(content);
+
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+    
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            iserror = true;
+        }
+    }
+    if(iserror)
+    {
+        co_return false;
+    }
+
+    if (isssl )
+    {
+       co_return co_await async_init_https_sock();
+    }
+    else
+    {
+       co_return co_await async_init_http_sock();
+    }    
+    co_return false;
+}
+
+bool rpc_client::init_https_sock()
+{
+    error_msg.clear();
+
+    ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
+
+    ssl_context->set_default_verify_paths();
+    asio::ip::tcp::resolver resolver(strand_);
+    auto endpoints = resolver.resolve(host.c_str(), std::to_string(port));
+
+    SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
+
+    asio::connect(sslsock->lowest_layer(), endpoints, ec);
+    if (ec)
+    {
+        error_msg = host + " connect error! ";
+        DEBUG_LOG("%s", error_msg.c_str());
+        return false;
+    }
+
+    sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+
+    ssl_context->set_verify_mode(asio::ssl::verify_peer);
+    ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
+
+    sslsock->handshake(asio::ssl::stream_base::client, ec);
+
+    if (ec)
+    {
+        error_msg = host + " handshake error! ";
+        DEBUG_LOG("%s", error_msg.c_str());
+        return false;
+    }
+    return true;
+}
+
+bool rpc_client::init_http_sock()
+{
+    error_msg.clear();
+    sock                            = std::make_shared<asio::ip::tcp::socket>(strand_);
+    asio::ip::tcp::resolver resolver(strand_);
+    auto endpoints = resolver.resolve(host, std::to_string(port));
+    asio::connect(*sock, endpoints, ec);
+ 
+    if (ec)
+    {
+        error_msg = ec.message();
+        DEBUG_LOG("%s", error_msg.c_str());
+        return false;
+    }
+    return true;
+}
+
+void rpc_client::send_data(std::string_view send_content)
+{
+    try
+    {
+        if (!sock)
+        {
+            bool isinit = init_http_sock();
+            if (!isinit)
+            {
+                return;
+            }
+
+            if (exptime > 30)
+            {
+                exptime = 30;
+            }
+            if (exptime > 0)
+            {
+                set_timeout(exptime);
+                client_context &temp_io_context = get_client_context_obj();
+                try
+                {
+                    temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
+                    temp_io_context.timeout_condition.notify_one();
+                }
+                catch (const std::exception &e)
+                {
+                    DEBUG_LOG("Exception: %s", e.what());
+                    error_msg = e.what();
+                    iserror = true;
+                }
+            }
+            if(iserror)
+            {
+                return;
+            }
+
+            unsigned int n=0;
+            n = asio::write(*sock, asio::buffer(send_content));
+            unsigned char data[2052];
+            if(n == 0)
+            {
+                return;
+            }
+            n=0;
+            bool begin_data=true;
+            isbody = false;
+            while (true)
+            {
+                memset(data, 0x00, 2048);
+                if (exptime > 0)
+                {
+                    reset_timeout();
+                }
+                if (isbody && page.read_size < 2048)
+                {
+                    n =  sock->read_some(asio::buffer(data, page.read_size));
+                }
+                else
+                {
+                    n = sock->read_some(asio::buffer(data, 2048));
+                }
+                offsetnum = 0;
+                if (n == 0)
+                {
+                    break;
+                }
+                if(begin_data)
+                {
+                    begin_data = false;
+                    process(data,n);
+                }
+                else
+                {
+                    process_append(data,n);
+                }
+
+                if (isfinish)
+                {
+                    break;
+                }
+                if(iserror)
+                {
+                    break;
+                }
+            }
+        }
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+}
+void rpc_client::ssl_send_data(std::string_view send_content)
+{
+    try
+    {
+        if (!sslsock)
+        {
+            bool isinit = init_https_sock();
+            if (!isinit)
+            {
+                return;
+            }
+
+            if (exptime > 30)
+            {
+                exptime = 30;
+            }
+            if (exptime > 0)
+            {
+                set_timeout(exptime);
+                client_context &temp_io_context = get_client_context_obj();
+                try
+                {
+                    temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
+                    temp_io_context.timeout_condition.notify_one();
+                }
+                catch (const std::exception &e)
+                {
+                    DEBUG_LOG("Exception: %s", e.what());
+                    error_msg = e.what();
+                    iserror = true;
+                }
+            }
+            if(iserror)
+            {
+                return;
+            }
+
+            unsigned int n=0;
+            n = asio::write(*sslsock, asio::buffer(send_content));
+            unsigned char data[2052];
+            
+            bool begin_data=true;
+            isbody = false;
+            while (true)
+            {
+                memset(data, 0x00, 2048);
+                if (exptime > 0)
+                {
+                    reset_timeout();
+                }
+                if (isbody && page.read_size < 2048)
+                {
+                    n = sslsock->read_some(asio::buffer(data, page.read_size));
+                }
+                else
+                {
+                    n = sslsock->read_some(asio::buffer(data, 2048));
+                }
+                offsetnum = 0;
+                if (n == 0)
+                {
+                    break;
+                }
+                if(begin_data)
+                {
+                    begin_data = false;
+                    process(data,n);
+                }
+                else
+                {
+                    process_append(data,n);
+                }
+
+                if (isfinish)
+                {
+                    break;
+                }
+                if(iserror)
+                {
+                    break;
+                }
+            }
+        }
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+}
 
 } //end http

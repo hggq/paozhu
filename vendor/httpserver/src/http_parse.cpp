@@ -1350,9 +1350,9 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                     case 24:
                         if (str_casecmp(header_key, "Sec-WebSocket-Extensions"))
                         {
-                            if(peer->websocket == nullptr)
+                            if(websocket == nullptr)
                             {
-                               peer->websocket = std::make_unique<websocket_t>();
+                               websocket = std::make_unique<websocket_t>();
                             }
                             getwebsocketextensions();
                         }
@@ -1360,11 +1360,11 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                     case 21:
                         if (str_casecmp(header_key, "Sec-WebSocket-Version"))
                         {
-                             if(peer->websocket == nullptr)
+                             if(websocket == nullptr)
                             {
-                               peer->websocket = std::make_unique<websocket_t>();
+                               websocket = std::make_unique<websocket_t>();
                             }
-                            peer->websocket->version = (unsigned char)header_valuetoint();
+                            websocket->version = (unsigned char)header_valuetoint();
                         }
                         break;
                     case 19:
@@ -1381,11 +1381,11 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         case 'S':
                             if (str_casecmp(header_key, "Sec-WebSocket-Key"))
                             {
-                                 if(peer->websocket == nullptr)
+                                 if(websocket == nullptr)
                                 {
-                                    peer->websocket = std::make_unique<websocket_t>();
+                                    websocket = std::make_unique<websocket_t>();
                                 }
-                                peer->websocket->key = header_value;
+                                websocket->key = header_value;
                             }
                             break;
                         case 'i':
@@ -1659,47 +1659,47 @@ void httpparse::getwebsocketextensions()
     case 22:
         if (str_casecmp(header_value, "x-webkit-deflate-frame"))
         {
-            peer->websocket->deflateframe = true;
-            peer->websocket->deflate      = true;
+            websocket->deflateframe = true;
+            websocket->deflate      = true;
         }
         break;
     case 18:
 
         if (str_casecmp(header_value, "permessage-deflate"))
         {
-            peer->websocket->permessagedeflate = true;
-            peer->websocket->deflate           = true;
+            websocket->permessagedeflate = true;
+            websocket->deflate           = true;
         }
         break;
     case 16:
         if (str_casecmp(header_value, "perframe-deflate"))
         {
-            peer->websocket->perframedeflate = true;
-            peer->websocket->deflate         = true;
+            websocket->perframedeflate = true;
+            websocket->deflate         = true;
         }
         break;
     default:;
     }
-    if (peer->websocket->deflate)
+    if (websocket->deflate)
     {
         return;
     }
     if (header_value.find("permessage-deflate") != std::string::npos)
     {
-        peer->websocket->permessagedeflate = true;
-        peer->websocket->deflate           = true;
+        websocket->permessagedeflate = true;
+        websocket->deflate           = true;
         return;
     }
     if (header_value.find("perframe-deflate") != std::string::npos)
     {
-        peer->websocket->perframedeflate = true;
-        peer->websocket->deflate         = true;
+        websocket->perframedeflate = true;
+        websocket->deflate         = true;
         return;
     }
     if (header_value.find("x-webkit-deflate-frame") != std::string::npos)
     {
-        peer->websocket->deflateframe = true;
-        peer->websocket->deflate      = true;
+        websocket->deflateframe = true;
+        websocket->deflate      = true;
         return;
     }
 }
@@ -3372,31 +3372,7 @@ bool httpparse::getfinish()
 }
 
 void httpparse::clear()
-{
-    peer->state.gzip              = false;
-    peer->state.deflate           = false;
-    peer->state.br                = false;
-    peer->state.avif              = false;
-    peer->state.webp              = false;
-    peer->state.keepalive         = false;
-    peer->state.websocket         = false;
-    peer->state.upgradeconnection = false;
-    peer->state.rangebytes        = false;
-    peer->state.language[0]       = {0};
-    peer->state.version           = 0;
-    peer->state.port              = 0;
-    peer->state.ifmodifiedsince   = 0;
-    peer->state.rangebegin        = 0;
-    peer->state.rangeend          = 0;
-    peer->keepalive               = false;
-    // headerrawcontent.clear();
-    peer->send_header.clear();
-    // peer->send_cookie.clear();
-    peer->send_cookie_lists.clear();
-    peer->header.clear();
-    peer->pathinfos.clear();
-    peer->querystring.clear();
-    peer->urlpath.clear();
+{ 
     readoffset     = 0;
     headendhitnum  = 0;
     postfieldtype  = 0;
@@ -3405,37 +3381,23 @@ void httpparse::clear()
     posttype       = 0;
     content_length = 0;
 
-    peer->host.clear();
-    peer->etag.clear();
-    peer->output.clear();
-    peer->val.clear();
-    peer->post.clear();
-    peer->get.clear();
-    peer->files.clear();
-    peer->json.clear();
-
     uprawfile.reset(nullptr);
     error = 0;
-    peer->cookie.clear();
+ 
     method                            = HEAD_METHOD::UNKNOW;
     headerfinish                      = 0;
-    peer->httpv                       = 1;
-    peer->isso                        = false;
-    peer->compress                    = 0;
-    peer->upload_length               = 0;
-
-    if(peer->websocket !=nullptr)
+    
+    if(websocket !=nullptr)
     {
-        peer->websocket->deflate           = false;
-        peer->websocket->permessagedeflate = false;
-        peer->websocket->perframedeflate   = false;
-        peer->websocket->deflateframe      = false;
-        peer->websocket->isopen            = false;
-        peer->websocket->version           = 0x00;
-        peer->websocket->key.clear();
-        peer->websocket->ext.clear();
+        websocket->deflate           = false;
+        websocket->permessagedeflate = false;
+        websocket->perframedeflate   = false;
+        websocket->deflateframe      = false;
+        websocket->isopen            = false;
+        websocket->version           = 0x00;
+        websocket->key.clear();
+        websocket->ext.clear();
     }
-
 }
 
 }// namespace http

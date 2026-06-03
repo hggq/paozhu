@@ -63,7 +63,7 @@
 #include "http2_send_queue.h"
 #include "mysql_conn.h"
 #include "mysql_conn_pool.h"
-// #include "http_domain.h"
+#include "websockets_parse.h"
 // namespace this_coro = asio::this_coro;
 
 namespace http
@@ -77,7 +77,7 @@ class httpserver
     asio::awaitable<void> clientpeerfun(std::shared_ptr<client_session>, bool isssl);
     asio::awaitable<unsigned int> client_http1_loop(bool isssl, unsigned int readnum, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_http2_loop(unsigned int offset,unsigned int readnum, std::shared_ptr<client_session>);
-    asio::awaitable<unsigned int> client_websocket_loop(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
+    asio::awaitable<unsigned int> client_websocket_loop(std::shared_ptr<httppeer>, std::shared_ptr<websocketparse>, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_rpc_loop(unsigned int readnum, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_tcp_loop(unsigned int readnum, std::shared_ptr<client_session>);
     asio::awaitable<void>

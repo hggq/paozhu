@@ -68,8 +68,25 @@ namespace http
         asio::awaitable<void> async_send();
         asio::awaitable<void> async_send_data(std::string_view send_content);
         asio::awaitable<void> async_ssl_send_data(std::string_view send_content);
+
+        void send_data(std::string_view send_content);
+        void ssl_send_data(std::string_view send_content);
+
+        bool init_https_sock();
+        bool init_http_sock();
         asio::awaitable<bool> async_init_https_sock();
         asio::awaitable<bool> async_init_http_sock();
+
+        asio::awaitable<unsigned int> async_write(unsigned char *data, unsigned int buffersize);
+        asio::awaitable<unsigned int> async_write(std::string_view value);
+        asio::awaitable<unsigned int> async_read(unsigned char *data,unsigned int buffersize);
+        asio::awaitable<unsigned int> async_read(std::string &data);
+
+        unsigned int write(unsigned char *data, unsigned int buffersize);
+        unsigned int write(std::string_view value);
+        unsigned int read(unsigned char *data,unsigned int buffersize);
+        unsigned int read(std::string &data);
+
         void process(const unsigned char *buffer, unsigned int buffersize);
         void process_parameter(const unsigned char *buffer, unsigned int buffersize);
         void process_append(const unsigned char *buffer, unsigned int buffersize);
@@ -95,6 +112,7 @@ namespace http
         bool isfinish = false;
         bool iswait_exit =false;
         bool isco = false;
+        bool isclose = false;
         unsigned char exptime = 0;
         unsigned char cur_process_type = 0;
         unsigned int durtime=0;
@@ -102,6 +120,7 @@ namespace http
         unsigned int port=0;
         unsigned int val_size = 0;
         std::atomic<unsigned int> timeout_end = 0;
+        std::atomic_flag socket_read_lock = ATOMIC_FLAG_INIT;
 
         std::string url;
         std::string host;

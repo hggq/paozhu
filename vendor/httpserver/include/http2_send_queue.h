@@ -72,7 +72,6 @@ struct http2_send_data_t
         header.clear();
         content.clear();
         cache_data.clear();
-        cache_data.resize(16384);
     }
 };
 
@@ -82,7 +81,7 @@ class http2_send_queue
     http2_send_queue() {};
     ~http2_send_queue();
     std::shared_ptr<http2_send_data_t> get_cache_ptr();
-    void fix_queue_list();
+    void fix_queue_list(unsigned int total);
     void back_cache_ptr(std::shared_ptr<http2_send_data_t>);
 
   public:

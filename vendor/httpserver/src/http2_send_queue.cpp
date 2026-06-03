@@ -25,26 +25,25 @@ http2_send_queue::~http2_send_queue()
         queue_list.erase(iter++);
     }
 }
-void http2_send_queue::fix_queue_list()
+void http2_send_queue::fix_queue_list(unsigned int total)
 {
     std::unique_lock<std::mutex> lock(lock_queue);
     unsigned int queue_size = queue_list.size();
-    if (queue_size > 200)
+    if (queue_size > total)
     {
-        unsigned int j = queue_size / 20;
-        if (j < 200)
+        unsigned int j = queue_size / 4;
+        if (j > 150)
         {
-            j = 200;
-        }
-        for (auto iter = queue_list.begin(); iter != queue_list.end();)
-        {
-            iter->reset();
-            queue_list.erase(iter++);
-
-            j--;
-            if (j < 200)
+            for (auto iter = queue_list.begin(); iter != queue_list.end();)
             {
-                break;
+                iter->reset();
+                queue_list.erase(iter++);
+
+                j--;
+                if (j < 1)
+                {
+                    break;
+                }
             }
         }
     }

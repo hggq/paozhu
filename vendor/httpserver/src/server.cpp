@@ -2277,9 +2277,43 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                         co_return 3;
                     }
 
-                    co_await client_websocket_loop(peer, peer_session);
+                    auto ws_parse_obj = std::make_shared<websocketparse>();
+                    ws_parse_obj->setWebsocketkey(http1pre->websocket->key);
+                    log_item = ws_parse_obj->respondHandshake();
+                    co_await peer_session->co_send_writer(log_item);
+
+                    ws_parse_obj->websocket = std::move(http1pre->websocket);
+
+                    ws_parse_obj->websocket->gzip      = peer->state.gzip;
+                    ws_parse_obj->websocket->zstd      = peer->state.zstd;
+                    ws_parse_obj->websocket->deflate   = peer->state.deflate;
+                    ws_parse_obj->websocket->br        = peer->state.br;
+
+
+                    co_await client_websocket_loop(peer, ws_parse_obj, peer_session);
                     co_return 3;
                 }
+
+#ifndef BENCHMARK
+                {
+                    log_item.clear();
+                    log_item.append(peer->client_ip);
+                    log_item.push_back(0x20);
+                    log_item.append(get_date("%Y-%m-%d %X"));
+                    log_item.push_back(0x20);
+                    log_item.append(std::to_string(peer->server_port));
+                    log_item.push_back(0x20);
+                    log_item.append("H1");
+                    log_item.push_back(0x20);
+                    log_item.append(peer->host);
+                    log_item.push_back(0x20);
+                    log_item.append(peer->url);
+                    log_item.push_back('\n');
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    access_loglist.emplace_back(log_item);
+                    lock.unlock();
+                }
+#endif
 
                 co_await http1loop(peer, peer_session);
                 DEBUG_LOG("http1loop end");
@@ -2288,6 +2322,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                     co_return 3;
                 }
                 http1pre->clear();
+                peer->clear();
                 peer_session->time_limit.store(timeid());
             }
             readnum = 0;
@@ -2385,10 +2420,37 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                         http2pre->http_data[block_steamid]->server_port = peer_session->getlocalport();
                     }
 
-                    co_spawn(peer_session->strand_, http2loop(http2pre->http_data[block_steamid]), asio::detached);
+                    asio::co_spawn(peer_session->strand_, http2loop(http2pre->http_data[block_steamid]), asio::detached);
                     http2pre->block_steam_httppeer = nullptr;
                     http2pre->stream_list.pop();
                     http2pre->steam_count += 1;
+                    
+                    http2_send_queue &send_queue_obj = get_http2_send_queue();
+                    if(send_queue_obj.queue_list.size() > rate_limit_accept_wait_num.load())
+                    {
+                        send_queue_obj.fix_queue_list(rate_limit_accept_wait_num.load());
+                    }
+
+#ifndef BENCHMARK
+                    {
+                        log_item.clear();
+                        log_item.append(http2pre->http_data[block_steamid]->client_ip);
+                        log_item.push_back(0x20);
+                        log_item.append(get_date("%Y-%m-%d %X"));
+                        log_item.push_back(0x20);
+                        log_item.append(std::to_string(http2pre->http_data[block_steamid]->server_port));
+                        log_item.push_back(0x20);
+                        log_item.append("H2");
+                        log_item.push_back(0x20);
+                        log_item.append(http2pre->http_data[block_steamid]->host);
+                        log_item.push_back(0x20);
+                        log_item.append(http2pre->http_data[block_steamid]->url);
+                        log_item.push_back('\n');
+                        std::unique_lock<std::mutex> lock(log_mutex);
+                        access_loglist.emplace_back(log_item);
+                        lock.unlock();
+                    }
+#endif
                 }
             }
             if (error_state > 0)
@@ -2398,7 +2460,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             }
 
             //#ifndef BENCHMARK
-            if (http2pre->steam_count > 1024)
+            if (http2pre->steam_count > 512)
             {
                 DEBUG_LOG("client http2 > 2024 stream close ");
                 co_await peer_session->co_send_goway();
@@ -2435,33 +2497,12 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
     co_return 0;
 }
 
-asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session)
+asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<httppeer> peer, std::shared_ptr<websocketparse> ws_parse_obj, std::shared_ptr<client_session> peer_session)
 {
     try
     {
         std::string log_item;
-        peer->linktype = 3;
-
-        auto ws_parse_obj = std::make_shared<websocketparse>();
-        //peer->ws       = std::make_unique<websocketparse>();
-        //peer->ws->setWebsocketkey(peer->websocket.key);
-        ws_parse_obj->setWebsocketkey(peer->websocket->key);
-        log_item = ws_parse_obj->respondHandshake();
-        co_await peer_session->co_send_writer(log_item);
-
-        ws_parse_obj->websocket = std::move(peer->websocket);
-
-        ws_parse_obj->websocket->gzip      = peer->state.gzip;
-        ws_parse_obj->websocket->zstd      = peer->state.zstd;
-        ws_parse_obj->websocket->deflate   = peer->state.deflate;
-        ws_parse_obj->websocket->br        = peer->state.br;
-
-        //peer_session->send_data(log_item);
         WEBSOCKET_REG &wsreg = get_websocket_reg();
-        if(peer->pathinfos.size() == 0)
-        {
-            co_return 0;
-        }
 
         peer_session->window_update_num = 0;
         peer_session->old_window_update_num = 0;
@@ -2516,6 +2557,14 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
             }
         }
 
+        for(auto iter= peer->cookie.begin(); iter != peer->cookie.end(); iter++)
+        {
+            websockets_api_data_t temp;
+            temp.name = iter->first;
+            temp.value = iter->second;
+            websockets->header.push_back(temp);
+        }
+        
         if (websockets->durtime > 0)
         {
             websockettasks.emplace_back(websockets);
@@ -2526,7 +2575,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
 
         auto &cc= get_http2_ring_queue_obj();
         peer_session->http2_ring_queue = cc.get_cache_ptr();
-        co_spawn(peer_session->strand_, websocket_ring_client_server(peer_session), asio::detached);
+        asio::co_spawn(peer_session->strand_, websocket_ring_client_server(peer_session), asio::detached);
 
         for(;;)
         {
@@ -2576,11 +2625,11 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                         //异步处理数据，做到双工收发 Asynchronous data processing, achieving duplex transmission and reception
                         if (ws_parse_obj->isfile)
                         {
-                           co_spawn(peer_session->strand_,[websockets,ws_parse_obj]() mutable { return websockets->async_onfiles(ws_parse_obj->filename); }, asio::detached);
+                           asio::co_spawn(peer_session->strand_,websockets->async_onfiles(ws_parse_obj->filename), asio::detached);
                         }
                         else
                         {
-                           co_spawn(peer_session->strand_,[websockets,ws_parse_obj]() mutable { return websockets->async_onmessage(ws_parse_obj->indata); }, asio::detached);
+                           asio::co_spawn(peer_session->strand_,websockets->async_onmessage(ws_parse_obj->indata), asio::detached);
                         }
                     }
                     else
@@ -2835,9 +2884,9 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
             
             auto &cc= get_http2_ring_queue_obj();
             peer_session->http2_ring_queue = cc.get_cache_ptr();
-            co_spawn(peer_session->strand_, socket_ring_client_server(peer_session), asio::detached);
+            asio::co_spawn(peer_session->strand_, socket_ring_client_server(peer_session), asio::detached);
 
-            //co_spawn(peer_session->strand_,[sock_temp,peer_session,readnum]() mutable { return sock_temp->async_process(peer_session->_cache_data, readnum); }, asio::detached);
+            //asio::co_spawn(peer_session->strand_,[sock_temp,peer_session,readnum]() mutable { return sock_temp->async_process(peer_session->_cache_data, readnum); }, asio::detached);
             //We need to first handle the framework to agree on the TCP protocol data flow
             co_await sock_temp->async_process(peer_session->_cache_data, offsetnum, readnum);
             log_item.clear();
@@ -2873,7 +2922,7 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
 
                 //co_await sock_temp->async_process(peer_session->_cache_data, offsetnum);
                 //Asynchronous data processing
-                co_spawn(peer_session->strand_,[sock_temp,peer_session,offsetnum]() mutable { return sock_temp->async_process(peer_session->_cache_data, 0, offsetnum); }, asio::detached);
+                asio::co_spawn(peer_session->strand_,[sock_temp,peer_session,offsetnum]() mutable { return sock_temp->async_process(peer_session->_cache_data, 0, offsetnum); }, asio::detached);
                 
             }
 
@@ -3009,7 +3058,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     }
                     auto &cc                       = get_http2_ring_queue_obj();
                     peer_session->http2_ring_queue = cc.get_cache_ptr();
-                    co_spawn(peer_session->strand_, http2_ring_client_server(peer_session), asio::detached);
+                    asio::co_spawn(peer_session->strand_, http2_ring_client_server(peer_session), asio::detached);
                     co_await peer_session->co_send_setting();
 
                     client_type_num = co_await client_http2_loop(24, readnum, peer_session);  
@@ -3042,7 +3091,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                 DEBUG_LOG("peer_session co_send_setting");    
                 auto &cc                       = get_http2_ring_queue_obj();
                 peer_session->http2_ring_queue = cc.get_cache_ptr();
-                co_spawn(peer_session->strand_, http2_ring_client_server(peer_session), asio::detached);
+                asio::co_spawn(peer_session->strand_, http2_ring_client_server(peer_session), asio::detached);
                 co_await peer_session->co_send_setting();
 
                 client_type_num = co_await client_http2_loop(24, readnum, peer_session);
@@ -3546,11 +3595,23 @@ void httpserver::websocket_loop(int fps)
                     {
                         if (peer)
                         {
+                            if(peer->session_sock && peer->session_sock->isclose)
+                            {
+                                websockettasks.erase(iter++);
+                                continue;
+                            }
+
+                            if(peer->isclose)
+                            {
+                                websockettasks.erase(iter++);
+                                continue;
+                            }
+
                             if (peer->loop_num > 0 && fps % (peer->durtime) == 0)
                             {
-                                if(peer->isco)
+                                if(peer->isloopco)
                                 {
-                                    co_spawn(peer->session_sock->strand_, peer->async_run_loop(), asio::detached);
+                                    asio::co_spawn(peer->session_sock->strand_, peer->async_run_loop(), asio::detached);
                                 }
                                 else
                                 {
@@ -3620,10 +3681,23 @@ void httpserver::websocket_loop(int fps)
                                 sockettasks.erase(iter++);
                                 continue;
                             }
+
+                            if(peer->isclose)
+                            {
+                                sockettasks.erase(iter++);
+                                continue;
+                            }
+
                             if (peer->timeloop_num > 0 && (fps % peer->timeloop_num ) == 0)
                             {
-                                //peer->run_loop();
-                                co_spawn(peer->session_sock->strand_, peer->async_run_loop(), asio::detached);
+                                if(peer->isloopco)
+                                {
+                                    asio::co_spawn(peer->session_sock->strand_, peer->async_run_loop(), asio::detached);
+                                }
+                                else
+                                {
+                                    peer->run_loop();
+                                }
                             }
 
                             if (peer->timeloop_num == 0)
@@ -3674,7 +3748,7 @@ void httpserver::websocket_loop(int fps)
             //                 socket_session_wait_clear.pop_front();
             //                 lk.unlock();
             //                 //p_sock_session->stop();
-            //                 co_spawn(this->io_context, clientpeerstop(p_sock_session), asio::detached);
+            //                 asio::co_spawn(this->io_context, clientpeerstop(p_sock_session), asio::detached);
             //             }
             //             else
             //             {
@@ -3762,7 +3836,7 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
             }
         }
 
-        co_spawn(peer_session->strand_, [peer_session, this]() mutable
+        asio::co_spawn(peer_session->strand_, [peer_session, this]() mutable
                  { return clientpeerfun(peer_session, true); },
                  asio::detached);
         co_return;
@@ -3997,7 +4071,7 @@ void httpserver::listeners()
 #endif
 
                 total_http2_count++;
-                co_spawn(peer_session->strand_, [peer_session, this]() mutable
+                asio::co_spawn(peer_session->strand_, [peer_session, this]() mutable
                          { return sslhandshake(peer_session); },
                          asio::detached);
                 if (isstop)
@@ -4193,7 +4267,7 @@ void httpserver::listener()
 
                 total_http1_count++;
 
-                co_spawn(peer_session->strand_, [peer_session, this]() mutable
+                asio::co_spawn(peer_session->strand_, [peer_session, this]() mutable
                          { return clientpeerfun(peer_session, false); },
                          asio::detached);
                 if (isstop)
@@ -4961,35 +5035,33 @@ void httpserver::httpwatch()
                     {
                         if (p_session->time_limit.load() > 10 && p_session->time_limit.load() < nowtimeid)
                         {
-                            co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
-                            DEBUG_LOG("socket_session_wait_clear co_spawn");
+                            asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
+                            DEBUG_LOG("socket_session_wait_clear asio::co_spawn");
                             if(p_session->half_close)
                             {
                                 socket_session_lists.erase(iter++);
-                                erase_count_num++;
                             }
                             else
                             {
                                 ++iter;
                             }
+                            erase_count_num++;
                             continue;
                         }
 
                         if (p_session->time_limit.load() > 10 && p_session->time_begin < hard_kill_8hours)
                         {
-                            co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
-                            DEBUG_LOG("socket_session_wait_clear co_spawn");
-
+                            asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
+                            DEBUG_LOG("socket_session_wait_clear asio::co_spawn");
                             if(p_session->half_close)
                             {
                                 socket_session_lists.erase(iter++);
-                                erase_count_num++;
                             }
                             else
                             {
                                 ++iter;
                             }
-
+                            erase_count_num++;
                         }
                         else
                         {
@@ -5017,7 +5089,7 @@ void httpserver::httpwatch()
                             if (p_session->time_limit.load() < nowtimeid)
                             {
                                 DEBUG_LOG("clear nowtimeid pre session");
-                                co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
+                                asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
                                 if(p_session->half_close)
                                 {
                                     socket_session_lists.erase(iter++);
@@ -5059,6 +5131,10 @@ void httpserver::httpwatch()
                 error_msg_loop.append(" G:");
                 error_msg_loop.append(std::to_string(clean_cron_time_ago));
 
+                http2_send_queue &send_queue_obj = get_http2_send_queue();
+                error_msg_loop.append(" C:");
+                error_msg_loop.append(std::to_string(send_queue_obj.queue_list.size()));
+
                 error_msg_loop.append(" --\n");
                 std::unique_lock<std::mutex> loglock(log_mutex);
                 error_loglist.push_back(error_msg_loop);
@@ -5068,7 +5144,7 @@ void httpserver::httpwatch()
                 std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
                 for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
                 {
-                    co_spawn(this->io_context, orm_connect_clear(iter->second), asio::detached);
+                    asio::co_spawn(this->io_context, orm_connect_clear(iter->second), asio::detached);
                     DEBUG_LOG("mysql connect clear 1024q or 2hour ");
                 }
 

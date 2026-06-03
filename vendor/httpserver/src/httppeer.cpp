@@ -2156,4 +2156,87 @@ void httppeer::clsoesend()
     }
 }
 
+void httppeer::clear()
+{
+    host.clear();;
+    url.clear();;
+    urlpath.clear();;
+    querystring.clear();;
+
+    content_type.clear();;
+    etag.clear();;
+
+    chartset.clear();
+    accept_language.clear();
+    rawheader.clear();
+    rawcontent.clear();
+    rawcontent.shrink_to_fit();
+    header.clear();
+    get.clear();
+    post.clear();
+    files.clear();
+    json.clear();
+    val.clear();
+    cookie.clear();
+    pathinfos.clear();
+
+    issendheader = false;
+    ischunked    = false;
+    isfinish     = false;
+    issend       = false;
+    isclose      = false;
+    keepalive    = true;
+    isso         = false;
+
+    posttype     = 0;
+    compress     = 0;
+
+    stream_id     = 0;
+    status_code   = 0;
+    timeloop_num  = 0;
+    timecount_num = 0;
+    request_time  = 0;
+    //unsigned int time_limit             = 0;
+    content_length   = 0;
+    sessionfile_time = 0;
+    upload_length    = 0;
+
+    state.gzip              = false;
+    state.deflate           = false;
+    state.br                = false;
+    state.avif              = false;
+    state.webp              = false;
+    state.zstd              = false;
+    state.keepalive         = false;
+    state.websocket         = false;
+    state.upgradeconnection = false;
+    state.rangebytes        = false;
+    state.language[0]       = {0};
+    state.version           = 0;
+    state.port              = 0;
+    state.ifmodifiedsince   = 0;
+    state.rangebegin        = 0;
+    state.rangeend          = 0;
+
+    session.clear();
+
+    //cookie send_cookie;
+    send_cookie_lists.clear();
+    send_header.clear();
+    http2_send_header.clear();
+
+    output.clear();
+    output.shrink_to_fit();
+    sitepath.clear();
+    sendfilename.clear();
+    
+    sendfiletype = 0;
+    linktype = 0;
+    method = 0;
+    httpv = 0;
+
+    user_code_handler_call.clear();
+    flow_method.reset();
+}
+
 }// namespace http

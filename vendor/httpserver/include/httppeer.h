@@ -131,7 +131,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     unsigned int get_timeloop_count();
     void add_timeloop_count(unsigned int a = 1);
     void clsoesend();
-
+    void clear();
     bool find_host_index();
     unsigned int check_upload_limit();
 
@@ -181,8 +181,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     //std::atomic_uint time_limit  = 0;
     struct headstate_t state;
-    std::unique_ptr<websocket_t> websocket =nullptr;
-
+    
     http::obj_val session;
 
     //cookie send_cookie;

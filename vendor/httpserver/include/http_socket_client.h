@@ -60,6 +60,11 @@ namespace http
         asio::awaitable<unsigned int> async_read(unsigned char *data,unsigned int buffersize);
         asio::awaitable<unsigned int> async_read(std::string &data);
 
+        unsigned int write(unsigned char *data, unsigned int buffersize);
+        unsigned int write(std::string_view value);
+        unsigned int read(unsigned char *data,unsigned int buffersize);
+        unsigned int read(std::string &data);
+
         void run_loop();
         asio::awaitable<void> async_run_loop();
 

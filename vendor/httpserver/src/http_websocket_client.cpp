@@ -519,6 +519,157 @@ asio::awaitable<unsigned int> websocket_client::async_write(std::string_view val
 
     co_return 0;
 }
+//synchronous
+unsigned int websocket_client::write(unsigned char *data, unsigned int buffersize)
+{
+    if(iserror)
+    {
+        return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = asio::write(*sslsock, asio::buffer(data, buffersize));
+        }
+        else
+        {
+            n = asio::write(*sock, asio::buffer(data, buffersize));
+        }
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    return 0;
+}
+
+unsigned int websocket_client::write(std::string_view value)
+{
+    if(iserror)
+    {
+        return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = asio::write(*sslsock, asio::buffer(value));
+        }
+        else
+        {
+            n = asio::write(*sock, asio::buffer(value));
+        }
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+
+    return 0;
+}
+
+unsigned int websocket_client::read(unsigned char *buffer_data, unsigned int buffersize)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = sslsock->read_some(asio::buffer(buffer_data, buffersize));
+        }
+        else
+        {
+            n = sock->read_some(asio::buffer(buffer_data, buffersize));
+        }
+        socket_read_lock.clear();
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    return 0;
+}
+
+unsigned int websocket_client::read(std::string &buffer_data)
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return 0;
+    }
+
+    if(iserror)
+    {
+        socket_read_lock.clear();
+        return 0;
+    }
+    if (exptime > 0)
+    {
+        reset_timeout();
+    }
+    unsigned int n = 0;
+    try
+    {
+        if (isssl)
+        {
+            n = sslsock->read_some(asio::buffer(buffer_data));
+        }
+        else
+        {
+            n = sock->read_some(asio::buffer(buffer_data));
+        }
+        socket_read_lock.clear();
+        return n;
+    }
+    catch (std::exception &e)
+    {
+        DEBUG_LOG("Exception: %s", e.what());
+        error_msg  = e.what();
+        iserror = true;
+    }
+    socket_read_lock.clear();
+    return 0;
+}
 
 void websocket_client::close_connect()
 {
@@ -593,7 +744,7 @@ void websocket_client::run_loop()
             }
             else if(async_run_loop_fun != nullptr)
             {
-                co_spawn(strand_, [self, n]() mutable
+                asio::co_spawn(strand_, [self, n]() mutable
                  { return self->async_run_loop_fun(self, n); },
                  asio::detached);
             }

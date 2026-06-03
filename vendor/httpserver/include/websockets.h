@@ -15,7 +15,7 @@ struct websockets_api_data_t
     std::string name;
     std::string value;
 }; 
-class websockets_api
+class websockets_api: public std::enable_shared_from_this<websockets_api>
 {
   public:
     websockets_api(unsigned char t,unsigned int m, unsigned int g, unsigned char s) :state(s), durtime(t), myid(m), groupid(g){}
@@ -35,6 +35,7 @@ class websockets_api
     bool isclose = false;
     bool iserror = false;
     bool isco = false;
+    bool isloopco = false;
     unsigned char state;
     unsigned int durtime=8;
     unsigned int loop_num=1;

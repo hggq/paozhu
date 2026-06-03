@@ -125,7 +125,7 @@ void client_context::time_out_loop()
                                 {
                                     if(peer->async_dur_time_loop_fun !=nullptr)
                                     {
-                                        co_spawn(peer->strand_, [peer]() mutable
+                                        asio::co_spawn(peer->strand_, [peer]() mutable
                                         { return peer->async_dur_time_loop_fun(peer->shared_from_this()); }, asio::detached);
                                         ++iter;
                                         continue;
@@ -204,7 +204,7 @@ void client_context::time_out_loop()
                                 {
                                     if(peer->async_dur_time_loop_fun !=nullptr)
                                     {
-                                        co_spawn(peer->strand_, [peer]() mutable
+                                        asio::co_spawn(peer->strand_, [peer]() mutable
                                         { return peer->async_dur_time_loop_fun(peer->shared_from_this()); }, asio::detached);
                                         ++iter;
                                         continue;
@@ -281,7 +281,7 @@ void client_context::time_out_loop()
                                 {
                                     if(peer->async_dur_time_loop_fun !=nullptr)
                                     {
-                                        co_spawn(peer->strand_, [peer]() mutable
+                                        asio::co_spawn(peer->strand_, [peer]() mutable
                                         { return peer->async_dur_time_loop_fun(peer->shared_from_this()); }, asio::detached);
                                         ++iter;
                                         continue;
@@ -358,7 +358,7 @@ void client_context::time_out_loop()
                                 {
                                     if(peer->async_dur_time_loop_fun !=nullptr)
                                     {
-                                        co_spawn(peer->strand_, [peer]() mutable
+                                        asio::co_spawn(peer->strand_, [peer]() mutable
                                         { return peer->async_dur_time_loop_fun(peer->shared_from_this()); }, asio::detached);
                                         ++iter;
                                         continue;
@@ -459,11 +459,11 @@ void client_context::taskloop()
                 lock.unlock();
                 if (task->linktype == 0)
                 {
-                    co_spawn(*this->ioc, http_client_task(std::move(task)), asio::detached);
+                    asio::co_spawn(*this->ioc, http_client_task(std::move(task)), asio::detached);
                 }
                 else if (task->linktype == 1)
                 {
-                    co_spawn(*this->ioc, websocket_client_task(std::move(task)), asio::detached);
+                    asio::co_spawn(*this->ioc, websocket_client_task(std::move(task)), asio::detached);
                 }
             }
             else if (this->cgitasks.size() > 0)
@@ -471,7 +471,7 @@ void client_context::taskloop()
                 auto task = std::move(this->cgitasks.front());
                 this->cgitasks.pop();
                 lock.unlock();
-                co_spawn(*this->ioc, fastcgi_client_task(std::move(task)), asio::detached);
+                asio::co_spawn(*this->ioc, fastcgi_client_task(std::move(task)), asio::detached);
             }
             else
             {
