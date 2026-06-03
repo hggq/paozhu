@@ -2425,12 +2425,6 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     http2pre->stream_list.pop();
                     http2pre->steam_count += 1;
                     
-                    http2_send_queue &send_queue_obj = get_http2_send_queue();
-                    if(send_queue_obj.queue_list.size() > rate_limit_accept_wait_num.load())
-                    {
-                        send_queue_obj.fix_queue_list(rate_limit_accept_wait_num.load());
-                    }
-
 #ifndef BENCHMARK
                     {
                         log_item.clear();
@@ -3766,7 +3760,7 @@ void httpserver::websocket_loop(int fps)
                 fps = 1;
             }
 
-            if (fps % 888 == 0)
+            if (fps % 1024 == 0)
             {
                 log_item.clear();
                 log_item.append("-- loop websocket is live ");
@@ -3777,9 +3771,18 @@ void httpserver::websocket_loop(int fps)
                 lock.unlock();
             }
 
-            if (fps % 29 == 0)
+            if (fps % 320 == 0)
             {
                 watch_conn.clear_connect();
+            }
+
+            if((fps % 256) == 0)
+            {
+                http2_send_queue &send_queue_obj = get_http2_send_queue();
+                if(send_queue_obj.queue_list.size() > rate_limit_accept_wait_num.load())
+                {
+                    send_queue_obj.fix_queue_list(rate_limit_accept_wait_num.load());
+                }
             }
         }
         std::this_thread::sleep_until(m_EndFrame);
