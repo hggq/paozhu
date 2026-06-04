@@ -2073,6 +2073,11 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         dynamic_lists.push_front({name_key, std::move(value)});
 
         begin -= 1;
+        if(dynamic_lists.size() > 256)
+        {
+            error = 122;
+            return;
+        }
     }
     else
     {
