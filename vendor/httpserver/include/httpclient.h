@@ -190,8 +190,10 @@ class client : public std::enable_shared_from_this<client>
     {
         long long length  = 0;
         unsigned int code = 0;
-
+        
+        bool issse    = false;
         bool istxt    = false;
+        bool isxml    = false;
         bool isjson   = false;
         bool chunked  = false;
         bool keeplive = false;

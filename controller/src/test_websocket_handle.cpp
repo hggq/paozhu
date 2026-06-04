@@ -26,21 +26,16 @@ asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> pee
         client << " <hr> async_connect error.";
         co_return "";
     }
-    isok =co_await a->websocket_handshake();
-    if(!isok)
-    {
-        client << a->error_msg;
-        client << " <hr> websocket_handshake error.";
-        co_return "";
-    }
 
     send_content="websocket client";
-    std::string outdata;
-
-    a->make_ws_text(send_content,outdata);
-
-    unsigned int n = co_await a->async_write(outdata);
+    // std::string outdata;
+    // a->make_ws_text(send_content,outdata);
+    // unsigned int n = co_await a->async_write(outdata);
+    unsigned int n = co_await a->async_text_write(send_content);
     client << " <hr >send:"<<n;
+
+    n = co_await a->async_ws_read();
+    client << "  "<< a->recv_data.content;
     //end echo http client
     //Let the websocket client run alone in the background
 

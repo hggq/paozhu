@@ -2023,6 +2023,13 @@ void client::respcontenttypeprocess(std::string_view str)
             page.istxt = true;
         }
         break;
+    case 17:
+        if (page.file.type == "text/event-stream")
+        {
+            page.istxt = true;
+            page.issse = true;
+        }
+        break;    
     case 16:
         if (page.file.type == "application/json")
         {
@@ -2034,6 +2041,7 @@ void client::respcontenttypeprocess(std::string_view str)
         if (page.file.type == "application/xml")
         {
             page.istxt = true;
+            page.isxml = true;
         }
         break;
     case 10:
@@ -2056,6 +2064,7 @@ void client::respcontenttypeprocess(std::string_view str)
         else if (page.file.type == "text/xml")
         {
             page.istxt = true;
+            page.isxml = true;
         }
         break;
     case 7:
@@ -2123,7 +2132,11 @@ void client::responseheader(std::string_view key, std::string_view value)
                     //  page.gzip=true;
                     page.encode = 'g';
                 }
-
+                else if (value[0] == 'z')
+                {
+                    //  page.zstd=true;
+                    page.encode = 'z';
+                }
                 break;
             case 7:
                 if (value[0] == 'd')

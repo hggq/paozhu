@@ -345,8 +345,8 @@ asio::awaitable<bool> websocket_client::async_connect()
             iserror = true;
             co_return false;
         }
-    }
-
+    } 
+    isinit = co_await websocket_handshake();
     co_return isinit;
 }
 
@@ -1443,6 +1443,77 @@ void websocket_client::reset_recv_status()
     recv_data.length = 0;
     recv_data.read_length = 0;
     recv_data.content.clear();
+}
+asio::awaitable<unsigned int> websocket_client::async_text_write(std::string_view value)
+{
+    std::string outdata;
+    make_ws_text(value,outdata);
+    unsigned int n = co_await async_write(outdata);   
+    co_return n;
+}
+asio::awaitable<unsigned int> websocket_client::async_data_write(std::string_view value)
+{
+    std::string outdata;
+    make_ws_data(value,outdata);
+    unsigned int n = co_await async_write(outdata);   
+    co_return n;
+}
+
+asio::awaitable<unsigned int> websocket_client::async_ws_read()
+{
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        co_return 0;
+    }
+    reset_recv_status();
+    auto self = shared_from_this();
+    if(data == nullptr)
+    {
+        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+    }
+    for(;;)
+    {
+        if(iserror)
+        {
+            socket_read_lock.clear();
+            co_return 0;
+        }
+        if (exptime > 0)
+        {
+            reset_timeout();
+        }
+        unsigned int n = 0;
+        try
+        {
+            if (isssl)
+            {
+                n = co_await sslsock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+            }
+            else
+            {
+                n = co_await sock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+            }
+            process_data(data, n);
+
+            if(recv_data.isfinish)
+            {
+                socket_read_lock.clear();
+                co_return recv_data.opcode;
+            } 
+        }
+        catch (std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg  = e.what();
+            iserror = true;
+            socket_read_lock.clear();
+            co_return 0;
+        }
+    }
+    socket_read_lock.clear();
+    co_return 0;
 }
 
 }// namespace http

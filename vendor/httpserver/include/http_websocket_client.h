@@ -14,16 +14,14 @@ namespace http
         std::string name;
         std::string value;
     };
-    enum WS_FRAME
+    enum WS
     {
         APP    = 0x00,
-        APP_TEXT   = 0x01,
-        APP_BINARY = 0x02,
-        TEXT   = 0x81,
-        BINARY = 0x82,
-        CLOSE = 0x88,
-        PING = 0x89,
-        PONG = 0x8A
+        TEXT   = 0x01,
+        DATA = 0x02,
+        CLOSE = 0x08,
+        PING = 0x09,
+        PONG = 0x0A
     };
  
     class websocket_client : public std::enable_shared_from_this<websocket_client>
@@ -70,10 +68,17 @@ namespace http
         asio::awaitable<unsigned int> async_read(unsigned char *data,unsigned int buffersize);
         asio::awaitable<unsigned int> async_read(std::string &data);
 
+        asio::awaitable<unsigned int> async_ws_read();
+
         unsigned int write(unsigned char *data, unsigned int buffersize);
         unsigned int write(std::string_view value);
         unsigned int read(unsigned char *data,unsigned int buffersize);
         unsigned int read(std::string &data);
+
+        //asio::awaitable<unsigned int> async_text_write(unsigned char *data, unsigned int buffersize);
+        asio::awaitable<unsigned int> async_text_write(std::string_view value);
+        //asio::awaitable<unsigned int> async_data_write(unsigned char *data, unsigned int buffersize);
+        asio::awaitable<unsigned int> async_data_write(std::string_view value);
 
         void run_loop();
         asio::awaitable<void> async_run_loop();
