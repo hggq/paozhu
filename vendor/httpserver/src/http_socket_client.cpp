@@ -296,14 +296,15 @@ asio::awaitable<bool> socket_client::async_init_http_sock()
     }
     co_return true;
 }
-asio::awaitable<bool> socket_client::async_connect(std::string_view name,unsigned int time_out_num)
+
+asio::awaitable<bool> socket_client::async_raw_connect(std::string_view name,unsigned int time_out_num)
 {
     set_url(name);
     exptime = time_out_num;
-    co_return co_await async_connect();
+    co_return co_await async_raw_connect();
 }
 
-asio::awaitable<bool> socket_client::async_connect()
+asio::awaitable<bool> socket_client::async_raw_connect()
 {
     bool isinit = false;
 
@@ -311,6 +312,13 @@ asio::awaitable<bool> socket_client::async_connect()
     {
         iserror = true;
         error_msg = "url empty";
+        co_return false;
+    }
+
+    if(port == 0)
+    {
+        iserror = true;
+        error_msg = "port empty";
         co_return false;
     }
 
@@ -351,8 +359,84 @@ asio::awaitable<bool> socket_client::async_connect()
             co_return false;
         }
     }
+ 
+    co_return true;
+} 
 
-    co_return isinit;
+asio::awaitable<bool> socket_client::async_connect(std::string_view name,unsigned int time_out_num)
+{
+    set_url(name);
+    exptime = time_out_num;
+    co_return co_await async_connect();
+}
+
+asio::awaitable<bool> socket_client::async_connect()
+{
+    bool isinit = false;
+
+    if(url.size()< 5)
+    {
+        iserror = true;
+        error_msg = "url empty";
+        co_return false;
+    }
+
+    if(port == 0)
+    {
+        iserror = true;
+        error_msg = "port empty";
+        co_return false;
+    }
+
+    if (isssl)
+    {
+        isinit = co_await async_init_https_sock();
+    }
+    else
+    {
+        isinit = co_await async_init_http_sock();
+    }
+
+    if(!isinit)
+    {
+        iserror = true;
+        error_msg = "async init socket error";
+        co_return false;
+    }
+
+    if (exptime > 30)
+    {
+        exptime = 30;
+    }
+    if (exptime > 0)
+    {
+        set_timeout(exptime);
+        client_context &temp_io_context = get_client_context_obj();
+        try
+        {
+            temp_io_context.socket_timeout_lists.push_back(shared_from_this());
+            temp_io_context.timeout_condition.notify_one();
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("Exception: %s", e.what());
+            error_msg = e.what();
+            iserror = true;
+            co_return false;
+        }
+    }
+    std::string _send_content="tcp "+url;
+    _send_content.push_back(0x0A);
+    _send_content.push_back(0x0A);
+    unsigned int n = co_await async_write(_send_content);
+    if(n > 0)
+    {
+        co_return true;
+    }
+    else
+    {
+        co_return false;
+    }
 }
 
 asio::awaitable<unsigned int> socket_client::async_read(unsigned char *buffer_data, unsigned int buffersize)

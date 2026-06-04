@@ -26,9 +26,7 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
         client << " <hr> async_connect error.";
         co_return "";
     }
-    send_content="tcp mytestsocket";
-    send_content.push_back(0x0A);
-    send_content.push_back(0x0A);
+
     send_content.append("test socket client");
     client << " <hr> ";
     unsigned int n = co_await a->async_write(send_content);
