@@ -1459,7 +1459,7 @@ asio::awaitable<unsigned int> websocket_client::async_data_write(std::string_vie
     co_return n;
 }
 
-asio::awaitable<unsigned int> websocket_client::async_ws_read()
+asio::awaitable<unsigned int> websocket_client::async_text_read()
 {
     if (socket_read_lock.test_and_set()) 
     {

@@ -34,7 +34,7 @@ asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> pee
     unsigned int n = co_await a->async_text_write(send_content);
     client << " <hr >send:"<<n;
 
-    n = co_await a->async_ws_read();
+    n = co_await a->async_text_read();
     client << "  "<< a->recv_data.content;
     //end echo http client
     //Let the websocket client run alone in the background
