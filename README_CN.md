@@ -166,10 +166,10 @@ make -j8
 sudo vim /etc/hosts
 ```
 
-在hosts文件最后一行添加(如果是www.869869.com)
+在hosts文件最后一行添加(如果是www.youdomain.com)
 
 ```text
-127.0.0.1 www.869869.com
+127.0.0.1 www.youdomain.com
 ```
 
 ### 6.https测试
@@ -180,7 +180,7 @@ sudo vim /etc/hosts
 sudo ./bin/paozhu 
 ```
 
-打开浏览器，在地址栏输入`http://localhost` 或 `http://www.869869.com`
+打开浏览器，在地址栏输入`http://localhost` 或 `http://www.youdomain.com`
 
  
 

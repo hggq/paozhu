@@ -166,10 +166,10 @@ make -j8
 sudo vim /etc/hosts
 ```
 
-Add to the last line of the hosts file (if it is www.869869.com)
+Add to the last line of the hosts file (if it is www.youdomain.com)
 
 ```text
-127.0.0.1 www.869869.com
+127.0.0.1 www.youdomain.com
 ```
 
 ### 6.https test
@@ -180,7 +180,7 @@ run
 sudo ./bin/paozhu 
 ```
 
-open the browser and enter `http://localhost` or `http://www.869869.com` in the address bar
+open the browser and enter `http://localhost` or `http://www.youdomain.com` in the address bar
 
 
 <div align="center">
