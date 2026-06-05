@@ -55,8 +55,8 @@ namespace http
         asio::awaitable<bool> async_connect(std::string_view url,unsigned int time_out_num=0);
         asio::awaitable<bool> async_connect();
 
-        asio::awaitable<bool> async_raw_connect(std::string_view url,unsigned int time_out_num=0);
-        asio::awaitable<bool> async_raw_connect();
+        asio::awaitable<bool> async_tcp_connect(std::string_view url,unsigned int time_out_num=0);
+        asio::awaitable<bool> async_tcp_connect();
 
         asio::awaitable<unsigned int> async_write(unsigned char *data, unsigned int buffersize);
         asio::awaitable<unsigned int> async_write(std::string_view value);

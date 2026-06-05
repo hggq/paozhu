@@ -16,7 +16,9 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
     std::shared_ptr<http::socket_client> a = std::make_shared<http::socket_client>();
 
     std::string send_content;
-    bool isok = co_await a->async_connect("http://127.0.0.1:80/mytestsocket",30);
+    //auto send header info "tcp [mytestsocket]0A0A", For normal connections, please use async_connect
+    bool isok = co_await a->async_tcp_connect("http://127.0.0.1:80/mytestsocket",30);
+    //bool isok = co_await a->async_connect("http://127.0.0.1:80/mytestsocket",30);
     // a->set_url("127.0.0.1/mytestsocket");
     // a->set_port(80);
     //bool isok = co_await a->async_connect();

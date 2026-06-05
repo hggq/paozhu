@@ -297,14 +297,14 @@ asio::awaitable<bool> socket_client::async_init_http_sock()
     co_return true;
 }
 
-asio::awaitable<bool> socket_client::async_raw_connect(std::string_view name,unsigned int time_out_num)
+asio::awaitable<bool> socket_client::async_connect(std::string_view name,unsigned int time_out_num)
 {
     set_url(name);
     exptime = time_out_num;
-    co_return co_await async_raw_connect();
+    co_return co_await async_connect();
 }
 
-asio::awaitable<bool> socket_client::async_raw_connect()
+asio::awaitable<bool> socket_client::async_connect()
 {
     bool isinit = false;
 
@@ -363,14 +363,14 @@ asio::awaitable<bool> socket_client::async_raw_connect()
     co_return true;
 } 
 
-asio::awaitable<bool> socket_client::async_connect(std::string_view name,unsigned int time_out_num)
+asio::awaitable<bool> socket_client::async_tcp_connect(std::string_view name,unsigned int time_out_num)
 {
     set_url(name);
     exptime = time_out_num;
-    co_return co_await async_connect();
+    co_return co_await async_tcp_connect();
 }
 
-asio::awaitable<bool> socket_client::async_connect()
+asio::awaitable<bool> socket_client::async_tcp_connect()
 {
     bool isinit = false;
 
