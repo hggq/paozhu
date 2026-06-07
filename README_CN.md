@@ -404,6 +404,351 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 }
 ```
 
+#### WebSocket Server 和 Client
+
+实例文件在 `websockets/loopwebsockets.hpp` 服务器端演示
+
+```C++
+#include <iostream>
+#include <memory>
+#include <string_view>
+
+#include "orm.h"
+#include "websockets.h"
+
+namespace http
+{
+
+class loopwebsockets : public websockets_api
+{
+  public:
+
+    loopwebsockets(unsigned int m, unsigned int g) : websockets_api(8, m, g, 0) {}
+    ~loopwebsockets() { std::cout << "~loopwebsockets" << std::endl; }
+
+  public:
+    void onopen() override
+    { 
+        isco=true;
+        loop_num = 8; 
+        std::cout << "onopen" << std::endl; 
+    }
+    void onclose() override
+    {
+        isclose = true;
+        std::cout << "onclose" << std::endl; 
+    }
+    void onpong() override {}
+    void run_loop() override
+    {
+        if (session_sock)
+        {
+            std::cout << "timeloop:" << std::endl;
+            std::string aa = "test run_loop";
+            std::string outhello;
+            ws_parse->makeWSText(aa, outhello);
+            session_sock->send_data(outhello);
+
+            //   peer->send(aa);
+            if (loop_num == 4)
+            {
+                loop_num = 0;
+                return;
+            }
+            loop_num--;
+        }
+        else
+        {
+            isclose = true;
+            loop_num = 0;
+            std::cout << "session_sock is die!" << std::endl;
+        }
+    }
+    asio::awaitable<void> async_run_loop() override
+    {
+        if (session_sock)
+        {
+            std::cout << "async timeloop:" << std::endl;
+            std::string aa = "test async_run_loop";
+            std::string outhello;
+            ws_parse->makeWSText(aa, outhello);
+            session_sock->send_data(outhello);
+
+            //   peer->send(aa);
+            if (loop_num == 4)
+            {
+                loop_num = 0;
+                co_return;
+            }
+            loop_num--;
+        }
+        else
+        {
+            isclose = true;
+            loop_num = 0;
+            std::cout << "session_sock is die!" << std::endl;
+        }
+        co_return;
+    }
+    void onfiles(std::string_view filename) override { std::cout << "--------onfiles:--------" << filename << std::endl; }
+    asio::awaitable<void> async_onfiles(std::string_view filename) override
+    { 
+        std::cout << "--------onfiles:--------" << filename << std::endl;
+        co_return; 
+    }
+
+    asio::awaitable<void> async_onmessage(std::string_view data) override 
+    {
+        std::string outhello;
+        ws_parse->makeWSText(data, outhello);
+        co_await session_sock->co_send_writer(outhello);
+        co_return;
+    }
+    void onmessage(std::string_view data) override
+    {
+        if (session_sock)
+        {
+            std::string outhello;
+            ws_parse->makeWSText(data, outhello);
+            session_sock->send_data(outhello);
+        }
+    }
+ 
+};
+
+}// namespace http
+```
+
+实例文件在 `controller/src/test_websocket_handle.cpp` 客户端演示  
+
+```C++
+#include <chrono>
+#include <thread>
+#include "httppeer.h"
+#include "test_websocket_handle.h"
+#include "http_websocket_client.h"
+
+
+namespace http
+{
+//@urlpath(null,test_websocket_client)
+asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << " hello world! this is a test test_socket_client function. ";
+
+    std::shared_ptr<http::websocket_client> a = std::make_shared<http::websocket_client>();
+
+    std::string send_content;
+    bool isok = co_await a->async_connect("ws://127.0.0.1:80/wstest");
+    // a->set_url("127.0.0.1/wstest");
+    // a->set_port(80);
+    //bool isok = co_await a->async_connect();
+    
+    if(!isok)
+    {
+        client << " <hr> async_connect error.";
+        co_return "";
+    }
+
+    send_content="websocket client";
+    // std::string outdata;
+    // a->make_ws_text(send_content,outdata);
+    // unsigned int n = co_await a->async_write(outdata);
+    unsigned int n = co_await a->async_text_write(send_content);
+    client << " <hr >send:"<<n;
+
+    n = co_await a->async_text_read();
+    client << "  "<< a->recv_data.content;
+    //end echo http client
+    //Let the websocket client run alone in the background
+
+    a->async_dur_time_loop_fun = [](std::shared_ptr<websocket_client> b)-> asio::awaitable<void> {
+                            std::string send_content="websocket client loop";
+                            std::string outdata;
+                            b->make_ws_text(send_content,outdata);
+                            unsigned int n = co_await b->async_write(outdata);
+                            if(n == outdata.size())
+                            {
+                                
+                            }
+                            co_return;
+                         };
+
+    //read loop                     
+    a->async_recv_finish_fun = [](std::shared_ptr<websocket_client> b)-> asio::awaitable<void> {
+                            if(b->recv_data.length > 0)
+                            {
+
+                            }
+                            co_return;
+                         };                     
+    a->async_run_loop_fun = [](std::shared_ptr<websocket_client> b, unsigned int n)-> asio::awaitable<void> {
+                            
+                            b->process_data(b->data, n);
+
+                            if(b->recv_data.isfinish)
+                            {
+                                if(b->async_recv_finish_fun != nullptr)
+                                {
+                                    co_await b->async_recv_finish_fun(b);
+                                }
+                                b->reset_recv_status();
+                            }
+
+                            co_return;
+                        };
+    
+    co_spawn(a->strand_, [a]() mutable
+                 { return a->async_run_loop(); },
+                 asio::detached);
+    //if not set time out, must add to client task loop             
+    a->add_client_task_loop();             
+    co_return "";
+}
+
+ 
+
+}//namespace http
+```  
+
+#### Socket Server 和 Client
+
+实例文件在 `controller/src/sockets/my_test_socket.hpp` Socket 服务器端演示  
+
+```C++
+#include <iostream>
+#include <memory>
+#include <string_view>
+
+#include "orm.h"
+#include "httppeer.h"
+#include "http_socket.h"
+#include "terminal_color.h"
+ 
+namespace http
+{
+
+class my_test_socket : public socket_api
+{
+  public:
+
+    my_test_socket(unsigned int m, unsigned int g) : socket_api(7, m, g, 0) {}
+    ~my_test_socket() { DEBUG_LOG(" ~my_test_socket "); }
+
+  public:
+    void on_open() override { DEBUG_LOG(" onopen "); }
+    void on_close() override { DEBUG_LOG(" onclose "); }
+    asio::awaitable<void> async_on_message(const unsigned char *buffer, unsigned int readoffset, unsigned int readnum) override
+    {
+      for(; readoffset < readnum; readoffset++)
+      {
+          content.push_back(buffer[readoffset]);
+      }
+      co_await session_sock->co_send_writer(content);
+      content.clear();
+      co_return;
+    }
+    void run_loop() override
+    {
+
+    }
+    asio::awaitable<void> async_run_loop() override
+    {
+      if(session_sock)
+      {
+        content="server socket loop send";
+        co_await session_sock->co_send_writer(content);
+        session_sock->time_limit.store(timeid());
+      }
+      
+      co_return;
+    }
+};
+
+}// namespace http
+
+```  
+
+实例文件在 `controller/src/test_socket_handle.cpp` Socket 客户端演示  
+
+```C++
+#include <chrono>
+#include <thread>
+#include "httppeer.h"
+#include "test_socket_handle.h"
+#include "http_socket_client.h"
+
+
+namespace http
+{
+//@urlpath(null,test_socket_client)
+asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << " hello world! this is a test test_socket_client function. ";
+
+    std::shared_ptr<http::socket_client> a = std::make_shared<http::socket_client>();
+
+    std::string send_content;
+    //auto send header info "tcp [mytestsocket]0A0A", For normal connections, please use async_connect
+    bool isok = co_await a->async_tcp_connect("http://127.0.0.1:80/mytestsocket",30);
+    //bool isok = co_await a->async_connect("http://127.0.0.1:80/mytestsocket",30);
+    // a->set_url("127.0.0.1/mytestsocket");
+    // a->set_port(80);
+    //bool isok = co_await a->async_connect();
+    
+    if(!isok)
+    {
+        client << " <hr> async_connect error.";
+        co_return "";
+    }
+
+    send_content.append("test socket client");
+    client << " <hr> ";
+    unsigned int n = co_await a->async_write(send_content);
+    send_content.clear();
+ 
+    unsigned char recv_data[512];
+    n = co_await a->async_read(recv_data,512);
+ 
+    recv_data[511]=0x00;
+    send_content.clear();
+    send_content.append((char *)recv_data,0,n);
+    client << send_content;
+
+    a->durtime = 12;
+    a->async_dur_time_loop_fun = [](std::shared_ptr<http::socket_client> b)-> asio::awaitable<void> 
+                {
+                        std::string send_content="time client loop mytestsocket";
+                        co_await b->async_write(send_content);
+                        std::cout<<"~~~~~~~~~~~~~~~~~~~"<<std::endl;
+                        co_return;
+                 };
+
+    a->async_run_loop_fun = [](std::shared_ptr<http::socket_client> b,unsigned int readnum)-> asio::awaitable<void> 
+                {
+                        for(unsigned int i=0; i < readnum; i++)
+                        {
+                            std::cout<<b->data[i];
+                        }
+                        std::cout<<std::endl;
+                        co_return;
+                 };
+    co_spawn(a->strand_, [a]() mutable
+                 { return a->async_run_loop(); },
+                 asio::detached);
+    co_return "";
+}
+
+ 
+
+}//namespace http
+
+
+```  
+
+
 ### 9.相关教程
 
 [Paozhu快速入门](https://hggq.github.io/paozhudocs/documentation.html)
