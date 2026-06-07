@@ -20,6 +20,7 @@ namespace http
     public:
         socket_api(unsigned int t, unsigned int m, unsigned int g, unsigned char s) : state(s), timeloop_num(t), myid(m), groupid(g){}
         virtual void on_open()                    = 0;
+        virtual asio::awaitable<void> async_on_open()= 0;
         virtual void on_close()                    = 0;
         virtual asio::awaitable<void> async_on_message(const unsigned char *buffer, unsigned int readoffset, unsigned int readnum)
         {
@@ -320,6 +321,7 @@ namespace http
         bool isbegin = false;
         bool isbody = false;
         bool isfinish = false;
+        bool isco = false;
         bool isloopco = false;
         unsigned char state;
         unsigned char cur_state;

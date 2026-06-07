@@ -22,6 +22,15 @@ class loopwebsockets : public websockets_api
         loop_num = 8; 
         std::cout << "onopen" << std::endl; 
     }
+
+    asio::awaitable<void> async_onopen() override
+    { 
+        isco=true;
+        loop_num = 8; 
+        std::cout << "async_onopen" << std::endl; 
+        co_return;
+    }
+
     void onclose() override
     {
         isclose = true;

@@ -2532,7 +2532,15 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         websockets->session_sock = peer_session;
         websockets->url = peer->url;
         websockets->ws_parse = ws_parse_obj;
-        websockets->onopen();
+        
+        if(websockets->isco)
+        {
+            co_await websockets->async_onopen();
+        }
+        else 
+        {
+            websockets->onopen();
+        }
 
         ws_parse_obj->isopen      = true;
         ws_parse_obj->contentlength = 0;
@@ -2880,11 +2888,26 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
             peer_session->http2_ring_queue = cc.get_cache_ptr();
             asio::co_spawn(peer_session->strand_, socket_ring_client_server(peer_session), asio::detached);
 
+            if(sock_temp->isco)
+            {
+                co_await sock_temp->async_on_open();
+            }
+            else
+            {
+                sock_temp->on_open();
+            }
             //asio::co_spawn(peer_session->strand_,[sock_temp,peer_session,readnum]() mutable { return sock_temp->async_process(peer_session->_cache_data, readnum); }, asio::detached);
             //We need to first handle the framework to agree on the TCP protocol data flow
             co_await sock_temp->async_process(peer_session->_cache_data, offsetnum, readnum);
             log_item.clear();
- 
+
+            if(sock_temp->isclose)
+            {
+                peer_session->isclose = true;
+                peer_session->waituphttp2();
+                co_return 0;
+            }
+
             for(;;)
             {
                 offsetnum = 0;

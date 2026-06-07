@@ -19,6 +19,7 @@ class my_test_socket : public socket_api
 
   public:
     void on_open() override { DEBUG_LOG(" onopen "); }
+    asio::awaitable<void> async_on_open() override { DEBUG_LOG(" async_on_open "); co_return; }
     void on_close() override { DEBUG_LOG(" onclose "); }
     asio::awaitable<void> async_on_message(const unsigned char *buffer, unsigned int readoffset, unsigned int readnum) override
     {
