@@ -4,6 +4,7 @@
 #include <cstring>
 #include "version.h"
 #include "terminal_color.h"
+#include "atomic_count.h"
 #include "sendqueue.h"
 #include "http_socket.h"
 #include "client_session.h"
@@ -2219,6 +2220,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                 bool is_error = co_await peer_session->read_some(readnum, log_item);
                 if (is_error)
                 {
+#ifndef BENCHMARK                    
                     log_item.push_back(0x20);
                     log_item.append(peer_session->client_ip);
                     log_item.push_back(0x20);
@@ -2228,7 +2230,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                     std::unique_lock<std::mutex> lock(log_mutex);
                     error_loglist.emplace_back(log_item);
                     lock.unlock();
-                
+#endif
                     peer_session->stop();
                     co_return 3;
                 }
@@ -2366,6 +2368,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 bool is_error = co_await peer_session->read_some(readnum, log_item);
                 if (is_error)
                 {
+#ifndef BENCHMARK                    
                     log_item.push_back(0x20);
                     log_item.append(peer_session->client_ip);
                     log_item.push_back(0x20);
@@ -2375,6 +2378,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     std::unique_lock<std::mutex> lock(log_mutex);
                     error_loglist.emplace_back(log_item);
                     lock.unlock();
+#endif                    
                     break;
                 }
                 offsetnum = 0;
@@ -2453,14 +2457,14 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 break;
             }
 
-            //#ifndef BENCHMARK
+#ifndef BENCHMARK
             if (http2pre->steam_count > 512)
             {
                 DEBUG_LOG("client http2 > 2024 stream close ");
                 co_await peer_session->co_send_goway();
                 break;
             }
-            //#endif
+#endif
             if (http2pre->need_wakeup_send_data)
             {
                 DEBUG_LOG("http2 setting need_wakeup_send_data");
@@ -2586,6 +2590,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
             bool is_error = co_await peer_session->read_some(readnum, log_item);
             if (is_error)
             {
+#ifndef BENCHMARK
                 log_item.push_back(0x20);
                 log_item.append(peer_session->client_ip);
                 log_item.push_back(0x20);
@@ -2595,7 +2600,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 std::unique_lock<std::mutex> lock(log_mutex);
                 error_loglist.emplace_back(log_item);
                 lock.unlock();
-
+#endif
                 //save error log
                 peer_session->stop();
                 peer_session->waituphttp2();
@@ -2696,6 +2701,7 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
                 bool is_error = co_await peer_session->read_some(readnum, log_item);
                 if (is_error)
                 {
+#ifndef BENCHMARK                    
                     log_item.push_back(0x20);
                     log_item.append(peer_session->client_ip);
                     log_item.push_back(0x20);
@@ -2705,6 +2711,7 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
                     std::unique_lock<std::mutex> lock(log_mutex);
                     error_loglist.emplace_back(log_item);
                     lock.unlock();
+#endif                    
                     peer_session->stop();
                     co_return 3;
                 }
@@ -2983,12 +2990,15 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
         {
             co_return;
         }
-
+#ifndef BENCHMARK
+        atomic_count live_count_guard(live_link_count); 
+#endif
         unsigned int readnum = 0, client_type_num = 0;
 
         bool is_error = co_await peer_session->read_first(readnum);
         if (is_error)
         {
+#ifndef BENCHMARK            
             std::string log_item;
             log_item.push_back(0x20);
             log_item.append(peer_session->client_ip);
@@ -3008,18 +3018,9 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             std::unique_lock<std::mutex> lock(log_mutex);
             error_loglist.emplace_back(log_item);
             lock.unlock();
-
+#endif
             co_return;
         }
-
-#ifndef BENCHMARK
-        if (has_save_link_count > rate_limit_new_wait_num)
-        {
-            asio::steady_timer timer(co_await asio::this_coro::executor);
-            timer.expires_after(std::chrono::seconds(rand_range(rate_limit_new_wait_time_down.load(), rate_limit_new_wait_time_up.load())));
-            co_await timer.async_wait(asio::use_awaitable);
-        }
-#endif
 
         if(readnum > 6)
         {
@@ -3035,6 +3036,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     bool is_error = co_await peer_session->read_first(readnum);
                     if (is_error)
                     {
+#ifndef BENCHMARK
                         std::string log_item;
                         log_item.push_back(0x20);
                         log_item.append(peer_session->client_ip);
@@ -3054,7 +3056,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                         std::unique_lock<std::mutex> lock(log_mutex);
                         error_loglist.emplace_back(log_item);
                         lock.unlock();
-
+#endif
                         co_return;
                     }
                     if (readnum < 24)
@@ -4068,7 +4070,7 @@ void httpserver::listeners()
                 has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
 
                 //This 500 should be saved in the server.conf file
-                if (has_save_link_count > rate_limit_accept_wait_num.load())
+                if (has_save_link_count > rate_limit_accept_wait_num.load() && live_link_count.load() > rate_limit_accept_wait_num.load())
                 {
                     logtemp = "https rate limiting b:";
                     logtemp.append(std::to_string(time_num_count[time_head]));
@@ -4076,6 +4078,8 @@ void httpserver::listeners()
                     logtemp.append(std::to_string(time_num_count[time_tail]));
                     logtemp.append(" has:");
                     logtemp.append(std::to_string(has_save_link_count));
+                    logtemp.append(" L:");
+                    logtemp.append(std::to_string(live_link_count.load()));
                     logtemp.append(" rate:");
                     logtemp.append(std::to_string(rate_limit_accept_wait_num.load()));
                     logtemp.append(" time:");
@@ -4089,6 +4093,30 @@ void httpserver::listeners()
                     lock.unlock();
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                }
+                else if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
+                {
+                    logtemp = "https rate limiting b:";
+                    logtemp.append(std::to_string(time_num_count[time_head]));
+                    logtemp.append(" e:");
+                    logtemp.append(std::to_string(time_num_count[time_tail]));
+                    logtemp.append(" has:");
+                    logtemp.append(std::to_string(has_save_link_count));
+                    logtemp.append(" L:");
+                    logtemp.append(std::to_string(live_link_count.load()));
+                    logtemp.append(" rate:");
+                    logtemp.append(std::to_string(rate_limit_new_wait_num.load()));
+                    logtemp.append(" time:");
+                    logtemp.append(std::to_string(rate_limit_accept_time.load()));
+                    logtemp.append(" ");
+                    logtemp.append(peer_session->client_ip);
+                    logtemp.append("\n");
+
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back(logtemp);
+                    lock.unlock();
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/3));
                 }
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
@@ -4263,7 +4291,7 @@ void httpserver::listener()
                 has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
 
                 //This 500 should be saved in the server.conf file
-                if (has_save_link_count > rate_limit_accept_wait_num.load())
+                if (has_save_link_count > rate_limit_accept_wait_num.load() && live_link_count.load() > rate_limit_accept_wait_num.load())
                 {
                     logtemp = "http rate limiting b:";
                     logtemp.append(std::to_string(time_num_count[time_head]));
@@ -4271,6 +4299,8 @@ void httpserver::listener()
                     logtemp.append(std::to_string(time_num_count[time_tail]));
                     logtemp.append(" has:");
                     logtemp.append(std::to_string(has_save_link_count));
+                    logtemp.append(" L:");
+                    logtemp.append(std::to_string(live_link_count.load()));
                     logtemp.append(" rate:");
                     logtemp.append(std::to_string(rate_limit_accept_wait_num.load()));
                     logtemp.append(" time:");
@@ -4284,6 +4314,30 @@ void httpserver::listener()
                     lock.unlock();
 
                     std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                }
+                else if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
+                {
+                    logtemp = "http rate limiting b:";
+                    logtemp.append(std::to_string(time_num_count[time_head]));
+                    logtemp.append(" e:");
+                    logtemp.append(std::to_string(time_num_count[time_tail]));
+                    logtemp.append(" has:");
+                    logtemp.append(std::to_string(has_save_link_count));
+                    logtemp.append(" L:");
+                    logtemp.append(std::to_string(live_link_count.load()));
+                    logtemp.append(" rate:");
+                    logtemp.append(std::to_string(rate_limit_new_wait_num.load()));
+                    logtemp.append(" time:");
+                    logtemp.append(std::to_string(rate_limit_accept_time.load()));
+                    logtemp.append(" ");
+                    logtemp.append(peer_session->client_ip);
+                    logtemp.append("\n");
+
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back(logtemp);
+                    lock.unlock();
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/3));
                 }
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
@@ -5160,6 +5214,9 @@ void httpserver::httpwatch()
                 http2_send_queue &send_queue_obj = get_http2_send_queue();
                 error_msg_loop.append(" C:");
                 error_msg_loop.append(std::to_string(send_queue_obj.queue_list.size()));
+                error_msg_loop.append(" L:");
+                error_msg_loop.append(std::to_string(live_link_count.load()));
+                
 
                 error_msg_loop.append(" --\n");
                 std::unique_lock<std::mutex> loglock(log_mutex);

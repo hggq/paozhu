@@ -192,6 +192,7 @@ class httpserver
     std::atomic_uint has_save_link_count = 0;
 
     std::atomic_uint total_count = 0;
+    std::atomic_uint live_link_count = 0;
 
     std::atomic_uint total_http2_count = 0;
     std::atomic_uint total_http1_count = 0;
