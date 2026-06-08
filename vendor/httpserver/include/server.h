@@ -189,8 +189,6 @@ class httpserver
     bool istraffic               = false;
     bool hard_kill_old_link = false;
 
-    std::atomic_uint has_save_link_count = 0;
-
     std::atomic_uint total_count = 0;
     std::atomic_uint live_link_count = 0;
 

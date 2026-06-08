@@ -3971,6 +3971,7 @@ void httpserver::listeners()
     unsigned int time_record[60];
     unsigned int time_head = 0;
     unsigned int time_tail = 0;
+    unsigned int has_save_link_count = 0;
 
     std::memset(time_num_count, 0, sizeof(time_num_count));
     std::memset(time_record, 0, sizeof(time_record));
@@ -4092,7 +4093,15 @@ void httpserver::listeners()
                     error_loglist.emplace_back(logtemp);
                     lock.unlock();
 
-                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                    has_save_link_count = has_save_link_count * 0.66;
+                    if(has_save_link_count > rate_limit_accept_wait_num.load())
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()*2));
+                    }
+                    else
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                    }
                 }
                 else if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
                 {
@@ -4116,7 +4125,7 @@ void httpserver::listeners()
                     error_loglist.emplace_back(logtemp);
                     lock.unlock();
 
-                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/3));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/10));
                 }
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
@@ -4192,6 +4201,7 @@ void httpserver::listener()
     unsigned int time_record[60];
     unsigned int time_head = 0;
     unsigned int time_tail = 0;
+    unsigned int has_save_link_count = 0;
 
     std::memset(time_num_count, 0, sizeof(time_num_count));
     std::memset(time_record, 0, sizeof(time_record));
@@ -4313,7 +4323,15 @@ void httpserver::listener()
                     error_loglist.emplace_back(logtemp);
                     lock.unlock();
 
-                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                    has_save_link_count = has_save_link_count * 0.66;
+                    if(has_save_link_count > rate_limit_accept_wait_num.load())
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()*2));
+                    }
+                    else
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                    }
                 }
                 else if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
                 {
@@ -4337,7 +4355,7 @@ void httpserver::listener()
                     error_loglist.emplace_back(logtemp);
                     lock.unlock();
 
-                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/3));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/10));
                 }
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
