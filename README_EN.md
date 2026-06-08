@@ -40,6 +40,7 @@ Discussing the joy of C++ web development with community developers.
 ✅22. Built-in WeChat Mini Program payment function  
 ✅23. Supports Socket server and client, supports Socket SSL connection  
 ✅24. Supports RPC server and client, uses HTTP registered URL functions  
+✅25. Traffic limiting, with a two-stage limit based on a 60-second moving average of traffic  
 
 
 ### 2.Runtime environment
