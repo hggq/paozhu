@@ -46,10 +46,10 @@ class websocketparse
 
     void parsedata(unsigned char *inputdata, unsigned int buffersize);
     // 封装 WebSocket 协议的数据，服务器-->客户端
-    int makeWSData(char *msg, int msgLen, std::string &outBuf);
-    int makeWSText(char *msg, int msgLen, std::string &outBuf);
-    int makeWSData(std::string_view, std::string &outBuf);
-    int makeWSText(std::string_view, std::string &outBuf);
+    int make_ws_data(char *msg, int msgLen, std::string &outBuf);
+    int make_ws_text(char *msg, int msgLen, std::string &outBuf);
+    int make_ws_data(std::string_view, std::string &outBuf);
+    int make_ws_text(std::string_view, std::string &outBuf);
     // 封装 WebSocket 协议的数据头（二进制数据）
     static int makeWSHeader(int len, std::string &header, unsigned char);
     std::string getWebsocketkey();

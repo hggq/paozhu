@@ -265,24 +265,18 @@ std::string websocketparse::makePing()
     reping[5] = 'g';
     return reping;
 }
-int websocketparse::makeWSData(char *msg, int msgLen, std::string &outBuf)
+int websocketparse::make_ws_data(char *msg, int msgLen, std::string &outBuf)
 {
-    // std::string header;
     makeWSHeader(msgLen, outBuf, 0x02);
-    // outBuf.insert(outBuf.begin(), header.begin(), header.end());
-    // outBuf.insert(outBuf.end(), msg, msg+msgLen);
     for (int i = 0; i < msgLen; i++)
     {
         outBuf.push_back(msg[i]);
     }
     return 0;
 }
-int websocketparse::makeWSText(char *msg, int msgLen, std::string &outBuf)
+int websocketparse::make_ws_text(char *msg, int msgLen, std::string &outBuf)
 {
-    // std::string header;
     makeWSHeader(msgLen, outBuf, 0x01);
-    // outBuf.insert(outBuf.begin(), header.begin(), header.end());
-    // outBuf.insert(outBuf.end(), msg, msg+msgLen);
     for (int i = 0; i < msgLen; i++)
     {
         outBuf.push_back(msg[i]);
@@ -290,7 +284,7 @@ int websocketparse::makeWSText(char *msg, int msgLen, std::string &outBuf)
     return 0;
 }
 
-int websocketparse::makeWSData(std::string_view msg, std::string &outBuf)
+int websocketparse::make_ws_data(std::string_view msg, std::string &outBuf)
 {
     makeWSHeader(msg.length(), outBuf, 0x02);
     for (unsigned int i = 0; i < msg.length(); i++)
@@ -299,7 +293,7 @@ int websocketparse::makeWSData(std::string_view msg, std::string &outBuf)
     }
     return 0;
 }
-int websocketparse::makeWSText(std::string_view msg, std::string &outBuf)
+int websocketparse::make_ws_text(std::string_view msg, std::string &outBuf)
 {
     makeWSHeader(msg.length(), outBuf, 0x01);
     for (unsigned int i = 0; i < msg.length(); i++)

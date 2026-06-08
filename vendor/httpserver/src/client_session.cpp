@@ -195,46 +195,47 @@ asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
 
 std::shared_ptr<client_session> client_session::get_ptr() { return shared_from_this(); }
 
-bool client_session::send_data(const std::string &msg)
+unsigned int client_session::send_writer(const std::string &msg)
 {
     if (isclose)
     {
-        return false;
+        return 0;
     }
     try
     {
+        unsigned int n = 0;
         if (isssl)
         {
             if (sslsocket->lowest_layer().is_open())
             {
-                asio::write(*sslsocket, asio::buffer(msg));
+               n = asio::write(*sslsocket, asio::buffer(msg));
             }
             else
             {
                 isclose = true;
-                return false;
+                return 0;
             }
         }
         else
         {
             if (socket->is_open())
             {
-                asio::write(*socket, asio::buffer(msg));
+               n = asio::write(*socket, asio::buffer(msg));
             }
             else
             {
                 isclose = true;
-                return false;
+                return 0;
             }
         }
-        return true;
+        return n;
     }
     catch (std::exception &)
     {
         isclose = true;
         iserror = true;
         cancel();
-        return false;
+        return 0;
     }
 }
 bool client_session::isopensocket()
@@ -541,45 +542,46 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
     http2_ring_queue->push(msg);
 }
 
-bool client_session::send_data(const unsigned char *buffer, unsigned int buffersize)
+unsigned int client_session::send_writer(const unsigned char *buffer, unsigned int buffersize)
 {
     if (isclose)
     {
-        return false;
+        return 0;
     }
 
     try
     {
+        unsigned int n = 0;
         if (isssl)
         {
             if (sslsocket->lowest_layer().is_open())
             {
-                asio::write(*sslsocket, asio::buffer(buffer, buffersize));
+               n = asio::write(*sslsocket, asio::buffer(buffer, buffersize));
             }
             else
             {
-                return false;
+                return 0;
             }
         }
         else
         {
             if (socket->is_open())
             {
-                asio::write(*socket, asio::buffer(buffer, buffersize));
+               n =  asio::write(*socket, asio::buffer(buffer, buffersize));
             }
             else
             {
-                return false;
+                return 0;
             }
         }
-        return true;
+        return n;
     }
     catch (std::exception &)
     {
         isclose = true;
         iserror = true;
         cancel();
-        return false;
+        return 0;
     }
 }
 
@@ -629,24 +631,25 @@ void client_session::waituphttp2()
         DEBUG_LOG("peer_session user_code_handler_call error");
     }
 }
-asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer, unsigned int buffersize)
+asio::awaitable<unsigned int> client_session::co_send_writer(const unsigned char *buffer, unsigned int buffersize)
 {
     auto self = shared_from_this();
     if (isclose)
     {
-        co_return;
+        co_return 0;
     }
     try
     {
         if (buffersize == 0)
         {
-            co_return;
+            co_return 0;
         }
+        unsigned int n = 0;
         if (isssl)
         {
             if (sslsocket->lowest_layer().is_open())
             {
-                co_await asio::async_write(*sslsocket, asio::buffer(buffer, buffersize), asio::use_awaitable);
+               n =  co_await asio::async_write(*sslsocket, asio::buffer(buffer, buffersize), asio::use_awaitable);
             }
             else
             {
@@ -657,7 +660,7 @@ asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer
         {
             if(socket->is_open())
             {
-                co_await asio::async_write(*socket, asio::buffer(buffer, buffersize), asio::use_awaitable);
+               n =  co_await asio::async_write(*socket, asio::buffer(buffer, buffersize), asio::use_awaitable);
             }
             else
             {
@@ -665,34 +668,35 @@ asio::awaitable<void> client_session::co_send_writer(const unsigned char *buffer
             }
             
         }
+        co_return n;
     }
     catch (...)
     {
         isclose = true;
         iserror = true;
     }
-    co_return;
+    co_return 0;
 }
 
-asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
+asio::awaitable<unsigned int> client_session::co_send_writer(const std::string &msg)
 {
     auto self = shared_from_this(); 
     if (isclose)
     {
-        co_return;
+        co_return 0;
     }
     try
     {
         if (msg.size() == 0)
         {
-            co_return;
+            co_return 0;
         }
-
+        unsigned int n = 0;
         if (isssl)
         {
             if (sslsocket->lowest_layer().is_open())
             {
-                co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
+               n = co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
             }
             else
             {
@@ -703,13 +707,14 @@ asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
         {
             if(socket->is_open())
             {
-                co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
+               n = co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
             }
             else
             {
                 isclose = true;
             }
         }
+        co_return n;
     }
     catch (...)
     {
@@ -717,7 +722,7 @@ asio::awaitable<void> client_session::co_send_writer(const std::string &msg)
         iserror = true;
         cancel();
     }
-    co_return;
+    co_return 0;
 }
 
 void client_session::cancel()

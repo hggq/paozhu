@@ -55,6 +55,12 @@ void httpparse::setpeer(std::shared_ptr<httppeer> hpeer) { peer = hpeer->get_ptr
 unsigned long long httpparse::header_valuetoint()
 {
     unsigned long long temp = 0;
+
+    if(header_value.size() > 12)
+    {
+        error = 400;
+        return 0;
+    }
     for (unsigned int qi = 0; qi < header_value.size(); qi++)
     {
         if (header_value[qi] < 0x3A && header_value[qi] > 0x2F)
@@ -1637,6 +1643,11 @@ void httpparse::getifnonematch()
 {
     unsigned int i = 0;
     peer->etag.clear();
+    if (header_value.size() < 2)
+    {
+        error = 414;
+        return;
+    }
     if (header_value[i] == 'W' || header_value[i] == 'w')
     {
         if (header_value[i + 1] == 0x2F)
@@ -1727,6 +1738,11 @@ void httpparse::getupgrade()
 }
 void httpparse::getconnection()
 {
+    if (header_value.size() < 2)
+    {
+        error = 414;
+        return;
+    }
     if (header_value[0] == 'K' || header_value[0] == 'k')
     {
         if (header_value[1] == 'e' || header_value[1] == 'E')
@@ -2381,7 +2397,7 @@ void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buff
             headerstep    = 0;
             headendhitnum = 0;
 
-            if (buffer[i] == 0x2D && buffer[i + 1] == 0x2D)
+            if ((i+1) < buffersize && buffer[i] == 0x2D && buffer[i + 1] == 0x2D)
             {
                 headerfinish = 2;
                 i += 2;
@@ -3188,7 +3204,7 @@ void httpparse::readformraw(const unsigned char *buffer, unsigned int buffersize
     {
         unsigned int tempnum = buffersize - i;
         fwrite(&buffer[i], tempnum, 1, uprawfile.get());
-        upfile->size = tempnum;
+        upfile->size += tempnum;
     }
     if (upfile == nullptr)
     {

@@ -115,7 +115,7 @@ void httppeer::send(const std::string &a)
     }
     if (socket_session)
     {
-        socket_session->send_data(a);
+        socket_session->send_writer(a);
     }
 }
 void httppeer::flush_out()

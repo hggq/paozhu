@@ -73,8 +73,8 @@ class client_session : public std::enable_shared_from_this<client_session>
   public:
     client_session(asio::io_context &);
     ~client_session();
-    bool send_data(const std::string &msg);
-    bool send_data(const unsigned char *, unsigned int);
+    unsigned int send_writer(const std::string &msg);
+    unsigned int send_writer(const unsigned char *, unsigned int);
 
     bool isopensocket();
     std::shared_ptr<client_session> get_ptr();
@@ -107,8 +107,8 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<std::string> async_stop();
     asio::awaitable<void> co_send_goway();
 
-    asio::awaitable<void> co_send_writer(const std::string &msg);
-    asio::awaitable<void> co_send_writer(const unsigned char *, unsigned int);
+    asio::awaitable<unsigned int> co_send_writer(const std::string &msg);
+    asio::awaitable<unsigned int> co_send_writer(const unsigned char *, unsigned int);
     asio::awaitable<bool> read_some(unsigned int &readnum, std::string &log_item);
     asio::awaitable<bool> read_first(unsigned int &readnum);
     // void append(const std::string &item);
