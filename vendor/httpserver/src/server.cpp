@@ -4044,88 +4044,92 @@ void httpserver::listeners()
                 peer_session->time_begin = sp_time;
 
 #ifndef BENCHMARK
-                unsigned int cur_offset = time_head;
 
-                for (; cur_offset != time_tail;)
+                if(rate_limit_status)
                 {
-                    if (sp_time - time_record[cur_offset] > 60)
+                    unsigned int cur_offset = time_head;
+
+                    for (; cur_offset != time_tail;)
                     {
-                        cur_offset = (cur_offset + 1) % 60;
-                        continue;
+                        if (sp_time - time_record[cur_offset] > 60)
+                        {
+                            cur_offset = (cur_offset + 1) % 60;
+                            continue;
+                        }
+                        break;
                     }
-                    break;
-                }
-                time_head = cur_offset;
+                    time_head = cur_offset;
 
-                //update time_tail num
-                if (sp_time > time_record[time_tail])
-                {
-                    time_tail                 = (time_tail + 1) % 60;
-                    time_record[time_tail]    = sp_time;
-                    time_num_count[time_tail] = total_count.load();
-                }
-                else
-                {
-                    time_num_count[time_tail] = total_count.load();
-                }
-                has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
-
-                //This 500 should be saved in the server.conf file
-                if (has_save_link_count > rate_limit_accept_wait_num.load() && live_link_count.load() > rate_limit_accept_wait_num.load())
-                {
-                    logtemp = "https rate limiting b:";
-                    logtemp.append(std::to_string(time_num_count[time_head]));
-                    logtemp.append(" e:");
-                    logtemp.append(std::to_string(time_num_count[time_tail]));
-                    logtemp.append(" has:");
-                    logtemp.append(std::to_string(has_save_link_count));
-                    logtemp.append(" L:");
-                    logtemp.append(std::to_string(live_link_count.load()));
-                    logtemp.append(" rate:");
-                    logtemp.append(std::to_string(rate_limit_accept_wait_num.load()));
-                    logtemp.append(" time:");
-                    logtemp.append(std::to_string(rate_limit_accept_time.load()));
-                    logtemp.append(" ");
-                    logtemp.append(peer_session->client_ip);
-                    logtemp.append("\n");
-
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(logtemp);
-                    lock.unlock();
-
-                    has_save_link_count = has_save_link_count * 0.66;
-                    if(has_save_link_count > rate_limit_accept_wait_num.load())
+                    //update time_tail num
+                    if (sp_time > time_record[time_tail])
                     {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()*2));
+                        time_tail                 = (time_tail + 1) % 60;
+                        time_record[time_tail]    = sp_time;
+                        time_num_count[time_tail] = total_count.load();
                     }
                     else
                     {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                        time_num_count[time_tail] = total_count.load();
                     }
-                }
-                else if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
-                {
-                    logtemp = "https rate limiting b:";
-                    logtemp.append(std::to_string(time_num_count[time_head]));
-                    logtemp.append(" e:");
-                    logtemp.append(std::to_string(time_num_count[time_tail]));
-                    logtemp.append(" has:");
-                    logtemp.append(std::to_string(has_save_link_count));
-                    logtemp.append(" L:");
-                    logtemp.append(std::to_string(live_link_count.load()));
-                    logtemp.append(" rate:");
-                    logtemp.append(std::to_string(rate_limit_new_wait_num.load()));
-                    logtemp.append(" time:");
-                    logtemp.append(std::to_string(rate_limit_accept_time.load()));
-                    logtemp.append(" ");
-                    logtemp.append(peer_session->client_ip);
-                    logtemp.append("\n");
+                    has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
 
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(logtemp);
-                    lock.unlock();
+                    //This 500 should be saved in the server.conf file
+                    if (has_save_link_count > rate_limit_accept_wait_num.load() && live_link_count.load() > rate_limit_accept_wait_num.load())
+                    {
+                        logtemp = "https rate limiting b:";
+                        logtemp.append(std::to_string(time_num_count[time_head]));
+                        logtemp.append(" e:");
+                        logtemp.append(std::to_string(time_num_count[time_tail]));
+                        logtemp.append(" has:");
+                        logtemp.append(std::to_string(has_save_link_count));
+                        logtemp.append(" L:");
+                        logtemp.append(std::to_string(live_link_count.load()));
+                        logtemp.append(" rate:");
+                        logtemp.append(std::to_string(rate_limit_accept_wait_num.load()));
+                        logtemp.append(" time:");
+                        logtemp.append(std::to_string(rate_limit_accept_time.load()));
+                        logtemp.append(" ");
+                        logtemp.append(peer_session->client_ip);
+                        logtemp.append("\n");
 
-                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/10));
+                        std::unique_lock<std::mutex> lock(log_mutex);
+                        error_loglist.emplace_back(logtemp);
+                        lock.unlock();
+
+                        has_save_link_count = has_save_link_count * 0.66;
+                        if(has_save_link_count > rate_limit_accept_wait_num.load())
+                        {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()*2));
+                        }
+                        else
+                        {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                        }
+                    }
+                    else if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
+                    {
+                        logtemp = "https rate limiting b:";
+                        logtemp.append(std::to_string(time_num_count[time_head]));
+                        logtemp.append(" e:");
+                        logtemp.append(std::to_string(time_num_count[time_tail]));
+                        logtemp.append(" has:");
+                        logtemp.append(std::to_string(has_save_link_count));
+                        logtemp.append(" L:");
+                        logtemp.append(std::to_string(live_link_count.load()));
+                        logtemp.append(" rate:");
+                        logtemp.append(std::to_string(rate_limit_new_wait_num.load()));
+                        logtemp.append(" time:");
+                        logtemp.append(std::to_string(rate_limit_accept_time.load()));
+                        logtemp.append(" ");
+                        logtemp.append(peer_session->client_ip);
+                        logtemp.append("\n");
+
+                        std::unique_lock<std::mutex> lock(log_mutex);
+                        error_loglist.emplace_back(logtemp);
+                        lock.unlock();
+
+                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/10));
+                    }
                 }
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
@@ -4274,89 +4278,94 @@ void httpserver::listener()
                 peer_session->time_begin = sp_time;
 
 #ifndef BENCHMARK
-                unsigned int cur_offset = time_head;
 
-                for (; cur_offset != time_tail;)
+                if(rate_limit_status)
                 {
-                    if (sp_time - time_record[cur_offset] > 60)
+                    unsigned int cur_offset = time_head;
+
+                    for (; cur_offset != time_tail;)
                     {
-                        cur_offset = (cur_offset + 1) % 60;
-                        continue;
+                        if (sp_time - time_record[cur_offset] > 60)
+                        {
+                            cur_offset = (cur_offset + 1) % 60;
+                            continue;
+                        }
+                        break;
                     }
-                    break;
-                }
-                time_head = cur_offset;
+                    time_head = cur_offset;
 
-                //update time_tail num
-                if (sp_time > time_record[time_tail])
-                {
-                    time_tail                 = (time_tail + 1) % 60;
-                    time_record[time_tail]    = sp_time;
-                    time_num_count[time_tail] = total_count.load();
-                }
-                else
-                {
-                    time_num_count[time_tail] = total_count.load();
-                }
-                has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
-
-                //This 500 should be saved in the server.conf file
-                if (has_save_link_count > rate_limit_accept_wait_num.load() && live_link_count.load() > rate_limit_accept_wait_num.load())
-                {
-                    logtemp = "http rate limiting b:";
-                    logtemp.append(std::to_string(time_num_count[time_head]));
-                    logtemp.append(" e:");
-                    logtemp.append(std::to_string(time_num_count[time_tail]));
-                    logtemp.append(" has:");
-                    logtemp.append(std::to_string(has_save_link_count));
-                    logtemp.append(" L:");
-                    logtemp.append(std::to_string(live_link_count.load()));
-                    logtemp.append(" rate:");
-                    logtemp.append(std::to_string(rate_limit_accept_wait_num.load()));
-                    logtemp.append(" time:");
-                    logtemp.append(std::to_string(rate_limit_accept_time.load()));
-                    logtemp.append(" ");
-                    logtemp.append(peer_session->client_ip);
-                    logtemp.append("\n");
-
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(logtemp);
-                    lock.unlock();
-
-                    has_save_link_count = has_save_link_count * 0.66;
-                    if(has_save_link_count > rate_limit_accept_wait_num.load())
+                    //update time_tail num
+                    if (sp_time > time_record[time_tail])
                     {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()*2));
+                        time_tail                 = (time_tail + 1) % 60;
+                        time_record[time_tail]    = sp_time;
+                        time_num_count[time_tail] = total_count.load();
                     }
                     else
                     {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                        time_num_count[time_tail] = total_count.load();
+                    }
+                    has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
+
+                    //This 500 should be saved in the server.conf file
+                    if (has_save_link_count > rate_limit_accept_wait_num.load() && live_link_count.load() > rate_limit_accept_wait_num.load())
+                    {
+                        logtemp = "http rate limiting b:";
+                        logtemp.append(std::to_string(time_num_count[time_head]));
+                        logtemp.append(" e:");
+                        logtemp.append(std::to_string(time_num_count[time_tail]));
+                        logtemp.append(" has:");
+                        logtemp.append(std::to_string(has_save_link_count));
+                        logtemp.append(" L:");
+                        logtemp.append(std::to_string(live_link_count.load()));
+                        logtemp.append(" rate:");
+                        logtemp.append(std::to_string(rate_limit_accept_wait_num.load()));
+                        logtemp.append(" time:");
+                        logtemp.append(std::to_string(rate_limit_accept_time.load()));
+                        logtemp.append(" ");
+                        logtemp.append(peer_session->client_ip);
+                        logtemp.append("\n");
+
+                        std::unique_lock<std::mutex> lock(log_mutex);
+                        error_loglist.emplace_back(logtemp);
+                        lock.unlock();
+
+                        has_save_link_count = has_save_link_count * 0.66;
+                        if(has_save_link_count > rate_limit_accept_wait_num.load())
+                        {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()*2));
+                        }
+                        else
+                        {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()));
+                        }
+                    }
+                    else if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
+                    {
+                        logtemp = "http rate limiting b:";
+                        logtemp.append(std::to_string(time_num_count[time_head]));
+                        logtemp.append(" e:");
+                        logtemp.append(std::to_string(time_num_count[time_tail]));
+                        logtemp.append(" has:");
+                        logtemp.append(std::to_string(has_save_link_count));
+                        logtemp.append(" L:");
+                        logtemp.append(std::to_string(live_link_count.load()));
+                        logtemp.append(" rate:");
+                        logtemp.append(std::to_string(rate_limit_new_wait_num.load()));
+                        logtemp.append(" time:");
+                        logtemp.append(std::to_string(rate_limit_accept_time.load()));
+                        logtemp.append(" ");
+                        logtemp.append(peer_session->client_ip);
+                        logtemp.append("\n");
+
+                        std::unique_lock<std::mutex> lock(log_mutex);
+                        error_loglist.emplace_back(logtemp);
+                        lock.unlock();
+
+                        std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/10));
                     }
                 }
-                else if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
-                {
-                    logtemp = "http rate limiting b:";
-                    logtemp.append(std::to_string(time_num_count[time_head]));
-                    logtemp.append(" e:");
-                    logtemp.append(std::to_string(time_num_count[time_tail]));
-                    logtemp.append(" has:");
-                    logtemp.append(std::to_string(has_save_link_count));
-                    logtemp.append(" L:");
-                    logtemp.append(std::to_string(live_link_count.load()));
-                    logtemp.append(" rate:");
-                    logtemp.append(std::to_string(rate_limit_new_wait_num.load()));
-                    logtemp.append(" time:");
-                    logtemp.append(std::to_string(rate_limit_accept_time.load()));
-                    logtemp.append(" ");
-                    logtemp.append(peer_session->client_ip);
-                    logtemp.append("\n");
 
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(logtemp);
-                    lock.unlock();
-
-                    std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/10));
-                }
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
                 socket_session_lists.push_back(peer_session);
@@ -4554,8 +4563,6 @@ void httpserver::httpwatch()
     orm_log_file.append("orm_debug.log");
 
     rate_limit_new_wait_num       = sysconfigpath.rate_limit_new_wait_num;
-    rate_limit_new_wait_time_down = sysconfigpath.rate_limit_new_wait_time_down;
-    rate_limit_new_wait_time_up   = sysconfigpath.rate_limit_new_wait_time_up;
 
     rate_limit_accept_wait_num = sysconfigpath.rate_limit_accept_wait_num;
     rate_limit_accept_time     = sysconfigpath.rate_limit_accept_time;
@@ -5570,6 +5577,8 @@ void httpserver::run(const std::string &sysconfpath)
 
         debug_log::instance().setDebug(!static_server_var.deamon_enable);
         debug_log::instance().setLogfile(static_server_var.log_path);
+
+        rate_limit_status = static_server_var.rate_limit_status;
 
 #ifdef DEBUG
         static_server_var.show_visitinfo = true;

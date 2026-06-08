@@ -22,6 +22,7 @@ struct server_loaclvar
     bool show_visitinfo      = false;
     bool is_alias_uploadpath = false;
     bool is_alias_urlpath    = false;
+    bool rate_limit_status   = false;
 
     bool static_file_compress_cache = false;
     unsigned char session_type      = 0;

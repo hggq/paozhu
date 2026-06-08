@@ -188,6 +188,7 @@ class httpserver
     bool isstop                  = false;
     bool istraffic               = false;
     bool hard_kill_old_link = false;
+    bool rate_limit_status = false;
 
     std::atomic_uint total_count = 0;
     std::atomic_uint live_link_count = 0;
@@ -196,9 +197,6 @@ class httpserver
     std::atomic_uint total_http1_count = 0;
 
     std::atomic_uint rate_limit_new_wait_num       = 300;
-    std::atomic_uint rate_limit_new_wait_time_down = 2;
-    std::atomic_uint rate_limit_new_wait_time_up   = 18;
-
     std::atomic_uint rate_limit_accept_wait_num = 600;
     std::atomic_uint rate_limit_accept_time     = 500;
 

@@ -629,6 +629,15 @@ bool serverconfig::loadserverglobalconfig()
         static_server_var.static_file_compress_cache = false;
     }
 
+    if (map_value["default"]["rate_limit_status"].size() > 0 && (map_value["default"]["rate_limit_status"][0] == '1' || map_value["default"]["rate_limit_status"][0] == 'T' || map_value["default"]["rate_limit_status"][0] == 't'))
+    {
+        static_server_var.rate_limit_status = true;
+    }
+    else
+    {
+        static_server_var.rate_limit_status = false;
+    }
+
     if (map_value["default"]["session_type"].size() > 0)
     {
         switch (map_value["default"]["session_type"][0])
@@ -954,70 +963,6 @@ bool serverconfig::loadserverglobalconfig()
     else
     {
         rate_limit_new_wait_num = 300;
-    }
-
-    if (map_value["default"]["rate_limit_new_wait_time_down"].size() > 0)
-    {
-        rate_limit_new_wait_time_down = 0;
-        for (unsigned int i = 0; i < map_value["default"]["rate_limit_new_wait_time_down"].size(); i++)
-        {
-            if (map_value["default"]["rate_limit_new_wait_time_down"][i] >= '0' && map_value["default"]["rate_limit_new_wait_time_down"][i] <= '9')
-            {
-                rate_limit_new_wait_time_down = rate_limit_new_wait_time_down * 10 + (map_value["default"]["rate_limit_new_wait_time_down"][i] - '0');
-                continue;
-            }
-            else if (map_value["default"]["rate_limit_new_wait_time_down"][i] == 0x20)
-            {
-                continue;
-            }
-            break;
-        }
-
-        if (rate_limit_new_wait_time_down < 2)
-        {
-            rate_limit_new_wait_time_down = 2;
-        }
-
-        if (rate_limit_new_wait_time_down > 5)
-        {
-            rate_limit_new_wait_time_down = 5;
-        }
-    }
-    else
-    {
-        rate_limit_new_wait_time_down = 2;
-    }
-
-    if (map_value["default"]["rate_limit_new_wait_time_up"].size() > 0)
-    {
-        rate_limit_new_wait_time_up = 0;
-        for (unsigned int i = 0; i < map_value["default"]["rate_limit_new_wait_time_up"].size(); i++)
-        {
-            if (map_value["default"]["rate_limit_new_wait_time_up"][i] >= '0' && map_value["default"]["rate_limit_new_wait_time_up"][i] <= '9')
-            {
-                rate_limit_new_wait_time_up = rate_limit_new_wait_time_up * 10 + (map_value["default"]["rate_limit_new_wait_time_up"][i] - '0');
-                continue;
-            }
-            else if (map_value["default"]["rate_limit_new_wait_time_up"][i] == 0x20)
-            {
-                continue;
-            }
-            break;
-        }
-
-        if (rate_limit_new_wait_time_up < 7)
-        {
-            rate_limit_new_wait_time_up = 7;
-        }
-
-        if (rate_limit_new_wait_time_up > 22)
-        {
-            rate_limit_new_wait_time_up = 22;
-        }
-    }
-    else
-    {
-        rate_limit_new_wait_time_up = 18;
     }
 
     if (map_value["default"]["rate_limit_accept_wait_num"].size() > 0)

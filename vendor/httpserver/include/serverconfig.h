@@ -96,9 +96,6 @@ class serverconfig
     unsigned int http_header_max_size  = 0;
 
     unsigned int rate_limit_new_wait_num       = 300;
-    unsigned int rate_limit_new_wait_time_down = 2;
-    unsigned int rate_limit_new_wait_time_up   = 18;
-
     unsigned int rate_limit_accept_wait_num = 600;
     unsigned int rate_limit_accept_time     = 500;
 
