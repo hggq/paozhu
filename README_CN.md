@@ -433,6 +433,15 @@ class loopwebsockets : public websockets_api
         loop_num = 8; 
         std::cout << "onopen" << std::endl; 
     }
+
+    asio::awaitable<void> async_onopen() override
+    { 
+        isco=true;
+        loop_num = 8; 
+        std::cout << "async_onopen" << std::endl; 
+        co_return;
+    }
+
     void onclose() override
     {
         isclose = true;
@@ -446,8 +455,8 @@ class loopwebsockets : public websockets_api
             std::cout << "timeloop:" << std::endl;
             std::string aa = "test run_loop";
             std::string outhello;
-            ws_parse->makeWSText(aa, outhello);
-            session_sock->send_data(outhello);
+            ws_parse->make_ws_text(aa, outhello);
+            session_sock->send_writer(outhello);
 
             //   peer->send(aa);
             if (loop_num == 4)
@@ -471,9 +480,8 @@ class loopwebsockets : public websockets_api
             std::cout << "async timeloop:" << std::endl;
             std::string aa = "test async_run_loop";
             std::string outhello;
-            ws_parse->makeWSText(aa, outhello);
-            session_sock->send_data(outhello);
-
+            ws_parse->make_ws_text(aa, outhello);
+            co_await session_sock->co_send_writer(outhello);
             //   peer->send(aa);
             if (loop_num == 4)
             {
@@ -500,7 +508,7 @@ class loopwebsockets : public websockets_api
     asio::awaitable<void> async_onmessage(std::string_view data) override 
     {
         std::string outhello;
-        ws_parse->makeWSText(data, outhello);
+        ws_parse->make_ws_text(data, outhello);
         co_await session_sock->co_send_writer(outhello);
         co_return;
     }
@@ -509,8 +517,8 @@ class loopwebsockets : public websockets_api
         if (session_sock)
         {
             std::string outhello;
-            ws_parse->makeWSText(data, outhello);
-            session_sock->send_data(outhello);
+            ws_parse->make_ws_text(data, outhello);
+            session_sock->send_writer(outhello);
         }
     }
  
