@@ -310,6 +310,9 @@ int websocketparse::makeWSHeader(int len, std::string &header, unsigned char t)
     case 0x02:
         header.push_back(0x82);
         break;
+    case 0x0A:
+        header.push_back(0x8A);
+        break;        
     case 0x80:
         header.push_back(0x80);
         break;
