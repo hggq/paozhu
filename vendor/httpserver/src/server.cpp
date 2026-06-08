@@ -2656,7 +2656,6 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 {
                     websockets->onpong();
                     log_item = ws_parse_obj->makePong();
-                    //peer->send(log_item);
                     co_await peer_session->co_send_writer(log_item);
                 }
                 peer_session->time_limit.store(timeid() + 86400);

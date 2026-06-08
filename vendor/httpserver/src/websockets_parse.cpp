@@ -244,13 +244,11 @@ std::string websocketparse::respondHandshake()
 std::string websocketparse::makePong()
 {
     std::string reping;
-    reping.resize(6);
-    reping[0] = 0x8A;
-    reping[1] = 0x04;
-    reping[2] = 'p';
-    reping[3] = 'o';
-    reping[4] = 'n';
-    reping[5] = 'g';
+    makeWSHeader(indata.length(), reping, 0x0A);
+    for (unsigned int i = 0; i < indata.length(); i++)
+    {
+        reping.push_back(indata[i]);
+    }
     return reping;
 }
 std::string websocketparse::makePing()
@@ -265,19 +263,19 @@ std::string websocketparse::makePing()
     reping[5] = 'g';
     return reping;
 }
-int websocketparse::make_ws_data(char *msg, int msgLen, std::string &outBuf)
+int websocketparse::make_ws_data(char *msg, unsigned int msgLen, std::string &outBuf)
 {
     makeWSHeader(msgLen, outBuf, 0x02);
-    for (int i = 0; i < msgLen; i++)
+    for (unsigned int i = 0; i < msgLen; i++)
     {
         outBuf.push_back(msg[i]);
     }
     return 0;
 }
-int websocketparse::make_ws_text(char *msg, int msgLen, std::string &outBuf)
+int websocketparse::make_ws_text(char *msg, unsigned int msgLen, std::string &outBuf)
 {
     makeWSHeader(msgLen, outBuf, 0x01);
-    for (int i = 0; i < msgLen; i++)
+    for (unsigned int i = 0; i < msgLen; i++)
     {
         outBuf.push_back(msg[i]);
     }
