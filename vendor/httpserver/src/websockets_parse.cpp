@@ -13,7 +13,7 @@
 namespace http
 {
 
-websocketparse::websocketparse() : rawfile(nullptr, std::fclose)
+websocketparse::websocketparse() :rawfile(nullptr, std::fclose)
 {
     // rawfile = NULL;
 }
@@ -28,26 +28,23 @@ websocketparse::~websocketparse()
 }
 unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsigned int buffersize)
 {
+    if(buffersize == 0)
+    {
+        iserror = true;
+        return 0;
+    }
 
     fin                     = inputdata[0] >> 7 & 0x01;
     opcode                  = inputdata[0] & 0x0F;
-    mask                    = inputdata[1] >> 7 & 0x01;
-    unsigned char fixlength = inputdata[1] & 0x7F;
-    pos                     = 2;
-    isfinish                = false;
+
     if (fin > 0)
     {
-        closefile();
-        indata.clear();
-        isfile = false;
-        ispack = false;
+        isclose_frame = true;
     }
 
     switch (opcode)
     {
     case 0x00:
-        iserror = true;
-        return 0;
         break;
     case 0x01:
     case 0x02:
@@ -55,14 +52,25 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
     case 0x08: 
     case 0x09:
     case 0x0A:
-        isfinish = true;
-        return 0;
         break;             
     default:
         iserror = true;
         return 0;
         break;
     }
+    
+    if(buffersize<2)
+    {
+        isfinish = true;
+        return 0;
+    }
+
+    mask                    = inputdata[1] >> 7 & 0x01;
+    unsigned char fixlength = inputdata[1] & 0x7F;
+    pos                     = 2;
+    isfinish                = false;
+    ispack        = true;
+
 
     // unsigned char mask_key[4];
     if (fixlength < 126)
@@ -71,11 +79,21 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
     }
     else if (fixlength == 126)
     {
+        if(buffersize < 4)
+        {
+            iserror = true;
+            return 0;
+        }
         contentlength = inputdata[pos] << 8 | (unsigned char)inputdata[pos + 1];
         pos += 2;
     }
     else if (fixlength == 127)
     {
+        if(buffersize < 10)
+        {
+            iserror = true;
+            return 0;
+        }
         contentlength = (unsigned char)inputdata[pos];
         contentlength = contentlength << 8 | (unsigned char)inputdata[pos + 1];
         contentlength = contentlength << 8 | (unsigned char)inputdata[pos + 2];
@@ -86,8 +104,14 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
         contentlength = contentlength << 8 | (unsigned char)inputdata[pos + 7];
         pos += 8;
     }
+
     if (mask == 1)
     {
+        if(buffersize < (pos+4))
+        {
+            iserror = true;
+            return 0;
+        }
         mask_key[0] = inputdata[pos];
         mask_key[1] = inputdata[pos + 1];
         mask_key[2] = inputdata[pos + 2];
@@ -95,8 +119,7 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
         pos += 4;
     }
     contentoffset = buffersize - pos;
-    ispack        = true;
-
+    
     if (contentlength > 2097152)
     {
         http::server_loaclvar &localvar = http::get_server_global_var();
@@ -117,10 +140,7 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
             }
             else
             {
-                for (unsigned int j = 0; j < contentoffset; j++)
-                {
-                    fwrite(&inputdata[j + pos], 1, 1, rawfile.get());
-                }
+                fwrite(&inputdata[pos], contentoffset, 1, rawfile.get());
             }
         }
     }
@@ -149,13 +169,22 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
 
     if (contentoffset >= contentlength)
     {
-        isfinish      = true;
+        //只有是关闭帧才能说完成
+        if(isclose_frame)
+        {
+            isfinish  = true;
+            if (rawfile)
+            {
+                isfile = false;
+                rawfile.reset(nullptr);
+            }
+        }
         ispack        = false;
         contentlength = 0;
         contentoffset = 0;
     }
 
-    return contentlength;
+    return contentoffset;
 }
 void websocketparse::parsedata(unsigned char *inputdata, unsigned int buffersize)
 {
@@ -198,10 +227,20 @@ void websocketparse::parsedata(unsigned char *inputdata, unsigned int buffersize
 
     if (contentoffset >= contentlength)
     {
-        isfinish      = true;
+        //只有是关闭帧才能说完成
+        if(isclose_frame)
+        {
+            isfinish  = true;
+            if (rawfile)
+            {
+                isfile = false;
+                rawfile.reset(nullptr);
+            }
+        }        
         ispack        = false;
         contentlength = 0;
         contentoffset = 0;
+
     }
 }
 void websocketparse::setWebsocketkey(const std::string &key)

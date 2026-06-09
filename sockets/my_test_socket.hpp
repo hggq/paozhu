@@ -14,21 +14,26 @@ class my_test_socket : public socket_api
 {
   public:
 
-    my_test_socket(unsigned int m, unsigned int g) : socket_api(7, m, g, 0) {}
-    ~my_test_socket() { DEBUG_LOG(" ~my_test_socket "); }
+    my_test_socket(unsigned int m, unsigned int g, std::shared_ptr<client_session> s_sock) : socket_api(7, m, g, 0, s_sock) {}
+    ~my_test_socket()
+    {
+      DEBUG_LOG(" ~my_test_socket ");
+      isclose = true;
+      notify_timer_.cancel();
+    };
 
   public:
     void on_open() override { DEBUG_LOG(" onopen "); }
     asio::awaitable<void> async_on_open() override { DEBUG_LOG(" async_on_open "); co_return; }
-    void on_close() override { DEBUG_LOG(" onclose "); }
-    asio::awaitable<void> async_on_message(const unsigned char *buffer, unsigned int readoffset, unsigned int readnum) override
+    void on_close() override 
     {
-      for(; readoffset < readnum; readoffset++)
-      {
-          content.push_back(buffer[readoffset]);
-      }
-      co_await session_sock->co_send_writer(content);
-      content.clear();
+      DEBUG_LOG(" onclose "); 
+      isclose = true;
+      notify_timer_.cancel();
+    }
+    asio::awaitable<void> async_on_message(std::string &&buffer) override
+    {
+      co_await session_sock->co_send_writer(buffer);
       co_return;
     }
     void run_loop() override
@@ -39,7 +44,7 @@ class my_test_socket : public socket_api
     {
       if(session_sock)
       {
-        content="server socket loop send";
+        std::string content="server socket loop send";
         co_await session_sock->co_send_writer(content);
         session_sock->time_limit.store(timeid());
       }

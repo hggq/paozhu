@@ -108,9 +108,11 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<void> co_send_goway();
 
     asio::awaitable<unsigned int> co_send_writer(const std::string &msg);
+    asio::awaitable<unsigned int> co_send_writer(std::string_view msg);
     asio::awaitable<unsigned int> co_send_writer(const unsigned char *, unsigned int);
     asio::awaitable<bool> read_some(unsigned int &readnum, std::string &log_item);
     asio::awaitable<bool> read_first(unsigned int &readnum);
+    asio::awaitable<bool> read_socket(unsigned int &readnum, std::string &log_item);
     // void append(const std::string &item);
     // void append(const unsigned char *buffer, unsigned int buffersize);
 

@@ -18,27 +18,66 @@ namespace http
     class socket_api : public std::enable_shared_from_this<socket_api> 
     {
     public:
-        socket_api(unsigned int t, unsigned int m, unsigned int g, unsigned char s) : state(s), timeloop_num(t), myid(m), groupid(g){}
+        socket_api(unsigned int t, unsigned int m, unsigned int g, unsigned char s, std::shared_ptr<client_session> s_sock) : state(s), timeloop_num(t), myid(m), groupid(g),session_sock(s_sock),notify_timer_(s_sock->strand_){}
         virtual void on_open()                    = 0;
         virtual asio::awaitable<void> async_on_open()= 0;
         virtual void on_close()                    = 0;
-        virtual asio::awaitable<void> async_on_message(const unsigned char *buffer, unsigned int readoffset, unsigned int readnum)
+        virtual asio::awaitable<void> async_on_message(std::string &&buffer)
         {
-            for(; readoffset < readnum; readoffset++)
+            unsigned int readoffset = 0;
+            for(; readoffset < buffer.size(); readoffset++)
             {
-                content.push_back(buffer[readoffset]);
+                if(buffer[readoffset]=='\n')
+                {
+                    break;
+                }
             }
             co_return;
         }
         virtual void run_loop()                  = 0;
         virtual asio::awaitable<void> async_run_loop()                  = 0;
-        virtual asio::awaitable<void> async_process(const unsigned char *buffer, unsigned int readoffset, unsigned int readnum)
+        asio::awaitable<void> wait_up() 
         {
+            notify_timer_.expires_after(std::chrono::hours(24 * 365));
+            co_await notify_timer_.async_wait(asio::as_tuple(asio::use_awaitable));
+        }
+        asio::awaitable<void> loop_process() 
+        {
+            auto self = shared_from_this();
+            while (!isclose)
+            {
+                std::string buffer;
+                {
+                    std::unique_lock<std::mutex> lock(mtx_list_lock);
+                    if (content_list.empty()) {
+                        lock.unlock(); 
+                        co_await wait_up();
+                        continue;
+                    }
+                    buffer = std::move(content_list.front());
+                    content_list.pop_front();
+                }
+
+                if(isbody)
+                {
+                    co_await async_on_message(std::move(buffer));
+                }
+                else
+                {
+                    co_await async_process(std::move(buffer));
+                }
+                
+            }
+            co_return;
+        }
+        virtual asio::awaitable<void> async_process(std::string &&buffer)
+        {
+            unsigned int readoffset = 0;
             if(isbegin)
             {
                 if(isbody)
                 {
-                    co_await async_on_message(buffer, readoffset, readnum);
+                    co_await async_on_message(std::move(buffer));
                     co_return;
                 }
                 else
@@ -46,12 +85,12 @@ namespace http
                     if(cur_state == 1)
                     {
                         //continu read keyname;
-                        for(; readoffset < readnum; readoffset++)
+                        for(; readoffset < buffer.size(); readoffset++)
                         {
                             if(buffer[readoffset]=='=')
                             {
                                 readoffset++;
-                                for(; readoffset < readnum; readoffset++)
+                                for(; readoffset < buffer.size(); readoffset++)
                                 {
                                     if(buffer[readoffset]=='&')
                                     {
@@ -68,7 +107,7 @@ namespace http
                                     }
                                     read_value.push_back(buffer[readoffset]);
                                 }
-                                if(readoffset == readnum)
+                                if(readoffset == buffer.size())
                                 {
                                     cur_state = 2;
                                     co_return;
@@ -89,7 +128,7 @@ namespace http
                             read_key.push_back(buffer[readoffset]);
                         }
                         
-                        if(readoffset == readnum)
+                        if(readoffset == buffer.size())
                         {
                             cur_state = 1;
                             co_return;
@@ -100,7 +139,7 @@ namespace http
                             header.push_back({read_key,read_value}); 
                         }
 
-                        if(readoffset < readnum && buffer[readoffset]==0x0A)
+                        if(readoffset < buffer.size() && buffer[readoffset]==0x0A)
                         {
                             readoffset++;
                             if(buffer[readoffset]==0x0A)
@@ -110,15 +149,17 @@ namespace http
                             }
                         }
 
-                        if(isbody && readoffset < readnum)
+                        if(isbody && readoffset < buffer.size())
                         {
-                            co_await async_on_message(buffer, readoffset, readnum);
+                            std::string temp_aa;
+                            temp_aa.append(buffer.data() + readoffset,buffer.size() - readoffset);
+                            co_await async_on_message(std::move(temp_aa));
                         }
                     }
                     else if(cur_state == 2)
                     {
                         //continu read value;
-                        for(; readoffset < readnum; readoffset++)
+                        for(; readoffset < buffer.size(); readoffset++)
                         {
                             if(buffer[readoffset]=='&')
                             {
@@ -142,18 +183,18 @@ namespace http
                             read_value.push_back(buffer[readoffset]);
                         }
                         
-                        if(readoffset == readnum)
+                        if(readoffset == buffer.size())
                         {
                             cur_state = 1;
                             co_return;
                         }
 
-                        for(; readoffset < readnum; readoffset++)
+                        for(; readoffset < buffer.size(); readoffset++)
                         {
                             if(buffer[readoffset]=='=')
                             {
                                 readoffset++;
-                                for(; readoffset < readnum; readoffset++)
+                                for(; readoffset < buffer.size(); readoffset++)
                                 {
                                     if(buffer[readoffset]=='&')
                                     {
@@ -170,7 +211,7 @@ namespace http
                                     }
                                     read_value.push_back(buffer[readoffset]);
                                 }
-                                if(readoffset == readnum)
+                                if(readoffset == buffer.size())
                                 {
                                     cur_state = 2;
                                     co_return;
@@ -191,7 +232,7 @@ namespace http
                             read_key.push_back(buffer[readoffset]);
                         }
                         
-                        if(readoffset == readnum)
+                        if(readoffset == buffer.size())
                         {
                             cur_state = 1;
                             co_return;
@@ -202,7 +243,7 @@ namespace http
                             header.push_back({read_key,read_value}); 
                         }
                         
-                        if(readoffset < readnum && buffer[readoffset]==0x0A)
+                        if(readoffset < buffer.size() && buffer[readoffset]==0x0A)
                         {
                             readoffset++;
                             if(buffer[readoffset]==0x0A)
@@ -212,9 +253,11 @@ namespace http
                             }
                         }
 
-                        if(isbody && readoffset < readnum)
+                        if(isbody && readoffset < buffer.size())
                         {
-                            co_await async_on_message(buffer, readoffset, readnum);
+                            std::string temp_aa;
+                            temp_aa.append(buffer.data() + readoffset,buffer.size() - readoffset);
+                            co_await async_on_message(std::move(temp_aa));
                         }
                     }
                 }
@@ -224,17 +267,17 @@ namespace http
                 isbegin = true;
                 cur_state = 0;
 
-                if(readoffset < readnum)
+                if(readoffset < buffer.size())
                 {
                     if(buffer[readoffset]=='?')
                     {
                         readoffset++;
-                        for(; readoffset < readnum; readoffset++)
+                        for(; readoffset < buffer.size(); readoffset++)
                         {
                             if(buffer[readoffset]=='=')
                             {
                                 readoffset++;
-                                for(; readoffset < readnum; readoffset++)
+                                for(; readoffset < buffer.size(); readoffset++)
                                 {
                                     if(buffer[readoffset]=='&')
                                     {
@@ -251,7 +294,7 @@ namespace http
                                     }
                                     read_value.push_back(buffer[readoffset]);
                                 }
-                                if(readoffset == readnum)
+                                if(readoffset == buffer.size())
                                 {
                                     cur_state = 2;
                                     co_return;
@@ -272,7 +315,7 @@ namespace http
                             read_key.push_back(buffer[readoffset]);
                         }
                         
-                        if(readoffset == readnum)
+                        if(readoffset == buffer.size())
                         {
                             cur_state = 1;
                             co_return;
@@ -304,9 +347,11 @@ namespace http
                         co_return;
                     }
 
-                    if(readoffset < readnum)
+                    if(readoffset < buffer.size())
                     {
-                        co_await async_on_message(buffer, readoffset, readnum);
+                        std::string temp_aa;
+                        temp_aa.append(buffer.data() + readoffset,buffer.size() - readoffset);
+                        co_await async_on_message(std::move(temp_aa));
                     }
                 }
                 else
@@ -315,8 +360,18 @@ namespace http
                 }
             }
         }
-        virtual ~socket_api(){};
-
+        virtual ~socket_api()
+        {
+            isclose = true;
+            notify_timer_.cancel();
+        };
+        void push(std::string&& item) 
+        {
+            std::unique_lock<std::mutex> lock(mtx_list_lock);
+            content_list.push_back(std::move(item));
+            notify_timer_.cancel();
+        }
+public:
         bool isclose = false;
         bool isbegin = false;
         bool isbody = false;
@@ -332,13 +387,16 @@ namespace http
 
         std::string error_msg;
         std::string url;
-        std::string content;
+        std::string host;
         std::string read_key;   //read temp var in the header
         std::string read_value;
         std::shared_ptr<client_session> session_sock;
         std::vector<socket_api_data_t> header;
+        std::list<std::string> content_list;
+        std::mutex mtx_list_lock;
+        asio::steady_timer notify_timer_;
     };
-    typedef std::map<std::string, std::function<std::shared_ptr<socket_api>(unsigned int myid_,unsigned int groupid_)>> HTTP_SOCKET_REG;
+    typedef std::map<std::string, std::function<std::shared_ptr<socket_api>(unsigned int myid_, unsigned int groupid_, std::shared_ptr<client_session>)>> HTTP_SOCKET_REG;
     HTTP_SOCKET_REG &get_http_socket_reg();
 
 }

@@ -71,6 +71,7 @@ class websocketparse
     bool isfile       = false;
     bool ispack       = false;
     bool iserror      = false;
+    bool isclose_frame = false;
 
     unsigned char fin = 0x0B;
     unsigned char opcode;

@@ -193,6 +193,72 @@ asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
     co_return false;
 }
 
+asio::awaitable<bool> client_session::read_socket(unsigned int &readnum, std::string &log_item)
+{
+    auto self = shared_from_this(); 
+    try
+    {
+        if(isclose || iserror)
+        {
+            co_return true; 
+        }
+        log_item.resize(1024);
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+                readnum = co_await sslsocket->async_read_some(asio::buffer(log_item), asio::redirect_error(asio::use_awaitable, ec));
+            }
+            else
+            {
+                isclose = true;
+            }
+        }
+        else
+        {
+            if (socket->is_open())
+            {
+                readnum = co_await socket->async_read_some(asio::buffer(log_item), asio::redirect_error(asio::use_awaitable, ec));
+            }
+            else
+            {
+                isclose = true;
+            }
+        }
+
+        if (ec)
+        {
+            DEBUG_LOG("read_some exception %s", ec.message().c_str());
+            log_item.append(ec.message());
+            isclose = true;
+            iserror = true;
+            co_return true;
+        }
+        if(isclose || iserror)
+        {
+            co_return true; 
+        }
+        log_item.resize(readnum);
+        co_return false;
+    }
+    catch (const std::exception &e)
+    {
+        log_item.append(e.what());
+        isclose = true;
+        iserror = true;
+        cancel();
+        co_return true;
+    }
+    catch (...)
+    {
+        isclose = true;
+        iserror = true;
+        cancel();
+        co_return true;
+    }
+    co_return false;
+}
+
 std::shared_ptr<client_session> client_session::get_ptr() { return shared_from_this(); }
 
 unsigned int client_session::send_writer(const std::string &msg)
@@ -674,6 +740,53 @@ asio::awaitable<unsigned int> client_session::co_send_writer(const unsigned char
     {
         isclose = true;
         iserror = true;
+    }
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> client_session::co_send_writer(std::string_view msg)
+{
+    auto self = shared_from_this(); 
+    if (isclose)
+    {
+        co_return 0;
+    }
+    try
+    {
+        if (msg.size() == 0)
+        {
+            co_return 0;
+        }
+        unsigned int n = 0;
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+               n = co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+            }
+        }
+        else
+        {
+            if(socket->is_open())
+            {
+               n = co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+            }
+        }
+        co_return n;
+    }
+    catch (...)
+    {
+        isclose = true;
+        iserror = true;
+        cancel();
     }
     co_return 0;
 }

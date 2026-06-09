@@ -758,23 +758,21 @@ void ThreadPool::http_websocketsrun(std::shared_ptr<websockets_api> peer, std::s
             mythread_info->url[offsetnum] = 0x00;
         }
         
-        if (peer->ws_parse->isfile)
+        if (peer->isfile)
         {
-            peer->onfiles(peer->ws_parse->filename);
+            peer->onfiles();
         }
         else
         {
-            peer->onmessage(peer->ws_parse->indata);
+            peer->onmessage();
         }
-        peer->ws_parse->filename.clear();
-        peer->ws_parse->indata.clear();
     }
     catch (std::exception &e)
     {
     }
     catch (...)
     {
-    }
+    }peer->ws_parse->filename.clear();
 }
 void ThreadPool::timetasks_run(std::shared_ptr<httppeer> peer, std::shared_ptr<threadinfo_t> mythread_info)
 {

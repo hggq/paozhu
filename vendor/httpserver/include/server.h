@@ -109,9 +109,7 @@ class httpserver
     void http2_send_queue_loop(unsigned char index_id);
 
     asio::awaitable<void> http2_ring_client_server(std::shared_ptr<client_session> peer_session);
-    asio::awaitable<void> websocket_ring_client_server(std::shared_ptr<client_session> peer_session);
-    asio::awaitable<void> socket_ring_client_server(std::shared_ptr<client_session> peer_session);
-
+ 
     void websocket_loop(int myid);
     asio::awaitable<void> clientpeerstop(std::shared_ptr<client_session> peer_session);
     asio::awaitable<void> orm_connect_clear(std::shared_ptr<orm::orm_conn_pool> peer_connect);

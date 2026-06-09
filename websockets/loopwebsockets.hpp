@@ -87,28 +87,46 @@ class loopwebsockets : public websockets_api
         }
         co_return;
     }
-    void onfiles(std::string_view filename) override { std::cout << "--------onfiles:--------" << filename << std::endl; }
-    asio::awaitable<void> async_onfiles(std::string_view filename) override
+    void onfiles() override { std::cout << "--------onfiles:--------"  << std::endl; }
+    asio::awaitable<void> async_onfiles() override
     { 
-        std::cout << "--------onfiles:--------" << filename << std::endl;
+        std::cout << "--------onfiles:--------" << std::endl;
         co_return; 
     }
 
-    asio::awaitable<void> async_onmessage(std::string_view data) override 
+    asio::awaitable<void> async_onmessage() override 
     {
+        std::unique_lock<std::mutex> lock(mtx_list_lock);
+        if(content_list.empty())
+        {
+            co_return;
+        }
+
+        auto process_data = std::move(content_list.front());
+        content_list.pop_front();
+        lock.unlock();
+        
         std::string outhello;
-        ws_parse->make_ws_text(data, outhello);
+        ws_parse->make_ws_text(process_data.value, outhello);
         co_await session_sock->co_send_writer(outhello);
         co_return;
     }
-    void onmessage(std::string_view data) override
+    void onmessage() override
     {
-        if (session_sock)
+        std::unique_lock<std::mutex> lock(mtx_list_lock);
+        if(content_list.empty())
         {
-            std::string outhello;
-            ws_parse->make_ws_text(data, outhello);
-            session_sock->send_writer(outhello);
+            return;
         }
+
+        auto process_data = std::move(content_list.front());
+        content_list.pop_front();
+        lock.unlock();
+        
+        std::string outhello;
+        ws_parse->make_ws_text(process_data.value, outhello);
+        session_sock->send_writer(outhello);
+        return;
     }
  
 };
