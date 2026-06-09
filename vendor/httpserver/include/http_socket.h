@@ -22,6 +22,7 @@ namespace http
         virtual void on_open()                    = 0;
         virtual asio::awaitable<void> async_on_open()= 0;
         virtual void on_close()                    = 0;
+        virtual asio::awaitable<void> async_on_close()= 0;
         virtual asio::awaitable<void> async_on_message(std::string &&buffer)
         {
             unsigned int readoffset = 0;

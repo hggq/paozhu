@@ -31,14 +31,24 @@ class my_test_socket : public socket_api
       isclose = true;
       notify_timer_.cancel();
     }
+    
+    asio::awaitable<void> async_on_close() override 
+    {
+      DEBUG_LOG(" async_on_close "); 
+      isclose = true;
+      notify_timer_.cancel();
+      co_return;
+    }
+
     asio::awaitable<void> async_on_message(std::string &&buffer) override
     {
+      DEBUG_LOG(" async_on_message:%s", buffer.c_str()); 
       co_await session_sock->async_send_writer(buffer);
       co_return;
     }
     void run_loop() override
     {
-
+      DEBUG_LOG(" run_loop "); 
     }
     asio::awaitable<void> async_run_loop() override
     {
@@ -48,7 +58,7 @@ class my_test_socket : public socket_api
         co_await session_sock->async_send_writer(content);
         session_sock->time_limit.store(timeid());
       }
-      
+      DEBUG_LOG(" async_run_loop "); 
       co_return;
     }
 };

@@ -2859,7 +2859,15 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
             if(sock_temp->isclose)
             {
                 peer_session->isclose = true;
-                sock_temp->on_close();
+                
+                if(sock_temp->isco)
+                {
+                    co_await sock_temp->async_on_close();
+                }
+                else
+                {
+                    sock_temp->on_close();
+                }
                 co_return 0;
             }
 
@@ -2883,17 +2891,33 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
                     lock.unlock();
 
                     sock_temp->isclose = true;
+                    if(sock_temp->isco)
+                    {
+                        co_await sock_temp->async_on_close();
+                    }
+                    else
+                    {
+                        sock_temp->on_close();
+                    }
+
                     peer_session->stop();
                     co_return 3;
                 }
                 //Error handling here
                 if(sock_temp->isclose)
                 {
-                    sock_temp->on_close();
+                    if(sock_temp->isco)
+                    {
+                        co_await sock_temp->async_on_close();
+                    }
+                    else
+                    {
+                        sock_temp->on_close();
+                    }
                     break;
                 }
                 
-                sock_temp->push(std::move(log_item));              
+                sock_temp->push(std::move(log_item));        
             }
 
             peer_session->isclose = true;
