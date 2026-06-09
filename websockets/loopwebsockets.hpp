@@ -4,6 +4,7 @@
 
 #include "orm.h"
 #include "websockets.h"
+#include "terminal_color.h"
 
 namespace http
 {
@@ -73,7 +74,7 @@ class loopwebsockets : public websockets_api
     {
         if (session_sock)
         {
-            std::cout << "async timeloop:" << std::endl;
+            std::cout << "async async_run_loop" << std::endl;
             std::string aa = "test async_run_loop";
             std::string outhello;
             ws_parse->make_ws_text(aa, outhello);
