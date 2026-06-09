@@ -59,14 +59,24 @@ client_context::~client_context()
             threads[i].join();
     }
 }
-void client_context::add_http_task(std::shared_ptr<client> tempc)
+void client_context::add_http_task(std::shared_ptr<client> temp_task)
 {
-    clienttasks.emplace(tempc);
+    clienttasks.emplace(temp_task);
     condition.notify_one();
 }
-void client_context::add_fastcgi_task(std::shared_ptr<fastcgi> tempc)
+void client_context::add_fastcgi_task(std::shared_ptr<fastcgi> temp_task)
 {
-    cgitasks.emplace(tempc);
+    cgitasks.emplace(temp_task);
+    condition.notify_one();
+}
+void client_context::add_websocket_task(std::shared_ptr<websocket_client> temp_task)
+{
+    websocket_clienttasks.emplace(temp_task);
+    condition.notify_one();
+}
+void client_context::add_socket_task(std::shared_ptr<socket_client> temp_task)
+{
+    socket_clienttasks.emplace(temp_task);
     condition.notify_one();
 }
 void client_context::time_out_loop()
@@ -450,21 +460,14 @@ void client_context::taskloop()
             std::unique_lock<std::mutex> lock(this->queue_mutex);
             this->condition.wait(lock,
                                  [this]
-                                 { return this->isstop || !this->clienttasks.empty() || !this->cgitasks.empty(); });
+                                 { return this->isstop || !this->clienttasks.empty() || !this->cgitasks.empty()|| !this->websocket_clienttasks.empty()|| !this->socket_clienttasks.empty(); });
 
             if (this->clienttasks.size() > 0)
             {
                 auto task = std::move(this->clienttasks.front());
                 this->clienttasks.pop();
                 lock.unlock();
-                if (task->linktype == 0)
-                {
-                    asio::co_spawn(*this->ioc, http_client_task(std::move(task)), asio::detached);
-                }
-                else if (task->linktype == 1)
-                {
-                    asio::co_spawn(*this->ioc, websocket_client_task(std::move(task)), asio::detached);
-                }
+                http_client_task(std::move(task));
             }
             else if (this->cgitasks.size() > 0)
             {
@@ -473,6 +476,20 @@ void client_context::taskloop()
                 lock.unlock();
                 asio::co_spawn(*this->ioc, fastcgi_client_task(std::move(task)), asio::detached);
             }
+            else if (this->websocket_clienttasks.size() > 0)
+            {
+                auto task = std::move(this->websocket_clienttasks.front());
+                this->websocket_clienttasks.pop();
+                lock.unlock();
+                websocket_client_task(std::move(task));
+            }
+            else if (this->socket_clienttasks.size() > 0)
+            {
+                auto task = std::move(this->socket_clienttasks.front());
+                this->socket_clienttasks.pop();
+                lock.unlock();
+                socket_client_task(std::move(task));
+            }            
             else
             {
                 lock.unlock();
@@ -505,7 +522,7 @@ asio::awaitable<void> client_context::fastcgi_client_task(std::shared_ptr<fastcg
     co_return;
 }
 
-asio::awaitable<void> client_context::http_client_task(std::shared_ptr<client> clientpeer)
+void client_context::http_client_task(std::shared_ptr<client> clientpeer)
 {
 #ifdef DEBUG
     std::ostringstream oss;
@@ -513,14 +530,14 @@ asio::awaitable<void> client_context::http_client_task(std::shared_ptr<client> c
     std::string tempthread = oss.str();
     DEBUG_LOG("http_client_task:%s", tempthread.c_str());
 #endif
-    if (clientpeer->host.size() > 0)
+    if (clientpeer->run_task_fun !=nullptr)
     {
-        co_await clientpeer->async_send();
+        clientpeer->run_task_fun(clientpeer->shared_from_this());
     }
-    co_return;
+    return;
 }
 
-asio::awaitable<void> client_context::websocket_client_task(std::shared_ptr<client> clientpeer)
+void client_context::websocket_client_task(std::shared_ptr<websocket_client> wspeer)
 {
 #ifdef DEBUG
     std::ostringstream oss;
@@ -528,11 +545,26 @@ asio::awaitable<void> client_context::websocket_client_task(std::shared_ptr<clie
     std::string tempthread = oss.str();
     DEBUG_LOG("websocket_client_task:%s", tempthread.c_str());
 #endif
-    if (clientpeer->host.size() > 0)
+    if (wspeer->run_task_fun !=nullptr)
     {
-        co_await clientpeer->async_send();
+        wspeer->run_task_fun(wspeer->shared_from_this());
     }
-    co_return;
+    return;
+}
+
+void client_context::socket_client_task(std::shared_ptr<socket_client> wspeer)
+{
+#ifdef DEBUG
+    std::ostringstream oss;
+    oss << std::this_thread::get_id();
+    std::string tempthread = oss.str();
+    DEBUG_LOG("socket_client:%s", tempthread.c_str());
+#endif
+    if (wspeer->run_task_fun !=nullptr)
+    {
+        wspeer->run_task_fun(wspeer->shared_from_this());
+    }
+    return;
 }
 
 asio::io_context &client_context::get_ctx()

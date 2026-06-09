@@ -37,10 +37,14 @@ class client_context
     void time_out_loop();
     void taskloop();
     asio::awaitable<void> fastcgi_client_task(std::shared_ptr<fastcgi>);
-    asio::awaitable<void> http_client_task(std::shared_ptr<client>);
-    asio::awaitable<void> websocket_client_task(std::shared_ptr<client>);
+    void http_client_task(std::shared_ptr<client>);
+    void websocket_client_task(std::shared_ptr<websocket_client>);
+    void socket_client_task(std::shared_ptr<socket_client>);
+
     void add_http_task(std::shared_ptr<client>);
     void add_fastcgi_task(std::shared_ptr<fastcgi>);
+    void add_websocket_task(std::shared_ptr<websocket_client>);
+    void add_socket_task(std::shared_ptr<socket_client>);
     void stop();
     asio::io_context& get_ctx();
     ~client_context();
@@ -60,6 +64,8 @@ class client_context
     std::condition_variable condition;
     std::queue<std::shared_ptr<client>> clienttasks;
     std::queue<std::shared_ptr<fastcgi>> cgitasks;
+    std::queue<std::shared_ptr<socket_client>> socket_clienttasks;
+    std::queue<std::shared_ptr<websocket_client>> websocket_clienttasks;
 
     std::mutex timeout_mutex;
     std::condition_variable timeout_condition;

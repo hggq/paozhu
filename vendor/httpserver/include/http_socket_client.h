@@ -112,7 +112,7 @@ namespace http
         
         std::function<void(std::shared_ptr<socket_client>)> dur_time_loop_fun = nullptr;
         std::function<asio::awaitable<void>(std::shared_ptr<socket_client>)> async_dur_time_loop_fun = nullptr;
-
+        std::function<void(std::shared_ptr<socket_client>)> run_task_fun = nullptr; //time-consuming task  
     };
 
     std::map<std::string,std::shared_ptr<socket_client>> &get_http_socket_obj();

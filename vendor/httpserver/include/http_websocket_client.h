@@ -161,6 +161,8 @@ namespace http
         std::function<void(std::shared_ptr<websocket_client>)> dur_time_loop_fun = nullptr;
         std::function<asio::awaitable<void>(std::shared_ptr<websocket_client>)> async_dur_time_loop_fun = nullptr;
         std::function<asio::awaitable<void>(std::shared_ptr<websocket_client>)> async_recv_finish_fun= nullptr;
+
+        std::function<void(std::shared_ptr<websocket_client>)> run_task_fun = nullptr; //time-consuming task
     };
 
     std::map<std::string,std::shared_ptr<websocket_client>> &get_http_websocket_obj();

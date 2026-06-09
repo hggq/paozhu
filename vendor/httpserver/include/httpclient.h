@@ -219,6 +219,7 @@ class client : public std::enable_shared_from_this<client>
     asio::strand<asio::io_context::executor_type> strand_;
     std::function<void(std::shared_ptr<client>)> dur_time_loop_fun = nullptr;
     std::function<asio::awaitable<void>(std::shared_ptr<client>)> async_dur_time_loop_fun = nullptr;
+    std::function<void(std::shared_ptr<client>)> run_task_fun = nullptr; //time-consuming task
 
     std::string use_certificate_file;
     std::string use_private_key_file;
