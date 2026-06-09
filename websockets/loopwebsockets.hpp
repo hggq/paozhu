@@ -70,7 +70,7 @@ class loopwebsockets : public websockets_api
             std::string aa = "test async_run_loop";
             std::string outhello;
             ws_parse->make_ws_text(aa, outhello);
-            co_await session_sock->co_send_writer(outhello);
+            co_await session_sock->async_send_writer(outhello);
             //   peer->send(aa);
             if (loop_num == 4)
             {
@@ -108,7 +108,7 @@ class loopwebsockets : public websockets_api
         
         std::string outhello;
         ws_parse->make_ws_text(process_data.value, outhello);
-        co_await session_sock->co_send_writer(outhello);
+        co_await session_sock->async_send_writer(outhello);
         co_return;
     }
     void onmessage() override

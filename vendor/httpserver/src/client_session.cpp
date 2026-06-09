@@ -527,7 +527,7 @@ void client_session::send_zero_data(unsigned int stream_id)
     http2_ring_queue->push(_recvack);
 }
 
-asio::awaitable<void> client_session::co_send_goway()
+asio::awaitable<void> client_session::async_send_goway()
 {
     const static std::string _recvack = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     http2_ring_queue->push(_recvack);
@@ -697,7 +697,7 @@ void client_session::waituphttp2()
         DEBUG_LOG("peer_session user_code_handler_call error");
     }
 }
-asio::awaitable<unsigned int> client_session::co_send_writer(const unsigned char *buffer, unsigned int buffersize)
+asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned char *buffer, unsigned int buffersize)
 {
     auto self = shared_from_this();
     if (isclose)
@@ -744,7 +744,7 @@ asio::awaitable<unsigned int> client_session::co_send_writer(const unsigned char
     co_return 0;
 }
 
-asio::awaitable<unsigned int> client_session::co_send_writer(std::string_view msg)
+asio::awaitable<unsigned int> client_session::async_send_writer(std::string_view msg)
 {
     auto self = shared_from_this(); 
     if (isclose)
@@ -791,7 +791,7 @@ asio::awaitable<unsigned int> client_session::co_send_writer(std::string_view ms
     co_return 0;
 }
 
-asio::awaitable<unsigned int> client_session::co_send_writer(const std::string &msg)
+asio::awaitable<unsigned int> client_session::async_send_writer(const std::string &msg)
 {
     auto self = shared_from_this(); 
     if (isclose)

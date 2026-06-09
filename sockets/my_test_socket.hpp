@@ -33,7 +33,7 @@ class my_test_socket : public socket_api
     }
     asio::awaitable<void> async_on_message(std::string &&buffer) override
     {
-      co_await session_sock->co_send_writer(buffer);
+      co_await session_sock->async_send_writer(buffer);
       co_return;
     }
     void run_loop() override
@@ -45,7 +45,7 @@ class my_test_socket : public socket_api
       if(session_sock)
       {
         std::string content="server socket loop send";
-        co_await session_sock->co_send_writer(content);
+        co_await session_sock->async_send_writer(content);
         session_sock->time_limit.store(timeid());
       }
       

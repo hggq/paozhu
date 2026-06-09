@@ -1160,7 +1160,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
     if (peer->isclose)
     {
         DEBUG_LOG("http2loop exception send_goway");
-        co_await peer->socket_session->co_send_goway();
+        co_await peer->socket_session->async_send_goway();
     }
     co_return;
 }
@@ -1184,7 +1184,7 @@ asio::awaitable<void> httpserver::http1_send_file_header(std::shared_ptr<httppee
 
     sq_obj->header = peer->make_http1_header();
     sq_obj->header.append("\r\n");
-    co_await peer_session->co_send_writer(sq_obj->header);
+    co_await peer_session->async_send_writer(sq_obj->header);
     co_return;
 }
 asio::awaitable<void> httpserver::http1_co_send_304(std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, std::shared_ptr<http2_send_data_t> send_file_obj)
@@ -1201,7 +1201,7 @@ asio::awaitable<void> httpserver::http1_co_send_304(std::shared_ptr<httppeer> pe
     send_file_obj->content.clear();
     send_file_obj->content = peer->make_http1_header();
     send_file_obj->content.append("\r\n");
-    co_await peer_session->co_send_writer(send_file_obj->content);
+    co_await peer_session->async_send_writer(send_file_obj->content);
 
     co_return;
 }
@@ -1306,7 +1306,7 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
                     }
                     send_file_obj->content.resize(nread);
                     // peer_session->send_data(htmlcontent);
-                    co_await peer_session->co_send_writer(send_file_obj->content);
+                    co_await peer_session->async_send_writer(send_file_obj->content);
                     readnum += nread;
                     if (peer_session->isclose)
                     {
@@ -1332,7 +1332,7 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
         }
         else
         {
-            co_await peer_session->co_send_writer(send_file_obj->content);
+            co_await peer_session->async_send_writer(send_file_obj->content);
         }
     }
     else
@@ -1432,7 +1432,7 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
         send_file_obj->header = peer->make_http1_header();
         send_file_obj->header.append("\r\n");
 
-        co_await peer_session->co_send_writer(send_file_obj->header);
+        co_await peer_session->async_send_writer(send_file_obj->header);
 
         if ((send_file_obj->content_length - send_file_obj->current_num) == 0)
         {
@@ -1467,7 +1467,7 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
                     }
                     send_file_obj->content.resize(nread);
 
-                    co_await peer_session->co_send_writer(send_file_obj->content);
+                    co_await peer_session->async_send_writer(send_file_obj->content);
                     readnum += nread;
                     if (peer_session->isclose)
                     {
@@ -1508,10 +1508,10 @@ asio::awaitable<void> httpserver::http1_send_status_content(std::shared_ptr<http
     peer->length(bodycontent.size());
     htmlcontent = peer->make_http1_header();
     htmlcontent.append("\r\n");
-    co_await peer->socket_session->co_send_writer(htmlcontent);
+    co_await peer->socket_session->async_send_writer(htmlcontent);
     if (bodycontent.size() > 0)
     {
-        co_await peer->socket_session->co_send_writer(bodycontent);
+        co_await peer->socket_session->async_send_writer(bodycontent);
     }
     co_return;
 }
@@ -1663,8 +1663,8 @@ asio::awaitable<void> httpserver::http1_fastcgi(std::shared_ptr<httppeer> peer)
                     peer->length(tempcompress.size());
                     peer->output = peer->make_http1_header();
                     peer->output.append("\r\n");
-                    co_await peer->socket_session->co_send_writer(peer->output);
-                    co_await peer->socket_session->co_send_writer(tempcompress);
+                    co_await peer->socket_session->async_send_writer(peer->output);
+                    co_await peer->socket_session->async_send_writer(tempcompress);
                     co_return;
                 }
             }
@@ -1673,8 +1673,8 @@ asio::awaitable<void> httpserver::http1_fastcgi(std::shared_ptr<httppeer> peer)
     peer->length(peer->output.size());
     std::string htmlcontent = peer->make_http1_header();
     htmlcontent.append("\r\n");
-    co_await peer->socket_session->co_send_writer(htmlcontent);
-    co_await peer->socket_session->co_send_writer(peer->output);
+    co_await peer->socket_session->async_send_writer(htmlcontent);
+    co_await peer->socket_session->async_send_writer(peer->output);
     peer->output.clear();
     co_return;
 }
@@ -1756,8 +1756,8 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                         peer->length(tempcompress.size());
                         peer->output = peer->make_http1_header();
                         peer->output.append("\r\n");
-                        co_await peer_session->co_send_writer(peer->output);
-                        co_await peer_session->co_send_writer(tempcompress);
+                        co_await peer_session->async_send_writer(peer->output);
+                        co_await peer_session->async_send_writer(tempcompress);
                         co_return;
                     }
                 }
@@ -1766,8 +1766,8 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->length(peer->output.size());
         std::string htmlcontent = peer->make_http1_header();
         htmlcontent.append("\r\n");
-        co_await peer_session->co_send_writer(htmlcontent);
-        co_await peer_session->co_send_writer(peer->output);
+        co_await peer_session->async_send_writer(htmlcontent);
+        co_await peer_session->async_send_writer(peer->output);
 
         co_return;
     }
@@ -1874,8 +1874,8 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                         peer->length(tempcompress.size());
                         std::string htmlcontent = peer->make_http1_header();
                         htmlcontent.append("\r\n");
-                        co_await peer_session->co_send_writer(htmlcontent);
-                        co_await peer_session->co_send_writer(tempcompress);
+                        co_await peer_session->async_send_writer(htmlcontent);
+                        co_await peer_session->async_send_writer(tempcompress);
                         DEBUG_LOG("---  http1 compress send --------");
                         co_return;
                     }
@@ -1885,8 +1885,8 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->length(peer->output.size());
         std::string htmlcontent = peer->make_http1_header();
         htmlcontent.append("\r\n");
-        co_await peer_session->co_send_writer(htmlcontent);
-        co_await peer_session->co_send_writer(peer->output);
+        co_await peer_session->async_send_writer(htmlcontent);
+        co_await peer_session->async_send_writer(peer->output);
         DEBUG_LOG("---  http1 output send --------");
     }
     co_return;
@@ -1902,7 +1902,7 @@ asio::awaitable<void> httpserver::http1_send_bad_server(std::shared_ptr<httppeer
     str.append("\r\n\r\n");
     str.append(stfilecom);
     // peer_session->send_data(str);
-    co_await peer_session->co_send_writer(str);
+    co_await peer_session->async_send_writer(str);
     co_return;
 }
 asio::awaitable<void> httpserver::http1_send_bad_request(unsigned int error_code, std::shared_ptr<client_session> peer_session)
@@ -1917,7 +1917,7 @@ asio::awaitable<void> httpserver::http1_send_bad_request(unsigned int error_code
     str.append("\r\n\r\n");
     str.append(stfilecom);
     // peer_session->send_data(str);
-    co_await peer_session->co_send_writer(str);
+    co_await peer_session->async_send_writer(str);
     co_return;
 }
 
@@ -2009,7 +2009,7 @@ asio::awaitable<void> httpserver::http2_ring_client_server(std::shared_ptr<clien
                 lk.unlock();
 
                 std::unique_lock lck(peer_session->http2_sock_mutex);
-                // co_await peer_session->co_send_writer(peer_session->http2_ring_queue_temp);
+                // co_await peer_session->async_send_writer(peer_session->http2_ring_queue_temp);
                 if (peer_session->isssl)
                 {
                     co_await asio::async_write(*peer_session->sslsocket, asio::buffer(peer_session->http2_ring_queue->data[head]), asio::use_awaitable);
@@ -2139,7 +2139,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                     auto ws_parse_obj = std::make_shared<websocketparse>();
                     ws_parse_obj->setWebsocketkey(http1pre->websocket->key);
                     log_item = ws_parse_obj->respondHandshake();
-                    co_await peer_session->co_send_writer(log_item);
+                    co_await peer_session->async_send_writer(log_item);
 
                     ws_parse_obj->websocket = std::move(http1pre->websocket);
 
@@ -2251,7 +2251,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             if (http2pre->error > 0)
             {
                 co_await http2_send_status_content(peer, 403, "client request error %d;");
-                co_await peer_session->co_send_goway();
+                co_await peer_session->async_send_goway();
                 break;
             }
             peer_session->time_limit.store(timeid());
@@ -2310,7 +2310,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             }
             if (error_state > 0)
             {
-                co_await peer_session->co_send_goway();
+                co_await peer_session->async_send_goway();
                 break;
             }
 
@@ -2318,7 +2318,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             if (http2pre->steam_count > 512)
             {
                 DEBUG_LOG("client http2 > 2024 stream close ");
-                co_await peer_session->co_send_goway();
+                co_await peer_session->async_send_goway();
                 break;
             }
 #endif
@@ -2570,7 +2570,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 {
                     websockets->onpong();
                     log_item = ws_parse_obj->makePong();
-                    co_await peer_session->co_send_writer(log_item);
+                    co_await peer_session->async_send_writer(log_item);
                     ws_parse_obj->indata={};
                 }
                 peer_session->time_limit.store(timeid() + 86400);
@@ -2641,7 +2641,7 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
             if(rpc->iserror)
             {
                 rpc->async_send_error();
-                co_await peer_session->co_send_writer(rpc->send_content);
+                co_await peer_session->async_send_writer(rpc->send_content);
                 co_return 3;
             }
 
@@ -2701,14 +2701,14 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
                     if(rpc->iserror)
                     {
                         rpc->async_send_error();
-                        co_await peer_session->co_send_writer(rpc->send_content);
+                        co_await peer_session->async_send_writer(rpc->send_content);
                         co_return 3;
                     }
     
-                    co_await peer_session->co_send_writer(rpc->send_content);
+                    co_await peer_session->async_send_writer(rpc->send_content);
                     if(rpc->peer->output.size() >0 )
                     {
-                        co_await peer_session->co_send_writer(rpc->peer->output);
+                        co_await peer_session->async_send_writer(rpc->peer->output);
                     }
                 }
 
