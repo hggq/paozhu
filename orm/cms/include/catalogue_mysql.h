@@ -5,6 +5,7 @@
  *  @date 2022-05-04
  *  @update 2025-03-12
  *  @dest ORM MySQL中间连接层
+ *  本文件自动生成 This document is automatically generated, Creation time (Tue, 09 Jun 2026 14:01:19 GMT)
  */
 #include <iostream>
 #include <mutex>
@@ -517,7 +518,7 @@ namespace cms
         asio::awaitable<std::tuple<unsigned int, unsigned int, unsigned int, unsigned int>>
         async_page(unsigned int page, unsigned int per_page = 10, unsigned int list_num = 5)
         {
-            unsigned int total_page = async_count();
+            unsigned int total_page = co_await async_count();
             if (per_page == 0)
             {
                 per_page = 10;
@@ -1003,6 +1004,147 @@ namespace cms
             {
             }
             return 0;
+        }
+
+        asio::awaitable<unsigned int> async_replace_col(std::string colname, const std::string &old_string, const std::string &new_string)
+        {
+            effect_num = 0;
+            std::string countsql;
+            countsql = "UPDATE ";
+            countsql.append(B_BASE::tablename);
+            countsql.append(" SET ");
+            countsql.append(colname);
+
+            countsql.append(" = REPLACE(");
+            countsql.append(colname);
+            countsql.append(",'");
+            countsql.append(old_string);
+            countsql.append("','");
+            countsql.append(new_string);
+            countsql.append("') ");
+
+            countsql.append(" where ");
+            if (wheresql.empty())
+            {
+                if (B_BASE::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << B_BASE::getPKname();
+                    tempsql << " = '";
+                    tempsql << B_BASE::getPK();
+                    tempsql << "' ";
+                    countsql.append(tempsql.str());
+                }
+                else
+                {
+                    co_return 0;
+                }
+            }
+            else
+            {
+                countsql.append(wheresql);
+            }
+            if (!groupsql.empty())
+            {
+                countsql.append(groupsql);
+            }
+            if (!limitsql.empty())
+            {
+                countsql.append(limitsql);
+            }
+            if (iscommit)
+            {
+                iscommit = false;
+                co_return 0;
+            }
+
+            if (iserror)
+            {
+                co_return 0;
+            }
+
+            try
+            {
+                if (conn_empty())
+                {
+                    co_return 0;
+                }
+                //auto conn = conn_obj->get_edit_conn();
+
+                if (islock_conn)
+                {
+                    if (!edit_conn)
+                    {
+                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+
+                std::size_t n = co_await edit_conn->async_write_sql(countsql);
+                if (n == 0)
+                {
+                    error_msg = edit_conn->error_msg;
+                    edit_conn.reset();
+                    co_return 0;
+                }
+
+                unsigned int offset = 0;
+                n                   = co_await edit_conn->async_read_loop();
+                if (n == 0)
+                {
+                    error_msg = edit_conn->error_msg;
+                    edit_conn.reset();
+                    co_return 0;
+                }
+                pack_info_t temp_pack_data;
+                temp_pack_data.seq_id = 1;
+                edit_conn->read_field_pack(edit_conn->_cache_data, n, offset, temp_pack_data);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(countsql, std::to_string(du_time));
+                }
+
+                if ((unsigned char)temp_pack_data.data[0] == 0xFF)
+                {
+                    error_msg = temp_pack_data.data.substr(3);
+                }
+                else if ((unsigned char)temp_pack_data.data[0] == 0x00)
+                {
+
+                    unsigned int d_offset = 1;
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                }
+                if (!islock_conn)
+                {
+                    conn_obj->back_edit_conn(std::move(edit_conn));
+                }
+                co_return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                co_return 0;
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            co_return 0;
         }
 
         void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned int value_size, typename B_BASE::meta &data_temp)

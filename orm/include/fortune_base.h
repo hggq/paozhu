@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 15 Jun 2025 01:41:45 GMT
+*本文件为自动生成 Tue, 09 Jun 2026 14:01:17 GMT
 ***/
 #include <iostream>
 #include <cstdio>

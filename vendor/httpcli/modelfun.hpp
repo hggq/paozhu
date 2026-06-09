@@ -5036,6 +5036,8 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     {
         //error 
     }
+    
+    n = string_replace(template_content, "{{date}}", getgmtdatetime());
     if (real_tag.size() > 0)
     {
         n = string_replace(template_content, "/*tagnamespace*/", "namespace " + real_tag);

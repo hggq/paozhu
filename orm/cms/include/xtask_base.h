@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 28 Nov 2025 12:11:33 GMT
+*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
 ***/
 #include <iostream>
 #include <cstdio>
