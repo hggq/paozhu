@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstddef>
+#include <random>
 #include <openssl/sha.h>//for SHA1
 //#include <string.h>
 #include <sstream>
@@ -124,8 +125,13 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
     {
         http::server_loaclvar &localvar = http::get_server_global_var();
         isfile                          = true;
-        filename                        = localvar.temp_path + "ws_" + std::to_string(time(NULL)) + "_" + std::to_string(contentlength);
-        // rawfile = fopen(filename.c_str(), "wb");
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<int> dis(10000, 99999);
+
+        unsigned int ra_num = dis(gen);
+        filename                        = localvar.temp_path + "ws_" + std::to_string(time(NULL)) + "_" + std::to_string(ra_num);
         rawfile.reset(fopen(filename.c_str(), "wb"));
         if (rawfile)
         {

@@ -2435,6 +2435,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         }
 
         unsigned int readnum = 0;
+        unsigned int seq_id = 0 ;
         unsigned long long total_recv_data = 0;
  
         for(;;)
@@ -2457,19 +2458,26 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
 #endif
                 //save error log
                 peer_session->stop();
-                peer_session->waituphttp2();
+                if(websockets->isco)
+                {
+                    co_await websockets->async_onclose();
+                }
+                else
+                {
+                    websockets->onclose();
+                }
                 co_return 3;
             }
 
             if (ws_parse_obj->ispack == false)
             {
                 //ispack 表示一个数据包 没有开始
-                DEBUG_LOG("websockets big data");
+                DEBUG_LOG("websockets first pack");
                 ws_parse_obj->getprocssdata(peer_session->_cache_data, readnum);
             }
             else
             {
-                DEBUG_LOG("websockets small data");
+                DEBUG_LOG("websockets other pack");
                 ws_parse_obj->parsedata(peer_session->_cache_data, readnum);
             }
 
@@ -2490,11 +2498,27 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 error_loglist.emplace_back(log_item);
                 lock.unlock();
 #endif
+                if(websockets->isco)
+                {
+                    co_await websockets->async_onclose();
+                }
+                else
+                {
+                    websockets->onclose();
+                }
                 co_return 3;
             }
 
             if (ws_parse_obj->iserror)
             {
+                if(websockets->isco)
+                {
+                    co_await websockets->async_onclose();
+                }
+                else
+                {
+                    websockets->onclose();
+                }
                 co_return 3;
             }
             if (ws_parse_obj->indata.size() > CONST_WEBSOCKET_POST_TEXT_SIZE)
@@ -2513,6 +2537,14 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 error_loglist.emplace_back(log_item);
                 lock.unlock();
 #endif
+                if(websockets->isco)
+                {
+                    co_await websockets->async_onclose();
+                }
+                else
+                {
+                    websockets->onclose();
+                }
                 co_return 3;
             }
             if (ws_parse_obj->isfinish)
@@ -2524,37 +2556,32 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 DEBUG_LOG("onmessage isfinish");
                 if (ws_parse_obj->opcode < 0x08 && ws_parse_obj->opcode > 0x00)
                 {
-                    websockets_data_list_t ws_temp_data;
+                    websockets_data_list_t  ws_temp_data;
                     if (ws_parse_obj->isfile)
                     {
                         ws_temp_data.value = ws_parse_obj->filename;
                         ws_temp_data.isfile = true;
+                        ws_temp_data.seqid = seq_id;
                     }
                     else
                     {
                         ws_temp_data.value = std::move(ws_parse_obj->indata);
                         ws_temp_data.isfile = false;
+                        ws_temp_data.seqid = seq_id;
                     }
+                    seq_id++;
                     //需要把解析数据搬出来然后置空，因为马上开始接收数据，双工收发，来不及处理可能数据被覆盖
-                    websockets->push(std::move(ws_temp_data));
                     ws_parse_obj->closefile();
                     ws_parse_obj->indata={};
-                    websockets->isfile = ws_parse_obj->isfile;
 
                     if(websockets->isco)
                     {
-                        //异步处理数据，做到双工收发 Asynchronous data processing, achieving duplex transmission and reception
-                        if (ws_parse_obj->isfile)
-                        {
-                           asio::co_spawn(peer_session->strand_,websockets->async_onfiles(), asio::detached);
-                        }
-                        else
-                        {
-                           asio::co_spawn(peer_session->strand_,websockets->async_onmessage(), asio::detached);
-                        }
+                       //异步处理数据，做到双工收发 Asynchronous data processing, achieving duplex transmission and reception
+                       asio::co_spawn(peer_session->strand_,websockets->async_onmessage(std::move(ws_temp_data)), asio::detached);
                     }
                     else
                     {
+                        websockets->push(std::move(ws_temp_data));
                         clientrunpool.addwsclient(websockets);
                     }
                     
@@ -2562,7 +2589,15 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 else if (ws_parse_obj->opcode == 0x08)
                 {
                     ws_parse_obj->isopen = false;
-                    websockets->onclose();
+                    websockets->isclose = true;
+                    if(websockets->isco)
+                    {
+                        co_await websockets->async_onclose();
+                    }
+                    else
+                    {
+                        websockets->onclose();
+                    }
                     DEBUG_LOG("websockets");
                     break;
                 }

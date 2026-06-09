@@ -18,7 +18,8 @@ struct websockets_api_data_t
 }; 
 struct websockets_data_list_t
 {
-    bool isfile;
+    bool isfile=false;
+    unsigned int seqid=0;
     std::string value;
 }; 
 class websockets_api: public std::enable_shared_from_this<websockets_api>
@@ -28,20 +29,18 @@ class websockets_api: public std::enable_shared_from_this<websockets_api>
     virtual void onopen()                    = 0;
     virtual asio::awaitable<void> async_onopen() = 0;
     virtual void onmessage() = 0;
-    virtual asio::awaitable<void> async_onmessage() = 0;
-    virtual void onfiles()   = 0;
-    virtual asio::awaitable<void> async_onfiles() = 0;
+    virtual asio::awaitable<void> async_onmessage(websockets_data_list_t &&msg) = 0;
     virtual void run_loop()                  = 0;
     virtual asio::awaitable<void> async_run_loop()  = 0;
     //  virtual void timeloop(clientpeer*) = 0;
     virtual void onclose() = 0;
-    //  virtual void onping() const = 0;
+    virtual asio::awaitable<void> async_onclose() = 0;
     virtual void onpong() = 0;
     virtual ~websockets_api() {}
-    void push(websockets_data_list_t&& item) 
+    void push(websockets_data_list_t &&msg)
     {
-        std::unique_lock<std::mutex> lock(mtx_list_lock);
-        content_list.push_back(std::move(item));
+      std::unique_lock<std::mutex> lock(content_list_mutex);
+      content_list.push_back(std::move(msg));
     }
   public:
     bool isclose = false;
@@ -61,7 +60,7 @@ class websockets_api: public std::enable_shared_from_this<websockets_api>
     std::vector<websockets_api_data_t> header;
     std::shared_ptr<client_session> session_sock = nullptr;
     std::shared_ptr<websocketparse> ws_parse = nullptr;
-    std::mutex mtx_list_lock;
+    std::mutex content_list_mutex;
 };
 }// namespace http
 #endif
