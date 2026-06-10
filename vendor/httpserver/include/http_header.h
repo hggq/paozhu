@@ -56,7 +56,9 @@ struct websocket_t
     bool gzip              = false;
     bool zstd              = false;
     bool br                = false;
-    unsigned char version;
+    
+    unsigned char bits = 0;
+    unsigned char version = 0;
     std::string key;
     std::string ext;
 };

@@ -2138,9 +2138,6 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
 
                     auto ws_parse_obj = std::make_shared<websocketparse>();
                     ws_parse_obj->setWebsocketkey(http1pre->websocket->key);
-                    log_item = ws_parse_obj->respondHandshake();
-                    co_await peer_session->async_send_writer(log_item);
-
                     ws_parse_obj->websocket = std::move(http1pre->websocket);
 
                     ws_parse_obj->websocket->gzip      = peer->state.gzip;
@@ -2393,6 +2390,10 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         websockets->session_sock = peer_session;
         websockets->url = peer->url;
         websockets->ws_parse = ws_parse_obj;
+        ws_parse_obj->isopendeflate = websockets->open_deflate; //open Sec-WebSocket-Extensions permessage-deflate
+
+        log_item = ws_parse_obj->respondHandshake();
+        co_await peer_session->async_send_writer(log_item);
         
         if(websockets->isco)
         {
@@ -2561,18 +2562,21 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                     {
                         ws_temp_data.value = ws_parse_obj->filename;
                         ws_temp_data.isfile = true;
+                        ws_temp_data.isdeflate = ws_parse_obj->isdeflate;
                         ws_temp_data.seqid = seq_id;
                     }
                     else
                     {
                         ws_temp_data.value = std::move(ws_parse_obj->indata);
                         ws_temp_data.isfile = false;
+                        ws_temp_data.isdeflate = ws_parse_obj->isdeflate;
                         ws_temp_data.seqid = seq_id;
                     }
                     seq_id++;
                     //需要把解析数据搬出来然后置空，因为马上开始接收数据，双工收发，来不及处理可能数据被覆盖
                     ws_parse_obj->closefile();
                     ws_parse_obj->indata={};
+                    ws_parse_obj->isdeflate = false;
 
                     if(websockets->isco)
                     {

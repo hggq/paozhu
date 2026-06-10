@@ -1695,6 +1695,50 @@ void httpparse::getwebsocketextensions()
     {
         return;
     }
+
+    if (header_value.find("server_max_window_bits") != std::string::npos)
+    {
+        unsigned int pos_b = header_value.find("server_max_window_bits") + 20;
+        unsigned int j=pos_b;
+        websocket->bits = 0;
+        for( ;pos_b < header_value.size(); pos_b++)
+        {
+            if(header_value[pos_b] == '=')
+            {
+                pos_b++;
+                for( ;pos_b < header_value.size(); pos_b++)
+                {
+                    if(header_value[pos_b] == 0x20)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+
+                for( ;pos_b < header_value.size(); pos_b++)
+                {
+                    if(header_value[pos_b] >= '0' && header_value[pos_b] <= '9')
+                    {
+                        websocket->bits = websocket->bits *10 +(header_value[pos_b]-'0');
+                        continue;
+                    }
+                    break;
+                }
+                break;
+            }
+            j++;
+            if(j>5)
+            {
+                break;
+            }
+        }
+        //has server_max_window_bits
+        if(websocket->bits == 0)
+        {
+            websocket->bits = 1;
+        }
+    }
+
     if (header_value.find("permessage-deflate") != std::string::npos)
     {
         websocket->permessagedeflate = true;

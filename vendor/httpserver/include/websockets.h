@@ -18,7 +18,8 @@ struct websockets_api_data_t
 }; 
 struct websockets_data_list_t
 {
-    bool isfile=false;
+    bool isfile = false;
+    bool isdeflate = false;
     unsigned int seqid=0;
     std::string value;
 }; 
@@ -48,6 +49,7 @@ class websockets_api: public std::enable_shared_from_this<websockets_api>
     bool isfile = false;
     bool isco = false;
     bool isloopco = false;
+    bool open_deflate = false;
     unsigned char state;
     unsigned int durtime=8;
     unsigned int loop_num=1;

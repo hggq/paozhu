@@ -37,6 +37,11 @@ unsigned long long websocketparse::getprocssdata(unsigned char *inputdata, unsig
 
     fin                     = inputdata[0] >> 7 & 0x01;
     opcode                  = inputdata[0] & 0x0F;
+    unsigned char rsv1 = inputdata[0] >> 6 & 0x01;
+    if (rsv1 > 0)
+    {
+        isdeflate = true;
+    }
 
     if (fin > 0)
     {
@@ -273,6 +278,14 @@ std::string websocketparse::respondHandshake()
     response += "Upgrade: websocket\r\n";
     response += "Sec-WebSocket-Version: 13\r\n";
     response += "Connection: Upgrade\r\n";
+    if(isopendeflate)
+    {
+        if(websocket != nullptr && websocket->permessagedeflate)
+        {
+            response += "Sec-WebSocket-Extensions: permessage-deflate\r\n";
+        }
+    }
+
     response += "Sec-WebSocket-Accept: ";
 
     // 使用请求传过来的KEY+协议字符串，先用SHA1加密然后使用base64编码算出一个应答的KEY
