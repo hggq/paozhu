@@ -36,6 +36,7 @@ asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> pee
 
     n = co_await a->async_text_read();
     client << "  "<< a->recv_data.content;
+    a->reset_recv_status();
     //end echo http client
     //Let the websocket client run alone in the background
 
@@ -46,7 +47,7 @@ asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> pee
                             unsigned int n = co_await b->async_write(outdata);
                             if(n == outdata.size())
                             {
-                                
+                                DEBUG_LOG("async_dur_time_loop_fun:%s",send_content.c_str());
                             }
                             co_return;
                          };
@@ -65,6 +66,7 @@ asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> pee
 
                             if(b->recv_data.isfinish)
                             {
+                                DEBUG_LOG("async_run_loop_fun:%s",b->recv_data.content.c_str());
                                 if(b->async_recv_finish_fun != nullptr)
                                 {
                                     co_await b->async_recv_finish_fun(b);

@@ -4043,7 +4043,7 @@ void httpserver::listeners()
                         time_num_count[time_tail] = total_count.load();
                     }
                     has_save_link_count =time_num_count[time_tail] - time_num_count[time_head];
-
+                    http2_minute_count.store(has_save_link_count);
                     //This 500 should be saved in the server.conf file
                     if (has_save_link_count > rate_limit_accept_wait_num.load() && live_link_count.load() > rate_limit_accept_wait_num.load())
                     {
@@ -5210,6 +5210,8 @@ void httpserver::httpwatch()
                 http2_send_queue &send_queue_obj = get_http2_send_queue();
                 error_msg_loop.append(" C:");
                 error_msg_loop.append(std::to_string(send_queue_obj.queue_list.size()));
+                error_msg_loop.append(" M:");
+                error_msg_loop.append(std::to_string(http2_minute_count.load()));
                 error_msg_loop.append(" L:");
                 error_msg_loop.append(std::to_string(live_link_count.load()));
                 

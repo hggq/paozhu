@@ -41,7 +41,11 @@ void websocket_client::reset()
     ssl_context.reset();
 }
 
- void websocket_client::set_header(std::string_view name,std::string_view value)
+void websocket_client::set_deflate(bool isstatus)
+{
+    open_deflate = isstatus;
+}
+void websocket_client::set_header(std::string_view name,std::string_view value)
 {
     websocket_parameter_t a;
     a.name = name;
@@ -865,11 +869,18 @@ std::string websocket_client::make_http_header()
     else
     {
         send_header_content.append("User-Agent: paozhu\r\nAccept: */*\r\nAccept-Language: en-US\r\n");
-        send_header_content.append("Accept-Encoding: gzip, deflate\r\n");
+        if(open_deflate)
+        {
+            send_header_content.append("Accept-Encoding: gzip, deflate\r\n");
+        }
     }
 
     send_header_content.append("Sec-WebSocket-Version: 13\r\n");
-    send_header_content.append("Sec-WebSocket-Extensions: permessage-deflate\r\n");
+    if(open_deflate)
+    {
+        send_header_content.append("Sec-WebSocket-Extensions: permessage-deflate\r\n");
+    }
+
     send_header_content.append("Sec-WebSocket-Key: ");
 
 
@@ -966,6 +977,7 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
     }
 
     //handshake
+    bool isok = false;
     if(parameter.size() > 0)
     {
         for(unsigned int i=0; i < parameter.size(); i++)
@@ -984,12 +996,21 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
 
                 if(str_casecmp(parameter[i].value, magicKey))
                 {
-                    return true;
+                    isok = true;
                 }
                 else
                 {
                     error_msg = "response Handshake error";
-                    return false;
+                }
+            }
+            else if(str_casecmp(parameter[i].name,"Sec-WebSocket-Extensions"))
+            {
+                if (parameter[i].value.find("permessage-deflate") != std::string::npos)
+                {
+                    if(open_deflate)
+                    {
+                        isdeflate = true;
+                    }
                 }
             }
         }
@@ -997,9 +1018,8 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
     else
     {
         error_msg = "response header empty";
-        return false;
     }
-    return false;
+    return isok;
 }
 
 void websocket_client::process_header(unsigned char *read_data, unsigned int data_bein, unsigned int data_end)
@@ -1291,27 +1311,35 @@ void websocket_client::make_mark()
 
 unsigned long long websocket_client::first_parsedata(unsigned char *inputdata, unsigned int buffersize)
 {
-
+    if(buffersize < 2)
+    {
+        iserror = true;
+        error_msg = "Pack is bad";
+        return 0;
+    }
     recv_data.fin           = inputdata[0] >> 7 & 0x01;
-    recv_data.opcode                  = inputdata[0] & 0x0F;
-    recv_data.mask                    = inputdata[1] >> 7 & 0x01;
-    unsigned char fixlength = inputdata[1] & 0x7F;
+    recv_data.opcode        = inputdata[0] & 0x0F;
+    recv_data.mask          = inputdata[1] >> 7 & 0x01;
+
+    unsigned char fixlength = inputdata[0] >> 6 & 0x01;
+
+    if(fixlength > 0)
+    {
+        recv_data.isdeflate = true;
+    }
+    fixlength = inputdata[1] & 0x7F;
+
     unsigned int pos                  = 2;
     recv_data.isfinish                = false;
     recv_data.length = 0;
     if (recv_data.fin > 0)
     {
-        //closefile();
-        recv_data.content.clear();
-        //isfile = false;
-        //ispack = false;
+        recv_data.isclose_stream = true;
     }
 
     switch (recv_data.opcode)
     {
     case 0x00:
-        iserror = true;
-        return 0;
         break;
     case 0x01:
     case 0x02:
@@ -1320,7 +1348,6 @@ unsigned long long websocket_client::first_parsedata(unsigned char *inputdata, u
     case 0x09:
     case 0x0A:
         recv_data.isfinish = true;
-        return 0;
         break;             
     default:
         iserror = true;
@@ -1359,7 +1386,6 @@ unsigned long long websocket_client::first_parsedata(unsigned char *inputdata, u
         pos += 4;
     }
     
-    recv_data.read_length = 0;
     if (recv_data.mask == 1)
     {
         for (; pos < buffersize; pos++)
@@ -1378,10 +1404,13 @@ unsigned long long websocket_client::first_parsedata(unsigned char *inputdata, u
             recv_data.read_length++;
         }
     }
-
+    recv_data.total_length += recv_data.read_length;
     if (recv_data.read_length >= recv_data.length)
     {
-        recv_data.isfinish      = true;
+        if(recv_data.isclose_stream)
+        {
+            recv_data.isfinish      = true;
+        }
     }
 
     return recv_data.read_length;
@@ -1405,9 +1434,13 @@ unsigned long long websocket_client::append_parsedata(unsigned char *inputdata, 
         }
     }
     recv_data.read_length = recv_data.read_length + buffersize;
+    recv_data.total_length += recv_data.read_length;
     if (recv_data.read_length >= recv_data.length)
     {
-        recv_data.isfinish      = true;
+        if(recv_data.isclose_stream)
+        {
+            recv_data.isfinish      = true;
+        }
     }
     return recv_data.read_length;
 }
@@ -1421,6 +1454,11 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
     else
     {
        return append_parsedata(inputdata, buffersize);
+    }
+    if(recv_data.total_length > 16777216)
+    {
+        iserror = true;
+        error_msg = "Recv data too long";
     }
 }
 
@@ -1437,6 +1475,8 @@ void websocket_client::reset_recv_status()
 {
     recv_data.isfile = false;
     recv_data.isfinish = false;
+    recv_data.isdeflate = false;
+    recv_data.isclose_stream = false;
     recv_data.fin = 0;
     recv_data.opcode = 0;      
     recv_data.mask = 0; 

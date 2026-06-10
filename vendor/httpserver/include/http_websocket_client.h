@@ -110,6 +110,7 @@ namespace http
         void reset_recv_status();
 
         bool add_client_task_loop();
+        void set_deflate(bool isstatus);
     public:
         bool iserror = false;
         bool isssl = false;
@@ -117,6 +118,8 @@ namespace http
         bool isfinish = false;
         bool iswait_exit = false;
         bool isco = false;
+        bool isdeflate = false;
+        bool open_deflate = false;
         unsigned char ready_state = 0;
         unsigned char exptime = 0;
         unsigned char cur_process_type = 0;
@@ -140,12 +143,15 @@ namespace http
         {
           bool isfile = false;
           bool isfinish = false;
+          bool isdeflate = false;
+          bool isclose_stream = false;
           unsigned char fin;
           unsigned char opcode = 0;
           unsigned char mask;
           unsigned char mask_key[4];
           unsigned long long length = 0;
           unsigned long long read_length = 0;
+          unsigned long long total_length = 0;
           std::string content;
         } recv_data;
         std::vector<websocket_parameter_t> parameter;
