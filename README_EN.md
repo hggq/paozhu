@@ -415,6 +415,7 @@ The example file is demonstrated on the server side in `websockets/loopwebsocket
 
 #include "orm.h"
 #include "websockets.h"
+#include "terminal_color.h"
 
 namespace http
 {
@@ -447,6 +448,13 @@ class loopwebsockets : public websockets_api
         isclose = true;
         std::cout << "onclose" << std::endl; 
     }
+
+    asio::awaitable<void> async_onclose() override
+    { 
+        std::cout << "async_onclose" << std::endl; 
+        co_return;
+    }
+
     void onpong() override {}
     void run_loop() override
     {
@@ -477,11 +485,11 @@ class loopwebsockets : public websockets_api
     {
         if (session_sock)
         {
-            std::cout << "async timeloop:" << std::endl;
+            std::cout << "async async_run_loop" << std::endl;
             std::string aa = "test async_run_loop";
             std::string outhello;
             ws_parse->make_ws_text(aa, outhello);
-            co_await session_sock->co_send_writer(outhello);
+            co_await session_sock->async_send_writer(outhello);
             //   peer->send(aa);
             if (loop_num == 4)
             {
@@ -498,28 +506,29 @@ class loopwebsockets : public websockets_api
         }
         co_return;
     }
-    void onfiles(std::string_view filename) override { std::cout << "--------onfiles:--------" << filename << std::endl; }
-    asio::awaitable<void> async_onfiles(std::string_view filename) override
-    { 
-        std::cout << "--------onfiles:--------" << filename << std::endl;
-        co_return; 
-    }
 
-    asio::awaitable<void> async_onmessage(std::string_view data) override 
+    asio::awaitable<void> async_onmessage(websockets_data_list_t &&msg) override 
     {
         std::string outhello;
-        ws_parse->make_ws_text(data, outhello);
-        co_await session_sock->co_send_writer(outhello);
+        ws_parse->make_ws_text(msg.value, outhello);
+        co_await session_sock->async_send_writer(outhello);
         co_return;
     }
-    void onmessage(std::string_view data) override
+    void onmessage() override
     {
-        if (session_sock)
+        std::unique_lock<std::mutex> lock(content_list_mutex);
+        if(content_list.empty())
         {
-            std::string outhello;
-            ws_parse->make_ws_text(data, outhello);
-            session_sock->send_writer(outhello);
+            return;
         }
+        auto msg = std::move(content_list.front());
+        content_list.pop_front();
+        lock.unlock();
+        
+        std::string outhello;
+        ws_parse->make_ws_text(msg.value, outhello);
+        session_sock->send_writer(outhello);
+        return;
     }
  
 };
