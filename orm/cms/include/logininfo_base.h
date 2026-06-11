@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -336,7 +336,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(const std::string &fileld){
+    std::string _makeupdatesql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -538,7 +538,7 @@ tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(const std::string &fileld)
+    std::string _make_insert_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -640,7 +640,7 @@ tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(const std::string &fileld=""){
+   std::vector<std::string> data_toarray(std::string_view fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -722,7 +722,7 @@ if(data.logtype==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
+   std::map<std::string,std::string> data_tomap(std::string_view fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1415,7 +1415,7 @@ tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
         }
    } 
     
-   std::string to_json(std::string fileld=""){
+   std::string to_json(std::string_view fileld=""){
     std::ostringstream tempsql;
     std::string keyname;
     unsigned char jj=0;
@@ -1516,7 +1516,7 @@ tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,logininfo_info::meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,logininfo_info::meta&)> func,std::string_view fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;

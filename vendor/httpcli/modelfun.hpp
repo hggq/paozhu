@@ -6829,7 +6829,7 @@ headtxt += R"(::meta data;
     // update sql
     headtxt.clear();
     headtxt = R"(   
-    std::string _makeupdatesql(const std::string &fileld){
+    std::string _makeupdatesql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -7217,7 +7217,7 @@ headtxt += R"(::meta data;
     headtxt.clear();
     update2strem.str("");
     headtxt = R"(
-    std::string _make_insert_into_sql(const std::string &fileld)
+    std::string _make_insert_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -7426,7 +7426,7 @@ headtxt += R"(::meta data;
     /////////////////////////////////////////////////////////////////////////////////////
 
     headtxt = R"(
-   std::vector<std::string> data_toarray(const std::string &fileld=""){
+   std::vector<std::string> data_toarray(std::string_view fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -7539,7 +7539,7 @@ headtxt += R"(::meta data;
     headtxt.clear();
     ///////////////////////////////////////////////////////////////////////////////////////
     headtxt = R"(
-   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
+   std::map<std::string,std::string> data_tomap(std::string_view fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -8511,7 +8511,7 @@ headtxt += R"(::meta data;
     headtxt.clear();
     ///////////////////////////////////////////////
     headtxt = R"(
-   std::string to_json(std::string fileld=""){
+   std::string to_json(std::string_view fileld=""){
     std::ostringstream tempsql;
     std::string keyname;
     unsigned char jj=0;
@@ -8644,7 +8644,7 @@ headtxt += R"(::meta data;
     headtxt = R"(
    std::string to_json(std::function<bool(std::string&,)";
     headtxt += model_info_name;
-    headtxt += R"(::meta&)> func,std::string fileld=""){
+    headtxt += R"(::meta&)> func,std::string_view fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
