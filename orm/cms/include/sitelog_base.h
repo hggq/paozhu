@@ -2,7 +2,7 @@
 #define ORM_CMS_SITELOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -57,6 +57,25 @@ namespace sitelog_info
  std::string  hostname = ""; ///**/
  std::string  derefererurl = ""; ///**/
  std::string  deurl = ""; ///**/
+ };
+  
+        struct meta_tree{
+         unsigned  int  logid = 0; ///**/
+ unsigned  int  userid = 0; ///**/
+ unsigned  int  memberid = 0; ///**/
+ unsigned  int  ipport = 0; ///**/
+ unsigned  char  httpv = 0; ///*https http2*/
+ std::string  ipaddress = ""; ///**/
+ std::string  visittime = ""; ///**/
+ std::string  useragent = ""; ///**/
+ std::string  referer = ""; ///**/
+ std::string  cururl = ""; ///**/
+ std::string  address = ""; ///**/
+ std::string  hostname = ""; ///**/
+ std::string  derefererurl = ""; ///**/
+ std::string  deurl = ""; ///**/
+
+	 std::vector<meta_tree> children;
  };
  static constexpr std::array<std::string_view,14> col_names={"logid","userid","memberid","ipport","httpv","ipaddress","visittime","useragent","referer","cururl","address","hostname","derefererurl","deurl"};
 static constexpr std::array<unsigned char,14> col_types={3,3,3,3,1,253,253,253,253,253,253,253,253,253};
@@ -2026,6 +2045,268 @@ std::vector<sitelog_info::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<sitelog_info::meta_tree> &tree_data, std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<sitelog_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<tree_data.size();n++){
+            if(n>0){
+                tempsql<<",{";
+            }else{
+                tempsql<<"{";
+            }  
+        
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].logid==0){
+	tempsql<<"\"logid\":0";
+ }else{ 
+	tempsql<<"\"logid\":"<<std::to_string(tree_data[n].logid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].memberid==0){
+	tempsql<<"\"memberid\":0";
+ }else{ 
+	tempsql<<"\"memberid\":"<<std::to_string(tree_data[n].memberid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].ipport==0){
+	tempsql<<"\"ipport\":0";
+ }else{ 
+	tempsql<<"\"ipport\":"<<std::to_string(tree_data[n].ipport);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].httpv==0){
+	tempsql<<"\"httpv\":0";
+ }else{ 
+	tempsql<<"\"httpv\":"<<std::to_string(tree_data[n].httpv);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"ipaddress\":\""<<http::utf8_to_jsonstring(tree_data[n].ipaddress)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"visittime\":\""<<http::utf8_to_jsonstring(tree_data[n].visittime)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"useragent\":\""<<http::utf8_to_jsonstring(tree_data[n].useragent)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"referer\":\""<<http::utf8_to_jsonstring(tree_data[n].referer)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"cururl\":\""<<http::utf8_to_jsonstring(tree_data[n].cururl)<<"\"";
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(tree_data[n].address)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"hostname\":\""<<http::utf8_to_jsonstring(tree_data[n].hostname)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"derefererurl\":\""<<http::utf8_to_jsonstring(tree_data[n].derefererurl)<<"\"";
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"deurl\":\""<<http::utf8_to_jsonstring(tree_data[n].deurl)<<"\"";
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<sitelog_info::meta_tree> &tree_data,std::function<bool(std::string&,const sitelog_info::meta_tree&)> func,std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<sitelog_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    tempsql<<"[";
+    for(size_t n=0;n<tree_data.size();n++){
+        keyname.clear();
+        if(func(keyname,tree_data[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+        }else{
+        continue;
+        } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].logid==0){
+	tempsql<<"\"logid\":0";
+ }else{ 
+	tempsql<<"\"logid\":"<<std::to_string(tree_data[n].logid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].memberid==0){
+	tempsql<<"\"memberid\":0";
+ }else{ 
+	tempsql<<"\"memberid\":"<<std::to_string(tree_data[n].memberid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].ipport==0){
+	tempsql<<"\"ipport\":0";
+ }else{ 
+	tempsql<<"\"ipport\":"<<std::to_string(tree_data[n].ipport);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].httpv==0){
+	tempsql<<"\"httpv\":0";
+ }else{ 
+	tempsql<<"\"httpv\":"<<std::to_string(tree_data[n].httpv);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"ipaddress\":\""<<http::utf8_to_jsonstring(tree_data[n].ipaddress)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"visittime\":\""<<http::utf8_to_jsonstring(tree_data[n].visittime)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"useragent\":\""<<http::utf8_to_jsonstring(tree_data[n].useragent)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"referer\":\""<<http::utf8_to_jsonstring(tree_data[n].referer)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"cururl\":\""<<http::utf8_to_jsonstring(tree_data[n].cururl)<<"\"";
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(tree_data[n].address)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"hostname\":\""<<http::utf8_to_jsonstring(tree_data[n].hostname)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"derefererurl\":\""<<http::utf8_to_jsonstring(tree_data[n].derefererurl)<<"\"";
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"deurl\":\""<<http::utf8_to_jsonstring(tree_data[n].deurl)<<"\"";
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] sitelog_info::cols key_name)

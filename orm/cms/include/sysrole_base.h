@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -43,6 +43,18 @@ namespace sysrole_info
  unsigned  long long  rolecode = 0; ///**/
  int  sortid = 0; ///**/
  unsigned  int  rolevalue = 0; ///**/
+ };
+  
+        struct meta_tree{
+         unsigned  int  roleid = 0; ///**/
+ unsigned  int  userid = 0; ///**/
+ std::string  name = ""; ///**/
+ unsigned  char  status = 0; ///**/
+ unsigned  long long  rolecode = 0; ///**/
+ int  sortid = 0; ///**/
+ unsigned  int  rolevalue = 0; ///**/
+
+	 std::vector<meta_tree> children;
  };
  static constexpr std::array<std::string_view,7> col_names={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
 static constexpr std::array<unsigned char,7> col_types={3,3,253,1,8,3,3};
@@ -1640,6 +1652,220 @@ std::vector<sysrole_info::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<sysrole_info::meta_tree> &tree_data, std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<sysrole_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<tree_data.size();n++){
+            if(n>0){
+                tempsql<<",{";
+            }else{
+                tempsql<<"{";
+            }  
+        
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].roleid==0){
+	tempsql<<"\"roleid\":0";
+ }else{ 
+	tempsql<<"\"roleid\":"<<std::to_string(tree_data[n].roleid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].status==0){
+	tempsql<<"\"status\":0";
+ }else{ 
+	tempsql<<"\"status\":"<<std::to_string(tree_data[n].status);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].rolecode==0){
+	tempsql<<"\"rolecode\":0";
+ }else{ 
+	tempsql<<"\"rolecode\":"<<std::to_string(tree_data[n].rolecode);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].rolevalue==0){
+	tempsql<<"\"rolevalue\":0";
+ }else{ 
+	tempsql<<"\"rolevalue\":"<<std::to_string(tree_data[n].rolevalue);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<sysrole_info::meta_tree> &tree_data,std::function<bool(std::string&,const sysrole_info::meta_tree&)> func,std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<sysrole_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    tempsql<<"[";
+    for(size_t n=0;n<tree_data.size();n++){
+        keyname.clear();
+        if(func(keyname,tree_data[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+        }else{
+        continue;
+        } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].roleid==0){
+	tempsql<<"\"roleid\":0";
+ }else{ 
+	tempsql<<"\"roleid\":"<<std::to_string(tree_data[n].roleid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].status==0){
+	tempsql<<"\"status\":0";
+ }else{ 
+	tempsql<<"\"status\":"<<std::to_string(tree_data[n].status);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].rolecode==0){
+	tempsql<<"\"rolecode\":0";
+ }else{ 
+	tempsql<<"\"rolecode\":"<<std::to_string(tree_data[n].rolecode);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sortid==0){
+	tempsql<<"\"sortid\":0";
+ }else{ 
+	tempsql<<"\"sortid\":"<<std::to_string(tree_data[n].sortid);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].rolevalue==0){
+	tempsql<<"\"rolevalue\":0";
+ }else{ 
+	tempsql<<"\"rolevalue\":"<<std::to_string(tree_data[n].rolevalue);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] sysrole_info::cols key_name)

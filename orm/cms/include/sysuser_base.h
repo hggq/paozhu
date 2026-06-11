@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -71,6 +71,32 @@ namespace sysuser_info
  std::string  mobile = ""; ///**/
  std::string  email = ""; ///**/
  std::string  wxuuid = ""; ///**/
+ };
+  
+        struct meta_tree{
+         unsigned  int  adminid = 0; ///**/
+ std::string  name = ""; ///**/
+ std::string  password = ""; ///**/
+ std::string  textword = ""; ///**/
+ char  isopen = 0; ///**/
+ int  level = 0; ///**/
+ unsigned  int  companyid = 0; ///*所属企业*/
+ unsigned  int  dpid = 0; ///**/
+ unsigned  int  jobid = 0; ///**/
+ unsigned  int  roleid = 0; ///**/
+ unsigned  int  postid = 0; ///**/
+ unsigned  int  created_at = 0; ///**/
+ unsigned  int  enddate = 0; ///**/
+ unsigned  int  qrtemp = 0; ///**/
+ unsigned  char  gender = 0; ///**/
+ std::string  nickname = ""; ///**/
+ std::string  realname = ""; ///**/
+ std::string  avatar = ""; ///**/
+ std::string  mobile = ""; ///**/
+ std::string  email = ""; ///**/
+ std::string  wxuuid = ""; ///**/
+
+	 std::vector<meta_tree> children;
  };
  static constexpr std::array<std::string_view,21> col_names={"adminid","name","password","textword","isopen","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid"};
 static constexpr std::array<unsigned char,21> col_types={3,253,253,253,1,3,3,3,3,3,3,3,3,3,1,253,253,253,253,253,253};
@@ -2804,6 +2830,380 @@ std::vector<sysuser_info::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<sysuser_info::meta_tree> &tree_data, std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<sysuser_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<tree_data.size();n++){
+            if(n>0){
+                tempsql<<",{";
+            }else{
+                tempsql<<"{";
+            }  
+        
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].adminid==0){
+	tempsql<<"\"adminid\":0";
+ }else{ 
+	tempsql<<"\"adminid\":"<<std::to_string(tree_data[n].adminid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(tree_data[n].password)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"textword\":\""<<http::utf8_to_jsonstring(tree_data[n].textword)<<"\"";
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isopen==0){
+	tempsql<<"\"isopen\":0";
+ }else{ 
+	tempsql<<"\"isopen\":"<<std::to_string(tree_data[n].isopen);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].level==0){
+	tempsql<<"\"level\":0";
+ }else{ 
+	tempsql<<"\"level\":"<<std::to_string(tree_data[n].level);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].companyid==0){
+	tempsql<<"\"companyid\":0";
+ }else{ 
+	tempsql<<"\"companyid\":"<<std::to_string(tree_data[n].companyid);
+}
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].dpid==0){
+	tempsql<<"\"dpid\":0";
+ }else{ 
+	tempsql<<"\"dpid\":"<<std::to_string(tree_data[n].dpid);
+}
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].jobid==0){
+	tempsql<<"\"jobid\":0";
+ }else{ 
+	tempsql<<"\"jobid\":"<<std::to_string(tree_data[n].jobid);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].roleid==0){
+	tempsql<<"\"roleid\":0";
+ }else{ 
+	tempsql<<"\"roleid\":"<<std::to_string(tree_data[n].roleid);
+}
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].postid==0){
+	tempsql<<"\"postid\":0";
+ }else{ 
+	tempsql<<"\"postid\":"<<std::to_string(tree_data[n].postid);
+}
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].created_at==0){
+	tempsql<<"\"created_at\":0";
+ }else{ 
+	tempsql<<"\"created_at\":"<<std::to_string(tree_data[n].created_at);
+}
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].enddate==0){
+	tempsql<<"\"enddate\":0";
+ }else{ 
+	tempsql<<"\"enddate\":"<<std::to_string(tree_data[n].enddate);
+}
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].qrtemp==0){
+	tempsql<<"\"qrtemp\":0";
+ }else{ 
+	tempsql<<"\"qrtemp\":"<<std::to_string(tree_data[n].qrtemp);
+}
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].gender==0){
+	tempsql<<"\"gender\":0";
+ }else{ 
+	tempsql<<"\"gender\":"<<std::to_string(tree_data[n].gender);
+}
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(tree_data[n].nickname)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(tree_data[n].realname)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(tree_data[n].avatar)<<"\"";
+ break;
+ case 18:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(tree_data[n].mobile)<<"\"";
+ break;
+ case 19:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(tree_data[n].email)<<"\"";
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<sysuser_info::meta_tree> &tree_data,std::function<bool(std::string&,const sysuser_info::meta_tree&)> func,std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<sysuser_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    tempsql<<"[";
+    for(size_t n=0;n<tree_data.size();n++){
+        keyname.clear();
+        if(func(keyname,tree_data[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+        }else{
+        continue;
+        } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].adminid==0){
+	tempsql<<"\"adminid\":0";
+ }else{ 
+	tempsql<<"\"adminid\":"<<std::to_string(tree_data[n].adminid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"password\":\""<<http::utf8_to_jsonstring(tree_data[n].password)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"textword\":\""<<http::utf8_to_jsonstring(tree_data[n].textword)<<"\"";
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isopen==0){
+	tempsql<<"\"isopen\":0";
+ }else{ 
+	tempsql<<"\"isopen\":"<<std::to_string(tree_data[n].isopen);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].level==0){
+	tempsql<<"\"level\":0";
+ }else{ 
+	tempsql<<"\"level\":"<<std::to_string(tree_data[n].level);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].companyid==0){
+	tempsql<<"\"companyid\":0";
+ }else{ 
+	tempsql<<"\"companyid\":"<<std::to_string(tree_data[n].companyid);
+}
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].dpid==0){
+	tempsql<<"\"dpid\":0";
+ }else{ 
+	tempsql<<"\"dpid\":"<<std::to_string(tree_data[n].dpid);
+}
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].jobid==0){
+	tempsql<<"\"jobid\":0";
+ }else{ 
+	tempsql<<"\"jobid\":"<<std::to_string(tree_data[n].jobid);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].roleid==0){
+	tempsql<<"\"roleid\":0";
+ }else{ 
+	tempsql<<"\"roleid\":"<<std::to_string(tree_data[n].roleid);
+}
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].postid==0){
+	tempsql<<"\"postid\":0";
+ }else{ 
+	tempsql<<"\"postid\":"<<std::to_string(tree_data[n].postid);
+}
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].created_at==0){
+	tempsql<<"\"created_at\":0";
+ }else{ 
+	tempsql<<"\"created_at\":"<<std::to_string(tree_data[n].created_at);
+}
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].enddate==0){
+	tempsql<<"\"enddate\":0";
+ }else{ 
+	tempsql<<"\"enddate\":"<<std::to_string(tree_data[n].enddate);
+}
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].qrtemp==0){
+	tempsql<<"\"qrtemp\":0";
+ }else{ 
+	tempsql<<"\"qrtemp\":"<<std::to_string(tree_data[n].qrtemp);
+}
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].gender==0){
+	tempsql<<"\"gender\":0";
+ }else{ 
+	tempsql<<"\"gender\":"<<std::to_string(tree_data[n].gender);
+}
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(tree_data[n].nickname)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(tree_data[n].realname)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(tree_data[n].avatar)<<"\"";
+ break;
+ case 18:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(tree_data[n].mobile)<<"\"";
+ break;
+ case 19:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(tree_data[n].email)<<"\"";
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] sysuser_info::cols key_name)

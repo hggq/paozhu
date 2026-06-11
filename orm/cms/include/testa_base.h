@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1575,7 +1575,7 @@ std::vector<testa_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<testa_info::meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<testa_info::meta_tree> &tree_data, std::string_view fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1671,7 +1671,7 @@ if(tree_data[n].deletetime==0){
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<testa_info::meta_tree> &tree_data,std::function<bool(std::string&,const testa_info::meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<testa_info::meta_tree> &tree_data,std::function<bool(std::string&,const testa_info::meta_tree&)> func,std::string_view fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;

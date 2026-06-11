@@ -5376,7 +5376,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 
     int row_num_count = 0;
     tablecollist.reserve(row_num_count);
-    bool ismeta_tree = false;
+    //bool ismeta_tree = false;
 
     for (auto &row : table_column_info_lists)
     {
@@ -5386,11 +5386,11 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 
         if (fieldname == "pid" || fieldname == "parentid" || fieldname == "parent_id")
         {
-            ismeta_tree = true;
+            //ismeta_tree = true;
         }
         else if (isparent(fieldname))
         {
-            ismeta_tree = true;
+            //ismeta_tree = true;
         }
 
         if (row.is_auto_inc)
@@ -5907,7 +5907,7 @@ headtxt += R"(
         filemodelstrem << metalist[j] << std::endl;
     }
     filemodelstrem << " };\n ";
-    if (ismeta_tree || tablefieldtree.size() > 0)
+    //if (ismeta_tree || tablefieldtree.size() > 0)
     {
         filemodelstrem << R"( 
         struct meta_tree{
@@ -5996,8 +5996,6 @@ headtxt += R"(      )";
 headtxt.append(model_info_name);
 headtxt += R"(::meta data;
     )"; 
-    
-    headtxt.append(filemodelstrem.str());   
     filemodelstrem.str(""); 
 
     filemodelstrem << "std::vector<" << model_info_name << "::meta> record;\n";
@@ -9039,12 +9037,12 @@ headtxt += R"(::meta data;
     // mete_tree to json
 
     headtxt.clear();
-    if (ismeta_tree || tablefieldtree.size() > 0)
+    //if (ismeta_tree || tablefieldtree.size() > 0)
     {
         headtxt += R"(
    std::string tree_tojson(const std::vector<)";
         headtxt += model_info_name;
-        headtxt += R"(::meta_tree> &tree_data, std::string fileld=""){
+        headtxt += R"(::meta_tree> &tree_data, std::string_view fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -9182,7 +9180,7 @@ headtxt += R"(::meta data;
         headtxt += model_info_name;
         headtxt += R"(::meta_tree> &tree_data,std::function<bool(std::string&,const )";
         headtxt += model_info_name;
-        headtxt += R"(::meta_tree&)> func,std::string fileld=""){
+        headtxt += R"(::meta_tree&)> func,std::string_view fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;

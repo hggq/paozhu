@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -49,6 +49,21 @@ namespace logininfo_info
  std::string  loginstate = ""; ///*登录状态*/
  std::string  agent = ""; ///**/
  std::string  urlpath = ""; ///**/
+ };
+  
+        struct meta_tree{
+         unsigned  int  lgid = 0; ///**/
+ unsigned  int  userid = 0; ///*会员id*/
+ unsigned  char  logtype = 0; ///**/
+ std::string  username = ""; ///*会员名字*/
+ std::string  addtime = ""; ///*登录时间*/
+ std::string  addip = ""; ///*登录ip*/
+ std::string  addregion = ""; ///*登录地区*/
+ std::string  loginstate = ""; ///*登录状态*/
+ std::string  agent = ""; ///**/
+ std::string  urlpath = ""; ///**/
+
+	 std::vector<meta_tree> children;
  };
  static constexpr std::array<std::string_view,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
 static constexpr std::array<unsigned char,10> col_types={3,3,1,253,253,253,253,253,253,253};
@@ -1680,6 +1695,220 @@ std::vector<logininfo_info::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<logininfo_info::meta_tree> &tree_data, std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<logininfo_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<tree_data.size();n++){
+            if(n>0){
+                tempsql<<",{";
+            }else{
+                tempsql<<"{";
+            }  
+        
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].lgid==0){
+	tempsql<<"\"lgid\":0";
+ }else{ 
+	tempsql<<"\"lgid\":"<<std::to_string(tree_data[n].lgid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].logtype==0){
+	tempsql<<"\"logtype\":0";
+ }else{ 
+	tempsql<<"\"logtype\":"<<std::to_string(tree_data[n].logtype);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(tree_data[n].username)<<"\"";
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(tree_data[n].addtime)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(tree_data[n].addip)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(tree_data[n].addregion)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(tree_data[n].loginstate)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"agent\":\""<<http::utf8_to_jsonstring(tree_data[n].agent)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(tree_data[n].urlpath)<<"\"";
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<logininfo_info::meta_tree> &tree_data,std::function<bool(std::string&,const logininfo_info::meta_tree&)> func,std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<logininfo_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    tempsql<<"[";
+    for(size_t n=0;n<tree_data.size();n++){
+        keyname.clear();
+        if(func(keyname,tree_data[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+        }else{
+        continue;
+        } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].lgid==0){
+	tempsql<<"\"lgid\":0";
+ }else{ 
+	tempsql<<"\"lgid\":"<<std::to_string(tree_data[n].lgid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].logtype==0){
+	tempsql<<"\"logtype\":0";
+ }else{ 
+	tempsql<<"\"logtype\":"<<std::to_string(tree_data[n].logtype);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"username\":\""<<http::utf8_to_jsonstring(tree_data[n].username)<<"\"";
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addtime\":\""<<http::utf8_to_jsonstring(tree_data[n].addtime)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addip\":\""<<http::utf8_to_jsonstring(tree_data[n].addip)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"addregion\":\""<<http::utf8_to_jsonstring(tree_data[n].addregion)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"loginstate\":\""<<http::utf8_to_jsonstring(tree_data[n].loginstate)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"agent\":\""<<http::utf8_to_jsonstring(tree_data[n].agent)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(tree_data[n].urlpath)<<"\"";
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] logininfo_info::cols key_name)

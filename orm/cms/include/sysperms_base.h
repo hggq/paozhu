@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -2224,7 +2224,7 @@ std::vector<sysperms_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<sysperms_info::meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<sysperms_info::meta_tree> &tree_data, std::string_view fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2368,7 +2368,7 @@ if(tree_data[n].updated_user==0){
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<sysperms_info::meta_tree> &tree_data,std::function<bool(std::string&,const sysperms_info::meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<sysperms_info::meta_tree> &tree_data,std::function<bool(std::string&,const sysperms_info::meta_tree&)> func,std::string_view fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;

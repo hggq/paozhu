@@ -2,7 +2,7 @@
 #define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -39,6 +39,16 @@ namespace blogcatalog_info
  unsigned  int  dateid = 0; ///*月份聚合*/
  unsigned  int  articlenum = 0; ///*月份文章数量聚合*/
  unsigned  int  languageid = 0; ///*语言版本*/
+ };
+  
+        struct meta_tree{
+         unsigned  int  bid = 0; ///**/
+ unsigned  int  userid = 0; ///**/
+ unsigned  int  dateid = 0; ///*月份聚合*/
+ unsigned  int  articlenum = 0; ///*月份文章数量聚合*/
+ unsigned  int  languageid = 0; ///*语言版本*/
+
+	 std::vector<meta_tree> children;
  };
  static constexpr std::array<std::string_view,5> col_names={"bid","userid","dateid","articlenum","languageid"};
 static constexpr std::array<unsigned char,5> col_types={3,3,3,3,3};
@@ -1461,6 +1471,196 @@ std::vector<blogcatalog_info::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<blogcatalog_info::meta_tree> &tree_data, std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<blogcatalog_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<tree_data.size();n++){
+            if(n>0){
+                tempsql<<",{";
+            }else{
+                tempsql<<"{";
+            }  
+        
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].bid==0){
+	tempsql<<"\"bid\":0";
+ }else{ 
+	tempsql<<"\"bid\":"<<std::to_string(tree_data[n].bid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].dateid==0){
+	tempsql<<"\"dateid\":0";
+ }else{ 
+	tempsql<<"\"dateid\":"<<std::to_string(tree_data[n].dateid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].articlenum==0){
+	tempsql<<"\"articlenum\":0";
+ }else{ 
+	tempsql<<"\"articlenum\":"<<std::to_string(tree_data[n].articlenum);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].languageid==0){
+	tempsql<<"\"languageid\":0";
+ }else{ 
+	tempsql<<"\"languageid\":"<<std::to_string(tree_data[n].languageid);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<blogcatalog_info::meta_tree> &tree_data,std::function<bool(std::string&,const blogcatalog_info::meta_tree&)> func,std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<blogcatalog_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    tempsql<<"[";
+    for(size_t n=0;n<tree_data.size();n++){
+        keyname.clear();
+        if(func(keyname,tree_data[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+        }else{
+        continue;
+        } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].bid==0){
+	tempsql<<"\"bid\":0";
+ }else{ 
+	tempsql<<"\"bid\":"<<std::to_string(tree_data[n].bid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].dateid==0){
+	tempsql<<"\"dateid\":0";
+ }else{ 
+	tempsql<<"\"dateid\":"<<std::to_string(tree_data[n].dateid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].articlenum==0){
+	tempsql<<"\"articlenum\":0";
+ }else{ 
+	tempsql<<"\"articlenum\":"<<std::to_string(tree_data[n].articlenum);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].languageid==0){
+	tempsql<<"\"languageid\":0";
+ }else{ 
+	tempsql<<"\"languageid\":"<<std::to_string(tree_data[n].languageid);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] blogcatalog_info::cols key_name)

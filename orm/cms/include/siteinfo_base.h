@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 14:08:18 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -95,6 +95,44 @@ namespace siteinfo_info
  unsigned  char  isopen = 0; ///**/
  unsigned  int  created_at = 0; ///**/
  unsigned  int  enddate = 0; ///**/
+ };
+  
+        struct meta_tree{
+         int  sid = 0; ///**/
+ int  userid = 0; ///**/
+ unsigned  int  agentid = 0; ///**/
+ unsigned  int  languagetype = 0; ///*语言类型*/
+ std::string  sitename = ""; ///**/
+ std::string  sitedomain = ""; ///**/
+ std::string  metakeys = ""; ///**/
+ std::string  metadesc = ""; ///**/
+ std::string  copyright = ""; ///**/
+ std::string  beiansn = ""; ///*备案号*/
+ std::string  footscript = ""; ///*底部脚本*/
+ std::string  headscript = ""; ///*头部script*/
+ std::string  introduce = ""; ///**/
+ std::string  sitelogo = ""; ///*logo url*/
+ std::string  sitebanner = ""; ///**/
+ std::string  contactman = ""; ///**/
+ std::string  phone = ""; ///**/
+ std::string  mobile = ""; ///**/
+ std::string  email = ""; ///**/
+ std::string  bankname = ""; ///**/
+ std::string  banksn = ""; ///**/
+ std::string  address = ""; ///**/
+ std::string  zipnum = ""; ///**/
+ std::string  taxsn = ""; ///**/
+ std::string  companyname = ""; ///**/
+ std::string  linkname = ""; ///**/
+ std::string  linkmobile = ""; ///**/
+ std::string  linkaddress = ""; ///**/
+ std::string  theme = ""; ///**/
+ std::string  sitepath = ""; ///**/
+ unsigned  char  isopen = 0; ///**/
+ unsigned  int  created_at = 0; ///**/
+ unsigned  int  enddate = 0; ///**/
+
+	 std::vector<meta_tree> children;
  };
  static constexpr std::array<std::string_view,33> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","sitebanner","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
 static constexpr std::array<unsigned char,33> col_types={3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
@@ -3301,6 +3339,436 @@ std::vector<siteinfo_info::meta> getRecord(){
  	 return record; 
 } 
 
+   std::string tree_tojson(const std::vector<siteinfo_info::meta_tree> &tree_data, std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<siteinfo_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+        tempsql<<"[";
+        for(size_t n=0;n<tree_data.size();n++){
+            if(n>0){
+                tempsql<<",{";
+            }else{
+                tempsql<<"{";
+            }  
+        
+        for(jj=0;jj<keypos.size();jj++){
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sid==0){
+	tempsql<<"\"sid\":0";
+ }else{ 
+	tempsql<<"\"sid\":"<<std::to_string(tree_data[n].sid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].agentid==0){
+	tempsql<<"\"agentid\":0";
+ }else{ 
+	tempsql<<"\"agentid\":"<<std::to_string(tree_data[n].agentid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(tree_data[n].languagetype);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitename\":\""<<http::utf8_to_jsonstring(tree_data[n].sitename)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitedomain\":\""<<http::utf8_to_jsonstring(tree_data[n].sitedomain)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"metakeys\":\""<<http::utf8_to_jsonstring(tree_data[n].metakeys)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"metadesc\":\""<<http::utf8_to_jsonstring(tree_data[n].metadesc)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(tree_data[n].copyright)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"beiansn\":\""<<http::utf8_to_jsonstring(tree_data[n].beiansn)<<"\"";
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"footscript\":\""<<http::utf8_to_jsonstring(tree_data[n].footscript)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"headscript\":\""<<http::utf8_to_jsonstring(tree_data[n].headscript)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(tree_data[n].introduce)<<"\"";
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitelogo\":\""<<http::utf8_to_jsonstring(tree_data[n].sitelogo)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitebanner\":\""<<http::utf8_to_jsonstring(tree_data[n].sitebanner)<<"\"";
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"contactman\":\""<<http::utf8_to_jsonstring(tree_data[n].contactman)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"phone\":\""<<http::utf8_to_jsonstring(tree_data[n].phone)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(tree_data[n].mobile)<<"\"";
+ break;
+ case 18:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(tree_data[n].email)<<"\"";
+ break;
+ case 19:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"bankname\":\""<<http::utf8_to_jsonstring(tree_data[n].bankname)<<"\"";
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"banksn\":\""<<http::utf8_to_jsonstring(tree_data[n].banksn)<<"\"";
+ break;
+ case 21:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(tree_data[n].address)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"zipnum\":\""<<http::utf8_to_jsonstring(tree_data[n].zipnum)<<"\"";
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"taxsn\":\""<<http::utf8_to_jsonstring(tree_data[n].taxsn)<<"\"";
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"companyname\":\""<<http::utf8_to_jsonstring(tree_data[n].companyname)<<"\"";
+ break;
+ case 25:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"linkname\":\""<<http::utf8_to_jsonstring(tree_data[n].linkname)<<"\"";
+ break;
+ case 26:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"linkmobile\":\""<<http::utf8_to_jsonstring(tree_data[n].linkmobile)<<"\"";
+ break;
+ case 27:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"linkaddress\":\""<<http::utf8_to_jsonstring(tree_data[n].linkaddress)<<"\"";
+ break;
+ case 28:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"theme\":\""<<http::utf8_to_jsonstring(tree_data[n].theme)<<"\"";
+ break;
+ case 29:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitepath\":\""<<http::utf8_to_jsonstring(tree_data[n].sitepath)<<"\"";
+ break;
+ case 30:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isopen==0){
+	tempsql<<"\"isopen\":0";
+ }else{ 
+	tempsql<<"\"isopen\":"<<std::to_string(tree_data[n].isopen);
+}
+ break;
+ case 31:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].created_at==0){
+	tempsql<<"\"created_at\":0";
+ }else{ 
+	tempsql<<"\"created_at\":"<<std::to_string(tree_data[n].created_at);
+}
+ break;
+ case 32:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].enddate==0){
+	tempsql<<"\"enddate\":0";
+ }else{ 
+	tempsql<<"\"enddate\":"<<std::to_string(tree_data[n].enddate);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }
+
+        tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
+   std::string tree_tojson(const std::vector<siteinfo_info::meta_tree> &tree_data,std::function<bool(std::string&,const siteinfo_info::meta_tree&)> func,std::string_view fileld=""){
+       std::ostringstream tempsql;
+        std::string keyname;
+        unsigned char jj=0;
+        std::vector<unsigned char> keypos;
+        if(fileld.size()>0){
+            for(;jj<fileld.size();jj++){
+                if(fileld[jj]==','){
+                    keypos.emplace_back(findcolpos(keyname)); 
+                    keyname.clear();
+                    continue;   
+                }
+                if(fileld[jj]==0x20){
+
+                    continue;   
+                }
+                keyname.push_back(fileld[jj]);
+
+            }  
+            if(keyname.size()>0){
+                            keypos.emplace_back(findcolpos(keyname)); 
+                            keyname.clear();
+            }
+        }else{
+            for(jj=0;jj<siteinfo_info::col_names.size();jj++){
+                keypos.emplace_back(jj); 
+            }
+        }
+    tempsql<<"[";
+    for(size_t n=0;n<tree_data.size();n++){
+        keyname.clear();
+        if(func(keyname,tree_data[n])){ 
+                if(n>0){
+                    tempsql<<",{";
+                }else{
+                    tempsql<<"{";
+                } 
+                tempsql<<keyname;
+        }else{
+        continue;
+        } 
+        
+        for(jj=0;jj<keypos.size();jj++){
+            
+            switch(keypos[jj]){
+         case 0:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].sid==0){
+	tempsql<<"\"sid\":0";
+ }else{ 
+	tempsql<<"\"sid\":"<<std::to_string(tree_data[n].sid);
+}
+ break;
+ case 1:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].userid==0){
+	tempsql<<"\"userid\":0";
+ }else{ 
+	tempsql<<"\"userid\":"<<std::to_string(tree_data[n].userid);
+}
+ break;
+ case 2:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].agentid==0){
+	tempsql<<"\"agentid\":0";
+ }else{ 
+	tempsql<<"\"agentid\":"<<std::to_string(tree_data[n].agentid);
+}
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].languagetype==0){
+	tempsql<<"\"languagetype\":0";
+ }else{ 
+	tempsql<<"\"languagetype\":"<<std::to_string(tree_data[n].languagetype);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitename\":\""<<http::utf8_to_jsonstring(tree_data[n].sitename)<<"\"";
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitedomain\":\""<<http::utf8_to_jsonstring(tree_data[n].sitedomain)<<"\"";
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"metakeys\":\""<<http::utf8_to_jsonstring(tree_data[n].metakeys)<<"\"";
+ break;
+ case 7:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"metadesc\":\""<<http::utf8_to_jsonstring(tree_data[n].metadesc)<<"\"";
+ break;
+ case 8:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"copyright\":\""<<http::utf8_to_jsonstring(tree_data[n].copyright)<<"\"";
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"beiansn\":\""<<http::utf8_to_jsonstring(tree_data[n].beiansn)<<"\"";
+ break;
+ case 10:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"footscript\":\""<<http::utf8_to_jsonstring(tree_data[n].footscript)<<"\"";
+ break;
+ case 11:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"headscript\":\""<<http::utf8_to_jsonstring(tree_data[n].headscript)<<"\"";
+ break;
+ case 12:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"introduce\":\""<<http::utf8_to_jsonstring(tree_data[n].introduce)<<"\"";
+ break;
+ case 13:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitelogo\":\""<<http::utf8_to_jsonstring(tree_data[n].sitelogo)<<"\"";
+ break;
+ case 14:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitebanner\":\""<<http::utf8_to_jsonstring(tree_data[n].sitebanner)<<"\"";
+ break;
+ case 15:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"contactman\":\""<<http::utf8_to_jsonstring(tree_data[n].contactman)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"phone\":\""<<http::utf8_to_jsonstring(tree_data[n].phone)<<"\"";
+ break;
+ case 17:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(tree_data[n].mobile)<<"\"";
+ break;
+ case 18:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(tree_data[n].email)<<"\"";
+ break;
+ case 19:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"bankname\":\""<<http::utf8_to_jsonstring(tree_data[n].bankname)<<"\"";
+ break;
+ case 20:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"banksn\":\""<<http::utf8_to_jsonstring(tree_data[n].banksn)<<"\"";
+ break;
+ case 21:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"address\":\""<<http::utf8_to_jsonstring(tree_data[n].address)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"zipnum\":\""<<http::utf8_to_jsonstring(tree_data[n].zipnum)<<"\"";
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"taxsn\":\""<<http::utf8_to_jsonstring(tree_data[n].taxsn)<<"\"";
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"companyname\":\""<<http::utf8_to_jsonstring(tree_data[n].companyname)<<"\"";
+ break;
+ case 25:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"linkname\":\""<<http::utf8_to_jsonstring(tree_data[n].linkname)<<"\"";
+ break;
+ case 26:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"linkmobile\":\""<<http::utf8_to_jsonstring(tree_data[n].linkmobile)<<"\"";
+ break;
+ case 27:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"linkaddress\":\""<<http::utf8_to_jsonstring(tree_data[n].linkaddress)<<"\"";
+ break;
+ case 28:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"theme\":\""<<http::utf8_to_jsonstring(tree_data[n].theme)<<"\"";
+ break;
+ case 29:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"sitepath\":\""<<http::utf8_to_jsonstring(tree_data[n].sitepath)<<"\"";
+ break;
+ case 30:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isopen==0){
+	tempsql<<"\"isopen\":0";
+ }else{ 
+	tempsql<<"\"isopen\":"<<std::to_string(tree_data[n].isopen);
+}
+ break;
+ case 31:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].created_at==0){
+	tempsql<<"\"created_at\":0";
+ }else{ 
+	tempsql<<"\"created_at\":"<<std::to_string(tree_data[n].created_at);
+}
+ break;
+ case 32:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].enddate==0){
+	tempsql<<"\"enddate\":0";
+ }else{ 
+	tempsql<<"\"enddate\":"<<std::to_string(tree_data[n].enddate);
+}
+ break;
+
+                             default:
+                                ;
+                     }
+                 }   
+         tempsql<<",\"children\":";
+         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+      tempsql<<"}";  
+            }
+      tempsql<<"]";
+     return tempsql.str();             
+   }   
+   
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
     T& ref_meta([[maybe_unused]] siteinfo_info::cols key_name)
