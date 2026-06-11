@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -677,7 +677,7 @@ if(data.deletetime==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -755,7 +755,7 @@ if(data.deletetime==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1906,9 +1906,9 @@ if(tree_data[n].deletetime==0){
    
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] testa_info::cols key_name)
     {
-   		 if(key_name=="content")
+   		 if(key_name==testa_info::cols::content)
 		{
 			return data.content;
 		}
@@ -1917,25 +1917,25 @@ if(tree_data[n].deletetime==0){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] testa_info::cols key_name)
     {
-   		 if(key_name=="id")
+   		 if(key_name==testa_info::cols::id)
 		{
 			return data.id;
 		}
-		 if(key_name=="parentid")
+		 if(key_name==testa_info::cols::parentid)
 		{
 			return data.parentid;
 		}
-		 if(key_name=="value_id")
+		 if(key_name==testa_info::cols::value_id)
 		{
 			return data.value_id;
 		}
-		 if(key_name=="deleted")
+		 if(key_name==testa_info::cols::deleted)
 		{
 			return data.deleted;
 		}
-		 if(key_name=="deletetime")
+		 if(key_name==testa_info::cols::deletetime)
 		{
 			return data.deletetime;
 		}
@@ -1944,39 +1944,39 @@ if(tree_data[n].deletetime==0){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] testa_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] testa_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case testa_info::cols::id: 
  				 a.emplace_back(iter.id);
 				 break;
-			case 1: 
+			case testa_info::cols::parentid: 
  				 a.emplace_back(iter.parentid);
 				 break;
-			case 2: 
+			case testa_info::cols::value_id: 
  				 a.emplace_back(iter.value_id);
 				 break;
-			case 4: 
+			case testa_info::cols::deleted: 
  				 a.emplace_back(iter.deleted);
 				 break;
-			case 5: 
+			case testa_info::cols::deletetime: 
  				 a.emplace_back(iter.deletetime);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1984,7 +1984,7 @@ if(tree_data[n].deletetime==0){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] testa_info::cols keyname)
 			{
 				std::vector<T> a;
 				

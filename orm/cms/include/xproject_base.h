@@ -2,7 +2,7 @@
 #define ORM_CMS_XPROJECTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1269,7 +1269,7 @@ if(data.realday==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1452,7 +1452,7 @@ if(data.realday==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -3295,37 +3295,37 @@ std::vector<xproject_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xproject_info::cols key_name)
     {
-   		 if(key_name=="title")
+   		 if(key_name==xproject_info::cols::title)
 		{
 			return data.title;
 		}
-		 if(key_name=="xlogo")
+		 if(key_name==xproject_info::cols::xlogo)
 		{
 			return data.xlogo;
 		}
-		 if(key_name=="introduce")
+		 if(key_name==xproject_info::cols::introduce)
 		{
 			return data.introduce;
 		}
-		 if(key_name=="giturl")
+		 if(key_name==xproject_info::cols::giturl)
 		{
 			return data.giturl;
 		}
-		 if(key_name=="gitname")
+		 if(key_name==xproject_info::cols::gitname)
 		{
 			return data.gitname;
 		}
-		 if(key_name=="gitpwd")
+		 if(key_name==xproject_info::cols::gitpwd)
 		{
 			return data.gitpwd;
 		}
-		 if(key_name=="xcolor")
+		 if(key_name==xproject_info::cols::xcolor)
 		{
 			return data.xcolor;
 		}
-		 if(key_name=="fupan")
+		 if(key_name==xproject_info::cols::fupan)
 		{
 			return data.fupan;
 		}
@@ -3334,61 +3334,61 @@ std::vector<xproject_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xproject_info::cols key_name)
     {
-   		 if(key_name=="xpjid")
+   		 if(key_name==xproject_info::cols::xpjid)
 		{
 			return data.xpjid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==xproject_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="prexpjid")
+		 if(key_name==xproject_info::cols::prexpjid)
 		{
 			return data.prexpjid;
 		}
-		 if(key_name=="dpid")
+		 if(key_name==xproject_info::cols::dpid)
 		{
 			return data.dpid;
 		}
-		 if(key_name=="grouptype")
+		 if(key_name==xproject_info::cols::grouptype)
 		{
 			return data.grouptype;
 		}
-		 if(key_name=="adminuserid")
+		 if(key_name==xproject_info::cols::adminuserid)
 		{
 			return data.adminuserid;
 		}
-		 if(key_name=="regdate")
+		 if(key_name==xproject_info::cols::regdate)
 		{
 			return data.regdate;
 		}
-		 if(key_name=="begindate")
+		 if(key_name==xproject_info::cols::begindate)
 		{
 			return data.begindate;
 		}
-		 if(key_name=="expiredate")
+		 if(key_name==xproject_info::cols::expiredate)
 		{
 			return data.expiredate;
 		}
-		 if(key_name=="isopen")
+		 if(key_name==xproject_info::cols::isopen)
 		{
 			return data.isopen;
 		}
-		 if(key_name=="clientid")
+		 if(key_name==xproject_info::cols::clientid)
 		{
 			return data.clientid;
 		}
-		 if(key_name=="totalnum")
+		 if(key_name==xproject_info::cols::totalnum)
 		{
 			return data.totalnum;
 		}
-		 if(key_name=="referdocverion")
+		 if(key_name==xproject_info::cols::referdocverion)
 		{
 			return data.referdocverion;
 		}
-		 if(key_name=="xtheme")
+		 if(key_name==xproject_info::cols::xtheme)
 		{
 			return data.xtheme;
 		}
@@ -3397,17 +3397,17 @@ std::vector<xproject_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xproject_info::cols key_name)
     {
-   		 if(key_name=="totalvalue")
+   		 if(key_name==xproject_info::cols::totalvalue)
 		{
 			return data.totalvalue;
 		}
-		 if(key_name=="expectday")
+		 if(key_name==xproject_info::cols::expectday)
 		{
 			return data.expectday;
 		}
-		 if(key_name=="realday")
+		 if(key_name==xproject_info::cols::realday)
 		{
 			return data.realday;
 		}
@@ -3415,60 +3415,60 @@ std::vector<xproject_info::meta> getRecord(){
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] xproject_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case xproject_info::cols::xpjid: 
  				 a.emplace_back(iter.xpjid);
 				 break;
-			case 1: 
+			case xproject_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case xproject_info::cols::prexpjid: 
  				 a.emplace_back(iter.prexpjid);
 				 break;
-			case 3: 
+			case xproject_info::cols::dpid: 
  				 a.emplace_back(iter.dpid);
 				 break;
-			case 4: 
+			case xproject_info::cols::grouptype: 
  				 a.emplace_back(iter.grouptype);
 				 break;
-			case 6: 
+			case xproject_info::cols::adminuserid: 
  				 a.emplace_back(iter.adminuserid);
 				 break;
-			case 7: 
+			case xproject_info::cols::regdate: 
  				 a.emplace_back(iter.regdate);
 				 break;
-			case 8: 
+			case xproject_info::cols::begindate: 
  				 a.emplace_back(iter.begindate);
 				 break;
-			case 9: 
+			case xproject_info::cols::expiredate: 
  				 a.emplace_back(iter.expiredate);
 				 break;
-			case 10: 
+			case xproject_info::cols::isopen: 
  				 a.emplace_back(iter.isopen);
 				 break;
-			case 11: 
+			case xproject_info::cols::clientid: 
  				 a.emplace_back(iter.clientid);
 				 break;
-			case 12: 
+			case xproject_info::cols::totalnum: 
  				 a.emplace_back(iter.totalnum);
 				 break;
-			case 13: 
+			case xproject_info::cols::referdocverion: 
  				 a.emplace_back(iter.referdocverion);
 				 break;
-			case 14: 
+			case xproject_info::cols::xtheme: 
  				 a.emplace_back(iter.xtheme);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -3476,28 +3476,28 @@ std::vector<xproject_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] xproject_info::cols keyname)
 			{
 				std::vector<T> a;
 				
-
-                unsigned char kpos;
-				kpos = findcolpos(keyname);  
+ 
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-			case 22: 
+			case xproject_info::cols::totalvalue: 
  					 a.emplace_back(iter.totalvalue);
 			 break;
-			case 23: 
+			case xproject_info::cols::expectday: 
  					 a.emplace_back(iter.expectday);
 			 break;
-			case 24: 
+			case xproject_info::cols::realday: 
  					 a.emplace_back(iter.realday);
 			 break;
 
+                        default:
+                            break;
                     }
                 }
     

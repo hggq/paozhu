@@ -2,7 +2,7 @@
 #define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -609,7 +609,7 @@ if(data.languageid==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -684,7 +684,7 @@ if(data.languageid==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1463,32 +1463,32 @@ std::vector<blogcatalog_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] blogcatalog_info::cols key_name)
     {
    		return nullptr; 
 	}
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] blogcatalog_info::cols key_name)
     {
-   		 if(key_name=="bid")
+   		 if(key_name==blogcatalog_info::cols::bid)
 		{
 			return data.bid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==blogcatalog_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="dateid")
+		 if(key_name==blogcatalog_info::cols::dateid)
 		{
 			return data.dateid;
 		}
-		 if(key_name=="articlenum")
+		 if(key_name==blogcatalog_info::cols::articlenum)
 		{
 			return data.articlenum;
 		}
-		 if(key_name=="languageid")
+		 if(key_name==blogcatalog_info::cols::languageid)
 		{
 			return data.languageid;
 		}
@@ -1497,39 +1497,39 @@ std::vector<blogcatalog_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] blogcatalog_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] blogcatalog_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case blogcatalog_info::cols::bid: 
  				 a.emplace_back(iter.bid);
 				 break;
-			case 1: 
+			case blogcatalog_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case blogcatalog_info::cols::dateid: 
  				 a.emplace_back(iter.dateid);
 				 break;
-			case 3: 
+			case blogcatalog_info::cols::articlenum: 
  				 a.emplace_back(iter.articlenum);
 				 break;
-			case 4: 
+			case blogcatalog_info::cols::languageid: 
  				 a.emplace_back(iter.languageid);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1537,7 +1537,7 @@ std::vector<blogcatalog_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] blogcatalog_info::cols keyname)
 			{
 				std::vector<T> a;
 				

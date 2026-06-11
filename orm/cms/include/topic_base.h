@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -981,7 +981,7 @@ if(data.accesscode==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1115,7 +1115,7 @@ if(data.accesscode==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2872,37 +2872,37 @@ if(tree_data[n].accesscode==0){
    
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] topic_info::cols key_name)
     {
-   		 if(key_name=="title")
+   		 if(key_name==topic_info::cols::title)
 		{
 			return data.title;
 		}
-		 if(key_name=="twotitle")
+		 if(key_name==topic_info::cols::twotitle)
 		{
 			return data.twotitle;
 		}
-		 if(key_name=="memo")
+		 if(key_name==topic_info::cols::memo)
 		{
 			return data.memo;
 		}
-		 if(key_name=="templatename")
+		 if(key_name==topic_info::cols::templatename)
 		{
 			return data.templatename;
 		}
-		 if(key_name=="url")
+		 if(key_name==topic_info::cols::url)
 		{
 			return data.url;
 		}
-		 if(key_name=="urlpath")
+		 if(key_name==topic_info::cols::urlpath)
 		{
 			return data.urlpath;
 		}
-		 if(key_name=="imgurl")
+		 if(key_name==topic_info::cols::imgurl)
 		{
 			return data.imgurl;
 		}
-		 if(key_name=="topimg")
+		 if(key_name==topic_info::cols::topimg)
 		{
 			return data.topimg;
 		}
@@ -2911,45 +2911,45 @@ if(tree_data[n].accesscode==0){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] topic_info::cols key_name)
     {
-   		 if(key_name=="topicid")
+   		 if(key_name==topic_info::cols::topicid)
 		{
 			return data.topicid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==topic_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="parentid")
+		 if(key_name==topic_info::cols::parentid)
 		{
 			return data.parentid;
 		}
-		 if(key_name=="cateid")
+		 if(key_name==topic_info::cols::cateid)
 		{
 			return data.cateid;
 		}
-		 if(key_name=="sorttype")
+		 if(key_name==topic_info::cols::sorttype)
 		{
 			return data.sorttype;
 		}
-		 if(key_name=="languagetype")
+		 if(key_name==topic_info::cols::languagetype)
 		{
 			return data.languagetype;
 		}
-		 if(key_name=="isview")
+		 if(key_name==topic_info::cols::isview)
 		{
 			return data.isview;
 		}
-		 if(key_name=="isside")
+		 if(key_name==topic_info::cols::isside)
 		{
 			return data.isside;
 		}
-		 if(key_name=="sortid")
+		 if(key_name==topic_info::cols::sortid)
 		{
 			return data.sortid;
 		}
-		 if(key_name=="accesscode")
+		 if(key_name==topic_info::cols::accesscode)
 		{
 			return data.accesscode;
 		}
@@ -2958,54 +2958,54 @@ if(tree_data[n].accesscode==0){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] topic_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] topic_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case topic_info::cols::topicid: 
  				 a.emplace_back(iter.topicid);
 				 break;
-			case 1: 
+			case topic_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case topic_info::cols::parentid: 
  				 a.emplace_back(iter.parentid);
 				 break;
-			case 3: 
+			case topic_info::cols::cateid: 
  				 a.emplace_back(iter.cateid);
 				 break;
-			case 4: 
+			case topic_info::cols::sorttype: 
  				 a.emplace_back(iter.sorttype);
 				 break;
-			case 5: 
+			case topic_info::cols::languagetype: 
  				 a.emplace_back(iter.languagetype);
 				 break;
-			case 6: 
+			case topic_info::cols::isview: 
  				 a.emplace_back(iter.isview);
 				 break;
-			case 7: 
+			case topic_info::cols::isside: 
  				 a.emplace_back(iter.isside);
 				 break;
-			case 8: 
+			case topic_info::cols::sortid: 
  				 a.emplace_back(iter.sortid);
 				 break;
-			case 17: 
+			case topic_info::cols::accesscode: 
  				 a.emplace_back(iter.accesscode);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -3013,7 +3013,7 @@ if(tree_data[n].accesscode==0){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] topic_info::cols keyname)
 			{
 				std::vector<T> a;
 				

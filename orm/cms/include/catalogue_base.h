@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -699,7 +699,7 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -787,7 +787,7 @@ if(data.sortid==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2079,13 +2079,13 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
    
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] catalogue_info::cols key_name)
     {
-   		 if(key_name=="name")
+   		 if(key_name==catalogue_info::cols::name)
 		{
 			return data.name;
 		}
-		 if(key_name=="imgurl")
+		 if(key_name==catalogue_info::cols::imgurl)
 		{
 			return data.imgurl;
 		}
@@ -2094,29 +2094,29 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] catalogue_info::cols key_name)
     {
-   		 if(key_name=="cid")
+   		 if(key_name==catalogue_info::cols::cid)
 		{
 			return data.cid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==catalogue_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="level")
+		 if(key_name==catalogue_info::cols::level)
 		{
 			return data.level;
 		}
-		 if(key_name=="parentid")
+		 if(key_name==catalogue_info::cols::parentid)
 		{
 			return data.parentid;
 		}
-		 if(key_name=="isview")
+		 if(key_name==catalogue_info::cols::isview)
 		{
 			return data.isview;
 		}
-		 if(key_name=="sortid")
+		 if(key_name==catalogue_info::cols::sortid)
 		{
 			return data.sortid;
 		}
@@ -2125,42 +2125,42 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] catalogue_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] catalogue_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case catalogue_info::cols::cid: 
  				 a.emplace_back(iter.cid);
 				 break;
-			case 1: 
+			case catalogue_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case catalogue_info::cols::level: 
  				 a.emplace_back(iter.level);
 				 break;
-			case 3: 
+			case catalogue_info::cols::parentid: 
  				 a.emplace_back(iter.parentid);
 				 break;
-			case 5: 
+			case catalogue_info::cols::isview: 
  				 a.emplace_back(iter.isview);
 				 break;
-			case 6: 
+			case catalogue_info::cols::sortid: 
  				 a.emplace_back(iter.sortid);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -2168,7 +2168,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] catalogue_info::cols keyname)
 			{
 				std::vector<T> a;
 				

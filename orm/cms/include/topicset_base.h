@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICSETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -735,7 +735,7 @@ if(data.sort==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -830,7 +830,7 @@ if(data.sort==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1815,13 +1815,13 @@ std::vector<topicset_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] topicset_info::cols key_name)
     {
-   		 if(key_name=="sidename")
+   		 if(key_name==topicset_info::cols::sidename)
 		{
 			return data.sidename;
 		}
-		 if(key_name=="txtcontent")
+		 if(key_name==topicset_info::cols::txtcontent)
 		{
 			return data.txtcontent;
 		}
@@ -1830,33 +1830,33 @@ std::vector<topicset_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] topicset_info::cols key_name)
     {
-   		 if(key_name=="topicsetid")
+   		 if(key_name==topicset_info::cols::topicsetid)
 		{
 			return data.topicsetid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==topicset_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="topicid")
+		 if(key_name==topicset_info::cols::topicid)
 		{
 			return data.topicid;
 		}
-		 if(key_name=="linktopicid")
+		 if(key_name==topicset_info::cols::linktopicid)
 		{
 			return data.linktopicid;
 		}
-		 if(key_name=="linkrownum")
+		 if(key_name==topicset_info::cols::linkrownum)
 		{
 			return data.linkrownum;
 		}
-		 if(key_name=="sidetype")
+		 if(key_name==topicset_info::cols::sidetype)
 		{
 			return data.sidetype;
 		}
-		 if(key_name=="sort")
+		 if(key_name==topicset_info::cols::sort)
 		{
 			return data.sort;
 		}
@@ -1865,45 +1865,45 @@ std::vector<topicset_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] topicset_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] topicset_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case topicset_info::cols::topicsetid: 
  				 a.emplace_back(iter.topicsetid);
 				 break;
-			case 1: 
+			case topicset_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case topicset_info::cols::topicid: 
  				 a.emplace_back(iter.topicid);
 				 break;
-			case 3: 
+			case topicset_info::cols::linktopicid: 
  				 a.emplace_back(iter.linktopicid);
 				 break;
-			case 4: 
+			case topicset_info::cols::linkrownum: 
  				 a.emplace_back(iter.linkrownum);
 				 break;
-			case 5: 
+			case topicset_info::cols::sidetype: 
  				 a.emplace_back(iter.sidetype);
 				 break;
-			case 8: 
+			case topicset_info::cols::sort: 
  				 a.emplace_back(iter.sort);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1911,7 +1911,7 @@ std::vector<topicset_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] topicset_info::cols keyname)
 			{
 				std::vector<T> a;
 				

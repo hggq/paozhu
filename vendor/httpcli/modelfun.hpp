@@ -7426,7 +7426,7 @@ headtxt += R"(::meta data;
     /////////////////////////////////////////////////////////////////////////////////////
 
     headtxt = R"(
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -7539,7 +7539,7 @@ headtxt += R"(::meta data;
     headtxt.clear();
     ///////////////////////////////////////////////////////////////////////////////////////
     headtxt = R"(
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -9540,16 +9540,18 @@ headtxt += R"(::meta data;
     // get_meta string
     headtxt.clear();
     update2strem.str("");
-    headtxt = R"(
+    headtxt += R"(
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] )";
+    headtxt +=model_info_name;
+    headtxt += R"(::cols key_name)
     {
    )";
 
     for (auto &kaa : stringcollist)
     {
-        update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
+        update2strem << "\t\t if(key_name==" <<model_info_name<<"::cols::"<< kaa.second << ")\n\t\t{\n";
         update2strem << "\t\t\treturn data." << kaa.second << ";\n";
         update2strem << "\t\t}\n";
     }
@@ -9570,13 +9572,15 @@ headtxt += R"(::meta data;
     headtxt = R"(
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] )";
+    headtxt +=model_info_name;
+    headtxt += R"(::cols key_name)
     {
    )";
 
     for (auto &kaa : numbercollist)
     {
-        update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
+        update2strem << "\t\t if(key_name==" <<model_info_name<<"::cols::"<< kaa.second << ")\n\t\t{\n";
         update2strem << "\t\t\treturn data." << kaa.second << ";\n";
         update2strem << "\t\t}\n";
     }
@@ -9596,13 +9600,15 @@ headtxt += R"(::meta data;
     headtxt = R"(
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] )";
+    headtxt +=model_info_name;
+    headtxt += R"(::cols key_name)
     {
    )";
 
     for (auto &kaa : floatcollist)
     {
-        update2strem << "\t\t if(key_name==\"" << kaa.second << "\")\n\t\t{\n";
+        update2strem << "\t\t if(key_name==" <<model_info_name<<"::cols::"<< kaa.second << ")\n\t\t{\n";
         update2strem << "\t\t\treturn data." << kaa.second << ";\n";
         update2strem << "\t\t}\n";
     }
@@ -9624,7 +9630,7 @@ headtxt += R"(::meta data;
     for (auto &kaa : numbercollist)
     {
 
-        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
 
         getcollstrem << "\t\t\t\t a.emplace_back(iter." << kaa.second << ");"
                      << "\n";
@@ -9634,7 +9640,9 @@ headtxt += R"(::meta data;
 
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] )";
+    headtxt +=model_info_name;
+    headtxt += R"(::cols keyname)
             {
                 std::vector<T> a;
                 
@@ -9645,12 +9653,10 @@ headtxt += R"(::meta data;
     if (sqlqueryring.size() > 0)
     {
 
-        headtxt = R"(
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+        headtxt = R"(            
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
    )";
         headtxt.append(sqlqueryring);
@@ -9658,6 +9664,8 @@ headtxt += R"(::meta data;
         headtxt.clear();
 
         headtxt = R"(
+                            default:
+                        break;
                     }
                 }
     )";
@@ -9678,7 +9686,7 @@ headtxt += R"(::meta data;
     getcollstrem.str("");
     for (auto &kaa : floatcollist)
     {
-        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
         getcollstrem << "\t\t\t\t\t a.emplace_back(iter." << kaa.second << ");"
                      << "\n";
         getcollstrem << "\t\t\t break;\n";
@@ -9687,7 +9695,9 @@ headtxt += R"(::meta data;
 
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] )";
+    headtxt +=model_info_name;
+    headtxt += R"(::cols keyname)
 			{
 				std::vector<T> a;
 				
@@ -9698,12 +9708,10 @@ headtxt += R"(::meta data;
     if (sqlqueryring.size() > 0)
     {
 
-        headtxt = R"(
-                unsigned char kpos;
-				kpos = findcolpos(keyname);  
+        headtxt = R"( 
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
 )";
@@ -9711,6 +9719,8 @@ headtxt += R"(::meta data;
         fwrite(&headtxt[0], headtxt.size(), 1, f);
         headtxt.clear();
         headtxt = R"(
+                        default:
+                            break;
                     }
                 }
     )";

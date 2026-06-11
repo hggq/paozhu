@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:11 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:18 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -451,7 +451,7 @@ tempsql<<"`message`='"<<stringaddslash(data.message)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -501,7 +501,7 @@ if(data.id==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1083,9 +1083,9 @@ std::vector<fortune_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] fortune_info::cols key_name)
     {
-   		 if(key_name=="message")
+   		 if(key_name==fortune_info::cols::message)
 		{
 			return data.message;
 		}
@@ -1094,9 +1094,9 @@ std::vector<fortune_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] fortune_info::cols key_name)
     {
-   		 if(key_name=="id")
+   		 if(key_name==fortune_info::cols::id)
 		{
 			return data.id;
 		}
@@ -1105,27 +1105,27 @@ std::vector<fortune_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] fortune_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] fortune_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case fortune_info::cols::id: 
  				 a.emplace_back(iter.id);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1133,7 +1133,7 @@ std::vector<fortune_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] fortune_info::cols keyname)
 			{
 				std::vector<T> a;
 				

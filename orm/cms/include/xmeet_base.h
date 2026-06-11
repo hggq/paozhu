@@ -2,7 +2,7 @@
 #define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -940,7 +940,7 @@ tempsql<<"`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1072,7 +1072,7 @@ if(data.endtime==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2547,53 +2547,53 @@ std::vector<xmeet_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xmeet_info::cols key_name)
     {
-   		 if(key_name=="title")
+   		 if(key_name==xmeet_info::cols::title)
 		{
 			return data.title;
 		}
-		 if(key_name=="zhuchi")
+		 if(key_name==xmeet_info::cols::zhuchi)
 		{
 			return data.zhuchi;
 		}
-		 if(key_name=="jilu")
+		 if(key_name==xmeet_info::cols::jilu)
 		{
 			return data.jilu;
 		}
-		 if(key_name=="meetnotice")
+		 if(key_name==xmeet_info::cols::meetnotice)
 		{
 			return data.meetnotice;
 		}
-		 if(key_name=="meetfiles")
+		 if(key_name==xmeet_info::cols::meetfiles)
 		{
 			return data.meetfiles;
 		}
-		 if(key_name=="address")
+		 if(key_name==xmeet_info::cols::address)
 		{
 			return data.address;
 		}
-		 if(key_name=="meettime")
+		 if(key_name==xmeet_info::cols::meettime)
 		{
 			return data.meettime;
 		}
-		 if(key_name=="presents")
+		 if(key_name==xmeet_info::cols::presents)
 		{
 			return data.presents;
 		}
-		 if(key_name=="content")
+		 if(key_name==xmeet_info::cols::content)
 		{
 			return data.content;
 		}
-		 if(key_name=="postresult")
+		 if(key_name==xmeet_info::cols::postresult)
 		{
 			return data.postresult;
 		}
-		 if(key_name=="postfiles")
+		 if(key_name==xmeet_info::cols::postfiles)
 		{
 			return data.postfiles;
 		}
-		 if(key_name=="jiluphoto")
+		 if(key_name==xmeet_info::cols::jiluphoto)
 		{
 			return data.jiluphoto;
 		}
@@ -2602,37 +2602,37 @@ std::vector<xmeet_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xmeet_info::cols key_name)
     {
-   		 if(key_name=="xmeetid")
+   		 if(key_name==xmeet_info::cols::xmeetid)
 		{
 			return data.xmeetid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==xmeet_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="xpjid")
+		 if(key_name==xmeet_info::cols::xpjid)
 		{
 			return data.xpjid;
 		}
-		 if(key_name=="xtaskid")
+		 if(key_name==xmeet_info::cols::xtaskid)
 		{
 			return data.xtaskid;
 		}
-		 if(key_name=="adminid")
+		 if(key_name==xmeet_info::cols::adminid)
 		{
 			return data.adminid;
 		}
-		 if(key_name=="regdate")
+		 if(key_name==xmeet_info::cols::regdate)
 		{
 			return data.regdate;
 		}
-		 if(key_name=="expecttime")
+		 if(key_name==xmeet_info::cols::expecttime)
 		{
 			return data.expecttime;
 		}
-		 if(key_name=="endtime")
+		 if(key_name==xmeet_info::cols::endtime)
 		{
 			return data.endtime;
 		}
@@ -2641,48 +2641,48 @@ std::vector<xmeet_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xmeet_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] xmeet_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case xmeet_info::cols::xmeetid: 
  				 a.emplace_back(iter.xmeetid);
 				 break;
-			case 1: 
+			case xmeet_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case xmeet_info::cols::xpjid: 
  				 a.emplace_back(iter.xpjid);
 				 break;
-			case 3: 
+			case xmeet_info::cols::xtaskid: 
  				 a.emplace_back(iter.xtaskid);
 				 break;
-			case 4: 
+			case xmeet_info::cols::adminid: 
  				 a.emplace_back(iter.adminid);
 				 break;
-			case 12: 
+			case xmeet_info::cols::regdate: 
  				 a.emplace_back(iter.regdate);
 				 break;
-			case 13: 
+			case xmeet_info::cols::expecttime: 
  				 a.emplace_back(iter.expecttime);
 				 break;
-			case 14: 
+			case xmeet_info::cols::endtime: 
  				 a.emplace_back(iter.endtime);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -2690,7 +2690,7 @@ std::vector<xmeet_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] xmeet_info::cols keyname)
 			{
 				std::vector<T> a;
 				

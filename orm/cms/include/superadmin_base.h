@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -784,7 +784,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -890,7 +890,7 @@ if(data.qrtemp==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2073,37 +2073,37 @@ std::vector<superadmin_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] superadmin_info::cols key_name)
     {
-   		 if(key_name=="name")
+   		 if(key_name==superadmin_info::cols::name)
 		{
 			return data.name;
 		}
-		 if(key_name=="password")
+		 if(key_name==superadmin_info::cols::password)
 		{
 			return data.password;
 		}
-		 if(key_name=="nickname")
+		 if(key_name==superadmin_info::cols::nickname)
 		{
 			return data.nickname;
 		}
-		 if(key_name=="regdate")
+		 if(key_name==superadmin_info::cols::regdate)
 		{
 			return data.regdate;
 		}
-		 if(key_name=="mobile")
+		 if(key_name==superadmin_info::cols::mobile)
 		{
 			return data.mobile;
 		}
-		 if(key_name=="email")
+		 if(key_name==superadmin_info::cols::email)
 		{
 			return data.email;
 		}
-		 if(key_name=="wxuuid")
+		 if(key_name==superadmin_info::cols::wxuuid)
 		{
 			return data.wxuuid;
 		}
-		 if(key_name=="basesitepath")
+		 if(key_name==superadmin_info::cols::basesitepath)
 		{
 			return data.basesitepath;
 		}
@@ -2112,29 +2112,29 @@ std::vector<superadmin_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] superadmin_info::cols key_name)
     {
-   		 if(key_name=="adminid")
+   		 if(key_name==superadmin_info::cols::adminid)
 		{
 			return data.adminid;
 		}
-		 if(key_name=="isopen")
+		 if(key_name==superadmin_info::cols::isopen)
 		{
 			return data.isopen;
 		}
-		 if(key_name=="begindate")
+		 if(key_name==superadmin_info::cols::begindate)
 		{
 			return data.begindate;
 		}
-		 if(key_name=="enddate")
+		 if(key_name==superadmin_info::cols::enddate)
 		{
 			return data.enddate;
 		}
-		 if(key_name=="loginnum")
+		 if(key_name==superadmin_info::cols::loginnum)
 		{
 			return data.loginnum;
 		}
-		 if(key_name=="qrtemp")
+		 if(key_name==superadmin_info::cols::qrtemp)
 		{
 			return data.qrtemp;
 		}
@@ -2143,42 +2143,42 @@ std::vector<superadmin_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] superadmin_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] superadmin_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case superadmin_info::cols::adminid: 
  				 a.emplace_back(iter.adminid);
 				 break;
-			case 4: 
+			case superadmin_info::cols::isopen: 
  				 a.emplace_back(iter.isopen);
 				 break;
-			case 5: 
+			case superadmin_info::cols::begindate: 
  				 a.emplace_back(iter.begindate);
 				 break;
-			case 6: 
+			case superadmin_info::cols::enddate: 
  				 a.emplace_back(iter.enddate);
 				 break;
-			case 10: 
+			case superadmin_info::cols::loginnum: 
  				 a.emplace_back(iter.loginnum);
 				 break;
-			case 11: 
+			case superadmin_info::cols::qrtemp: 
  				 a.emplace_back(iter.qrtemp);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -2186,7 +2186,7 @@ std::vector<superadmin_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] superadmin_info::cols keyname)
 			{
 				std::vector<T> a;
 				

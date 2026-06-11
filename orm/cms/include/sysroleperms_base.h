@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -613,7 +613,7 @@ if(data.sortid==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -688,7 +688,7 @@ if(data.sortid==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1467,32 +1467,32 @@ std::vector<sysroleperms_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysroleperms_info::cols key_name)
     {
    		return nullptr; 
 	}
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysroleperms_info::cols key_name)
     {
-   		 if(key_name=="rolepermsid")
+   		 if(key_name==sysroleperms_info::cols::rolepermsid)
 		{
 			return data.rolepermsid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==sysroleperms_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="roleid")
+		 if(key_name==sysroleperms_info::cols::roleid)
 		{
 			return data.roleid;
 		}
-		 if(key_name=="permsid")
+		 if(key_name==sysroleperms_info::cols::permsid)
 		{
 			return data.permsid;
 		}
-		 if(key_name=="sortid")
+		 if(key_name==sysroleperms_info::cols::sortid)
 		{
 			return data.sortid;
 		}
@@ -1501,39 +1501,39 @@ std::vector<sysroleperms_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysroleperms_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] sysroleperms_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case sysroleperms_info::cols::rolepermsid: 
  				 a.emplace_back(iter.rolepermsid);
 				 break;
-			case 1: 
+			case sysroleperms_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case sysroleperms_info::cols::roleid: 
  				 a.emplace_back(iter.roleid);
 				 break;
-			case 3: 
+			case sysroleperms_info::cols::permsid: 
  				 a.emplace_back(iter.permsid);
 				 break;
-			case 4: 
+			case sysroleperms_info::cols::sortid: 
  				 a.emplace_back(iter.sortid);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1541,7 +1541,7 @@ std::vector<sysroleperms_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] sysroleperms_info::cols keyname)
 			{
 				std::vector<T> a;
 				

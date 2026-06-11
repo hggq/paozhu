@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1491,7 +1491,7 @@ tempsql<<"`itemnote`='"<<stringaddslash(data.itemnote)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1705,7 +1705,7 @@ if(data.pricevalue==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -4349,41 +4349,41 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
    
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xtask_info::cols key_name)
     {
-   		 if(key_name=="title")
+   		 if(key_name==xtask_info::cols::title)
 		{
 			return data.title;
 		}
-		 if(key_name=="introduce")
+		 if(key_name==xtask_info::cols::introduce)
 		{
 			return data.introduce;
 		}
-		 if(key_name=="xlogo")
+		 if(key_name==xtask_info::cols::xlogo)
 		{
 			return data.xlogo;
 		}
-		 if(key_name=="xcolor")
+		 if(key_name==xtask_info::cols::xcolor)
 		{
 			return data.xcolor;
 		}
-		 if(key_name=="pullurl")
+		 if(key_name==xtask_info::cols::pullurl)
 		{
 			return data.pullurl;
 		}
-		 if(key_name=="pulltitle")
+		 if(key_name==xtask_info::cols::pulltitle)
 		{
 			return data.pulltitle;
 		}
-		 if(key_name=="pullauthor")
+		 if(key_name==xtask_info::cols::pullauthor)
 		{
 			return data.pullauthor;
 		}
-		 if(key_name=="note")
+		 if(key_name==xtask_info::cols::note)
 		{
 			return data.note;
 		}
-		 if(key_name=="itemnote")
+		 if(key_name==xtask_info::cols::itemnote)
 		{
 			return data.itemnote;
 		}
@@ -4392,73 +4392,73 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xtask_info::cols key_name)
     {
-   		 if(key_name=="xtaskid")
+   		 if(key_name==xtask_info::cols::xtaskid)
 		{
 			return data.xtaskid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==xtask_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="xpjid")
+		 if(key_name==xtask_info::cols::xpjid)
 		{
 			return data.xpjid;
 		}
-		 if(key_name=="adminid")
+		 if(key_name==xtask_info::cols::adminid)
 		{
 			return data.adminid;
 		}
-		 if(key_name=="parentid")
+		 if(key_name==xtask_info::cols::parentid)
 		{
 			return data.parentid;
 		}
-		 if(key_name=="begindate")
+		 if(key_name==xtask_info::cols::begindate)
 		{
 			return data.begindate;
 		}
-		 if(key_name=="enddate")
+		 if(key_name==xtask_info::cols::enddate)
 		{
 			return data.enddate;
 		}
-		 if(key_name=="expectbegindate")
+		 if(key_name==xtask_info::cols::expectbegindate)
 		{
 			return data.expectbegindate;
 		}
-		 if(key_name=="expectenddate")
+		 if(key_name==xtask_info::cols::expectenddate)
 		{
 			return data.expectenddate;
 		}
-		 if(key_name=="milestone")
+		 if(key_name==xtask_info::cols::milestone)
 		{
 			return data.milestone;
 		}
-		 if(key_name=="subxpjid")
+		 if(key_name==xtask_info::cols::subxpjid)
 		{
 			return data.subxpjid;
 		}
-		 if(key_name=="depxtaskid")
+		 if(key_name==xtask_info::cols::depxtaskid)
 		{
 			return data.depxtaskid;
 		}
-		 if(key_name=="referdocid")
+		 if(key_name==xtask_info::cols::referdocid)
 		{
 			return data.referdocid;
 		}
-		 if(key_name=="isfinish")
+		 if(key_name==xtask_info::cols::isfinish)
 		{
 			return data.isfinish;
 		}
-		 if(key_name=="updatedate")
+		 if(key_name==xtask_info::cols::updatedate)
 		{
 			return data.updatedate;
 		}
-		 if(key_name=="finishdate")
+		 if(key_name==xtask_info::cols::finishdate)
 		{
 			return data.finishdate;
 		}
-		 if(key_name=="iscore")
+		 if(key_name==xtask_info::cols::iscore)
 		{
 			return data.iscore;
 		}
@@ -4467,21 +4467,21 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xtask_info::cols key_name)
     {
-   		 if(key_name=="xvalue")
+   		 if(key_name==xtask_info::cols::xvalue)
 		{
 			return data.xvalue;
 		}
-		 if(key_name=="expectday")
+		 if(key_name==xtask_info::cols::expectday)
 		{
 			return data.expectday;
 		}
-		 if(key_name=="realday")
+		 if(key_name==xtask_info::cols::realday)
 		{
 			return data.realday;
 		}
-		 if(key_name=="pricevalue")
+		 if(key_name==xtask_info::cols::pricevalue)
 		{
 			return data.pricevalue;
 		}
@@ -4489,69 +4489,69 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] xtask_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case xtask_info::cols::xtaskid: 
  				 a.emplace_back(iter.xtaskid);
 				 break;
-			case 1: 
+			case xtask_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case xtask_info::cols::xpjid: 
  				 a.emplace_back(iter.xpjid);
 				 break;
-			case 3: 
+			case xtask_info::cols::adminid: 
  				 a.emplace_back(iter.adminid);
 				 break;
-			case 4: 
+			case xtask_info::cols::parentid: 
  				 a.emplace_back(iter.parentid);
 				 break;
-			case 5: 
+			case xtask_info::cols::begindate: 
  				 a.emplace_back(iter.begindate);
 				 break;
-			case 6: 
+			case xtask_info::cols::enddate: 
  				 a.emplace_back(iter.enddate);
 				 break;
-			case 7: 
+			case xtask_info::cols::expectbegindate: 
  				 a.emplace_back(iter.expectbegindate);
 				 break;
-			case 8: 
+			case xtask_info::cols::expectenddate: 
  				 a.emplace_back(iter.expectenddate);
 				 break;
-			case 9: 
+			case xtask_info::cols::milestone: 
  				 a.emplace_back(iter.milestone);
 				 break;
-			case 10: 
+			case xtask_info::cols::subxpjid: 
  				 a.emplace_back(iter.subxpjid);
 				 break;
-			case 11: 
+			case xtask_info::cols::depxtaskid: 
  				 a.emplace_back(iter.depxtaskid);
 				 break;
-			case 12: 
+			case xtask_info::cols::referdocid: 
  				 a.emplace_back(iter.referdocid);
 				 break;
-			case 13: 
+			case xtask_info::cols::isfinish: 
  				 a.emplace_back(iter.isfinish);
 				 break;
-			case 14: 
+			case xtask_info::cols::updatedate: 
  				 a.emplace_back(iter.updatedate);
 				 break;
-			case 15: 
+			case xtask_info::cols::finishdate: 
  				 a.emplace_back(iter.finishdate);
 				 break;
-			case 16: 
+			case xtask_info::cols::iscore: 
  				 a.emplace_back(iter.iscore);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -4559,31 +4559,31 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] xtask_info::cols keyname)
 			{
 				std::vector<T> a;
 				
-
-                unsigned char kpos;
-				kpos = findcolpos(keyname);  
+ 
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-			case 17: 
+			case xtask_info::cols::xvalue: 
  					 a.emplace_back(iter.xvalue);
 			 break;
-			case 18: 
+			case xtask_info::cols::expectday: 
  					 a.emplace_back(iter.expectday);
 			 break;
-			case 19: 
+			case xtask_info::cols::realday: 
  					 a.emplace_back(iter.realday);
 			 break;
-			case 20: 
+			case xtask_info::cols::pricevalue: 
  					 a.emplace_back(iter.pricevalue);
 			 break;
 
+                        default:
+                            break;
                     }
                 }
     

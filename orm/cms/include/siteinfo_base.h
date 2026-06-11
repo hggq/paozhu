@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1119,7 +1119,7 @@ if(data.enddate==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1286,7 +1286,7 @@ if(data.enddate==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -3303,109 +3303,109 @@ std::vector<siteinfo_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] siteinfo_info::cols key_name)
     {
-   		 if(key_name=="sitename")
+   		 if(key_name==siteinfo_info::cols::sitename)
 		{
 			return data.sitename;
 		}
-		 if(key_name=="sitedomain")
+		 if(key_name==siteinfo_info::cols::sitedomain)
 		{
 			return data.sitedomain;
 		}
-		 if(key_name=="metakeys")
+		 if(key_name==siteinfo_info::cols::metakeys)
 		{
 			return data.metakeys;
 		}
-		 if(key_name=="metadesc")
+		 if(key_name==siteinfo_info::cols::metadesc)
 		{
 			return data.metadesc;
 		}
-		 if(key_name=="copyright")
+		 if(key_name==siteinfo_info::cols::copyright)
 		{
 			return data.copyright;
 		}
-		 if(key_name=="beiansn")
+		 if(key_name==siteinfo_info::cols::beiansn)
 		{
 			return data.beiansn;
 		}
-		 if(key_name=="footscript")
+		 if(key_name==siteinfo_info::cols::footscript)
 		{
 			return data.footscript;
 		}
-		 if(key_name=="headscript")
+		 if(key_name==siteinfo_info::cols::headscript)
 		{
 			return data.headscript;
 		}
-		 if(key_name=="introduce")
+		 if(key_name==siteinfo_info::cols::introduce)
 		{
 			return data.introduce;
 		}
-		 if(key_name=="sitelogo")
+		 if(key_name==siteinfo_info::cols::sitelogo)
 		{
 			return data.sitelogo;
 		}
-		 if(key_name=="sitebanner")
+		 if(key_name==siteinfo_info::cols::sitebanner)
 		{
 			return data.sitebanner;
 		}
-		 if(key_name=="contactman")
+		 if(key_name==siteinfo_info::cols::contactman)
 		{
 			return data.contactman;
 		}
-		 if(key_name=="phone")
+		 if(key_name==siteinfo_info::cols::phone)
 		{
 			return data.phone;
 		}
-		 if(key_name=="mobile")
+		 if(key_name==siteinfo_info::cols::mobile)
 		{
 			return data.mobile;
 		}
-		 if(key_name=="email")
+		 if(key_name==siteinfo_info::cols::email)
 		{
 			return data.email;
 		}
-		 if(key_name=="bankname")
+		 if(key_name==siteinfo_info::cols::bankname)
 		{
 			return data.bankname;
 		}
-		 if(key_name=="banksn")
+		 if(key_name==siteinfo_info::cols::banksn)
 		{
 			return data.banksn;
 		}
-		 if(key_name=="address")
+		 if(key_name==siteinfo_info::cols::address)
 		{
 			return data.address;
 		}
-		 if(key_name=="zipnum")
+		 if(key_name==siteinfo_info::cols::zipnum)
 		{
 			return data.zipnum;
 		}
-		 if(key_name=="taxsn")
+		 if(key_name==siteinfo_info::cols::taxsn)
 		{
 			return data.taxsn;
 		}
-		 if(key_name=="companyname")
+		 if(key_name==siteinfo_info::cols::companyname)
 		{
 			return data.companyname;
 		}
-		 if(key_name=="linkname")
+		 if(key_name==siteinfo_info::cols::linkname)
 		{
 			return data.linkname;
 		}
-		 if(key_name=="linkmobile")
+		 if(key_name==siteinfo_info::cols::linkmobile)
 		{
 			return data.linkmobile;
 		}
-		 if(key_name=="linkaddress")
+		 if(key_name==siteinfo_info::cols::linkaddress)
 		{
 			return data.linkaddress;
 		}
-		 if(key_name=="theme")
+		 if(key_name==siteinfo_info::cols::theme)
 		{
 			return data.theme;
 		}
-		 if(key_name=="sitepath")
+		 if(key_name==siteinfo_info::cols::sitepath)
 		{
 			return data.sitepath;
 		}
@@ -3414,33 +3414,33 @@ std::vector<siteinfo_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] siteinfo_info::cols key_name)
     {
-   		 if(key_name=="sid")
+   		 if(key_name==siteinfo_info::cols::sid)
 		{
 			return data.sid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==siteinfo_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="agentid")
+		 if(key_name==siteinfo_info::cols::agentid)
 		{
 			return data.agentid;
 		}
-		 if(key_name=="languagetype")
+		 if(key_name==siteinfo_info::cols::languagetype)
 		{
 			return data.languagetype;
 		}
-		 if(key_name=="isopen")
+		 if(key_name==siteinfo_info::cols::isopen)
 		{
 			return data.isopen;
 		}
-		 if(key_name=="created_at")
+		 if(key_name==siteinfo_info::cols::created_at)
 		{
 			return data.created_at;
 		}
-		 if(key_name=="enddate")
+		 if(key_name==siteinfo_info::cols::enddate)
 		{
 			return data.enddate;
 		}
@@ -3449,45 +3449,45 @@ std::vector<siteinfo_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] siteinfo_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] siteinfo_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case siteinfo_info::cols::sid: 
  				 a.emplace_back(iter.sid);
 				 break;
-			case 1: 
+			case siteinfo_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case siteinfo_info::cols::agentid: 
  				 a.emplace_back(iter.agentid);
 				 break;
-			case 3: 
+			case siteinfo_info::cols::languagetype: 
  				 a.emplace_back(iter.languagetype);
 				 break;
-			case 30: 
+			case siteinfo_info::cols::isopen: 
  				 a.emplace_back(iter.isopen);
 				 break;
-			case 31: 
+			case siteinfo_info::cols::created_at: 
  				 a.emplace_back(iter.created_at);
 				 break;
-			case 32: 
+			case siteinfo_info::cols::enddate: 
  				 a.emplace_back(iter.enddate);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -3495,7 +3495,7 @@ std::vector<siteinfo_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] siteinfo_info::cols keyname)
 			{
 				std::vector<T> a;
 				

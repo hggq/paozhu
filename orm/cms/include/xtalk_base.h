@@ -2,7 +2,7 @@
 #define ORM_CMS_XTALKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -883,7 +883,7 @@ if(data.replyid==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -996,7 +996,7 @@ if(data.replyid==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2118,9 +2118,9 @@ std::vector<xtalk_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xtalk_info::cols key_name)
     {
-   		 if(key_name=="content")
+   		 if(key_name==xtalk_info::cols::content)
 		{
 			return data.content;
 		}
@@ -2129,45 +2129,45 @@ std::vector<xtalk_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xtalk_info::cols key_name)
     {
-   		 if(key_name=="talkid")
+   		 if(key_name==xtalk_info::cols::talkid)
 		{
 			return data.talkid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==xtalk_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="adminid")
+		 if(key_name==xtalk_info::cols::adminid)
 		{
 			return data.adminid;
 		}
-		 if(key_name=="taskid")
+		 if(key_name==xtalk_info::cols::taskid)
 		{
 			return data.taskid;
 		}
-		 if(key_name=="projectid")
+		 if(key_name==xtalk_info::cols::projectid)
 		{
 			return data.projectid;
 		}
-		 if(key_name=="isdelete")
+		 if(key_name==xtalk_info::cols::isdelete)
 		{
 			return data.isdelete;
 		}
-		 if(key_name=="addtime")
+		 if(key_name==xtalk_info::cols::addtime)
 		{
 			return data.addtime;
 		}
-		 if(key_name=="update_at")
+		 if(key_name==xtalk_info::cols::update_at)
 		{
 			return data.update_at;
 		}
-		 if(key_name=="islock")
+		 if(key_name==xtalk_info::cols::islock)
 		{
 			return data.islock;
 		}
-		 if(key_name=="replyid")
+		 if(key_name==xtalk_info::cols::replyid)
 		{
 			return data.replyid;
 		}
@@ -2176,54 +2176,54 @@ std::vector<xtalk_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] xtalk_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] xtalk_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case xtalk_info::cols::talkid: 
  				 a.emplace_back(iter.talkid);
 				 break;
-			case 1: 
+			case xtalk_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case xtalk_info::cols::adminid: 
  				 a.emplace_back(iter.adminid);
 				 break;
-			case 3: 
+			case xtalk_info::cols::taskid: 
  				 a.emplace_back(iter.taskid);
 				 break;
-			case 4: 
+			case xtalk_info::cols::projectid: 
  				 a.emplace_back(iter.projectid);
 				 break;
-			case 6: 
+			case xtalk_info::cols::isdelete: 
  				 a.emplace_back(iter.isdelete);
 				 break;
-			case 7: 
+			case xtalk_info::cols::addtime: 
  				 a.emplace_back(iter.addtime);
 				 break;
-			case 8: 
+			case xtalk_info::cols::update_at: 
  				 a.emplace_back(iter.update_at);
 				 break;
-			case 9: 
+			case xtalk_info::cols::islock: 
  				 a.emplace_back(iter.islock);
 				 break;
-			case 10: 
+			case xtalk_info::cols::replyid: 
  				 a.emplace_back(iter.replyid);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -2231,7 +2231,7 @@ std::vector<xtalk_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] xtalk_info::cols keyname)
 			{
 				std::vector<T> a;
 				

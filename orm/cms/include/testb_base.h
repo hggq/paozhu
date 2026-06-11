@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -495,7 +495,7 @@ tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -552,7 +552,7 @@ if(data.score==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1220,9 +1220,9 @@ std::vector<testb_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] testb_info::cols key_name)
     {
-   		 if(key_name=="name")
+   		 if(key_name==testb_info::cols::name)
 		{
 			return data.name;
 		}
@@ -1231,13 +1231,13 @@ std::vector<testb_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] testb_info::cols key_name)
     {
-   		 if(key_name=="tid")
+   		 if(key_name==testb_info::cols::tid)
 		{
 			return data.tid;
 		}
-		 if(key_name=="score")
+		 if(key_name==testb_info::cols::score)
 		{
 			return data.score;
 		}
@@ -1246,30 +1246,30 @@ std::vector<testb_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] testb_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] testb_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case testb_info::cols::tid: 
  				 a.emplace_back(iter.tid);
 				 break;
-			case 1: 
+			case testb_info::cols::score: 
  				 a.emplace_back(iter.score);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1277,7 +1277,7 @@ std::vector<testb_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] testb_info::cols keyname)
 			{
 				std::vector<T> a;
 				

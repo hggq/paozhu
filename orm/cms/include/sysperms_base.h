@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -899,7 +899,7 @@ if(data.updated_user==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1018,7 +1018,7 @@ if(data.updated_user==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2520,17 +2520,17 @@ if(tree_data[n].updated_user==0){
    
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysperms_info::cols key_name)
     {
-   		 if(key_name=="urlpath")
+   		 if(key_name==sysperms_info::cols::urlpath)
 		{
 			return data.urlpath;
 		}
-		 if(key_name=="urlname")
+		 if(key_name==sysperms_info::cols::urlname)
 		{
 			return data.urlname;
 		}
-		 if(key_name=="name")
+		 if(key_name==sysperms_info::cols::name)
 		{
 			return data.name;
 		}
@@ -2539,45 +2539,45 @@ if(tree_data[n].updated_user==0){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysperms_info::cols key_name)
     {
-   		 if(key_name=="permsid")
+   		 if(key_name==sysperms_info::cols::permsid)
 		{
 			return data.permsid;
 		}
-		 if(key_name=="parentid")
+		 if(key_name==sysperms_info::cols::parentid)
 		{
 			return data.parentid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==sysperms_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="status")
+		 if(key_name==sysperms_info::cols::status)
 		{
 			return data.status;
 		}
-		 if(key_name=="permscode")
+		 if(key_name==sysperms_info::cols::permscode)
 		{
 			return data.permscode;
 		}
-		 if(key_name=="readonly")
+		 if(key_name==sysperms_info::cols::readonly)
 		{
 			return data.readonly;
 		}
-		 if(key_name=="created_time")
+		 if(key_name==sysperms_info::cols::created_time)
 		{
 			return data.created_time;
 		}
-		 if(key_name=="updated_time")
+		 if(key_name==sysperms_info::cols::updated_time)
 		{
 			return data.updated_time;
 		}
-		 if(key_name=="created_user")
+		 if(key_name==sysperms_info::cols::created_user)
 		{
 			return data.created_user;
 		}
-		 if(key_name=="updated_user")
+		 if(key_name==sysperms_info::cols::updated_user)
 		{
 			return data.updated_user;
 		}
@@ -2586,54 +2586,54 @@ if(tree_data[n].updated_user==0){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysperms_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] sysperms_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case sysperms_info::cols::permsid: 
  				 a.emplace_back(iter.permsid);
 				 break;
-			case 1: 
+			case sysperms_info::cols::parentid: 
  				 a.emplace_back(iter.parentid);
 				 break;
-			case 2: 
+			case sysperms_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 6: 
+			case sysperms_info::cols::status: 
  				 a.emplace_back(iter.status);
 				 break;
-			case 7: 
+			case sysperms_info::cols::permscode: 
  				 a.emplace_back(iter.permscode);
 				 break;
-			case 8: 
+			case sysperms_info::cols::readonly: 
  				 a.emplace_back(iter.readonly);
 				 break;
-			case 9: 
+			case sysperms_info::cols::created_time: 
  				 a.emplace_back(iter.created_time);
 				 break;
-			case 10: 
+			case sysperms_info::cols::updated_time: 
  				 a.emplace_back(iter.updated_time);
 				 break;
-			case 11: 
+			case sysperms_info::cols::created_user: 
  				 a.emplace_back(iter.created_user);
 				 break;
-			case 12: 
+			case sysperms_info::cols::updated_user: 
  				 a.emplace_back(iter.updated_user);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -2641,7 +2641,7 @@ if(tree_data[n].updated_user==0){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] sysperms_info::cols keyname)
 			{
 				std::vector<T> a;
 				

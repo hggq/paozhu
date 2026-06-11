@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -640,7 +640,7 @@ tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -722,7 +722,7 @@ if(data.logtype==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1682,33 +1682,33 @@ std::vector<logininfo_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] logininfo_info::cols key_name)
     {
-   		 if(key_name=="username")
+   		 if(key_name==logininfo_info::cols::username)
 		{
 			return data.username;
 		}
-		 if(key_name=="addtime")
+		 if(key_name==logininfo_info::cols::addtime)
 		{
 			return data.addtime;
 		}
-		 if(key_name=="addip")
+		 if(key_name==logininfo_info::cols::addip)
 		{
 			return data.addip;
 		}
-		 if(key_name=="addregion")
+		 if(key_name==logininfo_info::cols::addregion)
 		{
 			return data.addregion;
 		}
-		 if(key_name=="loginstate")
+		 if(key_name==logininfo_info::cols::loginstate)
 		{
 			return data.loginstate;
 		}
-		 if(key_name=="agent")
+		 if(key_name==logininfo_info::cols::agent)
 		{
 			return data.agent;
 		}
-		 if(key_name=="urlpath")
+		 if(key_name==logininfo_info::cols::urlpath)
 		{
 			return data.urlpath;
 		}
@@ -1717,17 +1717,17 @@ std::vector<logininfo_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] logininfo_info::cols key_name)
     {
-   		 if(key_name=="lgid")
+   		 if(key_name==logininfo_info::cols::lgid)
 		{
 			return data.lgid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==logininfo_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="logtype")
+		 if(key_name==logininfo_info::cols::logtype)
 		{
 			return data.logtype;
 		}
@@ -1736,33 +1736,33 @@ std::vector<logininfo_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] logininfo_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] logininfo_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case logininfo_info::cols::lgid: 
  				 a.emplace_back(iter.lgid);
 				 break;
-			case 1: 
+			case logininfo_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case logininfo_info::cols::logtype: 
  				 a.emplace_back(iter.logtype);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1770,7 +1770,7 @@ std::vector<logininfo_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] logininfo_info::cols keyname)
 			{
 				std::vector<T> a;
 				

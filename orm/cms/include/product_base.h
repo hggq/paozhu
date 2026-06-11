@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1139,7 +1139,7 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1299,7 +1299,7 @@ if(data.sortid==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -3412,53 +3412,53 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
    
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] product_info::cols key_name)
     {
-   		 if(key_name=="sntype")
+   		 if(key_name==product_info::cols::sntype)
 		{
 			return data.sntype;
 		}
-		 if(key_name=="name")
+		 if(key_name==product_info::cols::name)
 		{
 			return data.name;
 		}
-		 if(key_name=="keywords")
+		 if(key_name==product_info::cols::keywords)
 		{
 			return data.keywords;
 		}
-		 if(key_name=="introduce")
+		 if(key_name==product_info::cols::introduce)
 		{
 			return data.introduce;
 		}
-		 if(key_name=="listimg")
+		 if(key_name==product_info::cols::listimg)
 		{
 			return data.listimg;
 		}
-		 if(key_name=="bigimg")
+		 if(key_name==product_info::cols::bigimg)
 		{
 			return data.bigimg;
 		}
-		 if(key_name=="maincontent")
+		 if(key_name==product_info::cols::maincontent)
 		{
 			return data.maincontent;
 		}
-		 if(key_name=="paracontent")
+		 if(key_name==product_info::cols::paracontent)
 		{
 			return data.paracontent;
 		}
-		 if(key_name=="samepro")
+		 if(key_name==product_info::cols::samepro)
 		{
 			return data.samepro;
 		}
-		 if(key_name=="attatchfiles")
+		 if(key_name==product_info::cols::attatchfiles)
 		{
 			return data.attatchfiles;
 		}
-		 if(key_name=="adddate")
+		 if(key_name==product_info::cols::adddate)
 		{
 			return data.adddate;
 		}
-		 if(key_name=="editdate")
+		 if(key_name==product_info::cols::editdate)
 		{
 			return data.editdate;
 		}
@@ -3467,53 +3467,53 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] product_info::cols key_name)
     {
-   		 if(key_name=="pid")
+   		 if(key_name==product_info::cols::pid)
 		{
 			return data.pid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==product_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="topicid")
+		 if(key_name==product_info::cols::topicid)
 		{
 			return data.topicid;
 		}
-		 if(key_name=="bigid")
+		 if(key_name==product_info::cols::bigid)
 		{
 			return data.bigid;
 		}
-		 if(key_name=="smallid")
+		 if(key_name==product_info::cols::smallid)
 		{
 			return data.smallid;
 		}
-		 if(key_name=="brandid")
+		 if(key_name==product_info::cols::brandid)
 		{
 			return data.brandid;
 		}
-		 if(key_name=="isview")
+		 if(key_name==product_info::cols::isview)
 		{
 			return data.isview;
 		}
-		 if(key_name=="isstore")
+		 if(key_name==product_info::cols::isstore)
 		{
 			return data.isstore;
 		}
-		 if(key_name=="ishome")
+		 if(key_name==product_info::cols::ishome)
 		{
 			return data.ishome;
 		}
-		 if(key_name=="showtype")
+		 if(key_name==product_info::cols::showtype)
 		{
 			return data.showtype;
 		}
-		 if(key_name=="price")
+		 if(key_name==product_info::cols::price)
 		{
 			return data.price;
 		}
-		 if(key_name=="sortid")
+		 if(key_name==product_info::cols::sortid)
 		{
 			return data.sortid;
 		}
@@ -3522,60 +3522,60 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] product_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] product_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case product_info::cols::pid: 
  				 a.emplace_back(iter.pid);
 				 break;
-			case 1: 
+			case product_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case product_info::cols::topicid: 
  				 a.emplace_back(iter.topicid);
 				 break;
-			case 3: 
+			case product_info::cols::bigid: 
  				 a.emplace_back(iter.bigid);
 				 break;
-			case 4: 
+			case product_info::cols::smallid: 
  				 a.emplace_back(iter.smallid);
 				 break;
-			case 5: 
+			case product_info::cols::brandid: 
  				 a.emplace_back(iter.brandid);
 				 break;
-			case 6: 
+			case product_info::cols::isview: 
  				 a.emplace_back(iter.isview);
 				 break;
-			case 7: 
+			case product_info::cols::isstore: 
  				 a.emplace_back(iter.isstore);
 				 break;
-			case 8: 
+			case product_info::cols::ishome: 
  				 a.emplace_back(iter.ishome);
 				 break;
-			case 9: 
+			case product_info::cols::showtype: 
  				 a.emplace_back(iter.showtype);
 				 break;
-			case 20: 
+			case product_info::cols::price: 
  				 a.emplace_back(iter.price);
 				 break;
-			case 21: 
+			case product_info::cols::sortid: 
  				 a.emplace_back(iter.sortid);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -3583,7 +3583,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] product_info::cols keyname)
 			{
 				std::vector<T> a;
 				

@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1161,7 +1161,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1330,7 +1330,7 @@ if(data.showtype==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -3174,65 +3174,65 @@ std::vector<article_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] article_info::cols key_name)
     {
-   		 if(key_name=="topicname")
+   		 if(key_name==article_info::cols::topicname)
 		{
 			return data.topicname;
 		}
-		 if(key_name=="title")
+		 if(key_name==article_info::cols::title)
 		{
 			return data.title;
 		}
-		 if(key_name=="keywords")
+		 if(key_name==article_info::cols::keywords)
 		{
 			return data.keywords;
 		}
-		 if(key_name=="fromsource")
+		 if(key_name==article_info::cols::fromsource)
 		{
 			return data.fromsource;
 		}
-		 if(key_name=="author")
+		 if(key_name==article_info::cols::author)
 		{
 			return data.author;
 		}
-		 if(key_name=="addip")
+		 if(key_name==article_info::cols::addip)
 		{
 			return data.addip;
 		}
-		 if(key_name=="createtime")
+		 if(key_name==article_info::cols::createtime)
 		{
 			return data.createtime;
 		}
-		 if(key_name=="icoimg")
+		 if(key_name==article_info::cols::icoimg)
 		{
 			return data.icoimg;
 		}
-		 if(key_name=="content")
+		 if(key_name==article_info::cols::content)
 		{
 			return data.content;
 		}
-		 if(key_name=="mdcontent")
+		 if(key_name==article_info::cols::mdcontent)
 		{
 			return data.mdcontent;
 		}
-		 if(key_name=="fromlocal")
+		 if(key_name==article_info::cols::fromlocal)
 		{
 			return data.fromlocal;
 		}
-		 if(key_name=="texturl")
+		 if(key_name==article_info::cols::texturl)
 		{
 			return data.texturl;
 		}
-		 if(key_name=="summary")
+		 if(key_name==article_info::cols::summary)
 		{
 			return data.summary;
 		}
-		 if(key_name=="editauthor")
+		 if(key_name==article_info::cols::editauthor)
 		{
 			return data.editauthor;
 		}
-		 if(key_name=="relatecontent")
+		 if(key_name==article_info::cols::relatecontent)
 		{
 			return data.relatecontent;
 		}
@@ -3241,53 +3241,53 @@ std::vector<article_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] article_info::cols key_name)
     {
-   		 if(key_name=="aid")
+   		 if(key_name==article_info::cols::aid)
 		{
 			return data.aid;
 		}
-		 if(key_name=="topicid")
+		 if(key_name==article_info::cols::topicid)
 		{
 			return data.topicid;
 		}
-		 if(key_name=="classtype")
+		 if(key_name==article_info::cols::classtype)
 		{
 			return data.classtype;
 		}
-		 if(key_name=="userid")
+		 if(key_name==article_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="sortid")
+		 if(key_name==article_info::cols::sortid)
 		{
 			return data.sortid;
 		}
-		 if(key_name=="addtime")
+		 if(key_name==article_info::cols::addtime)
 		{
 			return data.addtime;
 		}
-		 if(key_name=="readnum")
+		 if(key_name==article_info::cols::readnum)
 		{
 			return data.readnum;
 		}
-		 if(key_name=="review")
+		 if(key_name==article_info::cols::review)
 		{
 			return data.review;
 		}
-		 if(key_name=="isopen")
+		 if(key_name==article_info::cols::isopen)
 		{
 			return data.isopen;
 		}
-		 if(key_name=="ishome")
+		 if(key_name==article_info::cols::ishome)
 		{
 			return data.ishome;
 		}
-		 if(key_name=="iscomment")
+		 if(key_name==article_info::cols::iscomment)
 		{
 			return data.iscomment;
 		}
-		 if(key_name=="showtype")
+		 if(key_name==article_info::cols::showtype)
 		{
 			return data.showtype;
 		}
@@ -3296,60 +3296,60 @@ std::vector<article_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] article_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] article_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case article_info::cols::aid: 
  				 a.emplace_back(iter.aid);
 				 break;
-			case 1: 
+			case article_info::cols::topicid: 
  				 a.emplace_back(iter.topicid);
 				 break;
-			case 2: 
+			case article_info::cols::classtype: 
  				 a.emplace_back(iter.classtype);
 				 break;
-			case 3: 
+			case article_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 4: 
+			case article_info::cols::sortid: 
  				 a.emplace_back(iter.sortid);
 				 break;
-			case 12: 
+			case article_info::cols::addtime: 
  				 a.emplace_back(iter.addtime);
 				 break;
-			case 13: 
+			case article_info::cols::readnum: 
  				 a.emplace_back(iter.readnum);
 				 break;
-			case 14: 
+			case article_info::cols::review: 
  				 a.emplace_back(iter.review);
 				 break;
-			case 18: 
+			case article_info::cols::isopen: 
  				 a.emplace_back(iter.isopen);
 				 break;
-			case 19: 
+			case article_info::cols::ishome: 
  				 a.emplace_back(iter.ishome);
 				 break;
-			case 20: 
+			case article_info::cols::iscomment: 
  				 a.emplace_back(iter.iscomment);
 				 break;
-			case 21: 
+			case article_info::cols::showtype: 
  				 a.emplace_back(iter.showtype);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -3357,7 +3357,7 @@ std::vector<article_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] article_info::cols keyname)
 			{
 				std::vector<T> a;
 				

@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTPARAMBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -755,7 +755,7 @@ tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -852,7 +852,7 @@ if(data.filesize==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2152,25 +2152,25 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
    
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] productparam_info::cols key_name)
     {
-   		 if(key_name=="imgurl")
+   		 if(key_name==productparam_info::cols::imgurl)
 		{
 			return data.imgurl;
 		}
-		 if(key_name=="attachfiles")
+		 if(key_name==productparam_info::cols::attachfiles)
 		{
 			return data.attachfiles;
 		}
-		 if(key_name=="name")
+		 if(key_name==productparam_info::cols::name)
 		{
 			return data.name;
 		}
-		 if(key_name=="attachdate")
+		 if(key_name==productparam_info::cols::attachdate)
 		{
 			return data.attachdate;
 		}
-		 if(key_name=="fileext")
+		 if(key_name==productparam_info::cols::fileext)
 		{
 			return data.fileext;
 		}
@@ -2179,29 +2179,29 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] productparam_info::cols key_name)
     {
-   		 if(key_name=="ppid")
+   		 if(key_name==productparam_info::cols::ppid)
 		{
 			return data.ppid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==productparam_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="pid")
+		 if(key_name==productparam_info::cols::pid)
 		{
 			return data.pid;
 		}
-		 if(key_name=="price")
+		 if(key_name==productparam_info::cols::price)
 		{
 			return data.price;
 		}
-		 if(key_name=="sortid")
+		 if(key_name==productparam_info::cols::sortid)
 		{
 			return data.sortid;
 		}
-		 if(key_name=="filesize")
+		 if(key_name==productparam_info::cols::filesize)
 		{
 			return data.filesize;
 		}
@@ -2210,42 +2210,42 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] productparam_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] productparam_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case productparam_info::cols::ppid: 
  				 a.emplace_back(iter.ppid);
 				 break;
-			case 1: 
+			case productparam_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case productparam_info::cols::pid: 
  				 a.emplace_back(iter.pid);
 				 break;
-			case 4: 
+			case productparam_info::cols::price: 
  				 a.emplace_back(iter.price);
 				 break;
-			case 8: 
+			case productparam_info::cols::sortid: 
  				 a.emplace_back(iter.sortid);
 				 break;
-			case 9: 
+			case productparam_info::cols::filesize: 
  				 a.emplace_back(iter.filesize);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -2253,7 +2253,7 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] productparam_info::cols keyname)
 			{
 				std::vector<T> a;
 				

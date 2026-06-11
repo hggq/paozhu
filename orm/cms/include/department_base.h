@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1007,7 +1007,7 @@ tempsql<<"`linkdpid`='"<<stringaddslash(data.linkdpid)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1143,7 +1143,7 @@ if(data.isvirtual==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2848,21 +2848,21 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
    
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] department_info::cols key_name)
     {
-   		 if(key_name=="name")
+   		 if(key_name==department_info::cols::name)
 		{
 			return data.name;
 		}
-		 if(key_name=="depart_code")
+		 if(key_name==department_info::cols::depart_code)
 		{
 			return data.depart_code;
 		}
-		 if(key_name=="memo")
+		 if(key_name==department_info::cols::memo)
 		{
 			return data.memo;
 		}
-		 if(key_name=="linkdpid")
+		 if(key_name==department_info::cols::linkdpid)
 		{
 			return data.linkdpid;
 		}
@@ -2871,53 +2871,53 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] department_info::cols key_name)
     {
-   		 if(key_name=="dpid")
+   		 if(key_name==department_info::cols::dpid)
 		{
 			return data.dpid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==department_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="parentid")
+		 if(key_name==department_info::cols::parentid)
 		{
 			return data.parentid;
 		}
-		 if(key_name=="bianzhi_num")
+		 if(key_name==department_info::cols::bianzhi_num)
 		{
 			return data.bianzhi_num;
 		}
-		 if(key_name=="real_num")
+		 if(key_name==department_info::cols::real_num)
 		{
 			return data.real_num;
 		}
-		 if(key_name=="quan_weight")
+		 if(key_name==department_info::cols::quan_weight)
 		{
 			return data.quan_weight;
 		}
-		 if(key_name=="isopen")
+		 if(key_name==department_info::cols::isopen)
 		{
 			return data.isopen;
 		}
-		 if(key_name=="created_time")
+		 if(key_name==department_info::cols::created_time)
 		{
 			return data.created_time;
 		}
-		 if(key_name=="created_user")
+		 if(key_name==department_info::cols::created_user)
 		{
 			return data.created_user;
 		}
-		 if(key_name=="updated_time")
+		 if(key_name==department_info::cols::updated_time)
 		{
 			return data.updated_time;
 		}
-		 if(key_name=="updated_user")
+		 if(key_name==department_info::cols::updated_user)
 		{
 			return data.updated_user;
 		}
-		 if(key_name=="isvirtual")
+		 if(key_name==department_info::cols::isvirtual)
 		{
 			return data.isvirtual;
 		}
@@ -2926,60 +2926,60 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] department_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] department_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case department_info::cols::dpid: 
  				 a.emplace_back(iter.dpid);
 				 break;
-			case 1: 
+			case department_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case department_info::cols::parentid: 
  				 a.emplace_back(iter.parentid);
 				 break;
-			case 5: 
+			case department_info::cols::bianzhi_num: 
  				 a.emplace_back(iter.bianzhi_num);
 				 break;
-			case 6: 
+			case department_info::cols::real_num: 
  				 a.emplace_back(iter.real_num);
 				 break;
-			case 7: 
+			case department_info::cols::quan_weight: 
  				 a.emplace_back(iter.quan_weight);
 				 break;
-			case 8: 
+			case department_info::cols::isopen: 
  				 a.emplace_back(iter.isopen);
 				 break;
-			case 10: 
+			case department_info::cols::created_time: 
  				 a.emplace_back(iter.created_time);
 				 break;
-			case 11: 
+			case department_info::cols::created_user: 
  				 a.emplace_back(iter.created_user);
 				 break;
-			case 12: 
+			case department_info::cols::updated_time: 
  				 a.emplace_back(iter.updated_time);
 				 break;
-			case 13: 
+			case department_info::cols::updated_user: 
  				 a.emplace_back(iter.updated_user);
 				 break;
-			case 14: 
+			case department_info::cols::isvirtual: 
  				 a.emplace_back(iter.isvirtual);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -2987,7 +2987,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] department_info::cols keyname)
 			{
 				std::vector<T> a;
 				

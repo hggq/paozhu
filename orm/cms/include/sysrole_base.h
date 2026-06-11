@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -675,7 +675,7 @@ if(data.rolevalue==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -760,7 +760,7 @@ if(data.rolevalue==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1642,9 +1642,9 @@ std::vector<sysrole_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysrole_info::cols key_name)
     {
-   		 if(key_name=="name")
+   		 if(key_name==sysrole_info::cols::name)
 		{
 			return data.name;
 		}
@@ -1653,29 +1653,29 @@ std::vector<sysrole_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysrole_info::cols key_name)
     {
-   		 if(key_name=="roleid")
+   		 if(key_name==sysrole_info::cols::roleid)
 		{
 			return data.roleid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==sysrole_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="status")
+		 if(key_name==sysrole_info::cols::status)
 		{
 			return data.status;
 		}
-		 if(key_name=="rolecode")
+		 if(key_name==sysrole_info::cols::rolecode)
 		{
 			return data.rolecode;
 		}
-		 if(key_name=="sortid")
+		 if(key_name==sysrole_info::cols::sortid)
 		{
 			return data.sortid;
 		}
-		 if(key_name=="rolevalue")
+		 if(key_name==sysrole_info::cols::rolevalue)
 		{
 			return data.rolevalue;
 		}
@@ -1684,42 +1684,42 @@ std::vector<sysrole_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysrole_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] sysrole_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case sysrole_info::cols::roleid: 
  				 a.emplace_back(iter.roleid);
 				 break;
-			case 1: 
+			case sysrole_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 3: 
+			case sysrole_info::cols::status: 
  				 a.emplace_back(iter.status);
 				 break;
-			case 4: 
+			case sysrole_info::cols::rolecode: 
  				 a.emplace_back(iter.rolecode);
 				 break;
-			case 5: 
+			case sysrole_info::cols::sortid: 
  				 a.emplace_back(iter.sortid);
 				 break;
-			case 6: 
+			case sysrole_info::cols::rolevalue: 
  				 a.emplace_back(iter.rolevalue);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1727,7 +1727,7 @@ std::vector<sysrole_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] sysrole_info::cols keyname)
 			{
 				std::vector<T> a;
 				

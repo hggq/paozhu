@@ -2,7 +2,7 @@
 #define ORM_CMS_BRANDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -645,7 +645,7 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -728,7 +728,7 @@ if(data.sortid==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1662,25 +1662,25 @@ std::vector<brand_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] brand_info::cols key_name)
     {
-   		 if(key_name=="logo")
+   		 if(key_name==brand_info::cols::logo)
 		{
 			return data.logo;
 		}
-		 if(key_name=="title")
+		 if(key_name==brand_info::cols::title)
 		{
 			return data.title;
 		}
-		 if(key_name=="name")
+		 if(key_name==brand_info::cols::name)
 		{
 			return data.name;
 		}
-		 if(key_name=="introduce")
+		 if(key_name==brand_info::cols::introduce)
 		{
 			return data.introduce;
 		}
-		 if(key_name=="detailcontent")
+		 if(key_name==brand_info::cols::detailcontent)
 		{
 			return data.detailcontent;
 		}
@@ -1689,21 +1689,21 @@ std::vector<brand_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] brand_info::cols key_name)
     {
-   		 if(key_name=="brandid")
+   		 if(key_name==brand_info::cols::brandid)
 		{
 			return data.brandid;
 		}
-		 if(key_name=="userid")
+		 if(key_name==brand_info::cols::userid)
 		{
 			return data.userid;
 		}
-		 if(key_name=="topicid")
+		 if(key_name==brand_info::cols::topicid)
 		{
 			return data.topicid;
 		}
-		 if(key_name=="sortid")
+		 if(key_name==brand_info::cols::sortid)
 		{
 			return data.sortid;
 		}
@@ -1712,36 +1712,36 @@ std::vector<brand_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] brand_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] brand_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case brand_info::cols::brandid: 
  				 a.emplace_back(iter.brandid);
 				 break;
-			case 1: 
+			case brand_info::cols::userid: 
  				 a.emplace_back(iter.userid);
 				 break;
-			case 2: 
+			case brand_info::cols::topicid: 
  				 a.emplace_back(iter.topicid);
 				 break;
-			case 3: 
+			case brand_info::cols::sortid: 
  				 a.emplace_back(iter.sortid);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -1749,7 +1749,7 @@ std::vector<brand_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] brand_info::cols keyname)
 			{
 				std::vector<T> a;
 				

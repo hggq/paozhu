@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 13:40:23 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1069,7 +1069,7 @@ tempsql<<"`wxuuid`='"<<stringaddslash(data.wxuuid)<<"'";
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string fileld=""){
+   std::vector<std::string> data_toarray(const std::string &fileld=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
@@ -1220,7 +1220,7 @@ if(data.gender==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string fileld=""){
+   std::map<std::string,std::string> data_tomap(const std::string &fileld=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2806,41 +2806,41 @@ std::vector<sysuser_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysuser_info::cols key_name)
     {
-   		 if(key_name=="name")
+   		 if(key_name==sysuser_info::cols::name)
 		{
 			return data.name;
 		}
-		 if(key_name=="password")
+		 if(key_name==sysuser_info::cols::password)
 		{
 			return data.password;
 		}
-		 if(key_name=="textword")
+		 if(key_name==sysuser_info::cols::textword)
 		{
 			return data.textword;
 		}
-		 if(key_name=="nickname")
+		 if(key_name==sysuser_info::cols::nickname)
 		{
 			return data.nickname;
 		}
-		 if(key_name=="realname")
+		 if(key_name==sysuser_info::cols::realname)
 		{
 			return data.realname;
 		}
-		 if(key_name=="avatar")
+		 if(key_name==sysuser_info::cols::avatar)
 		{
 			return data.avatar;
 		}
-		 if(key_name=="mobile")
+		 if(key_name==sysuser_info::cols::mobile)
 		{
 			return data.mobile;
 		}
-		 if(key_name=="email")
+		 if(key_name==sysuser_info::cols::email)
 		{
 			return data.email;
 		}
-		 if(key_name=="wxuuid")
+		 if(key_name==sysuser_info::cols::wxuuid)
 		{
 			return data.wxuuid;
 		}
@@ -2849,53 +2849,53 @@ std::vector<sysuser_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysuser_info::cols key_name)
     {
-   		 if(key_name=="adminid")
+   		 if(key_name==sysuser_info::cols::adminid)
 		{
 			return data.adminid;
 		}
-		 if(key_name=="isopen")
+		 if(key_name==sysuser_info::cols::isopen)
 		{
 			return data.isopen;
 		}
-		 if(key_name=="level")
+		 if(key_name==sysuser_info::cols::level)
 		{
 			return data.level;
 		}
-		 if(key_name=="companyid")
+		 if(key_name==sysuser_info::cols::companyid)
 		{
 			return data.companyid;
 		}
-		 if(key_name=="dpid")
+		 if(key_name==sysuser_info::cols::dpid)
 		{
 			return data.dpid;
 		}
-		 if(key_name=="jobid")
+		 if(key_name==sysuser_info::cols::jobid)
 		{
 			return data.jobid;
 		}
-		 if(key_name=="roleid")
+		 if(key_name==sysuser_info::cols::roleid)
 		{
 			return data.roleid;
 		}
-		 if(key_name=="postid")
+		 if(key_name==sysuser_info::cols::postid)
 		{
 			return data.postid;
 		}
-		 if(key_name=="created_at")
+		 if(key_name==sysuser_info::cols::created_at)
 		{
 			return data.created_at;
 		}
-		 if(key_name=="enddate")
+		 if(key_name==sysuser_info::cols::enddate)
 		{
 			return data.enddate;
 		}
-		 if(key_name=="qrtemp")
+		 if(key_name==sysuser_info::cols::qrtemp)
 		{
 			return data.qrtemp;
 		}
-		 if(key_name=="gender")
+		 if(key_name==sysuser_info::cols::gender)
 		{
 			return data.gender;
 		}
@@ -2904,60 +2904,60 @@ std::vector<sysuser_info::meta> getRecord(){
 
 
     template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] std::string key_name)
+    T& ref_meta([[maybe_unused]] sysuser_info::cols key_name)
     {
    		return nullptr; 
 	}
 
             template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] std::string keyname)
+            std::vector<T> getCol([[maybe_unused]] sysuser_info::cols keyname)
             {
                 std::vector<T> a;
                 
-   
-                unsigned char kpos;
-                kpos=findcolpos(keyname);               
+               
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
-   			case 0: 
+   			case sysuser_info::cols::adminid: 
  				 a.emplace_back(iter.adminid);
 				 break;
-			case 4: 
+			case sysuser_info::cols::isopen: 
  				 a.emplace_back(iter.isopen);
 				 break;
-			case 5: 
+			case sysuser_info::cols::level: 
  				 a.emplace_back(iter.level);
 				 break;
-			case 6: 
+			case sysuser_info::cols::companyid: 
  				 a.emplace_back(iter.companyid);
 				 break;
-			case 7: 
+			case sysuser_info::cols::dpid: 
  				 a.emplace_back(iter.dpid);
 				 break;
-			case 8: 
+			case sysuser_info::cols::jobid: 
  				 a.emplace_back(iter.jobid);
 				 break;
-			case 9: 
+			case sysuser_info::cols::roleid: 
  				 a.emplace_back(iter.roleid);
 				 break;
-			case 10: 
+			case sysuser_info::cols::postid: 
  				 a.emplace_back(iter.postid);
 				 break;
-			case 11: 
+			case sysuser_info::cols::created_at: 
  				 a.emplace_back(iter.created_at);
 				 break;
-			case 12: 
+			case sysuser_info::cols::enddate: 
  				 a.emplace_back(iter.enddate);
 				 break;
-			case 13: 
+			case sysuser_info::cols::qrtemp: 
  				 a.emplace_back(iter.qrtemp);
 				 break;
-			case 14: 
+			case sysuser_info::cols::gender: 
  				 a.emplace_back(iter.gender);
 				 break;
 
+                            default:
+                        break;
                     }
                 }
     
@@ -2965,7 +2965,7 @@ std::vector<sysuser_info::meta> getRecord(){
             }
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] std::string keyname)
+			std::vector<T> getCol([[maybe_unused]] sysuser_info::cols keyname)
 			{
 				std::vector<T> a;
 				
