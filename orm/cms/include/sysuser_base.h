@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,39 @@ namespace orm {
    
      namespace cms { 
 
+namespace sysuser 
+{
+    enum class cols : unsigned char 
+    {
+		adminid = 0,
+		name = 1,
+		password = 2,
+		textword = 3,
+		isopen = 4,
+		level = 5,
+		companyid = 6,
+		dpid = 7,
+		jobid = 8,
+		roleid = 9,
+		postid = 10,
+		created_at = 11,
+		enddate = 12,
+		qrtemp = 13,
+		gender = 14,
+		nickname = 15,
+		realname = 16,
+		avatar = 17,
+		mobile = 18,
+		email = 19,
+		wxuuid = 20,
+
+    };
+ 
+}
+    
 struct sysuser_base
 {
+
     struct meta{
      unsigned  int  adminid = 0; ///**/
  std::string  name = ""; ///**/
@@ -3204,12 +3235,10 @@ std::vector<sysuser_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(sysuser::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -3226,100 +3255,102 @@ std::vector<sysuser_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case sysuser::cols::adminid: 
  				 a<<std::to_string(iter.adminid);
 				 break;
-			case 1: 
+			case sysuser::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case 2: 
+			case sysuser::cols::password: 
  				 if(isyinhao){ a<<jsonaddslash(iter.password); 
 				 }else{
 				 a<<iter.password;
 				 }
 				 break;
-			case 3: 
+			case sysuser::cols::textword: 
  				 if(isyinhao){ a<<jsonaddslash(iter.textword); 
 				 }else{
 				 a<<iter.textword;
 				 }
 				 break;
-			case 4: 
+			case sysuser::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case 5: 
+			case sysuser::cols::level: 
  				 a<<std::to_string(iter.level);
 				 break;
-			case 6: 
+			case sysuser::cols::companyid: 
  				 a<<std::to_string(iter.companyid);
 				 break;
-			case 7: 
+			case sysuser::cols::dpid: 
  				 a<<std::to_string(iter.dpid);
 				 break;
-			case 8: 
+			case sysuser::cols::jobid: 
  				 a<<std::to_string(iter.jobid);
 				 break;
-			case 9: 
+			case sysuser::cols::roleid: 
  				 a<<std::to_string(iter.roleid);
 				 break;
-			case 10: 
+			case sysuser::cols::postid: 
  				 a<<std::to_string(iter.postid);
 				 break;
-			case 11: 
+			case sysuser::cols::created_at: 
  				 a<<std::to_string(iter.created_at);
 				 break;
-			case 12: 
+			case sysuser::cols::enddate: 
  				 a<<std::to_string(iter.enddate);
 				 break;
-			case 13: 
+			case sysuser::cols::qrtemp: 
  				 a<<std::to_string(iter.qrtemp);
 				 break;
-			case 14: 
+			case sysuser::cols::gender: 
  				 a<<std::to_string(iter.gender);
 				 break;
-			case 15: 
+			case sysuser::cols::nickname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.nickname); 
 				 }else{
 				 a<<iter.nickname;
 				 }
 				 break;
-			case 16: 
+			case sysuser::cols::realname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.realname); 
 				 }else{
 				 a<<iter.realname;
 				 }
 				 break;
-			case 17: 
+			case sysuser::cols::avatar: 
  				 if(isyinhao){ a<<jsonaddslash(iter.avatar); 
 				 }else{
 				 a<<iter.avatar;
 				 }
 				 break;
-			case 18: 
+			case sysuser::cols::mobile: 
  				 if(isyinhao){ a<<jsonaddslash(iter.mobile); 
 				 }else{
 				 a<<iter.mobile;
 				 }
 				 break;
-			case 19: 
+			case sysuser::cols::email: 
  				 if(isyinhao){ a<<jsonaddslash(iter.email); 
 				 }else{
 				 a<<iter.email;
 				 }
 				 break;
-			case 20: 
+			case sysuser::cols::wxuuid: 
  				 if(isyinhao){ a<<jsonaddslash(iter.wxuuid); 
 				 }else{
 				 a<<iter.wxuuid;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -3331,379 +3362,271 @@ std::vector<sysuser_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] sysuser::cols keyname,[[maybe_unused]] sysuser::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 1: 
+    			switch(keyname) 
+			{			case sysuser::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 2: 
+			case sysuser::cols::password: 
  				 ktemp=iter.password;
 				 break;
-			case 3: 
+			case sysuser::cols::textword: 
  				 ktemp=iter.textword;
 				 break;
-			case 15: 
+			case sysuser::cols::nickname: 
  				 ktemp=iter.nickname;
 				 break;
-			case 16: 
+			case sysuser::cols::realname: 
  				 ktemp=iter.realname;
 				 break;
-			case 17: 
+			case sysuser::cols::avatar: 
  				 ktemp=iter.avatar;
 				 break;
-			case 18: 
+			case sysuser::cols::mobile: 
  				 ktemp=iter.mobile;
 				 break;
-			case 19: 
+			case sysuser::cols::email: 
  				 ktemp=iter.email;
 				 break;
-			case 20: 
+			case sysuser::cols::wxuuid: 
  				 ktemp=iter.wxuuid;
 				 break;
-				 } 
-			switch(vpos){
-			case 1: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case sysuser::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 2: 
+			case sysuser::cols::password: 
  				 vtemp=iter.password;
 				 break;
-			case 3: 
+			case sysuser::cols::textword: 
  				 vtemp=iter.textword;
 				 break;
-			case 15: 
+			case sysuser::cols::nickname: 
  				 vtemp=iter.nickname;
 				 break;
-			case 16: 
+			case sysuser::cols::realname: 
  				 vtemp=iter.realname;
 				 break;
-			case 17: 
+			case sysuser::cols::avatar: 
  				 vtemp=iter.avatar;
 				 break;
-			case 18: 
+			case sysuser::cols::mobile: 
  				 vtemp=iter.mobile;
 				 break;
-			case 19: 
+			case sysuser::cols::email: 
  				 vtemp=iter.email;
 				 break;
-			case 20: 
+			case sysuser::cols::wxuuid: 
  				 vtemp=iter.wxuuid;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] sysuser::cols keyname,[[maybe_unused]] sysuser::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 1: 
- 				 ktemp=iter.name;
-				 break;
-			case 2: 
- 				 ktemp=iter.password;
-				 break;
-			case 3: 
- 				 ktemp=iter.textword;
-				 break;
-			case 15: 
- 				 ktemp=iter.nickname;
-				 break;
-			case 16: 
- 				 ktemp=iter.realname;
-				 break;
-			case 17: 
- 				 ktemp=iter.avatar;
-				 break;
-			case 18: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 19: 
- 				 ktemp=iter.email;
-				 break;
-			case 20: 
- 				 ktemp=iter.wxuuid;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] sysuser::cols keyname,[[maybe_unused]] sysuser::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.adminid;
-	 break;
-case 4: 
- 	 ktemp=iter.isopen;
-	 break;
-case 5: 
- 	 ktemp=iter.level;
-	 break;
-case 6: 
- 	 ktemp=iter.companyid;
-	 break;
-case 7: 
- 	 ktemp=iter.dpid;
-	 break;
-case 8: 
- 	 ktemp=iter.jobid;
-	 break;
-case 9: 
- 	 ktemp=iter.roleid;
-	 break;
-case 10: 
- 	 ktemp=iter.postid;
-	 break;
-case 11: 
- 	 ktemp=iter.created_at;
-	 break;
-case 12: 
- 	 ktemp=iter.enddate;
-	 break;
-case 13: 
- 	 ktemp=iter.qrtemp;
-	 break;
-case 14: 
- 	 ktemp=iter.gender;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] sysuser::cols keyname,[[maybe_unused]] sysuser::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case sysuser::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case 4: 
+			case sysuser::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 5: 
+			case sysuser::cols::level: 
  				 ktemp=iter.level;
 				 break;
-			case 6: 
+			case sysuser::cols::companyid: 
  				 ktemp=iter.companyid;
 				 break;
-			case 7: 
+			case sysuser::cols::dpid: 
  				 ktemp=iter.dpid;
 				 break;
-			case 8: 
+			case sysuser::cols::jobid: 
  				 ktemp=iter.jobid;
 				 break;
-			case 9: 
+			case sysuser::cols::roleid: 
  				 ktemp=iter.roleid;
 				 break;
-			case 10: 
+			case sysuser::cols::postid: 
  				 ktemp=iter.postid;
 				 break;
-			case 11: 
+			case sysuser::cols::created_at: 
  				 ktemp=iter.created_at;
 				 break;
-			case 12: 
+			case sysuser::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
-			case 13: 
+			case sysuser::cols::qrtemp: 
  				 ktemp=iter.qrtemp;
 				 break;
-			case 14: 
+			case sysuser::cols::gender: 
  				 ktemp=iter.gender;
 				 break;
-			  }
- 			switch(vpos){
-			case 1: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case sysuser::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 2: 
+			case sysuser::cols::password: 
  				 vtemp=iter.password;
 				 break;
-			case 3: 
+			case sysuser::cols::textword: 
  				 vtemp=iter.textword;
 				 break;
-			case 15: 
+			case sysuser::cols::nickname: 
  				 vtemp=iter.nickname;
 				 break;
-			case 16: 
+			case sysuser::cols::realname: 
  				 vtemp=iter.realname;
 				 break;
-			case 17: 
+			case sysuser::cols::avatar: 
  				 vtemp=iter.avatar;
 				 break;
-			case 18: 
+			case sysuser::cols::mobile: 
  				 vtemp=iter.mobile;
 				 break;
-			case 19: 
+			case sysuser::cols::email: 
  				 vtemp=iter.email;
 				 break;
-			case 20: 
+			case sysuser::cols::wxuuid: 
  				 vtemp=iter.wxuuid;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] sysuser::cols keyname,[[maybe_unused]] sysuser::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 1: 
+   
+			switch(keyname){
+			case sysuser::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 2: 
+			case sysuser::cols::password: 
  				 ktemp=iter.password;
 				 break;
-			case 3: 
+			case sysuser::cols::textword: 
  				 ktemp=iter.textword;
 				 break;
-			case 15: 
+			case sysuser::cols::nickname: 
  				 ktemp=iter.nickname;
 				 break;
-			case 16: 
+			case sysuser::cols::realname: 
  				 ktemp=iter.realname;
 				 break;
-			case 17: 
+			case sysuser::cols::avatar: 
  				 ktemp=iter.avatar;
 				 break;
-			case 18: 
+			case sysuser::cols::mobile: 
  				 ktemp=iter.mobile;
 				 break;
-			case 19: 
+			case sysuser::cols::email: 
  				 ktemp=iter.email;
 				 break;
-			case 20: 
+			case sysuser::cols::wxuuid: 
  				 ktemp=iter.wxuuid;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case sysuser::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case 4: 
+			case sysuser::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 5: 
+			case sysuser::cols::level: 
  				 vtemp=iter.level;
 				 break;
-			case 6: 
+			case sysuser::cols::companyid: 
  				 vtemp=iter.companyid;
 				 break;
-			case 7: 
+			case sysuser::cols::dpid: 
  				 vtemp=iter.dpid;
 				 break;
-			case 8: 
+			case sysuser::cols::jobid: 
  				 vtemp=iter.jobid;
 				 break;
-			case 9: 
+			case sysuser::cols::roleid: 
  				 vtemp=iter.roleid;
 				 break;
-			case 10: 
+			case sysuser::cols::postid: 
  				 vtemp=iter.postid;
 				 break;
-			case 11: 
+			case sysuser::cols::created_at: 
  				 vtemp=iter.created_at;
 				 break;
-			case 12: 
+			case sysuser::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
-			case 13: 
+			case sysuser::cols::qrtemp: 
  				 vtemp=iter.qrtemp;
 				 break;
-			case 14: 
+			case sysuser::cols::gender: 
  				 vtemp=iter.gender;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -3714,100 +3637,99 @@ case 14:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] sysuser::cols keyname,[[maybe_unused]] sysuser::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case sysuser::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case 4: 
+			case sysuser::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 5: 
+			case sysuser::cols::level: 
  				 ktemp=iter.level;
 				 break;
-			case 6: 
+			case sysuser::cols::companyid: 
  				 ktemp=iter.companyid;
 				 break;
-			case 7: 
+			case sysuser::cols::dpid: 
  				 ktemp=iter.dpid;
 				 break;
-			case 8: 
+			case sysuser::cols::jobid: 
  				 ktemp=iter.jobid;
 				 break;
-			case 9: 
+			case sysuser::cols::roleid: 
  				 ktemp=iter.roleid;
 				 break;
-			case 10: 
+			case sysuser::cols::postid: 
  				 ktemp=iter.postid;
 				 break;
-			case 11: 
+			case sysuser::cols::created_at: 
  				 ktemp=iter.created_at;
 				 break;
-			case 12: 
+			case sysuser::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
-			case 13: 
+			case sysuser::cols::qrtemp: 
  				 ktemp=iter.qrtemp;
 				 break;
-			case 14: 
+			case sysuser::cols::gender: 
  				 ktemp=iter.gender;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case sysuser::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case 4: 
+			case sysuser::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 5: 
+			case sysuser::cols::level: 
  				 vtemp=iter.level;
 				 break;
-			case 6: 
+			case sysuser::cols::companyid: 
  				 vtemp=iter.companyid;
 				 break;
-			case 7: 
+			case sysuser::cols::dpid: 
  				 vtemp=iter.dpid;
 				 break;
-			case 8: 
+			case sysuser::cols::jobid: 
  				 vtemp=iter.jobid;
 				 break;
-			case 9: 
+			case sysuser::cols::roleid: 
  				 vtemp=iter.roleid;
 				 break;
-			case 10: 
+			case sysuser::cols::postid: 
  				 vtemp=iter.postid;
 				 break;
-			case 11: 
+			case sysuser::cols::created_at: 
  				 vtemp=iter.created_at;
 				 break;
-			case 12: 
+			case sysuser::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
-			case 13: 
+			case sysuser::cols::qrtemp: 
  				 vtemp=iter.qrtemp;
 				 break;
-			case 14: 
+			case sysuser::cols::gender: 
  				 vtemp=iter.gender;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

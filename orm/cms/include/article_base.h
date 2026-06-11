@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:34 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,45 @@ namespace orm {
    
      namespace cms { 
 
+namespace article 
+{
+    enum class cols : unsigned char 
+    {
+		aid = 0,
+		topicid = 1,
+		classtype = 2,
+		userid = 3,
+		sortid = 4,
+		topicname = 5,
+		title = 6,
+		keywords = 7,
+		fromsource = 8,
+		author = 9,
+		addip = 10,
+		createtime = 11,
+		addtime = 12,
+		readnum = 13,
+		review = 14,
+		icoimg = 15,
+		content = 16,
+		mdcontent = 17,
+		isopen = 18,
+		ishome = 19,
+		iscomment = 20,
+		showtype = 21,
+		fromlocal = 22,
+		texturl = 23,
+		summary = 24,
+		editauthor = 25,
+		relatecontent = 26,
+
+    };
+ 
+}
+    
 struct article_base
 {
+
     struct meta{
      unsigned  int  aid = 0; ///**/
  unsigned  int  topicid = 0; ///*栏目id*/
@@ -3644,12 +3681,10 @@ std::vector<article_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(article::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -3666,136 +3701,138 @@ std::vector<article_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case article::cols::aid: 
  				 a<<std::to_string(iter.aid);
 				 break;
-			case 1: 
+			case article::cols::topicid: 
  				 a<<std::to_string(iter.topicid);
 				 break;
-			case 2: 
+			case article::cols::classtype: 
  				 a<<std::to_string(iter.classtype);
 				 break;
-			case 3: 
+			case article::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 4: 
+			case article::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case 5: 
+			case article::cols::topicname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.topicname); 
 				 }else{
 				 a<<iter.topicname;
 				 }
 				 break;
-			case 6: 
+			case article::cols::title: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case 7: 
+			case article::cols::keywords: 
  				 if(isyinhao){ a<<jsonaddslash(iter.keywords); 
 				 }else{
 				 a<<iter.keywords;
 				 }
 				 break;
-			case 8: 
+			case article::cols::fromsource: 
  				 if(isyinhao){ a<<jsonaddslash(iter.fromsource); 
 				 }else{
 				 a<<iter.fromsource;
 				 }
 				 break;
-			case 9: 
+			case article::cols::author: 
  				 if(isyinhao){ a<<jsonaddslash(iter.author); 
 				 }else{
 				 a<<iter.author;
 				 }
 				 break;
-			case 10: 
+			case article::cols::addip: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addip); 
 				 }else{
 				 a<<iter.addip;
 				 }
 				 break;
-			case 11: 
+			case article::cols::createtime: 
  				 if(isyinhao){ a<<jsonaddslash(iter.createtime); 
 				 }else{
 				 a<<iter.createtime;
 				 }
 				 break;
-			case 12: 
+			case article::cols::addtime: 
  				 a<<std::to_string(iter.addtime);
 				 break;
-			case 13: 
+			case article::cols::readnum: 
  				 a<<std::to_string(iter.readnum);
 				 break;
-			case 14: 
+			case article::cols::review: 
  				 a<<std::to_string(iter.review);
 				 break;
-			case 15: 
+			case article::cols::icoimg: 
  				 if(isyinhao){ a<<jsonaddslash(iter.icoimg); 
 				 }else{
 				 a<<iter.icoimg;
 				 }
 				 break;
-			case 16: 
+			case article::cols::content: 
  				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
 				 a<<iter.content;
 				 }
 				 break;
-			case 17: 
+			case article::cols::mdcontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.mdcontent); 
 				 }else{
 				 a<<iter.mdcontent;
 				 }
 				 break;
-			case 18: 
+			case article::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case 19: 
+			case article::cols::ishome: 
  				 a<<std::to_string(iter.ishome);
 				 break;
-			case 20: 
+			case article::cols::iscomment: 
  				 a<<std::to_string(iter.iscomment);
 				 break;
-			case 21: 
+			case article::cols::showtype: 
  				 a<<std::to_string(iter.showtype);
 				 break;
-			case 22: 
+			case article::cols::fromlocal: 
  				 if(isyinhao){ a<<jsonaddslash(iter.fromlocal); 
 				 }else{
 				 a<<iter.fromlocal;
 				 }
 				 break;
-			case 23: 
+			case article::cols::texturl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.texturl); 
 				 }else{
 				 a<<iter.texturl;
 				 }
 				 break;
-			case 24: 
+			case article::cols::summary: 
  				 if(isyinhao){ a<<jsonaddslash(iter.summary); 
 				 }else{
 				 a<<iter.summary;
 				 }
 				 break;
-			case 25: 
+			case article::cols::editauthor: 
  				 if(isyinhao){ a<<jsonaddslash(iter.editauthor); 
 				 }else{
 				 a<<iter.editauthor;
 				 }
 				 break;
-			case 26: 
+			case article::cols::relatecontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.relatecontent); 
 				 }else{
 				 a<<iter.relatecontent;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -3807,469 +3844,343 @@ std::vector<article_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 5: 
+    			switch(keyname) 
+			{			case article::cols::topicname: 
  				 ktemp=iter.topicname;
 				 break;
-			case 6: 
+			case article::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case 7: 
+			case article::cols::keywords: 
  				 ktemp=iter.keywords;
 				 break;
-			case 8: 
+			case article::cols::fromsource: 
  				 ktemp=iter.fromsource;
 				 break;
-			case 9: 
+			case article::cols::author: 
  				 ktemp=iter.author;
 				 break;
-			case 10: 
+			case article::cols::addip: 
  				 ktemp=iter.addip;
 				 break;
-			case 11: 
+			case article::cols::createtime: 
  				 ktemp=iter.createtime;
 				 break;
-			case 15: 
+			case article::cols::icoimg: 
  				 ktemp=iter.icoimg;
 				 break;
-			case 16: 
+			case article::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			case 17: 
+			case article::cols::mdcontent: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 22: 
+			case article::cols::fromlocal: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 23: 
+			case article::cols::texturl: 
  				 ktemp=iter.texturl;
 				 break;
-			case 24: 
+			case article::cols::summary: 
  				 ktemp=iter.summary;
 				 break;
-			case 25: 
+			case article::cols::editauthor: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 26: 
+			case article::cols::relatecontent: 
  				 ktemp=iter.relatecontent;
 				 break;
-				 } 
-			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case article::cols::topicname: 
  				 vtemp=iter.topicname;
 				 break;
-			case 6: 
+			case article::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case 7: 
+			case article::cols::keywords: 
  				 vtemp=iter.keywords;
 				 break;
-			case 8: 
+			case article::cols::fromsource: 
  				 vtemp=iter.fromsource;
 				 break;
-			case 9: 
+			case article::cols::author: 
  				 vtemp=iter.author;
 				 break;
-			case 10: 
+			case article::cols::addip: 
  				 vtemp=iter.addip;
 				 break;
-			case 11: 
+			case article::cols::createtime: 
  				 vtemp=iter.createtime;
 				 break;
-			case 15: 
+			case article::cols::icoimg: 
  				 vtemp=iter.icoimg;
 				 break;
-			case 16: 
+			case article::cols::content: 
  				 vtemp=iter.content;
 				 break;
-			case 17: 
+			case article::cols::mdcontent: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 22: 
+			case article::cols::fromlocal: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 23: 
+			case article::cols::texturl: 
  				 vtemp=iter.texturl;
 				 break;
-			case 24: 
+			case article::cols::summary: 
  				 vtemp=iter.summary;
 				 break;
-			case 25: 
+			case article::cols::editauthor: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 26: 
+			case article::cols::relatecontent: 
  				 vtemp=iter.relatecontent;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 5: 
- 				 ktemp=iter.topicname;
-				 break;
-			case 6: 
- 				 ktemp=iter.title;
-				 break;
-			case 7: 
- 				 ktemp=iter.keywords;
-				 break;
-			case 8: 
- 				 ktemp=iter.fromsource;
-				 break;
-			case 9: 
- 				 ktemp=iter.author;
-				 break;
-			case 10: 
- 				 ktemp=iter.addip;
-				 break;
-			case 11: 
- 				 ktemp=iter.createtime;
-				 break;
-			case 15: 
- 				 ktemp=iter.icoimg;
-				 break;
-			case 16: 
- 				 ktemp=iter.content;
-				 break;
-			case 17: 
- 				 ktemp=iter.mdcontent;
-				 break;
-			case 22: 
- 				 ktemp=iter.fromlocal;
-				 break;
-			case 23: 
- 				 ktemp=iter.texturl;
-				 break;
-			case 24: 
- 				 ktemp=iter.summary;
-				 break;
-			case 25: 
- 				 ktemp=iter.editauthor;
-				 break;
-			case 26: 
- 				 ktemp=iter.relatecontent;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.aid;
-	 break;
-case 1: 
- 	 ktemp=iter.topicid;
-	 break;
-case 2: 
- 	 ktemp=iter.classtype;
-	 break;
-case 3: 
- 	 ktemp=iter.userid;
-	 break;
-case 4: 
- 	 ktemp=iter.sortid;
-	 break;
-case 12: 
- 	 ktemp=iter.addtime;
-	 break;
-case 13: 
- 	 ktemp=iter.readnum;
-	 break;
-case 14: 
- 	 ktemp=iter.review;
-	 break;
-case 18: 
- 	 ktemp=iter.isopen;
-	 break;
-case 19: 
- 	 ktemp=iter.ishome;
-	 break;
-case 20: 
- 	 ktemp=iter.iscomment;
-	 break;
-case 21: 
- 	 ktemp=iter.showtype;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case article::cols::aid: 
  				 ktemp=iter.aid;
 				 break;
-			case 1: 
+			case article::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case 2: 
+			case article::cols::classtype: 
  				 ktemp=iter.classtype;
 				 break;
-			case 3: 
+			case article::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 4: 
+			case article::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case 12: 
+			case article::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case 13: 
+			case article::cols::readnum: 
  				 ktemp=iter.readnum;
 				 break;
-			case 14: 
+			case article::cols::review: 
  				 ktemp=iter.review;
 				 break;
-			case 18: 
+			case article::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 19: 
+			case article::cols::ishome: 
  				 ktemp=iter.ishome;
 				 break;
-			case 20: 
+			case article::cols::iscomment: 
  				 ktemp=iter.iscomment;
 				 break;
-			case 21: 
+			case article::cols::showtype: 
  				 ktemp=iter.showtype;
 				 break;
-			  }
- 			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case article::cols::topicname: 
  				 vtemp=iter.topicname;
 				 break;
-			case 6: 
+			case article::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case 7: 
+			case article::cols::keywords: 
  				 vtemp=iter.keywords;
 				 break;
-			case 8: 
+			case article::cols::fromsource: 
  				 vtemp=iter.fromsource;
 				 break;
-			case 9: 
+			case article::cols::author: 
  				 vtemp=iter.author;
 				 break;
-			case 10: 
+			case article::cols::addip: 
  				 vtemp=iter.addip;
 				 break;
-			case 11: 
+			case article::cols::createtime: 
  				 vtemp=iter.createtime;
 				 break;
-			case 15: 
+			case article::cols::icoimg: 
  				 vtemp=iter.icoimg;
 				 break;
-			case 16: 
+			case article::cols::content: 
  				 vtemp=iter.content;
 				 break;
-			case 17: 
+			case article::cols::mdcontent: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case 22: 
+			case article::cols::fromlocal: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case 23: 
+			case article::cols::texturl: 
  				 vtemp=iter.texturl;
 				 break;
-			case 24: 
+			case article::cols::summary: 
  				 vtemp=iter.summary;
 				 break;
-			case 25: 
+			case article::cols::editauthor: 
  				 vtemp=iter.editauthor;
 				 break;
-			case 26: 
+			case article::cols::relatecontent: 
  				 vtemp=iter.relatecontent;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 5: 
+   
+			switch(keyname){
+			case article::cols::topicname: 
  				 ktemp=iter.topicname;
 				 break;
-			case 6: 
+			case article::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case 7: 
+			case article::cols::keywords: 
  				 ktemp=iter.keywords;
 				 break;
-			case 8: 
+			case article::cols::fromsource: 
  				 ktemp=iter.fromsource;
 				 break;
-			case 9: 
+			case article::cols::author: 
  				 ktemp=iter.author;
 				 break;
-			case 10: 
+			case article::cols::addip: 
  				 ktemp=iter.addip;
 				 break;
-			case 11: 
+			case article::cols::createtime: 
  				 ktemp=iter.createtime;
 				 break;
-			case 15: 
+			case article::cols::icoimg: 
  				 ktemp=iter.icoimg;
 				 break;
-			case 16: 
+			case article::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			case 17: 
+			case article::cols::mdcontent: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case 22: 
+			case article::cols::fromlocal: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case 23: 
+			case article::cols::texturl: 
  				 ktemp=iter.texturl;
 				 break;
-			case 24: 
+			case article::cols::summary: 
  				 ktemp=iter.summary;
 				 break;
-			case 25: 
+			case article::cols::editauthor: 
  				 ktemp=iter.editauthor;
 				 break;
-			case 26: 
+			case article::cols::relatecontent: 
  				 ktemp=iter.relatecontent;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case article::cols::aid: 
  				 vtemp=iter.aid;
 				 break;
-			case 1: 
+			case article::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case 2: 
+			case article::cols::classtype: 
  				 vtemp=iter.classtype;
 				 break;
-			case 3: 
+			case article::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 4: 
+			case article::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case 12: 
+			case article::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case 13: 
+			case article::cols::readnum: 
  				 vtemp=iter.readnum;
 				 break;
-			case 14: 
+			case article::cols::review: 
  				 vtemp=iter.review;
 				 break;
-			case 18: 
+			case article::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 19: 
+			case article::cols::ishome: 
  				 vtemp=iter.ishome;
 				 break;
-			case 20: 
+			case article::cols::iscomment: 
  				 vtemp=iter.iscomment;
 				 break;
-			case 21: 
+			case article::cols::showtype: 
  				 vtemp=iter.showtype;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -4280,100 +4191,99 @@ case 21:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case article::cols::aid: 
  				 ktemp=iter.aid;
 				 break;
-			case 1: 
+			case article::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case 2: 
+			case article::cols::classtype: 
  				 ktemp=iter.classtype;
 				 break;
-			case 3: 
+			case article::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 4: 
+			case article::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case 12: 
+			case article::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case 13: 
+			case article::cols::readnum: 
  				 ktemp=iter.readnum;
 				 break;
-			case 14: 
+			case article::cols::review: 
  				 ktemp=iter.review;
 				 break;
-			case 18: 
+			case article::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 19: 
+			case article::cols::ishome: 
  				 ktemp=iter.ishome;
 				 break;
-			case 20: 
+			case article::cols::iscomment: 
  				 ktemp=iter.iscomment;
 				 break;
-			case 21: 
+			case article::cols::showtype: 
  				 ktemp=iter.showtype;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case article::cols::aid: 
  				 vtemp=iter.aid;
 				 break;
-			case 1: 
+			case article::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case 2: 
+			case article::cols::classtype: 
  				 vtemp=iter.classtype;
 				 break;
-			case 3: 
+			case article::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 4: 
+			case article::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case 12: 
+			case article::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case 13: 
+			case article::cols::readnum: 
  				 vtemp=iter.readnum;
 				 break;
-			case 14: 
+			case article::cols::review: 
  				 vtemp=iter.review;
 				 break;
-			case 18: 
+			case article::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 19: 
+			case article::cols::ishome: 
  				 vtemp=iter.ishome;
 				 break;
-			case 20: 
+			case article::cols::iscomment: 
  				 vtemp=iter.iscomment;
 				 break;
-			case 21: 
+			case article::cols::showtype: 
  				 vtemp=iter.showtype;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

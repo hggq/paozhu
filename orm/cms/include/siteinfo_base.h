@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,51 @@ namespace orm {
    
      namespace cms { 
 
+namespace siteinfo 
+{
+    enum class cols : unsigned char 
+    {
+		sid = 0,
+		userid = 1,
+		agentid = 2,
+		languagetype = 3,
+		sitename = 4,
+		sitedomain = 5,
+		metakeys = 6,
+		metadesc = 7,
+		copyright = 8,
+		beiansn = 9,
+		footscript = 10,
+		headscript = 11,
+		introduce = 12,
+		sitelogo = 13,
+		sitebanner = 14,
+		contactman = 15,
+		phone = 16,
+		mobile = 17,
+		email = 18,
+		bankname = 19,
+		banksn = 20,
+		address = 21,
+		zipnum = 22,
+		taxsn = 23,
+		companyname = 24,
+		linkname = 25,
+		linkmobile = 26,
+		linkaddress = 27,
+		theme = 28,
+		sitepath = 29,
+		isopen = 30,
+		created_at = 31,
+		enddate = 32,
+
+    };
+ 
+}
+    
 struct siteinfo_base
 {
+
     struct meta{
      int  sid = 0; ///**/
  int  userid = 0; ///**/
@@ -3845,12 +3888,10 @@ std::vector<siteinfo_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(siteinfo::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -3867,187 +3908,189 @@ std::vector<siteinfo_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case siteinfo::cols::sid: 
  				 a<<std::to_string(iter.sid);
 				 break;
-			case 1: 
+			case siteinfo::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case siteinfo::cols::agentid: 
  				 a<<std::to_string(iter.agentid);
 				 break;
-			case 3: 
+			case siteinfo::cols::languagetype: 
  				 a<<std::to_string(iter.languagetype);
 				 break;
-			case 4: 
+			case siteinfo::cols::sitename: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitename); 
 				 }else{
 				 a<<iter.sitename;
 				 }
 				 break;
-			case 5: 
+			case siteinfo::cols::sitedomain: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitedomain); 
 				 }else{
 				 a<<iter.sitedomain;
 				 }
 				 break;
-			case 6: 
+			case siteinfo::cols::metakeys: 
  				 if(isyinhao){ a<<jsonaddslash(iter.metakeys); 
 				 }else{
 				 a<<iter.metakeys;
 				 }
 				 break;
-			case 7: 
+			case siteinfo::cols::metadesc: 
  				 if(isyinhao){ a<<jsonaddslash(iter.metadesc); 
 				 }else{
 				 a<<iter.metadesc;
 				 }
 				 break;
-			case 8: 
+			case siteinfo::cols::copyright: 
  				 if(isyinhao){ a<<jsonaddslash(iter.copyright); 
 				 }else{
 				 a<<iter.copyright;
 				 }
 				 break;
-			case 9: 
+			case siteinfo::cols::beiansn: 
  				 if(isyinhao){ a<<jsonaddslash(iter.beiansn); 
 				 }else{
 				 a<<iter.beiansn;
 				 }
 				 break;
-			case 10: 
+			case siteinfo::cols::footscript: 
  				 if(isyinhao){ a<<jsonaddslash(iter.footscript); 
 				 }else{
 				 a<<iter.footscript;
 				 }
 				 break;
-			case 11: 
+			case siteinfo::cols::headscript: 
  				 if(isyinhao){ a<<jsonaddslash(iter.headscript); 
 				 }else{
 				 a<<iter.headscript;
 				 }
 				 break;
-			case 12: 
+			case siteinfo::cols::introduce: 
  				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
 				 }else{
 				 a<<iter.introduce;
 				 }
 				 break;
-			case 13: 
+			case siteinfo::cols::sitelogo: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitelogo); 
 				 }else{
 				 a<<iter.sitelogo;
 				 }
 				 break;
-			case 14: 
+			case siteinfo::cols::sitebanner: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitebanner); 
 				 }else{
 				 a<<iter.sitebanner;
 				 }
 				 break;
-			case 15: 
+			case siteinfo::cols::contactman: 
  				 if(isyinhao){ a<<jsonaddslash(iter.contactman); 
 				 }else{
 				 a<<iter.contactman;
 				 }
 				 break;
-			case 16: 
+			case siteinfo::cols::phone: 
  				 if(isyinhao){ a<<jsonaddslash(iter.phone); 
 				 }else{
 				 a<<iter.phone;
 				 }
 				 break;
-			case 17: 
+			case siteinfo::cols::mobile: 
  				 if(isyinhao){ a<<jsonaddslash(iter.mobile); 
 				 }else{
 				 a<<iter.mobile;
 				 }
 				 break;
-			case 18: 
+			case siteinfo::cols::email: 
  				 if(isyinhao){ a<<jsonaddslash(iter.email); 
 				 }else{
 				 a<<iter.email;
 				 }
 				 break;
-			case 19: 
+			case siteinfo::cols::bankname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.bankname); 
 				 }else{
 				 a<<iter.bankname;
 				 }
 				 break;
-			case 20: 
+			case siteinfo::cols::banksn: 
  				 if(isyinhao){ a<<jsonaddslash(iter.banksn); 
 				 }else{
 				 a<<iter.banksn;
 				 }
 				 break;
-			case 21: 
+			case siteinfo::cols::address: 
  				 if(isyinhao){ a<<jsonaddslash(iter.address); 
 				 }else{
 				 a<<iter.address;
 				 }
 				 break;
-			case 22: 
+			case siteinfo::cols::zipnum: 
  				 if(isyinhao){ a<<jsonaddslash(iter.zipnum); 
 				 }else{
 				 a<<iter.zipnum;
 				 }
 				 break;
-			case 23: 
+			case siteinfo::cols::taxsn: 
  				 if(isyinhao){ a<<jsonaddslash(iter.taxsn); 
 				 }else{
 				 a<<iter.taxsn;
 				 }
 				 break;
-			case 24: 
+			case siteinfo::cols::companyname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.companyname); 
 				 }else{
 				 a<<iter.companyname;
 				 }
 				 break;
-			case 25: 
+			case siteinfo::cols::linkname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkname); 
 				 }else{
 				 a<<iter.linkname;
 				 }
 				 break;
-			case 26: 
+			case siteinfo::cols::linkmobile: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkmobile); 
 				 }else{
 				 a<<iter.linkmobile;
 				 }
 				 break;
-			case 27: 
+			case siteinfo::cols::linkaddress: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkaddress); 
 				 }else{
 				 a<<iter.linkaddress;
 				 }
 				 break;
-			case 28: 
+			case siteinfo::cols::theme: 
  				 if(isyinhao){ a<<jsonaddslash(iter.theme); 
 				 }else{
 				 a<<iter.theme;
 				 }
 				 break;
-			case 29: 
+			case siteinfo::cols::sitepath: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitepath); 
 				 }else{
 				 a<<iter.sitepath;
 				 }
 				 break;
-			case 30: 
+			case siteinfo::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case 31: 
+			case siteinfo::cols::created_at: 
  				 a<<std::to_string(iter.created_at);
 				 break;
-			case 32: 
+			case siteinfo::cols::enddate: 
  				 a<<std::to_string(iter.enddate);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -4059,589 +4102,445 @@ std::vector<siteinfo_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 4: 
+    			switch(keyname) 
+			{			case siteinfo::cols::sitename: 
  				 ktemp=iter.sitename;
 				 break;
-			case 5: 
+			case siteinfo::cols::sitedomain: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 6: 
+			case siteinfo::cols::metakeys: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 7: 
+			case siteinfo::cols::metadesc: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 8: 
+			case siteinfo::cols::copyright: 
  				 ktemp=iter.copyright;
 				 break;
-			case 9: 
+			case siteinfo::cols::beiansn: 
  				 ktemp=iter.beiansn;
 				 break;
-			case 10: 
+			case siteinfo::cols::footscript: 
  				 ktemp=iter.footscript;
 				 break;
-			case 11: 
+			case siteinfo::cols::headscript: 
  				 ktemp=iter.headscript;
 				 break;
-			case 12: 
+			case siteinfo::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case 13: 
+			case siteinfo::cols::sitelogo: 
  				 ktemp=iter.sitelogo;
 				 break;
-			case 14: 
+			case siteinfo::cols::sitebanner: 
  				 ktemp=iter.sitebanner;
 				 break;
-			case 15: 
+			case siteinfo::cols::contactman: 
  				 ktemp=iter.contactman;
 				 break;
-			case 16: 
+			case siteinfo::cols::phone: 
  				 ktemp=iter.phone;
 				 break;
-			case 17: 
+			case siteinfo::cols::mobile: 
  				 ktemp=iter.mobile;
 				 break;
-			case 18: 
+			case siteinfo::cols::email: 
  				 ktemp=iter.email;
 				 break;
-			case 19: 
+			case siteinfo::cols::bankname: 
  				 ktemp=iter.bankname;
 				 break;
-			case 20: 
+			case siteinfo::cols::banksn: 
  				 ktemp=iter.banksn;
 				 break;
-			case 21: 
+			case siteinfo::cols::address: 
  				 ktemp=iter.address;
 				 break;
-			case 22: 
+			case siteinfo::cols::zipnum: 
  				 ktemp=iter.zipnum;
 				 break;
-			case 23: 
+			case siteinfo::cols::taxsn: 
  				 ktemp=iter.taxsn;
 				 break;
-			case 24: 
+			case siteinfo::cols::companyname: 
  				 ktemp=iter.companyname;
 				 break;
-			case 25: 
+			case siteinfo::cols::linkname: 
  				 ktemp=iter.linkname;
 				 break;
-			case 26: 
+			case siteinfo::cols::linkmobile: 
  				 ktemp=iter.linkmobile;
 				 break;
-			case 27: 
+			case siteinfo::cols::linkaddress: 
  				 ktemp=iter.linkaddress;
 				 break;
-			case 28: 
+			case siteinfo::cols::theme: 
  				 ktemp=iter.theme;
 				 break;
-			case 29: 
+			case siteinfo::cols::sitepath: 
  				 ktemp=iter.sitepath;
 				 break;
-				 } 
-			switch(vpos){
-			case 4: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case siteinfo::cols::sitename: 
  				 vtemp=iter.sitename;
 				 break;
-			case 5: 
+			case siteinfo::cols::sitedomain: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 6: 
+			case siteinfo::cols::metakeys: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 7: 
+			case siteinfo::cols::metadesc: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 8: 
+			case siteinfo::cols::copyright: 
  				 vtemp=iter.copyright;
 				 break;
-			case 9: 
+			case siteinfo::cols::beiansn: 
  				 vtemp=iter.beiansn;
 				 break;
-			case 10: 
+			case siteinfo::cols::footscript: 
  				 vtemp=iter.footscript;
 				 break;
-			case 11: 
+			case siteinfo::cols::headscript: 
  				 vtemp=iter.headscript;
 				 break;
-			case 12: 
+			case siteinfo::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case 13: 
+			case siteinfo::cols::sitelogo: 
  				 vtemp=iter.sitelogo;
 				 break;
-			case 14: 
+			case siteinfo::cols::sitebanner: 
  				 vtemp=iter.sitebanner;
 				 break;
-			case 15: 
+			case siteinfo::cols::contactman: 
  				 vtemp=iter.contactman;
 				 break;
-			case 16: 
+			case siteinfo::cols::phone: 
  				 vtemp=iter.phone;
 				 break;
-			case 17: 
+			case siteinfo::cols::mobile: 
  				 vtemp=iter.mobile;
 				 break;
-			case 18: 
+			case siteinfo::cols::email: 
  				 vtemp=iter.email;
 				 break;
-			case 19: 
+			case siteinfo::cols::bankname: 
  				 vtemp=iter.bankname;
 				 break;
-			case 20: 
+			case siteinfo::cols::banksn: 
  				 vtemp=iter.banksn;
 				 break;
-			case 21: 
+			case siteinfo::cols::address: 
  				 vtemp=iter.address;
 				 break;
-			case 22: 
+			case siteinfo::cols::zipnum: 
  				 vtemp=iter.zipnum;
 				 break;
-			case 23: 
+			case siteinfo::cols::taxsn: 
  				 vtemp=iter.taxsn;
 				 break;
-			case 24: 
+			case siteinfo::cols::companyname: 
  				 vtemp=iter.companyname;
 				 break;
-			case 25: 
+			case siteinfo::cols::linkname: 
  				 vtemp=iter.linkname;
 				 break;
-			case 26: 
+			case siteinfo::cols::linkmobile: 
  				 vtemp=iter.linkmobile;
 				 break;
-			case 27: 
+			case siteinfo::cols::linkaddress: 
  				 vtemp=iter.linkaddress;
 				 break;
-			case 28: 
+			case siteinfo::cols::theme: 
  				 vtemp=iter.theme;
 				 break;
-			case 29: 
+			case siteinfo::cols::sitepath: 
  				 vtemp=iter.sitepath;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 4: 
- 				 ktemp=iter.sitename;
-				 break;
-			case 5: 
- 				 ktemp=iter.sitedomain;
-				 break;
-			case 6: 
- 				 ktemp=iter.metakeys;
-				 break;
-			case 7: 
- 				 ktemp=iter.metadesc;
-				 break;
-			case 8: 
- 				 ktemp=iter.copyright;
-				 break;
-			case 9: 
- 				 ktemp=iter.beiansn;
-				 break;
-			case 10: 
- 				 ktemp=iter.footscript;
-				 break;
-			case 11: 
- 				 ktemp=iter.headscript;
-				 break;
-			case 12: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 13: 
- 				 ktemp=iter.sitelogo;
-				 break;
-			case 14: 
- 				 ktemp=iter.sitebanner;
-				 break;
-			case 15: 
- 				 ktemp=iter.contactman;
-				 break;
-			case 16: 
- 				 ktemp=iter.phone;
-				 break;
-			case 17: 
- 				 ktemp=iter.mobile;
-				 break;
-			case 18: 
- 				 ktemp=iter.email;
-				 break;
-			case 19: 
- 				 ktemp=iter.bankname;
-				 break;
-			case 20: 
- 				 ktemp=iter.banksn;
-				 break;
-			case 21: 
- 				 ktemp=iter.address;
-				 break;
-			case 22: 
- 				 ktemp=iter.zipnum;
-				 break;
-			case 23: 
- 				 ktemp=iter.taxsn;
-				 break;
-			case 24: 
- 				 ktemp=iter.companyname;
-				 break;
-			case 25: 
- 				 ktemp=iter.linkname;
-				 break;
-			case 26: 
- 				 ktemp=iter.linkmobile;
-				 break;
-			case 27: 
- 				 ktemp=iter.linkaddress;
-				 break;
-			case 28: 
- 				 ktemp=iter.theme;
-				 break;
-			case 29: 
- 				 ktemp=iter.sitepath;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.sid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.agentid;
-	 break;
-case 3: 
- 	 ktemp=iter.languagetype;
-	 break;
-case 30: 
- 	 ktemp=iter.isopen;
-	 break;
-case 31: 
- 	 ktemp=iter.created_at;
-	 break;
-case 32: 
- 	 ktemp=iter.enddate;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case siteinfo::cols::sid: 
  				 ktemp=iter.sid;
 				 break;
-			case 1: 
+			case siteinfo::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case siteinfo::cols::agentid: 
  				 ktemp=iter.agentid;
 				 break;
-			case 3: 
+			case siteinfo::cols::languagetype: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 30: 
+			case siteinfo::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 31: 
+			case siteinfo::cols::created_at: 
  				 ktemp=iter.created_at;
 				 break;
-			case 32: 
+			case siteinfo::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
-			  }
- 			switch(vpos){
-			case 4: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case siteinfo::cols::sitename: 
  				 vtemp=iter.sitename;
 				 break;
-			case 5: 
+			case siteinfo::cols::sitedomain: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case 6: 
+			case siteinfo::cols::metakeys: 
  				 vtemp=iter.metakeys;
 				 break;
-			case 7: 
+			case siteinfo::cols::metadesc: 
  				 vtemp=iter.metadesc;
 				 break;
-			case 8: 
+			case siteinfo::cols::copyright: 
  				 vtemp=iter.copyright;
 				 break;
-			case 9: 
+			case siteinfo::cols::beiansn: 
  				 vtemp=iter.beiansn;
 				 break;
-			case 10: 
+			case siteinfo::cols::footscript: 
  				 vtemp=iter.footscript;
 				 break;
-			case 11: 
+			case siteinfo::cols::headscript: 
  				 vtemp=iter.headscript;
 				 break;
-			case 12: 
+			case siteinfo::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case 13: 
+			case siteinfo::cols::sitelogo: 
  				 vtemp=iter.sitelogo;
 				 break;
-			case 14: 
+			case siteinfo::cols::sitebanner: 
  				 vtemp=iter.sitebanner;
 				 break;
-			case 15: 
+			case siteinfo::cols::contactman: 
  				 vtemp=iter.contactman;
 				 break;
-			case 16: 
+			case siteinfo::cols::phone: 
  				 vtemp=iter.phone;
 				 break;
-			case 17: 
+			case siteinfo::cols::mobile: 
  				 vtemp=iter.mobile;
 				 break;
-			case 18: 
+			case siteinfo::cols::email: 
  				 vtemp=iter.email;
 				 break;
-			case 19: 
+			case siteinfo::cols::bankname: 
  				 vtemp=iter.bankname;
 				 break;
-			case 20: 
+			case siteinfo::cols::banksn: 
  				 vtemp=iter.banksn;
 				 break;
-			case 21: 
+			case siteinfo::cols::address: 
  				 vtemp=iter.address;
 				 break;
-			case 22: 
+			case siteinfo::cols::zipnum: 
  				 vtemp=iter.zipnum;
 				 break;
-			case 23: 
+			case siteinfo::cols::taxsn: 
  				 vtemp=iter.taxsn;
 				 break;
-			case 24: 
+			case siteinfo::cols::companyname: 
  				 vtemp=iter.companyname;
 				 break;
-			case 25: 
+			case siteinfo::cols::linkname: 
  				 vtemp=iter.linkname;
 				 break;
-			case 26: 
+			case siteinfo::cols::linkmobile: 
  				 vtemp=iter.linkmobile;
 				 break;
-			case 27: 
+			case siteinfo::cols::linkaddress: 
  				 vtemp=iter.linkaddress;
 				 break;
-			case 28: 
+			case siteinfo::cols::theme: 
  				 vtemp=iter.theme;
 				 break;
-			case 29: 
+			case siteinfo::cols::sitepath: 
  				 vtemp=iter.sitepath;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 4: 
+   
+			switch(keyname){
+			case siteinfo::cols::sitename: 
  				 ktemp=iter.sitename;
 				 break;
-			case 5: 
+			case siteinfo::cols::sitedomain: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case 6: 
+			case siteinfo::cols::metakeys: 
  				 ktemp=iter.metakeys;
 				 break;
-			case 7: 
+			case siteinfo::cols::metadesc: 
  				 ktemp=iter.metadesc;
 				 break;
-			case 8: 
+			case siteinfo::cols::copyright: 
  				 ktemp=iter.copyright;
 				 break;
-			case 9: 
+			case siteinfo::cols::beiansn: 
  				 ktemp=iter.beiansn;
 				 break;
-			case 10: 
+			case siteinfo::cols::footscript: 
  				 ktemp=iter.footscript;
 				 break;
-			case 11: 
+			case siteinfo::cols::headscript: 
  				 ktemp=iter.headscript;
 				 break;
-			case 12: 
+			case siteinfo::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case 13: 
+			case siteinfo::cols::sitelogo: 
  				 ktemp=iter.sitelogo;
 				 break;
-			case 14: 
+			case siteinfo::cols::sitebanner: 
  				 ktemp=iter.sitebanner;
 				 break;
-			case 15: 
+			case siteinfo::cols::contactman: 
  				 ktemp=iter.contactman;
 				 break;
-			case 16: 
+			case siteinfo::cols::phone: 
  				 ktemp=iter.phone;
 				 break;
-			case 17: 
+			case siteinfo::cols::mobile: 
  				 ktemp=iter.mobile;
 				 break;
-			case 18: 
+			case siteinfo::cols::email: 
  				 ktemp=iter.email;
 				 break;
-			case 19: 
+			case siteinfo::cols::bankname: 
  				 ktemp=iter.bankname;
 				 break;
-			case 20: 
+			case siteinfo::cols::banksn: 
  				 ktemp=iter.banksn;
 				 break;
-			case 21: 
+			case siteinfo::cols::address: 
  				 ktemp=iter.address;
 				 break;
-			case 22: 
+			case siteinfo::cols::zipnum: 
  				 ktemp=iter.zipnum;
 				 break;
-			case 23: 
+			case siteinfo::cols::taxsn: 
  				 ktemp=iter.taxsn;
 				 break;
-			case 24: 
+			case siteinfo::cols::companyname: 
  				 ktemp=iter.companyname;
 				 break;
-			case 25: 
+			case siteinfo::cols::linkname: 
  				 ktemp=iter.linkname;
 				 break;
-			case 26: 
+			case siteinfo::cols::linkmobile: 
  				 ktemp=iter.linkmobile;
 				 break;
-			case 27: 
+			case siteinfo::cols::linkaddress: 
  				 ktemp=iter.linkaddress;
 				 break;
-			case 28: 
+			case siteinfo::cols::theme: 
  				 ktemp=iter.theme;
 				 break;
-			case 29: 
+			case siteinfo::cols::sitepath: 
  				 ktemp=iter.sitepath;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case siteinfo::cols::sid: 
  				 vtemp=iter.sid;
 				 break;
-			case 1: 
+			case siteinfo::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case siteinfo::cols::agentid: 
  				 vtemp=iter.agentid;
 				 break;
-			case 3: 
+			case siteinfo::cols::languagetype: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 30: 
+			case siteinfo::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 31: 
+			case siteinfo::cols::created_at: 
  				 vtemp=iter.created_at;
 				 break;
-			case 32: 
+			case siteinfo::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -4652,70 +4551,69 @@ case 32:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case siteinfo::cols::sid: 
  				 ktemp=iter.sid;
 				 break;
-			case 1: 
+			case siteinfo::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case siteinfo::cols::agentid: 
  				 ktemp=iter.agentid;
 				 break;
-			case 3: 
+			case siteinfo::cols::languagetype: 
  				 ktemp=iter.languagetype;
 				 break;
-			case 30: 
+			case siteinfo::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 31: 
+			case siteinfo::cols::created_at: 
  				 ktemp=iter.created_at;
 				 break;
-			case 32: 
+			case siteinfo::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case siteinfo::cols::sid: 
  				 vtemp=iter.sid;
 				 break;
-			case 1: 
+			case siteinfo::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case siteinfo::cols::agentid: 
  				 vtemp=iter.agentid;
 				 break;
-			case 3: 
+			case siteinfo::cols::languagetype: 
  				 vtemp=iter.languagetype;
 				 break;
-			case 30: 
+			case siteinfo::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 31: 
+			case siteinfo::cols::created_at: 
  				 vtemp=iter.created_at;
 				 break;
-			case 32: 
+			case siteinfo::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,42 @@ namespace orm {
    
      namespace cms { 
 
+namespace product 
+{
+    enum class cols : unsigned char 
+    {
+		pid = 0,
+		userid = 1,
+		topicid = 2,
+		bigid = 3,
+		smallid = 4,
+		brandid = 5,
+		isview = 6,
+		isstore = 7,
+		ishome = 8,
+		showtype = 9,
+		sntype = 10,
+		name = 11,
+		keywords = 12,
+		introduce = 13,
+		listimg = 14,
+		bigimg = 15,
+		maincontent = 16,
+		paracontent = 17,
+		samepro = 18,
+		attatchfiles = 19,
+		price = 20,
+		sortid = 21,
+		adddate = 22,
+		editdate = 23,
+
+    };
+ 
+}
+    
 struct product_base
 {
+
     struct meta{
      unsigned  int  pid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -3846,12 +3880,10 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(product::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -3868,118 +3900,120 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case product::cols::pid: 
  				 a<<std::to_string(iter.pid);
 				 break;
-			case 1: 
+			case product::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case product::cols::topicid: 
  				 a<<std::to_string(iter.topicid);
 				 break;
-			case 3: 
+			case product::cols::bigid: 
  				 a<<std::to_string(iter.bigid);
 				 break;
-			case 4: 
+			case product::cols::smallid: 
  				 a<<std::to_string(iter.smallid);
 				 break;
-			case 5: 
+			case product::cols::brandid: 
  				 a<<std::to_string(iter.brandid);
 				 break;
-			case 6: 
+			case product::cols::isview: 
  				 a<<std::to_string(iter.isview);
 				 break;
-			case 7: 
+			case product::cols::isstore: 
  				 a<<std::to_string(iter.isstore);
 				 break;
-			case 8: 
+			case product::cols::ishome: 
  				 a<<std::to_string(iter.ishome);
 				 break;
-			case 9: 
+			case product::cols::showtype: 
  				 a<<std::to_string(iter.showtype);
 				 break;
-			case 10: 
+			case product::cols::sntype: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sntype); 
 				 }else{
 				 a<<iter.sntype;
 				 }
 				 break;
-			case 11: 
+			case product::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case 12: 
+			case product::cols::keywords: 
  				 if(isyinhao){ a<<jsonaddslash(iter.keywords); 
 				 }else{
 				 a<<iter.keywords;
 				 }
 				 break;
-			case 13: 
+			case product::cols::introduce: 
  				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
 				 }else{
 				 a<<iter.introduce;
 				 }
 				 break;
-			case 14: 
+			case product::cols::listimg: 
  				 if(isyinhao){ a<<jsonaddslash(iter.listimg); 
 				 }else{
 				 a<<iter.listimg;
 				 }
 				 break;
-			case 15: 
+			case product::cols::bigimg: 
  				 if(isyinhao){ a<<jsonaddslash(iter.bigimg); 
 				 }else{
 				 a<<iter.bigimg;
 				 }
 				 break;
-			case 16: 
+			case product::cols::maincontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.maincontent); 
 				 }else{
 				 a<<iter.maincontent;
 				 }
 				 break;
-			case 17: 
+			case product::cols::paracontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.paracontent); 
 				 }else{
 				 a<<iter.paracontent;
 				 }
 				 break;
-			case 18: 
+			case product::cols::samepro: 
  				 if(isyinhao){ a<<jsonaddslash(iter.samepro); 
 				 }else{
 				 a<<iter.samepro;
 				 }
 				 break;
-			case 19: 
+			case product::cols::attatchfiles: 
  				 if(isyinhao){ a<<jsonaddslash(iter.attatchfiles); 
 				 }else{
 				 a<<iter.attatchfiles;
 				 }
 				 break;
-			case 20: 
+			case product::cols::price: 
  				 a<<std::to_string(iter.price);
 				 break;
-			case 21: 
+			case product::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case 22: 
+			case product::cols::adddate: 
  				 if(isyinhao){ a<<jsonaddslash(iter.adddate); 
 				 }else{
 				 a<<iter.adddate;
 				 }
 				 break;
-			case 23: 
+			case product::cols::editdate: 
  				 if(isyinhao){ a<<jsonaddslash(iter.editdate); 
 				 }else{
 				 a<<iter.editdate;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -3991,424 +4025,307 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 10: 
+    			switch(keyname) 
+			{			case product::cols::sntype: 
  				 ktemp=iter.sntype;
 				 break;
-			case 11: 
+			case product::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 12: 
+			case product::cols::keywords: 
  				 ktemp=iter.keywords;
 				 break;
-			case 13: 
+			case product::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case 14: 
+			case product::cols::listimg: 
  				 ktemp=iter.listimg;
 				 break;
-			case 15: 
+			case product::cols::bigimg: 
  				 ktemp=iter.bigimg;
 				 break;
-			case 16: 
+			case product::cols::maincontent: 
  				 ktemp=iter.maincontent;
 				 break;
-			case 17: 
+			case product::cols::paracontent: 
  				 ktemp=iter.paracontent;
 				 break;
-			case 18: 
+			case product::cols::samepro: 
  				 ktemp=iter.samepro;
 				 break;
-			case 19: 
+			case product::cols::attatchfiles: 
  				 ktemp=iter.attatchfiles;
 				 break;
-			case 22: 
+			case product::cols::adddate: 
  				 ktemp=iter.adddate;
 				 break;
-			case 23: 
+			case product::cols::editdate: 
  				 ktemp=iter.editdate;
 				 break;
-				 } 
-			switch(vpos){
-			case 10: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case product::cols::sntype: 
  				 vtemp=iter.sntype;
 				 break;
-			case 11: 
+			case product::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 12: 
+			case product::cols::keywords: 
  				 vtemp=iter.keywords;
 				 break;
-			case 13: 
+			case product::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case 14: 
+			case product::cols::listimg: 
  				 vtemp=iter.listimg;
 				 break;
-			case 15: 
+			case product::cols::bigimg: 
  				 vtemp=iter.bigimg;
 				 break;
-			case 16: 
+			case product::cols::maincontent: 
  				 vtemp=iter.maincontent;
 				 break;
-			case 17: 
+			case product::cols::paracontent: 
  				 vtemp=iter.paracontent;
 				 break;
-			case 18: 
+			case product::cols::samepro: 
  				 vtemp=iter.samepro;
 				 break;
-			case 19: 
+			case product::cols::attatchfiles: 
  				 vtemp=iter.attatchfiles;
 				 break;
-			case 22: 
+			case product::cols::adddate: 
  				 vtemp=iter.adddate;
 				 break;
-			case 23: 
+			case product::cols::editdate: 
  				 vtemp=iter.editdate;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 10: 
- 				 ktemp=iter.sntype;
-				 break;
-			case 11: 
- 				 ktemp=iter.name;
-				 break;
-			case 12: 
- 				 ktemp=iter.keywords;
-				 break;
-			case 13: 
- 				 ktemp=iter.introduce;
-				 break;
-			case 14: 
- 				 ktemp=iter.listimg;
-				 break;
-			case 15: 
- 				 ktemp=iter.bigimg;
-				 break;
-			case 16: 
- 				 ktemp=iter.maincontent;
-				 break;
-			case 17: 
- 				 ktemp=iter.paracontent;
-				 break;
-			case 18: 
- 				 ktemp=iter.samepro;
-				 break;
-			case 19: 
- 				 ktemp=iter.attatchfiles;
-				 break;
-			case 22: 
- 				 ktemp=iter.adddate;
-				 break;
-			case 23: 
- 				 ktemp=iter.editdate;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.pid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.topicid;
-	 break;
-case 3: 
- 	 ktemp=iter.bigid;
-	 break;
-case 4: 
- 	 ktemp=iter.smallid;
-	 break;
-case 5: 
- 	 ktemp=iter.brandid;
-	 break;
-case 6: 
- 	 ktemp=iter.isview;
-	 break;
-case 7: 
- 	 ktemp=iter.isstore;
-	 break;
-case 8: 
- 	 ktemp=iter.ishome;
-	 break;
-case 9: 
- 	 ktemp=iter.showtype;
-	 break;
-case 20: 
- 	 ktemp=iter.price;
-	 break;
-case 21: 
- 	 ktemp=iter.sortid;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case product::cols::pid: 
  				 ktemp=iter.pid;
 				 break;
-			case 1: 
+			case product::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case product::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case 3: 
+			case product::cols::bigid: 
  				 ktemp=iter.bigid;
 				 break;
-			case 4: 
+			case product::cols::smallid: 
  				 ktemp=iter.smallid;
 				 break;
-			case 5: 
+			case product::cols::brandid: 
  				 ktemp=iter.brandid;
 				 break;
-			case 6: 
+			case product::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case 7: 
+			case product::cols::isstore: 
  				 ktemp=iter.isstore;
 				 break;
-			case 8: 
+			case product::cols::ishome: 
  				 ktemp=iter.ishome;
 				 break;
-			case 9: 
+			case product::cols::showtype: 
  				 ktemp=iter.showtype;
 				 break;
-			case 20: 
+			case product::cols::price: 
  				 ktemp=iter.price;
 				 break;
-			case 21: 
+			case product::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			  }
- 			switch(vpos){
-			case 10: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case product::cols::sntype: 
  				 vtemp=iter.sntype;
 				 break;
-			case 11: 
+			case product::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 12: 
+			case product::cols::keywords: 
  				 vtemp=iter.keywords;
 				 break;
-			case 13: 
+			case product::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case 14: 
+			case product::cols::listimg: 
  				 vtemp=iter.listimg;
 				 break;
-			case 15: 
+			case product::cols::bigimg: 
  				 vtemp=iter.bigimg;
 				 break;
-			case 16: 
+			case product::cols::maincontent: 
  				 vtemp=iter.maincontent;
 				 break;
-			case 17: 
+			case product::cols::paracontent: 
  				 vtemp=iter.paracontent;
 				 break;
-			case 18: 
+			case product::cols::samepro: 
  				 vtemp=iter.samepro;
 				 break;
-			case 19: 
+			case product::cols::attatchfiles: 
  				 vtemp=iter.attatchfiles;
 				 break;
-			case 22: 
+			case product::cols::adddate: 
  				 vtemp=iter.adddate;
 				 break;
-			case 23: 
+			case product::cols::editdate: 
  				 vtemp=iter.editdate;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 10: 
+   
+			switch(keyname){
+			case product::cols::sntype: 
  				 ktemp=iter.sntype;
 				 break;
-			case 11: 
+			case product::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 12: 
+			case product::cols::keywords: 
  				 ktemp=iter.keywords;
 				 break;
-			case 13: 
+			case product::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case 14: 
+			case product::cols::listimg: 
  				 ktemp=iter.listimg;
 				 break;
-			case 15: 
+			case product::cols::bigimg: 
  				 ktemp=iter.bigimg;
 				 break;
-			case 16: 
+			case product::cols::maincontent: 
  				 ktemp=iter.maincontent;
 				 break;
-			case 17: 
+			case product::cols::paracontent: 
  				 ktemp=iter.paracontent;
 				 break;
-			case 18: 
+			case product::cols::samepro: 
  				 ktemp=iter.samepro;
 				 break;
-			case 19: 
+			case product::cols::attatchfiles: 
  				 ktemp=iter.attatchfiles;
 				 break;
-			case 22: 
+			case product::cols::adddate: 
  				 ktemp=iter.adddate;
 				 break;
-			case 23: 
+			case product::cols::editdate: 
  				 ktemp=iter.editdate;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case product::cols::pid: 
  				 vtemp=iter.pid;
 				 break;
-			case 1: 
+			case product::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case product::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case 3: 
+			case product::cols::bigid: 
  				 vtemp=iter.bigid;
 				 break;
-			case 4: 
+			case product::cols::smallid: 
  				 vtemp=iter.smallid;
 				 break;
-			case 5: 
+			case product::cols::brandid: 
  				 vtemp=iter.brandid;
 				 break;
-			case 6: 
+			case product::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case 7: 
+			case product::cols::isstore: 
  				 vtemp=iter.isstore;
 				 break;
-			case 8: 
+			case product::cols::ishome: 
  				 vtemp=iter.ishome;
 				 break;
-			case 9: 
+			case product::cols::showtype: 
  				 vtemp=iter.showtype;
 				 break;
-			case 20: 
+			case product::cols::price: 
  				 vtemp=iter.price;
 				 break;
-			case 21: 
+			case product::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -4419,100 +4336,99 @@ case 21:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case product::cols::pid: 
  				 ktemp=iter.pid;
 				 break;
-			case 1: 
+			case product::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case product::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case 3: 
+			case product::cols::bigid: 
  				 ktemp=iter.bigid;
 				 break;
-			case 4: 
+			case product::cols::smallid: 
  				 ktemp=iter.smallid;
 				 break;
-			case 5: 
+			case product::cols::brandid: 
  				 ktemp=iter.brandid;
 				 break;
-			case 6: 
+			case product::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case 7: 
+			case product::cols::isstore: 
  				 ktemp=iter.isstore;
 				 break;
-			case 8: 
+			case product::cols::ishome: 
  				 ktemp=iter.ishome;
 				 break;
-			case 9: 
+			case product::cols::showtype: 
  				 ktemp=iter.showtype;
 				 break;
-			case 20: 
+			case product::cols::price: 
  				 ktemp=iter.price;
 				 break;
-			case 21: 
+			case product::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case product::cols::pid: 
  				 vtemp=iter.pid;
 				 break;
-			case 1: 
+			case product::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case product::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case 3: 
+			case product::cols::bigid: 
  				 vtemp=iter.bigid;
 				 break;
-			case 4: 
+			case product::cols::smallid: 
  				 vtemp=iter.smallid;
 				 break;
-			case 5: 
+			case product::cols::brandid: 
  				 vtemp=iter.brandid;
 				 break;
-			case 6: 
+			case product::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case 7: 
+			case product::cols::isstore: 
  				 vtemp=iter.isstore;
 				 break;
-			case 8: 
+			case product::cols::ishome: 
  				 vtemp=iter.ishome;
 				 break;
-			case 9: 
+			case product::cols::showtype: 
  				 vtemp=iter.showtype;
 				 break;
-			case 20: 
+			case product::cols::price: 
  				 vtemp=iter.price;
 				 break;
-			case 21: 
+			case product::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

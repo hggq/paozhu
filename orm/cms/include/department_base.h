@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,34 @@ namespace orm {
    
      namespace cms { 
 
+namespace department 
+{
+    enum class cols : unsigned char 
+    {
+		dpid = 0,
+		userid = 1,
+		parentid = 2,
+		name = 3,
+		depart_code = 4,
+		bianzhi_num = 5,
+		real_num = 6,
+		quan_weight = 7,
+		isopen = 8,
+		memo = 9,
+		created_time = 10,
+		created_user = 11,
+		updated_time = 12,
+		updated_user = 13,
+		isvirtual = 14,
+		linkdpid = 15,
+
+    };
+ 
+}
+    
 struct department_base
 {
+
     struct meta{
      unsigned  int  dpid = 0; ///**/
  unsigned  int  userid = 0; ///*用户id*/
@@ -3186,12 +3212,10 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(department::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -3208,70 +3232,72 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case department::cols::dpid: 
  				 a<<std::to_string(iter.dpid);
 				 break;
-			case 1: 
+			case department::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case department::cols::parentid: 
  				 a<<std::to_string(iter.parentid);
 				 break;
-			case 3: 
+			case department::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case 4: 
+			case department::cols::depart_code: 
  				 if(isyinhao){ a<<jsonaddslash(iter.depart_code); 
 				 }else{
 				 a<<iter.depart_code;
 				 }
 				 break;
-			case 5: 
+			case department::cols::bianzhi_num: 
  				 a<<std::to_string(iter.bianzhi_num);
 				 break;
-			case 6: 
+			case department::cols::real_num: 
  				 a<<std::to_string(iter.real_num);
 				 break;
-			case 7: 
+			case department::cols::quan_weight: 
  				 a<<std::to_string(iter.quan_weight);
 				 break;
-			case 8: 
+			case department::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case 9: 
+			case department::cols::memo: 
  				 if(isyinhao){ a<<jsonaddslash(iter.memo); 
 				 }else{
 				 a<<iter.memo;
 				 }
 				 break;
-			case 10: 
+			case department::cols::created_time: 
  				 a<<std::to_string(iter.created_time);
 				 break;
-			case 11: 
+			case department::cols::created_user: 
  				 a<<std::to_string(iter.created_user);
 				 break;
-			case 12: 
+			case department::cols::updated_time: 
  				 a<<std::to_string(iter.updated_time);
 				 break;
-			case 13: 
+			case department::cols::updated_user: 
  				 a<<std::to_string(iter.updated_user);
 				 break;
-			case 14: 
+			case department::cols::isvirtual: 
  				 a<<std::to_string(iter.isvirtual);
 				 break;
-			case 15: 
+			case department::cols::linkdpid: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkdpid); 
 				 }else{
 				 a<<iter.linkdpid;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -3283,304 +3309,211 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 3: 
+    			switch(keyname) 
+			{			case department::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 4: 
+			case department::cols::depart_code: 
  				 ktemp=iter.depart_code;
 				 break;
-			case 9: 
+			case department::cols::memo: 
  				 ktemp=iter.memo;
 				 break;
-			case 15: 
+			case department::cols::linkdpid: 
  				 ktemp=iter.linkdpid;
 				 break;
-				 } 
-			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case department::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 4: 
+			case department::cols::depart_code: 
  				 vtemp=iter.depart_code;
 				 break;
-			case 9: 
+			case department::cols::memo: 
  				 vtemp=iter.memo;
 				 break;
-			case 15: 
+			case department::cols::linkdpid: 
  				 vtemp=iter.linkdpid;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 3: 
- 				 ktemp=iter.name;
-				 break;
-			case 4: 
- 				 ktemp=iter.depart_code;
-				 break;
-			case 9: 
- 				 ktemp=iter.memo;
-				 break;
-			case 15: 
- 				 ktemp=iter.linkdpid;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.dpid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.parentid;
-	 break;
-case 5: 
- 	 ktemp=iter.bianzhi_num;
-	 break;
-case 6: 
- 	 ktemp=iter.real_num;
-	 break;
-case 7: 
- 	 ktemp=iter.quan_weight;
-	 break;
-case 8: 
- 	 ktemp=iter.isopen;
-	 break;
-case 10: 
- 	 ktemp=iter.created_time;
-	 break;
-case 11: 
- 	 ktemp=iter.created_user;
-	 break;
-case 12: 
- 	 ktemp=iter.updated_time;
-	 break;
-case 13: 
- 	 ktemp=iter.updated_user;
-	 break;
-case 14: 
- 	 ktemp=iter.isvirtual;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case department::cols::dpid: 
  				 ktemp=iter.dpid;
 				 break;
-			case 1: 
+			case department::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case department::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case 5: 
+			case department::cols::bianzhi_num: 
  				 ktemp=iter.bianzhi_num;
 				 break;
-			case 6: 
+			case department::cols::real_num: 
  				 ktemp=iter.real_num;
 				 break;
-			case 7: 
+			case department::cols::quan_weight: 
  				 ktemp=iter.quan_weight;
 				 break;
-			case 8: 
+			case department::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 10: 
+			case department::cols::created_time: 
  				 ktemp=iter.created_time;
 				 break;
-			case 11: 
+			case department::cols::created_user: 
  				 ktemp=iter.created_user;
 				 break;
-			case 12: 
+			case department::cols::updated_time: 
  				 ktemp=iter.updated_time;
 				 break;
-			case 13: 
+			case department::cols::updated_user: 
  				 ktemp=iter.updated_user;
 				 break;
-			case 14: 
+			case department::cols::isvirtual: 
  				 ktemp=iter.isvirtual;
 				 break;
-			  }
- 			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case department::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 4: 
+			case department::cols::depart_code: 
  				 vtemp=iter.depart_code;
 				 break;
-			case 9: 
+			case department::cols::memo: 
  				 vtemp=iter.memo;
 				 break;
-			case 15: 
+			case department::cols::linkdpid: 
  				 vtemp=iter.linkdpid;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 3: 
+   
+			switch(keyname){
+			case department::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 4: 
+			case department::cols::depart_code: 
  				 ktemp=iter.depart_code;
 				 break;
-			case 9: 
+			case department::cols::memo: 
  				 ktemp=iter.memo;
 				 break;
-			case 15: 
+			case department::cols::linkdpid: 
  				 ktemp=iter.linkdpid;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case department::cols::dpid: 
  				 vtemp=iter.dpid;
 				 break;
-			case 1: 
+			case department::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case department::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case 5: 
+			case department::cols::bianzhi_num: 
  				 vtemp=iter.bianzhi_num;
 				 break;
-			case 6: 
+			case department::cols::real_num: 
  				 vtemp=iter.real_num;
 				 break;
-			case 7: 
+			case department::cols::quan_weight: 
  				 vtemp=iter.quan_weight;
 				 break;
-			case 8: 
+			case department::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 10: 
+			case department::cols::created_time: 
  				 vtemp=iter.created_time;
 				 break;
-			case 11: 
+			case department::cols::created_user: 
  				 vtemp=iter.created_user;
 				 break;
-			case 12: 
+			case department::cols::updated_time: 
  				 vtemp=iter.updated_time;
 				 break;
-			case 13: 
+			case department::cols::updated_user: 
  				 vtemp=iter.updated_user;
 				 break;
-			case 14: 
+			case department::cols::isvirtual: 
  				 vtemp=iter.isvirtual;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -3591,100 +3524,99 @@ case 14:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case department::cols::dpid: 
  				 ktemp=iter.dpid;
 				 break;
-			case 1: 
+			case department::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case department::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case 5: 
+			case department::cols::bianzhi_num: 
  				 ktemp=iter.bianzhi_num;
 				 break;
-			case 6: 
+			case department::cols::real_num: 
  				 ktemp=iter.real_num;
 				 break;
-			case 7: 
+			case department::cols::quan_weight: 
  				 ktemp=iter.quan_weight;
 				 break;
-			case 8: 
+			case department::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 10: 
+			case department::cols::created_time: 
  				 ktemp=iter.created_time;
 				 break;
-			case 11: 
+			case department::cols::created_user: 
  				 ktemp=iter.created_user;
 				 break;
-			case 12: 
+			case department::cols::updated_time: 
  				 ktemp=iter.updated_time;
 				 break;
-			case 13: 
+			case department::cols::updated_user: 
  				 ktemp=iter.updated_user;
 				 break;
-			case 14: 
+			case department::cols::isvirtual: 
  				 ktemp=iter.isvirtual;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case department::cols::dpid: 
  				 vtemp=iter.dpid;
 				 break;
-			case 1: 
+			case department::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case department::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case 5: 
+			case department::cols::bianzhi_num: 
  				 vtemp=iter.bianzhi_num;
 				 break;
-			case 6: 
+			case department::cols::real_num: 
  				 vtemp=iter.real_num;
 				 break;
-			case 7: 
+			case department::cols::quan_weight: 
  				 vtemp=iter.quan_weight;
 				 break;
-			case 8: 
+			case department::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 10: 
+			case department::cols::created_time: 
  				 vtemp=iter.created_time;
 				 break;
-			case 11: 
+			case department::cols::created_user: 
  				 vtemp=iter.created_user;
 				 break;
-			case 12: 
+			case department::cols::updated_time: 
  				 vtemp=iter.updated_time;
 				 break;
-			case 13: 
+			case department::cols::updated_user: 
  				 vtemp=iter.updated_user;
 				 break;
-			case 14: 
+			case department::cols::isvirtual: 
  				 vtemp=iter.isvirtual;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

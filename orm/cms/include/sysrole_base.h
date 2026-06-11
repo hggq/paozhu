@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,25 @@ namespace orm {
    
      namespace cms { 
 
+namespace sysrole 
+{
+    enum class cols : unsigned char 
+    {
+		roleid = 0,
+		userid = 1,
+		name = 2,
+		status = 3,
+		rolecode = 4,
+		sortid = 5,
+		rolevalue = 6,
+
+    };
+ 
+}
+    
 struct sysrole_base
 {
+
     struct meta{
      unsigned  int  roleid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -1872,12 +1889,10 @@ std::vector<sysrole_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(sysrole::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -1894,34 +1909,36 @@ std::vector<sysrole_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case sysrole::cols::roleid: 
  				 a<<std::to_string(iter.roleid);
 				 break;
-			case 1: 
+			case sysrole::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case sysrole::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case 3: 
+			case sysrole::cols::status: 
  				 a<<std::to_string(iter.status);
 				 break;
-			case 4: 
+			case sysrole::cols::rolecode: 
  				 a<<std::to_string(iter.rolecode);
 				 break;
-			case 5: 
+			case sysrole::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case 6: 
+			case sysrole::cols::rolevalue: 
  				 a<<std::to_string(iter.rolevalue);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -1933,205 +1950,139 @@ std::vector<sysrole_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] sysrole::cols keyname,[[maybe_unused]] sysrole::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 2: 
+    			switch(keyname) 
+			{			case sysrole::cols::name: 
  				 ktemp=iter.name;
 				 break;
-				 } 
-			switch(vpos){
-			case 2: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case sysrole::cols::name: 
  				 vtemp=iter.name;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] sysrole::cols keyname,[[maybe_unused]] sysrole::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 2: 
- 				 ktemp=iter.name;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] sysrole::cols keyname,[[maybe_unused]] sysrole::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.roleid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 3: 
- 	 ktemp=iter.status;
-	 break;
-case 4: 
- 	 ktemp=iter.rolecode;
-	 break;
-case 5: 
- 	 ktemp=iter.sortid;
-	 break;
-case 6: 
- 	 ktemp=iter.rolevalue;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] sysrole::cols keyname,[[maybe_unused]] sysrole::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case sysrole::cols::roleid: 
  				 ktemp=iter.roleid;
 				 break;
-			case 1: 
+			case sysrole::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 3: 
+			case sysrole::cols::status: 
  				 ktemp=iter.status;
 				 break;
-			case 4: 
+			case sysrole::cols::rolecode: 
  				 ktemp=iter.rolecode;
 				 break;
-			case 5: 
+			case sysrole::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case 6: 
+			case sysrole::cols::rolevalue: 
  				 ktemp=iter.rolevalue;
 				 break;
-			  }
- 			switch(vpos){
-			case 2: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case sysrole::cols::name: 
  				 vtemp=iter.name;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] sysrole::cols keyname,[[maybe_unused]] sysrole::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 2: 
+   
+			switch(keyname){
+			case sysrole::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case sysrole::cols::roleid: 
  				 vtemp=iter.roleid;
 				 break;
-			case 1: 
+			case sysrole::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 3: 
+			case sysrole::cols::status: 
  				 vtemp=iter.status;
 				 break;
-			case 4: 
+			case sysrole::cols::rolecode: 
  				 vtemp=iter.rolecode;
 				 break;
-			case 5: 
+			case sysrole::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case 6: 
+			case sysrole::cols::rolevalue: 
  				 vtemp=iter.rolevalue;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -2142,64 +2093,63 @@ case 6:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] sysrole::cols keyname,[[maybe_unused]] sysrole::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case sysrole::cols::roleid: 
  				 ktemp=iter.roleid;
 				 break;
-			case 1: 
+			case sysrole::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 3: 
+			case sysrole::cols::status: 
  				 ktemp=iter.status;
 				 break;
-			case 4: 
+			case sysrole::cols::rolecode: 
  				 ktemp=iter.rolecode;
 				 break;
-			case 5: 
+			case sysrole::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case 6: 
+			case sysrole::cols::rolevalue: 
  				 ktemp=iter.rolevalue;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case sysrole::cols::roleid: 
  				 vtemp=iter.roleid;
 				 break;
-			case 1: 
+			case sysrole::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 3: 
+			case sysrole::cols::status: 
  				 vtemp=iter.status;
 				 break;
-			case 4: 
+			case sysrole::cols::rolecode: 
  				 vtemp=iter.rolecode;
 				 break;
-			case 5: 
+			case sysrole::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case 6: 
+			case sysrole::cols::rolevalue: 
  				 vtemp=iter.rolevalue;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

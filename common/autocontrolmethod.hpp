@@ -51,6 +51,7 @@
 #include "testmarkdown.h"
 #include "testcommit.h"
 #include "apicrudtest.h"
+#include "test_cols.h"
 #include "testpinyin.h"
 #include "testmoney_num.h"
 #include "testipsearch.h"
@@ -576,6 +577,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = pxapipagesdepartlist;
 		methodcallback.emplace("api/departments/deletedep",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_cols;
+		methodcallback.emplace("test_cols",temp);
 		temp.pre = nullptr;
 		temp.regfun = testpinyin;
 		methodcallback.emplace("testpinyin",temp);

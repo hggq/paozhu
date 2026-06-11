@@ -2,7 +2,7 @@
 #define ORM_CMS_SITELOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,32 @@ namespace orm {
    
      namespace cms { 
 
+namespace sitelog 
+{
+    enum class cols : unsigned char 
+    {
+		logid = 0,
+		userid = 1,
+		memberid = 2,
+		ipport = 3,
+		httpv = 4,
+		ipaddress = 5,
+		visittime = 6,
+		useragent = 7,
+		referer = 8,
+		cururl = 9,
+		address = 10,
+		hostname = 11,
+		derefererurl = 12,
+		deurl = 13,
+
+    };
+ 
+}
+    
 struct sitelog_base
 {
+
     struct meta{
      unsigned  int  logid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -2342,12 +2366,10 @@ std::vector<sitelog_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(sitelog::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2364,79 +2386,81 @@ std::vector<sitelog_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case sitelog::cols::logid: 
  				 a<<std::to_string(iter.logid);
 				 break;
-			case 1: 
+			case sitelog::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case sitelog::cols::memberid: 
  				 a<<std::to_string(iter.memberid);
 				 break;
-			case 3: 
+			case sitelog::cols::ipport: 
  				 a<<std::to_string(iter.ipport);
 				 break;
-			case 4: 
+			case sitelog::cols::httpv: 
  				 a<<std::to_string(iter.httpv);
 				 break;
-			case 5: 
+			case sitelog::cols::ipaddress: 
  				 if(isyinhao){ a<<jsonaddslash(iter.ipaddress); 
 				 }else{
 				 a<<iter.ipaddress;
 				 }
 				 break;
-			case 6: 
+			case sitelog::cols::visittime: 
  				 if(isyinhao){ a<<jsonaddslash(iter.visittime); 
 				 }else{
 				 a<<iter.visittime;
 				 }
 				 break;
-			case 7: 
+			case sitelog::cols::useragent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.useragent); 
 				 }else{
 				 a<<iter.useragent;
 				 }
 				 break;
-			case 8: 
+			case sitelog::cols::referer: 
  				 if(isyinhao){ a<<jsonaddslash(iter.referer); 
 				 }else{
 				 a<<iter.referer;
 				 }
 				 break;
-			case 9: 
+			case sitelog::cols::cururl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.cururl); 
 				 }else{
 				 a<<iter.cururl;
 				 }
 				 break;
-			case 10: 
+			case sitelog::cols::address: 
  				 if(isyinhao){ a<<jsonaddslash(iter.address); 
 				 }else{
 				 a<<iter.address;
 				 }
 				 break;
-			case 11: 
+			case sitelog::cols::hostname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.hostname); 
 				 }else{
 				 a<<iter.hostname;
 				 }
 				 break;
-			case 12: 
+			case sitelog::cols::derefererurl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.derefererurl); 
 				 }else{
 				 a<<iter.derefererurl;
 				 }
 				 break;
-			case 13: 
+			case sitelog::cols::deurl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.deurl); 
 				 }else{
 				 a<<iter.deurl;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -2448,316 +2472,229 @@ std::vector<sitelog_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] sitelog::cols keyname,[[maybe_unused]] sitelog::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 5: 
+    			switch(keyname) 
+			{			case sitelog::cols::ipaddress: 
  				 ktemp=iter.ipaddress;
 				 break;
-			case 6: 
+			case sitelog::cols::visittime: 
  				 ktemp=iter.visittime;
 				 break;
-			case 7: 
+			case sitelog::cols::useragent: 
  				 ktemp=iter.useragent;
 				 break;
-			case 8: 
+			case sitelog::cols::referer: 
  				 ktemp=iter.referer;
 				 break;
-			case 9: 
+			case sitelog::cols::cururl: 
  				 ktemp=iter.cururl;
 				 break;
-			case 10: 
+			case sitelog::cols::address: 
  				 ktemp=iter.address;
 				 break;
-			case 11: 
+			case sitelog::cols::hostname: 
  				 ktemp=iter.hostname;
 				 break;
-			case 12: 
+			case sitelog::cols::derefererurl: 
  				 ktemp=iter.derefererurl;
 				 break;
-			case 13: 
+			case sitelog::cols::deurl: 
  				 ktemp=iter.deurl;
 				 break;
-				 } 
-			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case sitelog::cols::ipaddress: 
  				 vtemp=iter.ipaddress;
 				 break;
-			case 6: 
+			case sitelog::cols::visittime: 
  				 vtemp=iter.visittime;
 				 break;
-			case 7: 
+			case sitelog::cols::useragent: 
  				 vtemp=iter.useragent;
 				 break;
-			case 8: 
+			case sitelog::cols::referer: 
  				 vtemp=iter.referer;
 				 break;
-			case 9: 
+			case sitelog::cols::cururl: 
  				 vtemp=iter.cururl;
 				 break;
-			case 10: 
+			case sitelog::cols::address: 
  				 vtemp=iter.address;
 				 break;
-			case 11: 
+			case sitelog::cols::hostname: 
  				 vtemp=iter.hostname;
 				 break;
-			case 12: 
+			case sitelog::cols::derefererurl: 
  				 vtemp=iter.derefererurl;
 				 break;
-			case 13: 
+			case sitelog::cols::deurl: 
  				 vtemp=iter.deurl;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] sitelog::cols keyname,[[maybe_unused]] sitelog::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 5: 
- 				 ktemp=iter.ipaddress;
-				 break;
-			case 6: 
- 				 ktemp=iter.visittime;
-				 break;
-			case 7: 
- 				 ktemp=iter.useragent;
-				 break;
-			case 8: 
- 				 ktemp=iter.referer;
-				 break;
-			case 9: 
- 				 ktemp=iter.cururl;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.hostname;
-				 break;
-			case 12: 
- 				 ktemp=iter.derefererurl;
-				 break;
-			case 13: 
- 				 ktemp=iter.deurl;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] sitelog::cols keyname,[[maybe_unused]] sitelog::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.logid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.memberid;
-	 break;
-case 3: 
- 	 ktemp=iter.ipport;
-	 break;
-case 4: 
- 	 ktemp=iter.httpv;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] sitelog::cols keyname,[[maybe_unused]] sitelog::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case sitelog::cols::logid: 
  				 ktemp=iter.logid;
 				 break;
-			case 1: 
+			case sitelog::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case sitelog::cols::memberid: 
  				 ktemp=iter.memberid;
 				 break;
-			case 3: 
+			case sitelog::cols::ipport: 
  				 ktemp=iter.ipport;
 				 break;
-			case 4: 
+			case sitelog::cols::httpv: 
  				 ktemp=iter.httpv;
 				 break;
-			  }
- 			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case sitelog::cols::ipaddress: 
  				 vtemp=iter.ipaddress;
 				 break;
-			case 6: 
+			case sitelog::cols::visittime: 
  				 vtemp=iter.visittime;
 				 break;
-			case 7: 
+			case sitelog::cols::useragent: 
  				 vtemp=iter.useragent;
 				 break;
-			case 8: 
+			case sitelog::cols::referer: 
  				 vtemp=iter.referer;
 				 break;
-			case 9: 
+			case sitelog::cols::cururl: 
  				 vtemp=iter.cururl;
 				 break;
-			case 10: 
+			case sitelog::cols::address: 
  				 vtemp=iter.address;
 				 break;
-			case 11: 
+			case sitelog::cols::hostname: 
  				 vtemp=iter.hostname;
 				 break;
-			case 12: 
+			case sitelog::cols::derefererurl: 
  				 vtemp=iter.derefererurl;
 				 break;
-			case 13: 
+			case sitelog::cols::deurl: 
  				 vtemp=iter.deurl;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] sitelog::cols keyname,[[maybe_unused]] sitelog::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 5: 
+   
+			switch(keyname){
+			case sitelog::cols::ipaddress: 
  				 ktemp=iter.ipaddress;
 				 break;
-			case 6: 
+			case sitelog::cols::visittime: 
  				 ktemp=iter.visittime;
 				 break;
-			case 7: 
+			case sitelog::cols::useragent: 
  				 ktemp=iter.useragent;
 				 break;
-			case 8: 
+			case sitelog::cols::referer: 
  				 ktemp=iter.referer;
 				 break;
-			case 9: 
+			case sitelog::cols::cururl: 
  				 ktemp=iter.cururl;
 				 break;
-			case 10: 
+			case sitelog::cols::address: 
  				 ktemp=iter.address;
 				 break;
-			case 11: 
+			case sitelog::cols::hostname: 
  				 ktemp=iter.hostname;
 				 break;
-			case 12: 
+			case sitelog::cols::derefererurl: 
  				 ktemp=iter.derefererurl;
 				 break;
-			case 13: 
+			case sitelog::cols::deurl: 
  				 ktemp=iter.deurl;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case sitelog::cols::logid: 
  				 vtemp=iter.logid;
 				 break;
-			case 1: 
+			case sitelog::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case sitelog::cols::memberid: 
  				 vtemp=iter.memberid;
 				 break;
-			case 3: 
+			case sitelog::cols::ipport: 
  				 vtemp=iter.ipport;
 				 break;
-			case 4: 
+			case sitelog::cols::httpv: 
  				 vtemp=iter.httpv;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -2768,58 +2705,57 @@ case 4:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] sitelog::cols keyname,[[maybe_unused]] sitelog::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case sitelog::cols::logid: 
  				 ktemp=iter.logid;
 				 break;
-			case 1: 
+			case sitelog::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case sitelog::cols::memberid: 
  				 ktemp=iter.memberid;
 				 break;
-			case 3: 
+			case sitelog::cols::ipport: 
  				 ktemp=iter.ipport;
 				 break;
-			case 4: 
+			case sitelog::cols::httpv: 
  				 ktemp=iter.httpv;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case sitelog::cols::logid: 
  				 vtemp=iter.logid;
 				 break;
-			case 1: 
+			case sitelog::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case sitelog::cols::memberid: 
  				 vtemp=iter.memberid;
 				 break;
-			case 3: 
+			case sitelog::cols::ipport: 
  				 vtemp=iter.ipport;
 				 break;
-			case 4: 
+			case sitelog::cols::httpv: 
  				 vtemp=iter.httpv;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

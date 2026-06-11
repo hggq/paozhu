@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:17 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:11:33 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -19,8 +19,20 @@
 namespace orm { 
    
     
+namespace world 
+{
+    enum class cols : unsigned char 
+    {
+		id = 0,
+		randomnumber = 1,
+
+    };
+ 
+}
+    
 struct world_base
 {
+
     struct meta{
      unsigned  int  id = 0; ///**/
  int  randomnumber = 0; ///**/
@@ -1293,12 +1305,10 @@ std::vector<world_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(world::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -1315,16 +1325,18 @@ std::vector<world_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case world::cols::id: 
  				 a<<std::to_string(iter.id);
 				 break;
-			case 1: 
+			case world::cols::randomnumber: 
  				 a<<std::to_string(iter.randomnumber);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -1336,16 +1348,16 @@ std::vector<world_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] world::cols keyname,[[maybe_unused]] world::cols  valname) 
     {
         std::map<std::string,std::string> a;
          
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] world::cols keyname,[[maybe_unused]] world::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -1353,141 +1365,62 @@ std::vector<world_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] world::cols keyname,[[maybe_unused]] world::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.id;
-	 break;
-case 1: 
- 	 ktemp=iter.randomnumber;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] world::cols keyname,[[maybe_unused]] world::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
-                T ktemp;
-                std::string vtemp;
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-   			case 0: 
- 				 ktemp=iter.id;
-				 break;
-			case 1: 
- 				 ktemp=iter.randomnumber;
-				 break;
-			  }
- 			switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                } 
-         
+        
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] world::cols keyname,[[maybe_unused]] world::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
-            std::string  ktemp;
-            U  vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			  }
- 			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.id;
-				 break;
-			case 1: 
- 				 vtemp=iter.randomnumber;
-				 break;
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-      
+     
         return a;
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] world::cols keyname,[[maybe_unused]] world::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case world::cols::id: 
  				 ktemp=iter.id;
 				 break;
-			case 1: 
+			case world::cols::randomnumber: 
  				 ktemp=iter.randomnumber;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case world::cols::id: 
  				 vtemp=iter.id;
 				 break;
-			case 1: 
+			case world::cols::randomnumber: 
  				 vtemp=iter.randomnumber;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

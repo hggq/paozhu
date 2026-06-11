@@ -2,7 +2,7 @@
 #define ORM_CMS_XPROJECTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,43 @@ namespace orm {
    
      namespace cms { 
 
+namespace xproject 
+{
+    enum class cols : unsigned char 
+    {
+		xpjid = 0,
+		userid = 1,
+		prexpjid = 2,
+		dpid = 3,
+		grouptype = 4,
+		title = 5,
+		adminuserid = 6,
+		regdate = 7,
+		begindate = 8,
+		expiredate = 9,
+		isopen = 10,
+		clientid = 11,
+		totalnum = 12,
+		referdocverion = 13,
+		xtheme = 14,
+		xlogo = 15,
+		introduce = 16,
+		giturl = 17,
+		gitname = 18,
+		gitpwd = 19,
+		xcolor = 20,
+		fupan = 21,
+		totalvalue = 22,
+		expectday = 23,
+		realday = 24,
+
+    };
+ 
+}
+    
 struct xproject_base
 {
+
     struct meta{
      unsigned  int  xpjid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -3752,12 +3787,10 @@ std::vector<xproject_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(xproject::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -3774,109 +3807,111 @@ std::vector<xproject_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case xproject::cols::xpjid: 
  				 a<<std::to_string(iter.xpjid);
 				 break;
-			case 1: 
+			case xproject::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case xproject::cols::prexpjid: 
  				 a<<std::to_string(iter.prexpjid);
 				 break;
-			case 3: 
+			case xproject::cols::dpid: 
  				 a<<std::to_string(iter.dpid);
 				 break;
-			case 4: 
+			case xproject::cols::grouptype: 
  				 a<<std::to_string(iter.grouptype);
 				 break;
-			case 5: 
+			case xproject::cols::title: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case 6: 
+			case xproject::cols::adminuserid: 
  				 a<<std::to_string(iter.adminuserid);
 				 break;
-			case 7: 
+			case xproject::cols::regdate: 
  				 a<<std::to_string(iter.regdate);
 				 break;
-			case 8: 
+			case xproject::cols::begindate: 
  				 a<<std::to_string(iter.begindate);
 				 break;
-			case 9: 
+			case xproject::cols::expiredate: 
  				 a<<std::to_string(iter.expiredate);
 				 break;
-			case 10: 
+			case xproject::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case 11: 
+			case xproject::cols::clientid: 
  				 a<<std::to_string(iter.clientid);
 				 break;
-			case 12: 
+			case xproject::cols::totalnum: 
  				 a<<std::to_string(iter.totalnum);
 				 break;
-			case 13: 
+			case xproject::cols::referdocverion: 
  				 a<<std::to_string(iter.referdocverion);
 				 break;
-			case 14: 
+			case xproject::cols::xtheme: 
  				 a<<std::to_string(iter.xtheme);
 				 break;
-			case 15: 
+			case xproject::cols::xlogo: 
  				 if(isyinhao){ a<<jsonaddslash(iter.xlogo); 
 				 }else{
 				 a<<iter.xlogo;
 				 }
 				 break;
-			case 16: 
+			case xproject::cols::introduce: 
  				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
 				 }else{
 				 a<<iter.introduce;
 				 }
 				 break;
-			case 17: 
+			case xproject::cols::giturl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.giturl); 
 				 }else{
 				 a<<iter.giturl;
 				 }
 				 break;
-			case 18: 
+			case xproject::cols::gitname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.gitname); 
 				 }else{
 				 a<<iter.gitname;
 				 }
 				 break;
-			case 19: 
+			case xproject::cols::gitpwd: 
  				 if(isyinhao){ a<<jsonaddslash(iter.gitpwd); 
 				 }else{
 				 a<<iter.gitpwd;
 				 }
 				 break;
-			case 20: 
+			case xproject::cols::xcolor: 
  				 if(isyinhao){ a<<jsonaddslash(iter.xcolor); 
 				 }else{
 				 a<<iter.xcolor;
 				 }
 				 break;
-			case 21: 
+			case xproject::cols::fupan: 
  				 if(isyinhao){ a<<jsonaddslash(iter.fupan); 
 				 }else{
 				 a<<iter.fupan;
 				 }
 				 break;
-			case 22: 
+			case xproject::cols::totalvalue: 
  				 a<<std::to_string(iter.totalvalue);
 				 break;
-			case 23: 
+			case xproject::cols::expectday: 
  				 a<<std::to_string(iter.expectday);
 				 break;
-			case 24: 
+			case xproject::cols::realday: 
  				 a<<std::to_string(iter.realday);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -3888,134 +3923,130 @@ std::vector<xproject_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] xproject::cols keyname,[[maybe_unused]] xproject::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 5: 
+    			switch(keyname) 
+			{			case xproject::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case 15: 
+			case xproject::cols::xlogo: 
  				 ktemp=iter.xlogo;
 				 break;
-			case 16: 
+			case xproject::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case 17: 
+			case xproject::cols::giturl: 
  				 ktemp=iter.giturl;
 				 break;
-			case 18: 
+			case xproject::cols::gitname: 
  				 ktemp=iter.gitname;
 				 break;
-			case 19: 
+			case xproject::cols::gitpwd: 
  				 ktemp=iter.gitpwd;
 				 break;
-			case 20: 
+			case xproject::cols::xcolor: 
  				 ktemp=iter.xcolor;
 				 break;
-			case 21: 
+			case xproject::cols::fupan: 
  				 ktemp=iter.fupan;
 				 break;
-				 } 
-			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case xproject::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case 15: 
+			case xproject::cols::xlogo: 
  				 vtemp=iter.xlogo;
 				 break;
-			case 16: 
+			case xproject::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case 17: 
+			case xproject::cols::giturl: 
  				 vtemp=iter.giturl;
 				 break;
-			case 18: 
+			case xproject::cols::gitname: 
  				 vtemp=iter.gitname;
 				 break;
-			case 19: 
+			case xproject::cols::gitpwd: 
  				 vtemp=iter.gitpwd;
 				 break;
-			case 20: 
+			case xproject::cols::xcolor: 
  				 vtemp=iter.xcolor;
 				 break;
-			case 21: 
+			case xproject::cols::fupan: 
  				 vtemp=iter.fupan;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] xproject::cols keyname,[[maybe_unused]] xproject::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
+                
                 std::string ktemp;
                 U vtemp;
                 for(auto &iter:record)
                 {    
-                    switch(kpos)
-                    {
  
-       			case 5: 
+       			switch(keyname) 
+			{			case xproject::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case 15: 
+			case xproject::cols::xlogo: 
  				 ktemp=iter.xlogo;
 				 break;
-			case 16: 
+			case xproject::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case 17: 
+			case xproject::cols::giturl: 
  				 ktemp=iter.giturl;
 				 break;
-			case 18: 
+			case xproject::cols::gitname: 
  				 ktemp=iter.gitname;
 				 break;
-			case 19: 
+			case xproject::cols::gitpwd: 
  				 ktemp=iter.gitpwd;
 				 break;
-			case 20: 
+			case xproject::cols::xcolor: 
  				 ktemp=iter.xcolor;
 				 break;
-			case 21: 
+			case xproject::cols::fupan: 
  				 ktemp=iter.fupan;
 				 break;
-			 } 
-		 switch(vpos){
-			case 22: 
+			default:
+				 break;
+			 }
+			switch(valname) 
+			{			case xproject::cols::totalvalue: 
  				 vtemp=iter.totalvalue;
 				 break;
-			case 23: 
+			case xproject::cols::expectday: 
  				 vtemp=iter.expectday;
 				 break;
-			case 24: 
+			case xproject::cols::realday: 
  				 vtemp=iter.realday;
 				 break;
-
-                    }
+			default:
+				 break;
+			 }
                     if(ktemp.size()>0)
                     {
                         a.emplace(ktemp,vtemp);
@@ -4026,262 +4057,256 @@ std::vector<xproject_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] xproject::cols keyname,[[maybe_unused]] xproject::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
+              
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
- 
-       case 0: 
+       			switch(keyname) 
+			{case xproject::cols::xpjid: 
  	 ktemp=iter.xpjid;
 	 break;
-case 1: 
+case xproject::cols::userid: 
  	 ktemp=iter.userid;
 	 break;
-case 2: 
+case xproject::cols::prexpjid: 
  	 ktemp=iter.prexpjid;
 	 break;
-case 3: 
+case xproject::cols::dpid: 
  	 ktemp=iter.dpid;
 	 break;
-case 4: 
+case xproject::cols::grouptype: 
  	 ktemp=iter.grouptype;
 	 break;
-case 6: 
+case xproject::cols::adminuserid: 
  	 ktemp=iter.adminuserid;
 	 break;
-case 7: 
+case xproject::cols::regdate: 
  	 ktemp=iter.regdate;
 	 break;
-case 8: 
+case xproject::cols::begindate: 
  	 ktemp=iter.begindate;
 	 break;
-case 9: 
+case xproject::cols::expiredate: 
  	 ktemp=iter.expiredate;
 	 break;
-case 10: 
+case xproject::cols::isopen: 
  	 ktemp=iter.isopen;
 	 break;
-case 11: 
+case xproject::cols::clientid: 
  	 ktemp=iter.clientid;
 	 break;
-case 12: 
+case xproject::cols::totalnum: 
  	 ktemp=iter.totalnum;
 	 break;
-case 13: 
+case xproject::cols::referdocverion: 
  	 ktemp=iter.referdocverion;
 	 break;
-case 14: 
+case xproject::cols::xtheme: 
  	 ktemp=iter.xtheme;
 	 break;
-	 } 
- 		  switch(vpos){
-case 22: 
+			default:
+				 break;
+			 }
+			switch(valname) 
+			{
+			case xproject::cols::totalvalue: 
  	 vtemp=iter.totalvalue;
 	 break;
-case 23: 
+case xproject::cols::expectday: 
  	 vtemp=iter.expectday;
 	 break;
-case 24: 
+case xproject::cols::realday: 
  	 vtemp=iter.realday;
 	 break;
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+			default:
+				 break;
+			 }
+                a.emplace(ktemp,vtemp);
             }       
      
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] xproject::cols keyname,[[maybe_unused]] xproject::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case xproject::cols::xpjid: 
  				 ktemp=iter.xpjid;
 				 break;
-			case 1: 
+			case xproject::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case xproject::cols::prexpjid: 
  				 ktemp=iter.prexpjid;
 				 break;
-			case 3: 
+			case xproject::cols::dpid: 
  				 ktemp=iter.dpid;
 				 break;
-			case 4: 
+			case xproject::cols::grouptype: 
  				 ktemp=iter.grouptype;
 				 break;
-			case 6: 
+			case xproject::cols::adminuserid: 
  				 ktemp=iter.adminuserid;
 				 break;
-			case 7: 
+			case xproject::cols::regdate: 
  				 ktemp=iter.regdate;
 				 break;
-			case 8: 
+			case xproject::cols::begindate: 
  				 ktemp=iter.begindate;
 				 break;
-			case 9: 
+			case xproject::cols::expiredate: 
  				 ktemp=iter.expiredate;
 				 break;
-			case 10: 
+			case xproject::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 11: 
+			case xproject::cols::clientid: 
  				 ktemp=iter.clientid;
 				 break;
-			case 12: 
+			case xproject::cols::totalnum: 
  				 ktemp=iter.totalnum;
 				 break;
-			case 13: 
+			case xproject::cols::referdocverion: 
  				 ktemp=iter.referdocverion;
 				 break;
-			case 14: 
+			case xproject::cols::xtheme: 
  				 ktemp=iter.xtheme;
 				 break;
-			  }
- 			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case xproject::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case 15: 
+			case xproject::cols::xlogo: 
  				 vtemp=iter.xlogo;
 				 break;
-			case 16: 
+			case xproject::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case 17: 
+			case xproject::cols::giturl: 
  				 vtemp=iter.giturl;
 				 break;
-			case 18: 
+			case xproject::cols::gitname: 
  				 vtemp=iter.gitname;
 				 break;
-			case 19: 
+			case xproject::cols::gitpwd: 
  				 vtemp=iter.gitpwd;
 				 break;
-			case 20: 
+			case xproject::cols::xcolor: 
  				 vtemp=iter.xcolor;
 				 break;
-			case 21: 
+			case xproject::cols::fupan: 
  				 vtemp=iter.fupan;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] xproject::cols keyname,[[maybe_unused]] xproject::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 5: 
+   
+			switch(keyname){
+			case xproject::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case 15: 
+			case xproject::cols::xlogo: 
  				 ktemp=iter.xlogo;
 				 break;
-			case 16: 
+			case xproject::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case 17: 
+			case xproject::cols::giturl: 
  				 ktemp=iter.giturl;
 				 break;
-			case 18: 
+			case xproject::cols::gitname: 
  				 ktemp=iter.gitname;
 				 break;
-			case 19: 
+			case xproject::cols::gitpwd: 
  				 ktemp=iter.gitpwd;
 				 break;
-			case 20: 
+			case xproject::cols::xcolor: 
  				 ktemp=iter.xcolor;
 				 break;
-			case 21: 
+			case xproject::cols::fupan: 
  				 ktemp=iter.fupan;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case xproject::cols::xpjid: 
  				 vtemp=iter.xpjid;
 				 break;
-			case 1: 
+			case xproject::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case xproject::cols::prexpjid: 
  				 vtemp=iter.prexpjid;
 				 break;
-			case 3: 
+			case xproject::cols::dpid: 
  				 vtemp=iter.dpid;
 				 break;
-			case 4: 
+			case xproject::cols::grouptype: 
  				 vtemp=iter.grouptype;
 				 break;
-			case 6: 
+			case xproject::cols::adminuserid: 
  				 vtemp=iter.adminuserid;
 				 break;
-			case 7: 
+			case xproject::cols::regdate: 
  				 vtemp=iter.regdate;
 				 break;
-			case 8: 
+			case xproject::cols::begindate: 
  				 vtemp=iter.begindate;
 				 break;
-			case 9: 
+			case xproject::cols::expiredate: 
  				 vtemp=iter.expiredate;
 				 break;
-			case 10: 
+			case xproject::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 11: 
+			case xproject::cols::clientid: 
  				 vtemp=iter.clientid;
 				 break;
-			case 12: 
+			case xproject::cols::totalnum: 
  				 vtemp=iter.totalnum;
 				 break;
-			case 13: 
+			case xproject::cols::referdocverion: 
  				 vtemp=iter.referdocverion;
 				 break;
-			case 14: 
+			case xproject::cols::xtheme: 
  				 vtemp=iter.xtheme;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -4292,112 +4317,111 @@ case 24:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] xproject::cols keyname,[[maybe_unused]] xproject::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case xproject::cols::xpjid: 
  				 ktemp=iter.xpjid;
 				 break;
-			case 1: 
+			case xproject::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case xproject::cols::prexpjid: 
  				 ktemp=iter.prexpjid;
 				 break;
-			case 3: 
+			case xproject::cols::dpid: 
  				 ktemp=iter.dpid;
 				 break;
-			case 4: 
+			case xproject::cols::grouptype: 
  				 ktemp=iter.grouptype;
 				 break;
-			case 6: 
+			case xproject::cols::adminuserid: 
  				 ktemp=iter.adminuserid;
 				 break;
-			case 7: 
+			case xproject::cols::regdate: 
  				 ktemp=iter.regdate;
 				 break;
-			case 8: 
+			case xproject::cols::begindate: 
  				 ktemp=iter.begindate;
 				 break;
-			case 9: 
+			case xproject::cols::expiredate: 
  				 ktemp=iter.expiredate;
 				 break;
-			case 10: 
+			case xproject::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case 11: 
+			case xproject::cols::clientid: 
  				 ktemp=iter.clientid;
 				 break;
-			case 12: 
+			case xproject::cols::totalnum: 
  				 ktemp=iter.totalnum;
 				 break;
-			case 13: 
+			case xproject::cols::referdocverion: 
  				 ktemp=iter.referdocverion;
 				 break;
-			case 14: 
+			case xproject::cols::xtheme: 
  				 ktemp=iter.xtheme;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case xproject::cols::xpjid: 
  				 vtemp=iter.xpjid;
 				 break;
-			case 1: 
+			case xproject::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case xproject::cols::prexpjid: 
  				 vtemp=iter.prexpjid;
 				 break;
-			case 3: 
+			case xproject::cols::dpid: 
  				 vtemp=iter.dpid;
 				 break;
-			case 4: 
+			case xproject::cols::grouptype: 
  				 vtemp=iter.grouptype;
 				 break;
-			case 6: 
+			case xproject::cols::adminuserid: 
  				 vtemp=iter.adminuserid;
 				 break;
-			case 7: 
+			case xproject::cols::regdate: 
  				 vtemp=iter.regdate;
 				 break;
-			case 8: 
+			case xproject::cols::begindate: 
  				 vtemp=iter.begindate;
 				 break;
-			case 9: 
+			case xproject::cols::expiredate: 
  				 vtemp=iter.expiredate;
 				 break;
-			case 10: 
+			case xproject::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case 11: 
+			case xproject::cols::clientid: 
  				 vtemp=iter.clientid;
 				 break;
-			case 12: 
+			case xproject::cols::totalnum: 
  				 vtemp=iter.totalnum;
 				 break;
-			case 13: 
+			case xproject::cols::referdocverion: 
  				 vtemp=iter.referdocverion;
 				 break;
-			case 14: 
+			case xproject::cols::xtheme: 
  				 vtemp=iter.xtheme;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

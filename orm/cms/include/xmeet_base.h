@@ -2,7 +2,7 @@
 #define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,38 @@ namespace orm {
    
      namespace cms { 
 
+namespace xmeet 
+{
+    enum class cols : unsigned char 
+    {
+		xmeetid = 0,
+		userid = 1,
+		xpjid = 2,
+		xtaskid = 3,
+		adminid = 4,
+		title = 5,
+		zhuchi = 6,
+		jilu = 7,
+		meetnotice = 8,
+		meetfiles = 9,
+		address = 10,
+		meettime = 11,
+		regdate = 12,
+		expecttime = 13,
+		endtime = 14,
+		presents = 15,
+		content = 16,
+		postresult = 17,
+		postfiles = 18,
+		jiluphoto = 19,
+
+    };
+ 
+}
+    
 struct xmeet_base
 {
+
     struct meta{
      unsigned  int  xmeetid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -2933,12 +2963,10 @@ std::vector<xmeet_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(xmeet::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2955,106 +2983,108 @@ std::vector<xmeet_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case xmeet::cols::xmeetid: 
  				 a<<std::to_string(iter.xmeetid);
 				 break;
-			case 1: 
+			case xmeet::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case xmeet::cols::xpjid: 
  				 a<<std::to_string(iter.xpjid);
 				 break;
-			case 3: 
+			case xmeet::cols::xtaskid: 
  				 a<<std::to_string(iter.xtaskid);
 				 break;
-			case 4: 
+			case xmeet::cols::adminid: 
  				 a<<std::to_string(iter.adminid);
 				 break;
-			case 5: 
+			case xmeet::cols::title: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case 6: 
+			case xmeet::cols::zhuchi: 
  				 if(isyinhao){ a<<jsonaddslash(iter.zhuchi); 
 				 }else{
 				 a<<iter.zhuchi;
 				 }
 				 break;
-			case 7: 
+			case xmeet::cols::jilu: 
  				 if(isyinhao){ a<<jsonaddslash(iter.jilu); 
 				 }else{
 				 a<<iter.jilu;
 				 }
 				 break;
-			case 8: 
+			case xmeet::cols::meetnotice: 
  				 if(isyinhao){ a<<jsonaddslash(iter.meetnotice); 
 				 }else{
 				 a<<iter.meetnotice;
 				 }
 				 break;
-			case 9: 
+			case xmeet::cols::meetfiles: 
  				 if(isyinhao){ a<<jsonaddslash(iter.meetfiles); 
 				 }else{
 				 a<<iter.meetfiles;
 				 }
 				 break;
-			case 10: 
+			case xmeet::cols::address: 
  				 if(isyinhao){ a<<jsonaddslash(iter.address); 
 				 }else{
 				 a<<iter.address;
 				 }
 				 break;
-			case 11: 
+			case xmeet::cols::meettime: 
  				 if(isyinhao){ a<<jsonaddslash(iter.meettime); 
 				 }else{
 				 a<<iter.meettime;
 				 }
 				 break;
-			case 12: 
+			case xmeet::cols::regdate: 
  				 a<<std::to_string(iter.regdate);
 				 break;
-			case 13: 
+			case xmeet::cols::expecttime: 
  				 a<<std::to_string(iter.expecttime);
 				 break;
-			case 14: 
+			case xmeet::cols::endtime: 
  				 a<<std::to_string(iter.endtime);
 				 break;
-			case 15: 
+			case xmeet::cols::presents: 
  				 if(isyinhao){ a<<jsonaddslash(iter.presents); 
 				 }else{
 				 a<<iter.presents;
 				 }
 				 break;
-			case 16: 
+			case xmeet::cols::content: 
  				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
 				 a<<iter.content;
 				 }
 				 break;
-			case 17: 
+			case xmeet::cols::postresult: 
  				 if(isyinhao){ a<<jsonaddslash(iter.postresult); 
 				 }else{
 				 a<<iter.postresult;
 				 }
 				 break;
-			case 18: 
+			case xmeet::cols::postfiles: 
  				 if(isyinhao){ a<<jsonaddslash(iter.postfiles); 
 				 }else{
 				 a<<iter.postfiles;
 				 }
 				 break;
-			case 19: 
+			case xmeet::cols::jiluphoto: 
  				 if(isyinhao){ a<<jsonaddslash(iter.jiluphoto); 
 				 }else{
 				 a<<iter.jiluphoto;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -3066,388 +3096,283 @@ std::vector<xmeet_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] xmeet::cols keyname,[[maybe_unused]] xmeet::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 5: 
+    			switch(keyname) 
+			{			case xmeet::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case xmeet::cols::zhuchi: 
  				 ktemp=iter.zhuchi;
 				 break;
-			case 7: 
+			case xmeet::cols::jilu: 
  				 ktemp=iter.jilu;
 				 break;
-			case 8: 
+			case xmeet::cols::meetnotice: 
  				 ktemp=iter.meetnotice;
 				 break;
-			case 9: 
+			case xmeet::cols::meetfiles: 
  				 ktemp=iter.meetfiles;
 				 break;
-			case 10: 
+			case xmeet::cols::address: 
  				 ktemp=iter.address;
 				 break;
-			case 11: 
+			case xmeet::cols::meettime: 
  				 ktemp=iter.meettime;
 				 break;
-			case 15: 
+			case xmeet::cols::presents: 
  				 ktemp=iter.presents;
 				 break;
-			case 16: 
+			case xmeet::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			case 17: 
+			case xmeet::cols::postresult: 
  				 ktemp=iter.postresult;
 				 break;
-			case 18: 
+			case xmeet::cols::postfiles: 
  				 ktemp=iter.postfiles;
 				 break;
-			case 19: 
+			case xmeet::cols::jiluphoto: 
  				 ktemp=iter.jiluphoto;
 				 break;
-				 } 
-			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case xmeet::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case xmeet::cols::zhuchi: 
  				 vtemp=iter.zhuchi;
 				 break;
-			case 7: 
+			case xmeet::cols::jilu: 
  				 vtemp=iter.jilu;
 				 break;
-			case 8: 
+			case xmeet::cols::meetnotice: 
  				 vtemp=iter.meetnotice;
 				 break;
-			case 9: 
+			case xmeet::cols::meetfiles: 
  				 vtemp=iter.meetfiles;
 				 break;
-			case 10: 
+			case xmeet::cols::address: 
  				 vtemp=iter.address;
 				 break;
-			case 11: 
+			case xmeet::cols::meettime: 
  				 vtemp=iter.meettime;
 				 break;
-			case 15: 
+			case xmeet::cols::presents: 
  				 vtemp=iter.presents;
 				 break;
-			case 16: 
+			case xmeet::cols::content: 
  				 vtemp=iter.content;
 				 break;
-			case 17: 
+			case xmeet::cols::postresult: 
  				 vtemp=iter.postresult;
 				 break;
-			case 18: 
+			case xmeet::cols::postfiles: 
  				 vtemp=iter.postfiles;
 				 break;
-			case 19: 
+			case xmeet::cols::jiluphoto: 
  				 vtemp=iter.jiluphoto;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] xmeet::cols keyname,[[maybe_unused]] xmeet::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 5: 
- 				 ktemp=iter.title;
-				 break;
-			case 6: 
- 				 ktemp=iter.zhuchi;
-				 break;
-			case 7: 
- 				 ktemp=iter.jilu;
-				 break;
-			case 8: 
- 				 ktemp=iter.meetnotice;
-				 break;
-			case 9: 
- 				 ktemp=iter.meetfiles;
-				 break;
-			case 10: 
- 				 ktemp=iter.address;
-				 break;
-			case 11: 
- 				 ktemp=iter.meettime;
-				 break;
-			case 15: 
- 				 ktemp=iter.presents;
-				 break;
-			case 16: 
- 				 ktemp=iter.content;
-				 break;
-			case 17: 
- 				 ktemp=iter.postresult;
-				 break;
-			case 18: 
- 				 ktemp=iter.postfiles;
-				 break;
-			case 19: 
- 				 ktemp=iter.jiluphoto;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] xmeet::cols keyname,[[maybe_unused]] xmeet::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.xmeetid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.xpjid;
-	 break;
-case 3: 
- 	 ktemp=iter.xtaskid;
-	 break;
-case 4: 
- 	 ktemp=iter.adminid;
-	 break;
-case 12: 
- 	 ktemp=iter.regdate;
-	 break;
-case 13: 
- 	 ktemp=iter.expecttime;
-	 break;
-case 14: 
- 	 ktemp=iter.endtime;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] xmeet::cols keyname,[[maybe_unused]] xmeet::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case xmeet::cols::xmeetid: 
  				 ktemp=iter.xmeetid;
 				 break;
-			case 1: 
+			case xmeet::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case xmeet::cols::xpjid: 
  				 ktemp=iter.xpjid;
 				 break;
-			case 3: 
+			case xmeet::cols::xtaskid: 
  				 ktemp=iter.xtaskid;
 				 break;
-			case 4: 
+			case xmeet::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case 12: 
+			case xmeet::cols::regdate: 
  				 ktemp=iter.regdate;
 				 break;
-			case 13: 
+			case xmeet::cols::expecttime: 
  				 ktemp=iter.expecttime;
 				 break;
-			case 14: 
+			case xmeet::cols::endtime: 
  				 ktemp=iter.endtime;
 				 break;
-			  }
- 			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case xmeet::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case 6: 
+			case xmeet::cols::zhuchi: 
  				 vtemp=iter.zhuchi;
 				 break;
-			case 7: 
+			case xmeet::cols::jilu: 
  				 vtemp=iter.jilu;
 				 break;
-			case 8: 
+			case xmeet::cols::meetnotice: 
  				 vtemp=iter.meetnotice;
 				 break;
-			case 9: 
+			case xmeet::cols::meetfiles: 
  				 vtemp=iter.meetfiles;
 				 break;
-			case 10: 
+			case xmeet::cols::address: 
  				 vtemp=iter.address;
 				 break;
-			case 11: 
+			case xmeet::cols::meettime: 
  				 vtemp=iter.meettime;
 				 break;
-			case 15: 
+			case xmeet::cols::presents: 
  				 vtemp=iter.presents;
 				 break;
-			case 16: 
+			case xmeet::cols::content: 
  				 vtemp=iter.content;
 				 break;
-			case 17: 
+			case xmeet::cols::postresult: 
  				 vtemp=iter.postresult;
 				 break;
-			case 18: 
+			case xmeet::cols::postfiles: 
  				 vtemp=iter.postfiles;
 				 break;
-			case 19: 
+			case xmeet::cols::jiluphoto: 
  				 vtemp=iter.jiluphoto;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] xmeet::cols keyname,[[maybe_unused]] xmeet::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 5: 
+   
+			switch(keyname){
+			case xmeet::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case 6: 
+			case xmeet::cols::zhuchi: 
  				 ktemp=iter.zhuchi;
 				 break;
-			case 7: 
+			case xmeet::cols::jilu: 
  				 ktemp=iter.jilu;
 				 break;
-			case 8: 
+			case xmeet::cols::meetnotice: 
  				 ktemp=iter.meetnotice;
 				 break;
-			case 9: 
+			case xmeet::cols::meetfiles: 
  				 ktemp=iter.meetfiles;
 				 break;
-			case 10: 
+			case xmeet::cols::address: 
  				 ktemp=iter.address;
 				 break;
-			case 11: 
+			case xmeet::cols::meettime: 
  				 ktemp=iter.meettime;
 				 break;
-			case 15: 
+			case xmeet::cols::presents: 
  				 ktemp=iter.presents;
 				 break;
-			case 16: 
+			case xmeet::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			case 17: 
+			case xmeet::cols::postresult: 
  				 ktemp=iter.postresult;
 				 break;
-			case 18: 
+			case xmeet::cols::postfiles: 
  				 ktemp=iter.postfiles;
 				 break;
-			case 19: 
+			case xmeet::cols::jiluphoto: 
  				 ktemp=iter.jiluphoto;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case xmeet::cols::xmeetid: 
  				 vtemp=iter.xmeetid;
 				 break;
-			case 1: 
+			case xmeet::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case xmeet::cols::xpjid: 
  				 vtemp=iter.xpjid;
 				 break;
-			case 3: 
+			case xmeet::cols::xtaskid: 
  				 vtemp=iter.xtaskid;
 				 break;
-			case 4: 
+			case xmeet::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case 12: 
+			case xmeet::cols::regdate: 
  				 vtemp=iter.regdate;
 				 break;
-			case 13: 
+			case xmeet::cols::expecttime: 
  				 vtemp=iter.expecttime;
 				 break;
-			case 14: 
+			case xmeet::cols::endtime: 
  				 vtemp=iter.endtime;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -3458,76 +3383,75 @@ case 14:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] xmeet::cols keyname,[[maybe_unused]] xmeet::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case xmeet::cols::xmeetid: 
  				 ktemp=iter.xmeetid;
 				 break;
-			case 1: 
+			case xmeet::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case xmeet::cols::xpjid: 
  				 ktemp=iter.xpjid;
 				 break;
-			case 3: 
+			case xmeet::cols::xtaskid: 
  				 ktemp=iter.xtaskid;
 				 break;
-			case 4: 
+			case xmeet::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case 12: 
+			case xmeet::cols::regdate: 
  				 ktemp=iter.regdate;
 				 break;
-			case 13: 
+			case xmeet::cols::expecttime: 
  				 ktemp=iter.expecttime;
 				 break;
-			case 14: 
+			case xmeet::cols::endtime: 
  				 ktemp=iter.endtime;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case xmeet::cols::xmeetid: 
  				 vtemp=iter.xmeetid;
 				 break;
-			case 1: 
+			case xmeet::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case xmeet::cols::xpjid: 
  				 vtemp=iter.xpjid;
 				 break;
-			case 3: 
+			case xmeet::cols::xtaskid: 
  				 vtemp=iter.xtaskid;
 				 break;
-			case 4: 
+			case xmeet::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case 12: 
+			case xmeet::cols::regdate: 
  				 vtemp=iter.regdate;
 				 break;
-			case 13: 
+			case xmeet::cols::expecttime: 
  				 vtemp=iter.expecttime;
 				 break;
-			case 14: 
+			case xmeet::cols::endtime: 
  				 vtemp=iter.endtime;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

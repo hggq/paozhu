@@ -2,7 +2,7 @@
 #define ORM_CMS_XTALKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,29 @@ namespace orm {
    
      namespace cms { 
 
+namespace xtalk 
+{
+    enum class cols : unsigned char 
+    {
+		talkid = 0,
+		userid = 1,
+		adminid = 2,
+		taskid = 3,
+		projectid = 4,
+		content = 5,
+		isdelete = 6,
+		addtime = 7,
+		update_at = 8,
+		islock = 9,
+		replyid = 10,
+
+    };
+ 
+}
+    
 struct xtalk_base
 {
+
     struct meta{
      unsigned  int  talkid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -2396,12 +2417,10 @@ std::vector<xtalk_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(xtalk::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2418,46 +2437,48 @@ std::vector<xtalk_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case xtalk::cols::talkid: 
  				 a<<std::to_string(iter.talkid);
 				 break;
-			case 1: 
+			case xtalk::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case xtalk::cols::adminid: 
  				 a<<std::to_string(iter.adminid);
 				 break;
-			case 3: 
+			case xtalk::cols::taskid: 
  				 a<<std::to_string(iter.taskid);
 				 break;
-			case 4: 
+			case xtalk::cols::projectid: 
  				 a<<std::to_string(iter.projectid);
 				 break;
-			case 5: 
+			case xtalk::cols::content: 
  				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
 				 a<<iter.content;
 				 }
 				 break;
-			case 6: 
+			case xtalk::cols::isdelete: 
  				 a<<std::to_string(iter.isdelete);
 				 break;
-			case 7: 
+			case xtalk::cols::addtime: 
  				 a<<std::to_string(iter.addtime);
 				 break;
-			case 8: 
+			case xtalk::cols::update_at: 
  				 a<<std::to_string(iter.update_at);
 				 break;
-			case 9: 
+			case xtalk::cols::islock: 
  				 a<<std::to_string(iter.islock);
 				 break;
-			case 10: 
+			case xtalk::cols::replyid: 
  				 a<<std::to_string(iter.replyid);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -2469,241 +2490,163 @@ std::vector<xtalk_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] xtalk::cols keyname,[[maybe_unused]] xtalk::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 5: 
+    			switch(keyname) 
+			{			case xtalk::cols::content: 
  				 ktemp=iter.content;
 				 break;
-				 } 
-			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case xtalk::cols::content: 
  				 vtemp=iter.content;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] xtalk::cols keyname,[[maybe_unused]] xtalk::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 5: 
- 				 ktemp=iter.content;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] xtalk::cols keyname,[[maybe_unused]] xtalk::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.talkid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.adminid;
-	 break;
-case 3: 
- 	 ktemp=iter.taskid;
-	 break;
-case 4: 
- 	 ktemp=iter.projectid;
-	 break;
-case 6: 
- 	 ktemp=iter.isdelete;
-	 break;
-case 7: 
- 	 ktemp=iter.addtime;
-	 break;
-case 8: 
- 	 ktemp=iter.update_at;
-	 break;
-case 9: 
- 	 ktemp=iter.islock;
-	 break;
-case 10: 
- 	 ktemp=iter.replyid;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] xtalk::cols keyname,[[maybe_unused]] xtalk::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case xtalk::cols::talkid: 
  				 ktemp=iter.talkid;
 				 break;
-			case 1: 
+			case xtalk::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case xtalk::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case 3: 
+			case xtalk::cols::taskid: 
  				 ktemp=iter.taskid;
 				 break;
-			case 4: 
+			case xtalk::cols::projectid: 
  				 ktemp=iter.projectid;
 				 break;
-			case 6: 
+			case xtalk::cols::isdelete: 
  				 ktemp=iter.isdelete;
 				 break;
-			case 7: 
+			case xtalk::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case 8: 
+			case xtalk::cols::update_at: 
  				 ktemp=iter.update_at;
 				 break;
-			case 9: 
+			case xtalk::cols::islock: 
  				 ktemp=iter.islock;
 				 break;
-			case 10: 
+			case xtalk::cols::replyid: 
  				 ktemp=iter.replyid;
 				 break;
-			  }
- 			switch(vpos){
-			case 5: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case xtalk::cols::content: 
  				 vtemp=iter.content;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] xtalk::cols keyname,[[maybe_unused]] xtalk::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 5: 
+   
+			switch(keyname){
+			case xtalk::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case xtalk::cols::talkid: 
  				 vtemp=iter.talkid;
 				 break;
-			case 1: 
+			case xtalk::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case xtalk::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case 3: 
+			case xtalk::cols::taskid: 
  				 vtemp=iter.taskid;
 				 break;
-			case 4: 
+			case xtalk::cols::projectid: 
  				 vtemp=iter.projectid;
 				 break;
-			case 6: 
+			case xtalk::cols::isdelete: 
  				 vtemp=iter.isdelete;
 				 break;
-			case 7: 
+			case xtalk::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case 8: 
+			case xtalk::cols::update_at: 
  				 vtemp=iter.update_at;
 				 break;
-			case 9: 
+			case xtalk::cols::islock: 
  				 vtemp=iter.islock;
 				 break;
-			case 10: 
+			case xtalk::cols::replyid: 
  				 vtemp=iter.replyid;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -2714,88 +2657,87 @@ case 10:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] xtalk::cols keyname,[[maybe_unused]] xtalk::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case xtalk::cols::talkid: 
  				 ktemp=iter.talkid;
 				 break;
-			case 1: 
+			case xtalk::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case xtalk::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case 3: 
+			case xtalk::cols::taskid: 
  				 ktemp=iter.taskid;
 				 break;
-			case 4: 
+			case xtalk::cols::projectid: 
  				 ktemp=iter.projectid;
 				 break;
-			case 6: 
+			case xtalk::cols::isdelete: 
  				 ktemp=iter.isdelete;
 				 break;
-			case 7: 
+			case xtalk::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case 8: 
+			case xtalk::cols::update_at: 
  				 ktemp=iter.update_at;
 				 break;
-			case 9: 
+			case xtalk::cols::islock: 
  				 ktemp=iter.islock;
 				 break;
-			case 10: 
+			case xtalk::cols::replyid: 
  				 ktemp=iter.replyid;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case xtalk::cols::talkid: 
  				 vtemp=iter.talkid;
 				 break;
-			case 1: 
+			case xtalk::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case xtalk::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case 3: 
+			case xtalk::cols::taskid: 
  				 vtemp=iter.taskid;
 				 break;
-			case 4: 
+			case xtalk::cols::projectid: 
  				 vtemp=iter.projectid;
 				 break;
-			case 6: 
+			case xtalk::cols::isdelete: 
  				 vtemp=iter.isdelete;
 				 break;
-			case 7: 
+			case xtalk::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case 8: 
+			case xtalk::cols::update_at: 
  				 vtemp=iter.update_at;
 				 break;
-			case 9: 
+			case xtalk::cols::islock: 
  				 vtemp=iter.islock;
 				 break;
-			case 10: 
+			case xtalk::cols::replyid: 
  				 vtemp=iter.replyid;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

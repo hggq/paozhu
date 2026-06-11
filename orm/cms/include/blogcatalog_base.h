@@ -2,7 +2,7 @@
 #define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:34 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,23 @@ namespace orm {
    
      namespace cms { 
 
+namespace blogcatalog 
+{
+    enum class cols : unsigned char 
+    {
+		bid = 0,
+		userid = 1,
+		dateid = 2,
+		articlenum = 3,
+		languageid = 4,
+
+    };
+ 
+}
+    
 struct blogcatalog_base
 {
+
     struct meta{
      unsigned  int  bid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -1660,12 +1675,10 @@ std::vector<blogcatalog_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(blogcatalog::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -1682,25 +1695,27 @@ std::vector<blogcatalog_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case blogcatalog::cols::bid: 
  				 a<<std::to_string(iter.bid);
 				 break;
-			case 1: 
+			case blogcatalog::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case blogcatalog::cols::dateid: 
  				 a<<std::to_string(iter.dateid);
 				 break;
-			case 3: 
+			case blogcatalog::cols::articlenum: 
  				 a<<std::to_string(iter.articlenum);
 				 break;
-			case 4: 
+			case blogcatalog::cols::languageid: 
  				 a<<std::to_string(iter.languageid);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -1712,16 +1727,16 @@ std::vector<blogcatalog_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] blogcatalog::cols keyname,[[maybe_unused]] blogcatalog::cols  valname) 
     {
         std::map<std::string,std::string> a;
          
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] blogcatalog::cols keyname,[[maybe_unused]] blogcatalog::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -1729,186 +1744,80 @@ std::vector<blogcatalog_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] blogcatalog::cols keyname,[[maybe_unused]] blogcatalog::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.bid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.dateid;
-	 break;
-case 3: 
- 	 ktemp=iter.articlenum;
-	 break;
-case 4: 
- 	 ktemp=iter.languageid;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] blogcatalog::cols keyname,[[maybe_unused]] blogcatalog::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
-                T ktemp;
-                std::string vtemp;
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-   			case 0: 
- 				 ktemp=iter.bid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.dateid;
-				 break;
-			case 3: 
- 				 ktemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 ktemp=iter.languageid;
-				 break;
-			  }
- 			switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                } 
-         
+        
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] blogcatalog::cols keyname,[[maybe_unused]] blogcatalog::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
-            std::string  ktemp;
-            U  vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			  }
- 			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.bid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.dateid;
-				 break;
-			case 3: 
- 				 vtemp=iter.articlenum;
-				 break;
-			case 4: 
- 				 vtemp=iter.languageid;
-				 break;
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-      
+     
         return a;
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] blogcatalog::cols keyname,[[maybe_unused]] blogcatalog::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case blogcatalog::cols::bid: 
  				 ktemp=iter.bid;
 				 break;
-			case 1: 
+			case blogcatalog::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case blogcatalog::cols::dateid: 
  				 ktemp=iter.dateid;
 				 break;
-			case 3: 
+			case blogcatalog::cols::articlenum: 
  				 ktemp=iter.articlenum;
 				 break;
-			case 4: 
+			case blogcatalog::cols::languageid: 
  				 ktemp=iter.languageid;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case blogcatalog::cols::bid: 
  				 vtemp=iter.bid;
 				 break;
-			case 1: 
+			case blogcatalog::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case blogcatalog::cols::dateid: 
  				 vtemp=iter.dateid;
 				 break;
-			case 3: 
+			case blogcatalog::cols::articlenum: 
  				 vtemp=iter.articlenum;
 				 break;
-			case 4: 
+			case blogcatalog::cols::languageid: 
  				 vtemp=iter.languageid;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

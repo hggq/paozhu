@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICSETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,27 @@ namespace orm {
    
      namespace cms { 
 
+namespace topicset 
+{
+    enum class cols : unsigned char 
+    {
+		topicsetid = 0,
+		userid = 1,
+		topicid = 2,
+		linktopicid = 3,
+		linkrownum = 4,
+		sidetype = 5,
+		sidename = 6,
+		txtcontent = 7,
+		sort = 8,
+
+    };
+ 
+}
+    
 struct topicset_base
 {
+
     struct meta{
      unsigned  int  topicsetid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -2069,12 +2088,10 @@ std::vector<topicset_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(topicset::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2091,43 +2108,45 @@ std::vector<topicset_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case topicset::cols::topicsetid: 
  				 a<<std::to_string(iter.topicsetid);
 				 break;
-			case 1: 
+			case topicset::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case topicset::cols::topicid: 
  				 a<<std::to_string(iter.topicid);
 				 break;
-			case 3: 
+			case topicset::cols::linktopicid: 
  				 a<<std::to_string(iter.linktopicid);
 				 break;
-			case 4: 
+			case topicset::cols::linkrownum: 
  				 a<<std::to_string(iter.linkrownum);
 				 break;
-			case 5: 
+			case topicset::cols::sidetype: 
  				 a<<std::to_string(iter.sidetype);
 				 break;
-			case 6: 
+			case topicset::cols::sidename: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sidename); 
 				 }else{
 				 a<<iter.sidename;
 				 }
 				 break;
-			case 7: 
+			case topicset::cols::txtcontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.txtcontent); 
 				 }else{
 				 a<<iter.txtcontent;
 				 }
 				 break;
-			case 8: 
+			case topicset::cols::sort: 
  				 a<<std::to_string(iter.sort);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -2139,229 +2158,157 @@ std::vector<topicset_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 6: 
+    			switch(keyname) 
+			{			case topicset::cols::sidename: 
  				 ktemp=iter.sidename;
 				 break;
-			case 7: 
+			case topicset::cols::txtcontent: 
  				 ktemp=iter.txtcontent;
 				 break;
-				 } 
-			switch(vpos){
-			case 6: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case topicset::cols::sidename: 
  				 vtemp=iter.sidename;
 				 break;
-			case 7: 
+			case topicset::cols::txtcontent: 
  				 vtemp=iter.txtcontent;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 6: 
- 				 ktemp=iter.sidename;
-				 break;
-			case 7: 
- 				 ktemp=iter.txtcontent;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.topicsetid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.topicid;
-	 break;
-case 3: 
- 	 ktemp=iter.linktopicid;
-	 break;
-case 4: 
- 	 ktemp=iter.linkrownum;
-	 break;
-case 5: 
- 	 ktemp=iter.sidetype;
-	 break;
-case 8: 
- 	 ktemp=iter.sort;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case topicset::cols::topicsetid: 
  				 ktemp=iter.topicsetid;
 				 break;
-			case 1: 
+			case topicset::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case topicset::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case 3: 
+			case topicset::cols::linktopicid: 
  				 ktemp=iter.linktopicid;
 				 break;
-			case 4: 
+			case topicset::cols::linkrownum: 
  				 ktemp=iter.linkrownum;
 				 break;
-			case 5: 
+			case topicset::cols::sidetype: 
  				 ktemp=iter.sidetype;
 				 break;
-			case 8: 
+			case topicset::cols::sort: 
  				 ktemp=iter.sort;
 				 break;
-			  }
- 			switch(vpos){
-			case 6: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case topicset::cols::sidename: 
  				 vtemp=iter.sidename;
 				 break;
-			case 7: 
+			case topicset::cols::txtcontent: 
  				 vtemp=iter.txtcontent;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 6: 
+   
+			switch(keyname){
+			case topicset::cols::sidename: 
  				 ktemp=iter.sidename;
 				 break;
-			case 7: 
+			case topicset::cols::txtcontent: 
  				 ktemp=iter.txtcontent;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case topicset::cols::topicsetid: 
  				 vtemp=iter.topicsetid;
 				 break;
-			case 1: 
+			case topicset::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case topicset::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case 3: 
+			case topicset::cols::linktopicid: 
  				 vtemp=iter.linktopicid;
 				 break;
-			case 4: 
+			case topicset::cols::linkrownum: 
  				 vtemp=iter.linkrownum;
 				 break;
-			case 5: 
+			case topicset::cols::sidetype: 
  				 vtemp=iter.sidetype;
 				 break;
-			case 8: 
+			case topicset::cols::sort: 
  				 vtemp=iter.sort;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -2372,70 +2319,69 @@ case 8:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case topicset::cols::topicsetid: 
  				 ktemp=iter.topicsetid;
 				 break;
-			case 1: 
+			case topicset::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case topicset::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case 3: 
+			case topicset::cols::linktopicid: 
  				 ktemp=iter.linktopicid;
 				 break;
-			case 4: 
+			case topicset::cols::linkrownum: 
  				 ktemp=iter.linkrownum;
 				 break;
-			case 5: 
+			case topicset::cols::sidetype: 
  				 ktemp=iter.sidetype;
 				 break;
-			case 8: 
+			case topicset::cols::sort: 
  				 ktemp=iter.sort;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case topicset::cols::topicsetid: 
  				 vtemp=iter.topicsetid;
 				 break;
-			case 1: 
+			case topicset::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case topicset::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case 3: 
+			case topicset::cols::linktopicid: 
  				 vtemp=iter.linktopicid;
 				 break;
-			case 4: 
+			case topicset::cols::linkrownum: 
  				 vtemp=iter.linkrownum;
 				 break;
-			case 5: 
+			case topicset::cols::sidetype: 
  				 vtemp=iter.sidetype;
 				 break;
-			case 8: 
+			case topicset::cols::sort: 
  				 vtemp=iter.sort;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

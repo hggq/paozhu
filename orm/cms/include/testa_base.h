@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,24 @@ namespace orm {
    
      namespace cms { 
 
+namespace testa 
+{
+    enum class cols : unsigned char 
+    {
+		id = 0,
+		parentid = 1,
+		value_id = 2,
+		content = 3,
+		deleted = 4,
+		deletetime = 5,
+
+    };
+ 
+}
+    
 struct testa_base
 {
+
     struct meta{
      unsigned  int  id = 0; ///**/
  unsigned  int  parentid = 0; ///*父id[id tree]*/
@@ -2130,12 +2146,10 @@ if(tree_data[n].deletetime==0){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(testa::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2152,31 +2166,33 @@ if(tree_data[n].deletetime==0){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case testa::cols::id: 
  				 a<<std::to_string(iter.id);
 				 break;
-			case 1: 
+			case testa::cols::parentid: 
  				 a<<std::to_string(iter.parentid);
 				 break;
-			case 2: 
+			case testa::cols::value_id: 
  				 a<<std::to_string(iter.value_id);
 				 break;
-			case 3: 
+			case testa::cols::content: 
  				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
 				 a<<iter.content;
 				 }
 				 break;
-			case 4: 
+			case testa::cols::deleted: 
  				 a<<std::to_string(iter.deleted);
 				 break;
-			case 5: 
+			case testa::cols::deletetime: 
  				 a<<std::to_string(iter.deletetime);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -2188,196 +2204,133 @@ if(tree_data[n].deletetime==0){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] testa::cols keyname,[[maybe_unused]] testa::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 3: 
+    			switch(keyname) 
+			{			case testa::cols::content: 
  				 ktemp=iter.content;
 				 break;
-				 } 
-			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case testa::cols::content: 
  				 vtemp=iter.content;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] testa::cols keyname,[[maybe_unused]] testa::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 3: 
- 				 ktemp=iter.content;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] testa::cols keyname,[[maybe_unused]] testa::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.id;
-	 break;
-case 1: 
- 	 ktemp=iter.parentid;
-	 break;
-case 2: 
- 	 ktemp=iter.value_id;
-	 break;
-case 4: 
- 	 ktemp=iter.deleted;
-	 break;
-case 5: 
- 	 ktemp=iter.deletetime;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] testa::cols keyname,[[maybe_unused]] testa::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case testa::cols::id: 
  				 ktemp=iter.id;
 				 break;
-			case 1: 
+			case testa::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case 2: 
+			case testa::cols::value_id: 
  				 ktemp=iter.value_id;
 				 break;
-			case 4: 
+			case testa::cols::deleted: 
  				 ktemp=iter.deleted;
 				 break;
-			case 5: 
+			case testa::cols::deletetime: 
  				 ktemp=iter.deletetime;
 				 break;
-			  }
- 			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case testa::cols::content: 
  				 vtemp=iter.content;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] testa::cols keyname,[[maybe_unused]] testa::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 3: 
+   
+			switch(keyname){
+			case testa::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case testa::cols::id: 
  				 vtemp=iter.id;
 				 break;
-			case 1: 
+			case testa::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case 2: 
+			case testa::cols::value_id: 
  				 vtemp=iter.value_id;
 				 break;
-			case 4: 
+			case testa::cols::deleted: 
  				 vtemp=iter.deleted;
 				 break;
-			case 5: 
+			case testa::cols::deletetime: 
  				 vtemp=iter.deletetime;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -2388,58 +2341,57 @@ case 5:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] testa::cols keyname,[[maybe_unused]] testa::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case testa::cols::id: 
  				 ktemp=iter.id;
 				 break;
-			case 1: 
+			case testa::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case 2: 
+			case testa::cols::value_id: 
  				 ktemp=iter.value_id;
 				 break;
-			case 4: 
+			case testa::cols::deleted: 
  				 ktemp=iter.deleted;
 				 break;
-			case 5: 
+			case testa::cols::deletetime: 
  				 ktemp=iter.deletetime;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case testa::cols::id: 
  				 vtemp=iter.id;
 				 break;
-			case 1: 
+			case testa::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case 2: 
+			case testa::cols::value_id: 
  				 vtemp=iter.value_id;
 				 break;
-			case 4: 
+			case testa::cols::deleted: 
  				 vtemp=iter.deleted;
 				 break;
-			case 5: 
+			case testa::cols::deletetime: 
  				 vtemp=iter.deletetime;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,31 @@ namespace orm {
    
      namespace cms { 
 
+namespace sysperms 
+{
+    enum class cols : unsigned char 
+    {
+		permsid = 0,
+		parentid = 1,
+		userid = 2,
+		urlpath = 3,
+		urlname = 4,
+		name = 5,
+		status = 6,
+		permscode = 7,
+		readonly = 8,
+		created_time = 9,
+		updated_time = 10,
+		created_user = 11,
+		updated_user = 12,
+
+    };
+ 
+}
+    
 struct sysperms_base
 {
+
     struct meta{
      unsigned  int  permsid = 0; ///**/
  unsigned  int  parentid = 0; ///**/
@@ -2822,12 +2845,10 @@ if(tree_data[n].updated_user==0){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(sysperms::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2844,58 +2865,60 @@ if(tree_data[n].updated_user==0){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case sysperms::cols::permsid: 
  				 a<<std::to_string(iter.permsid);
 				 break;
-			case 1: 
+			case sysperms::cols::parentid: 
  				 a<<std::to_string(iter.parentid);
 				 break;
-			case 2: 
+			case sysperms::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 3: 
+			case sysperms::cols::urlpath: 
  				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
 				 }else{
 				 a<<iter.urlpath;
 				 }
 				 break;
-			case 4: 
+			case sysperms::cols::urlname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.urlname); 
 				 }else{
 				 a<<iter.urlname;
 				 }
 				 break;
-			case 5: 
+			case sysperms::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case 6: 
+			case sysperms::cols::status: 
  				 a<<std::to_string(iter.status);
 				 break;
-			case 7: 
+			case sysperms::cols::permscode: 
  				 a<<std::to_string(iter.permscode);
 				 break;
-			case 8: 
+			case sysperms::cols::readonly: 
  				 a<<std::to_string(iter.readonly);
 				 break;
-			case 9: 
+			case sysperms::cols::created_time: 
  				 a<<std::to_string(iter.created_time);
 				 break;
-			case 10: 
+			case sysperms::cols::updated_time: 
  				 a<<std::to_string(iter.updated_time);
 				 break;
-			case 11: 
+			case sysperms::cols::created_user: 
  				 a<<std::to_string(iter.created_user);
 				 break;
-			case 12: 
+			case sysperms::cols::updated_user: 
  				 a<<std::to_string(iter.updated_user);
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -2907,271 +2930,187 @@ if(tree_data[n].updated_user==0){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] sysperms::cols keyname,[[maybe_unused]] sysperms::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 3: 
+    			switch(keyname) 
+			{			case sysperms::cols::urlpath: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 4: 
+			case sysperms::cols::urlname: 
  				 ktemp=iter.urlname;
 				 break;
-			case 5: 
+			case sysperms::cols::name: 
  				 ktemp=iter.name;
 				 break;
-				 } 
-			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case sysperms::cols::urlpath: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 4: 
+			case sysperms::cols::urlname: 
  				 vtemp=iter.urlname;
 				 break;
-			case 5: 
+			case sysperms::cols::name: 
  				 vtemp=iter.name;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] sysperms::cols keyname,[[maybe_unused]] sysperms::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 3: 
- 				 ktemp=iter.urlpath;
-				 break;
-			case 4: 
- 				 ktemp=iter.urlname;
-				 break;
-			case 5: 
- 				 ktemp=iter.name;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] sysperms::cols keyname,[[maybe_unused]] sysperms::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.permsid;
-	 break;
-case 1: 
- 	 ktemp=iter.parentid;
-	 break;
-case 2: 
- 	 ktemp=iter.userid;
-	 break;
-case 6: 
- 	 ktemp=iter.status;
-	 break;
-case 7: 
- 	 ktemp=iter.permscode;
-	 break;
-case 8: 
- 	 ktemp=iter.readonly;
-	 break;
-case 9: 
- 	 ktemp=iter.created_time;
-	 break;
-case 10: 
- 	 ktemp=iter.updated_time;
-	 break;
-case 11: 
- 	 ktemp=iter.created_user;
-	 break;
-case 12: 
- 	 ktemp=iter.updated_user;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] sysperms::cols keyname,[[maybe_unused]] sysperms::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case sysperms::cols::permsid: 
  				 ktemp=iter.permsid;
 				 break;
-			case 1: 
+			case sysperms::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case 2: 
+			case sysperms::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 6: 
+			case sysperms::cols::status: 
  				 ktemp=iter.status;
 				 break;
-			case 7: 
+			case sysperms::cols::permscode: 
  				 ktemp=iter.permscode;
 				 break;
-			case 8: 
+			case sysperms::cols::readonly: 
  				 ktemp=iter.readonly;
 				 break;
-			case 9: 
+			case sysperms::cols::created_time: 
  				 ktemp=iter.created_time;
 				 break;
-			case 10: 
+			case sysperms::cols::updated_time: 
  				 ktemp=iter.updated_time;
 				 break;
-			case 11: 
+			case sysperms::cols::created_user: 
  				 ktemp=iter.created_user;
 				 break;
-			case 12: 
+			case sysperms::cols::updated_user: 
  				 ktemp=iter.updated_user;
 				 break;
-			  }
- 			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case sysperms::cols::urlpath: 
  				 vtemp=iter.urlpath;
 				 break;
-			case 4: 
+			case sysperms::cols::urlname: 
  				 vtemp=iter.urlname;
 				 break;
-			case 5: 
+			case sysperms::cols::name: 
  				 vtemp=iter.name;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] sysperms::cols keyname,[[maybe_unused]] sysperms::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 3: 
+   
+			switch(keyname){
+			case sysperms::cols::urlpath: 
  				 ktemp=iter.urlpath;
 				 break;
-			case 4: 
+			case sysperms::cols::urlname: 
  				 ktemp=iter.urlname;
 				 break;
-			case 5: 
+			case sysperms::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case sysperms::cols::permsid: 
  				 vtemp=iter.permsid;
 				 break;
-			case 1: 
+			case sysperms::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case 2: 
+			case sysperms::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 6: 
+			case sysperms::cols::status: 
  				 vtemp=iter.status;
 				 break;
-			case 7: 
+			case sysperms::cols::permscode: 
  				 vtemp=iter.permscode;
 				 break;
-			case 8: 
+			case sysperms::cols::readonly: 
  				 vtemp=iter.readonly;
 				 break;
-			case 9: 
+			case sysperms::cols::created_time: 
  				 vtemp=iter.created_time;
 				 break;
-			case 10: 
+			case sysperms::cols::updated_time: 
  				 vtemp=iter.updated_time;
 				 break;
-			case 11: 
+			case sysperms::cols::created_user: 
  				 vtemp=iter.created_user;
 				 break;
-			case 12: 
+			case sysperms::cols::updated_user: 
  				 vtemp=iter.updated_user;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -3182,88 +3121,87 @@ case 12:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] sysperms::cols keyname,[[maybe_unused]] sysperms::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case sysperms::cols::permsid: 
  				 ktemp=iter.permsid;
 				 break;
-			case 1: 
+			case sysperms::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case 2: 
+			case sysperms::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 6: 
+			case sysperms::cols::status: 
  				 ktemp=iter.status;
 				 break;
-			case 7: 
+			case sysperms::cols::permscode: 
  				 ktemp=iter.permscode;
 				 break;
-			case 8: 
+			case sysperms::cols::readonly: 
  				 ktemp=iter.readonly;
 				 break;
-			case 9: 
+			case sysperms::cols::created_time: 
  				 ktemp=iter.created_time;
 				 break;
-			case 10: 
+			case sysperms::cols::updated_time: 
  				 ktemp=iter.updated_time;
 				 break;
-			case 11: 
+			case sysperms::cols::created_user: 
  				 ktemp=iter.created_user;
 				 break;
-			case 12: 
+			case sysperms::cols::updated_user: 
  				 ktemp=iter.updated_user;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case sysperms::cols::permsid: 
  				 vtemp=iter.permsid;
 				 break;
-			case 1: 
+			case sysperms::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case 2: 
+			case sysperms::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 6: 
+			case sysperms::cols::status: 
  				 vtemp=iter.status;
 				 break;
-			case 7: 
+			case sysperms::cols::permscode: 
  				 vtemp=iter.permscode;
 				 break;
-			case 8: 
+			case sysperms::cols::readonly: 
  				 vtemp=iter.readonly;
 				 break;
-			case 9: 
+			case sysperms::cols::created_time: 
  				 vtemp=iter.created_time;
 				 break;
-			case 10: 
+			case sysperms::cols::updated_time: 
  				 vtemp=iter.updated_time;
 				 break;
-			case 11: 
+			case sysperms::cols::created_user: 
  				 vtemp=iter.created_user;
 				 break;
-			case 12: 
+			case sysperms::cols::updated_user: 
  				 vtemp=iter.updated_user;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

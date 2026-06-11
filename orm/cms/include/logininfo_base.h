@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,28 @@ namespace orm {
    
      namespace cms { 
 
+namespace logininfo 
+{
+    enum class cols : unsigned char 
+    {
+		lgid = 0,
+		userid = 1,
+		logtype = 2,
+		username = 3,
+		addtime = 4,
+		addip = 5,
+		addregion = 6,
+		loginstate = 7,
+		agent = 8,
+		urlpath = 9,
+
+    };
+ 
+}
+    
 struct logininfo_base
 {
+
     struct meta{
      unsigned  int  lgid = 0; ///**/
  unsigned  int  userid = 0; ///*会员id*/
@@ -1948,12 +1968,10 @@ std::vector<logininfo_base::meta> getRecord(){
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(logininfo::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -1970,61 +1988,63 @@ std::vector<logininfo_base::meta> getRecord(){
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case logininfo::cols::lgid: 
  				 a<<std::to_string(iter.lgid);
 				 break;
-			case 1: 
+			case logininfo::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case logininfo::cols::logtype: 
  				 a<<std::to_string(iter.logtype);
 				 break;
-			case 3: 
+			case logininfo::cols::username: 
  				 if(isyinhao){ a<<jsonaddslash(iter.username); 
 				 }else{
 				 a<<iter.username;
 				 }
 				 break;
-			case 4: 
+			case logininfo::cols::addtime: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addtime); 
 				 }else{
 				 a<<iter.addtime;
 				 }
 				 break;
-			case 5: 
+			case logininfo::cols::addip: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addip); 
 				 }else{
 				 a<<iter.addip;
 				 }
 				 break;
-			case 6: 
+			case logininfo::cols::addregion: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addregion); 
 				 }else{
 				 a<<iter.addregion;
 				 }
 				 break;
-			case 7: 
+			case logininfo::cols::loginstate: 
  				 if(isyinhao){ a<<jsonaddslash(iter.loginstate); 
 				 }else{
 				 a<<iter.loginstate;
 				 }
 				 break;
-			case 8: 
+			case logininfo::cols::agent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.agent); 
 				 }else{
 				 a<<iter.agent;
 				 }
 				 break;
-			case 9: 
+			case logininfo::cols::urlpath: 
  				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
 				 }else{
 				 a<<iter.urlpath;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -2036,268 +2056,193 @@ std::vector<logininfo_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 3: 
+    			switch(keyname) 
+			{			case logininfo::cols::username: 
  				 ktemp=iter.username;
 				 break;
-			case 4: 
+			case logininfo::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case 5: 
+			case logininfo::cols::addip: 
  				 ktemp=iter.addip;
 				 break;
-			case 6: 
+			case logininfo::cols::addregion: 
  				 ktemp=iter.addregion;
 				 break;
-			case 7: 
+			case logininfo::cols::loginstate: 
  				 ktemp=iter.loginstate;
 				 break;
-			case 8: 
+			case logininfo::cols::agent: 
  				 ktemp=iter.agent;
 				 break;
-			case 9: 
+			case logininfo::cols::urlpath: 
  				 ktemp=iter.urlpath;
 				 break;
-				 } 
-			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case logininfo::cols::username: 
  				 vtemp=iter.username;
 				 break;
-			case 4: 
+			case logininfo::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case 5: 
+			case logininfo::cols::addip: 
  				 vtemp=iter.addip;
 				 break;
-			case 6: 
+			case logininfo::cols::addregion: 
  				 vtemp=iter.addregion;
 				 break;
-			case 7: 
+			case logininfo::cols::loginstate: 
  				 vtemp=iter.loginstate;
 				 break;
-			case 8: 
+			case logininfo::cols::agent: 
  				 vtemp=iter.agent;
 				 break;
-			case 9: 
+			case logininfo::cols::urlpath: 
  				 vtemp=iter.urlpath;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 3: 
- 				 ktemp=iter.username;
-				 break;
-			case 4: 
- 				 ktemp=iter.addtime;
-				 break;
-			case 5: 
- 				 ktemp=iter.addip;
-				 break;
-			case 6: 
- 				 ktemp=iter.addregion;
-				 break;
-			case 7: 
- 				 ktemp=iter.loginstate;
-				 break;
-			case 8: 
- 				 ktemp=iter.agent;
-				 break;
-			case 9: 
- 				 ktemp=iter.urlpath;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.lgid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.logtype;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case logininfo::cols::lgid: 
  				 ktemp=iter.lgid;
 				 break;
-			case 1: 
+			case logininfo::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case logininfo::cols::logtype: 
  				 ktemp=iter.logtype;
 				 break;
-			  }
- 			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case logininfo::cols::username: 
  				 vtemp=iter.username;
 				 break;
-			case 4: 
+			case logininfo::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case 5: 
+			case logininfo::cols::addip: 
  				 vtemp=iter.addip;
 				 break;
-			case 6: 
+			case logininfo::cols::addregion: 
  				 vtemp=iter.addregion;
 				 break;
-			case 7: 
+			case logininfo::cols::loginstate: 
  				 vtemp=iter.loginstate;
 				 break;
-			case 8: 
+			case logininfo::cols::agent: 
  				 vtemp=iter.agent;
 				 break;
-			case 9: 
+			case logininfo::cols::urlpath: 
  				 vtemp=iter.urlpath;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 3: 
+   
+			switch(keyname){
+			case logininfo::cols::username: 
  				 ktemp=iter.username;
 				 break;
-			case 4: 
+			case logininfo::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case 5: 
+			case logininfo::cols::addip: 
  				 ktemp=iter.addip;
 				 break;
-			case 6: 
+			case logininfo::cols::addregion: 
  				 ktemp=iter.addregion;
 				 break;
-			case 7: 
+			case logininfo::cols::loginstate: 
  				 ktemp=iter.loginstate;
 				 break;
-			case 8: 
+			case logininfo::cols::agent: 
  				 ktemp=iter.agent;
 				 break;
-			case 9: 
+			case logininfo::cols::urlpath: 
  				 ktemp=iter.urlpath;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case logininfo::cols::lgid: 
  				 vtemp=iter.lgid;
 				 break;
-			case 1: 
+			case logininfo::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case logininfo::cols::logtype: 
  				 vtemp=iter.logtype;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -2308,46 +2253,45 @@ case 2:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case logininfo::cols::lgid: 
  				 ktemp=iter.lgid;
 				 break;
-			case 1: 
+			case logininfo::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case logininfo::cols::logtype: 
  				 ktemp=iter.logtype;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case logininfo::cols::lgid: 
  				 vtemp=iter.lgid;
 				 break;
-			case 1: 
+			case logininfo::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case logininfo::cols::logtype: 
  				 vtemp=iter.logtype;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

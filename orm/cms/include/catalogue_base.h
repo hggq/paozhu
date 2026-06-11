@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,26 @@ namespace orm {
    
      namespace cms { 
 
+namespace catalogue 
+{
+    enum class cols : unsigned char 
+    {
+		cid = 0,
+		userid = 1,
+		level = 2,
+		parentid = 3,
+		name = 4,
+		isview = 5,
+		sortid = 6,
+		imgurl = 7,
+
+    };
+ 
+}
+    
 struct catalogue_base
 {
+
     struct meta{
      unsigned  int  cid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -2327,12 +2345,10 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(catalogue::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2349,40 +2365,42 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case catalogue::cols::cid: 
  				 a<<std::to_string(iter.cid);
 				 break;
-			case 1: 
+			case catalogue::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case catalogue::cols::level: 
  				 a<<std::to_string(iter.level);
 				 break;
-			case 3: 
+			case catalogue::cols::parentid: 
  				 a<<std::to_string(iter.parentid);
 				 break;
-			case 4: 
+			case catalogue::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case 5: 
+			case catalogue::cols::isview: 
  				 a<<std::to_string(iter.isview);
 				 break;
-			case 6: 
+			case catalogue::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case 7: 
+			case catalogue::cols::imgurl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
 				 }else{
 				 a<<iter.imgurl;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -2394,220 +2412,151 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 4: 
+    			switch(keyname) 
+			{			case catalogue::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 7: 
+			case catalogue::cols::imgurl: 
  				 ktemp=iter.imgurl;
 				 break;
-				 } 
-			switch(vpos){
-			case 4: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case catalogue::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 7: 
+			case catalogue::cols::imgurl: 
  				 vtemp=iter.imgurl;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 4: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.imgurl;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.cid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.level;
-	 break;
-case 3: 
- 	 ktemp=iter.parentid;
-	 break;
-case 5: 
- 	 ktemp=iter.isview;
-	 break;
-case 6: 
- 	 ktemp=iter.sortid;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case catalogue::cols::cid: 
  				 ktemp=iter.cid;
 				 break;
-			case 1: 
+			case catalogue::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case catalogue::cols::level: 
  				 ktemp=iter.level;
 				 break;
-			case 3: 
+			case catalogue::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case 5: 
+			case catalogue::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case 6: 
+			case catalogue::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			  }
- 			switch(vpos){
-			case 4: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case catalogue::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 7: 
+			case catalogue::cols::imgurl: 
  				 vtemp=iter.imgurl;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 4: 
+   
+			switch(keyname){
+			case catalogue::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 7: 
+			case catalogue::cols::imgurl: 
  				 ktemp=iter.imgurl;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case catalogue::cols::cid: 
  				 vtemp=iter.cid;
 				 break;
-			case 1: 
+			case catalogue::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case catalogue::cols::level: 
  				 vtemp=iter.level;
 				 break;
-			case 3: 
+			case catalogue::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case 5: 
+			case catalogue::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case 6: 
+			case catalogue::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -2618,64 +2567,63 @@ case 6:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case catalogue::cols::cid: 
  				 ktemp=iter.cid;
 				 break;
-			case 1: 
+			case catalogue::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case catalogue::cols::level: 
  				 ktemp=iter.level;
 				 break;
-			case 3: 
+			case catalogue::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case 5: 
+			case catalogue::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case 6: 
+			case catalogue::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case catalogue::cols::cid: 
  				 vtemp=iter.cid;
 				 break;
-			case 1: 
+			case catalogue::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case catalogue::cols::level: 
  				 vtemp=iter.level;
 				 break;
-			case 3: 
+			case catalogue::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case 5: 
+			case catalogue::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case 6: 
+			case catalogue::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;

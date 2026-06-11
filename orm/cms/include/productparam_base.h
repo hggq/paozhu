@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTPARAMBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 09 Jun 2026 14:01:19 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,29 @@ namespace orm {
    
      namespace cms { 
 
+namespace productparam 
+{
+    enum class cols : unsigned char 
+    {
+		ppid = 0,
+		userid = 1,
+		pid = 2,
+		imgurl = 3,
+		price = 4,
+		attachfiles = 5,
+		name = 6,
+		attachdate = 7,
+		sortid = 8,
+		filesize = 9,
+		fileext = 10,
+
+    };
+ 
+}
+    
 struct productparam_base
 {
+
     struct meta{
      unsigned  int  ppid = 0; ///**/
  unsigned  int  userid = 0; ///**/
@@ -2430,12 +2451,10 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
         return a;
     }
      
-        std::string getstrCol(std::string keyname,[[maybe_unused]] bool isyinhao=false)
+        std::string getstrCol(productparam::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
             int j=0;
             if(isyinhao&&record.size()>0)
             {
@@ -2452,58 +2471,60 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
                             a<<',';    
                         }
                     }
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-   			case 0: 
+   			case productparam::cols::ppid: 
  				 a<<std::to_string(iter.ppid);
 				 break;
-			case 1: 
+			case productparam::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case 2: 
+			case productparam::cols::pid: 
  				 a<<std::to_string(iter.pid);
 				 break;
-			case 3: 
+			case productparam::cols::imgurl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
 				 }else{
 				 a<<iter.imgurl;
 				 }
 				 break;
-			case 4: 
+			case productparam::cols::price: 
  				 a<<std::to_string(iter.price);
 				 break;
-			case 5: 
+			case productparam::cols::attachfiles: 
  				 if(isyinhao){ a<<jsonaddslash(iter.attachfiles); 
 				 }else{
 				 a<<iter.attachfiles;
 				 }
 				 break;
-			case 6: 
+			case productparam::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case 7: 
+			case productparam::cols::attachdate: 
  				 if(isyinhao){ a<<jsonaddslash(iter.attachdate); 
 				 }else{
 				 a<<iter.attachdate;
 				 }
 				 break;
-			case 8: 
+			case productparam::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case 9: 
+			case productparam::cols::filesize: 
  				 a<<std::to_string(iter.filesize);
 				 break;
-			case 10: 
+			case productparam::cols::fileext: 
  				 if(isyinhao){ a<<jsonaddslash(iter.fileext); 
 				 }else{
 				 a<<iter.fileext;
 				 }
 				 break;
 
+                        default:
+                            break;
                     }
                     j++;
             } 
@@ -2515,265 +2536,187 @@ tempsql<<"\"fileext\":\""<<http::utf8_to_jsonstring(tree_data[n].fileext)<<"\"";
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+    std::map<std::string,std::string> getCols([[maybe_unused]] productparam::cols keyname,[[maybe_unused]] productparam::cols  valname) 
     {
         std::map<std::string,std::string> a;
-    
-        unsigned char kpos,vpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);        
+          
          std::string ktemp,vtemp;
          for(auto &iter:record)
          {
-                switch(kpos)
-                {
-
-   			case 3: 
+    			switch(keyname) 
+			{			case productparam::cols::imgurl: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 5: 
+			case productparam::cols::attachfiles: 
  				 ktemp=iter.attachfiles;
 				 break;
-			case 6: 
+			case productparam::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 7: 
+			case productparam::cols::attachdate: 
  				 ktemp=iter.attachdate;
 				 break;
-			case 10: 
+			case productparam::cols::fileext: 
  				 ktemp=iter.fileext;
 				 break;
-				 } 
-			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+			switch(valname){
+			case productparam::cols::imgurl: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 5: 
+			case productparam::cols::attachfiles: 
  				 vtemp=iter.attachfiles;
 				 break;
-			case 6: 
+			case productparam::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 7: 
+			case productparam::cols::attachdate: 
  				 vtemp=iter.attachdate;
 				 break;
-			case 10: 
+			case productparam::cols::fileext: 
  				 vtemp=iter.fileext;
 				 break;
-
-                }
+			default:
+				 break;
+			}
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
                 }
-            }       
-
+         }       
         
             return a;
-        } 
+    } 
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] productparam::cols keyname,[[maybe_unused]] productparam::cols valname) 
         {
                 std::map<std::string,U> a;
-      
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);            
-                std::string ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {    
-                    switch(kpos)
-                    {
- 
-       			case 3: 
- 				 ktemp=iter.imgurl;
-				 break;
-			case 5: 
- 				 ktemp=iter.attachfiles;
-				 break;
-			case 6: 
- 				 ktemp=iter.name;
-				 break;
-			case 7: 
- 				 ktemp=iter.attachdate;
-				 break;
-			case 10: 
- 				 ktemp=iter.fileext;
-				 break;
-			 } 
-		 switch(vpos){
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
-                }       
-        
+         
             return a;
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] productparam::cols keyname,[[maybe_unused]] productparam::cols valname) 
         {
             std::map<T,U> a;
-       
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
- 
-       case 0: 
- 	 ktemp=iter.ppid;
-	 break;
-case 1: 
- 	 ktemp=iter.userid;
-	 break;
-case 2: 
- 	 ktemp=iter.pid;
-	 break;
-case 4: 
- 	 ktemp=iter.price;
-	 break;
-case 8: 
- 	 ktemp=iter.sortid;
-	 break;
-case 9: 
- 	 ktemp=iter.filesize;
-	 break;
-	 } 
- 		  switch(vpos){
-
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
-            }       
-     
+        
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+            std::map<T,std::string> getCols([[maybe_unused]] productparam::cols keyname,[[maybe_unused]] productparam::cols valname) 
             {
                 std::map<T,std::string> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);         
+          
                 T ktemp;
                 std::string vtemp;
                 for(auto &iter:record)
                 {
-                    switch(kpos)
-                    {
-
-   			case 0: 
+   
+			switch(keyname){
+			case productparam::cols::ppid: 
  				 ktemp=iter.ppid;
 				 break;
-			case 1: 
+			case productparam::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case productparam::cols::pid: 
  				 ktemp=iter.pid;
 				 break;
-			case 4: 
+			case productparam::cols::price: 
  				 ktemp=iter.price;
 				 break;
-			case 8: 
+			case productparam::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case 9: 
+			case productparam::cols::filesize: 
  				 ktemp=iter.filesize;
 				 break;
-			  }
- 			switch(vpos){
-			case 3: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+						case productparam::cols::imgurl: 
  				 vtemp=iter.imgurl;
 				 break;
-			case 5: 
+			case productparam::cols::attachfiles: 
  				 vtemp=iter.attachfiles;
 				 break;
-			case 6: 
+			case productparam::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case 7: 
+			case productparam::cols::attachdate: 
  				 vtemp=iter.attachdate;
 				 break;
-			case 10: 
+			case productparam::cols::fileext: 
  				 vtemp=iter.fileext;
 				 break;
-
-                    }
-                    if(ktemp.size()>0)
-                    {
-                        a.emplace(ktemp,vtemp);
-                    }
+			default:
+				 break;
+			 }
+                    a.emplace(ktemp,vtemp);
                 } 
          
                 return a;
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<std::string,U> getCols([[maybe_unused]] productparam::cols keyname,[[maybe_unused]] productparam::cols valname) 
         {
             std::map<std::string,U> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+              
             std::string  ktemp;
             U  vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
-
-   			case 3: 
+   
+			switch(keyname){
+			case productparam::cols::imgurl: 
  				 ktemp=iter.imgurl;
 				 break;
-			case 5: 
+			case productparam::cols::attachfiles: 
  				 ktemp=iter.attachfiles;
 				 break;
-			case 6: 
+			case productparam::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case 7: 
+			case productparam::cols::attachdate: 
  				 ktemp=iter.attachdate;
 				 break;
-			case 10: 
+			case productparam::cols::fileext: 
  				 ktemp=iter.fileext;
 				 break;
-			  }
- 			 switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case productparam::cols::ppid: 
  				 vtemp=iter.ppid;
 				 break;
-			case 1: 
+			case productparam::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case productparam::cols::pid: 
  				 vtemp=iter.pid;
 				 break;
-			case 4: 
+			case productparam::cols::price: 
  				 vtemp=iter.price;
 				 break;
-			case 8: 
+			case productparam::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case 9: 
+			case productparam::cols::filesize: 
  				 vtemp=iter.filesize;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
                 if(ktemp.size()>0)
                 {
                     a.emplace(ktemp,vtemp);
@@ -2784,64 +2727,63 @@ case 9:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,U> getCols([[maybe_unused]] productparam::cols keyname,[[maybe_unused]] productparam::cols valname) 
         {
             std::map<T,U> a;
-    
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
+               
             T ktemp;
             U vtemp;
             for(auto &iter:record)
             {
-                switch(kpos)
-                {
 
-   			case 0: 
+   
+			switch(keyname){
+			case productparam::cols::ppid: 
  				 ktemp=iter.ppid;
 				 break;
-			case 1: 
+			case productparam::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case 2: 
+			case productparam::cols::pid: 
  				 ktemp=iter.pid;
 				 break;
-			case 4: 
+			case productparam::cols::price: 
  				 ktemp=iter.price;
 				 break;
-			case 8: 
+			case productparam::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case 9: 
+			case productparam::cols::filesize: 
  				 ktemp=iter.filesize;
 				 break;
-			  }
- 			switch(vpos){
-			case 0: 
+			default:
+				 break;
+			 }
+
+			switch(valname){
+			case productparam::cols::ppid: 
  				 vtemp=iter.ppid;
 				 break;
-			case 1: 
+			case productparam::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case 2: 
+			case productparam::cols::pid: 
  				 vtemp=iter.pid;
 				 break;
-			case 4: 
+			case productparam::cols::price: 
  				 vtemp=iter.price;
 				 break;
-			case 8: 
+			case productparam::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case 9: 
+			case productparam::cols::filesize: 
  				 vtemp=iter.filesize;
 				 break;
+			default:
+				 break;
+			 }
 
-                }
-                if(ktemp.size()>0)
-                {
-                    a.emplace(ktemp,vtemp);
-                }
+                a.emplace(ktemp,vtemp);
             }       
     
             return a;
