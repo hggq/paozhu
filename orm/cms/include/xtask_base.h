@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace xtask 
+namespace xtask_info
 {
+ 
     enum class cols : unsigned char 
     {
 		xtaskid = 0,
@@ -56,11 +57,6 @@ namespace xtask
 		itemnote = 29,
 
     };
- 
-}
-    
-struct xtask_base
-{
 
     struct meta{
      unsigned  int  xtaskid = 0; ///**/
@@ -93,7 +89,7 @@ struct xtask_base
  std::string  pullauthor = ""; ///**/
  std::string  note = ""; ///**/
  std::string  itemnote = ""; ///**/
- } data;
+ };
   
         struct meta_tree{
          unsigned  int  xtaskid = 0; ///**/
@@ -127,19 +123,24 @@ struct xtask_base
  std::string  note = ""; ///**/
  std::string  itemnote = ""; ///**/
 
-	std::vector<meta_tree> children;
+	 std::vector<meta_tree> children;
  };
- std::vector<xtask_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<xtask_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<xtask_base::meta>::iterator end(){     return record.end(); }
-std::vector<xtask_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<xtask_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,30> col_names={"xtaskid","userid","xpjid","adminid","parentid","begindate","enddate","expectbegindate","expectenddate","milestone","subxpjid","depxtaskid","referdocid","isfinish","updatedate","finishdate","iscore","xvalue","expectday","realday","pricevalue","title","introduce","xlogo","xcolor","pullurl","pulltitle","pullauthor","note","itemnote"};
+ static constexpr std::array<std::string_view,30> col_names={"xtaskid","userid","xpjid","adminid","parentid","begindate","enddate","expectbegindate","expectenddate","milestone","subxpjid","depxtaskid","referdocid","isfinish","updatedate","finishdate","iscore","xvalue","expectday","realday","pricevalue","title","introduce","xlogo","xcolor","pullurl","pulltitle","pullauthor","note","itemnote"};
 static constexpr std::array<unsigned char,30> col_types={3,3,3,3,3,3,3,3,3,3,3,3,3,1,3,3,3,5,4,4,4,253,252,253,253,253,253,253,252,252};
 static constexpr std::array<unsigned char,30> col_length={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,60,0,0};
 static constexpr std::array<unsigned char,30> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct xtask_base
+{
+      xtask_info::meta data;
+    std::vector<xtask_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<xtask_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<xtask_info::meta>::iterator end(){     return record.end(); }
+std::vector<xtask_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<xtask_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="xtask";
 static constexpr std::string_view modelname="Xtask";
 
@@ -287,7 +288,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     xtask_base::meta metatemp;    
+     xtask_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -337,13 +338,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<xtask_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<xtask_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -470,19 +471,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const xtask_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<xtask_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<xtask_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -609,19 +610,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<xtask_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<xtask_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<xtask_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -1151,7 +1152,7 @@ tempsql<<"`itemnote`='"<<stringaddslash(data.itemnote)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < xtask_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -1161,7 +1162,7 @@ tempsql<<"`itemnote`='"<<stringaddslash(data.itemnote)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << xtask_info::col_names[j];
         }
         if (j > 0)
         {
@@ -1303,7 +1304,7 @@ tempsql<<"`itemnote`='"<<stringaddslash(data.itemnote)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < xtask_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -1313,7 +1314,7 @@ tempsql<<"`itemnote`='"<<stringaddslash(data.itemnote)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << xtask_info::col_names[j];
         }
         if (j > 0)
         {
@@ -1514,7 +1515,7 @@ tempsql<<"`itemnote`='"<<stringaddslash(data.itemnote)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<xtask_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1728,7 +1729,7 @@ if(data.pricevalue==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<xtask_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -2075,7 +2076,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<xtask_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -2298,7 +2299,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        xtask_base::meta metatemp; 
+        xtask_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -3219,7 +3220,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<xtask_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -3448,7 +3449,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(record[n].itemnote)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,xtask_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -3472,7 +3473,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(record[n].itemnote)<<"\"";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<xtask_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -3817,18 +3818,18 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(record[n].itemnote)<<"\"";
  void setItemnote( std::string  &val){  data.itemnote=val;} 
  void setItemnote(std::string_view val){  data.itemnote=val;} 
 
-xtask_base::meta getnewData(){
- 	 struct meta newdata;
+xtask_info::meta getnewData(){
+ 	 struct xtask_info::meta newdata;
 	 return newdata; 
 } 
-xtask_base::meta getData(){
+xtask_info::meta getData(){
  	 return data; 
 } 
-std::vector<xtask_base::meta> getRecord(){
+std::vector<xtask_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<xtask_info::meta_tree> &tree_data, std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -3852,7 +3853,7 @@ std::vector<xtask_base::meta> getRecord(){
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<xtask_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -4084,7 +4085,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<xtask_info::meta_tree> &tree_data,std::function<bool(std::string&,const xtask_info::meta_tree&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -4108,7 +4109,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<xtask_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -4654,7 +4655,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] xtask_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] xtask_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -4748,7 +4749,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] xtask_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] xtask_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -4816,7 +4817,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] xtask_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] xtask_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -4861,52 +4862,55 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] xtask_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 21: 
+    			case xtask_info::cols::title: 
  				 a.emplace_back(iter.title);
 					 break;
-			case 22: 
+			case xtask_info::cols::introduce: 
  				 a.emplace_back(iter.introduce);
 					 break;
-			case 23: 
+			case xtask_info::cols::xlogo: 
  				 a.emplace_back(iter.xlogo);
 					 break;
-			case 24: 
+			case xtask_info::cols::xcolor: 
  				 a.emplace_back(iter.xcolor);
 					 break;
-			case 25: 
+			case xtask_info::cols::pullurl: 
  				 a.emplace_back(iter.pullurl);
 					 break;
-			case 26: 
+			case xtask_info::cols::pulltitle: 
  				 a.emplace_back(iter.pulltitle);
 					 break;
-			case 27: 
+			case xtask_info::cols::pullauthor: 
  				 a.emplace_back(iter.pullauthor);
 					 break;
-			case 28: 
+			case xtask_info::cols::note: 
  				 a.emplace_back(iter.note);
 					 break;
-			case 29: 
+			case xtask_info::cols::itemnote: 
  				 a.emplace_back(iter.itemnote);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(xtask::cols keyname, bool isyinhao=false)
+        std::string getstrCol(xtask_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -4929,118 +4933,118 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
                     switch(keyname)
                     {
 
-   			case xtask::cols::xtaskid: 
+   			case xtask_info::cols::xtaskid: 
  				 a<<std::to_string(iter.xtaskid);
 				 break;
-			case xtask::cols::userid: 
+			case xtask_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case xtask::cols::xpjid: 
+			case xtask_info::cols::xpjid: 
  				 a<<std::to_string(iter.xpjid);
 				 break;
-			case xtask::cols::adminid: 
+			case xtask_info::cols::adminid: 
  				 a<<std::to_string(iter.adminid);
 				 break;
-			case xtask::cols::parentid: 
+			case xtask_info::cols::parentid: 
  				 a<<std::to_string(iter.parentid);
 				 break;
-			case xtask::cols::begindate: 
+			case xtask_info::cols::begindate: 
  				 a<<std::to_string(iter.begindate);
 				 break;
-			case xtask::cols::enddate: 
+			case xtask_info::cols::enddate: 
  				 a<<std::to_string(iter.enddate);
 				 break;
-			case xtask::cols::expectbegindate: 
+			case xtask_info::cols::expectbegindate: 
  				 a<<std::to_string(iter.expectbegindate);
 				 break;
-			case xtask::cols::expectenddate: 
+			case xtask_info::cols::expectenddate: 
  				 a<<std::to_string(iter.expectenddate);
 				 break;
-			case xtask::cols::milestone: 
+			case xtask_info::cols::milestone: 
  				 a<<std::to_string(iter.milestone);
 				 break;
-			case xtask::cols::subxpjid: 
+			case xtask_info::cols::subxpjid: 
  				 a<<std::to_string(iter.subxpjid);
 				 break;
-			case xtask::cols::depxtaskid: 
+			case xtask_info::cols::depxtaskid: 
  				 a<<std::to_string(iter.depxtaskid);
 				 break;
-			case xtask::cols::referdocid: 
+			case xtask_info::cols::referdocid: 
  				 a<<std::to_string(iter.referdocid);
 				 break;
-			case xtask::cols::isfinish: 
+			case xtask_info::cols::isfinish: 
  				 a<<std::to_string(iter.isfinish);
 				 break;
-			case xtask::cols::updatedate: 
+			case xtask_info::cols::updatedate: 
  				 a<<std::to_string(iter.updatedate);
 				 break;
-			case xtask::cols::finishdate: 
+			case xtask_info::cols::finishdate: 
  				 a<<std::to_string(iter.finishdate);
 				 break;
-			case xtask::cols::iscore: 
+			case xtask_info::cols::iscore: 
  				 a<<std::to_string(iter.iscore);
 				 break;
-			case xtask::cols::xvalue: 
+			case xtask_info::cols::xvalue: 
  				 a<<std::to_string(iter.xvalue);
 				 break;
-			case xtask::cols::expectday: 
+			case xtask_info::cols::expectday: 
  				 a<<std::to_string(iter.expectday);
 				 break;
-			case xtask::cols::realday: 
+			case xtask_info::cols::realday: 
  				 a<<std::to_string(iter.realday);
 				 break;
-			case xtask::cols::pricevalue: 
+			case xtask_info::cols::pricevalue: 
  				 a<<std::to_string(iter.pricevalue);
 				 break;
-			case xtask::cols::title: 
+			case xtask_info::cols::title: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case xtask::cols::introduce: 
+			case xtask_info::cols::introduce: 
  				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
 				 }else{
 				 a<<iter.introduce;
 				 }
 				 break;
-			case xtask::cols::xlogo: 
+			case xtask_info::cols::xlogo: 
  				 if(isyinhao){ a<<jsonaddslash(iter.xlogo); 
 				 }else{
 				 a<<iter.xlogo;
 				 }
 				 break;
-			case xtask::cols::xcolor: 
+			case xtask_info::cols::xcolor: 
  				 if(isyinhao){ a<<jsonaddslash(iter.xcolor); 
 				 }else{
 				 a<<iter.xcolor;
 				 }
 				 break;
-			case xtask::cols::pullurl: 
+			case xtask_info::cols::pullurl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.pullurl); 
 				 }else{
 				 a<<iter.pullurl;
 				 }
 				 break;
-			case xtask::cols::pulltitle: 
+			case xtask_info::cols::pulltitle: 
  				 if(isyinhao){ a<<jsonaddslash(iter.pulltitle); 
 				 }else{
 				 a<<iter.pulltitle;
 				 }
 				 break;
-			case xtask::cols::pullauthor: 
+			case xtask_info::cols::pullauthor: 
  				 if(isyinhao){ a<<jsonaddslash(iter.pullauthor); 
 				 }else{
 				 a<<iter.pullauthor;
 				 }
 				 break;
-			case xtask::cols::note: 
+			case xtask_info::cols::note: 
  				 if(isyinhao){ a<<jsonaddslash(iter.note); 
 				 }else{
 				 a<<iter.note;
 				 }
 				 break;
-			case xtask::cols::itemnote: 
+			case xtask_info::cols::itemnote: 
  				 if(isyinhao){ a<<jsonaddslash(iter.itemnote); 
 				 }else{
 				 a<<iter.itemnote;
@@ -5060,7 +5064,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] xtask::cols keyname,[[maybe_unused]] xtask::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] xtask_info::cols keyname,[[maybe_unused]] xtask_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -5068,62 +5072,62 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case xtask::cols::title: 
+			{			case xtask_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case xtask::cols::introduce: 
+			case xtask_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case xtask::cols::xlogo: 
+			case xtask_info::cols::xlogo: 
  				 ktemp=iter.xlogo;
 				 break;
-			case xtask::cols::xcolor: 
+			case xtask_info::cols::xcolor: 
  				 ktemp=iter.xcolor;
 				 break;
-			case xtask::cols::pullurl: 
+			case xtask_info::cols::pullurl: 
  				 ktemp=iter.pullurl;
 				 break;
-			case xtask::cols::pulltitle: 
+			case xtask_info::cols::pulltitle: 
  				 ktemp=iter.pulltitle;
 				 break;
-			case xtask::cols::pullauthor: 
+			case xtask_info::cols::pullauthor: 
  				 ktemp=iter.pullauthor;
 				 break;
-			case xtask::cols::note: 
+			case xtask_info::cols::note: 
  				 ktemp=iter.note;
 				 break;
-			case xtask::cols::itemnote: 
+			case xtask_info::cols::itemnote: 
  				 ktemp=iter.itemnote;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case xtask::cols::title: 
+			case xtask_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case xtask::cols::introduce: 
+			case xtask_info::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case xtask::cols::xlogo: 
+			case xtask_info::cols::xlogo: 
  				 vtemp=iter.xlogo;
 				 break;
-			case xtask::cols::xcolor: 
+			case xtask_info::cols::xcolor: 
  				 vtemp=iter.xcolor;
 				 break;
-			case xtask::cols::pullurl: 
+			case xtask_info::cols::pullurl: 
  				 vtemp=iter.pullurl;
 				 break;
-			case xtask::cols::pulltitle: 
+			case xtask_info::cols::pulltitle: 
  				 vtemp=iter.pulltitle;
 				 break;
-			case xtask::cols::pullauthor: 
+			case xtask_info::cols::pullauthor: 
  				 vtemp=iter.pullauthor;
 				 break;
-			case xtask::cols::note: 
+			case xtask_info::cols::note: 
  				 vtemp=iter.note;
 				 break;
-			case xtask::cols::itemnote: 
+			case xtask_info::cols::itemnote: 
  				 vtemp=iter.itemnote;
 				 break;
 			default:
@@ -5140,7 +5144,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] xtask::cols keyname,[[maybe_unused]] xtask::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] xtask_info::cols keyname,[[maybe_unused]] xtask_info::cols valname) 
         {
                 std::map<std::string,U> a;
                 
@@ -5150,47 +5154,47 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
                 {    
  
        			switch(keyname) 
-			{			case xtask::cols::title: 
+			{			case xtask_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case xtask::cols::introduce: 
+			case xtask_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case xtask::cols::xlogo: 
+			case xtask_info::cols::xlogo: 
  				 ktemp=iter.xlogo;
 				 break;
-			case xtask::cols::xcolor: 
+			case xtask_info::cols::xcolor: 
  				 ktemp=iter.xcolor;
 				 break;
-			case xtask::cols::pullurl: 
+			case xtask_info::cols::pullurl: 
  				 ktemp=iter.pullurl;
 				 break;
-			case xtask::cols::pulltitle: 
+			case xtask_info::cols::pulltitle: 
  				 ktemp=iter.pulltitle;
 				 break;
-			case xtask::cols::pullauthor: 
+			case xtask_info::cols::pullauthor: 
  				 ktemp=iter.pullauthor;
 				 break;
-			case xtask::cols::note: 
+			case xtask_info::cols::note: 
  				 ktemp=iter.note;
 				 break;
-			case xtask::cols::itemnote: 
+			case xtask_info::cols::itemnote: 
  				 ktemp=iter.itemnote;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname) 
-			{			case xtask::cols::xvalue: 
+			{			case xtask_info::cols::xvalue: 
  				 vtemp=iter.xvalue;
 				 break;
-			case xtask::cols::expectday: 
+			case xtask_info::cols::expectday: 
  				 vtemp=iter.expectday;
 				 break;
-			case xtask::cols::realday: 
+			case xtask_info::cols::realday: 
  				 vtemp=iter.realday;
 				 break;
-			case xtask::cols::pricevalue: 
+			case xtask_info::cols::pricevalue: 
  				 vtemp=iter.pricevalue;
 				 break;
 			default:
@@ -5206,7 +5210,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] xtask::cols keyname,[[maybe_unused]] xtask::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] xtask_info::cols keyname,[[maybe_unused]] xtask_info::cols valname) 
         {
             std::map<T,U> a;
               
@@ -5215,55 +5219,55 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             for(auto &iter:record)
             {
        			switch(keyname) 
-			{case xtask::cols::xtaskid: 
+			{case xtask_info::cols::xtaskid: 
  	 ktemp=iter.xtaskid;
 	 break;
-case xtask::cols::userid: 
+case xtask_info::cols::userid: 
  	 ktemp=iter.userid;
 	 break;
-case xtask::cols::xpjid: 
+case xtask_info::cols::xpjid: 
  	 ktemp=iter.xpjid;
 	 break;
-case xtask::cols::adminid: 
+case xtask_info::cols::adminid: 
  	 ktemp=iter.adminid;
 	 break;
-case xtask::cols::parentid: 
+case xtask_info::cols::parentid: 
  	 ktemp=iter.parentid;
 	 break;
-case xtask::cols::begindate: 
+case xtask_info::cols::begindate: 
  	 ktemp=iter.begindate;
 	 break;
-case xtask::cols::enddate: 
+case xtask_info::cols::enddate: 
  	 ktemp=iter.enddate;
 	 break;
-case xtask::cols::expectbegindate: 
+case xtask_info::cols::expectbegindate: 
  	 ktemp=iter.expectbegindate;
 	 break;
-case xtask::cols::expectenddate: 
+case xtask_info::cols::expectenddate: 
  	 ktemp=iter.expectenddate;
 	 break;
-case xtask::cols::milestone: 
+case xtask_info::cols::milestone: 
  	 ktemp=iter.milestone;
 	 break;
-case xtask::cols::subxpjid: 
+case xtask_info::cols::subxpjid: 
  	 ktemp=iter.subxpjid;
 	 break;
-case xtask::cols::depxtaskid: 
+case xtask_info::cols::depxtaskid: 
  	 ktemp=iter.depxtaskid;
 	 break;
-case xtask::cols::referdocid: 
+case xtask_info::cols::referdocid: 
  	 ktemp=iter.referdocid;
 	 break;
-case xtask::cols::isfinish: 
+case xtask_info::cols::isfinish: 
  	 ktemp=iter.isfinish;
 	 break;
-case xtask::cols::updatedate: 
+case xtask_info::cols::updatedate: 
  	 ktemp=iter.updatedate;
 	 break;
-case xtask::cols::finishdate: 
+case xtask_info::cols::finishdate: 
  	 ktemp=iter.finishdate;
 	 break;
-case xtask::cols::iscore: 
+case xtask_info::cols::iscore: 
  	 ktemp=iter.iscore;
 	 break;
 			default:
@@ -5271,16 +5275,16 @@ case xtask::cols::iscore:
 			 }
 			switch(valname) 
 			{
-			case xtask::cols::xvalue: 
+			case xtask_info::cols::xvalue: 
  	 vtemp=iter.xvalue;
 	 break;
-case xtask::cols::expectday: 
+case xtask_info::cols::expectday: 
  	 vtemp=iter.expectday;
 	 break;
-case xtask::cols::realday: 
+case xtask_info::cols::realday: 
  	 vtemp=iter.realday;
 	 break;
-case xtask::cols::pricevalue: 
+case xtask_info::cols::pricevalue: 
  	 vtemp=iter.pricevalue;
 	 break;
 			default:
@@ -5292,7 +5296,7 @@ case xtask::cols::pricevalue:
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] xtask::cols keyname,[[maybe_unused]] xtask::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] xtask_info::cols keyname,[[maybe_unused]] xtask_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -5302,55 +5306,55 @@ case xtask::cols::pricevalue:
                 {
    
 			switch(keyname){
-			case xtask::cols::xtaskid: 
+			case xtask_info::cols::xtaskid: 
  				 ktemp=iter.xtaskid;
 				 break;
-			case xtask::cols::userid: 
+			case xtask_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case xtask::cols::xpjid: 
+			case xtask_info::cols::xpjid: 
  				 ktemp=iter.xpjid;
 				 break;
-			case xtask::cols::adminid: 
+			case xtask_info::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case xtask::cols::parentid: 
+			case xtask_info::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case xtask::cols::begindate: 
+			case xtask_info::cols::begindate: 
  				 ktemp=iter.begindate;
 				 break;
-			case xtask::cols::enddate: 
+			case xtask_info::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
-			case xtask::cols::expectbegindate: 
+			case xtask_info::cols::expectbegindate: 
  				 ktemp=iter.expectbegindate;
 				 break;
-			case xtask::cols::expectenddate: 
+			case xtask_info::cols::expectenddate: 
  				 ktemp=iter.expectenddate;
 				 break;
-			case xtask::cols::milestone: 
+			case xtask_info::cols::milestone: 
  				 ktemp=iter.milestone;
 				 break;
-			case xtask::cols::subxpjid: 
+			case xtask_info::cols::subxpjid: 
  				 ktemp=iter.subxpjid;
 				 break;
-			case xtask::cols::depxtaskid: 
+			case xtask_info::cols::depxtaskid: 
  				 ktemp=iter.depxtaskid;
 				 break;
-			case xtask::cols::referdocid: 
+			case xtask_info::cols::referdocid: 
  				 ktemp=iter.referdocid;
 				 break;
-			case xtask::cols::isfinish: 
+			case xtask_info::cols::isfinish: 
  				 ktemp=iter.isfinish;
 				 break;
-			case xtask::cols::updatedate: 
+			case xtask_info::cols::updatedate: 
  				 ktemp=iter.updatedate;
 				 break;
-			case xtask::cols::finishdate: 
+			case xtask_info::cols::finishdate: 
  				 ktemp=iter.finishdate;
 				 break;
-			case xtask::cols::iscore: 
+			case xtask_info::cols::iscore: 
  				 ktemp=iter.iscore;
 				 break;
 			default:
@@ -5358,31 +5362,31 @@ case xtask::cols::pricevalue:
 			 }
 
 			switch(valname){
-						case xtask::cols::title: 
+						case xtask_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case xtask::cols::introduce: 
+			case xtask_info::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case xtask::cols::xlogo: 
+			case xtask_info::cols::xlogo: 
  				 vtemp=iter.xlogo;
 				 break;
-			case xtask::cols::xcolor: 
+			case xtask_info::cols::xcolor: 
  				 vtemp=iter.xcolor;
 				 break;
-			case xtask::cols::pullurl: 
+			case xtask_info::cols::pullurl: 
  				 vtemp=iter.pullurl;
 				 break;
-			case xtask::cols::pulltitle: 
+			case xtask_info::cols::pulltitle: 
  				 vtemp=iter.pulltitle;
 				 break;
-			case xtask::cols::pullauthor: 
+			case xtask_info::cols::pullauthor: 
  				 vtemp=iter.pullauthor;
 				 break;
-			case xtask::cols::note: 
+			case xtask_info::cols::note: 
  				 vtemp=iter.note;
 				 break;
-			case xtask::cols::itemnote: 
+			case xtask_info::cols::itemnote: 
  				 vtemp=iter.itemnote;
 				 break;
 			default:
@@ -5395,7 +5399,7 @@ case xtask::cols::pricevalue:
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] xtask::cols keyname,[[maybe_unused]] xtask::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] xtask_info::cols keyname,[[maybe_unused]] xtask_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -5405,31 +5409,31 @@ case xtask::cols::pricevalue:
             {
    
 			switch(keyname){
-			case xtask::cols::title: 
+			case xtask_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case xtask::cols::introduce: 
+			case xtask_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case xtask::cols::xlogo: 
+			case xtask_info::cols::xlogo: 
  				 ktemp=iter.xlogo;
 				 break;
-			case xtask::cols::xcolor: 
+			case xtask_info::cols::xcolor: 
  				 ktemp=iter.xcolor;
 				 break;
-			case xtask::cols::pullurl: 
+			case xtask_info::cols::pullurl: 
  				 ktemp=iter.pullurl;
 				 break;
-			case xtask::cols::pulltitle: 
+			case xtask_info::cols::pulltitle: 
  				 ktemp=iter.pulltitle;
 				 break;
-			case xtask::cols::pullauthor: 
+			case xtask_info::cols::pullauthor: 
  				 ktemp=iter.pullauthor;
 				 break;
-			case xtask::cols::note: 
+			case xtask_info::cols::note: 
  				 ktemp=iter.note;
 				 break;
-			case xtask::cols::itemnote: 
+			case xtask_info::cols::itemnote: 
  				 ktemp=iter.itemnote;
 				 break;
 			default:
@@ -5437,55 +5441,55 @@ case xtask::cols::pricevalue:
 			 }
 
 			switch(valname){
-			case xtask::cols::xtaskid: 
+			case xtask_info::cols::xtaskid: 
  				 vtemp=iter.xtaskid;
 				 break;
-			case xtask::cols::userid: 
+			case xtask_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case xtask::cols::xpjid: 
+			case xtask_info::cols::xpjid: 
  				 vtemp=iter.xpjid;
 				 break;
-			case xtask::cols::adminid: 
+			case xtask_info::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case xtask::cols::parentid: 
+			case xtask_info::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case xtask::cols::begindate: 
+			case xtask_info::cols::begindate: 
  				 vtemp=iter.begindate;
 				 break;
-			case xtask::cols::enddate: 
+			case xtask_info::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
-			case xtask::cols::expectbegindate: 
+			case xtask_info::cols::expectbegindate: 
  				 vtemp=iter.expectbegindate;
 				 break;
-			case xtask::cols::expectenddate: 
+			case xtask_info::cols::expectenddate: 
  				 vtemp=iter.expectenddate;
 				 break;
-			case xtask::cols::milestone: 
+			case xtask_info::cols::milestone: 
  				 vtemp=iter.milestone;
 				 break;
-			case xtask::cols::subxpjid: 
+			case xtask_info::cols::subxpjid: 
  				 vtemp=iter.subxpjid;
 				 break;
-			case xtask::cols::depxtaskid: 
+			case xtask_info::cols::depxtaskid: 
  				 vtemp=iter.depxtaskid;
 				 break;
-			case xtask::cols::referdocid: 
+			case xtask_info::cols::referdocid: 
  				 vtemp=iter.referdocid;
 				 break;
-			case xtask::cols::isfinish: 
+			case xtask_info::cols::isfinish: 
  				 vtemp=iter.isfinish;
 				 break;
-			case xtask::cols::updatedate: 
+			case xtask_info::cols::updatedate: 
  				 vtemp=iter.updatedate;
 				 break;
-			case xtask::cols::finishdate: 
+			case xtask_info::cols::finishdate: 
  				 vtemp=iter.finishdate;
 				 break;
-			case xtask::cols::iscore: 
+			case xtask_info::cols::iscore: 
  				 vtemp=iter.iscore;
 				 break;
 			default:
@@ -5502,7 +5506,7 @@ case xtask::cols::pricevalue:
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] xtask::cols keyname,[[maybe_unused]] xtask::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] xtask_info::cols keyname,[[maybe_unused]] xtask_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -5513,55 +5517,55 @@ case xtask::cols::pricevalue:
 
    
 			switch(keyname){
-			case xtask::cols::xtaskid: 
+			case xtask_info::cols::xtaskid: 
  				 ktemp=iter.xtaskid;
 				 break;
-			case xtask::cols::userid: 
+			case xtask_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case xtask::cols::xpjid: 
+			case xtask_info::cols::xpjid: 
  				 ktemp=iter.xpjid;
 				 break;
-			case xtask::cols::adminid: 
+			case xtask_info::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case xtask::cols::parentid: 
+			case xtask_info::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case xtask::cols::begindate: 
+			case xtask_info::cols::begindate: 
  				 ktemp=iter.begindate;
 				 break;
-			case xtask::cols::enddate: 
+			case xtask_info::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
-			case xtask::cols::expectbegindate: 
+			case xtask_info::cols::expectbegindate: 
  				 ktemp=iter.expectbegindate;
 				 break;
-			case xtask::cols::expectenddate: 
+			case xtask_info::cols::expectenddate: 
  				 ktemp=iter.expectenddate;
 				 break;
-			case xtask::cols::milestone: 
+			case xtask_info::cols::milestone: 
  				 ktemp=iter.milestone;
 				 break;
-			case xtask::cols::subxpjid: 
+			case xtask_info::cols::subxpjid: 
  				 ktemp=iter.subxpjid;
 				 break;
-			case xtask::cols::depxtaskid: 
+			case xtask_info::cols::depxtaskid: 
  				 ktemp=iter.depxtaskid;
 				 break;
-			case xtask::cols::referdocid: 
+			case xtask_info::cols::referdocid: 
  				 ktemp=iter.referdocid;
 				 break;
-			case xtask::cols::isfinish: 
+			case xtask_info::cols::isfinish: 
  				 ktemp=iter.isfinish;
 				 break;
-			case xtask::cols::updatedate: 
+			case xtask_info::cols::updatedate: 
  				 ktemp=iter.updatedate;
 				 break;
-			case xtask::cols::finishdate: 
+			case xtask_info::cols::finishdate: 
  				 ktemp=iter.finishdate;
 				 break;
-			case xtask::cols::iscore: 
+			case xtask_info::cols::iscore: 
  				 ktemp=iter.iscore;
 				 break;
 			default:
@@ -5569,55 +5573,55 @@ case xtask::cols::pricevalue:
 			 }
 
 			switch(valname){
-			case xtask::cols::xtaskid: 
+			case xtask_info::cols::xtaskid: 
  				 vtemp=iter.xtaskid;
 				 break;
-			case xtask::cols::userid: 
+			case xtask_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case xtask::cols::xpjid: 
+			case xtask_info::cols::xpjid: 
  				 vtemp=iter.xpjid;
 				 break;
-			case xtask::cols::adminid: 
+			case xtask_info::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case xtask::cols::parentid: 
+			case xtask_info::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case xtask::cols::begindate: 
+			case xtask_info::cols::begindate: 
  				 vtemp=iter.begindate;
 				 break;
-			case xtask::cols::enddate: 
+			case xtask_info::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
-			case xtask::cols::expectbegindate: 
+			case xtask_info::cols::expectbegindate: 
  				 vtemp=iter.expectbegindate;
 				 break;
-			case xtask::cols::expectenddate: 
+			case xtask_info::cols::expectenddate: 
  				 vtemp=iter.expectenddate;
 				 break;
-			case xtask::cols::milestone: 
+			case xtask_info::cols::milestone: 
  				 vtemp=iter.milestone;
 				 break;
-			case xtask::cols::subxpjid: 
+			case xtask_info::cols::subxpjid: 
  				 vtemp=iter.subxpjid;
 				 break;
-			case xtask::cols::depxtaskid: 
+			case xtask_info::cols::depxtaskid: 
  				 vtemp=iter.depxtaskid;
 				 break;
-			case xtask::cols::referdocid: 
+			case xtask_info::cols::referdocid: 
  				 vtemp=iter.referdocid;
 				 break;
-			case xtask::cols::isfinish: 
+			case xtask_info::cols::isfinish: 
  				 vtemp=iter.isfinish;
 				 break;
-			case xtask::cols::updatedate: 
+			case xtask_info::cols::updatedate: 
  				 vtemp=iter.updatedate;
 				 break;
-			case xtask::cols::finishdate: 
+			case xtask_info::cols::finishdate: 
  				 vtemp=iter.finishdate;
 				 break;
-			case xtask::cols::iscore: 
+			case xtask_info::cols::iscore: 
  				 vtemp=iter.iscore;
 				 break;
 			default:
@@ -5631,9 +5635,9 @@ case xtask::cols::pricevalue:
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,xtask_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,xtask_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -5701,9 +5705,9 @@ case xtask::cols::pricevalue:
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,xtask_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,xtask_info::meta> a;
 
     
             unsigned char kpos;
@@ -6324,9 +6328,9 @@ case 29:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,xtask_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,xtask_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -6393,9 +6397,9 @@ case 16:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,xtask_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,xtask_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -8688,9 +8692,9 @@ case 29:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<xtask_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<xtask_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -8759,9 +8763,9 @@ case 29:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<xtask_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<xtask_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -8807,9 +8811,9 @@ case 29:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<xtask_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<xtask_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -8887,9 +8891,9 @@ case 29:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<xtask_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<xtask_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -8992,9 +8996,9 @@ case 29:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<xtask_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<xtask_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -9120,9 +9124,9 @@ case 29:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<xtask_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<xtask_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICSETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace topicset 
+namespace topicset_info
 {
+ 
     enum class cols : unsigned char 
     {
 		topicsetid = 0,
@@ -35,11 +36,6 @@ namespace topicset
 		sort = 8,
 
     };
- 
-}
-    
-struct topicset_base
-{
 
     struct meta{
      unsigned  int  topicsetid = 0; ///**/
@@ -51,18 +47,23 @@ struct topicset_base
  std::string  sidename = ""; ///**/
  std::string  txtcontent = ""; ///**/
  unsigned  int  sort = 0; ///**/
- } data;
- std::vector<topicset_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<topicset_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<topicset_base::meta>::iterator end(){     return record.end(); }
-std::vector<topicset_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<topicset_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,9> col_names={"topicsetid","userid","topicid","linktopicid","linkrownum","sidetype","sidename","txtcontent","sort"};
+ };
+ static constexpr std::array<std::string_view,9> col_names={"topicsetid","userid","topicid","linktopicid","linkrownum","sidetype","sidename","txtcontent","sort"};
 static constexpr std::array<unsigned char,9> col_types={3,3,3,3,1,1,253,252,3};
 static constexpr std::array<unsigned char,9> col_length={0,0,0,0,0,0,80,0,0};
 static constexpr std::array<unsigned char,9> col_decimals={0,0,0,0,0,0,0,0,0};
+
+}
+
+struct topicset_base
+{
+      topicset_info::meta data;
+    std::vector<topicset_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<topicset_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<topicset_info::meta>::iterator end(){     return record.end(); }
+std::vector<topicset_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<topicset_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="topicset";
 static constexpr std::string_view modelname="Topicset";
 
@@ -133,7 +134,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     topicset_base::meta metatemp;    
+     topicset_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -183,13 +184,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<topicset_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<topicset_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -239,19 +240,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const topicset_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<topicset_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<topicset_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -301,19 +302,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<topicset_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<topicset_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<topicset_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -549,7 +550,7 @@ if(data.sort==0){
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < topicset_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -559,7 +560,7 @@ if(data.sort==0){
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << topicset_info::col_names[j];
         }
         if (j > 0)
         {
@@ -624,7 +625,7 @@ if(data.sort==0){
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < topicset_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -634,7 +635,7 @@ if(data.sort==0){
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << topicset_info::col_names[j];
         }
         if (j > 0)
         {
@@ -758,7 +759,7 @@ if(data.sort==0){
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topicset_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -853,7 +854,7 @@ if(data.sort==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topicset_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -997,7 +998,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topicset_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1080,7 +1081,7 @@ if(data.sort==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        topicset_base::meta metatemp; 
+        topicset_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1560,7 +1561,7 @@ if(data.sort==0){
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<topicset_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -1649,7 +1650,7 @@ if(record[n].sort==0){
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,topicset_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1673,7 +1674,7 @@ if(record[n].sort==0){
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topicset_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1801,14 +1802,14 @@ if(record[n].sort==0){
  unsigned  int  getSort(){  return data.sort; } 
  void setSort( unsigned  int  val){  data.sort=val;} 
 
-topicset_base::meta getnewData(){
- 	 struct meta newdata;
+topicset_info::meta getnewData(){
+ 	 struct topicset_info::meta newdata;
 	 return newdata; 
 } 
-topicset_base::meta getData(){
+topicset_info::meta getData(){
  	 return data; 
 } 
-std::vector<topicset_base::meta> getRecord(){
+std::vector<topicset_info::meta> getRecord(){
  	 return record; 
 } 
 
@@ -1953,7 +1954,7 @@ std::vector<topicset_base::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] topicset_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] topicset_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2005,7 +2006,7 @@ std::vector<topicset_base::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] topicset_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] topicset_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2040,7 +2041,7 @@ std::vector<topicset_base::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] topicset_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] topicset_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2064,31 +2065,34 @@ std::vector<topicset_base::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] topicset_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 6: 
+    			case topicset_info::cols::sidename: 
  				 a.emplace_back(iter.sidename);
 					 break;
-			case 7: 
+			case topicset_info::cols::txtcontent: 
  				 a.emplace_back(iter.txtcontent);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(topicset::cols keyname, bool isyinhao=false)
+        std::string getstrCol(topicset_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -2111,37 +2115,37 @@ std::vector<topicset_base::meta> getRecord(){
                     switch(keyname)
                     {
 
-   			case topicset::cols::topicsetid: 
+   			case topicset_info::cols::topicsetid: 
  				 a<<std::to_string(iter.topicsetid);
 				 break;
-			case topicset::cols::userid: 
+			case topicset_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case topicset::cols::topicid: 
+			case topicset_info::cols::topicid: 
  				 a<<std::to_string(iter.topicid);
 				 break;
-			case topicset::cols::linktopicid: 
+			case topicset_info::cols::linktopicid: 
  				 a<<std::to_string(iter.linktopicid);
 				 break;
-			case topicset::cols::linkrownum: 
+			case topicset_info::cols::linkrownum: 
  				 a<<std::to_string(iter.linkrownum);
 				 break;
-			case topicset::cols::sidetype: 
+			case topicset_info::cols::sidetype: 
  				 a<<std::to_string(iter.sidetype);
 				 break;
-			case topicset::cols::sidename: 
+			case topicset_info::cols::sidename: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sidename); 
 				 }else{
 				 a<<iter.sidename;
 				 }
 				 break;
-			case topicset::cols::txtcontent: 
+			case topicset_info::cols::txtcontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.txtcontent); 
 				 }else{
 				 a<<iter.txtcontent;
 				 }
 				 break;
-			case topicset::cols::sort: 
+			case topicset_info::cols::sort: 
  				 a<<std::to_string(iter.sort);
 				 break;
 
@@ -2158,7 +2162,7 @@ std::vector<topicset_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] topicset_info::cols keyname,[[maybe_unused]] topicset_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -2166,20 +2170,20 @@ std::vector<topicset_base::meta> getRecord(){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case topicset::cols::sidename: 
+			{			case topicset_info::cols::sidename: 
  				 ktemp=iter.sidename;
 				 break;
-			case topicset::cols::txtcontent: 
+			case topicset_info::cols::txtcontent: 
  				 ktemp=iter.txtcontent;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case topicset::cols::sidename: 
+			case topicset_info::cols::sidename: 
  				 vtemp=iter.sidename;
 				 break;
-			case topicset::cols::txtcontent: 
+			case topicset_info::cols::txtcontent: 
  				 vtemp=iter.txtcontent;
 				 break;
 			default:
@@ -2196,7 +2200,7 @@ std::vector<topicset_base::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] topicset_info::cols keyname,[[maybe_unused]] topicset_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -2204,14 +2208,14 @@ std::vector<topicset_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] topicset_info::cols keyname,[[maybe_unused]] topicset_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] topicset_info::cols keyname,[[maybe_unused]] topicset_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -2221,25 +2225,25 @@ std::vector<topicset_base::meta> getRecord(){
                 {
    
 			switch(keyname){
-			case topicset::cols::topicsetid: 
+			case topicset_info::cols::topicsetid: 
  				 ktemp=iter.topicsetid;
 				 break;
-			case topicset::cols::userid: 
+			case topicset_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case topicset::cols::topicid: 
+			case topicset_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case topicset::cols::linktopicid: 
+			case topicset_info::cols::linktopicid: 
  				 ktemp=iter.linktopicid;
 				 break;
-			case topicset::cols::linkrownum: 
+			case topicset_info::cols::linkrownum: 
  				 ktemp=iter.linkrownum;
 				 break;
-			case topicset::cols::sidetype: 
+			case topicset_info::cols::sidetype: 
  				 ktemp=iter.sidetype;
 				 break;
-			case topicset::cols::sort: 
+			case topicset_info::cols::sort: 
  				 ktemp=iter.sort;
 				 break;
 			default:
@@ -2247,10 +2251,10 @@ std::vector<topicset_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-						case topicset::cols::sidename: 
+						case topicset_info::cols::sidename: 
  				 vtemp=iter.sidename;
 				 break;
-			case topicset::cols::txtcontent: 
+			case topicset_info::cols::txtcontent: 
  				 vtemp=iter.txtcontent;
 				 break;
 			default:
@@ -2263,7 +2267,7 @@ std::vector<topicset_base::meta> getRecord(){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] topicset_info::cols keyname,[[maybe_unused]] topicset_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -2273,10 +2277,10 @@ std::vector<topicset_base::meta> getRecord(){
             {
    
 			switch(keyname){
-			case topicset::cols::sidename: 
+			case topicset_info::cols::sidename: 
  				 ktemp=iter.sidename;
 				 break;
-			case topicset::cols::txtcontent: 
+			case topicset_info::cols::txtcontent: 
  				 ktemp=iter.txtcontent;
 				 break;
 			default:
@@ -2284,25 +2288,25 @@ std::vector<topicset_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case topicset::cols::topicsetid: 
+			case topicset_info::cols::topicsetid: 
  				 vtemp=iter.topicsetid;
 				 break;
-			case topicset::cols::userid: 
+			case topicset_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case topicset::cols::topicid: 
+			case topicset_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case topicset::cols::linktopicid: 
+			case topicset_info::cols::linktopicid: 
  				 vtemp=iter.linktopicid;
 				 break;
-			case topicset::cols::linkrownum: 
+			case topicset_info::cols::linkrownum: 
  				 vtemp=iter.linkrownum;
 				 break;
-			case topicset::cols::sidetype: 
+			case topicset_info::cols::sidetype: 
  				 vtemp=iter.sidetype;
 				 break;
-			case topicset::cols::sort: 
+			case topicset_info::cols::sort: 
  				 vtemp=iter.sort;
 				 break;
 			default:
@@ -2319,7 +2323,7 @@ std::vector<topicset_base::meta> getRecord(){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] topicset::cols keyname,[[maybe_unused]] topicset::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] topicset_info::cols keyname,[[maybe_unused]] topicset_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -2330,25 +2334,25 @@ std::vector<topicset_base::meta> getRecord(){
 
    
 			switch(keyname){
-			case topicset::cols::topicsetid: 
+			case topicset_info::cols::topicsetid: 
  				 ktemp=iter.topicsetid;
 				 break;
-			case topicset::cols::userid: 
+			case topicset_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case topicset::cols::topicid: 
+			case topicset_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case topicset::cols::linktopicid: 
+			case topicset_info::cols::linktopicid: 
  				 ktemp=iter.linktopicid;
 				 break;
-			case topicset::cols::linkrownum: 
+			case topicset_info::cols::linkrownum: 
  				 ktemp=iter.linkrownum;
 				 break;
-			case topicset::cols::sidetype: 
+			case topicset_info::cols::sidetype: 
  				 ktemp=iter.sidetype;
 				 break;
-			case topicset::cols::sort: 
+			case topicset_info::cols::sort: 
  				 ktemp=iter.sort;
 				 break;
 			default:
@@ -2356,25 +2360,25 @@ std::vector<topicset_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case topicset::cols::topicsetid: 
+			case topicset_info::cols::topicsetid: 
  				 vtemp=iter.topicsetid;
 				 break;
-			case topicset::cols::userid: 
+			case topicset_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case topicset::cols::topicid: 
+			case topicset_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case topicset::cols::linktopicid: 
+			case topicset_info::cols::linktopicid: 
  				 vtemp=iter.linktopicid;
 				 break;
-			case topicset::cols::linkrownum: 
+			case topicset_info::cols::linkrownum: 
  				 vtemp=iter.linkrownum;
 				 break;
-			case topicset::cols::sidetype: 
+			case topicset_info::cols::sidetype: 
  				 vtemp=iter.sidetype;
 				 break;
-			case topicset::cols::sort: 
+			case topicset_info::cols::sort: 
  				 vtemp=iter.sort;
 				 break;
 			default:
@@ -2388,9 +2392,9 @@ std::vector<topicset_base::meta> getRecord(){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,topicset_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,topicset_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -2428,9 +2432,9 @@ std::vector<topicset_base::meta> getRecord(){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,topicset_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,topicset_info::meta> a;
 
     
             unsigned char kpos;
@@ -2751,9 +2755,9 @@ case 7:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,topicset_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,topicset_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -2790,9 +2794,9 @@ case 8:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,topicset_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,topicset_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -3921,9 +3925,9 @@ case 7:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<topicset_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<topicset_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -3962,9 +3966,9 @@ case 7:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<topicset_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<topicset_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -3989,9 +3993,9 @@ case 7:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<topicset_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<topicset_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4027,9 +4031,9 @@ case 7:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<topicset_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<topicset_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4081,9 +4085,9 @@ case 7:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<topicset_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<topicset_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4149,9 +4153,9 @@ case 7:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<topicset_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<topicset_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

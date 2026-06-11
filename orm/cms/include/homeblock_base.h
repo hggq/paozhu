@@ -2,7 +2,7 @@
 #define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace homeblock 
+namespace homeblock_info
 {
+ 
     enum class cols : unsigned char 
     {
 		hbid = 0,
@@ -38,11 +39,6 @@ namespace homeblock
 		sortid = 11,
 
     };
- 
-}
-    
-struct homeblock_base
-{
 
     struct meta{
      unsigned  int  hbid = 0; ///**/
@@ -57,18 +53,23 @@ struct homeblock_base
  unsigned  int  height = 0; ///**/
  unsigned  int  strlength = 0; ///**/
  int  sortid = 0; ///**/
- } data;
- std::vector<homeblock_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<homeblock_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<homeblock_base::meta>::iterator end(){     return record.end(); }
-std::vector<homeblock_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<homeblock_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,12> col_names={"hbid","userid","title","content","jsonconfig","viewtype","gettype","rownum","width","height","strlength","sortid"};
+ };
+ static constexpr std::array<std::string_view,12> col_names={"hbid","userid","title","content","jsonconfig","viewtype","gettype","rownum","width","height","strlength","sortid"};
 static constexpr std::array<unsigned char,12> col_types={3,3,253,252,252,1,1,3,3,3,3,3};
 static constexpr std::array<unsigned char,12> col_length={0,0,120,0,0,0,0,0,0,0,0,0};
 static constexpr std::array<unsigned char,12> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct homeblock_base
+{
+      homeblock_info::meta data;
+    std::vector<homeblock_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<homeblock_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<homeblock_info::meta>::iterator end(){     return record.end(); }
+std::vector<homeblock_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<homeblock_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="homeblock";
 static constexpr std::string_view modelname="Homeblock";
 
@@ -146,7 +147,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     homeblock_base::meta metatemp;    
+     homeblock_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -196,13 +197,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<homeblock_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<homeblock_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -263,19 +264,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const homeblock_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<homeblock_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<homeblock_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -336,19 +337,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<homeblock_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<homeblock_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<homeblock_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -626,7 +627,7 @@ if(data.sortid==0){
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < homeblock_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -636,7 +637,7 @@ if(data.sortid==0){
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << homeblock_info::col_names[j];
         }
         if (j > 0)
         {
@@ -712,7 +713,7 @@ if(data.sortid==0){
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < homeblock_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -722,7 +723,7 @@ if(data.sortid==0){
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << homeblock_info::col_names[j];
         }
         if (j > 0)
         {
@@ -857,7 +858,7 @@ if(data.sortid==0){
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<homeblock_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -969,7 +970,7 @@ if(data.sortid==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<homeblock_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1142,7 +1143,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<homeblock_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1245,7 +1246,7 @@ if(data.sortid==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        homeblock_base::meta metatemp; 
+        homeblock_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1788,7 +1789,7 @@ if(data.sortid==0){
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<homeblock_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -1897,7 +1898,7 @@ if(record[n].sortid==0){
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,homeblock_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1921,7 +1922,7 @@ if(record[n].sortid==0){
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<homeblock_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -2080,14 +2081,14 @@ if(record[n].sortid==0){
  int  getSortid(){  return data.sortid; } 
  void setSortid( int  val){  data.sortid=val;} 
 
-homeblock_base::meta getnewData(){
- 	 struct meta newdata;
+homeblock_info::meta getnewData(){
+ 	 struct homeblock_info::meta newdata;
 	 return newdata; 
 } 
-homeblock_base::meta getData(){
+homeblock_info::meta getData(){
  	 return data; 
 } 
-std::vector<homeblock_base::meta> getRecord(){
+std::vector<homeblock_info::meta> getRecord(){
  	 return record; 
 } 
 
@@ -2256,7 +2257,7 @@ std::vector<homeblock_base::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] homeblock_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] homeblock_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2314,7 +2315,7 @@ std::vector<homeblock_base::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] homeblock_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] homeblock_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2352,7 +2353,7 @@ std::vector<homeblock_base::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] homeblock_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] homeblock_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2379,34 +2380,37 @@ std::vector<homeblock_base::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] homeblock_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 2: 
+    			case homeblock_info::cols::title: 
  				 a.emplace_back(iter.title);
 					 break;
-			case 3: 
+			case homeblock_info::cols::content: 
  				 a.emplace_back(iter.content);
 					 break;
-			case 4: 
+			case homeblock_info::cols::jsonconfig: 
  				 a.emplace_back(iter.jsonconfig);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(homeblock::cols keyname, bool isyinhao=false)
+        std::string getstrCol(homeblock_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -2429,49 +2433,49 @@ std::vector<homeblock_base::meta> getRecord(){
                     switch(keyname)
                     {
 
-   			case homeblock::cols::hbid: 
+   			case homeblock_info::cols::hbid: 
  				 a<<std::to_string(iter.hbid);
 				 break;
-			case homeblock::cols::userid: 
+			case homeblock_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case homeblock::cols::title: 
+			case homeblock_info::cols::title: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case homeblock::cols::content: 
+			case homeblock_info::cols::content: 
  				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
 				 a<<iter.content;
 				 }
 				 break;
-			case homeblock::cols::jsonconfig: 
+			case homeblock_info::cols::jsonconfig: 
  				 if(isyinhao){ a<<jsonaddslash(iter.jsonconfig); 
 				 }else{
 				 a<<iter.jsonconfig;
 				 }
 				 break;
-			case homeblock::cols::viewtype: 
+			case homeblock_info::cols::viewtype: 
  				 a<<std::to_string(iter.viewtype);
 				 break;
-			case homeblock::cols::gettype: 
+			case homeblock_info::cols::gettype: 
  				 a<<std::to_string(iter.gettype);
 				 break;
-			case homeblock::cols::rownum: 
+			case homeblock_info::cols::rownum: 
  				 a<<std::to_string(iter.rownum);
 				 break;
-			case homeblock::cols::width: 
+			case homeblock_info::cols::width: 
  				 a<<std::to_string(iter.width);
 				 break;
-			case homeblock::cols::height: 
+			case homeblock_info::cols::height: 
  				 a<<std::to_string(iter.height);
 				 break;
-			case homeblock::cols::strlength: 
+			case homeblock_info::cols::strlength: 
  				 a<<std::to_string(iter.strlength);
 				 break;
-			case homeblock::cols::sortid: 
+			case homeblock_info::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
 
@@ -2488,7 +2492,7 @@ std::vector<homeblock_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] homeblock::cols keyname,[[maybe_unused]] homeblock::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] homeblock_info::cols keyname,[[maybe_unused]] homeblock_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -2496,26 +2500,26 @@ std::vector<homeblock_base::meta> getRecord(){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case homeblock::cols::title: 
+			{			case homeblock_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case homeblock::cols::content: 
+			case homeblock_info::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			case homeblock::cols::jsonconfig: 
+			case homeblock_info::cols::jsonconfig: 
  				 ktemp=iter.jsonconfig;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case homeblock::cols::title: 
+			case homeblock_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case homeblock::cols::content: 
+			case homeblock_info::cols::content: 
  				 vtemp=iter.content;
 				 break;
-			case homeblock::cols::jsonconfig: 
+			case homeblock_info::cols::jsonconfig: 
  				 vtemp=iter.jsonconfig;
 				 break;
 			default:
@@ -2532,7 +2536,7 @@ std::vector<homeblock_base::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] homeblock::cols keyname,[[maybe_unused]] homeblock::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] homeblock_info::cols keyname,[[maybe_unused]] homeblock_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -2540,14 +2544,14 @@ std::vector<homeblock_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] homeblock::cols keyname,[[maybe_unused]] homeblock::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] homeblock_info::cols keyname,[[maybe_unused]] homeblock_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] homeblock::cols keyname,[[maybe_unused]] homeblock::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] homeblock_info::cols keyname,[[maybe_unused]] homeblock_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -2557,31 +2561,31 @@ std::vector<homeblock_base::meta> getRecord(){
                 {
    
 			switch(keyname){
-			case homeblock::cols::hbid: 
+			case homeblock_info::cols::hbid: 
  				 ktemp=iter.hbid;
 				 break;
-			case homeblock::cols::userid: 
+			case homeblock_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case homeblock::cols::viewtype: 
+			case homeblock_info::cols::viewtype: 
  				 ktemp=iter.viewtype;
 				 break;
-			case homeblock::cols::gettype: 
+			case homeblock_info::cols::gettype: 
  				 ktemp=iter.gettype;
 				 break;
-			case homeblock::cols::rownum: 
+			case homeblock_info::cols::rownum: 
  				 ktemp=iter.rownum;
 				 break;
-			case homeblock::cols::width: 
+			case homeblock_info::cols::width: 
  				 ktemp=iter.width;
 				 break;
-			case homeblock::cols::height: 
+			case homeblock_info::cols::height: 
  				 ktemp=iter.height;
 				 break;
-			case homeblock::cols::strlength: 
+			case homeblock_info::cols::strlength: 
  				 ktemp=iter.strlength;
 				 break;
-			case homeblock::cols::sortid: 
+			case homeblock_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
 			default:
@@ -2589,13 +2593,13 @@ std::vector<homeblock_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-						case homeblock::cols::title: 
+						case homeblock_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case homeblock::cols::content: 
+			case homeblock_info::cols::content: 
  				 vtemp=iter.content;
 				 break;
-			case homeblock::cols::jsonconfig: 
+			case homeblock_info::cols::jsonconfig: 
  				 vtemp=iter.jsonconfig;
 				 break;
 			default:
@@ -2608,7 +2612,7 @@ std::vector<homeblock_base::meta> getRecord(){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] homeblock::cols keyname,[[maybe_unused]] homeblock::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] homeblock_info::cols keyname,[[maybe_unused]] homeblock_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -2618,13 +2622,13 @@ std::vector<homeblock_base::meta> getRecord(){
             {
    
 			switch(keyname){
-			case homeblock::cols::title: 
+			case homeblock_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case homeblock::cols::content: 
+			case homeblock_info::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			case homeblock::cols::jsonconfig: 
+			case homeblock_info::cols::jsonconfig: 
  				 ktemp=iter.jsonconfig;
 				 break;
 			default:
@@ -2632,31 +2636,31 @@ std::vector<homeblock_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case homeblock::cols::hbid: 
+			case homeblock_info::cols::hbid: 
  				 vtemp=iter.hbid;
 				 break;
-			case homeblock::cols::userid: 
+			case homeblock_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case homeblock::cols::viewtype: 
+			case homeblock_info::cols::viewtype: 
  				 vtemp=iter.viewtype;
 				 break;
-			case homeblock::cols::gettype: 
+			case homeblock_info::cols::gettype: 
  				 vtemp=iter.gettype;
 				 break;
-			case homeblock::cols::rownum: 
+			case homeblock_info::cols::rownum: 
  				 vtemp=iter.rownum;
 				 break;
-			case homeblock::cols::width: 
+			case homeblock_info::cols::width: 
  				 vtemp=iter.width;
 				 break;
-			case homeblock::cols::height: 
+			case homeblock_info::cols::height: 
  				 vtemp=iter.height;
 				 break;
-			case homeblock::cols::strlength: 
+			case homeblock_info::cols::strlength: 
  				 vtemp=iter.strlength;
 				 break;
-			case homeblock::cols::sortid: 
+			case homeblock_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
 			default:
@@ -2673,7 +2677,7 @@ std::vector<homeblock_base::meta> getRecord(){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] homeblock::cols keyname,[[maybe_unused]] homeblock::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] homeblock_info::cols keyname,[[maybe_unused]] homeblock_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -2684,31 +2688,31 @@ std::vector<homeblock_base::meta> getRecord(){
 
    
 			switch(keyname){
-			case homeblock::cols::hbid: 
+			case homeblock_info::cols::hbid: 
  				 ktemp=iter.hbid;
 				 break;
-			case homeblock::cols::userid: 
+			case homeblock_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case homeblock::cols::viewtype: 
+			case homeblock_info::cols::viewtype: 
  				 ktemp=iter.viewtype;
 				 break;
-			case homeblock::cols::gettype: 
+			case homeblock_info::cols::gettype: 
  				 ktemp=iter.gettype;
 				 break;
-			case homeblock::cols::rownum: 
+			case homeblock_info::cols::rownum: 
  				 ktemp=iter.rownum;
 				 break;
-			case homeblock::cols::width: 
+			case homeblock_info::cols::width: 
  				 ktemp=iter.width;
 				 break;
-			case homeblock::cols::height: 
+			case homeblock_info::cols::height: 
  				 ktemp=iter.height;
 				 break;
-			case homeblock::cols::strlength: 
+			case homeblock_info::cols::strlength: 
  				 ktemp=iter.strlength;
 				 break;
-			case homeblock::cols::sortid: 
+			case homeblock_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
 			default:
@@ -2716,31 +2720,31 @@ std::vector<homeblock_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case homeblock::cols::hbid: 
+			case homeblock_info::cols::hbid: 
  				 vtemp=iter.hbid;
 				 break;
-			case homeblock::cols::userid: 
+			case homeblock_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case homeblock::cols::viewtype: 
+			case homeblock_info::cols::viewtype: 
  				 vtemp=iter.viewtype;
 				 break;
-			case homeblock::cols::gettype: 
+			case homeblock_info::cols::gettype: 
  				 vtemp=iter.gettype;
 				 break;
-			case homeblock::cols::rownum: 
+			case homeblock_info::cols::rownum: 
  				 vtemp=iter.rownum;
 				 break;
-			case homeblock::cols::width: 
+			case homeblock_info::cols::width: 
  				 vtemp=iter.width;
 				 break;
-			case homeblock::cols::height: 
+			case homeblock_info::cols::height: 
  				 vtemp=iter.height;
 				 break;
-			case homeblock::cols::strlength: 
+			case homeblock_info::cols::strlength: 
  				 vtemp=iter.strlength;
 				 break;
-			case homeblock::cols::sortid: 
+			case homeblock_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
 			default:
@@ -2754,9 +2758,9 @@ std::vector<homeblock_base::meta> getRecord(){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,homeblock_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,homeblock_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -2800,9 +2804,9 @@ std::vector<homeblock_base::meta> getRecord(){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,homeblock_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,homeblock_info::meta> a;
 
     
             unsigned char kpos;
@@ -3171,9 +3175,9 @@ case 4:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,homeblock_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,homeblock_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -3216,9 +3220,9 @@ case 11:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,homeblock_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,homeblock_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -4539,9 +4543,9 @@ case 4:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<homeblock_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<homeblock_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -4586,9 +4590,9 @@ case 4:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<homeblock_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<homeblock_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -4616,9 +4620,9 @@ case 4:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<homeblock_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<homeblock_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4660,9 +4664,9 @@ case 4:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<homeblock_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<homeblock_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4723,9 +4727,9 @@ case 4:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<homeblock_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<homeblock_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4803,9 +4807,9 @@ case 4:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<homeblock_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<homeblock_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

@@ -5,7 +5,7 @@
  *  @date 2022-05-04
  *  @update 2025-03-12
  *  @dest ORM MySQL中间连接层
- *  本文件自动生成 This document is automatically generated, Creation time (Thu, 11 Jun 2026 06:15:35 GMT)
+ *  本文件自动生成 This document is automatically generated, Creation time (Thu, 11 Jun 2026 11:46:15 GMT)
  */
 #include <iostream>
 #include <mutex>
@@ -35,6 +35,7 @@
 #include "mysql_conn_pool.h"
 #include "orm_cache.hpp"
 #include "mysql_connect_mar.h"
+#include "sysrole_base.h"
 /*baseincludefile*/
 namespace orm
 {
@@ -1147,7 +1148,7 @@ namespace cms
             co_return 0;
         }
 
-        void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned int value_size, typename B_BASE::meta &data_temp)
+        void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned int value_size, sysrole_info::meta &data_temp)
     {
         switch(index_pos)
         {
@@ -13263,7 +13264,7 @@ M_MODEL& or_leRolevalue(T val)
                                 unsigned int column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
-                                typename B_BASE::meta data_temp;
+                                sysrole_info::meta data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
@@ -13480,7 +13481,7 @@ M_MODEL& or_leRolevalue(T val)
                                 unsigned int column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
-                                typename B_BASE::meta data_temp;
+                                sysrole_info::meta data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
@@ -13694,7 +13695,7 @@ M_MODEL& or_leRolevalue(T val)
                                 unsigned int column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
-                                typename B_BASE::meta data_temp;
+                                sysrole_info::meta data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
@@ -13913,7 +13914,7 @@ M_MODEL& or_leRolevalue(T val)
                                 unsigned int column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
-                                typename B_BASE::meta data_temp;
+                                sysrole_info::meta data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
@@ -14127,7 +14128,7 @@ M_MODEL& or_leRolevalue(T val)
 
                                 if (isappend)
                                 {
-                                    typename B_BASE::meta data_temp;
+                                    sysrole_info::meta data_temp;
                                     for (unsigned int ij = 0; ij < column_num; ij++)
                                     {
                                         unsigned long long name_length = 0;
@@ -14359,7 +14360,7 @@ M_MODEL& or_leRolevalue(T val)
 
                                 if (isappend)
                                 {
-                                    typename B_BASE::meta data_temp;
+                                    sysrole_info::meta data_temp;
                                     for (unsigned int ij = 0; ij < column_num; ij++)
                                     {
                                         unsigned long long name_length = 0;
@@ -14450,28 +14451,28 @@ M_MODEL& or_leRolevalue(T val)
         void set_cache_state(bool isrestatus = false) { iscache = isrestatus; }
         void remove_exptime_cache()
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
             temp_cache.remove_exptime();
         }
         void clear_cache()
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
             temp_cache.clear();
         }
         bool remove_cache()
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
             return temp_cache.remove(sqlhashid);
         }
         bool remove_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
             return temp_cache.remove(cache_key_name);
         }
         int check_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
             return temp_cache.check(cache_key_name);
         }
 
@@ -14479,7 +14480,7 @@ M_MODEL& or_leRolevalue(T val)
         {
             try
             {
-                model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+                model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
                 B_BASE::data                                        = temp_cache.get(cache_key_name);
                 return true;
             }
@@ -14503,18 +14504,18 @@ M_MODEL& or_leRolevalue(T val)
         }
         int update_cache(int exp_time = 0)
         {
-            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            model_meta_cache<std::vector<sysrole_info::meta>> &temp_cache = model_meta_cache<std::vector<sysrole_info::meta>>::getinstance();
             std::size_t sqlhashid                                            = std::hash<std::string>{}(sqlstring);
             return temp_cache.update(sqlhashid, exp_time);
         }
         int update_cache(std::size_t cache_key_name, int exp_time)
         {
-            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            model_meta_cache<std::vector<sysrole_info::meta>> &temp_cache = model_meta_cache<std::vector<sysrole_info::meta>>::getinstance();
             return temp_cache.update(cache_key_name, exp_time);
         }
         bool save_cache(int exp_time = 0)
         {
-            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            model_meta_cache<std::vector<sysrole_info::meta>> &temp_cache = model_meta_cache<std::vector<sysrole_info::meta>>::getinstance();
             std::size_t sqlhashid                                            = std::hash<std::string>{}(sqlstring);
             temp_cache.save(sqlhashid, B_BASE::record, exp_time);
             return true;
@@ -14522,52 +14523,52 @@ M_MODEL& or_leRolevalue(T val)
 
         bool save_data_cache(int exp_time = 0)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
             temp_cache.save(sqlhashid, B_BASE::data, exp_time);
             return true;
         }
 
-        bool save_data_cache(const std::string &cache_key_name, const typename B_BASE::meta &cache_data, int exp_time = 0)
+        bool save_data_cache(const std::string &cache_key_name, const sysrole_info::meta &cache_data, int exp_time = 0)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
 
-        bool save_cache(std::size_t cache_key_name, const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        bool save_cache(std::size_t cache_key_name, const std::vector<sysrole_info::meta> &cache_data, int exp_time = 0)
         {
-            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            model_meta_cache<std::vector<sysrole_info::meta>> &temp_cache = model_meta_cache<std::vector<sysrole_info::meta>>::getinstance();
             temp_cache.save(cache_key_name, cache_data, exp_time);
             return true;
         }
-        bool save_cache(const std::string cache_key_name, const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        bool save_cache(const std::string cache_key_name, const std::vector<sysrole_info::meta> &cache_data, int exp_time = 0)
         {
-            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            model_meta_cache<std::vector<sysrole_info::meta>> &temp_cache = model_meta_cache<std::vector<sysrole_info::meta>>::getinstance();
             std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        bool save_vector_cache(const std::string cache_key_name, const std::vector<typename B_BASE::meta> &cache_data, int exp_time = 0)
+        bool save_vector_cache(const std::string cache_key_name, const std::vector<sysrole_info::meta> &cache_data, int exp_time = 0)
         {
-            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            model_meta_cache<std::vector<sysrole_info::meta>> &temp_cache = model_meta_cache<std::vector<sysrole_info::meta>>::getinstance();
             std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        bool save_cache(const std::string cache_key_name, const typename B_BASE::meta &cache_data, int exp_time = 0)
+        bool save_cache(const std::string cache_key_name, const sysrole_info::meta &cache_data, int exp_time = 0)
         {
-            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        typename B_BASE::meta &get_cache(const std::string &cache_key_name)
+        const sysrole_info::meta &get_cache(const std::string &cache_key_name)
         {
             try
             {
-                model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+                model_meta_cache<sysrole_info::meta> &temp_cache = model_meta_cache<sysrole_info::meta>::getinstance();
                 std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
                 return temp_cache.get(sqlhashid);
             }
@@ -14589,11 +14590,11 @@ M_MODEL& or_leRolevalue(T val)
             throw "Not in cache";
         }
 
-        std::vector<typename B_BASE::meta> &get_vector_cache(const std::string &cache_key_name)
+        const std::vector<sysrole_info::meta> &get_vector_cache(const std::string &cache_key_name)
         {
             try
             {
-                model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+                model_meta_cache<std::vector<sysrole_info::meta>> &temp_cache = model_meta_cache<std::vector<sysrole_info::meta>>::getinstance();
                 std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
                 return temp_cache.get(sqlhashid);
             }
@@ -14619,7 +14620,7 @@ M_MODEL& or_leRolevalue(T val)
         {
             try
             {
-                model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+                model_meta_cache<std::vector<sysrole_info::meta>> &temp_cache = model_meta_cache<std::vector<sysrole_info::meta>>::getinstance();
                 B_BASE::record                                                   = temp_cache.get(cache_key_name);
                 return true;
             }
@@ -16858,7 +16859,7 @@ M_MODEL& or_leRolevalue(T val)
             }
             return 0;
         }
-        std::tuple<unsigned int, unsigned long long> insert(typename B_BASE::meta &insert_data)
+        std::tuple<unsigned int, unsigned long long> insert(sysrole_info::meta &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
@@ -16958,7 +16959,7 @@ M_MODEL& or_leRolevalue(T val)
             return std::make_tuple(0, 0);
         }
 
-        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(typename B_BASE::meta &insert_data)
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(sysrole_info::meta &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
@@ -17056,7 +17057,7 @@ M_MODEL& or_leRolevalue(T val)
             co_return std::make_tuple(0, 0);
         }
 
-        std::tuple<unsigned int, unsigned long long> insert(std::vector<typename B_BASE::meta> &insert_data)
+        std::tuple<unsigned int, unsigned long long> insert(std::vector<sysrole_info::meta> &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
@@ -17155,7 +17156,7 @@ M_MODEL& or_leRolevalue(T val)
             return std::make_tuple(0, 0);
         }
 
-        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(std::vector<typename B_BASE::meta> &insert_data)
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(std::vector<sysrole_info::meta> &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
@@ -18291,7 +18292,7 @@ M_MODEL& or_leRolevalue(T val)
             effect_num   = 0;
             return *mod;
         }
-        M_MODEL &set_data(typename B_BASE::meta indata)
+        M_MODEL &set_data(sysrole_info::meta indata)
         {
             B_BASE::data = indata;
             return *mod;

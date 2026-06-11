@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace siteinfo 
+namespace siteinfo_info
 {
+ 
     enum class cols : unsigned char 
     {
 		sid = 0,
@@ -59,11 +60,6 @@ namespace siteinfo
 		enddate = 32,
 
     };
- 
-}
-    
-struct siteinfo_base
-{
 
     struct meta{
      int  sid = 0; ///**/
@@ -99,18 +95,23 @@ struct siteinfo_base
  unsigned  char  isopen = 0; ///**/
  unsigned  int  created_at = 0; ///**/
  unsigned  int  enddate = 0; ///**/
- } data;
- std::vector<siteinfo_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<siteinfo_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<siteinfo_base::meta>::iterator end(){     return record.end(); }
-std::vector<siteinfo_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<siteinfo_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,33> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","sitebanner","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
+ };
+ static constexpr std::array<std::string_view,33> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","sitebanner","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
 static constexpr std::array<unsigned char,33> col_types={3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
 static constexpr std::array<unsigned char,33> col_length={0,0,0,0,120,120,0,0,0,0,0,0,0,0,0,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
 static constexpr std::array<unsigned char,33> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct siteinfo_base
+{
+      siteinfo_info::meta data;
+    std::vector<siteinfo_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<siteinfo_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<siteinfo_info::meta>::iterator end(){     return record.end(); }
+std::vector<siteinfo_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<siteinfo_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="siteinfo";
 static constexpr std::string_view modelname="Siteinfo";
 
@@ -277,7 +278,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     siteinfo_base::meta metatemp;    
+     siteinfo_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -327,13 +328,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<siteinfo_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<siteinfo_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -407,19 +408,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const siteinfo_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<siteinfo_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<siteinfo_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -493,19 +494,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<siteinfo_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<siteinfo_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<siteinfo_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -885,7 +886,7 @@ if(data.enddate==0){
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < siteinfo_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -895,7 +896,7 @@ if(data.enddate==0){
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << siteinfo_info::col_names[j];
         }
         if (j > 0)
         {
@@ -984,7 +985,7 @@ if(data.enddate==0){
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < siteinfo_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -994,7 +995,7 @@ if(data.enddate==0){
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << siteinfo_info::col_names[j];
         }
         if (j > 0)
         {
@@ -1142,7 +1143,7 @@ if(data.enddate==0){
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<siteinfo_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1309,7 +1310,7 @@ if(data.enddate==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<siteinfo_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1573,7 +1574,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<siteinfo_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1752,7 +1753,7 @@ if(data.enddate==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        siteinfo_base::meta metatemp; 
+        siteinfo_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -2736,7 +2737,7 @@ if(data.enddate==0){
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<siteinfo_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -2921,7 +2922,7 @@ if(record[n].enddate==0){
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,siteinfo_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2945,7 +2946,7 @@ if(record[n].enddate==0){
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<siteinfo_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -3289,14 +3290,14 @@ if(record[n].enddate==0){
  unsigned  int  getEnddate(){  return data.enddate; } 
  void setEnddate( unsigned  int  val){  data.enddate=val;} 
 
-siteinfo_base::meta getnewData(){
- 	 struct meta newdata;
+siteinfo_info::meta getnewData(){
+ 	 struct siteinfo_info::meta newdata;
 	 return newdata; 
 } 
-siteinfo_base::meta getData(){
+siteinfo_info::meta getData(){
  	 return data; 
 } 
-std::vector<siteinfo_base::meta> getRecord(){
+std::vector<siteinfo_info::meta> getRecord(){
  	 return record; 
 } 
 
@@ -3537,7 +3538,7 @@ std::vector<siteinfo_base::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] siteinfo_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] siteinfo_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3589,7 +3590,7 @@ std::vector<siteinfo_base::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] siteinfo_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] siteinfo_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -3696,7 +3697,7 @@ std::vector<siteinfo_base::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] siteinfo_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] siteinfo_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -3792,103 +3793,106 @@ std::vector<siteinfo_base::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] siteinfo_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 4: 
+    			case siteinfo_info::cols::sitename: 
  				 a.emplace_back(iter.sitename);
 					 break;
-			case 5: 
+			case siteinfo_info::cols::sitedomain: 
  				 a.emplace_back(iter.sitedomain);
 					 break;
-			case 6: 
+			case siteinfo_info::cols::metakeys: 
  				 a.emplace_back(iter.metakeys);
 					 break;
-			case 7: 
+			case siteinfo_info::cols::metadesc: 
  				 a.emplace_back(iter.metadesc);
 					 break;
-			case 8: 
+			case siteinfo_info::cols::copyright: 
  				 a.emplace_back(iter.copyright);
 					 break;
-			case 9: 
+			case siteinfo_info::cols::beiansn: 
  				 a.emplace_back(iter.beiansn);
 					 break;
-			case 10: 
+			case siteinfo_info::cols::footscript: 
  				 a.emplace_back(iter.footscript);
 					 break;
-			case 11: 
+			case siteinfo_info::cols::headscript: 
  				 a.emplace_back(iter.headscript);
 					 break;
-			case 12: 
+			case siteinfo_info::cols::introduce: 
  				 a.emplace_back(iter.introduce);
 					 break;
-			case 13: 
+			case siteinfo_info::cols::sitelogo: 
  				 a.emplace_back(iter.sitelogo);
 					 break;
-			case 14: 
+			case siteinfo_info::cols::sitebanner: 
  				 a.emplace_back(iter.sitebanner);
 					 break;
-			case 15: 
+			case siteinfo_info::cols::contactman: 
  				 a.emplace_back(iter.contactman);
 					 break;
-			case 16: 
+			case siteinfo_info::cols::phone: 
  				 a.emplace_back(iter.phone);
 					 break;
-			case 17: 
+			case siteinfo_info::cols::mobile: 
  				 a.emplace_back(iter.mobile);
 					 break;
-			case 18: 
+			case siteinfo_info::cols::email: 
  				 a.emplace_back(iter.email);
 					 break;
-			case 19: 
+			case siteinfo_info::cols::bankname: 
  				 a.emplace_back(iter.bankname);
 					 break;
-			case 20: 
+			case siteinfo_info::cols::banksn: 
  				 a.emplace_back(iter.banksn);
 					 break;
-			case 21: 
+			case siteinfo_info::cols::address: 
  				 a.emplace_back(iter.address);
 					 break;
-			case 22: 
+			case siteinfo_info::cols::zipnum: 
  				 a.emplace_back(iter.zipnum);
 					 break;
-			case 23: 
+			case siteinfo_info::cols::taxsn: 
  				 a.emplace_back(iter.taxsn);
 					 break;
-			case 24: 
+			case siteinfo_info::cols::companyname: 
  				 a.emplace_back(iter.companyname);
 					 break;
-			case 25: 
+			case siteinfo_info::cols::linkname: 
  				 a.emplace_back(iter.linkname);
 					 break;
-			case 26: 
+			case siteinfo_info::cols::linkmobile: 
  				 a.emplace_back(iter.linkmobile);
 					 break;
-			case 27: 
+			case siteinfo_info::cols::linkaddress: 
  				 a.emplace_back(iter.linkaddress);
 					 break;
-			case 28: 
+			case siteinfo_info::cols::theme: 
  				 a.emplace_back(iter.theme);
 					 break;
-			case 29: 
+			case siteinfo_info::cols::sitepath: 
  				 a.emplace_back(iter.sitepath);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(siteinfo::cols keyname, bool isyinhao=false)
+        std::string getstrCol(siteinfo_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -3911,181 +3915,181 @@ std::vector<siteinfo_base::meta> getRecord(){
                     switch(keyname)
                     {
 
-   			case siteinfo::cols::sid: 
+   			case siteinfo_info::cols::sid: 
  				 a<<std::to_string(iter.sid);
 				 break;
-			case siteinfo::cols::userid: 
+			case siteinfo_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case siteinfo::cols::agentid: 
+			case siteinfo_info::cols::agentid: 
  				 a<<std::to_string(iter.agentid);
 				 break;
-			case siteinfo::cols::languagetype: 
+			case siteinfo_info::cols::languagetype: 
  				 a<<std::to_string(iter.languagetype);
 				 break;
-			case siteinfo::cols::sitename: 
+			case siteinfo_info::cols::sitename: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitename); 
 				 }else{
 				 a<<iter.sitename;
 				 }
 				 break;
-			case siteinfo::cols::sitedomain: 
+			case siteinfo_info::cols::sitedomain: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitedomain); 
 				 }else{
 				 a<<iter.sitedomain;
 				 }
 				 break;
-			case siteinfo::cols::metakeys: 
+			case siteinfo_info::cols::metakeys: 
  				 if(isyinhao){ a<<jsonaddslash(iter.metakeys); 
 				 }else{
 				 a<<iter.metakeys;
 				 }
 				 break;
-			case siteinfo::cols::metadesc: 
+			case siteinfo_info::cols::metadesc: 
  				 if(isyinhao){ a<<jsonaddslash(iter.metadesc); 
 				 }else{
 				 a<<iter.metadesc;
 				 }
 				 break;
-			case siteinfo::cols::copyright: 
+			case siteinfo_info::cols::copyright: 
  				 if(isyinhao){ a<<jsonaddslash(iter.copyright); 
 				 }else{
 				 a<<iter.copyright;
 				 }
 				 break;
-			case siteinfo::cols::beiansn: 
+			case siteinfo_info::cols::beiansn: 
  				 if(isyinhao){ a<<jsonaddslash(iter.beiansn); 
 				 }else{
 				 a<<iter.beiansn;
 				 }
 				 break;
-			case siteinfo::cols::footscript: 
+			case siteinfo_info::cols::footscript: 
  				 if(isyinhao){ a<<jsonaddslash(iter.footscript); 
 				 }else{
 				 a<<iter.footscript;
 				 }
 				 break;
-			case siteinfo::cols::headscript: 
+			case siteinfo_info::cols::headscript: 
  				 if(isyinhao){ a<<jsonaddslash(iter.headscript); 
 				 }else{
 				 a<<iter.headscript;
 				 }
 				 break;
-			case siteinfo::cols::introduce: 
+			case siteinfo_info::cols::introduce: 
  				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
 				 }else{
 				 a<<iter.introduce;
 				 }
 				 break;
-			case siteinfo::cols::sitelogo: 
+			case siteinfo_info::cols::sitelogo: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitelogo); 
 				 }else{
 				 a<<iter.sitelogo;
 				 }
 				 break;
-			case siteinfo::cols::sitebanner: 
+			case siteinfo_info::cols::sitebanner: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitebanner); 
 				 }else{
 				 a<<iter.sitebanner;
 				 }
 				 break;
-			case siteinfo::cols::contactman: 
+			case siteinfo_info::cols::contactman: 
  				 if(isyinhao){ a<<jsonaddslash(iter.contactman); 
 				 }else{
 				 a<<iter.contactman;
 				 }
 				 break;
-			case siteinfo::cols::phone: 
+			case siteinfo_info::cols::phone: 
  				 if(isyinhao){ a<<jsonaddslash(iter.phone); 
 				 }else{
 				 a<<iter.phone;
 				 }
 				 break;
-			case siteinfo::cols::mobile: 
+			case siteinfo_info::cols::mobile: 
  				 if(isyinhao){ a<<jsonaddslash(iter.mobile); 
 				 }else{
 				 a<<iter.mobile;
 				 }
 				 break;
-			case siteinfo::cols::email: 
+			case siteinfo_info::cols::email: 
  				 if(isyinhao){ a<<jsonaddslash(iter.email); 
 				 }else{
 				 a<<iter.email;
 				 }
 				 break;
-			case siteinfo::cols::bankname: 
+			case siteinfo_info::cols::bankname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.bankname); 
 				 }else{
 				 a<<iter.bankname;
 				 }
 				 break;
-			case siteinfo::cols::banksn: 
+			case siteinfo_info::cols::banksn: 
  				 if(isyinhao){ a<<jsonaddslash(iter.banksn); 
 				 }else{
 				 a<<iter.banksn;
 				 }
 				 break;
-			case siteinfo::cols::address: 
+			case siteinfo_info::cols::address: 
  				 if(isyinhao){ a<<jsonaddslash(iter.address); 
 				 }else{
 				 a<<iter.address;
 				 }
 				 break;
-			case siteinfo::cols::zipnum: 
+			case siteinfo_info::cols::zipnum: 
  				 if(isyinhao){ a<<jsonaddslash(iter.zipnum); 
 				 }else{
 				 a<<iter.zipnum;
 				 }
 				 break;
-			case siteinfo::cols::taxsn: 
+			case siteinfo_info::cols::taxsn: 
  				 if(isyinhao){ a<<jsonaddslash(iter.taxsn); 
 				 }else{
 				 a<<iter.taxsn;
 				 }
 				 break;
-			case siteinfo::cols::companyname: 
+			case siteinfo_info::cols::companyname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.companyname); 
 				 }else{
 				 a<<iter.companyname;
 				 }
 				 break;
-			case siteinfo::cols::linkname: 
+			case siteinfo_info::cols::linkname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkname); 
 				 }else{
 				 a<<iter.linkname;
 				 }
 				 break;
-			case siteinfo::cols::linkmobile: 
+			case siteinfo_info::cols::linkmobile: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkmobile); 
 				 }else{
 				 a<<iter.linkmobile;
 				 }
 				 break;
-			case siteinfo::cols::linkaddress: 
+			case siteinfo_info::cols::linkaddress: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkaddress); 
 				 }else{
 				 a<<iter.linkaddress;
 				 }
 				 break;
-			case siteinfo::cols::theme: 
+			case siteinfo_info::cols::theme: 
  				 if(isyinhao){ a<<jsonaddslash(iter.theme); 
 				 }else{
 				 a<<iter.theme;
 				 }
 				 break;
-			case siteinfo::cols::sitepath: 
+			case siteinfo_info::cols::sitepath: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sitepath); 
 				 }else{
 				 a<<iter.sitepath;
 				 }
 				 break;
-			case siteinfo::cols::isopen: 
+			case siteinfo_info::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case siteinfo::cols::created_at: 
+			case siteinfo_info::cols::created_at: 
  				 a<<std::to_string(iter.created_at);
 				 break;
-			case siteinfo::cols::enddate: 
+			case siteinfo_info::cols::enddate: 
  				 a<<std::to_string(iter.enddate);
 				 break;
 
@@ -4102,7 +4106,7 @@ std::vector<siteinfo_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] siteinfo_info::cols keyname,[[maybe_unused]] siteinfo_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -4110,164 +4114,164 @@ std::vector<siteinfo_base::meta> getRecord(){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case siteinfo::cols::sitename: 
+			{			case siteinfo_info::cols::sitename: 
  				 ktemp=iter.sitename;
 				 break;
-			case siteinfo::cols::sitedomain: 
+			case siteinfo_info::cols::sitedomain: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case siteinfo::cols::metakeys: 
+			case siteinfo_info::cols::metakeys: 
  				 ktemp=iter.metakeys;
 				 break;
-			case siteinfo::cols::metadesc: 
+			case siteinfo_info::cols::metadesc: 
  				 ktemp=iter.metadesc;
 				 break;
-			case siteinfo::cols::copyright: 
+			case siteinfo_info::cols::copyright: 
  				 ktemp=iter.copyright;
 				 break;
-			case siteinfo::cols::beiansn: 
+			case siteinfo_info::cols::beiansn: 
  				 ktemp=iter.beiansn;
 				 break;
-			case siteinfo::cols::footscript: 
+			case siteinfo_info::cols::footscript: 
  				 ktemp=iter.footscript;
 				 break;
-			case siteinfo::cols::headscript: 
+			case siteinfo_info::cols::headscript: 
  				 ktemp=iter.headscript;
 				 break;
-			case siteinfo::cols::introduce: 
+			case siteinfo_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case siteinfo::cols::sitelogo: 
+			case siteinfo_info::cols::sitelogo: 
  				 ktemp=iter.sitelogo;
 				 break;
-			case siteinfo::cols::sitebanner: 
+			case siteinfo_info::cols::sitebanner: 
  				 ktemp=iter.sitebanner;
 				 break;
-			case siteinfo::cols::contactman: 
+			case siteinfo_info::cols::contactman: 
  				 ktemp=iter.contactman;
 				 break;
-			case siteinfo::cols::phone: 
+			case siteinfo_info::cols::phone: 
  				 ktemp=iter.phone;
 				 break;
-			case siteinfo::cols::mobile: 
+			case siteinfo_info::cols::mobile: 
  				 ktemp=iter.mobile;
 				 break;
-			case siteinfo::cols::email: 
+			case siteinfo_info::cols::email: 
  				 ktemp=iter.email;
 				 break;
-			case siteinfo::cols::bankname: 
+			case siteinfo_info::cols::bankname: 
  				 ktemp=iter.bankname;
 				 break;
-			case siteinfo::cols::banksn: 
+			case siteinfo_info::cols::banksn: 
  				 ktemp=iter.banksn;
 				 break;
-			case siteinfo::cols::address: 
+			case siteinfo_info::cols::address: 
  				 ktemp=iter.address;
 				 break;
-			case siteinfo::cols::zipnum: 
+			case siteinfo_info::cols::zipnum: 
  				 ktemp=iter.zipnum;
 				 break;
-			case siteinfo::cols::taxsn: 
+			case siteinfo_info::cols::taxsn: 
  				 ktemp=iter.taxsn;
 				 break;
-			case siteinfo::cols::companyname: 
+			case siteinfo_info::cols::companyname: 
  				 ktemp=iter.companyname;
 				 break;
-			case siteinfo::cols::linkname: 
+			case siteinfo_info::cols::linkname: 
  				 ktemp=iter.linkname;
 				 break;
-			case siteinfo::cols::linkmobile: 
+			case siteinfo_info::cols::linkmobile: 
  				 ktemp=iter.linkmobile;
 				 break;
-			case siteinfo::cols::linkaddress: 
+			case siteinfo_info::cols::linkaddress: 
  				 ktemp=iter.linkaddress;
 				 break;
-			case siteinfo::cols::theme: 
+			case siteinfo_info::cols::theme: 
  				 ktemp=iter.theme;
 				 break;
-			case siteinfo::cols::sitepath: 
+			case siteinfo_info::cols::sitepath: 
  				 ktemp=iter.sitepath;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case siteinfo::cols::sitename: 
+			case siteinfo_info::cols::sitename: 
  				 vtemp=iter.sitename;
 				 break;
-			case siteinfo::cols::sitedomain: 
+			case siteinfo_info::cols::sitedomain: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case siteinfo::cols::metakeys: 
+			case siteinfo_info::cols::metakeys: 
  				 vtemp=iter.metakeys;
 				 break;
-			case siteinfo::cols::metadesc: 
+			case siteinfo_info::cols::metadesc: 
  				 vtemp=iter.metadesc;
 				 break;
-			case siteinfo::cols::copyright: 
+			case siteinfo_info::cols::copyright: 
  				 vtemp=iter.copyright;
 				 break;
-			case siteinfo::cols::beiansn: 
+			case siteinfo_info::cols::beiansn: 
  				 vtemp=iter.beiansn;
 				 break;
-			case siteinfo::cols::footscript: 
+			case siteinfo_info::cols::footscript: 
  				 vtemp=iter.footscript;
 				 break;
-			case siteinfo::cols::headscript: 
+			case siteinfo_info::cols::headscript: 
  				 vtemp=iter.headscript;
 				 break;
-			case siteinfo::cols::introduce: 
+			case siteinfo_info::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case siteinfo::cols::sitelogo: 
+			case siteinfo_info::cols::sitelogo: 
  				 vtemp=iter.sitelogo;
 				 break;
-			case siteinfo::cols::sitebanner: 
+			case siteinfo_info::cols::sitebanner: 
  				 vtemp=iter.sitebanner;
 				 break;
-			case siteinfo::cols::contactman: 
+			case siteinfo_info::cols::contactman: 
  				 vtemp=iter.contactman;
 				 break;
-			case siteinfo::cols::phone: 
+			case siteinfo_info::cols::phone: 
  				 vtemp=iter.phone;
 				 break;
-			case siteinfo::cols::mobile: 
+			case siteinfo_info::cols::mobile: 
  				 vtemp=iter.mobile;
 				 break;
-			case siteinfo::cols::email: 
+			case siteinfo_info::cols::email: 
  				 vtemp=iter.email;
 				 break;
-			case siteinfo::cols::bankname: 
+			case siteinfo_info::cols::bankname: 
  				 vtemp=iter.bankname;
 				 break;
-			case siteinfo::cols::banksn: 
+			case siteinfo_info::cols::banksn: 
  				 vtemp=iter.banksn;
 				 break;
-			case siteinfo::cols::address: 
+			case siteinfo_info::cols::address: 
  				 vtemp=iter.address;
 				 break;
-			case siteinfo::cols::zipnum: 
+			case siteinfo_info::cols::zipnum: 
  				 vtemp=iter.zipnum;
 				 break;
-			case siteinfo::cols::taxsn: 
+			case siteinfo_info::cols::taxsn: 
  				 vtemp=iter.taxsn;
 				 break;
-			case siteinfo::cols::companyname: 
+			case siteinfo_info::cols::companyname: 
  				 vtemp=iter.companyname;
 				 break;
-			case siteinfo::cols::linkname: 
+			case siteinfo_info::cols::linkname: 
  				 vtemp=iter.linkname;
 				 break;
-			case siteinfo::cols::linkmobile: 
+			case siteinfo_info::cols::linkmobile: 
  				 vtemp=iter.linkmobile;
 				 break;
-			case siteinfo::cols::linkaddress: 
+			case siteinfo_info::cols::linkaddress: 
  				 vtemp=iter.linkaddress;
 				 break;
-			case siteinfo::cols::theme: 
+			case siteinfo_info::cols::theme: 
  				 vtemp=iter.theme;
 				 break;
-			case siteinfo::cols::sitepath: 
+			case siteinfo_info::cols::sitepath: 
  				 vtemp=iter.sitepath;
 				 break;
 			default:
@@ -4284,7 +4288,7 @@ std::vector<siteinfo_base::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] siteinfo_info::cols keyname,[[maybe_unused]] siteinfo_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -4292,14 +4296,14 @@ std::vector<siteinfo_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] siteinfo_info::cols keyname,[[maybe_unused]] siteinfo_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] siteinfo_info::cols keyname,[[maybe_unused]] siteinfo_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -4309,25 +4313,25 @@ std::vector<siteinfo_base::meta> getRecord(){
                 {
    
 			switch(keyname){
-			case siteinfo::cols::sid: 
+			case siteinfo_info::cols::sid: 
  				 ktemp=iter.sid;
 				 break;
-			case siteinfo::cols::userid: 
+			case siteinfo_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case siteinfo::cols::agentid: 
+			case siteinfo_info::cols::agentid: 
  				 ktemp=iter.agentid;
 				 break;
-			case siteinfo::cols::languagetype: 
+			case siteinfo_info::cols::languagetype: 
  				 ktemp=iter.languagetype;
 				 break;
-			case siteinfo::cols::isopen: 
+			case siteinfo_info::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case siteinfo::cols::created_at: 
+			case siteinfo_info::cols::created_at: 
  				 ktemp=iter.created_at;
 				 break;
-			case siteinfo::cols::enddate: 
+			case siteinfo_info::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
 			default:
@@ -4335,82 +4339,82 @@ std::vector<siteinfo_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-						case siteinfo::cols::sitename: 
+						case siteinfo_info::cols::sitename: 
  				 vtemp=iter.sitename;
 				 break;
-			case siteinfo::cols::sitedomain: 
+			case siteinfo_info::cols::sitedomain: 
  				 vtemp=iter.sitedomain;
 				 break;
-			case siteinfo::cols::metakeys: 
+			case siteinfo_info::cols::metakeys: 
  				 vtemp=iter.metakeys;
 				 break;
-			case siteinfo::cols::metadesc: 
+			case siteinfo_info::cols::metadesc: 
  				 vtemp=iter.metadesc;
 				 break;
-			case siteinfo::cols::copyright: 
+			case siteinfo_info::cols::copyright: 
  				 vtemp=iter.copyright;
 				 break;
-			case siteinfo::cols::beiansn: 
+			case siteinfo_info::cols::beiansn: 
  				 vtemp=iter.beiansn;
 				 break;
-			case siteinfo::cols::footscript: 
+			case siteinfo_info::cols::footscript: 
  				 vtemp=iter.footscript;
 				 break;
-			case siteinfo::cols::headscript: 
+			case siteinfo_info::cols::headscript: 
  				 vtemp=iter.headscript;
 				 break;
-			case siteinfo::cols::introduce: 
+			case siteinfo_info::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case siteinfo::cols::sitelogo: 
+			case siteinfo_info::cols::sitelogo: 
  				 vtemp=iter.sitelogo;
 				 break;
-			case siteinfo::cols::sitebanner: 
+			case siteinfo_info::cols::sitebanner: 
  				 vtemp=iter.sitebanner;
 				 break;
-			case siteinfo::cols::contactman: 
+			case siteinfo_info::cols::contactman: 
  				 vtemp=iter.contactman;
 				 break;
-			case siteinfo::cols::phone: 
+			case siteinfo_info::cols::phone: 
  				 vtemp=iter.phone;
 				 break;
-			case siteinfo::cols::mobile: 
+			case siteinfo_info::cols::mobile: 
  				 vtemp=iter.mobile;
 				 break;
-			case siteinfo::cols::email: 
+			case siteinfo_info::cols::email: 
  				 vtemp=iter.email;
 				 break;
-			case siteinfo::cols::bankname: 
+			case siteinfo_info::cols::bankname: 
  				 vtemp=iter.bankname;
 				 break;
-			case siteinfo::cols::banksn: 
+			case siteinfo_info::cols::banksn: 
  				 vtemp=iter.banksn;
 				 break;
-			case siteinfo::cols::address: 
+			case siteinfo_info::cols::address: 
  				 vtemp=iter.address;
 				 break;
-			case siteinfo::cols::zipnum: 
+			case siteinfo_info::cols::zipnum: 
  				 vtemp=iter.zipnum;
 				 break;
-			case siteinfo::cols::taxsn: 
+			case siteinfo_info::cols::taxsn: 
  				 vtemp=iter.taxsn;
 				 break;
-			case siteinfo::cols::companyname: 
+			case siteinfo_info::cols::companyname: 
  				 vtemp=iter.companyname;
 				 break;
-			case siteinfo::cols::linkname: 
+			case siteinfo_info::cols::linkname: 
  				 vtemp=iter.linkname;
 				 break;
-			case siteinfo::cols::linkmobile: 
+			case siteinfo_info::cols::linkmobile: 
  				 vtemp=iter.linkmobile;
 				 break;
-			case siteinfo::cols::linkaddress: 
+			case siteinfo_info::cols::linkaddress: 
  				 vtemp=iter.linkaddress;
 				 break;
-			case siteinfo::cols::theme: 
+			case siteinfo_info::cols::theme: 
  				 vtemp=iter.theme;
 				 break;
-			case siteinfo::cols::sitepath: 
+			case siteinfo_info::cols::sitepath: 
  				 vtemp=iter.sitepath;
 				 break;
 			default:
@@ -4423,7 +4427,7 @@ std::vector<siteinfo_base::meta> getRecord(){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] siteinfo_info::cols keyname,[[maybe_unused]] siteinfo_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -4433,82 +4437,82 @@ std::vector<siteinfo_base::meta> getRecord(){
             {
    
 			switch(keyname){
-			case siteinfo::cols::sitename: 
+			case siteinfo_info::cols::sitename: 
  				 ktemp=iter.sitename;
 				 break;
-			case siteinfo::cols::sitedomain: 
+			case siteinfo_info::cols::sitedomain: 
  				 ktemp=iter.sitedomain;
 				 break;
-			case siteinfo::cols::metakeys: 
+			case siteinfo_info::cols::metakeys: 
  				 ktemp=iter.metakeys;
 				 break;
-			case siteinfo::cols::metadesc: 
+			case siteinfo_info::cols::metadesc: 
  				 ktemp=iter.metadesc;
 				 break;
-			case siteinfo::cols::copyright: 
+			case siteinfo_info::cols::copyright: 
  				 ktemp=iter.copyright;
 				 break;
-			case siteinfo::cols::beiansn: 
+			case siteinfo_info::cols::beiansn: 
  				 ktemp=iter.beiansn;
 				 break;
-			case siteinfo::cols::footscript: 
+			case siteinfo_info::cols::footscript: 
  				 ktemp=iter.footscript;
 				 break;
-			case siteinfo::cols::headscript: 
+			case siteinfo_info::cols::headscript: 
  				 ktemp=iter.headscript;
 				 break;
-			case siteinfo::cols::introduce: 
+			case siteinfo_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case siteinfo::cols::sitelogo: 
+			case siteinfo_info::cols::sitelogo: 
  				 ktemp=iter.sitelogo;
 				 break;
-			case siteinfo::cols::sitebanner: 
+			case siteinfo_info::cols::sitebanner: 
  				 ktemp=iter.sitebanner;
 				 break;
-			case siteinfo::cols::contactman: 
+			case siteinfo_info::cols::contactman: 
  				 ktemp=iter.contactman;
 				 break;
-			case siteinfo::cols::phone: 
+			case siteinfo_info::cols::phone: 
  				 ktemp=iter.phone;
 				 break;
-			case siteinfo::cols::mobile: 
+			case siteinfo_info::cols::mobile: 
  				 ktemp=iter.mobile;
 				 break;
-			case siteinfo::cols::email: 
+			case siteinfo_info::cols::email: 
  				 ktemp=iter.email;
 				 break;
-			case siteinfo::cols::bankname: 
+			case siteinfo_info::cols::bankname: 
  				 ktemp=iter.bankname;
 				 break;
-			case siteinfo::cols::banksn: 
+			case siteinfo_info::cols::banksn: 
  				 ktemp=iter.banksn;
 				 break;
-			case siteinfo::cols::address: 
+			case siteinfo_info::cols::address: 
  				 ktemp=iter.address;
 				 break;
-			case siteinfo::cols::zipnum: 
+			case siteinfo_info::cols::zipnum: 
  				 ktemp=iter.zipnum;
 				 break;
-			case siteinfo::cols::taxsn: 
+			case siteinfo_info::cols::taxsn: 
  				 ktemp=iter.taxsn;
 				 break;
-			case siteinfo::cols::companyname: 
+			case siteinfo_info::cols::companyname: 
  				 ktemp=iter.companyname;
 				 break;
-			case siteinfo::cols::linkname: 
+			case siteinfo_info::cols::linkname: 
  				 ktemp=iter.linkname;
 				 break;
-			case siteinfo::cols::linkmobile: 
+			case siteinfo_info::cols::linkmobile: 
  				 ktemp=iter.linkmobile;
 				 break;
-			case siteinfo::cols::linkaddress: 
+			case siteinfo_info::cols::linkaddress: 
  				 ktemp=iter.linkaddress;
 				 break;
-			case siteinfo::cols::theme: 
+			case siteinfo_info::cols::theme: 
  				 ktemp=iter.theme;
 				 break;
-			case siteinfo::cols::sitepath: 
+			case siteinfo_info::cols::sitepath: 
  				 ktemp=iter.sitepath;
 				 break;
 			default:
@@ -4516,25 +4520,25 @@ std::vector<siteinfo_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case siteinfo::cols::sid: 
+			case siteinfo_info::cols::sid: 
  				 vtemp=iter.sid;
 				 break;
-			case siteinfo::cols::userid: 
+			case siteinfo_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case siteinfo::cols::agentid: 
+			case siteinfo_info::cols::agentid: 
  				 vtemp=iter.agentid;
 				 break;
-			case siteinfo::cols::languagetype: 
+			case siteinfo_info::cols::languagetype: 
  				 vtemp=iter.languagetype;
 				 break;
-			case siteinfo::cols::isopen: 
+			case siteinfo_info::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case siteinfo::cols::created_at: 
+			case siteinfo_info::cols::created_at: 
  				 vtemp=iter.created_at;
 				 break;
-			case siteinfo::cols::enddate: 
+			case siteinfo_info::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
 			default:
@@ -4551,7 +4555,7 @@ std::vector<siteinfo_base::meta> getRecord(){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] siteinfo::cols keyname,[[maybe_unused]] siteinfo::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] siteinfo_info::cols keyname,[[maybe_unused]] siteinfo_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -4562,25 +4566,25 @@ std::vector<siteinfo_base::meta> getRecord(){
 
    
 			switch(keyname){
-			case siteinfo::cols::sid: 
+			case siteinfo_info::cols::sid: 
  				 ktemp=iter.sid;
 				 break;
-			case siteinfo::cols::userid: 
+			case siteinfo_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case siteinfo::cols::agentid: 
+			case siteinfo_info::cols::agentid: 
  				 ktemp=iter.agentid;
 				 break;
-			case siteinfo::cols::languagetype: 
+			case siteinfo_info::cols::languagetype: 
  				 ktemp=iter.languagetype;
 				 break;
-			case siteinfo::cols::isopen: 
+			case siteinfo_info::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case siteinfo::cols::created_at: 
+			case siteinfo_info::cols::created_at: 
  				 ktemp=iter.created_at;
 				 break;
-			case siteinfo::cols::enddate: 
+			case siteinfo_info::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
 			default:
@@ -4588,25 +4592,25 @@ std::vector<siteinfo_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case siteinfo::cols::sid: 
+			case siteinfo_info::cols::sid: 
  				 vtemp=iter.sid;
 				 break;
-			case siteinfo::cols::userid: 
+			case siteinfo_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case siteinfo::cols::agentid: 
+			case siteinfo_info::cols::agentid: 
  				 vtemp=iter.agentid;
 				 break;
-			case siteinfo::cols::languagetype: 
+			case siteinfo_info::cols::languagetype: 
  				 vtemp=iter.languagetype;
 				 break;
-			case siteinfo::cols::isopen: 
+			case siteinfo_info::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case siteinfo::cols::created_at: 
+			case siteinfo_info::cols::created_at: 
  				 vtemp=iter.created_at;
 				 break;
-			case siteinfo::cols::enddate: 
+			case siteinfo_info::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
 			default:
@@ -4620,9 +4624,9 @@ std::vector<siteinfo_base::meta> getRecord(){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,siteinfo_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,siteinfo_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -4660,9 +4664,9 @@ std::vector<siteinfo_base::meta> getRecord(){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,siteinfo_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,siteinfo_info::meta> a;
 
     
             unsigned char kpos;
@@ -5415,9 +5419,9 @@ case 29:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,siteinfo_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,siteinfo_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -5454,9 +5458,9 @@ case 32:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,siteinfo_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,siteinfo_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -8169,9 +8173,9 @@ case 29:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<siteinfo_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<siteinfo_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -8210,9 +8214,9 @@ case 29:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<siteinfo_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<siteinfo_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -8309,9 +8313,9 @@ case 29:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<siteinfo_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<siteinfo_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -8491,9 +8495,9 @@ case 29:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<siteinfo_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<siteinfo_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -8617,9 +8621,9 @@ case 29:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<siteinfo_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<siteinfo_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -8685,9 +8689,9 @@ case 29:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<siteinfo_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<siteinfo_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

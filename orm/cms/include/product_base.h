@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace product 
+namespace product_info
 {
+ 
     enum class cols : unsigned char 
     {
 		pid = 0,
@@ -50,11 +51,6 @@ namespace product
 		editdate = 23,
 
     };
- 
-}
-    
-struct product_base
-{
 
     struct meta{
      unsigned  int  pid = 0; ///**/
@@ -81,7 +77,7 @@ struct product_base
  unsigned  int  sortid = 0; ///**/
  std::string  adddate = ""; ///*产品添加日期*/
  std::string  editdate = ""; ///*产品修改时间*/
- } data;
+ };
   
         struct meta_tree{
          unsigned  int  pid = 0; ///**/
@@ -109,19 +105,24 @@ struct product_base
  std::string  adddate = ""; ///*产品添加日期*/
  std::string  editdate = ""; ///*产品修改时间*/
 
-	std::vector<meta_tree> children;
+	 std::vector<meta_tree> children;
  };
- std::vector<product_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<product_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<product_base::meta>::iterator end(){     return record.end(); }
-std::vector<product_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<product_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,24> col_names={"pid","userid","topicid","bigid","smallid","brandid","isview","isstore","ishome","showtype","sntype","name","keywords","introduce","listimg","bigimg","maincontent","paracontent","samepro","attatchfiles","price","sortid","adddate","editdate"};
+ static constexpr std::array<std::string_view,24> col_names={"pid","userid","topicid","bigid","smallid","brandid","isview","isstore","ishome","showtype","sntype","name","keywords","introduce","listimg","bigimg","maincontent","paracontent","samepro","attatchfiles","price","sortid","adddate","editdate"};
 static constexpr std::array<unsigned char,24> col_types={3,3,3,3,3,3,1,1,1,1,253,253,253,252,252,253,252,252,253,252,3,3,253,253};
 static constexpr std::array<unsigned char,24> col_length={0,0,0,0,0,0,0,0,0,0,128,253,0,0,0,254,0,0,254,0,0,0,20,20};
 static constexpr std::array<unsigned char,24> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct product_base
+{
+      product_info::meta data;
+    std::vector<product_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<product_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<product_info::meta>::iterator end(){     return record.end(); }
+std::vector<product_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<product_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="product";
 static constexpr std::string_view modelname="Product";
 
@@ -247,7 +248,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     product_base::meta metatemp;    
+     product_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -297,13 +298,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<product_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<product_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -388,19 +389,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const product_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<product_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<product_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -485,19 +486,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<product_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<product_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<product_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -883,7 +884,7 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < product_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -893,7 +894,7 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << product_info::col_names[j];
         }
         if (j > 0)
         {
@@ -993,7 +994,7 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < product_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -1003,7 +1004,7 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << product_info::col_names[j];
         }
         if (j > 0)
         {
@@ -1162,7 +1163,7 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<product_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1322,7 +1323,7 @@ if(data.sortid==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<product_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1576,7 +1577,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<product_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1739,7 +1740,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(data.editdate)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        product_base::meta metatemp; 
+        product_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -2534,7 +2535,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(data.editdate)<<"\"";
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<product_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -2703,7 +2704,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(record[n].editdate)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,product_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2727,7 +2728,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(record[n].editdate)<<"\"";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<product_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -3000,18 +3001,18 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(record[n].editdate)<<"\"";
  void setEditdate( std::string  &val){  data.editdate=val;} 
  void setEditdate(std::string_view val){  data.editdate=val;} 
 
-product_base::meta getnewData(){
- 	 struct meta newdata;
+product_info::meta getnewData(){
+ 	 struct product_info::meta newdata;
 	 return newdata; 
 } 
-product_base::meta getData(){
+product_info::meta getData(){
  	 return data; 
 } 
-std::vector<product_base::meta> getRecord(){
+std::vector<product_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<product_info::meta_tree> &tree_data, std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -3035,7 +3036,7 @@ std::vector<product_base::meta> getRecord(){
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<product_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -3207,7 +3208,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<product_info::meta_tree> &tree_data,std::function<bool(std::string&,const product_info::meta_tree&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -3231,7 +3232,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<product_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -3640,7 +3641,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] product_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] product_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3707,7 +3708,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] product_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] product_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -3772,7 +3773,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] product_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] product_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -3826,61 +3827,64 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] product_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 10: 
+    			case product_info::cols::sntype: 
  				 a.emplace_back(iter.sntype);
 					 break;
-			case 11: 
+			case product_info::cols::name: 
  				 a.emplace_back(iter.name);
 					 break;
-			case 12: 
+			case product_info::cols::keywords: 
  				 a.emplace_back(iter.keywords);
 					 break;
-			case 13: 
+			case product_info::cols::introduce: 
  				 a.emplace_back(iter.introduce);
 					 break;
-			case 14: 
+			case product_info::cols::listimg: 
  				 a.emplace_back(iter.listimg);
 					 break;
-			case 15: 
+			case product_info::cols::bigimg: 
  				 a.emplace_back(iter.bigimg);
 					 break;
-			case 16: 
+			case product_info::cols::maincontent: 
  				 a.emplace_back(iter.maincontent);
 					 break;
-			case 17: 
+			case product_info::cols::paracontent: 
  				 a.emplace_back(iter.paracontent);
 					 break;
-			case 18: 
+			case product_info::cols::samepro: 
  				 a.emplace_back(iter.samepro);
 					 break;
-			case 19: 
+			case product_info::cols::attatchfiles: 
  				 a.emplace_back(iter.attatchfiles);
 					 break;
-			case 22: 
+			case product_info::cols::adddate: 
  				 a.emplace_back(iter.adddate);
 					 break;
-			case 23: 
+			case product_info::cols::editdate: 
  				 a.emplace_back(iter.editdate);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(product::cols keyname, bool isyinhao=false)
+        std::string getstrCol(product_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -3903,109 +3907,109 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
                     switch(keyname)
                     {
 
-   			case product::cols::pid: 
+   			case product_info::cols::pid: 
  				 a<<std::to_string(iter.pid);
 				 break;
-			case product::cols::userid: 
+			case product_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case product::cols::topicid: 
+			case product_info::cols::topicid: 
  				 a<<std::to_string(iter.topicid);
 				 break;
-			case product::cols::bigid: 
+			case product_info::cols::bigid: 
  				 a<<std::to_string(iter.bigid);
 				 break;
-			case product::cols::smallid: 
+			case product_info::cols::smallid: 
  				 a<<std::to_string(iter.smallid);
 				 break;
-			case product::cols::brandid: 
+			case product_info::cols::brandid: 
  				 a<<std::to_string(iter.brandid);
 				 break;
-			case product::cols::isview: 
+			case product_info::cols::isview: 
  				 a<<std::to_string(iter.isview);
 				 break;
-			case product::cols::isstore: 
+			case product_info::cols::isstore: 
  				 a<<std::to_string(iter.isstore);
 				 break;
-			case product::cols::ishome: 
+			case product_info::cols::ishome: 
  				 a<<std::to_string(iter.ishome);
 				 break;
-			case product::cols::showtype: 
+			case product_info::cols::showtype: 
  				 a<<std::to_string(iter.showtype);
 				 break;
-			case product::cols::sntype: 
+			case product_info::cols::sntype: 
  				 if(isyinhao){ a<<jsonaddslash(iter.sntype); 
 				 }else{
 				 a<<iter.sntype;
 				 }
 				 break;
-			case product::cols::name: 
+			case product_info::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case product::cols::keywords: 
+			case product_info::cols::keywords: 
  				 if(isyinhao){ a<<jsonaddslash(iter.keywords); 
 				 }else{
 				 a<<iter.keywords;
 				 }
 				 break;
-			case product::cols::introduce: 
+			case product_info::cols::introduce: 
  				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
 				 }else{
 				 a<<iter.introduce;
 				 }
 				 break;
-			case product::cols::listimg: 
+			case product_info::cols::listimg: 
  				 if(isyinhao){ a<<jsonaddslash(iter.listimg); 
 				 }else{
 				 a<<iter.listimg;
 				 }
 				 break;
-			case product::cols::bigimg: 
+			case product_info::cols::bigimg: 
  				 if(isyinhao){ a<<jsonaddslash(iter.bigimg); 
 				 }else{
 				 a<<iter.bigimg;
 				 }
 				 break;
-			case product::cols::maincontent: 
+			case product_info::cols::maincontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.maincontent); 
 				 }else{
 				 a<<iter.maincontent;
 				 }
 				 break;
-			case product::cols::paracontent: 
+			case product_info::cols::paracontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.paracontent); 
 				 }else{
 				 a<<iter.paracontent;
 				 }
 				 break;
-			case product::cols::samepro: 
+			case product_info::cols::samepro: 
  				 if(isyinhao){ a<<jsonaddslash(iter.samepro); 
 				 }else{
 				 a<<iter.samepro;
 				 }
 				 break;
-			case product::cols::attatchfiles: 
+			case product_info::cols::attatchfiles: 
  				 if(isyinhao){ a<<jsonaddslash(iter.attatchfiles); 
 				 }else{
 				 a<<iter.attatchfiles;
 				 }
 				 break;
-			case product::cols::price: 
+			case product_info::cols::price: 
  				 a<<std::to_string(iter.price);
 				 break;
-			case product::cols::sortid: 
+			case product_info::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case product::cols::adddate: 
+			case product_info::cols::adddate: 
  				 if(isyinhao){ a<<jsonaddslash(iter.adddate); 
 				 }else{
 				 a<<iter.adddate;
 				 }
 				 break;
-			case product::cols::editdate: 
+			case product_info::cols::editdate: 
  				 if(isyinhao){ a<<jsonaddslash(iter.editdate); 
 				 }else{
 				 a<<iter.editdate;
@@ -4025,7 +4029,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] product_info::cols keyname,[[maybe_unused]] product_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -4033,80 +4037,80 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case product::cols::sntype: 
+			{			case product_info::cols::sntype: 
  				 ktemp=iter.sntype;
 				 break;
-			case product::cols::name: 
+			case product_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case product::cols::keywords: 
+			case product_info::cols::keywords: 
  				 ktemp=iter.keywords;
 				 break;
-			case product::cols::introduce: 
+			case product_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case product::cols::listimg: 
+			case product_info::cols::listimg: 
  				 ktemp=iter.listimg;
 				 break;
-			case product::cols::bigimg: 
+			case product_info::cols::bigimg: 
  				 ktemp=iter.bigimg;
 				 break;
-			case product::cols::maincontent: 
+			case product_info::cols::maincontent: 
  				 ktemp=iter.maincontent;
 				 break;
-			case product::cols::paracontent: 
+			case product_info::cols::paracontent: 
  				 ktemp=iter.paracontent;
 				 break;
-			case product::cols::samepro: 
+			case product_info::cols::samepro: 
  				 ktemp=iter.samepro;
 				 break;
-			case product::cols::attatchfiles: 
+			case product_info::cols::attatchfiles: 
  				 ktemp=iter.attatchfiles;
 				 break;
-			case product::cols::adddate: 
+			case product_info::cols::adddate: 
  				 ktemp=iter.adddate;
 				 break;
-			case product::cols::editdate: 
+			case product_info::cols::editdate: 
  				 ktemp=iter.editdate;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case product::cols::sntype: 
+			case product_info::cols::sntype: 
  				 vtemp=iter.sntype;
 				 break;
-			case product::cols::name: 
+			case product_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case product::cols::keywords: 
+			case product_info::cols::keywords: 
  				 vtemp=iter.keywords;
 				 break;
-			case product::cols::introduce: 
+			case product_info::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case product::cols::listimg: 
+			case product_info::cols::listimg: 
  				 vtemp=iter.listimg;
 				 break;
-			case product::cols::bigimg: 
+			case product_info::cols::bigimg: 
  				 vtemp=iter.bigimg;
 				 break;
-			case product::cols::maincontent: 
+			case product_info::cols::maincontent: 
  				 vtemp=iter.maincontent;
 				 break;
-			case product::cols::paracontent: 
+			case product_info::cols::paracontent: 
  				 vtemp=iter.paracontent;
 				 break;
-			case product::cols::samepro: 
+			case product_info::cols::samepro: 
  				 vtemp=iter.samepro;
 				 break;
-			case product::cols::attatchfiles: 
+			case product_info::cols::attatchfiles: 
  				 vtemp=iter.attatchfiles;
 				 break;
-			case product::cols::adddate: 
+			case product_info::cols::adddate: 
  				 vtemp=iter.adddate;
 				 break;
-			case product::cols::editdate: 
+			case product_info::cols::editdate: 
  				 vtemp=iter.editdate;
 				 break;
 			default:
@@ -4123,7 +4127,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] product_info::cols keyname,[[maybe_unused]] product_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -4131,14 +4135,14 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] product_info::cols keyname,[[maybe_unused]] product_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] product_info::cols keyname,[[maybe_unused]] product_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -4148,40 +4152,40 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
                 {
    
 			switch(keyname){
-			case product::cols::pid: 
+			case product_info::cols::pid: 
  				 ktemp=iter.pid;
 				 break;
-			case product::cols::userid: 
+			case product_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case product::cols::topicid: 
+			case product_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case product::cols::bigid: 
+			case product_info::cols::bigid: 
  				 ktemp=iter.bigid;
 				 break;
-			case product::cols::smallid: 
+			case product_info::cols::smallid: 
  				 ktemp=iter.smallid;
 				 break;
-			case product::cols::brandid: 
+			case product_info::cols::brandid: 
  				 ktemp=iter.brandid;
 				 break;
-			case product::cols::isview: 
+			case product_info::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case product::cols::isstore: 
+			case product_info::cols::isstore: 
  				 ktemp=iter.isstore;
 				 break;
-			case product::cols::ishome: 
+			case product_info::cols::ishome: 
  				 ktemp=iter.ishome;
 				 break;
-			case product::cols::showtype: 
+			case product_info::cols::showtype: 
  				 ktemp=iter.showtype;
 				 break;
-			case product::cols::price: 
+			case product_info::cols::price: 
  				 ktemp=iter.price;
 				 break;
-			case product::cols::sortid: 
+			case product_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
 			default:
@@ -4189,40 +4193,40 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
 			 }
 
 			switch(valname){
-						case product::cols::sntype: 
+						case product_info::cols::sntype: 
  				 vtemp=iter.sntype;
 				 break;
-			case product::cols::name: 
+			case product_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case product::cols::keywords: 
+			case product_info::cols::keywords: 
  				 vtemp=iter.keywords;
 				 break;
-			case product::cols::introduce: 
+			case product_info::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case product::cols::listimg: 
+			case product_info::cols::listimg: 
  				 vtemp=iter.listimg;
 				 break;
-			case product::cols::bigimg: 
+			case product_info::cols::bigimg: 
  				 vtemp=iter.bigimg;
 				 break;
-			case product::cols::maincontent: 
+			case product_info::cols::maincontent: 
  				 vtemp=iter.maincontent;
 				 break;
-			case product::cols::paracontent: 
+			case product_info::cols::paracontent: 
  				 vtemp=iter.paracontent;
 				 break;
-			case product::cols::samepro: 
+			case product_info::cols::samepro: 
  				 vtemp=iter.samepro;
 				 break;
-			case product::cols::attatchfiles: 
+			case product_info::cols::attatchfiles: 
  				 vtemp=iter.attatchfiles;
 				 break;
-			case product::cols::adddate: 
+			case product_info::cols::adddate: 
  				 vtemp=iter.adddate;
 				 break;
-			case product::cols::editdate: 
+			case product_info::cols::editdate: 
  				 vtemp=iter.editdate;
 				 break;
 			default:
@@ -4235,7 +4239,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] product_info::cols keyname,[[maybe_unused]] product_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -4245,40 +4249,40 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             {
    
 			switch(keyname){
-			case product::cols::sntype: 
+			case product_info::cols::sntype: 
  				 ktemp=iter.sntype;
 				 break;
-			case product::cols::name: 
+			case product_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case product::cols::keywords: 
+			case product_info::cols::keywords: 
  				 ktemp=iter.keywords;
 				 break;
-			case product::cols::introduce: 
+			case product_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case product::cols::listimg: 
+			case product_info::cols::listimg: 
  				 ktemp=iter.listimg;
 				 break;
-			case product::cols::bigimg: 
+			case product_info::cols::bigimg: 
  				 ktemp=iter.bigimg;
 				 break;
-			case product::cols::maincontent: 
+			case product_info::cols::maincontent: 
  				 ktemp=iter.maincontent;
 				 break;
-			case product::cols::paracontent: 
+			case product_info::cols::paracontent: 
  				 ktemp=iter.paracontent;
 				 break;
-			case product::cols::samepro: 
+			case product_info::cols::samepro: 
  				 ktemp=iter.samepro;
 				 break;
-			case product::cols::attatchfiles: 
+			case product_info::cols::attatchfiles: 
  				 ktemp=iter.attatchfiles;
 				 break;
-			case product::cols::adddate: 
+			case product_info::cols::adddate: 
  				 ktemp=iter.adddate;
 				 break;
-			case product::cols::editdate: 
+			case product_info::cols::editdate: 
  				 ktemp=iter.editdate;
 				 break;
 			default:
@@ -4286,40 +4290,40 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
 			 }
 
 			switch(valname){
-			case product::cols::pid: 
+			case product_info::cols::pid: 
  				 vtemp=iter.pid;
 				 break;
-			case product::cols::userid: 
+			case product_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case product::cols::topicid: 
+			case product_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case product::cols::bigid: 
+			case product_info::cols::bigid: 
  				 vtemp=iter.bigid;
 				 break;
-			case product::cols::smallid: 
+			case product_info::cols::smallid: 
  				 vtemp=iter.smallid;
 				 break;
-			case product::cols::brandid: 
+			case product_info::cols::brandid: 
  				 vtemp=iter.brandid;
 				 break;
-			case product::cols::isview: 
+			case product_info::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case product::cols::isstore: 
+			case product_info::cols::isstore: 
  				 vtemp=iter.isstore;
 				 break;
-			case product::cols::ishome: 
+			case product_info::cols::ishome: 
  				 vtemp=iter.ishome;
 				 break;
-			case product::cols::showtype: 
+			case product_info::cols::showtype: 
  				 vtemp=iter.showtype;
 				 break;
-			case product::cols::price: 
+			case product_info::cols::price: 
  				 vtemp=iter.price;
 				 break;
-			case product::cols::sortid: 
+			case product_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
 			default:
@@ -4336,7 +4340,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] product::cols keyname,[[maybe_unused]] product::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] product_info::cols keyname,[[maybe_unused]] product_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -4347,40 +4351,40 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
 
    
 			switch(keyname){
-			case product::cols::pid: 
+			case product_info::cols::pid: 
  				 ktemp=iter.pid;
 				 break;
-			case product::cols::userid: 
+			case product_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case product::cols::topicid: 
+			case product_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case product::cols::bigid: 
+			case product_info::cols::bigid: 
  				 ktemp=iter.bigid;
 				 break;
-			case product::cols::smallid: 
+			case product_info::cols::smallid: 
  				 ktemp=iter.smallid;
 				 break;
-			case product::cols::brandid: 
+			case product_info::cols::brandid: 
  				 ktemp=iter.brandid;
 				 break;
-			case product::cols::isview: 
+			case product_info::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case product::cols::isstore: 
+			case product_info::cols::isstore: 
  				 ktemp=iter.isstore;
 				 break;
-			case product::cols::ishome: 
+			case product_info::cols::ishome: 
  				 ktemp=iter.ishome;
 				 break;
-			case product::cols::showtype: 
+			case product_info::cols::showtype: 
  				 ktemp=iter.showtype;
 				 break;
-			case product::cols::price: 
+			case product_info::cols::price: 
  				 ktemp=iter.price;
 				 break;
-			case product::cols::sortid: 
+			case product_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
 			default:
@@ -4388,40 +4392,40 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
 			 }
 
 			switch(valname){
-			case product::cols::pid: 
+			case product_info::cols::pid: 
  				 vtemp=iter.pid;
 				 break;
-			case product::cols::userid: 
+			case product_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case product::cols::topicid: 
+			case product_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case product::cols::bigid: 
+			case product_info::cols::bigid: 
  				 vtemp=iter.bigid;
 				 break;
-			case product::cols::smallid: 
+			case product_info::cols::smallid: 
  				 vtemp=iter.smallid;
 				 break;
-			case product::cols::brandid: 
+			case product_info::cols::brandid: 
  				 vtemp=iter.brandid;
 				 break;
-			case product::cols::isview: 
+			case product_info::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case product::cols::isstore: 
+			case product_info::cols::isstore: 
  				 vtemp=iter.isstore;
 				 break;
-			case product::cols::ishome: 
+			case product_info::cols::ishome: 
  				 vtemp=iter.ishome;
 				 break;
-			case product::cols::showtype: 
+			case product_info::cols::showtype: 
  				 vtemp=iter.showtype;
 				 break;
-			case product::cols::price: 
+			case product_info::cols::price: 
  				 vtemp=iter.price;
 				 break;
-			case product::cols::sortid: 
+			case product_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
 			default:
@@ -4435,9 +4439,9 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,product_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,product_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -4490,9 +4494,9 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,product_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,product_info::meta> a;
 
     
             unsigned char kpos;
@@ -5068,9 +5072,9 @@ case 23:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,product_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,product_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -5122,9 +5126,9 @@ case 21:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,product_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,product_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -7228,9 +7232,9 @@ case 23:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<product_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<product_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -7284,9 +7288,9 @@ case 23:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<product_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<product_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -7341,9 +7345,9 @@ case 23:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<product_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<product_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -7439,9 +7443,9 @@ case 23:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<product_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<product_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -7538,9 +7542,9 @@ case 23:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<product_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<product_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -7636,9 +7640,9 @@ case 23:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<product_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<product_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

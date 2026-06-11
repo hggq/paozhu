@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace department 
+namespace department_info
 {
+ 
     enum class cols : unsigned char 
     {
 		dpid = 0,
@@ -42,11 +43,6 @@ namespace department
 		linkdpid = 15,
 
     };
- 
-}
-    
-struct department_base
-{
 
     struct meta{
      unsigned  int  dpid = 0; ///**/
@@ -65,7 +61,7 @@ struct department_base
  unsigned  int  updated_user = 0; ///**/
  char  isvirtual = 0; ///*是否虚拟部门*/
  std::string  linkdpid = ""; ///*关联部门*/
- } data;
+ };
   
         struct meta_tree{
          unsigned  int  dpid = 0; ///**/
@@ -85,19 +81,24 @@ struct department_base
  char  isvirtual = 0; ///*是否虚拟部门*/
  std::string  linkdpid = ""; ///*关联部门*/
 
-	std::vector<meta_tree> children;
+	 std::vector<meta_tree> children;
  };
- std::vector<department_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<department_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<department_base::meta>::iterator end(){     return record.end(); }
-std::vector<department_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<department_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,16> col_names={"dpid","userid","parentid","name","depart_code","bianzhi_num","real_num","quan_weight","isopen","memo","created_time","created_user","updated_time","updated_user","isvirtual","linkdpid"};
+ static constexpr std::array<std::string_view,16> col_names={"dpid","userid","parentid","name","depart_code","bianzhi_num","real_num","quan_weight","isopen","memo","created_time","created_user","updated_time","updated_user","isvirtual","linkdpid"};
 static constexpr std::array<unsigned char,16> col_types={3,3,3,253,253,3,3,3,1,252,3,3,3,3,1,253};
 static constexpr std::array<unsigned char,16> col_length={0,0,0,40,20,0,0,0,0,0,0,0,0,0,0,0};
 static constexpr std::array<unsigned char,16> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct department_base
+{
+      department_info::meta data;
+    std::vector<department_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<department_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<department_info::meta>::iterator end(){     return record.end(); }
+std::vector<department_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<department_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="department";
 static constexpr std::string_view modelname="Department";
 
@@ -195,7 +196,7 @@ case 12:
             record.clear();     
       }
       void data_reset(){
-     department_base::meta metatemp;    
+     department_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -245,13 +246,13 @@ case 12:
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<department_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<department_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -328,19 +329,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const department_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<department_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<department_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -417,19 +418,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<department_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<department_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<department_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -767,7 +768,7 @@ tempsql<<"`linkdpid`='"<<stringaddslash(data.linkdpid)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < department_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -777,7 +778,7 @@ tempsql<<"`linkdpid`='"<<stringaddslash(data.linkdpid)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << department_info::col_names[j];
         }
         if (j > 0)
         {
@@ -869,7 +870,7 @@ tempsql<<"`linkdpid`='"<<stringaddslash(data.linkdpid)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < department_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -879,7 +880,7 @@ tempsql<<"`linkdpid`='"<<stringaddslash(data.linkdpid)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << department_info::col_names[j];
         }
         if (j > 0)
         {
@@ -1030,7 +1031,7 @@ tempsql<<"`linkdpid`='"<<stringaddslash(data.linkdpid)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<department_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1166,7 +1167,7 @@ if(data.isvirtual==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<department_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1380,7 +1381,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<department_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1511,7 +1512,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        department_base::meta metatemp; 
+        department_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -2138,7 +2139,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<department_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -2275,7 +2276,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(record[n].linkdpid)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,department_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2299,7 +2300,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(record[n].linkdpid)<<"\"";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<department_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -2500,18 +2501,18 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(record[n].linkdpid)<<"\"";
  void setLinkdpid( std::string  &val){  data.linkdpid=val;} 
  void setLinkdpid(std::string_view val){  data.linkdpid=val;} 
 
-department_base::meta getnewData(){
- 	 struct meta newdata;
+department_info::meta getnewData(){
+ 	 struct department_info::meta newdata;
 	 return newdata; 
 } 
-department_base::meta getData(){
+department_info::meta getData(){
  	 return data; 
 } 
-std::vector<department_base::meta> getRecord(){
+std::vector<department_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<department_info::meta_tree> &tree_data, std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2535,7 +2536,7 @@ std::vector<department_base::meta> getRecord(){
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<department_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -2675,7 +2676,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<department_info::meta_tree> &tree_data,std::function<bool(std::string&,const department_info::meta_tree&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2699,7 +2700,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<department_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -3044,7 +3045,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] department_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] department_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3111,7 +3112,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] department_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] department_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -3152,7 +3153,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] department_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] department_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -3182,37 +3183,40 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] department_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 3: 
+    			case department_info::cols::name: 
  				 a.emplace_back(iter.name);
 					 break;
-			case 4: 
+			case department_info::cols::depart_code: 
  				 a.emplace_back(iter.depart_code);
 					 break;
-			case 9: 
+			case department_info::cols::memo: 
  				 a.emplace_back(iter.memo);
 					 break;
-			case 15: 
+			case department_info::cols::linkdpid: 
  				 a.emplace_back(iter.linkdpid);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(department::cols keyname, bool isyinhao=false)
+        std::string getstrCol(department_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -3235,61 +3239,61 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
                     switch(keyname)
                     {
 
-   			case department::cols::dpid: 
+   			case department_info::cols::dpid: 
  				 a<<std::to_string(iter.dpid);
 				 break;
-			case department::cols::userid: 
+			case department_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case department::cols::parentid: 
+			case department_info::cols::parentid: 
  				 a<<std::to_string(iter.parentid);
 				 break;
-			case department::cols::name: 
+			case department_info::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case department::cols::depart_code: 
+			case department_info::cols::depart_code: 
  				 if(isyinhao){ a<<jsonaddslash(iter.depart_code); 
 				 }else{
 				 a<<iter.depart_code;
 				 }
 				 break;
-			case department::cols::bianzhi_num: 
+			case department_info::cols::bianzhi_num: 
  				 a<<std::to_string(iter.bianzhi_num);
 				 break;
-			case department::cols::real_num: 
+			case department_info::cols::real_num: 
  				 a<<std::to_string(iter.real_num);
 				 break;
-			case department::cols::quan_weight: 
+			case department_info::cols::quan_weight: 
  				 a<<std::to_string(iter.quan_weight);
 				 break;
-			case department::cols::isopen: 
+			case department_info::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case department::cols::memo: 
+			case department_info::cols::memo: 
  				 if(isyinhao){ a<<jsonaddslash(iter.memo); 
 				 }else{
 				 a<<iter.memo;
 				 }
 				 break;
-			case department::cols::created_time: 
+			case department_info::cols::created_time: 
  				 a<<std::to_string(iter.created_time);
 				 break;
-			case department::cols::created_user: 
+			case department_info::cols::created_user: 
  				 a<<std::to_string(iter.created_user);
 				 break;
-			case department::cols::updated_time: 
+			case department_info::cols::updated_time: 
  				 a<<std::to_string(iter.updated_time);
 				 break;
-			case department::cols::updated_user: 
+			case department_info::cols::updated_user: 
  				 a<<std::to_string(iter.updated_user);
 				 break;
-			case department::cols::isvirtual: 
+			case department_info::cols::isvirtual: 
  				 a<<std::to_string(iter.isvirtual);
 				 break;
-			case department::cols::linkdpid: 
+			case department_info::cols::linkdpid: 
  				 if(isyinhao){ a<<jsonaddslash(iter.linkdpid); 
 				 }else{
 				 a<<iter.linkdpid;
@@ -3309,7 +3313,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] department_info::cols keyname,[[maybe_unused]] department_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -3317,32 +3321,32 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case department::cols::name: 
+			{			case department_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case department::cols::depart_code: 
+			case department_info::cols::depart_code: 
  				 ktemp=iter.depart_code;
 				 break;
-			case department::cols::memo: 
+			case department_info::cols::memo: 
  				 ktemp=iter.memo;
 				 break;
-			case department::cols::linkdpid: 
+			case department_info::cols::linkdpid: 
  				 ktemp=iter.linkdpid;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case department::cols::name: 
+			case department_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case department::cols::depart_code: 
+			case department_info::cols::depart_code: 
  				 vtemp=iter.depart_code;
 				 break;
-			case department::cols::memo: 
+			case department_info::cols::memo: 
  				 vtemp=iter.memo;
 				 break;
-			case department::cols::linkdpid: 
+			case department_info::cols::linkdpid: 
  				 vtemp=iter.linkdpid;
 				 break;
 			default:
@@ -3359,7 +3363,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] department_info::cols keyname,[[maybe_unused]] department_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -3367,14 +3371,14 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] department_info::cols keyname,[[maybe_unused]] department_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] department_info::cols keyname,[[maybe_unused]] department_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -3384,40 +3388,40 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
                 {
    
 			switch(keyname){
-			case department::cols::dpid: 
+			case department_info::cols::dpid: 
  				 ktemp=iter.dpid;
 				 break;
-			case department::cols::userid: 
+			case department_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case department::cols::parentid: 
+			case department_info::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case department::cols::bianzhi_num: 
+			case department_info::cols::bianzhi_num: 
  				 ktemp=iter.bianzhi_num;
 				 break;
-			case department::cols::real_num: 
+			case department_info::cols::real_num: 
  				 ktemp=iter.real_num;
 				 break;
-			case department::cols::quan_weight: 
+			case department_info::cols::quan_weight: 
  				 ktemp=iter.quan_weight;
 				 break;
-			case department::cols::isopen: 
+			case department_info::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case department::cols::created_time: 
+			case department_info::cols::created_time: 
  				 ktemp=iter.created_time;
 				 break;
-			case department::cols::created_user: 
+			case department_info::cols::created_user: 
  				 ktemp=iter.created_user;
 				 break;
-			case department::cols::updated_time: 
+			case department_info::cols::updated_time: 
  				 ktemp=iter.updated_time;
 				 break;
-			case department::cols::updated_user: 
+			case department_info::cols::updated_user: 
  				 ktemp=iter.updated_user;
 				 break;
-			case department::cols::isvirtual: 
+			case department_info::cols::isvirtual: 
  				 ktemp=iter.isvirtual;
 				 break;
 			default:
@@ -3425,16 +3429,16 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
 			 }
 
 			switch(valname){
-						case department::cols::name: 
+						case department_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case department::cols::depart_code: 
+			case department_info::cols::depart_code: 
  				 vtemp=iter.depart_code;
 				 break;
-			case department::cols::memo: 
+			case department_info::cols::memo: 
  				 vtemp=iter.memo;
 				 break;
-			case department::cols::linkdpid: 
+			case department_info::cols::linkdpid: 
  				 vtemp=iter.linkdpid;
 				 break;
 			default:
@@ -3447,7 +3451,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] department_info::cols keyname,[[maybe_unused]] department_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -3457,16 +3461,16 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
             {
    
 			switch(keyname){
-			case department::cols::name: 
+			case department_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case department::cols::depart_code: 
+			case department_info::cols::depart_code: 
  				 ktemp=iter.depart_code;
 				 break;
-			case department::cols::memo: 
+			case department_info::cols::memo: 
  				 ktemp=iter.memo;
 				 break;
-			case department::cols::linkdpid: 
+			case department_info::cols::linkdpid: 
  				 ktemp=iter.linkdpid;
 				 break;
 			default:
@@ -3474,40 +3478,40 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
 			 }
 
 			switch(valname){
-			case department::cols::dpid: 
+			case department_info::cols::dpid: 
  				 vtemp=iter.dpid;
 				 break;
-			case department::cols::userid: 
+			case department_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case department::cols::parentid: 
+			case department_info::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case department::cols::bianzhi_num: 
+			case department_info::cols::bianzhi_num: 
  				 vtemp=iter.bianzhi_num;
 				 break;
-			case department::cols::real_num: 
+			case department_info::cols::real_num: 
  				 vtemp=iter.real_num;
 				 break;
-			case department::cols::quan_weight: 
+			case department_info::cols::quan_weight: 
  				 vtemp=iter.quan_weight;
 				 break;
-			case department::cols::isopen: 
+			case department_info::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case department::cols::created_time: 
+			case department_info::cols::created_time: 
  				 vtemp=iter.created_time;
 				 break;
-			case department::cols::created_user: 
+			case department_info::cols::created_user: 
  				 vtemp=iter.created_user;
 				 break;
-			case department::cols::updated_time: 
+			case department_info::cols::updated_time: 
  				 vtemp=iter.updated_time;
 				 break;
-			case department::cols::updated_user: 
+			case department_info::cols::updated_user: 
  				 vtemp=iter.updated_user;
 				 break;
-			case department::cols::isvirtual: 
+			case department_info::cols::isvirtual: 
  				 vtemp=iter.isvirtual;
 				 break;
 			default:
@@ -3524,7 +3528,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] department::cols keyname,[[maybe_unused]] department::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] department_info::cols keyname,[[maybe_unused]] department_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -3535,40 +3539,40 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
 
    
 			switch(keyname){
-			case department::cols::dpid: 
+			case department_info::cols::dpid: 
  				 ktemp=iter.dpid;
 				 break;
-			case department::cols::userid: 
+			case department_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case department::cols::parentid: 
+			case department_info::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case department::cols::bianzhi_num: 
+			case department_info::cols::bianzhi_num: 
  				 ktemp=iter.bianzhi_num;
 				 break;
-			case department::cols::real_num: 
+			case department_info::cols::real_num: 
  				 ktemp=iter.real_num;
 				 break;
-			case department::cols::quan_weight: 
+			case department_info::cols::quan_weight: 
  				 ktemp=iter.quan_weight;
 				 break;
-			case department::cols::isopen: 
+			case department_info::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case department::cols::created_time: 
+			case department_info::cols::created_time: 
  				 ktemp=iter.created_time;
 				 break;
-			case department::cols::created_user: 
+			case department_info::cols::created_user: 
  				 ktemp=iter.created_user;
 				 break;
-			case department::cols::updated_time: 
+			case department_info::cols::updated_time: 
  				 ktemp=iter.updated_time;
 				 break;
-			case department::cols::updated_user: 
+			case department_info::cols::updated_user: 
  				 ktemp=iter.updated_user;
 				 break;
-			case department::cols::isvirtual: 
+			case department_info::cols::isvirtual: 
  				 ktemp=iter.isvirtual;
 				 break;
 			default:
@@ -3576,40 +3580,40 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
 			 }
 
 			switch(valname){
-			case department::cols::dpid: 
+			case department_info::cols::dpid: 
  				 vtemp=iter.dpid;
 				 break;
-			case department::cols::userid: 
+			case department_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case department::cols::parentid: 
+			case department_info::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case department::cols::bianzhi_num: 
+			case department_info::cols::bianzhi_num: 
  				 vtemp=iter.bianzhi_num;
 				 break;
-			case department::cols::real_num: 
+			case department_info::cols::real_num: 
  				 vtemp=iter.real_num;
 				 break;
-			case department::cols::quan_weight: 
+			case department_info::cols::quan_weight: 
  				 vtemp=iter.quan_weight;
 				 break;
-			case department::cols::isopen: 
+			case department_info::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case department::cols::created_time: 
+			case department_info::cols::created_time: 
  				 vtemp=iter.created_time;
 				 break;
-			case department::cols::created_user: 
+			case department_info::cols::created_user: 
  				 vtemp=iter.created_user;
 				 break;
-			case department::cols::updated_time: 
+			case department_info::cols::updated_time: 
  				 vtemp=iter.updated_time;
 				 break;
-			case department::cols::updated_user: 
+			case department_info::cols::updated_user: 
  				 vtemp=iter.updated_user;
 				 break;
-			case department::cols::isvirtual: 
+			case department_info::cols::isvirtual: 
  				 vtemp=iter.isvirtual;
 				 break;
 			default:
@@ -3623,9 +3627,9 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,department_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,department_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -3678,9 +3682,9 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,department_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,department_info::meta> a;
 
     
             unsigned char kpos;
@@ -4112,9 +4116,9 @@ case 15:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,department_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,department_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -4166,9 +4170,9 @@ case 14:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,department_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,department_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -5744,9 +5748,9 @@ case 15:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<department_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<department_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -5800,9 +5804,9 @@ case 15:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<department_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<department_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -5833,9 +5837,9 @@ case 15:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<department_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<department_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -5883,9 +5887,9 @@ case 15:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<department_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<department_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -5958,9 +5962,9 @@ case 15:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<department_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<department_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -6056,9 +6060,9 @@ case 15:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<department_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<department_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

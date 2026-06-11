@@ -13,7 +13,7 @@
 		 public:
 		 Sysuser(std::string dbtag);
 		 Sysuser();
-		 std::vector<orm::cms::article_base::meta> gettoparticle(int userid);
+		 std::vector<orm::cms::article_info::meta> gettoparticle(int userid);
 		};
 	 }
  }

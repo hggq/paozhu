@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace superadmin 
+namespace superadmin_info
 {
+ 
     enum class cols : unsigned char 
     {
 		adminid = 0,
@@ -40,11 +41,6 @@ namespace superadmin
 		basesitepath = 13,
 
     };
- 
-}
-    
-struct superadmin_base
-{
 
     struct meta{
      unsigned  int  adminid = 0; ///**/
@@ -61,18 +57,23 @@ struct superadmin_base
  unsigned  int  qrtemp = 0; ///**/
  std::string  wxuuid = ""; ///**/
  std::string  basesitepath = ""; ///**/
- } data;
- std::vector<superadmin_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<superadmin_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<superadmin_base::meta>::iterator end(){     return record.end(); }
-std::vector<superadmin_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<superadmin_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,14> col_names={"adminid","name","password","nickname","isopen","begindate","enddate","regdate","mobile","email","loginnum","qrtemp","wxuuid","basesitepath"};
+ };
+ static constexpr std::array<std::string_view,14> col_names={"adminid","name","password","nickname","isopen","begindate","enddate","regdate","mobile","email","loginnum","qrtemp","wxuuid","basesitepath"};
 static constexpr std::array<unsigned char,14> col_types={3,253,253,253,1,3,3,253,253,253,3,3,253,253};
 static constexpr std::array<unsigned char,14> col_length={0,40,40,30,0,0,0,30,40,40,0,0,40,0};
 static constexpr std::array<unsigned char,14> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct superadmin_base
+{
+      superadmin_info::meta data;
+    std::vector<superadmin_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<superadmin_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<superadmin_info::meta>::iterator end(){     return record.end(); }
+std::vector<superadmin_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<superadmin_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="superadmin";
 static constexpr std::string_view modelname="Superadmin";
 
@@ -160,7 +161,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     superadmin_base::meta metatemp;    
+     superadmin_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -210,13 +211,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<superadmin_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<superadmin_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -267,19 +268,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const superadmin_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<superadmin_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<superadmin_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -330,19 +331,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<superadmin_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<superadmin_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<superadmin_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -596,7 +597,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < superadmin_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -606,7 +607,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << superadmin_info::col_names[j];
         }
         if (j > 0)
         {
@@ -672,7 +673,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < superadmin_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -682,7 +683,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << superadmin_info::col_names[j];
         }
         if (j > 0)
         {
@@ -807,7 +808,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<superadmin_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -913,7 +914,7 @@ if(data.qrtemp==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<superadmin_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1075,7 +1076,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<superadmin_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1174,7 +1175,7 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
     void from_json(const std::string &json_content)
    {
         record.clear();
-        superadmin_base::meta metatemp; 
+        superadmin_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1759,7 +1760,7 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<superadmin_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -1864,7 +1865,7 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(record[n].basesitepath)
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,superadmin_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1888,7 +1889,7 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(record[n].basesitepath)
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<superadmin_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -2059,14 +2060,14 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(record[n].basesitepath)
  void setBasesitepath( std::string  &val){  data.basesitepath=val;} 
  void setBasesitepath(std::string_view val){  data.basesitepath=val;} 
 
-superadmin_base::meta getnewData(){
- 	 struct meta newdata;
+superadmin_info::meta getnewData(){
+ 	 struct superadmin_info::meta newdata;
 	 return newdata; 
 } 
-superadmin_base::meta getData(){
+superadmin_info::meta getData(){
  	 return data; 
 } 
-std::vector<superadmin_base::meta> getRecord(){
+std::vector<superadmin_info::meta> getRecord(){
  	 return record; 
 } 
 
@@ -2225,7 +2226,7 @@ std::vector<superadmin_base::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] superadmin_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] superadmin_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2274,7 +2275,7 @@ std::vector<superadmin_base::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] superadmin_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] superadmin_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2327,7 +2328,7 @@ std::vector<superadmin_base::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] superadmin_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] superadmin_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2369,49 +2370,52 @@ std::vector<superadmin_base::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] superadmin_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 1: 
+    			case superadmin_info::cols::name: 
  				 a.emplace_back(iter.name);
 					 break;
-			case 2: 
+			case superadmin_info::cols::password: 
  				 a.emplace_back(iter.password);
 					 break;
-			case 3: 
+			case superadmin_info::cols::nickname: 
  				 a.emplace_back(iter.nickname);
 					 break;
-			case 7: 
+			case superadmin_info::cols::regdate: 
  				 a.emplace_back(iter.regdate);
 					 break;
-			case 8: 
+			case superadmin_info::cols::mobile: 
  				 a.emplace_back(iter.mobile);
 					 break;
-			case 9: 
+			case superadmin_info::cols::email: 
  				 a.emplace_back(iter.email);
 					 break;
-			case 12: 
+			case superadmin_info::cols::wxuuid: 
  				 a.emplace_back(iter.wxuuid);
 					 break;
-			case 13: 
+			case superadmin_info::cols::basesitepath: 
  				 a.emplace_back(iter.basesitepath);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(superadmin::cols keyname, bool isyinhao=false)
+        std::string getstrCol(superadmin_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -2434,67 +2438,67 @@ std::vector<superadmin_base::meta> getRecord(){
                     switch(keyname)
                     {
 
-   			case superadmin::cols::adminid: 
+   			case superadmin_info::cols::adminid: 
  				 a<<std::to_string(iter.adminid);
 				 break;
-			case superadmin::cols::name: 
+			case superadmin_info::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case superadmin::cols::password: 
+			case superadmin_info::cols::password: 
  				 if(isyinhao){ a<<jsonaddslash(iter.password); 
 				 }else{
 				 a<<iter.password;
 				 }
 				 break;
-			case superadmin::cols::nickname: 
+			case superadmin_info::cols::nickname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.nickname); 
 				 }else{
 				 a<<iter.nickname;
 				 }
 				 break;
-			case superadmin::cols::isopen: 
+			case superadmin_info::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case superadmin::cols::begindate: 
+			case superadmin_info::cols::begindate: 
  				 a<<std::to_string(iter.begindate);
 				 break;
-			case superadmin::cols::enddate: 
+			case superadmin_info::cols::enddate: 
  				 a<<std::to_string(iter.enddate);
 				 break;
-			case superadmin::cols::regdate: 
+			case superadmin_info::cols::regdate: 
  				 if(isyinhao){ a<<jsonaddslash(iter.regdate); 
 				 }else{
 				 a<<iter.regdate;
 				 }
 				 break;
-			case superadmin::cols::mobile: 
+			case superadmin_info::cols::mobile: 
  				 if(isyinhao){ a<<jsonaddslash(iter.mobile); 
 				 }else{
 				 a<<iter.mobile;
 				 }
 				 break;
-			case superadmin::cols::email: 
+			case superadmin_info::cols::email: 
  				 if(isyinhao){ a<<jsonaddslash(iter.email); 
 				 }else{
 				 a<<iter.email;
 				 }
 				 break;
-			case superadmin::cols::loginnum: 
+			case superadmin_info::cols::loginnum: 
  				 a<<std::to_string(iter.loginnum);
 				 break;
-			case superadmin::cols::qrtemp: 
+			case superadmin_info::cols::qrtemp: 
  				 a<<std::to_string(iter.qrtemp);
 				 break;
-			case superadmin::cols::wxuuid: 
+			case superadmin_info::cols::wxuuid: 
  				 if(isyinhao){ a<<jsonaddslash(iter.wxuuid); 
 				 }else{
 				 a<<iter.wxuuid;
 				 }
 				 break;
-			case superadmin::cols::basesitepath: 
+			case superadmin_info::cols::basesitepath: 
  				 if(isyinhao){ a<<jsonaddslash(iter.basesitepath); 
 				 }else{
 				 a<<iter.basesitepath;
@@ -2514,7 +2518,7 @@ std::vector<superadmin_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] superadmin::cols keyname,[[maybe_unused]] superadmin::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] superadmin_info::cols keyname,[[maybe_unused]] superadmin_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -2522,56 +2526,56 @@ std::vector<superadmin_base::meta> getRecord(){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case superadmin::cols::name: 
+			{			case superadmin_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case superadmin::cols::password: 
+			case superadmin_info::cols::password: 
  				 ktemp=iter.password;
 				 break;
-			case superadmin::cols::nickname: 
+			case superadmin_info::cols::nickname: 
  				 ktemp=iter.nickname;
 				 break;
-			case superadmin::cols::regdate: 
+			case superadmin_info::cols::regdate: 
  				 ktemp=iter.regdate;
 				 break;
-			case superadmin::cols::mobile: 
+			case superadmin_info::cols::mobile: 
  				 ktemp=iter.mobile;
 				 break;
-			case superadmin::cols::email: 
+			case superadmin_info::cols::email: 
  				 ktemp=iter.email;
 				 break;
-			case superadmin::cols::wxuuid: 
+			case superadmin_info::cols::wxuuid: 
  				 ktemp=iter.wxuuid;
 				 break;
-			case superadmin::cols::basesitepath: 
+			case superadmin_info::cols::basesitepath: 
  				 ktemp=iter.basesitepath;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case superadmin::cols::name: 
+			case superadmin_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case superadmin::cols::password: 
+			case superadmin_info::cols::password: 
  				 vtemp=iter.password;
 				 break;
-			case superadmin::cols::nickname: 
+			case superadmin_info::cols::nickname: 
  				 vtemp=iter.nickname;
 				 break;
-			case superadmin::cols::regdate: 
+			case superadmin_info::cols::regdate: 
  				 vtemp=iter.regdate;
 				 break;
-			case superadmin::cols::mobile: 
+			case superadmin_info::cols::mobile: 
  				 vtemp=iter.mobile;
 				 break;
-			case superadmin::cols::email: 
+			case superadmin_info::cols::email: 
  				 vtemp=iter.email;
 				 break;
-			case superadmin::cols::wxuuid: 
+			case superadmin_info::cols::wxuuid: 
  				 vtemp=iter.wxuuid;
 				 break;
-			case superadmin::cols::basesitepath: 
+			case superadmin_info::cols::basesitepath: 
  				 vtemp=iter.basesitepath;
 				 break;
 			default:
@@ -2588,7 +2592,7 @@ std::vector<superadmin_base::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] superadmin::cols keyname,[[maybe_unused]] superadmin::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] superadmin_info::cols keyname,[[maybe_unused]] superadmin_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -2596,14 +2600,14 @@ std::vector<superadmin_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] superadmin::cols keyname,[[maybe_unused]] superadmin::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] superadmin_info::cols keyname,[[maybe_unused]] superadmin_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] superadmin::cols keyname,[[maybe_unused]] superadmin::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] superadmin_info::cols keyname,[[maybe_unused]] superadmin_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -2613,22 +2617,22 @@ std::vector<superadmin_base::meta> getRecord(){
                 {
    
 			switch(keyname){
-			case superadmin::cols::adminid: 
+			case superadmin_info::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case superadmin::cols::isopen: 
+			case superadmin_info::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case superadmin::cols::begindate: 
+			case superadmin_info::cols::begindate: 
  				 ktemp=iter.begindate;
 				 break;
-			case superadmin::cols::enddate: 
+			case superadmin_info::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
-			case superadmin::cols::loginnum: 
+			case superadmin_info::cols::loginnum: 
  				 ktemp=iter.loginnum;
 				 break;
-			case superadmin::cols::qrtemp: 
+			case superadmin_info::cols::qrtemp: 
  				 ktemp=iter.qrtemp;
 				 break;
 			default:
@@ -2636,28 +2640,28 @@ std::vector<superadmin_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-						case superadmin::cols::name: 
+						case superadmin_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case superadmin::cols::password: 
+			case superadmin_info::cols::password: 
  				 vtemp=iter.password;
 				 break;
-			case superadmin::cols::nickname: 
+			case superadmin_info::cols::nickname: 
  				 vtemp=iter.nickname;
 				 break;
-			case superadmin::cols::regdate: 
+			case superadmin_info::cols::regdate: 
  				 vtemp=iter.regdate;
 				 break;
-			case superadmin::cols::mobile: 
+			case superadmin_info::cols::mobile: 
  				 vtemp=iter.mobile;
 				 break;
-			case superadmin::cols::email: 
+			case superadmin_info::cols::email: 
  				 vtemp=iter.email;
 				 break;
-			case superadmin::cols::wxuuid: 
+			case superadmin_info::cols::wxuuid: 
  				 vtemp=iter.wxuuid;
 				 break;
-			case superadmin::cols::basesitepath: 
+			case superadmin_info::cols::basesitepath: 
  				 vtemp=iter.basesitepath;
 				 break;
 			default:
@@ -2670,7 +2674,7 @@ std::vector<superadmin_base::meta> getRecord(){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] superadmin::cols keyname,[[maybe_unused]] superadmin::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] superadmin_info::cols keyname,[[maybe_unused]] superadmin_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -2680,28 +2684,28 @@ std::vector<superadmin_base::meta> getRecord(){
             {
    
 			switch(keyname){
-			case superadmin::cols::name: 
+			case superadmin_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case superadmin::cols::password: 
+			case superadmin_info::cols::password: 
  				 ktemp=iter.password;
 				 break;
-			case superadmin::cols::nickname: 
+			case superadmin_info::cols::nickname: 
  				 ktemp=iter.nickname;
 				 break;
-			case superadmin::cols::regdate: 
+			case superadmin_info::cols::regdate: 
  				 ktemp=iter.regdate;
 				 break;
-			case superadmin::cols::mobile: 
+			case superadmin_info::cols::mobile: 
  				 ktemp=iter.mobile;
 				 break;
-			case superadmin::cols::email: 
+			case superadmin_info::cols::email: 
  				 ktemp=iter.email;
 				 break;
-			case superadmin::cols::wxuuid: 
+			case superadmin_info::cols::wxuuid: 
  				 ktemp=iter.wxuuid;
 				 break;
-			case superadmin::cols::basesitepath: 
+			case superadmin_info::cols::basesitepath: 
  				 ktemp=iter.basesitepath;
 				 break;
 			default:
@@ -2709,22 +2713,22 @@ std::vector<superadmin_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case superadmin::cols::adminid: 
+			case superadmin_info::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case superadmin::cols::isopen: 
+			case superadmin_info::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case superadmin::cols::begindate: 
+			case superadmin_info::cols::begindate: 
  				 vtemp=iter.begindate;
 				 break;
-			case superadmin::cols::enddate: 
+			case superadmin_info::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
-			case superadmin::cols::loginnum: 
+			case superadmin_info::cols::loginnum: 
  				 vtemp=iter.loginnum;
 				 break;
-			case superadmin::cols::qrtemp: 
+			case superadmin_info::cols::qrtemp: 
  				 vtemp=iter.qrtemp;
 				 break;
 			default:
@@ -2741,7 +2745,7 @@ std::vector<superadmin_base::meta> getRecord(){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] superadmin::cols keyname,[[maybe_unused]] superadmin::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] superadmin_info::cols keyname,[[maybe_unused]] superadmin_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -2752,22 +2756,22 @@ std::vector<superadmin_base::meta> getRecord(){
 
    
 			switch(keyname){
-			case superadmin::cols::adminid: 
+			case superadmin_info::cols::adminid: 
  				 ktemp=iter.adminid;
 				 break;
-			case superadmin::cols::isopen: 
+			case superadmin_info::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case superadmin::cols::begindate: 
+			case superadmin_info::cols::begindate: 
  				 ktemp=iter.begindate;
 				 break;
-			case superadmin::cols::enddate: 
+			case superadmin_info::cols::enddate: 
  				 ktemp=iter.enddate;
 				 break;
-			case superadmin::cols::loginnum: 
+			case superadmin_info::cols::loginnum: 
  				 ktemp=iter.loginnum;
 				 break;
-			case superadmin::cols::qrtemp: 
+			case superadmin_info::cols::qrtemp: 
  				 ktemp=iter.qrtemp;
 				 break;
 			default:
@@ -2775,22 +2779,22 @@ std::vector<superadmin_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case superadmin::cols::adminid: 
+			case superadmin_info::cols::adminid: 
  				 vtemp=iter.adminid;
 				 break;
-			case superadmin::cols::isopen: 
+			case superadmin_info::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case superadmin::cols::begindate: 
+			case superadmin_info::cols::begindate: 
  				 vtemp=iter.begindate;
 				 break;
-			case superadmin::cols::enddate: 
+			case superadmin_info::cols::enddate: 
  				 vtemp=iter.enddate;
 				 break;
-			case superadmin::cols::loginnum: 
+			case superadmin_info::cols::loginnum: 
  				 vtemp=iter.loginnum;
 				 break;
-			case superadmin::cols::qrtemp: 
+			case superadmin_info::cols::qrtemp: 
  				 vtemp=iter.qrtemp;
 				 break;
 			default:
@@ -2804,9 +2808,9 @@ std::vector<superadmin_base::meta> getRecord(){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,superadmin_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,superadmin_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -2841,9 +2845,9 @@ std::vector<superadmin_base::meta> getRecord(){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,superadmin_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,superadmin_info::meta> a;
 
     
             unsigned char kpos;
@@ -3257,9 +3261,9 @@ case 13:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,superadmin_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,superadmin_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -3293,9 +3297,9 @@ case 11:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,superadmin_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,superadmin_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -4757,9 +4761,9 @@ case 13:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<superadmin_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<superadmin_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -4795,9 +4799,9 @@ case 13:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<superadmin_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<superadmin_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -4840,9 +4844,9 @@ case 13:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<superadmin_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<superadmin_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4914,9 +4918,9 @@ case 13:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<superadmin_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<superadmin_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4983,9 +4987,9 @@ case 13:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<superadmin_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<superadmin_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -5045,9 +5049,9 @@ case 13:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<superadmin_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<superadmin_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

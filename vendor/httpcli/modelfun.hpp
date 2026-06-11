@@ -5036,8 +5036,12 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     {
         //error 
     }
-    
+    std::string model_name_info ="#include \"" + real_model_name+"_base.h\"\n/*baseincludefile*/";
+    n = string_replace(template_content, "/*baseincludefile*/", model_name_info);
+    model_name_info = real_model_name;
+    model_name_info.append("_info::meta");
     n = string_replace(template_content, "{{date}}", getgmtdatetime());
+    n = string_replace_all(template_content, "typename B_BASE::meta", model_name_info);
     if (real_tag.size() > 0)
     {
         n = string_replace(template_content, "/*tagnamespace*/", "namespace " + real_tag);
@@ -5048,7 +5052,9 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         n = string_replace(template_content, "} /*tagnamespace_replace*/", "//} /*tagnamespace_replace*/");
     }
 
-    append_content +=R"(void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned int value_size, typename B_BASE::meta &data_temp)
+    append_content +=R"(void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned int value_size, )";
+    append_content += model_name_info;
+    append_content +=R"( &data_temp)
     {
         switch(index_pos)
         {
@@ -5864,11 +5870,16 @@ namespace orm {
         headtxt.append(" { \n");
     }
 
- headtxt += R"(
+        headtxt += R"(
 namespace )";
-headtxt.append(tablenamebase);
-headtxt += R"( 
+
+std::string model_info_name = tablenamebase+"_info";
+    headtxt.append(model_info_name);
+    headtxt += R"(
 {
+)";
+
+headtxt += R"( 
     enum class cols : unsigned char 
     {
 )";
@@ -5881,21 +5892,9 @@ headtxt += R"(
             headtxt.append(std::to_string(j));
             headtxt.append(",\n");
         }
-
         headtxt += R"(
     };
 )";
-
-headtxt += R"( 
-}
-    )";
-
-    headtxt += R"(
-struct )";
-    headtxt.append(tablenamebase);
-    headtxt += R"(_base
-{
-)";    
 
 std::ostringstream filemodelstrem;
 
@@ -5907,7 +5906,7 @@ headtxt += R"(
     {
         filemodelstrem << metalist[j] << std::endl;
     }
-    filemodelstrem << " } data;\n ";
+    filemodelstrem << " };\n ";
     if (ismeta_tree || tablefieldtree.size() > 0)
     {
         filemodelstrem << R"( 
@@ -5917,25 +5916,11 @@ headtxt += R"(
         {
             filemodelstrem << metalist[j] << std::endl;
         }
-        filemodelstrem << "\n\tstd::vector<meta_tree> children;\n };\n ";
+        filemodelstrem << "\n\t std::vector<meta_tree> children;\n };\n ";
     }
     
     headtxt.append(filemodelstrem.str());   
-    filemodelstrem.str(""); 
-
-    filemodelstrem << "std::vector<" << tablenamebase << "_base::meta> record;\n";
-    filemodelstrem << "std::string _rmstag=\"" << rmstag
-                   << "\";//this value must be default or tag value, tag in mysqlconnect config file .\n";
-    filemodelstrem << "unsigned int _offset=0;\n";
-    //filemodelstrem << "MYSQL_ROW _row;\n";
-
-    filemodelstrem << "std::vector<" << tablenamebase
-                   << "_base::meta>::iterator begin(){     return record.begin(); }\n";
-    filemodelstrem << "std::vector<" << tablenamebase << "_base::meta>::iterator end(){     return record.end(); }\n";
-    filemodelstrem << "std::vector<" << tablenamebase
-                   << "_base::meta>::const_iterator begin() const{     return record.begin(); }\n";
-    filemodelstrem << "std::vector<" << tablenamebase
-                   << "_base::meta>::const_iterator end() const{     return record.end(); }\n";
+    filemodelstrem.str("");
 
     // may be used to optimize the const static std::array<std::string,N> col_names={"xxx"};
     filemodelstrem << "static constexpr std::array<std::string_view," << std::to_string(table_column_info_lists.size()) << "> col_names={";
@@ -5992,6 +5977,41 @@ headtxt += R"(
         filemodelstrem << std::to_string(table_column_info_lists[j].decimals);
     }
     filemodelstrem << "};\r\n";
+
+    headtxt.append(filemodelstrem.str());
+    filemodelstrem.str("");
+
+    headtxt += R"(
+}
+)";    
+
+    headtxt += R"(
+struct )";
+    headtxt.append(tablenamebase);
+    headtxt += R"(_base
+{
+)";    
+
+headtxt += R"(      )"; 
+headtxt.append(model_info_name);
+headtxt += R"(::meta data;
+    )"; 
+    
+    headtxt.append(filemodelstrem.str());   
+    filemodelstrem.str(""); 
+
+    filemodelstrem << "std::vector<" << model_info_name << "::meta> record;\n";
+    filemodelstrem << "std::string _rmstag=\"" << rmstag
+                   << "\";//this value must be default or tag value, tag in mysqlconnect config file .\n";
+    //filemodelstrem << "MYSQL_ROW _row;\n";
+
+    filemodelstrem << "std::vector<" << model_info_name
+                   << "::meta>::iterator begin(){     return record.begin(); }\n";
+    filemodelstrem << "std::vector<" << model_info_name << "::meta>::iterator end(){     return record.end(); }\n";
+    filemodelstrem << "std::vector<" << model_info_name
+                   << "::meta>::const_iterator begin() const{     return record.begin(); }\n";
+    filemodelstrem << "std::vector<" << model_info_name
+                   << "::meta>::const_iterator end() const{     return record.end(); }\n";
 
     headtxt.append(filemodelstrem.str());
     filemodelstrem.str("");
@@ -6174,8 +6194,8 @@ headtxt += R"(
     headtxt += R"(
       void data_reset(){
      )";
-    headtxt += tablenamebase;
-    headtxt += R"(_base::meta metatemp;    
+    headtxt += model_info_name;
+    headtxt += R"(::meta metatemp;    
             data = metatemp; 
       }
       )";
@@ -6301,13 +6321,17 @@ headtxt += R"(
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -6454,21 +6478,26 @@ headtxt += R"(
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     // insert mate
-
     headtxt = R"(   
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const )";
+    headtxt += model_info_name;
+    headtxt += R"(::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -6618,21 +6647,27 @@ headtxt += R"(
     headtxt.clear();
     insertstrem.str("");
     // insert mate array
+    headtxt += R"(   
+    std::string _makerecordinsertsql(const std::vector<)";
+    headtxt += model_info_name;
 
-    headtxt = R"(   
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    headtxt += R"(::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -7021,7 +7056,9 @@ headtxt += R"(
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < )";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -7031,7 +7068,9 @@ headtxt += R"(
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << )";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names[j];
         }
         if (j > 0)
         {
@@ -7185,7 +7224,9 @@ headtxt += R"(
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < )";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -7195,7 +7236,9 @@ headtxt += R"(
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << )";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names[j];
         }
         if (j > 0)
         {
@@ -7407,7 +7450,9 @@ headtxt += R"(
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -7518,7 +7563,9 @@ headtxt += R"(
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -7721,7 +7768,9 @@ headtxt += R"(
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -7819,8 +7868,8 @@ headtxt += R"(
    {
         record.clear();
         )";
-    headtxt += tablenamebase;
-    headtxt += R"(_base::meta metatemp; 
+    headtxt += model_info_name;
+    headtxt += R"(::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -8486,7 +8535,9 @@ headtxt += R"(
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -8591,7 +8642,9 @@ headtxt += R"(
 
     ///////////////////////////////////////////////
     headtxt = R"(
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,)";
+    headtxt += model_info_name;
+    headtxt += R"(::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -8615,7 +8668,9 @@ headtxt += R"(
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -8822,14 +8877,13 @@ headtxt += R"(
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
-    headtxt = tablenamebase + "_base::meta getnewData(){\n \t struct meta newdata;\n\t return newdata; \n} \n";
-
-    headtxt.append(tablenamebase);
-    headtxt.append("_base::meta getData(){\n \t return data; \n} \n");
+    headtxt = model_info_name + "::meta getnewData(){\n \t struct ";
+    headtxt += model_info_name + "::meta newdata;\n\t return newdata; \n} \n";
+    headtxt.append(model_info_name);
+    headtxt.append("::meta getData(){\n \t return data; \n} \n");
     headtxt.append("std::vector<");
-    headtxt.append(tablenamebase);
-    headtxt.append("_base::meta> getRecord(){\n \t return record; \n} \n");
+    headtxt.append(model_info_name);
+    headtxt.append("::meta> getRecord(){\n \t return record; \n} \n");
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -8987,8 +9041,10 @@ headtxt += R"(
     headtxt.clear();
     if (ismeta_tree || tablefieldtree.size() > 0)
     {
-        headtxt = R"(
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+        headtxt += R"(
+   std::string tree_tojson(const std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree> &tree_data, std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -9012,7 +9068,9 @@ headtxt += R"(
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -9119,8 +9177,12 @@ headtxt += R"(
         headtxt.clear();
 
         ///////////////////////////////////////////////
-        headtxt = R"(
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+        headtxt += R"(
+   std::string tree_tojson(const std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree> &tree_data,std::function<bool(std::string&,const )";
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -9144,7 +9206,9 @@ headtxt += R"(
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<)";
+        headtxt +=model_info_name;
+        headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -9269,8 +9333,13 @@ headtxt += R"(
         std::string sourceidname   = iter->second.first;
 
         std::string itemmember_str, tree_torecord_str;
-        itemmember_str.append("\t\tmeta_tree temp_obja;\n");
-        tree_torecord_str.append("\n\t\tmeta temp_obja;\n");
+        itemmember_str.append("\t\t");
+        itemmember_str += model_info_name;
+        itemmember_str.append("::meta_tree temp_obja;\n\t\t");
+
+        tree_torecord_str.append("\t\t");
+        tree_torecord_str += model_info_name;
+        tree_torecord_str.append("::meta temp_obja;\n\t\t");
         unsigned int j = 0;
         for (auto &fe : tablecollist)
         {
@@ -9295,11 +9364,14 @@ headtxt += R"(
             }
             j++;
         }
+        headtxt += R"(
+    )";
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree treedata_from_record(unsigned int i=0)
+    { )";
 
-        headtxt = R"(
-    meta_tree treedata_from_record(unsigned int i=0)
-    {
-        meta_tree temp_obja;
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree temp_obja;
         if(i>=record.size())
         {
            return  temp_obja;   
@@ -9316,10 +9388,14 @@ headtxt += R"(
         }
         headtxt += R"(
         return  temp_obja;   
-    }
-    meta_tree treedata_from_data()
-    {
-        meta_tree temp_obja;
+    })";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree treedata_from_data()
+    { )";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree temp_obja;
 
         )";
         for (auto &fe : tablecollist)
@@ -9333,10 +9409,17 @@ headtxt += R"(
         }
         headtxt += R"(
         return  temp_obja;   
-    }      
-    meta_tree treedata_from_data(const meta &tempdata)
-    {
-        meta_tree temp_obja;
+    })";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree treedata_from_data(const )";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta &tempdata)
+    {)";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree temp_obja;
         )";
         for (auto &fe : tablecollist)
         {
@@ -9350,9 +9433,15 @@ headtxt += R"(
         headtxt += R"(
         return  temp_obja;   
     }     
-    std::vector<meta_tree> to_tree(unsigned int beginid=0)
+    std::vector<)";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree> to_tree(unsigned int beginid=0)
     {
-       std::vector<meta_tree> temp;
+       std::vector<)";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree> temp;
        unsigned int level=0; 
        if(beginid==0)
        {
@@ -9399,7 +9488,10 @@ headtxt += R"(
        }
        return temp; 
     }    
-    void record_to_tree(std::vector<meta_tree> &targetdata,long long t_vid,unsigned int level=0)
+    void record_to_tree(std::vector<)";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree> &targetdata,long long t_vid,unsigned int level=0)
     {
         for (unsigned int i = 0; i < record.size(); i++)
         {
@@ -9421,7 +9513,10 @@ headtxt += R"(
         headtxt += R"(,level);
         }
     }
-    void tree_torecord(const std::vector<meta_tree> &sourcedata,unsigned int level=0)
+    void tree_torecord(const std::vector<)";
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta_tree> &sourcedata,unsigned int level=0)
     {
         for (unsigned int i = 0; i < sourcedata.size(); i++)
         {)";
@@ -9691,8 +9786,9 @@ headtxt += R"(
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
         T getVal([[maybe_unused]] )";
-    headtxt += tablenamebase;
-    headtxt += R"(_base::meta & iter,[[maybe_unused]] std::string keyname)
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           )";
@@ -9773,8 +9869,9 @@ headtxt += R"(
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
             T getVal([[maybe_unused]] )";
-    headtxt += tablenamebase;
-    headtxt += R"(_base::meta & iter,std::string keyname)
+     
+        headtxt += model_info_name;
+        headtxt += R"(::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -9860,8 +9957,8 @@ headtxt += R"(
     headtxt = R"(
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
             std::string getVal([[maybe_unused]] )";
-    headtxt += tablenamebase;
-    headtxt += R"(_base::meta & iter,std::string keyname)
+        headtxt += model_info_name;
+        headtxt += R"(::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -9908,12 +10005,18 @@ headtxt += R"(
     headtxt.clear();
     /////////////////////////
     // getCol
+    bool iskeyhas = false,isvaluehas =false;
     sqlqueryring.clear();
     getcollstrem.str("");
+    if(stringcollist.size() > 0)
+    {
+        iskeyhas = true;
+    }
+
     for (auto &kaa : stringcollist)
     {
-
-        getcollstrem << "\t\t\tcase " << std::to_string(kaa.first) << ": \n ";
+        
+        getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
 
         getcollstrem << "\t\t\t\t a.emplace_back(iter." << kaa.second << ");"
                      << "\n";
@@ -9924,7 +10027,10 @@ headtxt += R"(
 
     headtxt = R"( 
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] )"; 
+    headtxt.append(model_info_name);
+    headtxt.append("::cols");
+    headtxt += R"( keyname)
             {
                 std::vector<std::string> a;
 
@@ -9933,20 +10039,24 @@ headtxt += R"(
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (sqlqueryring.size() > 0)
+    if (iskeyhas && sqlqueryring.size() > 0)
     {
 
-        headtxt = R"(
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+        headtxt = R"(                
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
     )";
         headtxt += sqlqueryring;
-        headtxt += "\t\t\t\t\t}\n\t\t\t\t}";
+        headtxt += R"(
+
+                    default:
+                        break;
+                    }
+                }
+        )";
         fwrite(&headtxt[0], headtxt.size(), 1, f);
         headtxt.clear();
     }
@@ -9962,14 +10072,15 @@ headtxt += R"(
     ////////////////////////////////////////////
     // getstrCol("userid",false); // 33,44
     // getstrCol("userid",true);  // "33","44"
-    bool iskeyhas = false,isvaluehas =false;
+    iskeyhas = false;
+    isvaluehas =false;
     getcollstrem.str("");
     sqlqueryring.clear();
 
     for (unsigned int jj = 0; jj < tablecollist.size(); jj++)
     {
 
-        getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< tablecollist[jj] << ": \n ";
+        getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< tablecollist[jj] << ": \n ";
 
         if (colltypeshuzi[jj] < 30)
         {
@@ -9992,7 +10103,7 @@ headtxt += R"(
     headtxt = R"( 
         std::string getstrCol()"; 
     
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( keyname, bool isyinhao=false)
         {
@@ -10067,7 +10178,7 @@ headtxt += R"(
         getcollstrem << "\t\t\tswitch(keyname) \n\t\t\t{";
         for (auto &kaa : stringcollist)
         {
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
 
             getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                         << "\n";
@@ -10084,7 +10195,7 @@ headtxt += R"(
         for (auto &kaa : stringcollist)
         {
 
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t\t\t\t break;\n";
@@ -10098,13 +10209,13 @@ headtxt += R"(
     headtxt = R"(
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
     std::map<std::string,std::string> getCols([[maybe_unused]] )"; 
-    
-    headtxt += tablenamebase;
+
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( keyname,[[maybe_unused]] )"; 
-    
-    headtxt += tablenamebase;
-    headtxt.append("::cols ");
+
+    headtxt.append(model_info_name);
+    headtxt.append("::cols");
     headtxt += R"( valname) )"; 
     headtxt += R"(
     {
@@ -10154,7 +10265,7 @@ headtxt += R"(
         getcollstrem << "\t\t\tswitch(keyname) \n\t\t\t{";   
         for (auto &kaa : stringcollist)
         {
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t\t\t\t break;\n";
@@ -10170,7 +10281,7 @@ headtxt += R"(
         for (auto &kaa : floatcollist)
         {
 
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
 
             getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                         << "\n";
@@ -10184,12 +10295,11 @@ headtxt += R"(
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
         std::map<std::string,U> getCols([[maybe_unused]] )"; 
-    
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( keyname,[[maybe_unused]] )"; 
     
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( valname) )"; 
     headtxt += R"(
@@ -10240,7 +10350,7 @@ headtxt += R"(
         getcollstrem << "\t\t\tswitch(keyname) \n\t\t\t{";   
         for (auto &kaa : numbercollist)
         {
-            getcollstrem << "case " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "case " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t ktemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t break;\n";
@@ -10254,7 +10364,7 @@ headtxt += R"(
         getcollstrem << "\t\t\tswitch(valname) \n\t\t\t{\n\t\t\t";  
         for (auto &kaa : floatcollist)
         {
-            getcollstrem << "case " <<tablenamebase<<"::cols::"<< kaa.second <<": \n ";
+            getcollstrem << "case " <<model_info_name<<"::cols::"<< kaa.second <<": \n ";
             getcollstrem << "\t vtemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t break;\n";
@@ -10267,11 +10377,11 @@ headtxt += R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
         std::map<T,U> getCols([[maybe_unused]] )"; 
     
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
-    headtxt += R"( keyname,[[maybe_unused]] )"; 
-    
-    headtxt += tablenamebase;
+    headtxt += R"( keyname,[[maybe_unused]] )";
+
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( valname) )"; 
     headtxt += R"(
@@ -10319,7 +10429,7 @@ headtxt += R"(
         getcollstrem << "\n\t\t\tswitch(keyname){\n";
         for (auto &kaa : numbercollist)
         {
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t\t\t\t break;\n";
@@ -10333,7 +10443,7 @@ headtxt += R"(
         getcollstrem << "\n\t\t\tswitch(valname){\n\t\t\t";
         for (auto &kaa : stringcollist)
         {
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t\t\t\t break;\n";
@@ -10346,11 +10456,11 @@ headtxt += R"(
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
             std::map<T,std::string> getCols([[maybe_unused]] )"; 
     
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( keyname,[[maybe_unused]] )"; 
     
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( valname) )"; 
     headtxt += R"(
@@ -10399,7 +10509,7 @@ headtxt += R"(
         getcollstrem << "\n\t\t\tswitch(keyname){\n";
         for (auto &kaa : stringcollist)
         {
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t\t\t\t break;\n";
@@ -10413,7 +10523,7 @@ headtxt += R"(
         getcollstrem << "\n\t\t\tswitch(valname){\n";
         for (auto &kaa : numbercollist)
         {
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t\t\t\t break;\n";
@@ -10425,12 +10535,10 @@ headtxt += R"(
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
         std::map<std::string,U> getCols([[maybe_unused]] )"; 
-    
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( keyname,[[maybe_unused]] )"; 
-    
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( valname) )"; 
     headtxt += R"(
@@ -10483,7 +10591,7 @@ headtxt += R"(
         getcollstrem << "\n\t\t\tswitch(keyname){\n";
         for (auto &kaa : numbercollist)
         {
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t\t\t\t ktemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t\t\t\t break;\n";
@@ -10497,7 +10605,7 @@ headtxt += R"(
         getcollstrem << "\n\t\t\tswitch(valname){\n";
         for (auto &kaa : numbercollist)
         {
-            getcollstrem << "\t\t\tcase " <<tablenamebase<<"::cols::"<< kaa.second << ": \n ";
+            getcollstrem << "\t\t\tcase " <<model_info_name<<"::cols::"<< kaa.second << ": \n ";
             getcollstrem << "\t\t\t\t vtemp=iter." << kaa.second << ";"
                         << "\n";
             getcollstrem << "\t\t\t\t break;\n";
@@ -10509,12 +10617,10 @@ headtxt += R"(
     headtxt = R"(
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
         std::map<T,U> getCols([[maybe_unused]] )"; 
-    
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( keyname,[[maybe_unused]] )"; 
-    
-    headtxt += tablenamebase;
+    headtxt.append(model_info_name);
     headtxt.append("::cols");
     headtxt += R"( valname) )"; 
     headtxt += R"(
@@ -10569,9 +10675,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta> a;
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -10624,9 +10734,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta> a;
 
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
@@ -11093,9 +11207,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>> a;
      )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -11144,9 +11262,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>> a;
       )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -12588,9 +12710,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>> a;
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -12642,9 +12768,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>> a;
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -12710,9 +12840,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>>> a;
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -12778,9 +12912,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>>> a;
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -12847,9 +12985,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>>> a;
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
@@ -12915,9 +13057,13 @@ headtxt += R"(
 
     headtxt = R"(
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<)";
+        headtxt += model_info_name;
+        headtxt += R"(::meta>>> a;
 
    )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);

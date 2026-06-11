@@ -2,7 +2,7 @@
 #define ORM_CMS_BRANDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace brand 
+namespace brand_info
 {
+ 
     enum class cols : unsigned char 
     {
 		brandid = 0,
@@ -35,11 +36,6 @@ namespace brand
 		detailcontent = 8,
 
     };
- 
-}
-    
-struct brand_base
-{
 
     struct meta{
      unsigned  int  brandid = 0; ///**/
@@ -51,18 +47,23 @@ struct brand_base
  std::string  name = ""; ///*other name*/
  std::string  introduce = ""; ///*简介*/
  std::string  detailcontent = ""; ///**/
- } data;
- std::vector<brand_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<brand_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<brand_base::meta>::iterator end(){     return record.end(); }
-std::vector<brand_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<brand_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,9> col_names={"brandid","userid","topicid","sortid","logo","title","name","introduce","detailcontent"};
+ };
+ static constexpr std::array<std::string_view,9> col_names={"brandid","userid","topicid","sortid","logo","title","name","introduce","detailcontent"};
 static constexpr std::array<unsigned char,9> col_types={3,3,3,3,253,253,253,252,252};
 static constexpr std::array<unsigned char,9> col_length={0,0,0,0,0,160,160,0,0};
 static constexpr std::array<unsigned char,9> col_decimals={0,0,0,0,0,0,0,0,0};
+
+}
+
+struct brand_base
+{
+      brand_info::meta data;
+    std::vector<brand_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<brand_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<brand_info::meta>::iterator end(){     return record.end(); }
+std::vector<brand_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<brand_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="brand";
 static constexpr std::string_view modelname="Brand";
 
@@ -127,7 +128,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     brand_base::meta metatemp;    
+     brand_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -177,13 +178,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<brand_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<brand_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -221,19 +222,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const brand_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<brand_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<brand_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -271,19 +272,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<brand_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<brand_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<brand_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -483,7 +484,7 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < brand_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -493,7 +494,7 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << brand_info::col_names[j];
         }
         if (j > 0)
         {
@@ -546,7 +547,7 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < brand_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -556,7 +557,7 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << brand_info::col_names[j];
         }
         if (j > 0)
         {
@@ -668,7 +669,7 @@ tempsql<<"`detailcontent`='"<<stringaddslash(data.detailcontent)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<brand_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -751,7 +752,7 @@ if(data.sortid==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<brand_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -874,7 +875,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<brand_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -945,7 +946,7 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
     void from_json(const std::string &json_content)
    {
         record.clear();
-        brand_base::meta metatemp; 
+        brand_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1425,7 +1426,7 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(data.detailcontent)<<"
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<brand_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -1502,7 +1503,7 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(record[n].detailconten
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,brand_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1526,7 +1527,7 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(record[n].detailconten
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<brand_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1648,14 +1649,14 @@ tempsql<<"\"detailcontent\":\""<<http::utf8_to_jsonstring(record[n].detailconten
  void setDetailcontent( std::string  &val){  data.detailcontent=val;} 
  void setDetailcontent(std::string_view val){  data.detailcontent=val;} 
 
-brand_base::meta getnewData(){
- 	 struct meta newdata;
+brand_info::meta getnewData(){
+ 	 struct brand_info::meta newdata;
 	 return newdata; 
 } 
-brand_base::meta getData(){
+brand_info::meta getData(){
  	 return data; 
 } 
-std::vector<brand_base::meta> getRecord(){
+std::vector<brand_info::meta> getRecord(){
  	 return record; 
 } 
 
@@ -1782,7 +1783,7 @@ std::vector<brand_base::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] brand_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] brand_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1825,7 +1826,7 @@ std::vector<brand_base::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] brand_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] brand_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1869,7 +1870,7 @@ std::vector<brand_base::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] brand_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] brand_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -1902,40 +1903,43 @@ std::vector<brand_base::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] brand_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 4: 
+    			case brand_info::cols::logo: 
  				 a.emplace_back(iter.logo);
 					 break;
-			case 5: 
+			case brand_info::cols::title: 
  				 a.emplace_back(iter.title);
 					 break;
-			case 6: 
+			case brand_info::cols::name: 
  				 a.emplace_back(iter.name);
 					 break;
-			case 7: 
+			case brand_info::cols::introduce: 
  				 a.emplace_back(iter.introduce);
 					 break;
-			case 8: 
+			case brand_info::cols::detailcontent: 
  				 a.emplace_back(iter.detailcontent);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(brand::cols keyname, bool isyinhao=false)
+        std::string getstrCol(brand_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -1958,43 +1962,43 @@ std::vector<brand_base::meta> getRecord(){
                     switch(keyname)
                     {
 
-   			case brand::cols::brandid: 
+   			case brand_info::cols::brandid: 
  				 a<<std::to_string(iter.brandid);
 				 break;
-			case brand::cols::userid: 
+			case brand_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case brand::cols::topicid: 
+			case brand_info::cols::topicid: 
  				 a<<std::to_string(iter.topicid);
 				 break;
-			case brand::cols::sortid: 
+			case brand_info::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case brand::cols::logo: 
+			case brand_info::cols::logo: 
  				 if(isyinhao){ a<<jsonaddslash(iter.logo); 
 				 }else{
 				 a<<iter.logo;
 				 }
 				 break;
-			case brand::cols::title: 
+			case brand_info::cols::title: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case brand::cols::name: 
+			case brand_info::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case brand::cols::introduce: 
+			case brand_info::cols::introduce: 
  				 if(isyinhao){ a<<jsonaddslash(iter.introduce); 
 				 }else{
 				 a<<iter.introduce;
 				 }
 				 break;
-			case brand::cols::detailcontent: 
+			case brand_info::cols::detailcontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.detailcontent); 
 				 }else{
 				 a<<iter.detailcontent;
@@ -2014,7 +2018,7 @@ std::vector<brand_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] brand::cols keyname,[[maybe_unused]] brand::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] brand_info::cols keyname,[[maybe_unused]] brand_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -2022,38 +2026,38 @@ std::vector<brand_base::meta> getRecord(){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case brand::cols::logo: 
+			{			case brand_info::cols::logo: 
  				 ktemp=iter.logo;
 				 break;
-			case brand::cols::title: 
+			case brand_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case brand::cols::name: 
+			case brand_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case brand::cols::introduce: 
+			case brand_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case brand::cols::detailcontent: 
+			case brand_info::cols::detailcontent: 
  				 ktemp=iter.detailcontent;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case brand::cols::logo: 
+			case brand_info::cols::logo: 
  				 vtemp=iter.logo;
 				 break;
-			case brand::cols::title: 
+			case brand_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case brand::cols::name: 
+			case brand_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case brand::cols::introduce: 
+			case brand_info::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case brand::cols::detailcontent: 
+			case brand_info::cols::detailcontent: 
  				 vtemp=iter.detailcontent;
 				 break;
 			default:
@@ -2070,7 +2074,7 @@ std::vector<brand_base::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] brand::cols keyname,[[maybe_unused]] brand::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] brand_info::cols keyname,[[maybe_unused]] brand_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -2078,14 +2082,14 @@ std::vector<brand_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] brand::cols keyname,[[maybe_unused]] brand::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] brand_info::cols keyname,[[maybe_unused]] brand_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] brand::cols keyname,[[maybe_unused]] brand::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] brand_info::cols keyname,[[maybe_unused]] brand_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -2095,16 +2099,16 @@ std::vector<brand_base::meta> getRecord(){
                 {
    
 			switch(keyname){
-			case brand::cols::brandid: 
+			case brand_info::cols::brandid: 
  				 ktemp=iter.brandid;
 				 break;
-			case brand::cols::userid: 
+			case brand_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case brand::cols::topicid: 
+			case brand_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case brand::cols::sortid: 
+			case brand_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
 			default:
@@ -2112,19 +2116,19 @@ std::vector<brand_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-						case brand::cols::logo: 
+						case brand_info::cols::logo: 
  				 vtemp=iter.logo;
 				 break;
-			case brand::cols::title: 
+			case brand_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case brand::cols::name: 
+			case brand_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case brand::cols::introduce: 
+			case brand_info::cols::introduce: 
  				 vtemp=iter.introduce;
 				 break;
-			case brand::cols::detailcontent: 
+			case brand_info::cols::detailcontent: 
  				 vtemp=iter.detailcontent;
 				 break;
 			default:
@@ -2137,7 +2141,7 @@ std::vector<brand_base::meta> getRecord(){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] brand::cols keyname,[[maybe_unused]] brand::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] brand_info::cols keyname,[[maybe_unused]] brand_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -2147,19 +2151,19 @@ std::vector<brand_base::meta> getRecord(){
             {
    
 			switch(keyname){
-			case brand::cols::logo: 
+			case brand_info::cols::logo: 
  				 ktemp=iter.logo;
 				 break;
-			case brand::cols::title: 
+			case brand_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case brand::cols::name: 
+			case brand_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case brand::cols::introduce: 
+			case brand_info::cols::introduce: 
  				 ktemp=iter.introduce;
 				 break;
-			case brand::cols::detailcontent: 
+			case brand_info::cols::detailcontent: 
  				 ktemp=iter.detailcontent;
 				 break;
 			default:
@@ -2167,16 +2171,16 @@ std::vector<brand_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case brand::cols::brandid: 
+			case brand_info::cols::brandid: 
  				 vtemp=iter.brandid;
 				 break;
-			case brand::cols::userid: 
+			case brand_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case brand::cols::topicid: 
+			case brand_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case brand::cols::sortid: 
+			case brand_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
 			default:
@@ -2193,7 +2197,7 @@ std::vector<brand_base::meta> getRecord(){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] brand::cols keyname,[[maybe_unused]] brand::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] brand_info::cols keyname,[[maybe_unused]] brand_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -2204,16 +2208,16 @@ std::vector<brand_base::meta> getRecord(){
 
    
 			switch(keyname){
-			case brand::cols::brandid: 
+			case brand_info::cols::brandid: 
  				 ktemp=iter.brandid;
 				 break;
-			case brand::cols::userid: 
+			case brand_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case brand::cols::topicid: 
+			case brand_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case brand::cols::sortid: 
+			case brand_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
 			default:
@@ -2221,16 +2225,16 @@ std::vector<brand_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case brand::cols::brandid: 
+			case brand_info::cols::brandid: 
  				 vtemp=iter.brandid;
 				 break;
-			case brand::cols::userid: 
+			case brand_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case brand::cols::topicid: 
+			case brand_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case brand::cols::sortid: 
+			case brand_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
 			default:
@@ -2244,9 +2248,9 @@ std::vector<brand_base::meta> getRecord(){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,brand_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,brand_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -2275,9 +2279,9 @@ std::vector<brand_base::meta> getRecord(){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,brand_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,brand_info::meta> a;
 
     
             unsigned char kpos;
@@ -2607,9 +2611,9 @@ case 8:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,brand_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,brand_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -2637,9 +2641,9 @@ case 3:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,brand_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,brand_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -3777,9 +3781,9 @@ case 8:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<brand_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<brand_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -3809,9 +3813,9 @@ case 8:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<brand_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<brand_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -3845,9 +3849,9 @@ case 8:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<brand_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<brand_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -3901,9 +3905,9 @@ case 8:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<brand_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<brand_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -3955,9 +3959,9 @@ case 8:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<brand_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<brand_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4005,9 +4009,9 @@ case 8:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<brand_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<brand_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

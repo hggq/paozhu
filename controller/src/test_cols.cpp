@@ -11,15 +11,15 @@ std::string test_cols(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
      
-    unsigned char idx = static_cast<unsigned char>(orm::world::cols::randomnumber);
+   // unsigned char idx = static_cast<unsigned char>(orm::world_info::cols::randomnumber);
 
-    client<<"randomnumber idx:"<<std::to_string(idx);
+   // client<<"randomnumber idx:"<<std::to_string(idx);
 
-    unsigned char idx_count = orm::world_base::col_names.size();
+    unsigned char idx_count = orm::world_info::col_names.size();
 
     for (int i = 0; i < idx_count; ++i) 
     {
-        client<<"<p>colname:"<<orm::world_base::col_names[i]<<"</p>";
+        client<<"<p>colname:"<<orm::world_info::col_names[i]<<"</p>";
     }
     return "";
 }

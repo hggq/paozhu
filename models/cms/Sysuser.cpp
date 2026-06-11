@@ -13,7 +13,7 @@
 			 Sysuser::Sysuser(std::string dbtag):sysuser_mysql(dbtag){ mod=this; }
 			 Sysuser::Sysuser():sysuser_mysql(){ mod=this; }
 
-			 std::vector<orm::cms::article_base::meta> Sysuser::gettoparticle(int userid)
+			 std::vector<orm::cms::article_info::meta> Sysuser::gettoparticle(int userid)
 			 {
 				 auto art = orm::cms::Article();
 				 userid=this->data.companyid;

@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace logininfo 
+namespace logininfo_info
 {
+ 
     enum class cols : unsigned char 
     {
 		lgid = 0,
@@ -36,11 +37,6 @@ namespace logininfo
 		urlpath = 9,
 
     };
- 
-}
-    
-struct logininfo_base
-{
 
     struct meta{
      unsigned  int  lgid = 0; ///**/
@@ -53,18 +49,23 @@ struct logininfo_base
  std::string  loginstate = ""; ///*登录状态*/
  std::string  agent = ""; ///**/
  std::string  urlpath = ""; ///**/
- } data;
- std::vector<logininfo_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<logininfo_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<logininfo_base::meta>::iterator end(){     return record.end(); }
-std::vector<logininfo_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<logininfo_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
+ };
+ static constexpr std::array<std::string_view,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
 static constexpr std::array<unsigned char,10> col_types={3,3,1,253,253,253,253,253,253,253};
 static constexpr std::array<unsigned char,10> col_length={0,0,0,40,20,70,70,20,120,120};
 static constexpr std::array<unsigned char,10> col_decimals={0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct logininfo_base
+{
+      logininfo_info::meta data;
+    std::vector<logininfo_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<logininfo_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<logininfo_info::meta>::iterator end(){     return record.end(); }
+std::vector<logininfo_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<logininfo_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="logininfo";
 static constexpr std::string_view modelname="Logininfo";
 
@@ -140,7 +141,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     logininfo_base::meta metatemp;    
+     logininfo_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -190,13 +191,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<logininfo_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<logininfo_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -231,19 +232,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const logininfo_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<logininfo_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<logininfo_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -278,19 +279,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<logininfo_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<logininfo_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<logininfo_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -484,7 +485,7 @@ tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < logininfo_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -494,7 +495,7 @@ tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << logininfo_info::col_names[j];
         }
         if (j > 0)
         {
@@ -544,7 +545,7 @@ tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < logininfo_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -554,7 +555,7 @@ tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << logininfo_info::col_names[j];
         }
         if (j > 0)
         {
@@ -663,7 +664,7 @@ tempsql<<"`urlpath`='"<<stringaddslash(data.urlpath)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<logininfo_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -745,7 +746,7 @@ if(data.logtype==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<logininfo_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -866,7 +867,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<logininfo_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -937,7 +938,7 @@ tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        logininfo_base::meta metatemp; 
+        logininfo_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1438,7 +1439,7 @@ tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(data.urlpath)<<"\"";
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<logininfo_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -1515,7 +1516,7 @@ tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,logininfo_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1539,7 +1540,7 @@ tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<logininfo_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1668,14 +1669,14 @@ tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  void setUrlpath( std::string  &val){  data.urlpath=val;} 
  void setUrlpath(std::string_view val){  data.urlpath=val;} 
 
-logininfo_base::meta getnewData(){
- 	 struct meta newdata;
+logininfo_info::meta getnewData(){
+ 	 struct logininfo_info::meta newdata;
 	 return newdata; 
 } 
-logininfo_base::meta getData(){
+logininfo_info::meta getData(){
  	 return data; 
 } 
-std::vector<logininfo_base::meta> getRecord(){
+std::vector<logininfo_info::meta> getRecord(){
  	 return record; 
 } 
 
@@ -1800,7 +1801,7 @@ std::vector<logininfo_base::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] logininfo_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] logininfo_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1840,7 +1841,7 @@ std::vector<logininfo_base::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] logininfo_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] logininfo_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1890,7 +1891,7 @@ std::vector<logininfo_base::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] logininfo_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] logininfo_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -1929,46 +1930,49 @@ std::vector<logininfo_base::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] logininfo_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 3: 
+    			case logininfo_info::cols::username: 
  				 a.emplace_back(iter.username);
 					 break;
-			case 4: 
+			case logininfo_info::cols::addtime: 
  				 a.emplace_back(iter.addtime);
 					 break;
-			case 5: 
+			case logininfo_info::cols::addip: 
  				 a.emplace_back(iter.addip);
 					 break;
-			case 6: 
+			case logininfo_info::cols::addregion: 
  				 a.emplace_back(iter.addregion);
 					 break;
-			case 7: 
+			case logininfo_info::cols::loginstate: 
  				 a.emplace_back(iter.loginstate);
 					 break;
-			case 8: 
+			case logininfo_info::cols::agent: 
  				 a.emplace_back(iter.agent);
 					 break;
-			case 9: 
+			case logininfo_info::cols::urlpath: 
  				 a.emplace_back(iter.urlpath);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(logininfo::cols keyname, bool isyinhao=false)
+        std::string getstrCol(logininfo_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -1991,52 +1995,52 @@ std::vector<logininfo_base::meta> getRecord(){
                     switch(keyname)
                     {
 
-   			case logininfo::cols::lgid: 
+   			case logininfo_info::cols::lgid: 
  				 a<<std::to_string(iter.lgid);
 				 break;
-			case logininfo::cols::userid: 
+			case logininfo_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case logininfo::cols::logtype: 
+			case logininfo_info::cols::logtype: 
  				 a<<std::to_string(iter.logtype);
 				 break;
-			case logininfo::cols::username: 
+			case logininfo_info::cols::username: 
  				 if(isyinhao){ a<<jsonaddslash(iter.username); 
 				 }else{
 				 a<<iter.username;
 				 }
 				 break;
-			case logininfo::cols::addtime: 
+			case logininfo_info::cols::addtime: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addtime); 
 				 }else{
 				 a<<iter.addtime;
 				 }
 				 break;
-			case logininfo::cols::addip: 
+			case logininfo_info::cols::addip: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addip); 
 				 }else{
 				 a<<iter.addip;
 				 }
 				 break;
-			case logininfo::cols::addregion: 
+			case logininfo_info::cols::addregion: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addregion); 
 				 }else{
 				 a<<iter.addregion;
 				 }
 				 break;
-			case logininfo::cols::loginstate: 
+			case logininfo_info::cols::loginstate: 
  				 if(isyinhao){ a<<jsonaddslash(iter.loginstate); 
 				 }else{
 				 a<<iter.loginstate;
 				 }
 				 break;
-			case logininfo::cols::agent: 
+			case logininfo_info::cols::agent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.agent); 
 				 }else{
 				 a<<iter.agent;
 				 }
 				 break;
-			case logininfo::cols::urlpath: 
+			case logininfo_info::cols::urlpath: 
  				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
 				 }else{
 				 a<<iter.urlpath;
@@ -2056,7 +2060,7 @@ std::vector<logininfo_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] logininfo_info::cols keyname,[[maybe_unused]] logininfo_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -2064,50 +2068,50 @@ std::vector<logininfo_base::meta> getRecord(){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case logininfo::cols::username: 
+			{			case logininfo_info::cols::username: 
  				 ktemp=iter.username;
 				 break;
-			case logininfo::cols::addtime: 
+			case logininfo_info::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case logininfo::cols::addip: 
+			case logininfo_info::cols::addip: 
  				 ktemp=iter.addip;
 				 break;
-			case logininfo::cols::addregion: 
+			case logininfo_info::cols::addregion: 
  				 ktemp=iter.addregion;
 				 break;
-			case logininfo::cols::loginstate: 
+			case logininfo_info::cols::loginstate: 
  				 ktemp=iter.loginstate;
 				 break;
-			case logininfo::cols::agent: 
+			case logininfo_info::cols::agent: 
  				 ktemp=iter.agent;
 				 break;
-			case logininfo::cols::urlpath: 
+			case logininfo_info::cols::urlpath: 
  				 ktemp=iter.urlpath;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case logininfo::cols::username: 
+			case logininfo_info::cols::username: 
  				 vtemp=iter.username;
 				 break;
-			case logininfo::cols::addtime: 
+			case logininfo_info::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case logininfo::cols::addip: 
+			case logininfo_info::cols::addip: 
  				 vtemp=iter.addip;
 				 break;
-			case logininfo::cols::addregion: 
+			case logininfo_info::cols::addregion: 
  				 vtemp=iter.addregion;
 				 break;
-			case logininfo::cols::loginstate: 
+			case logininfo_info::cols::loginstate: 
  				 vtemp=iter.loginstate;
 				 break;
-			case logininfo::cols::agent: 
+			case logininfo_info::cols::agent: 
  				 vtemp=iter.agent;
 				 break;
-			case logininfo::cols::urlpath: 
+			case logininfo_info::cols::urlpath: 
  				 vtemp=iter.urlpath;
 				 break;
 			default:
@@ -2124,7 +2128,7 @@ std::vector<logininfo_base::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] logininfo_info::cols keyname,[[maybe_unused]] logininfo_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -2132,14 +2136,14 @@ std::vector<logininfo_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] logininfo_info::cols keyname,[[maybe_unused]] logininfo_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] logininfo_info::cols keyname,[[maybe_unused]] logininfo_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -2149,13 +2153,13 @@ std::vector<logininfo_base::meta> getRecord(){
                 {
    
 			switch(keyname){
-			case logininfo::cols::lgid: 
+			case logininfo_info::cols::lgid: 
  				 ktemp=iter.lgid;
 				 break;
-			case logininfo::cols::userid: 
+			case logininfo_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case logininfo::cols::logtype: 
+			case logininfo_info::cols::logtype: 
  				 ktemp=iter.logtype;
 				 break;
 			default:
@@ -2163,25 +2167,25 @@ std::vector<logininfo_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-						case logininfo::cols::username: 
+						case logininfo_info::cols::username: 
  				 vtemp=iter.username;
 				 break;
-			case logininfo::cols::addtime: 
+			case logininfo_info::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case logininfo::cols::addip: 
+			case logininfo_info::cols::addip: 
  				 vtemp=iter.addip;
 				 break;
-			case logininfo::cols::addregion: 
+			case logininfo_info::cols::addregion: 
  				 vtemp=iter.addregion;
 				 break;
-			case logininfo::cols::loginstate: 
+			case logininfo_info::cols::loginstate: 
  				 vtemp=iter.loginstate;
 				 break;
-			case logininfo::cols::agent: 
+			case logininfo_info::cols::agent: 
  				 vtemp=iter.agent;
 				 break;
-			case logininfo::cols::urlpath: 
+			case logininfo_info::cols::urlpath: 
  				 vtemp=iter.urlpath;
 				 break;
 			default:
@@ -2194,7 +2198,7 @@ std::vector<logininfo_base::meta> getRecord(){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] logininfo_info::cols keyname,[[maybe_unused]] logininfo_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -2204,25 +2208,25 @@ std::vector<logininfo_base::meta> getRecord(){
             {
    
 			switch(keyname){
-			case logininfo::cols::username: 
+			case logininfo_info::cols::username: 
  				 ktemp=iter.username;
 				 break;
-			case logininfo::cols::addtime: 
+			case logininfo_info::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case logininfo::cols::addip: 
+			case logininfo_info::cols::addip: 
  				 ktemp=iter.addip;
 				 break;
-			case logininfo::cols::addregion: 
+			case logininfo_info::cols::addregion: 
  				 ktemp=iter.addregion;
 				 break;
-			case logininfo::cols::loginstate: 
+			case logininfo_info::cols::loginstate: 
  				 ktemp=iter.loginstate;
 				 break;
-			case logininfo::cols::agent: 
+			case logininfo_info::cols::agent: 
  				 ktemp=iter.agent;
 				 break;
-			case logininfo::cols::urlpath: 
+			case logininfo_info::cols::urlpath: 
  				 ktemp=iter.urlpath;
 				 break;
 			default:
@@ -2230,13 +2234,13 @@ std::vector<logininfo_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case logininfo::cols::lgid: 
+			case logininfo_info::cols::lgid: 
  				 vtemp=iter.lgid;
 				 break;
-			case logininfo::cols::userid: 
+			case logininfo_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case logininfo::cols::logtype: 
+			case logininfo_info::cols::logtype: 
  				 vtemp=iter.logtype;
 				 break;
 			default:
@@ -2253,7 +2257,7 @@ std::vector<logininfo_base::meta> getRecord(){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] logininfo::cols keyname,[[maybe_unused]] logininfo::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] logininfo_info::cols keyname,[[maybe_unused]] logininfo_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -2264,13 +2268,13 @@ std::vector<logininfo_base::meta> getRecord(){
 
    
 			switch(keyname){
-			case logininfo::cols::lgid: 
+			case logininfo_info::cols::lgid: 
  				 ktemp=iter.lgid;
 				 break;
-			case logininfo::cols::userid: 
+			case logininfo_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case logininfo::cols::logtype: 
+			case logininfo_info::cols::logtype: 
  				 ktemp=iter.logtype;
 				 break;
 			default:
@@ -2278,13 +2282,13 @@ std::vector<logininfo_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case logininfo::cols::lgid: 
+			case logininfo_info::cols::lgid: 
  				 vtemp=iter.lgid;
 				 break;
-			case logininfo::cols::userid: 
+			case logininfo_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case logininfo::cols::logtype: 
+			case logininfo_info::cols::logtype: 
  				 vtemp=iter.logtype;
 				 break;
 			default:
@@ -2298,9 +2302,9 @@ std::vector<logininfo_base::meta> getRecord(){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,logininfo_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,logininfo_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -2326,9 +2330,9 @@ std::vector<logininfo_base::meta> getRecord(){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,logininfo_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,logininfo_info::meta> a;
 
     
             unsigned char kpos;
@@ -2679,9 +2683,9 @@ case 9:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,logininfo_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,logininfo_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -2706,9 +2710,9 @@ case 2:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,logininfo_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,logininfo_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -3915,9 +3919,9 @@ case 9:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<logininfo_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<logininfo_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -3944,9 +3948,9 @@ case 9:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<logininfo_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<logininfo_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -3986,9 +3990,9 @@ case 9:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<logininfo_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<logininfo_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4054,9 +4058,9 @@ case 9:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<logininfo_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<logininfo_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4111,9 +4115,9 @@ case 9:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<logininfo_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<logininfo_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4155,9 +4159,9 @@ case 9:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<logininfo_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<logininfo_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

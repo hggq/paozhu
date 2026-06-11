@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:34 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace article 
+namespace article_info
 {
+ 
     enum class cols : unsigned char 
     {
 		aid = 0,
@@ -53,11 +54,6 @@ namespace article
 		relatecontent = 26,
 
     };
- 
-}
-    
-struct article_base
-{
 
     struct meta{
      unsigned  int  aid = 0; ///**/
@@ -87,18 +83,23 @@ struct article_base
  std::string  summary = ""; ///*文章摘要*/
  std::string  editauthor = ""; ///*文章编辑*/
  std::string  relatecontent = ""; ///*相关内容*/
- } data;
- std::vector<article_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<article_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<article_base::meta>::iterator end(){     return record.end(); }
-std::vector<article_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<article_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
+ };
+ static constexpr std::array<std::string_view,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
 static constexpr std::array<unsigned char,27> col_types={3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
 static constexpr std::array<unsigned char,27> col_length={0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,0};
 static constexpr std::array<unsigned char,27> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct article_base
+{
+      article_info::meta data;
+    std::vector<article_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<article_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<article_info::meta>::iterator end(){     return record.end(); }
+std::vector<article_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<article_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="article";
 static constexpr std::string_view modelname="Article";
 
@@ -239,7 +240,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     article_base::meta metatemp;    
+     article_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -289,13 +290,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<article_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<article_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -383,19 +384,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const article_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<article_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<article_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -483,19 +484,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<article_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<article_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<article_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -899,7 +900,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < article_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -909,7 +910,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << article_info::col_names[j];
         }
         if (j > 0)
         {
@@ -1012,7 +1013,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < article_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -1022,7 +1023,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << article_info::col_names[j];
         }
         if (j > 0)
         {
@@ -1184,7 +1185,7 @@ tempsql<<"`relatecontent`='"<<stringaddslash(data.relatecontent)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<article_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1353,7 +1354,7 @@ if(data.showtype==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<article_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1622,7 +1623,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<article_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1797,7 +1798,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(data.relatecontent)<<"
     void from_json(const std::string &json_content)
    {
         record.clear();
-        article_base::meta metatemp; 
+        article_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -2655,7 +2656,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(data.relatecontent)<<"
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<article_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -2836,7 +2837,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relateconten
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,article_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2860,7 +2861,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relateconten
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<article_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -3160,14 +3161,14 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relateconten
  void setRelatecontent( std::string  &val){  data.relatecontent=val;} 
  void setRelatecontent(std::string_view val){  data.relatecontent=val;} 
 
-article_base::meta getnewData(){
- 	 struct meta newdata;
+article_info::meta getnewData(){
+ 	 struct article_info::meta newdata;
 	 return newdata; 
 } 
-article_base::meta getData(){
+article_info::meta getData(){
  	 return data; 
 } 
-std::vector<article_base::meta> getRecord(){
+std::vector<article_info::meta> getRecord(){
  	 return record; 
 } 
 
@@ -3414,7 +3415,7 @@ std::vector<article_base::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] article_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] article_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3481,7 +3482,7 @@ std::vector<article_base::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] article_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] article_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -3555,7 +3556,7 @@ std::vector<article_base::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] article_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] article_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -3618,70 +3619,73 @@ std::vector<article_base::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] article_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 5: 
+    			case article_info::cols::topicname: 
  				 a.emplace_back(iter.topicname);
 					 break;
-			case 6: 
+			case article_info::cols::title: 
  				 a.emplace_back(iter.title);
 					 break;
-			case 7: 
+			case article_info::cols::keywords: 
  				 a.emplace_back(iter.keywords);
 					 break;
-			case 8: 
+			case article_info::cols::fromsource: 
  				 a.emplace_back(iter.fromsource);
 					 break;
-			case 9: 
+			case article_info::cols::author: 
  				 a.emplace_back(iter.author);
 					 break;
-			case 10: 
+			case article_info::cols::addip: 
  				 a.emplace_back(iter.addip);
 					 break;
-			case 11: 
+			case article_info::cols::createtime: 
  				 a.emplace_back(iter.createtime);
 					 break;
-			case 15: 
+			case article_info::cols::icoimg: 
  				 a.emplace_back(iter.icoimg);
 					 break;
-			case 16: 
+			case article_info::cols::content: 
  				 a.emplace_back(iter.content);
 					 break;
-			case 17: 
+			case article_info::cols::mdcontent: 
  				 a.emplace_back(iter.mdcontent);
 					 break;
-			case 22: 
+			case article_info::cols::fromlocal: 
  				 a.emplace_back(iter.fromlocal);
 					 break;
-			case 23: 
+			case article_info::cols::texturl: 
  				 a.emplace_back(iter.texturl);
 					 break;
-			case 24: 
+			case article_info::cols::summary: 
  				 a.emplace_back(iter.summary);
 					 break;
-			case 25: 
+			case article_info::cols::editauthor: 
  				 a.emplace_back(iter.editauthor);
 					 break;
-			case 26: 
+			case article_info::cols::relatecontent: 
  				 a.emplace_back(iter.relatecontent);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(article::cols keyname, bool isyinhao=false)
+        std::string getstrCol(article_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -3704,127 +3708,127 @@ std::vector<article_base::meta> getRecord(){
                     switch(keyname)
                     {
 
-   			case article::cols::aid: 
+   			case article_info::cols::aid: 
  				 a<<std::to_string(iter.aid);
 				 break;
-			case article::cols::topicid: 
+			case article_info::cols::topicid: 
  				 a<<std::to_string(iter.topicid);
 				 break;
-			case article::cols::classtype: 
+			case article_info::cols::classtype: 
  				 a<<std::to_string(iter.classtype);
 				 break;
-			case article::cols::userid: 
+			case article_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case article::cols::sortid: 
+			case article_info::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case article::cols::topicname: 
+			case article_info::cols::topicname: 
  				 if(isyinhao){ a<<jsonaddslash(iter.topicname); 
 				 }else{
 				 a<<iter.topicname;
 				 }
 				 break;
-			case article::cols::title: 
+			case article_info::cols::title: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case article::cols::keywords: 
+			case article_info::cols::keywords: 
  				 if(isyinhao){ a<<jsonaddslash(iter.keywords); 
 				 }else{
 				 a<<iter.keywords;
 				 }
 				 break;
-			case article::cols::fromsource: 
+			case article_info::cols::fromsource: 
  				 if(isyinhao){ a<<jsonaddslash(iter.fromsource); 
 				 }else{
 				 a<<iter.fromsource;
 				 }
 				 break;
-			case article::cols::author: 
+			case article_info::cols::author: 
  				 if(isyinhao){ a<<jsonaddslash(iter.author); 
 				 }else{
 				 a<<iter.author;
 				 }
 				 break;
-			case article::cols::addip: 
+			case article_info::cols::addip: 
  				 if(isyinhao){ a<<jsonaddslash(iter.addip); 
 				 }else{
 				 a<<iter.addip;
 				 }
 				 break;
-			case article::cols::createtime: 
+			case article_info::cols::createtime: 
  				 if(isyinhao){ a<<jsonaddslash(iter.createtime); 
 				 }else{
 				 a<<iter.createtime;
 				 }
 				 break;
-			case article::cols::addtime: 
+			case article_info::cols::addtime: 
  				 a<<std::to_string(iter.addtime);
 				 break;
-			case article::cols::readnum: 
+			case article_info::cols::readnum: 
  				 a<<std::to_string(iter.readnum);
 				 break;
-			case article::cols::review: 
+			case article_info::cols::review: 
  				 a<<std::to_string(iter.review);
 				 break;
-			case article::cols::icoimg: 
+			case article_info::cols::icoimg: 
  				 if(isyinhao){ a<<jsonaddslash(iter.icoimg); 
 				 }else{
 				 a<<iter.icoimg;
 				 }
 				 break;
-			case article::cols::content: 
+			case article_info::cols::content: 
  				 if(isyinhao){ a<<jsonaddslash(iter.content); 
 				 }else{
 				 a<<iter.content;
 				 }
 				 break;
-			case article::cols::mdcontent: 
+			case article_info::cols::mdcontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.mdcontent); 
 				 }else{
 				 a<<iter.mdcontent;
 				 }
 				 break;
-			case article::cols::isopen: 
+			case article_info::cols::isopen: 
  				 a<<std::to_string(iter.isopen);
 				 break;
-			case article::cols::ishome: 
+			case article_info::cols::ishome: 
  				 a<<std::to_string(iter.ishome);
 				 break;
-			case article::cols::iscomment: 
+			case article_info::cols::iscomment: 
  				 a<<std::to_string(iter.iscomment);
 				 break;
-			case article::cols::showtype: 
+			case article_info::cols::showtype: 
  				 a<<std::to_string(iter.showtype);
 				 break;
-			case article::cols::fromlocal: 
+			case article_info::cols::fromlocal: 
  				 if(isyinhao){ a<<jsonaddslash(iter.fromlocal); 
 				 }else{
 				 a<<iter.fromlocal;
 				 }
 				 break;
-			case article::cols::texturl: 
+			case article_info::cols::texturl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.texturl); 
 				 }else{
 				 a<<iter.texturl;
 				 }
 				 break;
-			case article::cols::summary: 
+			case article_info::cols::summary: 
  				 if(isyinhao){ a<<jsonaddslash(iter.summary); 
 				 }else{
 				 a<<iter.summary;
 				 }
 				 break;
-			case article::cols::editauthor: 
+			case article_info::cols::editauthor: 
  				 if(isyinhao){ a<<jsonaddslash(iter.editauthor); 
 				 }else{
 				 a<<iter.editauthor;
 				 }
 				 break;
-			case article::cols::relatecontent: 
+			case article_info::cols::relatecontent: 
  				 if(isyinhao){ a<<jsonaddslash(iter.relatecontent); 
 				 }else{
 				 a<<iter.relatecontent;
@@ -3844,7 +3848,7 @@ std::vector<article_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] article_info::cols keyname,[[maybe_unused]] article_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -3852,98 +3856,98 @@ std::vector<article_base::meta> getRecord(){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case article::cols::topicname: 
+			{			case article_info::cols::topicname: 
  				 ktemp=iter.topicname;
 				 break;
-			case article::cols::title: 
+			case article_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case article::cols::keywords: 
+			case article_info::cols::keywords: 
  				 ktemp=iter.keywords;
 				 break;
-			case article::cols::fromsource: 
+			case article_info::cols::fromsource: 
  				 ktemp=iter.fromsource;
 				 break;
-			case article::cols::author: 
+			case article_info::cols::author: 
  				 ktemp=iter.author;
 				 break;
-			case article::cols::addip: 
+			case article_info::cols::addip: 
  				 ktemp=iter.addip;
 				 break;
-			case article::cols::createtime: 
+			case article_info::cols::createtime: 
  				 ktemp=iter.createtime;
 				 break;
-			case article::cols::icoimg: 
+			case article_info::cols::icoimg: 
  				 ktemp=iter.icoimg;
 				 break;
-			case article::cols::content: 
+			case article_info::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			case article::cols::mdcontent: 
+			case article_info::cols::mdcontent: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case article::cols::fromlocal: 
+			case article_info::cols::fromlocal: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case article::cols::texturl: 
+			case article_info::cols::texturl: 
  				 ktemp=iter.texturl;
 				 break;
-			case article::cols::summary: 
+			case article_info::cols::summary: 
  				 ktemp=iter.summary;
 				 break;
-			case article::cols::editauthor: 
+			case article_info::cols::editauthor: 
  				 ktemp=iter.editauthor;
 				 break;
-			case article::cols::relatecontent: 
+			case article_info::cols::relatecontent: 
  				 ktemp=iter.relatecontent;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case article::cols::topicname: 
+			case article_info::cols::topicname: 
  				 vtemp=iter.topicname;
 				 break;
-			case article::cols::title: 
+			case article_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case article::cols::keywords: 
+			case article_info::cols::keywords: 
  				 vtemp=iter.keywords;
 				 break;
-			case article::cols::fromsource: 
+			case article_info::cols::fromsource: 
  				 vtemp=iter.fromsource;
 				 break;
-			case article::cols::author: 
+			case article_info::cols::author: 
  				 vtemp=iter.author;
 				 break;
-			case article::cols::addip: 
+			case article_info::cols::addip: 
  				 vtemp=iter.addip;
 				 break;
-			case article::cols::createtime: 
+			case article_info::cols::createtime: 
  				 vtemp=iter.createtime;
 				 break;
-			case article::cols::icoimg: 
+			case article_info::cols::icoimg: 
  				 vtemp=iter.icoimg;
 				 break;
-			case article::cols::content: 
+			case article_info::cols::content: 
  				 vtemp=iter.content;
 				 break;
-			case article::cols::mdcontent: 
+			case article_info::cols::mdcontent: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case article::cols::fromlocal: 
+			case article_info::cols::fromlocal: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case article::cols::texturl: 
+			case article_info::cols::texturl: 
  				 vtemp=iter.texturl;
 				 break;
-			case article::cols::summary: 
+			case article_info::cols::summary: 
  				 vtemp=iter.summary;
 				 break;
-			case article::cols::editauthor: 
+			case article_info::cols::editauthor: 
  				 vtemp=iter.editauthor;
 				 break;
-			case article::cols::relatecontent: 
+			case article_info::cols::relatecontent: 
  				 vtemp=iter.relatecontent;
 				 break;
 			default:
@@ -3960,7 +3964,7 @@ std::vector<article_base::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] article_info::cols keyname,[[maybe_unused]] article_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -3968,14 +3972,14 @@ std::vector<article_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] article_info::cols keyname,[[maybe_unused]] article_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] article_info::cols keyname,[[maybe_unused]] article_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -3985,40 +3989,40 @@ std::vector<article_base::meta> getRecord(){
                 {
    
 			switch(keyname){
-			case article::cols::aid: 
+			case article_info::cols::aid: 
  				 ktemp=iter.aid;
 				 break;
-			case article::cols::topicid: 
+			case article_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case article::cols::classtype: 
+			case article_info::cols::classtype: 
  				 ktemp=iter.classtype;
 				 break;
-			case article::cols::userid: 
+			case article_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case article::cols::sortid: 
+			case article_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case article::cols::addtime: 
+			case article_info::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case article::cols::readnum: 
+			case article_info::cols::readnum: 
  				 ktemp=iter.readnum;
 				 break;
-			case article::cols::review: 
+			case article_info::cols::review: 
  				 ktemp=iter.review;
 				 break;
-			case article::cols::isopen: 
+			case article_info::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case article::cols::ishome: 
+			case article_info::cols::ishome: 
  				 ktemp=iter.ishome;
 				 break;
-			case article::cols::iscomment: 
+			case article_info::cols::iscomment: 
  				 ktemp=iter.iscomment;
 				 break;
-			case article::cols::showtype: 
+			case article_info::cols::showtype: 
  				 ktemp=iter.showtype;
 				 break;
 			default:
@@ -4026,49 +4030,49 @@ std::vector<article_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-						case article::cols::topicname: 
+						case article_info::cols::topicname: 
  				 vtemp=iter.topicname;
 				 break;
-			case article::cols::title: 
+			case article_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case article::cols::keywords: 
+			case article_info::cols::keywords: 
  				 vtemp=iter.keywords;
 				 break;
-			case article::cols::fromsource: 
+			case article_info::cols::fromsource: 
  				 vtemp=iter.fromsource;
 				 break;
-			case article::cols::author: 
+			case article_info::cols::author: 
  				 vtemp=iter.author;
 				 break;
-			case article::cols::addip: 
+			case article_info::cols::addip: 
  				 vtemp=iter.addip;
 				 break;
-			case article::cols::createtime: 
+			case article_info::cols::createtime: 
  				 vtemp=iter.createtime;
 				 break;
-			case article::cols::icoimg: 
+			case article_info::cols::icoimg: 
  				 vtemp=iter.icoimg;
 				 break;
-			case article::cols::content: 
+			case article_info::cols::content: 
  				 vtemp=iter.content;
 				 break;
-			case article::cols::mdcontent: 
+			case article_info::cols::mdcontent: 
  				 vtemp=iter.mdcontent;
 				 break;
-			case article::cols::fromlocal: 
+			case article_info::cols::fromlocal: 
  				 vtemp=iter.fromlocal;
 				 break;
-			case article::cols::texturl: 
+			case article_info::cols::texturl: 
  				 vtemp=iter.texturl;
 				 break;
-			case article::cols::summary: 
+			case article_info::cols::summary: 
  				 vtemp=iter.summary;
 				 break;
-			case article::cols::editauthor: 
+			case article_info::cols::editauthor: 
  				 vtemp=iter.editauthor;
 				 break;
-			case article::cols::relatecontent: 
+			case article_info::cols::relatecontent: 
  				 vtemp=iter.relatecontent;
 				 break;
 			default:
@@ -4081,7 +4085,7 @@ std::vector<article_base::meta> getRecord(){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] article_info::cols keyname,[[maybe_unused]] article_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -4091,49 +4095,49 @@ std::vector<article_base::meta> getRecord(){
             {
    
 			switch(keyname){
-			case article::cols::topicname: 
+			case article_info::cols::topicname: 
  				 ktemp=iter.topicname;
 				 break;
-			case article::cols::title: 
+			case article_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case article::cols::keywords: 
+			case article_info::cols::keywords: 
  				 ktemp=iter.keywords;
 				 break;
-			case article::cols::fromsource: 
+			case article_info::cols::fromsource: 
  				 ktemp=iter.fromsource;
 				 break;
-			case article::cols::author: 
+			case article_info::cols::author: 
  				 ktemp=iter.author;
 				 break;
-			case article::cols::addip: 
+			case article_info::cols::addip: 
  				 ktemp=iter.addip;
 				 break;
-			case article::cols::createtime: 
+			case article_info::cols::createtime: 
  				 ktemp=iter.createtime;
 				 break;
-			case article::cols::icoimg: 
+			case article_info::cols::icoimg: 
  				 ktemp=iter.icoimg;
 				 break;
-			case article::cols::content: 
+			case article_info::cols::content: 
  				 ktemp=iter.content;
 				 break;
-			case article::cols::mdcontent: 
+			case article_info::cols::mdcontent: 
  				 ktemp=iter.mdcontent;
 				 break;
-			case article::cols::fromlocal: 
+			case article_info::cols::fromlocal: 
  				 ktemp=iter.fromlocal;
 				 break;
-			case article::cols::texturl: 
+			case article_info::cols::texturl: 
  				 ktemp=iter.texturl;
 				 break;
-			case article::cols::summary: 
+			case article_info::cols::summary: 
  				 ktemp=iter.summary;
 				 break;
-			case article::cols::editauthor: 
+			case article_info::cols::editauthor: 
  				 ktemp=iter.editauthor;
 				 break;
-			case article::cols::relatecontent: 
+			case article_info::cols::relatecontent: 
  				 ktemp=iter.relatecontent;
 				 break;
 			default:
@@ -4141,40 +4145,40 @@ std::vector<article_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case article::cols::aid: 
+			case article_info::cols::aid: 
  				 vtemp=iter.aid;
 				 break;
-			case article::cols::topicid: 
+			case article_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case article::cols::classtype: 
+			case article_info::cols::classtype: 
  				 vtemp=iter.classtype;
 				 break;
-			case article::cols::userid: 
+			case article_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case article::cols::sortid: 
+			case article_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case article::cols::addtime: 
+			case article_info::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case article::cols::readnum: 
+			case article_info::cols::readnum: 
  				 vtemp=iter.readnum;
 				 break;
-			case article::cols::review: 
+			case article_info::cols::review: 
  				 vtemp=iter.review;
 				 break;
-			case article::cols::isopen: 
+			case article_info::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case article::cols::ishome: 
+			case article_info::cols::ishome: 
  				 vtemp=iter.ishome;
 				 break;
-			case article::cols::iscomment: 
+			case article_info::cols::iscomment: 
  				 vtemp=iter.iscomment;
 				 break;
-			case article::cols::showtype: 
+			case article_info::cols::showtype: 
  				 vtemp=iter.showtype;
 				 break;
 			default:
@@ -4191,7 +4195,7 @@ std::vector<article_base::meta> getRecord(){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] article::cols keyname,[[maybe_unused]] article::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] article_info::cols keyname,[[maybe_unused]] article_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -4202,40 +4206,40 @@ std::vector<article_base::meta> getRecord(){
 
    
 			switch(keyname){
-			case article::cols::aid: 
+			case article_info::cols::aid: 
  				 ktemp=iter.aid;
 				 break;
-			case article::cols::topicid: 
+			case article_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case article::cols::classtype: 
+			case article_info::cols::classtype: 
  				 ktemp=iter.classtype;
 				 break;
-			case article::cols::userid: 
+			case article_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case article::cols::sortid: 
+			case article_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case article::cols::addtime: 
+			case article_info::cols::addtime: 
  				 ktemp=iter.addtime;
 				 break;
-			case article::cols::readnum: 
+			case article_info::cols::readnum: 
  				 ktemp=iter.readnum;
 				 break;
-			case article::cols::review: 
+			case article_info::cols::review: 
  				 ktemp=iter.review;
 				 break;
-			case article::cols::isopen: 
+			case article_info::cols::isopen: 
  				 ktemp=iter.isopen;
 				 break;
-			case article::cols::ishome: 
+			case article_info::cols::ishome: 
  				 ktemp=iter.ishome;
 				 break;
-			case article::cols::iscomment: 
+			case article_info::cols::iscomment: 
  				 ktemp=iter.iscomment;
 				 break;
-			case article::cols::showtype: 
+			case article_info::cols::showtype: 
  				 ktemp=iter.showtype;
 				 break;
 			default:
@@ -4243,40 +4247,40 @@ std::vector<article_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case article::cols::aid: 
+			case article_info::cols::aid: 
  				 vtemp=iter.aid;
 				 break;
-			case article::cols::topicid: 
+			case article_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case article::cols::classtype: 
+			case article_info::cols::classtype: 
  				 vtemp=iter.classtype;
 				 break;
-			case article::cols::userid: 
+			case article_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case article::cols::sortid: 
+			case article_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case article::cols::addtime: 
+			case article_info::cols::addtime: 
  				 vtemp=iter.addtime;
 				 break;
-			case article::cols::readnum: 
+			case article_info::cols::readnum: 
  				 vtemp=iter.readnum;
 				 break;
-			case article::cols::review: 
+			case article_info::cols::review: 
  				 vtemp=iter.review;
 				 break;
-			case article::cols::isopen: 
+			case article_info::cols::isopen: 
  				 vtemp=iter.isopen;
 				 break;
-			case article::cols::ishome: 
+			case article_info::cols::ishome: 
  				 vtemp=iter.ishome;
 				 break;
-			case article::cols::iscomment: 
+			case article_info::cols::iscomment: 
  				 vtemp=iter.iscomment;
 				 break;
-			case article::cols::showtype: 
+			case article_info::cols::showtype: 
  				 vtemp=iter.showtype;
 				 break;
 			default:
@@ -4290,9 +4294,9 @@ std::vector<article_base::meta> getRecord(){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,article_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,article_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -4345,9 +4349,9 @@ std::vector<article_base::meta> getRecord(){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,article_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,article_info::meta> a;
 
     
             unsigned char kpos;
@@ -4977,9 +4981,9 @@ case 26:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,article_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,article_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -5031,9 +5035,9 @@ case 21:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,article_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,article_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -7335,9 +7339,9 @@ case 26:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<article_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<article_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -7391,9 +7395,9 @@ case 26:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<article_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<article_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -7457,9 +7461,9 @@ case 26:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<article_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<article_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -7573,9 +7577,9 @@ case 26:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<article_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<article_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -7681,9 +7685,9 @@ case 26:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<article_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<article_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -7779,9 +7783,9 @@ case 26:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<article_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<article_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

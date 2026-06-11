@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace testb 
+namespace testb_info
 {
+ 
     enum class cols : unsigned char 
     {
 		tid = 0,
@@ -29,28 +30,28 @@ namespace testb
 		name = 2,
 
     };
- 
-}
-    
-struct testb_base
-{
 
     struct meta{
      int  tid = 0; ///**/
  long long  score = 0; ///*分数[num*100]*/
  std::string  name = ""; ///**/
- } data;
- std::vector<testb_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<testb_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<testb_base::meta>::iterator end(){     return record.end(); }
-std::vector<testb_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<testb_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,3> col_names={"tid","score","name"};
+ };
+ static constexpr std::array<std::string_view,3> col_names={"tid","score","name"};
 static constexpr std::array<unsigned char,3> col_types={3,8,253};
 static constexpr std::array<unsigned char,3> col_length={0,0,30};
 static constexpr std::array<unsigned char,3> col_decimals={0,0,0};
+
+}
+
+struct testb_base
+{
+      testb_info::meta data;
+    std::vector<testb_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<testb_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<testb_info::meta>::iterator end(){     return record.end(); }
+std::vector<testb_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<testb_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="testb";
 static constexpr std::string_view modelname="Testb";
 
@@ -93,7 +94,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     testb_base::meta metatemp;    
+     testb_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -143,13 +144,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<testb_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<testb_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -173,19 +174,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const testb_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<testb_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<testb_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -209,19 +210,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<testb_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<testb_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<testb_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -361,7 +362,7 @@ tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < testb_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -371,7 +372,7 @@ tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << testb_info::col_names[j];
         }
         if (j > 0)
         {
@@ -410,7 +411,7 @@ tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < testb_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -420,7 +421,7 @@ tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << testb_info::col_names[j];
         }
         if (j > 0)
         {
@@ -518,7 +519,7 @@ tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<testb_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -575,7 +576,7 @@ if(data.score==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<testb_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -654,7 +655,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<testb_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -693,7 +694,7 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        testb_base::meta metatemp; 
+        testb_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1047,7 +1048,7 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<testb_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -1092,7 +1093,7 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,testb_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1116,7 +1117,7 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<testb_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1180,14 +1181,14 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  void setName( std::string  &val){  data.name=val;} 
  void setName(std::string_view val){  data.name=val;} 
 
-testb_base::meta getnewData(){
- 	 struct meta newdata;
+testb_info::meta getnewData(){
+ 	 struct testb_info::meta newdata;
 	 return newdata; 
 } 
-testb_base::meta getData(){
+testb_info::meta getData(){
  	 return data; 
 } 
-std::vector<testb_base::meta> getRecord(){
+std::vector<testb_info::meta> getRecord(){
  	 return record; 
 } 
 
@@ -1304,7 +1305,7 @@ std::vector<testb_base::meta> getRecord(){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] testb_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] testb_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -1341,7 +1342,7 @@ std::vector<testb_base::meta> getRecord(){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] testb_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] testb_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -1373,7 +1374,7 @@ std::vector<testb_base::meta> getRecord(){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] testb_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] testb_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -1394,28 +1395,31 @@ std::vector<testb_base::meta> getRecord(){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] testb_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 2: 
+    			case testb_info::cols::name: 
  				 a.emplace_back(iter.name);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(testb::cols keyname, bool isyinhao=false)
+        std::string getstrCol(testb_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -1438,13 +1442,13 @@ std::vector<testb_base::meta> getRecord(){
                     switch(keyname)
                     {
 
-   			case testb::cols::tid: 
+   			case testb_info::cols::tid: 
  				 a<<std::to_string(iter.tid);
 				 break;
-			case testb::cols::score: 
+			case testb_info::cols::score: 
  				 a<<std::to_string(iter.score);
 				 break;
-			case testb::cols::name: 
+			case testb_info::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
@@ -1464,7 +1468,7 @@ std::vector<testb_base::meta> getRecord(){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] testb::cols keyname,[[maybe_unused]] testb::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] testb_info::cols keyname,[[maybe_unused]] testb_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -1472,14 +1476,14 @@ std::vector<testb_base::meta> getRecord(){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case testb::cols::name: 
+			{			case testb_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case testb::cols::name: 
+			case testb_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
 			default:
@@ -1496,7 +1500,7 @@ std::vector<testb_base::meta> getRecord(){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] testb::cols keyname,[[maybe_unused]] testb::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] testb_info::cols keyname,[[maybe_unused]] testb_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -1504,14 +1508,14 @@ std::vector<testb_base::meta> getRecord(){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] testb::cols keyname,[[maybe_unused]] testb::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] testb_info::cols keyname,[[maybe_unused]] testb_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] testb::cols keyname,[[maybe_unused]] testb::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] testb_info::cols keyname,[[maybe_unused]] testb_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -1521,10 +1525,10 @@ std::vector<testb_base::meta> getRecord(){
                 {
    
 			switch(keyname){
-			case testb::cols::tid: 
+			case testb_info::cols::tid: 
  				 ktemp=iter.tid;
 				 break;
-			case testb::cols::score: 
+			case testb_info::cols::score: 
  				 ktemp=iter.score;
 				 break;
 			default:
@@ -1532,7 +1536,7 @@ std::vector<testb_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-						case testb::cols::name: 
+						case testb_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
 			default:
@@ -1545,7 +1549,7 @@ std::vector<testb_base::meta> getRecord(){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] testb::cols keyname,[[maybe_unused]] testb::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] testb_info::cols keyname,[[maybe_unused]] testb_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -1555,7 +1559,7 @@ std::vector<testb_base::meta> getRecord(){
             {
    
 			switch(keyname){
-			case testb::cols::name: 
+			case testb_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
 			default:
@@ -1563,10 +1567,10 @@ std::vector<testb_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case testb::cols::tid: 
+			case testb_info::cols::tid: 
  				 vtemp=iter.tid;
 				 break;
-			case testb::cols::score: 
+			case testb_info::cols::score: 
  				 vtemp=iter.score;
 				 break;
 			default:
@@ -1583,7 +1587,7 @@ std::vector<testb_base::meta> getRecord(){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] testb::cols keyname,[[maybe_unused]] testb::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] testb_info::cols keyname,[[maybe_unused]] testb_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -1594,10 +1598,10 @@ std::vector<testb_base::meta> getRecord(){
 
    
 			switch(keyname){
-			case testb::cols::tid: 
+			case testb_info::cols::tid: 
  				 ktemp=iter.tid;
 				 break;
-			case testb::cols::score: 
+			case testb_info::cols::score: 
  				 ktemp=iter.score;
 				 break;
 			default:
@@ -1605,10 +1609,10 @@ std::vector<testb_base::meta> getRecord(){
 			 }
 
 			switch(valname){
-			case testb::cols::tid: 
+			case testb_info::cols::tid: 
  				 vtemp=iter.tid;
 				 break;
-			case testb::cols::score: 
+			case testb_info::cols::score: 
  				 vtemp=iter.score;
 				 break;
 			default:
@@ -1622,9 +1626,9 @@ std::vector<testb_base::meta> getRecord(){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,testb_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,testb_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -1647,9 +1651,9 @@ std::vector<testb_base::meta> getRecord(){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,testb_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,testb_info::meta> a;
 
     
             unsigned char kpos;
@@ -1877,9 +1881,9 @@ case 2:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,testb_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,testb_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -1901,9 +1905,9 @@ case 1:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,testb_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,testb_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -2651,9 +2655,9 @@ case 1:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<testb_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<testb_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -2677,9 +2681,9 @@ case 1:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<testb_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<testb_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -2701,9 +2705,9 @@ case 1:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<testb_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<testb_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -2733,9 +2737,9 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<testb_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<testb_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -2769,9 +2773,9 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<testb_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<testb_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -2807,9 +2811,9 @@ case 1:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<testb_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<testb_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

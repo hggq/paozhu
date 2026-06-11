@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace topic 
+namespace topic_info
 {
+ 
     enum class cols : unsigned char 
     {
 		topicid = 0,
@@ -44,11 +45,6 @@ namespace topic
 		accesscode = 17,
 
     };
- 
-}
-    
-struct topic_base
-{
 
     struct meta{
      unsigned  int  topicid = 0; ///**/
@@ -69,7 +65,7 @@ struct topic_base
  std::string  imgurl = ""; ///*图片地址*/
  std::string  topimg = ""; ///*头图*/
  unsigned  int  accesscode = 0; ///*权限代码*/
- } data;
+ };
   
         struct meta_tree{
          unsigned  int  topicid = 0; ///**/
@@ -91,19 +87,24 @@ struct topic_base
  std::string  topimg = ""; ///*头图*/
  unsigned  int  accesscode = 0; ///*权限代码*/
 
-	std::vector<meta_tree> children;
+	 std::vector<meta_tree> children;
  };
- std::vector<topic_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<topic_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<topic_base::meta>::iterator end(){     return record.end(); }
-std::vector<topic_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<topic_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,18> col_names={"topicid","userid","parentid","cateid","sorttype","languagetype","isview","isside","sortid","title","twotitle","memo","templatename","url","urlpath","imgurl","topimg","accesscode"};
+ static constexpr std::array<std::string_view,18> col_names={"topicid","userid","parentid","cateid","sorttype","languagetype","isview","isside","sortid","title","twotitle","memo","templatename","url","urlpath","imgurl","topimg","accesscode"};
 static constexpr std::array<unsigned char,18> col_types={3,3,3,3,1,3,1,1,3,253,253,253,253,253,253,253,252,3};
 static constexpr std::array<unsigned char,18> col_length={0,0,0,0,0,0,0,0,0,120,120,254,254,255,60,254,0,0};
 static constexpr std::array<unsigned char,18> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+}
+
+struct topic_base
+{
+      topic_info::meta data;
+    std::vector<topic_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<topic_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<topic_info::meta>::iterator end(){     return record.end(); }
+std::vector<topic_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<topic_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="topic";
 static constexpr std::string_view modelname="Topic";
 
@@ -205,7 +206,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     topic_base::meta metatemp;    
+     topic_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -255,13 +256,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<topic_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<topic_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -332,19 +333,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const topic_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<topic_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<topic_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -415,19 +416,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<topic_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<topic_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<topic_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -753,7 +754,7 @@ if(data.accesscode==0){
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < topic_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -763,7 +764,7 @@ if(data.accesscode==0){
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << topic_info::col_names[j];
         }
         if (j > 0)
         {
@@ -849,7 +850,7 @@ if(data.accesscode==0){
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < topic_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -859,7 +860,7 @@ if(data.accesscode==0){
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << topic_info::col_names[j];
         }
         if (j > 0)
         {
@@ -1004,7 +1005,7 @@ if(data.accesscode==0){
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topic_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1138,7 +1139,7 @@ if(data.accesscode==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topic_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1348,7 +1349,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topic_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1479,7 +1480,7 @@ if(data.accesscode==0){
     void from_json(const std::string &json_content)
    {
         record.clear();
-        topic_base::meta metatemp; 
+        topic_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -2148,7 +2149,7 @@ if(data.accesscode==0){
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<topic_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -2285,7 +2286,7 @@ if(record[n].accesscode==0){
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,topic_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2309,7 +2310,7 @@ if(record[n].accesscode==0){
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topic_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -2524,18 +2525,18 @@ if(record[n].accesscode==0){
  unsigned  int  getAccesscode(){  return data.accesscode; } 
  void setAccesscode( unsigned  int  val){  data.accesscode=val;} 
 
-topic_base::meta getnewData(){
- 	 struct meta newdata;
+topic_info::meta getnewData(){
+ 	 struct topic_info::meta newdata;
 	 return newdata; 
 } 
-topic_base::meta getData(){
+topic_info::meta getData(){
  	 return data; 
 } 
-std::vector<topic_base::meta> getRecord(){
+std::vector<topic_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<topic_info::meta_tree> &tree_data, std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2559,7 +2560,7 @@ std::vector<topic_base::meta> getRecord(){
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topic_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -2699,7 +2700,7 @@ if(tree_data[n].accesscode==0){
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<topic_info::meta_tree> &tree_data,std::function<bool(std::string&,const topic_info::meta_tree&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -2723,7 +2724,7 @@ if(tree_data[n].accesscode==0){
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<topic_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -3064,7 +3065,7 @@ if(tree_data[n].accesscode==0){
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] topic_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] topic_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -3125,7 +3126,7 @@ if(tree_data[n].accesscode==0){
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] topic_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] topic_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -3178,7 +3179,7 @@ if(tree_data[n].accesscode==0){
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] topic_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] topic_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -3220,49 +3221,52 @@ if(tree_data[n].accesscode==0){
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] topic_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 9: 
+    			case topic_info::cols::title: 
  				 a.emplace_back(iter.title);
 					 break;
-			case 10: 
+			case topic_info::cols::twotitle: 
  				 a.emplace_back(iter.twotitle);
 					 break;
-			case 11: 
+			case topic_info::cols::memo: 
  				 a.emplace_back(iter.memo);
 					 break;
-			case 12: 
+			case topic_info::cols::templatename: 
  				 a.emplace_back(iter.templatename);
 					 break;
-			case 13: 
+			case topic_info::cols::url: 
  				 a.emplace_back(iter.url);
 					 break;
-			case 14: 
+			case topic_info::cols::urlpath: 
  				 a.emplace_back(iter.urlpath);
 					 break;
-			case 15: 
+			case topic_info::cols::imgurl: 
  				 a.emplace_back(iter.imgurl);
 					 break;
-			case 16: 
+			case topic_info::cols::topimg: 
  				 a.emplace_back(iter.topimg);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(topic::cols keyname, bool isyinhao=false)
+        std::string getstrCol(topic_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -3285,82 +3289,82 @@ if(tree_data[n].accesscode==0){
                     switch(keyname)
                     {
 
-   			case topic::cols::topicid: 
+   			case topic_info::cols::topicid: 
  				 a<<std::to_string(iter.topicid);
 				 break;
-			case topic::cols::userid: 
+			case topic_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case topic::cols::parentid: 
+			case topic_info::cols::parentid: 
  				 a<<std::to_string(iter.parentid);
 				 break;
-			case topic::cols::cateid: 
+			case topic_info::cols::cateid: 
  				 a<<std::to_string(iter.cateid);
 				 break;
-			case topic::cols::sorttype: 
+			case topic_info::cols::sorttype: 
  				 a<<std::to_string(iter.sorttype);
 				 break;
-			case topic::cols::languagetype: 
+			case topic_info::cols::languagetype: 
  				 a<<std::to_string(iter.languagetype);
 				 break;
-			case topic::cols::isview: 
+			case topic_info::cols::isview: 
  				 a<<std::to_string(iter.isview);
 				 break;
-			case topic::cols::isside: 
+			case topic_info::cols::isside: 
  				 a<<std::to_string(iter.isside);
 				 break;
-			case topic::cols::sortid: 
+			case topic_info::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case topic::cols::title: 
+			case topic_info::cols::title: 
  				 if(isyinhao){ a<<jsonaddslash(iter.title); 
 				 }else{
 				 a<<iter.title;
 				 }
 				 break;
-			case topic::cols::twotitle: 
+			case topic_info::cols::twotitle: 
  				 if(isyinhao){ a<<jsonaddslash(iter.twotitle); 
 				 }else{
 				 a<<iter.twotitle;
 				 }
 				 break;
-			case topic::cols::memo: 
+			case topic_info::cols::memo: 
  				 if(isyinhao){ a<<jsonaddslash(iter.memo); 
 				 }else{
 				 a<<iter.memo;
 				 }
 				 break;
-			case topic::cols::templatename: 
+			case topic_info::cols::templatename: 
  				 if(isyinhao){ a<<jsonaddslash(iter.templatename); 
 				 }else{
 				 a<<iter.templatename;
 				 }
 				 break;
-			case topic::cols::url: 
+			case topic_info::cols::url: 
  				 if(isyinhao){ a<<jsonaddslash(iter.url); 
 				 }else{
 				 a<<iter.url;
 				 }
 				 break;
-			case topic::cols::urlpath: 
+			case topic_info::cols::urlpath: 
  				 if(isyinhao){ a<<jsonaddslash(iter.urlpath); 
 				 }else{
 				 a<<iter.urlpath;
 				 }
 				 break;
-			case topic::cols::imgurl: 
+			case topic_info::cols::imgurl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
 				 }else{
 				 a<<iter.imgurl;
 				 }
 				 break;
-			case topic::cols::topimg: 
+			case topic_info::cols::topimg: 
  				 if(isyinhao){ a<<jsonaddslash(iter.topimg); 
 				 }else{
 				 a<<iter.topimg;
 				 }
 				 break;
-			case topic::cols::accesscode: 
+			case topic_info::cols::accesscode: 
  				 a<<std::to_string(iter.accesscode);
 				 break;
 
@@ -3377,7 +3381,7 @@ if(tree_data[n].accesscode==0){
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] topic::cols keyname,[[maybe_unused]] topic::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] topic_info::cols keyname,[[maybe_unused]] topic_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -3385,56 +3389,56 @@ if(tree_data[n].accesscode==0){
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case topic::cols::title: 
+			{			case topic_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case topic::cols::twotitle: 
+			case topic_info::cols::twotitle: 
  				 ktemp=iter.twotitle;
 				 break;
-			case topic::cols::memo: 
+			case topic_info::cols::memo: 
  				 ktemp=iter.memo;
 				 break;
-			case topic::cols::templatename: 
+			case topic_info::cols::templatename: 
  				 ktemp=iter.templatename;
 				 break;
-			case topic::cols::url: 
+			case topic_info::cols::url: 
  				 ktemp=iter.url;
 				 break;
-			case topic::cols::urlpath: 
+			case topic_info::cols::urlpath: 
  				 ktemp=iter.urlpath;
 				 break;
-			case topic::cols::imgurl: 
+			case topic_info::cols::imgurl: 
  				 ktemp=iter.imgurl;
 				 break;
-			case topic::cols::topimg: 
+			case topic_info::cols::topimg: 
  				 ktemp=iter.topimg;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case topic::cols::title: 
+			case topic_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case topic::cols::twotitle: 
+			case topic_info::cols::twotitle: 
  				 vtemp=iter.twotitle;
 				 break;
-			case topic::cols::memo: 
+			case topic_info::cols::memo: 
  				 vtemp=iter.memo;
 				 break;
-			case topic::cols::templatename: 
+			case topic_info::cols::templatename: 
  				 vtemp=iter.templatename;
 				 break;
-			case topic::cols::url: 
+			case topic_info::cols::url: 
  				 vtemp=iter.url;
 				 break;
-			case topic::cols::urlpath: 
+			case topic_info::cols::urlpath: 
  				 vtemp=iter.urlpath;
 				 break;
-			case topic::cols::imgurl: 
+			case topic_info::cols::imgurl: 
  				 vtemp=iter.imgurl;
 				 break;
-			case topic::cols::topimg: 
+			case topic_info::cols::topimg: 
  				 vtemp=iter.topimg;
 				 break;
 			default:
@@ -3451,7 +3455,7 @@ if(tree_data[n].accesscode==0){
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] topic::cols keyname,[[maybe_unused]] topic::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] topic_info::cols keyname,[[maybe_unused]] topic_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -3459,14 +3463,14 @@ if(tree_data[n].accesscode==0){
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] topic::cols keyname,[[maybe_unused]] topic::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] topic_info::cols keyname,[[maybe_unused]] topic_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] topic::cols keyname,[[maybe_unused]] topic::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] topic_info::cols keyname,[[maybe_unused]] topic_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -3476,34 +3480,34 @@ if(tree_data[n].accesscode==0){
                 {
    
 			switch(keyname){
-			case topic::cols::topicid: 
+			case topic_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case topic::cols::userid: 
+			case topic_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case topic::cols::parentid: 
+			case topic_info::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case topic::cols::cateid: 
+			case topic_info::cols::cateid: 
  				 ktemp=iter.cateid;
 				 break;
-			case topic::cols::sorttype: 
+			case topic_info::cols::sorttype: 
  				 ktemp=iter.sorttype;
 				 break;
-			case topic::cols::languagetype: 
+			case topic_info::cols::languagetype: 
  				 ktemp=iter.languagetype;
 				 break;
-			case topic::cols::isview: 
+			case topic_info::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case topic::cols::isside: 
+			case topic_info::cols::isside: 
  				 ktemp=iter.isside;
 				 break;
-			case topic::cols::sortid: 
+			case topic_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case topic::cols::accesscode: 
+			case topic_info::cols::accesscode: 
  				 ktemp=iter.accesscode;
 				 break;
 			default:
@@ -3511,28 +3515,28 @@ if(tree_data[n].accesscode==0){
 			 }
 
 			switch(valname){
-						case topic::cols::title: 
+						case topic_info::cols::title: 
  				 vtemp=iter.title;
 				 break;
-			case topic::cols::twotitle: 
+			case topic_info::cols::twotitle: 
  				 vtemp=iter.twotitle;
 				 break;
-			case topic::cols::memo: 
+			case topic_info::cols::memo: 
  				 vtemp=iter.memo;
 				 break;
-			case topic::cols::templatename: 
+			case topic_info::cols::templatename: 
  				 vtemp=iter.templatename;
 				 break;
-			case topic::cols::url: 
+			case topic_info::cols::url: 
  				 vtemp=iter.url;
 				 break;
-			case topic::cols::urlpath: 
+			case topic_info::cols::urlpath: 
  				 vtemp=iter.urlpath;
 				 break;
-			case topic::cols::imgurl: 
+			case topic_info::cols::imgurl: 
  				 vtemp=iter.imgurl;
 				 break;
-			case topic::cols::topimg: 
+			case topic_info::cols::topimg: 
  				 vtemp=iter.topimg;
 				 break;
 			default:
@@ -3545,7 +3549,7 @@ if(tree_data[n].accesscode==0){
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] topic::cols keyname,[[maybe_unused]] topic::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] topic_info::cols keyname,[[maybe_unused]] topic_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -3555,28 +3559,28 @@ if(tree_data[n].accesscode==0){
             {
    
 			switch(keyname){
-			case topic::cols::title: 
+			case topic_info::cols::title: 
  				 ktemp=iter.title;
 				 break;
-			case topic::cols::twotitle: 
+			case topic_info::cols::twotitle: 
  				 ktemp=iter.twotitle;
 				 break;
-			case topic::cols::memo: 
+			case topic_info::cols::memo: 
  				 ktemp=iter.memo;
 				 break;
-			case topic::cols::templatename: 
+			case topic_info::cols::templatename: 
  				 ktemp=iter.templatename;
 				 break;
-			case topic::cols::url: 
+			case topic_info::cols::url: 
  				 ktemp=iter.url;
 				 break;
-			case topic::cols::urlpath: 
+			case topic_info::cols::urlpath: 
  				 ktemp=iter.urlpath;
 				 break;
-			case topic::cols::imgurl: 
+			case topic_info::cols::imgurl: 
  				 ktemp=iter.imgurl;
 				 break;
-			case topic::cols::topimg: 
+			case topic_info::cols::topimg: 
  				 ktemp=iter.topimg;
 				 break;
 			default:
@@ -3584,34 +3588,34 @@ if(tree_data[n].accesscode==0){
 			 }
 
 			switch(valname){
-			case topic::cols::topicid: 
+			case topic_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case topic::cols::userid: 
+			case topic_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case topic::cols::parentid: 
+			case topic_info::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case topic::cols::cateid: 
+			case topic_info::cols::cateid: 
  				 vtemp=iter.cateid;
 				 break;
-			case topic::cols::sorttype: 
+			case topic_info::cols::sorttype: 
  				 vtemp=iter.sorttype;
 				 break;
-			case topic::cols::languagetype: 
+			case topic_info::cols::languagetype: 
  				 vtemp=iter.languagetype;
 				 break;
-			case topic::cols::isview: 
+			case topic_info::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case topic::cols::isside: 
+			case topic_info::cols::isside: 
  				 vtemp=iter.isside;
 				 break;
-			case topic::cols::sortid: 
+			case topic_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case topic::cols::accesscode: 
+			case topic_info::cols::accesscode: 
  				 vtemp=iter.accesscode;
 				 break;
 			default:
@@ -3628,7 +3632,7 @@ if(tree_data[n].accesscode==0){
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] topic::cols keyname,[[maybe_unused]] topic::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] topic_info::cols keyname,[[maybe_unused]] topic_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -3639,34 +3643,34 @@ if(tree_data[n].accesscode==0){
 
    
 			switch(keyname){
-			case topic::cols::topicid: 
+			case topic_info::cols::topicid: 
  				 ktemp=iter.topicid;
 				 break;
-			case topic::cols::userid: 
+			case topic_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case topic::cols::parentid: 
+			case topic_info::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case topic::cols::cateid: 
+			case topic_info::cols::cateid: 
  				 ktemp=iter.cateid;
 				 break;
-			case topic::cols::sorttype: 
+			case topic_info::cols::sorttype: 
  				 ktemp=iter.sorttype;
 				 break;
-			case topic::cols::languagetype: 
+			case topic_info::cols::languagetype: 
  				 ktemp=iter.languagetype;
 				 break;
-			case topic::cols::isview: 
+			case topic_info::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case topic::cols::isside: 
+			case topic_info::cols::isside: 
  				 ktemp=iter.isside;
 				 break;
-			case topic::cols::sortid: 
+			case topic_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
-			case topic::cols::accesscode: 
+			case topic_info::cols::accesscode: 
  				 ktemp=iter.accesscode;
 				 break;
 			default:
@@ -3674,34 +3678,34 @@ if(tree_data[n].accesscode==0){
 			 }
 
 			switch(valname){
-			case topic::cols::topicid: 
+			case topic_info::cols::topicid: 
  				 vtemp=iter.topicid;
 				 break;
-			case topic::cols::userid: 
+			case topic_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case topic::cols::parentid: 
+			case topic_info::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case topic::cols::cateid: 
+			case topic_info::cols::cateid: 
  				 vtemp=iter.cateid;
 				 break;
-			case topic::cols::sorttype: 
+			case topic_info::cols::sorttype: 
  				 vtemp=iter.sorttype;
 				 break;
-			case topic::cols::languagetype: 
+			case topic_info::cols::languagetype: 
  				 vtemp=iter.languagetype;
 				 break;
-			case topic::cols::isview: 
+			case topic_info::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case topic::cols::isside: 
+			case topic_info::cols::isside: 
  				 vtemp=iter.isside;
 				 break;
-			case topic::cols::sortid: 
+			case topic_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
-			case topic::cols::accesscode: 
+			case topic_info::cols::accesscode: 
  				 vtemp=iter.accesscode;
 				 break;
 			default:
@@ -3715,9 +3719,9 @@ if(tree_data[n].accesscode==0){
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,topic_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,topic_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -3764,9 +3768,9 @@ if(tree_data[n].accesscode==0){
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,topic_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,topic_info::meta> a;
 
     
             unsigned char kpos;
@@ -4240,9 +4244,9 @@ case 16:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,topic_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,topic_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -4288,9 +4292,9 @@ case 17:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,topic_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,topic_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -6004,9 +6008,9 @@ case 16:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<topic_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<topic_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -6054,9 +6058,9 @@ case 16:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<topic_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<topic_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -6099,9 +6103,9 @@ case 16:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<topic_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<topic_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -6173,9 +6177,9 @@ case 16:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<topic_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<topic_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -6254,9 +6258,9 @@ case 16:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<topic_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<topic_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -6340,9 +6344,9 @@ case 16:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<topic_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<topic_info::meta>>> a;
 
    
             unsigned char kpos,vpos;

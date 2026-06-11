@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 06:15:35 GMT
+*本文件为自动生成 Thu, 11 Jun 2026 11:46:15 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -20,8 +20,9 @@ namespace orm {
    
      namespace cms { 
 
-namespace catalogue 
+namespace catalogue_info
 {
+ 
     enum class cols : unsigned char 
     {
 		cid = 0,
@@ -34,11 +35,6 @@ namespace catalogue
 		imgurl = 7,
 
     };
- 
-}
-    
-struct catalogue_base
-{
 
     struct meta{
      unsigned  int  cid = 0; ///**/
@@ -49,7 +45,7 @@ struct catalogue_base
  char  isview = 0; ///*是否显示*/
  int  sortid = 0; ///*排序*/
  std::string  imgurl = ""; ///*图片*/
- } data;
+ };
   
         struct meta_tree{
          unsigned  int  cid = 0; ///**/
@@ -61,19 +57,24 @@ struct catalogue_base
  int  sortid = 0; ///*排序*/
  std::string  imgurl = ""; ///*图片*/
 
-	std::vector<meta_tree> children;
+	 std::vector<meta_tree> children;
  };
- std::vector<catalogue_base::meta> record;
-std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
-unsigned int _offset=0;
-std::vector<catalogue_base::meta>::iterator begin(){     return record.begin(); }
-std::vector<catalogue_base::meta>::iterator end(){     return record.end(); }
-std::vector<catalogue_base::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<catalogue_base::meta>::const_iterator end() const{     return record.end(); }
-static constexpr std::array<std::string_view,8> col_names={"cid","userid","level","parentid","name","isview","sortid","imgurl"};
+ static constexpr std::array<std::string_view,8> col_names={"cid","userid","level","parentid","name","isview","sortid","imgurl"};
 static constexpr std::array<unsigned char,8> col_types={3,3,3,3,253,1,3,253};
 static constexpr std::array<unsigned char,8> col_length={0,0,0,0,64,0,0,254};
 static constexpr std::array<unsigned char,8> col_decimals={0,0,0,0,0,0,0,0};
+
+}
+
+struct catalogue_base
+{
+      catalogue_info::meta data;
+    std::vector<catalogue_info::meta> record;
+std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<catalogue_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<catalogue_info::meta>::iterator end(){     return record.end(); }
+std::vector<catalogue_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<catalogue_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="catalogue";
 static constexpr std::string_view modelname="Catalogue";
 
@@ -135,7 +136,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     catalogue_base::meta metatemp;    
+     catalogue_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -185,13 +186,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<catalogue_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<catalogue_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -236,19 +237,19 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const meta &insert_data){
+      std::string _makerecordinsertsql(const catalogue_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<catalogue_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<catalogue_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -293,19 +294,19 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<meta> &insert_data){
+    std::string _makerecordinsertsql(const std::vector<catalogue_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<col_names.size();j++){
+        for(;j<catalogue_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<"`,`";
                 }else{
                     tempsql<<"`";
                 }
-                tempsql<<col_names[j];
+                tempsql<<catalogue_info::col_names[j];
         }
         if(j>0){
             tempsql<<"`";
@@ -523,7 +524,7 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
         tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < catalogue_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -533,7 +534,7 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << catalogue_info::col_names[j];
         }
         if (j > 0)
         {
@@ -593,7 +594,7 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < col_names.size(); j++)
+        for (; j < catalogue_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -603,7 +604,7 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
             {
                 tempsql << "`";
             }
-            tempsql << col_names[j];
+            tempsql << catalogue_info::col_names[j];
         }
         if (j > 0)
         {
@@ -722,7 +723,7 @@ tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<catalogue_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -810,7 +811,7 @@ if(data.sortid==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<catalogue_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -942,7 +943,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<catalogue_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1017,7 +1018,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        catalogue_base::meta metatemp; 
+        catalogue_info::meta metatemp; 
         data=metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1476,7 +1477,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(data.imgurl)<<"\"";
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<col_names.size();jj++){
+        for(jj=0;jj<catalogue_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -1557,7 +1558,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,meta&)> func,std::string fileld=""){
+   std::string to_json(std::function<bool(std::string&,catalogue_info::meta&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1581,7 +1582,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<catalogue_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1698,18 +1699,18 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(record[n].imgurl)<<"\"";
  void setImgurl( std::string  &val){  data.imgurl=val;} 
  void setImgurl(std::string_view val){  data.imgurl=val;} 
 
-catalogue_base::meta getnewData(){
- 	 struct meta newdata;
+catalogue_info::meta getnewData(){
+ 	 struct catalogue_info::meta newdata;
 	 return newdata; 
 } 
-catalogue_base::meta getData(){
+catalogue_info::meta getData(){
  	 return data; 
 } 
-std::vector<catalogue_base::meta> getRecord(){
+std::vector<catalogue_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data, std::string fileld=""){
+   std::string tree_tojson(const std::vector<catalogue_info::meta_tree> &tree_data, std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1733,7 +1734,7 @@ std::vector<catalogue_base::meta> getRecord(){
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<catalogue_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1817,7 +1818,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<meta_tree> &tree_data,std::function<bool(std::string&,const meta_tree&)> func,std::string fileld=""){
+   std::string tree_tojson(const std::vector<catalogue_info::meta_tree> &tree_data,std::function<bool(std::string&,const catalogue_info::meta_tree&)> func,std::string fileld=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1841,7 +1842,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<col_names.size();jj++){
+            for(jj=0;jj<catalogue_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1931,9 +1932,8 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
      return tempsql.str();             
    }   
    
-    meta_tree treedata_from_record(unsigned int i=0)
-    {
-        meta_tree temp_obja;
+    catalogue_info::meta_tree treedata_from_record(unsigned int i=0)
+    { catalogue_info::meta_tree temp_obja;
         if(i>=record.size())
         {
            return  temp_obja;   
@@ -1948,10 +1948,8 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 	temp_obja.imgurl=record[i].imgurl;
 
         return  temp_obja;   
-    }
-    meta_tree treedata_from_data()
-    {
-        meta_tree temp_obja;
+    }catalogue_info::meta_tree treedata_from_data()
+    { catalogue_info::meta_tree temp_obja;
 
         	temp_obja.cid=data.cid;
 	temp_obja.userid=data.userid;
@@ -1963,10 +1961,8 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 	temp_obja.imgurl=data.imgurl;
 
         return  temp_obja;   
-    }      
-    meta_tree treedata_from_data(const meta &tempdata)
-    {
-        meta_tree temp_obja;
+    }catalogue_info::meta_tree treedata_from_data(const catalogue_info::meta &tempdata)
+    {catalogue_info::meta_tree temp_obja;
         	temp_obja.cid=tempdata.cid;
 	temp_obja.userid=tempdata.userid;
 	temp_obja.level=tempdata.level;
@@ -1978,9 +1974,9 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 
         return  temp_obja;   
     }     
-    std::vector<meta_tree> to_tree(unsigned int beginid=0)
+    std::vector<catalogue_info::meta_tree> to_tree(unsigned int beginid=0)
     {
-       std::vector<meta_tree> temp;
+       std::vector<catalogue_info::meta_tree> temp;
        unsigned int level=0; 
        if(beginid==0)
        {
@@ -1988,8 +1984,8 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             {
                 if (record[i].parentid == 0)
                 {
-                    		meta_tree temp_obja;
-						temp_obja.cid=record[i].cid;
+                    		catalogue_info::meta_tree temp_obja;
+								temp_obja.cid=record[i].cid;
 						temp_obja.userid=record[i].userid;
 						temp_obja.level=level;
 						temp_obja.parentid=record[i].parentid;
@@ -2008,8 +2004,8 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             {
                 if (record[i].cid == beginid)
                 {
-                    		meta_tree temp_obja;
-						temp_obja.cid=record[i].cid;
+                    		catalogue_info::meta_tree temp_obja;
+								temp_obja.cid=record[i].cid;
 						temp_obja.userid=record[i].userid;
 						temp_obja.level=level;
 						temp_obja.parentid=record[i].parentid;
@@ -2035,14 +2031,14 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
        }
        return temp; 
     }    
-    void record_to_tree(std::vector<meta_tree> &targetdata,long long t_vid,unsigned int level=0)
+    void record_to_tree(std::vector<catalogue_info::meta_tree> &targetdata,long long t_vid,unsigned int level=0)
     {
         for (unsigned int i = 0; i < record.size(); i++)
         {
             if (record[i].parentid== t_vid)
             {
-                		meta_tree temp_obja;
-						temp_obja.cid=record[i].cid;
+                		catalogue_info::meta_tree temp_obja;
+								temp_obja.cid=record[i].cid;
 						temp_obja.userid=record[i].userid;
 						temp_obja.level=level;
 						temp_obja.parentid=record[i].parentid;
@@ -2060,12 +2056,11 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
          record_to_tree(targetdata[j].children,targetdata[j].cid,level);
         }
     }
-    void tree_torecord(const std::vector<meta_tree> &sourcedata,unsigned int level=0)
+    void tree_torecord(const std::vector<catalogue_info::meta_tree> &sourcedata,unsigned int level=0)
     {
         for (unsigned int i = 0; i < sourcedata.size(); i++)
-        {
-		meta temp_obja;
-			temp_obja.cid=sourcedata[i].cid;
+        {		catalogue_info::meta temp_obja;
+					temp_obja.cid=sourcedata[i].cid;
 			temp_obja.userid=sourcedata[i].userid;
 			temp_obja.level=level;
 			temp_obja.parentid=sourcedata[i].parentid;
@@ -2213,7 +2208,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] catalogue_base::meta & iter,[[maybe_unused]] std::string keyname)
+        T getVal([[maybe_unused]] catalogue_info::meta & iter,[[maybe_unused]] std::string keyname)
         {
 
           
@@ -2262,7 +2257,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             }  
     
             template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] catalogue_base::meta & iter,std::string keyname)
+            T getVal([[maybe_unused]] catalogue_info::meta & iter,std::string keyname)
             {
                 unsigned char kpos;
                 kpos=findcolpos(keyname);
@@ -2297,7 +2292,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             }  
    
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] catalogue_base::meta & iter,std::string keyname)
+            std::string getVal([[maybe_unused]] catalogue_info::meta & iter,std::string keyname)
             {
          
                 unsigned char kpos;
@@ -2321,31 +2316,34 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             }  
      
             template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] std::string keyname)
+            std::vector<std::string> getCol([[maybe_unused]] catalogue_info::cols keyname)
             {
                 std::vector<std::string> a;
 
-           
-                unsigned char kpos;
-                kpos=findcolpos(keyname);                    
+                           
                 for(auto &iter:record)
                 {
-                    switch(kpos)
+                    switch(keyname)
                     {
 
-    			case 4: 
+    			case catalogue_info::cols::name: 
  				 a.emplace_back(iter.name);
 					 break;
-			case 7: 
+			case catalogue_info::cols::imgurl: 
  				 a.emplace_back(iter.imgurl);
 					 break;
-					}
-				}
+
+
+                    default:
+                        break;
+                    }
+                }
+        
 
         return a;
     }
      
-        std::string getstrCol(catalogue::cols keyname, bool isyinhao=false)
+        std::string getstrCol(catalogue_info::cols keyname, bool isyinhao=false)
         {
             std::ostringstream a;
     
@@ -2368,31 +2366,31 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                     switch(keyname)
                     {
 
-   			case catalogue::cols::cid: 
+   			case catalogue_info::cols::cid: 
  				 a<<std::to_string(iter.cid);
 				 break;
-			case catalogue::cols::userid: 
+			case catalogue_info::cols::userid: 
  				 a<<std::to_string(iter.userid);
 				 break;
-			case catalogue::cols::level: 
+			case catalogue_info::cols::level: 
  				 a<<std::to_string(iter.level);
 				 break;
-			case catalogue::cols::parentid: 
+			case catalogue_info::cols::parentid: 
  				 a<<std::to_string(iter.parentid);
 				 break;
-			case catalogue::cols::name: 
+			case catalogue_info::cols::name: 
  				 if(isyinhao){ a<<jsonaddslash(iter.name); 
 				 }else{
 				 a<<iter.name;
 				 }
 				 break;
-			case catalogue::cols::isview: 
+			case catalogue_info::cols::isview: 
  				 a<<std::to_string(iter.isview);
 				 break;
-			case catalogue::cols::sortid: 
+			case catalogue_info::cols::sortid: 
  				 a<<std::to_string(iter.sortid);
 				 break;
-			case catalogue::cols::imgurl: 
+			case catalogue_info::cols::imgurl: 
  				 if(isyinhao){ a<<jsonaddslash(iter.imgurl); 
 				 }else{
 				 a<<iter.imgurl;
@@ -2412,7 +2410,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         }
     
     template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols  valname) 
+    std::map<std::string,std::string> getCols([[maybe_unused]] catalogue_info::cols keyname,[[maybe_unused]] catalogue_info::cols valname) 
     {
         std::map<std::string,std::string> a;
           
@@ -2420,20 +2418,20 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
          for(auto &iter:record)
          {
     			switch(keyname) 
-			{			case catalogue::cols::name: 
+			{			case catalogue_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case catalogue::cols::imgurl: 
+			case catalogue_info::cols::imgurl: 
  				 ktemp=iter.imgurl;
 				 break;
 			default:
 				 break;
 			 }
 			switch(valname){
-			case catalogue::cols::name: 
+			case catalogue_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case catalogue::cols::imgurl: 
+			case catalogue_info::cols::imgurl: 
  				 vtemp=iter.imgurl;
 				 break;
 			default:
@@ -2450,7 +2448,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
     
 
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] catalogue_info::cols keyname,[[maybe_unused]] catalogue_info::cols valname) 
         {
                 std::map<std::string,U> a;
          
@@ -2458,14 +2456,14 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         } 
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] catalogue_info::cols keyname,[[maybe_unused]] catalogue_info::cols valname) 
         {
             std::map<T,U> a;
         
         return a;
     }  
             template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
+            std::map<T,std::string> getCols([[maybe_unused]] catalogue_info::cols keyname,[[maybe_unused]] catalogue_info::cols valname) 
             {
                 std::map<T,std::string> a;
           
@@ -2475,22 +2473,22 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                 {
    
 			switch(keyname){
-			case catalogue::cols::cid: 
+			case catalogue_info::cols::cid: 
  				 ktemp=iter.cid;
 				 break;
-			case catalogue::cols::userid: 
+			case catalogue_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case catalogue::cols::level: 
+			case catalogue_info::cols::level: 
  				 ktemp=iter.level;
 				 break;
-			case catalogue::cols::parentid: 
+			case catalogue_info::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case catalogue::cols::isview: 
+			case catalogue_info::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case catalogue::cols::sortid: 
+			case catalogue_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
 			default:
@@ -2498,10 +2496,10 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 			 }
 
 			switch(valname){
-						case catalogue::cols::name: 
+						case catalogue_info::cols::name: 
  				 vtemp=iter.name;
 				 break;
-			case catalogue::cols::imgurl: 
+			case catalogue_info::cols::imgurl: 
  				 vtemp=iter.imgurl;
 				 break;
 			default:
@@ -2514,7 +2512,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             }     
         
         template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
+        std::map<std::string,U> getCols([[maybe_unused]] catalogue_info::cols keyname,[[maybe_unused]] catalogue_info::cols valname) 
         {
             std::map<std::string,U> a;
               
@@ -2524,10 +2522,10 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             {
    
 			switch(keyname){
-			case catalogue::cols::name: 
+			case catalogue_info::cols::name: 
  				 ktemp=iter.name;
 				 break;
-			case catalogue::cols::imgurl: 
+			case catalogue_info::cols::imgurl: 
  				 ktemp=iter.imgurl;
 				 break;
 			default:
@@ -2535,22 +2533,22 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 			 }
 
 			switch(valname){
-			case catalogue::cols::cid: 
+			case catalogue_info::cols::cid: 
  				 vtemp=iter.cid;
 				 break;
-			case catalogue::cols::userid: 
+			case catalogue_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case catalogue::cols::level: 
+			case catalogue_info::cols::level: 
  				 vtemp=iter.level;
 				 break;
-			case catalogue::cols::parentid: 
+			case catalogue_info::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case catalogue::cols::isview: 
+			case catalogue_info::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case catalogue::cols::sortid: 
+			case catalogue_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
 			default:
@@ -2567,7 +2565,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
     }  
     
         template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] catalogue::cols keyname,[[maybe_unused]] catalogue::cols valname) 
+        std::map<T,U> getCols([[maybe_unused]] catalogue_info::cols keyname,[[maybe_unused]] catalogue_info::cols valname) 
         {
             std::map<T,U> a;
                
@@ -2578,22 +2576,22 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 
    
 			switch(keyname){
-			case catalogue::cols::cid: 
+			case catalogue_info::cols::cid: 
  				 ktemp=iter.cid;
 				 break;
-			case catalogue::cols::userid: 
+			case catalogue_info::cols::userid: 
  				 ktemp=iter.userid;
 				 break;
-			case catalogue::cols::level: 
+			case catalogue_info::cols::level: 
  				 ktemp=iter.level;
 				 break;
-			case catalogue::cols::parentid: 
+			case catalogue_info::cols::parentid: 
  				 ktemp=iter.parentid;
 				 break;
-			case catalogue::cols::isview: 
+			case catalogue_info::cols::isview: 
  				 ktemp=iter.isview;
 				 break;
-			case catalogue::cols::sortid: 
+			case catalogue_info::cols::sortid: 
  				 ktemp=iter.sortid;
 				 break;
 			default:
@@ -2601,22 +2599,22 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 			 }
 
 			switch(valname){
-			case catalogue::cols::cid: 
+			case catalogue_info::cols::cid: 
  				 vtemp=iter.cid;
 				 break;
-			case catalogue::cols::userid: 
+			case catalogue_info::cols::userid: 
  				 vtemp=iter.userid;
 				 break;
-			case catalogue::cols::level: 
+			case catalogue_info::cols::level: 
  				 vtemp=iter.level;
 				 break;
-			case catalogue::cols::parentid: 
+			case catalogue_info::cols::parentid: 
  				 vtemp=iter.parentid;
 				 break;
-			case catalogue::cols::isview: 
+			case catalogue_info::cols::isview: 
  				 vtemp=iter.isview;
 				 break;
-			case catalogue::cols::sortid: 
+			case catalogue_info::cols::sortid: 
  				 vtemp=iter.sortid;
 				 break;
 			default:
@@ -2630,9 +2628,9 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         }   
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<T,catalogue_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,meta> a;
+            std::map<T,catalogue_info::meta> a;
     
             unsigned char kpos;
             kpos=findcolpos(keyname);                        
@@ -2667,9 +2665,9 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         }     
     
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,meta> getmapRows([[maybe_unused]] std::string keyname)
+        std::map<std::string,catalogue_info::meta> getmapRows([[maybe_unused]] std::string keyname)
         {
-            std::map<std::string,meta> a;
+            std::map<std::string,catalogue_info::meta> a;
 
     
             unsigned char kpos;
@@ -2975,9 +2973,9 @@ case 7:
         }  
     
         template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<T,catalogue_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<T,meta>> a;
+            std::vector<std::pair<T,catalogue_info::meta>> a;
      
             unsigned char kpos;
             kpos=findcolpos(keyname);                  
@@ -3011,9 +3009,9 @@ case 6:
         return a;
     }
         template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,meta>> getvecRows([[maybe_unused]] std::string keyname)
+        std::vector<std::pair<std::string,catalogue_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
         {
-            std::vector<std::pair<std::string,meta>> a;
+            std::vector<std::pair<std::string,catalogue_info::meta>> a;
       
             unsigned char kpos;
             kpos=findcolpos(keyname);                     
@@ -4079,9 +4077,9 @@ case 7:
         }
     
         template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<catalogue_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<catalogue_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -4117,9 +4115,9 @@ case 7:
         }
     
         template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<meta>> getgroupRows([[maybe_unused]] std::string keyname)
+        std::map<T,std::vector<catalogue_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
         {
-            std::map<T,std::vector<meta>> a;
+            std::map<T,std::vector<catalogue_info::meta>> a;
    
             unsigned char kpos;
             kpos=findcolpos(keyname);
@@ -4144,9 +4142,9 @@ case 7:
         }
     
         template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<catalogue_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<catalogue_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4182,9 +4180,9 @@ case 7:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<catalogue_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<catalogue_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4233,9 +4231,9 @@ case 7:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<catalogue_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<catalogue_info::meta>>> a;
    
             unsigned char kpos,vpos;
             kpos=findcolpos(keyname);
@@ -4295,9 +4293,9 @@ case 7:
         }
     
         template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
+        std::map<T,std::map<U,std::vector<catalogue_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
         {
-            std::map<T,std::map<U,std::vector<meta>>> a;
+            std::map<T,std::map<U,std::vector<catalogue_info::meta>>> a;
 
    
             unsigned char kpos,vpos;
