@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 05:07:49 GMT
+*本文件为自动生成 Fri, 12 Jun 2026 12:12:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -3589,6 +3589,49 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             } else {
                 if (std::forward<Callback>(callback)(product_info::getField<KeyCol>(iter), product_info::getField<ValCol>(iter))) {
                     result.emplace_back(product_info::getField<KeyCol>(iter), product_info::getField<ValCol>(iter));
+                }
+            }
+        }
+ 
+        return result;
+    }
+    
+    template<product_info::cols KeyCol>
+    auto get_vec_col()
+    {
+        using KeyType = decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()));
+
+        std::vector<KeyType> result;
+        for (const auto& iter : record) {
+            result.emplace_back(product_info::getField<KeyCol>(iter));
+        }
+ 
+        return result;
+    }
+    
+    /* 
+    get_vec_col<..,..>([](const auto& value) -> bool {
+            return value > 150; 
+        })
+    */
+    template<product_info::cols KeyCol, typename Callback> 
+    requires std::invocable<Callback, 
+            decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()))> &&
+            std::convertible_to<
+                std::invoke_result_t<Callback&, 
+                    decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()))>, bool>
+    auto get_vec_col(Callback&& callback)
+    {
+        using KeyType = decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()));
+        std::vector<KeyType> result;
+        for (const auto& iter : record) 
+        {
+            if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
+            {
+                result.emplace_back(product_info::getField<KeyCol>(iter));
+            } else {
+                if (std::forward<Callback>(callback)(product_info::getField<KeyCol>(iter))) {
+                    result.emplace_back(product_info::getField<KeyCol>(iter));
                 }
             }
         }

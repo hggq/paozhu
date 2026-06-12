@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 05:07:49 GMT
+*本文件为自动生成 Fri, 12 Jun 2026 12:12:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -2664,6 +2664,49 @@ if(tree_data[n].updated_user==0){
             } else {
                 if (std::forward<Callback>(callback)(sysperms_info::getField<KeyCol>(iter), sysperms_info::getField<ValCol>(iter))) {
                     result.emplace_back(sysperms_info::getField<KeyCol>(iter), sysperms_info::getField<ValCol>(iter));
+                }
+            }
+        }
+ 
+        return result;
+    }
+    
+    template<sysperms_info::cols KeyCol>
+    auto get_vec_col()
+    {
+        using KeyType = decltype(sysperms_info::getField<KeyCol>(std::declval<const sysperms_info::meta&>()));
+
+        std::vector<KeyType> result;
+        for (const auto& iter : record) {
+            result.emplace_back(sysperms_info::getField<KeyCol>(iter));
+        }
+ 
+        return result;
+    }
+    
+    /* 
+    get_vec_col<..,..>([](const auto& value) -> bool {
+            return value > 150; 
+        })
+    */
+    template<sysperms_info::cols KeyCol, typename Callback> 
+    requires std::invocable<Callback, 
+            decltype(sysperms_info::getField<KeyCol>(std::declval<const sysperms_info::meta&>()))> &&
+            std::convertible_to<
+                std::invoke_result_t<Callback&, 
+                    decltype(sysperms_info::getField<KeyCol>(std::declval<const sysperms_info::meta&>()))>, bool>
+    auto get_vec_col(Callback&& callback)
+    {
+        using KeyType = decltype(sysperms_info::getField<KeyCol>(std::declval<const sysperms_info::meta&>()));
+        std::vector<KeyType> result;
+        for (const auto& iter : record) 
+        {
+            if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
+            {
+                result.emplace_back(sysperms_info::getField<KeyCol>(iter));
+            } else {
+                if (std::forward<Callback>(callback)(sysperms_info::getField<KeyCol>(iter))) {
+                    result.emplace_back(sysperms_info::getField<KeyCol>(iter));
                 }
             }
         }

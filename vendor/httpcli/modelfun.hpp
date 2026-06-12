@@ -9726,7 +9726,7 @@ headtxt += R"(::meta data;
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
-
+    ///////////////////////////////////
     //get_vec_cols
     headtxt.clear();
     update2strem.str("");
@@ -9862,6 +9862,106 @@ headtxt += R"(::meta data;
      
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter));
+                }
+            }
+        }
+ 
+        return result;
+    }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    /////////////////////////////
+    //get_vec_col
+    headtxt.clear();
+    update2strem.str("");
+ 
+    headtxt += R"(
+    template<)";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::cols KeyCol>)";
+
+    headtxt += R"(
+    auto get_vec_col()
+    {
+        using KeyType = decltype()";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::getField<KeyCol>(std::declval<const )";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::meta&>()));
+
+        std::vector<KeyType> result;
+        for (const auto& iter : record) {
+            result.emplace_back()";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::getField<KeyCol>(iter));
+        }
+ 
+        return result;
+    }
+    )";
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
+    ////////////////////////////////////////////////////////////
+    //get_vec_col
+    headtxt += R"(
+    /* 
+    get_vec_col<..,..>([](const auto& value) -> bool {
+            return value > 150; 
+        })
+    */
+    template<)";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::cols KeyCol, typename Callback> 
+    requires std::invocable<Callback, 
+            decltype()";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::getField<KeyCol>(std::declval<const )";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::meta&>()))> &&
+            std::convertible_to<
+                std::invoke_result_t<Callback&, 
+                    decltype()";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::getField<KeyCol>(std::declval<const )";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::meta&>()))>, bool>
+    auto get_vec_col(Callback&& callback)
+    {
+        using KeyType = decltype()";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::getField<KeyCol>(std::declval<const )";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::meta&>()));
+        std::vector<KeyType> result;
+        for (const auto& iter : record) 
+        {
+            if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
+            {
+                result.emplace_back()";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::getField<KeyCol>(iter));
+            } else {
+                if (std::forward<Callback>(callback)()";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::getField<KeyCol>(iter))) {
+                    result.emplace_back()";
+     
+    headtxt += model_info_name;
+    headtxt += R"(::getField<KeyCol>(iter));
                 }
             }
         }

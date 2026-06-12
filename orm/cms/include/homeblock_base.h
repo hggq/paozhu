@@ -2,7 +2,7 @@
 #define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 05:07:49 GMT
+*本文件为自动生成 Fri, 12 Jun 2026 12:12:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -2530,6 +2530,49 @@ if(tree_data[n].sortid==0){
             } else {
                 if (std::forward<Callback>(callback)(homeblock_info::getField<KeyCol>(iter), homeblock_info::getField<ValCol>(iter))) {
                     result.emplace_back(homeblock_info::getField<KeyCol>(iter), homeblock_info::getField<ValCol>(iter));
+                }
+            }
+        }
+ 
+        return result;
+    }
+    
+    template<homeblock_info::cols KeyCol>
+    auto get_vec_col()
+    {
+        using KeyType = decltype(homeblock_info::getField<KeyCol>(std::declval<const homeblock_info::meta&>()));
+
+        std::vector<KeyType> result;
+        for (const auto& iter : record) {
+            result.emplace_back(homeblock_info::getField<KeyCol>(iter));
+        }
+ 
+        return result;
+    }
+    
+    /* 
+    get_vec_col<..,..>([](const auto& value) -> bool {
+            return value > 150; 
+        })
+    */
+    template<homeblock_info::cols KeyCol, typename Callback> 
+    requires std::invocable<Callback, 
+            decltype(homeblock_info::getField<KeyCol>(std::declval<const homeblock_info::meta&>()))> &&
+            std::convertible_to<
+                std::invoke_result_t<Callback&, 
+                    decltype(homeblock_info::getField<KeyCol>(std::declval<const homeblock_info::meta&>()))>, bool>
+    auto get_vec_col(Callback&& callback)
+    {
+        using KeyType = decltype(homeblock_info::getField<KeyCol>(std::declval<const homeblock_info::meta&>()));
+        std::vector<KeyType> result;
+        for (const auto& iter : record) 
+        {
+            if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
+            {
+                result.emplace_back(homeblock_info::getField<KeyCol>(iter));
+            } else {
+                if (std::forward<Callback>(callback)(homeblock_info::getField<KeyCol>(iter))) {
+                    result.emplace_back(homeblock_info::getField<KeyCol>(iter));
                 }
             }
         }

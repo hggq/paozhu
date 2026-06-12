@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 05:07:50 GMT
+*本文件为自动生成 Fri, 12 Jun 2026 12:12:35 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1492,6 +1492,49 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
             } else {
                 if (std::forward<Callback>(callback)(testb_info::getField<KeyCol>(iter), testb_info::getField<ValCol>(iter))) {
                     result.emplace_back(testb_info::getField<KeyCol>(iter), testb_info::getField<ValCol>(iter));
+                }
+            }
+        }
+ 
+        return result;
+    }
+    
+    template<testb_info::cols KeyCol>
+    auto get_vec_col()
+    {
+        using KeyType = decltype(testb_info::getField<KeyCol>(std::declval<const testb_info::meta&>()));
+
+        std::vector<KeyType> result;
+        for (const auto& iter : record) {
+            result.emplace_back(testb_info::getField<KeyCol>(iter));
+        }
+ 
+        return result;
+    }
+    
+    /* 
+    get_vec_col<..,..>([](const auto& value) -> bool {
+            return value > 150; 
+        })
+    */
+    template<testb_info::cols KeyCol, typename Callback> 
+    requires std::invocable<Callback, 
+            decltype(testb_info::getField<KeyCol>(std::declval<const testb_info::meta&>()))> &&
+            std::convertible_to<
+                std::invoke_result_t<Callback&, 
+                    decltype(testb_info::getField<KeyCol>(std::declval<const testb_info::meta&>()))>, bool>
+    auto get_vec_col(Callback&& callback)
+    {
+        using KeyType = decltype(testb_info::getField<KeyCol>(std::declval<const testb_info::meta&>()));
+        std::vector<KeyType> result;
+        for (const auto& iter : record) 
+        {
+            if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
+            {
+                result.emplace_back(testb_info::getField<KeyCol>(iter));
+            } else {
+                if (std::forward<Callback>(callback)(testb_info::getField<KeyCol>(iter))) {
+                    result.emplace_back(testb_info::getField<KeyCol>(iter));
                 }
             }
         }

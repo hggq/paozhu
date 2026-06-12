@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 05:07:46 GMT
+*本文件为自动生成 Fri, 12 Jun 2026 12:09:29 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -1335,6 +1335,49 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
             } else {
                 if (std::forward<Callback>(callback)(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter))) {
                     result.emplace_back(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter));
+                }
+            }
+        }
+ 
+        return result;
+    }
+    
+    template<fortune_info::cols KeyCol>
+    auto get_vec_col()
+    {
+        using KeyType = decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()));
+
+        std::vector<KeyType> result;
+        for (const auto& iter : record) {
+            result.emplace_back(fortune_info::getField<KeyCol>(iter));
+        }
+ 
+        return result;
+    }
+    
+    /* 
+    get_vec_col<..,..>([](const auto& value) -> bool {
+            return value > 150; 
+        })
+    */
+    template<fortune_info::cols KeyCol, typename Callback> 
+    requires std::invocable<Callback, 
+            decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()))> &&
+            std::convertible_to<
+                std::invoke_result_t<Callback&, 
+                    decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()))>, bool>
+    auto get_vec_col(Callback&& callback)
+    {
+        using KeyType = decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()));
+        std::vector<KeyType> result;
+        for (const auto& iter : record) 
+        {
+            if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
+            {
+                result.emplace_back(fortune_info::getField<KeyCol>(iter));
+            } else {
+                if (std::forward<Callback>(callback)(fortune_info::getField<KeyCol>(iter))) {
+                    result.emplace_back(fortune_info::getField<KeyCol>(iter));
                 }
             }
         }
