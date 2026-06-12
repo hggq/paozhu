@@ -30,7 +30,7 @@ std::string obj_val::filter(std::function<char(char)> func)
         return temp;
     }
 
-    if(func==nullptr)
+    if(func == nullptr)
     {
         return temp;
     }
@@ -171,7 +171,7 @@ std::string obj_val::mb_substr(int begin_pos, int cut_size)
         }
         else
         {
-            str_length = length + begin_pos;
+            str_length = length - abs(begin_pos);
             if (str_length > 0 && str_length > 16)
             {
                 temp.reserve(str_length);
@@ -187,7 +187,16 @@ std::string obj_val::mb_substr(int begin_pos, int cut_size)
     {
         if (cut_size == 0)
         {
-            int n = str_length + begin_pos;
+            int n = 0;
+            if(begin_pos < 0)
+            {
+                n = str_length - abs(begin_pos);
+            }
+            else
+            {
+                n = str_length + begin_pos;
+            }
+
             if (n > str_length)
             {
                 n = str_length;
@@ -357,7 +366,16 @@ std::string obj_val::mb_substr(int begin_pos, int cut_size)
         }
         else
         {
-            int n = str_length + begin_pos;
+            int n = 0;
+            if(begin_pos < 0)
+            {
+                n = str_length - abs(begin_pos);
+            }
+            else
+            {
+                n = str_length + begin_pos;
+            }
+
             if (n > str_length)
             {
                 n = str_length;
@@ -710,7 +728,16 @@ std::string obj_val::mb_substr_name(int begin_pos, int cut_size)
     {
         if (cut_size == 0)
         {
-            int n = str_length + begin_pos;
+            int n = 0;
+            if(begin_pos < 0)
+            {
+                n = str_length - abs(begin_pos);
+            }
+            else
+            {
+                n = str_length + begin_pos;
+            }
+
             if (n > str_length)
             {
                 n = str_length;
@@ -796,7 +823,15 @@ std::string obj_val::mb_substr_name(int begin_pos, int cut_size)
             {
                 j = 0;
             }
-            int n = str_length + begin_pos;
+            int n = 0;
+            if(begin_pos < 0)
+            {
+                n = str_length - abs(begin_pos);
+            }
+            else
+            {
+                n = str_length + begin_pos;
+            }
             if (n > str_length)
             {
                 n = str_length;
@@ -880,7 +915,15 @@ std::string obj_val::mb_substr_name(int begin_pos, int cut_size)
         }
         else
         {
-            int n = str_length + begin_pos;
+            int n = 0;
+            if(begin_pos < 0)
+            {
+                n = str_length - abs(begin_pos);
+            }
+            else
+            {
+                n = str_length + begin_pos;
+            }
             if (n > str_length)
             {
                 n = str_length;
@@ -1046,7 +1089,16 @@ std::string obj_val::mb_substr_name(int begin_pos, int cut_size)
         }
         else if (cut_size < 0)
         {
-            int j = str_length + cut_size;
+            int j = 0;
+            if(cut_size < 0)
+            {
+                j = str_length - abs(cut_size);
+            }
+            else
+            {
+                j = str_length + cut_size;
+            }
+
             if (j < 0)
             {
                 j = 0;
@@ -1135,6 +1187,7 @@ std::string obj_val::mb_substr_name(int begin_pos, int cut_size)
                 begin_pos = str_length;
             }
             int j = begin_pos + cut_size;
+
             if (j > str_length)
             {
                 j = str_length;
@@ -1333,7 +1386,7 @@ std::string_view obj_val::str_view(int a, int b)
 
     if (aa >= bb)
     {
-        std::string_view(name, 0);
+        return std::string_view(name, 0);
     }
 
     if (length < 8)
@@ -1374,6 +1427,10 @@ bool obj_val::reserve(unsigned int resize)
         if (length < 8)
         {
             char *tempstr = (char *)std::malloc(resize);
+            if(tempstr == nullptr)
+            {
+                return false;
+            }
             std::memcpy(tempstr, name, length);
             tempstr[length] = 0x00;
             str             = tempstr;
@@ -1382,6 +1439,10 @@ bool obj_val::reserve(unsigned int resize)
         else
         {
             char *tempstr = (char *)std::malloc(resize);
+            if(tempstr == nullptr)
+            {
+                return false;
+            }
             std::memcpy(tempstr, str, length);
             free(str);
             tempstr[length] = 0x00;
@@ -1416,10 +1477,16 @@ std::string obj_val::substr(int a, int b)
     {
         return temp;
     }
+    
+    if(length > 2097152)
+    {
+        return temp;
+    }
+
     int aa = 0, bb = 0;
     if (a < 0)
     {
-        aa = length + a;
+        aa = length - abs(a);
     }
     else
     {
@@ -1438,7 +1505,7 @@ std::string obj_val::substr(int a, int b)
     }
     if (b < 0)
     {
-        bb = length + b;
+        bb = length - abs(b);
     }
     else
     {
@@ -1484,11 +1551,14 @@ std::string obj_val::substr(int a)
     {
         return temp;
     }
-
+    if(length > 2097152)
+    {
+        return temp;
+    }
     int aa = 0;
     if (a < 0)
     {
-        aa = length + a;
+        aa = length - abs(a);
         if (aa < 0)
         {
             aa = 0;
@@ -1576,6 +1646,10 @@ void obj_val::append(const std::string &v)
                 }
             }
             char *tempstr = (char *)std::malloc(number);
+            if(tempstr == nullptr)
+            {
+                return;
+            }
             for (unsigned int jj = 0; jj < length; jj++)
             {
                 tempstr[jj] = name[jj];
@@ -1615,6 +1689,10 @@ void obj_val::append(const std::string &v)
                 }
 
                 char *tempstr = (char *)std::malloc(number);
+                if(tempstr == nullptr)
+                {
+                    return;
+                }
                 std::memcpy(tempstr, str, length);
                 std::memcpy(&tempstr[length], v.data(), jlenth);
                 length          = jlenth + length;
@@ -1684,6 +1762,10 @@ void obj_val::append(const char *_str, unsigned int str_length)
                 }
             }
             char *tempstr = (char *)std::malloc(number);
+            if(tempstr == nullptr)
+            {
+                return;
+            }
             for (unsigned int jj = 0; jj < length; jj++)
             {
                 tempstr[jj] = name[jj];
@@ -1723,6 +1805,10 @@ void obj_val::append(const char *_str, unsigned int str_length)
                 }
 
                 char *tempstr = (char *)std::malloc(number);
+                if(tempstr == nullptr)
+                {
+                    return;
+                }
                 std::memcpy(tempstr, str, length);
                 std::memcpy(&tempstr[length], _str, jlenth);
                 length          = jlenth + length;
@@ -1916,6 +2002,8 @@ void obj_val::clear()
             std::memset(name, 0x00, 8);
         }
     }
+    length = 0;
+    number = 0;
     _val_type = obj_type::NIL;
 }
 
@@ -2047,6 +2135,10 @@ obj_val &obj_val::operator=(std::string_view v)
                 number = jlenth;
             }
             str = (char *)std::malloc(number);
+            if(str == nullptr)
+            {
+                return *this;
+            }
         }
         memcpy(str, v.data(), v.size());
         str[v.size()] = 0x00;
@@ -2077,6 +2169,10 @@ obj_val &obj_val::operator=(std::string_view v)
                 number = jlenth;
             }
             str = (char *)std::malloc(number);
+            if(str == nullptr)
+            {
+                return *this;
+            }
             memcpy(str, v.data(), v.size());
             str[v.size()] = 0x00;
         }
@@ -2128,6 +2224,10 @@ obj_val &obj_val::operator=(const char *v)
                 number = jlenth;
             }
             str = (char *)std::malloc(number);
+            if(str == nullptr)
+            {
+                return *this;
+            }
         }
         memcpy(str, v, str_length);
         str[str_length] = 0x00;
@@ -2158,6 +2258,10 @@ obj_val &obj_val::operator=(const char *v)
                 number = jlenth;
             }
             str = (char *)std::malloc(number);
+            if(str == nullptr)
+            {
+                return *this;
+            }
             memcpy(str, v, str_length);
             str[str_length] = 0x00;
         }
@@ -2208,6 +2312,10 @@ obj_val &obj_val::operator=(std::string &&v)
                 number = jlenth;
             }
             str = (char *)std::malloc(number);
+            if(str == nullptr)
+            {
+                return *this;
+            }
         }
         memcpy(str, v.data(), v.size());
         str[v.size()] = 0x00;
@@ -2238,6 +2346,10 @@ obj_val &obj_val::operator=(std::string &&v)
                 number = jlenth;
             }
             str = (char *)std::malloc(number);
+            if(str == nullptr)
+            {
+                return *this;
+            }
             memcpy(str, v.data(), v.size());
             str[v.size()] = 0x00;
         }
@@ -2287,7 +2399,10 @@ obj_val &obj_val::operator=(const std::string &v)
             number = jlenth;
         }
         str = (char *)std::malloc(number);
-
+        if(str == nullptr)
+        {
+            return *this;
+        }
         memcpy(str, v.data(), v.size());
         str[v.size()] = 0x00;
         length        = v.size();
@@ -2317,6 +2432,10 @@ obj_val &obj_val::operator=(const std::string &v)
                 number = jlenth;
             }
             str = (char *)std::malloc(number);
+            if(str == nullptr)
+            {
+                return *this;
+            }
             memcpy(str, v.data(), v.size());
             str[v.size()] = 0x00;
         }
@@ -2416,6 +2535,10 @@ obj_val &obj_val::operator=(const obj_val &v)
                 number = v.length + 1;
                 number = number - number % 8 + 8;
                 str    = (char *)std::malloc(number);
+                if(str == nullptr)
+                {
+                    return *this;
+                }
                 std::memcpy(str, v.str, v.length);
                 str[v.length] = 0x00;
                 length        = v.length;
@@ -2674,6 +2797,10 @@ obj_val::obj_val(const obj_val &v)
             number = v.length + 1;
             number = number - number % 8 + 8;
             str    = (char *)std::malloc(number);
+            if(str == nullptr)
+            {
+                break;
+            }
             std::memcpy(str, v.str, v.length);
             str[v.length] = 0x00;
             length        = v.length;
@@ -2887,6 +3014,7 @@ obj_val::~obj_val()
         if (length > 7 && str != nullptr)
         {
             free(str);
+            str = nullptr;
         }
     }
 }
@@ -2975,6 +3103,10 @@ obj_val::obj_val(const char *_str) : _val_type(obj_type::STRING)
         }
 
         str = (char *)std::malloc(number);
+        if(str == nullptr)
+        {
+            return ;
+        }
         std::memcpy(str, _str, length);
         str[length] = 0x00;
     }
@@ -3003,6 +3135,10 @@ obj_val::obj_val(const char *_str, unsigned int str_length) : _val_type(obj_type
         }
 
         str = (char *)std::malloc(number);
+        if(str == nullptr)
+        {
+            return;
+        }
         std::memcpy(str, _str, length);
         str[length] = 0x00;
     }
@@ -3030,6 +3166,10 @@ obj_val::obj_val(std::string_view _str) : _val_type(obj_type::STRING)
             length = 0xFFFFFF - 1;
         }
         str = (char *)std::malloc(number);
+        if(str == nullptr)
+        {
+            return;
+        }
         std::memcpy(str, _str.data(), length);
         str[length] = 0x00;
     }
@@ -3058,6 +3198,10 @@ obj_val::obj_val(const std::string &_str) : _val_type(obj_type::STRING)
             length = 0xFFFFFF - 1;
         }
         str = (char *)std::malloc(number);
+        if(str == nullptr)
+        {
+            return;
+        }
         std::memcpy(str, _str.data(), length);
         str[length] = 0x00;
     }
@@ -3085,6 +3229,10 @@ obj_val::obj_val(std::string &&_str) : _val_type(obj_type::STRING)
             length = 0xFFFFFF - 1;
         }
         str = (char *)std::malloc(number);
+        if(str == nullptr)
+        {
+            return;
+        }
         std::memcpy(str, _str.data(), length);
         str[length] = 0x00;
     }
@@ -4331,6 +4479,12 @@ obj_val &obj_val::operator+(const std::string &v)
                     length = 0xFFFFFF;
                 }
                 char *temp = (char *)std::malloc(number);
+                if(temp == nullptr)
+                {
+                    length = 0;
+                    number = 0;
+                    return *this;
+                }
                 std::memcpy(temp, name, temp_len);
                 std::memcpy(&temp[temp_len], v.data(), (length - temp_len));
                 str         = temp;
@@ -4359,6 +4513,10 @@ obj_val &obj_val::operator+(const std::string &v)
                     }
 
                     char *temp = (char *)std::malloc(number);
+                    if(temp == nullptr)
+                    {
+                        return *this;
+                    }
                     std::memcpy(temp, str, jlenth);
                     std::memcpy(&temp[jlenth], v.data(), length - jlenth);
                     str[length] = 0x00;
@@ -7605,44 +7763,51 @@ bool obj_val::isset(const std::string &key)
 //json begin
 void obj_val::from_json(const std::string &json_str)
 {
-    unsigned int offset = 0;
-    if (json_str.length() > 0xFFFFFF)
+    try
     {
-        return;
-    }
-    // 分出数组或对象 消除前面空格
-    for (unsigned int i = 0; i < json_str.length(); i++)
-    {
-        if (json_str[i] == 0x7b || json_str[i] == 0x5b)
+        unsigned int offset = 0;
+        if (json_str.length() > 0xFFFFFF)
         {
-            offset = i;
-            break;
+            return;
         }
-    }
-
-    if (json_str[offset] == 0x7b)
-    {
-        // 对象情况
-        if (_val_type != obj_type::OBJECT)
+        // 分出数组或对象 消除前面空格
+        for (unsigned int i = 0; i < json_str.length(); i++)
         {
-            clear();
-            _val_type = obj_type::OBJECT;
-            obj       = new obj_t;
+            if (json_str[i] == 0x7b || json_str[i] == 0x5b)
+            {
+                offset = i;
+                break;
+            }
         }
 
-        JSON_OBJ(json_str, *obj, offset);
-    }
-    else if (json_str[offset] == 0x5b)
-    {
-        // 数组情况
-        if (_val_type != obj_type::ARRAY)
+        if (json_str[offset] == 0x7b)
         {
-            clear();
-            _val_type = obj_type::ARRAY;
-            array_val = new obj_array;
-        }
+            // 对象情况
+            if (_val_type != obj_type::OBJECT)
+            {
+                clear();
+                _val_type = obj_type::OBJECT;
+                obj       = new obj_t;
+            }
 
-        JSON_ARRAY(json_str, *array_val, offset);
+            JSON_OBJ(json_str, *obj, offset, 1);
+        }
+        else if (json_str[offset] == 0x5b)
+        {
+            // 数组情况
+            if (_val_type != obj_type::ARRAY)
+            {
+                clear();
+                _val_type = obj_type::ARRAY;
+                array_val = new obj_array;
+            }
+
+            JSON_ARRAY(json_str, *array_val, offset, 1);
+        }
+    }
+    catch(...)
+    {
+        clear();
     }
 }
 
@@ -7666,6 +7831,12 @@ std::string obj_val::JSON_STRING(const std::string &jsonstr, unsigned int &offse
 
         if (jsonstr[j] == 0x5c)//'\'
         {
+            if((j+1) >= jsonstr.length())
+            {
+                offset = jsonstr.length();
+                throw "out of range";
+                return "";
+            }
             // 处理有斜杠情况 not slash
             switch (jsonstr[j + 1])
             {
@@ -7704,21 +7875,17 @@ std::string obj_val::JSON_STRING(const std::string &jsonstr, unsigned int &offse
                     unsigned char c[10] = {0x00};
                     unsigned char ch;
                     unsigned int temp;
-                    auto chartoint = [](unsigned char &ch, unsigned char &c)
-                    {
-                        if (ch >= '0' && ch <= '9')
-                            c = (unsigned char)(ch - '0');
-                        if (ch >= 'a' && ch <= 'f')
-                            c = (unsigned char)(ch - 'a' + 10);
-                        if (ch >= 'A' && ch <= 'F')
-                            c = (unsigned char)(ch - 'A' + 10);
-                    };
-
+                   
                     // 检查是不是emoji两个转码符一共12个字符 this emoji char
                     if (jsonstr[j + 2] == 'd' && jsonstr[j + 6] == 0x5c && jsonstr[j + 7] == 'u' &&
                         jsonstr[j + 8] == 'd')
                     {
-
+                        if((j+12) >= jsonstr.length())
+                        {
+                            offset = jsonstr.length();
+                            throw "out of range";
+                            return "";
+                        }
                         // 转换成utf16
                         for (int si = 2, cj = 0; si < 12; si++)
                         {
@@ -7726,7 +7893,7 @@ std::string obj_val::JSON_STRING(const std::string &jsonstr, unsigned int &offse
                             if (jsonstr[j + si] != 0x5c && jsonstr[j + si] != 'u')
                             {
                                 ch = jsonstr[j + si];
-                                chartoint(ch, c[cj]);
+                                c[cj] = chartoint(ch);
                                 cj++;
                             }
                         }
@@ -7750,11 +7917,17 @@ std::string obj_val::JSON_STRING(const std::string &jsonstr, unsigned int &offse
                     }
                     else
                     {
+                        if((j+6) >= jsonstr.length())
+                        {
+                            offset = jsonstr.length();
+                            throw "out of range";
+                            return "";
+                        }
                         // 只是Unicode码情况 4 char
                         for (int si = 2, cj = 0; si < 6; si++)
                         {
                             ch = jsonstr[j + si];
-                            chartoint(ch, c[cj]);
+                            c[cj] = chartoint(ch);
                             cj++;
                         }
                         temp = c[0] << 4 | c[1];
@@ -7788,7 +7961,8 @@ std::string obj_val::JSON_STRING(const std::string &jsonstr, unsigned int &offse
             if (str.length() > 3145728)
             {
                 offset = jsonstr.length();
-                return str;
+                throw "out of range";
+                return "";
             }
         }
     }
@@ -7851,15 +8025,23 @@ std::string obj_val::JSON_VALUE(const std::string &jsonstr, unsigned int &offset
         if (jsonstr[j] == 0x7d || jsonstr[j] == 0x5d || jsonstr[j] == 0x2c || jsonstr[j] == 0x22)
         {
             // 因为没有分隔所以要退一步 is no separation, so to step back
-            j--;
+            if (j == 0) 
+            {
+                break; 
+            }
+            else 
+            {
+                j--;
+            }
             break;
         }
         else if (jsonstr[j] != 0x0D && jsonstr[j] != 0x0A && jsonstr[j] != 0x20 && jsonstr[j] != 0x09)
         {
             temp.push_back(jsonstr[j]);
-            if (temp.size() > 36)
+            if (temp.size() > 48)
             {
                 offset = jsonstr.length();
+                throw "value too long";
                 return temp;
             }
         }
@@ -7868,8 +8050,14 @@ std::string obj_val::JSON_VALUE(const std::string &jsonstr, unsigned int &offset
     return temp;
 }
 
-int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int &offset)
+int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int &offset, unsigned int level)
 {
+    if(level > 512)
+    {
+        offset = jsonstr.length();
+        throw "Level too depth";
+        return 0;
+    }
     unsigned int i = 0;
     std::string key, value;
     if (jsonstr[offset] == 0x7b)
@@ -7890,7 +8078,7 @@ int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int
             level_obj._data.emplace_back(key, 0);
             level_obj._data.back().second.set_obj();
 
-            i = JSON_OBJ(jsonstr, *(level_obj._data.back().second.obj), i);
+            i = JSON_OBJ(jsonstr, *(level_obj._data.back().second.obj), i, level+1);
         }
         else if (jsonstr[i] == 0x7d)
         {
@@ -7909,7 +8097,7 @@ int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int
             level_obj._data.emplace_back(key, 0);
             level_obj._data.back().second.set_array();
 
-            i = JSON_ARRAY(jsonstr, *(level_obj._data.back().second.array_val), i);
+            i = JSON_ARRAY(jsonstr, *(level_obj._data.back().second.array_val), i, level+1);
         }
         else if (jsonstr[i] == 0x22)
         {
@@ -7933,6 +8121,7 @@ int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int
             {
                 i      = jsonstr.length();
                 offset = i;
+                throw "Key too long";
                 return i;
             }
             // 消除空格
@@ -7955,7 +8144,7 @@ int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int
                 i++;
                 level_obj._data.emplace_back(key, nullptr);
                 level_obj._data.back().second.set_array();
-                i = JSON_ARRAY(jsonstr, *(level_obj._data.back().second.array_val), i);
+                i = JSON_ARRAY(jsonstr, *(level_obj._data.back().second.array_val), i, level+1);
             }
             else if (jsonstr[i + 1] == 0x7b)
             {
@@ -7964,7 +8153,7 @@ int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int
                 //obj_t;
                 level_obj._data.emplace_back(key, 0);
                 level_obj._data.back().second.set_obj();
-                i = JSON_OBJ(jsonstr, *(level_obj._data.back().second.obj), i);
+                i = JSON_OBJ(jsonstr, *(level_obj._data.back().second.obj), i, level+1);
             }
             else
             {
@@ -8019,8 +8208,14 @@ int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int
     return i;
 }
 
-int obj_val::JSON_ARRAY(const std::string &jsonstr, obj_array &level_obj, unsigned int &offset)
+int obj_val::JSON_ARRAY(const std::string &jsonstr, obj_array &level_obj, unsigned int &offset, unsigned int level)
 {
+    if(level > 512)
+    {
+        offset = jsonstr.length();
+        throw "Level too depth";
+        return 0;
+    }
     unsigned int i = 0;
     std::string key, value;
     if (jsonstr[offset] == 0x5b)
@@ -8042,7 +8237,7 @@ int obj_val::JSON_ARRAY(const std::string &jsonstr, obj_array &level_obj, unsign
             level_obj._data.emplace_back(0);
             level_obj._data.back().set_array();
 
-            i = JSON_ARRAY(jsonstr, *(level_obj._data.back().array_val), i);
+            i = JSON_ARRAY(jsonstr, *(level_obj._data.back().array_val), i, level+1);
             value.clear();
             key.clear();
         }
@@ -8102,7 +8297,7 @@ int obj_val::JSON_ARRAY(const std::string &jsonstr, obj_array &level_obj, unsign
             // 进入对象
             level_obj._data.emplace_back(value);
             level_obj._data.back().set_obj();
-            i = JSON_OBJ(jsonstr, *(level_obj._data.back().obj), i);
+            i = JSON_OBJ(jsonstr, *(level_obj._data.back().obj), i, level+1);
             key.clear();
             value.clear();
         }
@@ -8206,8 +8401,12 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
                 ptext.push_back('/');
                 break;
             case 0x08://\b
+                ptext.push_back(0x5c);
+                ptext.push_back('b');
                 break;
             case 0x0c://\f
+                ptext.push_back(0x5c);
+                ptext.push_back('f'); 
                 break;
             case 0x0a://\n
                 ptext.push_back(0x5c);
@@ -8236,6 +8435,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
         else if (c >= 0xC0 && c < 0xE0)
         {
             unsigned char b1, b2, cp[2], temp;
+            if((i+1) >= text_length)
+            {
+                return "";
+            }
             b1 = c;
             b2 = *(text + i + 1);
             if ((b2 & 0xE0) != 0x80)
@@ -8276,6 +8479,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
         else if (c >= 0xE0 && c < 0xF0)
         {
             unsigned char b1, b2, b3, cp[2], temp;
+            if((i+2) >= text_length)
+            {
+                return "";
+            }
             b1 = c;
             b2 = *(text + i + 1);
             b3 = *(text + i + 2);
@@ -8316,6 +8523,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
         {
             unsigned char b1, b2, b3, b4, cp[2], temp, *pOutput;
             unsigned int out, untext;
+            if((i+3) >= text_length)
+            {
+                return "";
+            }
 
             b1 = c;
             b2 = *(text + i + 1);
@@ -9451,6 +9662,16 @@ obj_val obj_val::multi_sort(std::string_view key, unsigned char order, std::stri
         return temp_obj;
     }
     return temp_obj;
+}
+unsigned char obj_val::chartoint(char ch)
+{
+    if (ch >= '0' && ch <= '9')
+        return (ch - '0');
+    if (ch >= 'a' && ch <= 'f')
+        return (ch - 'a' + 10);
+    if (ch >= 'A' && ch <= 'F')
+        return(ch - 'A' + 10);
+    return 0;    
 }
 
 }// namespace http

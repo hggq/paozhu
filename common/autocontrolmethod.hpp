@@ -18,6 +18,7 @@
 #include "teststrip_html.h"
 #include "testsoft_remove.h"
 #include "teststr_join.h"
+#include "testjson.h"
 #include "test_reverse.h"
 #include "test_co_handle.h"
 #include "testrand.h"
@@ -106,6 +107,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = teststrjoin;
 		methodcallback.emplace("teststr_join",temp);
+		temp.pre = nullptr;
+		temp.regfun = testjson;
+		methodcallback.emplace("testjson",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_requst;
+		methodcallback.emplace("test_requst",temp);
 		temp.pre = nullptr;
 		temp.regfun = testmb_reverse;
 		methodcallback.emplace("testmb_reverse",temp);

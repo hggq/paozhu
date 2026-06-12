@@ -139,7 +139,7 @@ struct obj_val
     std::string substr(int a, int b);
     std::string substr(int a);
     std::string filter(std::function<char(char)> func=nullptr);
-    
+    unsigned char chartoint(char a);
 
     void clear();
     obj_val();
@@ -1033,8 +1033,8 @@ struct obj_val
     bool string_casecmp(std::string_view str1, std::string_view str2);
     std::string JSON_STRING(const std::string &jsonstr, unsigned int &offset);
     std::string JSON_VALUE(const std::string &jsonstr, unsigned int &offset);
-    int JSON_OBJ(const std::string &json_val, obj_t &obj, unsigned int &offset);
-    int JSON_ARRAY(const std::string &json_val, obj_array &obj, unsigned int &offset);
+    int JSON_OBJ(const std::string &json_val, obj_t &obj, unsigned int &offset, unsigned int level);
+    int JSON_ARRAY(const std::string &json_val, obj_array &obj, unsigned int &offset, unsigned int level);
     std::string JSON_UTF8_TO_ASCII(const char *str, unsigned int length);
 
     std::vector<std::pair<std::string, obj_val>> &as_object();
