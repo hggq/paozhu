@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 11 Jun 2026 15:01:30 GMT
+*本文件为自动生成 Fri, 12 Jun 2026 05:07:50 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -14,6 +14,7 @@
 #include <vector>
 #include <ctime>
 #include <array>
+#include <concepts>
 #include "unicode.h"
 
 namespace orm { 
@@ -33,24 +34,56 @@ namespace sysroleperms_info
 
     };
 
-    struct meta{
-     unsigned  int  rolepermsid = 0; ///**/
- unsigned  int  userid = 0; ///**/
- unsigned  int  roleid = 0; ///**/
- unsigned  int  permsid = 0; ///**/
- unsigned  int  sortid = 0; ///**/
- };
+    struct meta
+    {
+		 unsigned  int  rolepermsid = 0; ///**/
+		 unsigned  int  userid = 0; ///**/
+		 unsigned  int  roleid = 0; ///**/
+		 unsigned  int  permsid = 0; ///**/
+		 unsigned  int  sortid = 0; ///**/
+	};
   
-        struct meta_tree{
-         unsigned  int  rolepermsid = 0; ///**/
- unsigned  int  userid = 0; ///**/
- unsigned  int  roleid = 0; ///**/
- unsigned  int  permsid = 0; ///**/
- unsigned  int  sortid = 0; ///**/
+    struct meta_tree
+    {
+		 unsigned  int  rolepermsid = 0; ///**/
+		 unsigned  int  userid = 0; ///**/
+		 unsigned  int  roleid = 0; ///**/
+		 unsigned  int  permsid = 0; ///**/
+		 unsigned  int  sortid = 0; ///**/
 
 	 std::vector<meta_tree> children;
  };
- static constexpr std::array<std::string_view,5> col_names={"rolepermsid","userid","roleid","permsid","sortid"};
+  
+    struct meta_tree_ptr
+    {
+		 unsigned  int  rolepermsid = 0; ///**/
+		 unsigned  int  userid = 0; ///**/
+		 unsigned  int  roleid = 0; ///**/
+		 unsigned  int  permsid = 0; ///**/
+		 unsigned  int  sortid = 0; ///**/
+
+	 std::vector<std::unique_ptr<meta_tree>> children;
+ };
+ 
+    template<cols Col>
+    auto getField(const meta& m) 
+    {
+    	if constexpr (Col == cols::rolepermsid) { 
+		 return m.rolepermsid;
+		} else if constexpr (Col == cols::userid) { 
+		 return m.userid;
+		} else if constexpr (Col == cols::roleid) { 
+		 return m.roleid;
+		} else if constexpr (Col == cols::permsid) { 
+		 return m.permsid;
+		} else if constexpr (Col == cols::sortid) { 
+		 return m.sortid;
+		
+        } else {
+            static_assert(false, "Unsupported column type");
+        }
+    }
+    static constexpr std::array<std::string_view,5> col_names={"rolepermsid","userid","roleid","permsid","sortid"};
 static constexpr std::array<unsigned char,5> col_types={3,3,3,3,3};
 static constexpr std::array<unsigned char,5> col_length={0,0,0,0,0};
 static constexpr std::array<unsigned char,5> col_decimals={0,0,0,0,0};
@@ -1665,1612 +1698,142 @@ if(tree_data[n].sortid==0){
      return tempsql.str();             
    }   
    
-
-    template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>
-    T& ref_meta([[maybe_unused]] sysroleperms_info::cols key_name)
+    template<sysroleperms_info::cols KeyCol, sysroleperms_info::cols ValCol> 
+    auto get_cols()
     {
-   		return nullptr; 
-	}
+        using KeyType = decltype(sysroleperms_info::getField<KeyCol>(std::declval<const sysroleperms_info::meta&>()));
+        using ValType = decltype(sysroleperms_info::getField<ValCol>(std::declval<const sysroleperms_info::meta&>()));
 
-
-    template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true>
-    T& ref_meta([[maybe_unused]] sysroleperms_info::cols key_name)
-    {
-   		 if(key_name==sysroleperms_info::cols::rolepermsid)
-		{
-			return data.rolepermsid;
-		}
-		 if(key_name==sysroleperms_info::cols::userid)
-		{
-			return data.userid;
-		}
-		 if(key_name==sysroleperms_info::cols::roleid)
-		{
-			return data.roleid;
-		}
-		 if(key_name==sysroleperms_info::cols::permsid)
-		{
-			return data.permsid;
-		}
-		 if(key_name==sysroleperms_info::cols::sortid)
-		{
-			return data.sortid;
-		}
-		return nullptr; 
-	}
-
-
-    template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >
-    T& ref_meta([[maybe_unused]] sysroleperms_info::cols key_name)
-    {
-   		return nullptr; 
-	}
-
-            template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >  
-            std::vector<T> getCol([[maybe_unused]] sysroleperms_info::cols keyname)
-            {
-                std::vector<T> a;
-                
-               
-                for(auto &iter:record)
-                {
-                    switch(keyname)
-                    {
-   			case sysroleperms_info::cols::rolepermsid: 
- 				 a.emplace_back(iter.rolepermsid);
-				 break;
-			case sysroleperms_info::cols::userid: 
- 				 a.emplace_back(iter.userid);
-				 break;
-			case sysroleperms_info::cols::roleid: 
- 				 a.emplace_back(iter.roleid);
-				 break;
-			case sysroleperms_info::cols::permsid: 
- 				 a.emplace_back(iter.permsid);
-				 break;
-			case sysroleperms_info::cols::sortid: 
- 				 a.emplace_back(iter.sortid);
-				 break;
-
-                            default:
-                        break;
-                    }
-                }
-    
-                return a;
-            }
-    
-            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true >    
-			std::vector<T> getCol([[maybe_unused]] sysroleperms_info::cols keyname)
-			{
-				std::vector<T> a;
-				
-
-                return a;
-            }
-    
-            template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-            T getVal([[maybe_unused]] std::string keyname)
-            {
-   
-                    unsigned char kpos;
-                    kpos=findcolpos(keyname);                   
-                    switch(kpos)
-                    {
-
-   			case 0: 
- 				 return data.rolepermsid;
-				 break;
-			case 1: 
- 				 return data.userid;
-				 break;
-			case 2: 
- 				 return data.roleid;
-				 break;
-			case 3: 
- 				 return data.permsid;
-				 break;
-			case 4: 
- 				 return data.sortid;
-				 break;
-			}
-                return 0;
-            }  
-    
-        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true > 
-        T getVal([[maybe_unused]] sysroleperms_info::meta & iter,[[maybe_unused]] std::string keyname)
-        {
-
-          
-            unsigned char kpos;
-            kpos=findcolpos(keyname);   
-            switch(kpos)
-            {
-   			case 0: 
- 				 return iter.rolepermsid;
-				 break;
-			case 1: 
- 				 return iter.userid;
-				 break;
-			case 2: 
- 				 return iter.roleid;
-				 break;
-			case 3: 
- 				 return iter.permsid;
-				 break;
-			case 4: 
- 				 return iter.sortid;
-				 break;
-
-			}
-
-            return 0;
-        }  
-    
-            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal(std::string keyname)
-            {
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
-            
-                switch(kpos)
-                {
-
-    
-                    }
-                   
-    
-                    return 0.0;
-            }  
-    
-            template<typename T, typename std::enable_if<std::is_floating_point_v<T>,bool>::type = true > 
-            T getVal([[maybe_unused]] sysroleperms_info::meta & iter,std::string keyname)
-            {
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
-                switch(kpos)
-                {
-   
-                }
-                 
-    
-            
-                return 0.0;
-            }  
-    
-            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal(std::string keyname)
-            {
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
-        
-                switch(kpos)
-                {
-
-   
-                }
-                return "";
-            }  
-   
-            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true > 
-            std::string getVal([[maybe_unused]] sysroleperms_info::meta & iter,std::string keyname)
-            {
-         
-                unsigned char kpos;
-                kpos=findcolpos(keyname);
-       
-                switch(kpos)
-                {
-
-   
-                }
-                
-    
-                 
-                return "";
-            }  
-     
-            template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >   
-            std::vector<std::string> getCol([[maybe_unused]] sysroleperms_info::cols keyname)
-            {
-                std::vector<std::string> a;
-
-           
-
-        return a;
-    }
-     
-        std::string getstrCol(sysroleperms_info::cols keyname, bool isyinhao=false)
-        {
-            std::ostringstream a;
-    
-            int j=0;
-            if(isyinhao&&record.size()>0)
-            {
-                a<<'"';
-            }
-            for(auto &iter:record)
-            {
-                    if(j>0)
-                    {
-                        if(isyinhao)
-                        {
-                            a<<"\",\"";
-                        }else{
-                            a<<',';    
-                        }
-                    }
-                    switch(keyname)
-                    {
-
-   			case sysroleperms_info::cols::rolepermsid: 
- 				 a<<std::to_string(iter.rolepermsid);
-				 break;
-			case sysroleperms_info::cols::userid: 
- 				 a<<std::to_string(iter.userid);
-				 break;
-			case sysroleperms_info::cols::roleid: 
- 				 a<<std::to_string(iter.roleid);
-				 break;
-			case sysroleperms_info::cols::permsid: 
- 				 a<<std::to_string(iter.permsid);
-				 break;
-			case sysroleperms_info::cols::sortid: 
- 				 a<<std::to_string(iter.sortid);
-				 break;
-
-                        default:
-                            break;
-                    }
-                    j++;
-            } 
-            if(isyinhao&&j>0){
-                a<<'"';
-            }      
-    
-                return a.str();
+        std::map<KeyType, ValType> result;
+        for (const auto& iter : record) {
+            result.emplace(sysroleperms_info::getField<KeyCol>(iter), sysroleperms_info::getField<ValCol>(iter));
         }
-    
-    template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>     
-    std::map<std::string,std::string> getCols([[maybe_unused]] sysroleperms_info::cols keyname,[[maybe_unused]] sysroleperms_info::cols valname) 
-    {
-        std::map<std::string,std::string> a;
-         
-            return a;
-    } 
-    
-
-        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<std::string,U> getCols([[maybe_unused]] sysroleperms_info::cols keyname,[[maybe_unused]] sysroleperms_info::cols valname) 
-        {
-                std::map<std::string,U> a;
-         
-            return a;
-        } 
-    
-        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>       
-        std::map<T,U> getCols([[maybe_unused]] sysroleperms_info::cols keyname,[[maybe_unused]] sysroleperms_info::cols valname) 
-        {
-            std::map<T,U> a;
-        
-        return a;
-    }  
-            template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>      
-            std::map<T,std::string> getCols([[maybe_unused]] sysroleperms_info::cols keyname,[[maybe_unused]] sysroleperms_info::cols valname) 
-            {
-                std::map<T,std::string> a;
-        
-                return a;
-            }     
-        
-        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>       
-        std::map<std::string,U> getCols([[maybe_unused]] sysroleperms_info::cols keyname,[[maybe_unused]] sysroleperms_info::cols valname) 
-        {
-            std::map<std::string,U> a;
-     
-        return a;
-    }  
-    
-        template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>   
-        std::map<T,U> getCols([[maybe_unused]] sysroleperms_info::cols keyname,[[maybe_unused]] sysroleperms_info::cols valname) 
-        {
-            std::map<T,U> a;
-               
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            {
-
-   
-			switch(keyname){
-			case sysroleperms_info::cols::rolepermsid: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case sysroleperms_info::cols::userid: 
- 				 ktemp=iter.userid;
-				 break;
-			case sysroleperms_info::cols::roleid: 
- 				 ktemp=iter.roleid;
-				 break;
-			case sysroleperms_info::cols::permsid: 
- 				 ktemp=iter.permsid;
-				 break;
-			case sysroleperms_info::cols::sortid: 
- 				 ktemp=iter.sortid;
-				 break;
-			default:
-				 break;
-			 }
-
-			switch(valname){
-			case sysroleperms_info::cols::rolepermsid: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case sysroleperms_info::cols::userid: 
- 				 vtemp=iter.userid;
-				 break;
-			case sysroleperms_info::cols::roleid: 
- 				 vtemp=iter.roleid;
-				 break;
-			case sysroleperms_info::cols::permsid: 
- 				 vtemp=iter.permsid;
-				 break;
-			case sysroleperms_info::cols::sortid: 
- 				 vtemp=iter.sortid;
-				 break;
-			default:
-				 break;
-			 }
-
-                a.emplace(ktemp,vtemp);
-            }       
-    
-            return a;
-        }   
-    
-        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >         
-        std::map<T,sysroleperms_info::meta> getmapRows([[maybe_unused]] std::string keyname)
-        {
-            std::map<T,sysroleperms_info::meta> a;
-    
-            unsigned char kpos;
-            kpos=findcolpos(keyname);                        
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 a.emplace(iter.rolepermsid,iter);
-				 break;
-			case 1: 
- 				 a.emplace(iter.userid,iter);
-				 break;
-			case 2: 
- 				 a.emplace(iter.roleid,iter);
-				 break;
-			case 3: 
- 				 a.emplace(iter.permsid,iter);
-				 break;
-			case 4: 
- 				 a.emplace(iter.sortid,iter);
-				 break;
-
-                }
-            }       
-     
-            return a;
-        }     
-    
-        template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >    
-        std::map<std::string,sysroleperms_info::meta> getmapRows([[maybe_unused]] std::string keyname)
-        {
-            std::map<std::string,sysroleperms_info::meta> a;
-
-    
-
-        return a;
+ 
+        return result;
     }
     
-        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>  
-        std::vector<std::pair<std::string,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::vector<std::pair<std::string,U>> a;
-   
-
-            return a;
-        }   
-    
-        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-                std::vector<std::pair<T,U>> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                T ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-			 break;
-			case 1: 
- 				 ktemp=iter.userid;
-			 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-			 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-			 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-			 break;
-			  }
-			 switch(vpos){
-
-                   }
-
-                   a.emplace_back(ktemp,vtemp);
-                }       
-
-    
-
-            return a;
-        }   
-    
-        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-                std::vector<std::pair<T,U>> a;
-
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                T ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			  }
- 			switch(vpos){
-
-                   }
-
-                    a.emplace_back(ktemp,vtemp);
-                }       
-    
-            return a;
-        }  
-    
-        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>     
-        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-                std::vector<std::pair<T,U>> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);                
-                T ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {
-                    
-                    switch(kpos)
-                    {
-
-   			  }
- 			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.roleid;
-				 break;
-			case 3: 
- 				 vtemp=iter.permsid;
-				 break;
-			case 4: 
- 				 vtemp=iter.sortid;
-				 break;
-
-                   }
-                    a.emplace_back(ktemp,vtemp);
-                }       
-    
-            return a;
-        }  
-    
-        template<typename T,typename U, typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-                std::vector<std::pair<T,U>> a;
-   
-                unsigned char kpos,vpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                T ktemp;
-                U vtemp;
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			  }
-			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.roleid;
-				 break;
-			case 3: 
- 				 vtemp=iter.permsid;
-				 break;
-			case 4: 
- 				 vtemp=iter.sortid;
-				 break;
-
-                   }
-                    a.emplace_back(ktemp,vtemp);
-                }       
-      
-            return a;
-        }   
-    
-        template<typename T,typename U, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>     
-        std::vector<std::pair<T,U>> getvecCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-                std::vector<std::pair<T,U>> a;
-   
-            return a;
-        }  
-    
-        template<typename T, typename std::enable_if<std::is_integral_v<T>,bool>::type = true >   
-        std::vector<std::pair<T,sysroleperms_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
-        {
-            std::vector<std::pair<T,sysroleperms_info::meta>> a;
-     
-            unsigned char kpos;
-            kpos=findcolpos(keyname);                  
-            for(auto &iter:record)
-            { 
-                switch(kpos)
-                {
-
-   case 0: 
- 	 a.emplace_back(iter.rolepermsid,iter);
-	 break;
-case 1: 
- 	 a.emplace_back(iter.userid,iter);
-	 break;
-case 2: 
- 	 a.emplace_back(iter.roleid,iter);
-	 break;
-case 3: 
- 	 a.emplace_back(iter.permsid,iter);
-	 break;
-case 4: 
- 	 a.emplace_back(iter.sortid,iter);
-	 break;
-
-                }
-            }       
-    
-        return a;
-    }
-        template<typename T, typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true >  
-        std::vector<std::pair<std::string,sysroleperms_info::meta>> getvecRows([[maybe_unused]] std::string keyname)
-        {
-            std::vector<std::pair<std::string,sysroleperms_info::meta>> a;
-      
-
-        return a;
-    }
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
-        {
-            std::map<T,std::map<U,std::vector<D>>> a;
-    
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);      
-            T ktemp;
-            U vtemp;
-            for(auto &iter:record)
-            { 
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			  }
-
-			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.roleid;
-				 break;
-			case 3: 
- 				 vtemp=iter.permsid;
-				 break;
-			case 4: 
- 				 vtemp=iter.sortid;
-				 break;
-			  }
-
-			 switch(dpos){
-
-                }
-            }       
-
-    
-            return a;
-        }
-    
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
-        {
-            std::map<T,std::map<U,std::vector<D>>> a;
-    
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);          
-            T ktemp;
-            U vtemp;
-            //D vtemp;
-
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			  }
-
-			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.roleid;
-				 break;
-			case 3: 
- 				 vtemp=iter.permsid;
-				 break;
-			case 4: 
- 				 vtemp=iter.sortid;
-				 break;
-			  }
-
-			 switch(dpos){
-			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.rolepermsid);
-				 break;
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.roleid);
-				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.permsid);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
-				 break;
-
-                }
-            }       
-    
-            return a;
-        }
-    
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
-        {
-            std::map<T,std::map<U,std::vector<D>>> a;
-   
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);       
-            T ktemp;
-            U vtemp;
-            // D dtemp;
-
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-				  }
-
-			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.roleid;
-				 break;
-			case 3: 
- 				 vtemp=iter.permsid;
-				 break;
-			case 4: 
- 				 vtemp=iter.sortid;
-				 break;
-			 }
-
-			 switch(dpos){
-
-                }
-            }       
-    
-            return a;
-        }
-    
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
-        {
-                std::map<T,std::map<U,std::vector<D>>> a;
-   
-                unsigned char kpos,vpos,dpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                dpos=findcolpos(dataname);
-                T ktemp;
-                U vtemp;
-            // D dtemp;
-
-                for(auto &iter:record)
-                {
-                    
-                    switch(kpos)
-                    {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			 }
-
-			 switch(vpos){
-			  }
-
-			 switch(dpos){
-
-                   }
-                }       
-    
-            return a;
-        }
-    
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-    std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
+    /* 
+    get_cols<..,..>([](const auto& key, const auto& value) -> bool {
+            return value > 150; 
+        })
+    */
+    template<sysroleperms_info::cols KeyCol, sysroleperms_info::cols ValCol, typename Callback> 
+    requires std::invocable<Callback, 
+            decltype(sysroleperms_info::getField<KeyCol>(std::declval<const sysroleperms_info::meta&>())), 
+            decltype(sysroleperms_info::getField<ValCol>(std::declval<const sysroleperms_info::meta&>()))> &&
+            std::convertible_to<
+                std::invoke_result_t<Callback&, 
+                    decltype(sysroleperms_info::getField<KeyCol>(std::declval<const sysroleperms_info::meta&>())), 
+                    decltype(sysroleperms_info::getField<ValCol>(std::declval<const sysroleperms_info::meta&>()))>, bool>
+    auto get_cols(Callback&& callback)
     {
-        std::map<T,std::map<U,std::vector<D>>> a;
+        using KeyType = decltype(sysroleperms_info::getField<KeyCol>(std::declval<const sysroleperms_info::meta&>()));
+        using ValType = decltype(sysroleperms_info::getField<ValCol>(std::declval<const sysroleperms_info::meta&>()));
 
-   
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);             
-        T ktemp;
-        U vtemp;
-       // D dtemp;
-
-         for(auto &iter:record)
-         {
-            switch(kpos)
+        std::map<KeyType, ValType> result;
+        for (const auto& iter : record) 
+        {
+            if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
             {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			 }
-
-			 switch(vpos){
-			 }
-
-			 switch(dpos){
-			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.rolepermsid);
-				 break;
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.roleid);
-				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.permsid);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
-				 break;
-
+                result.emplace(sysroleperms_info::getField<KeyCol>(iter), sysroleperms_info::getField<ValCol>(iter));
+            } else {
+                if (std::forward<Callback>(callback)(sysroleperms_info::getField<KeyCol>(iter), sysroleperms_info::getField<ValCol>(iter))) {
+                    result.emplace(sysroleperms_info::getField<KeyCol>(iter), sysroleperms_info::getField<ValCol>(iter));
+                }
             }
-         }       
-    
-        return a;
+        }
+ 
+        return result;
     }
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
-        {
-            std::map<T,std::map<U,std::vector<D>>> a;
-   
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-            T ktemp;
-            U vtemp;
-            // D dtemp;
-
-            for(auto &iter:record)
-            { 
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			  }
-
-			 switch(vpos){
-			  }
-
-			 switch(dpos){
-
-                }
-            }       
     
-            return a;
-        }
-    
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
-        {
-                std::map<T,std::map<U,std::vector<D>>> a;
-   
-                unsigned char kpos,vpos,dpos;
-                kpos=findcolpos(keyname);
-                vpos=findcolpos(valname);
-                dpos=findcolpos(dataname);               
-                T ktemp;
-                U vtemp;
-                //D vtemp;
-                for(auto &iter:record)
-                {
-                    switch(kpos)
-                    {
-
-   			 }
-
-			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.roleid;
-				 break;
-			case 3: 
- 				 vtemp=iter.permsid;
-				 break;
-			case 4: 
- 				 vtemp=iter.sortid;
-				 break;
-			  }
-
-			 switch(dpos){
-
-                    }
-                }       
-    
-
-            return a;
-        }
-    
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
-        {
-            std::map<T,std::map<U,std::vector<D>>> a;
-   
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);            
-            T ktemp;
-            U vtemp;
-            //D vtemp;
-
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			  }
-
-			 switch(vpos){
-			case 0: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.roleid;
-				 break;
-			case 3: 
- 				 vtemp=iter.permsid;
-				 break;
-			case 4: 
- 				 vtemp=iter.sortid;
-				 break;
-			 }
-
-			 switch(dpos){
-			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.rolepermsid);
-				 break;
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.roleid);
-				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.permsid);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
-				 break;
-
-                }
-            }       
-    
-            return a;
-        }
-    
-    template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-    std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
+    template<sysroleperms_info::cols KeyCol, sysroleperms_info::cols ValCol> 
+    auto get_vec_cols()
     {
-        std::map<T,std::map<U,std::vector<D>>> a;
+        using KeyType = decltype(sysroleperms_info::getField<KeyCol>(std::declval<const sysroleperms_info::meta&>()));
+        using ValType = decltype(sysroleperms_info::getField<ValCol>(std::declval<const sysroleperms_info::meta&>()));
 
-   
-        unsigned char kpos,vpos,dpos;
-        kpos=findcolpos(keyname);
-        vpos=findcolpos(valname);
-        dpos=findcolpos(dataname);
-        T ktemp;
-        U vtemp;
-        // D dtemp;
+        std::vector<std::pair<KeyType, ValType>> result;
+        for (const auto& iter : record) {
+            result.emplace_back(sysroleperms_info::getField<KeyCol>(iter), sysroleperms_info::getField<ValCol>(iter));
+        }
+ 
+        return result;
+    }
+    
+    /* 
+    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+            return value > 150; 
+        })
+    */
+    template<sysroleperms_info::cols KeyCol, sysroleperms_info::cols ValCol, typename Callback> 
+    requires std::invocable<Callback, 
+            decltype(sysroleperms_info::getField<KeyCol>(std::declval<const sysroleperms_info::meta&>())), 
+            decltype(sysroleperms_info::getField<ValCol>(std::declval<const sysroleperms_info::meta&>()))> &&
+            std::convertible_to<
+                std::invoke_result_t<Callback&, 
+                    decltype(sysroleperms_info::getField<KeyCol>(std::declval<const sysroleperms_info::meta&>())), 
+                    decltype(sysroleperms_info::getField<ValCol>(std::declval<const sysroleperms_info::meta&>()))>, bool>
+    auto get_vec_cols(Callback&& callback)
+    {
+        using KeyType = decltype(sysroleperms_info::getField<KeyCol>(std::declval<const sysroleperms_info::meta&>()));
+        using ValType = decltype(sysroleperms_info::getField<ValCol>(std::declval<const sysroleperms_info::meta&>()));
 
-         for(auto &iter:record)
-         {
-             
-            switch(kpos)
+        std::vector<std::pair<KeyType, ValType>> result;
+        for (const auto& iter : record) 
+        {
+            if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
             {
-
-   			 }
-
-			switch(vpos){
-			case 0: 
- 				 vtemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 vtemp=iter.userid;
-				 break;
-			case 2: 
- 				 vtemp=iter.roleid;
-				 break;
-			case 3: 
- 				 vtemp=iter.permsid;
-				 break;
-			case 4: 
- 				 vtemp=iter.sortid;
-				 break;
-			 }
-
-			switch(dpos){
-
+                result.emplace_back(sysroleperms_info::getField<KeyCol>(iter), sysroleperms_info::getField<ValCol>(iter));
+            } else {
+                if (std::forward<Callback>(callback)(sysroleperms_info::getField<KeyCol>(iter), sysroleperms_info::getField<ValCol>(iter))) {
+                    result.emplace_back(sysroleperms_info::getField<KeyCol>(iter), sysroleperms_info::getField<ValCol>(iter));
+                }
             }
-         }       
-    
-            return a;
         }
+ 
+        return result;
+    }
     
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_floating_point<D>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
+    template<sysroleperms_info::cols Col>
+        requires requires(std::ostream& os, decltype(sysroleperms_info::getField<Col>(std::declval<const sysroleperms_info::meta&>())) t) {
+            { os << t } -> std::same_as<std::ostream&>;
+        }
+    std::string get_cols_to_strs() 
+    {
+        std::ostringstream oss;
+
+        for (const auto& iter : record) {
+            oss << "\"";
+            oss << sysroleperms_info::getField<Col>(iter); 
+            oss << "\",";
+        }
+        std::string temp=oss.str();
+        if(!temp.empty())
         {
-            std::map<T,std::map<U,std::vector<D>>> a;
-   
-            return a;
+            temp.pop_back();
         }
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_integral_v<D>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
+        return temp;
+    }
+    
+    template<sysroleperms_info::cols Col>
+        requires requires(std::ostream& os, decltype(sysroleperms_info::getField<Col>(std::declval<const sysroleperms_info::meta&>())) t) {
+            { os << t } -> std::same_as<std::ostream&>;
+        }
+    std::string get_cols_to_str() 
+    {
+        std::ostringstream oss;
+
+        for (const auto& iter : record) {
+            oss << sysroleperms_info::getField<Col>(iter); 
+            oss << ",";
+        }
+        std::string temp=oss.str();
+        if(!temp.empty())
         {
-            std::map<T,std::map<U,std::vector<D>>> a;
-   
-            unsigned char kpos,vpos,dpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            dpos=findcolpos(dataname);
-            T ktemp;
-            U vtemp;
-            // D dtemp;
-
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			  }
-
-			 switch(vpos){
-			 }
-
-			 switch(dpos){
-			case 0: 
- 				 a[ktemp][vtemp].emplace_back(iter.rolepermsid);
-				 break;
-			case 1: 
- 				 a[ktemp][vtemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp][vtemp].emplace_back(iter.roleid);
-				 break;
-			case 3: 
- 				 a[ktemp][vtemp].emplace_back(iter.permsid);
-				 break;
-			case 4: 
- 				 a[ktemp][vtemp].emplace_back(iter.sortid);
-				 break;
-
-                }
-            }       
-    
-            return a;
+            temp.pop_back();
         }
-    
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<D,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<D>>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname,[[maybe_unused]] std::string dataname)
-        {
-            std::map<T,std::map<U,std::vector<D>>> a;
-   
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::vector<U>> a;
-
-   
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::vector<U>> a;
-   
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::vector<U>> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            T ktemp;
-            //U vtemp;
-
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			  }
-
-			 switch(vpos){
-			case 0: 
- 				 a[ktemp].emplace_back(iter.rolepermsid);
-				 break;
-			case 1: 
- 				 a[ktemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp].emplace_back(iter.roleid);
-				 break;
-			case 3: 
- 				 a[ktemp].emplace_back(iter.permsid);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.sortid);
-				 break;
-
-                }
-            }       
-    
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::vector<U>> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            T ktemp;
-            //U vtemp;
-
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			 }
-
-			 switch(vpos){
-
-                }
-            }       
-
-    
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_floating_point<U>::value,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::vector<U>> a;
-               
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            T ktemp;
-            //U vtemp;
-
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			  }
-
-			 switch(vpos){
-
-                }
-            }       
-    
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::vector<U>> getgroupCols([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::vector<U>> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);
-            T ktemp;
-            //U vtemp;
-
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			 }
-
-			 switch(vpos){
-			case 0: 
- 				 a[ktemp].emplace_back(iter.rolepermsid);
-				 break;
-			case 1: 
- 				 a[ktemp].emplace_back(iter.userid);
-				 break;
-			case 2: 
- 				 a[ktemp].emplace_back(iter.roleid);
-				 break;
-			case 3: 
- 				 a[ktemp].emplace_back(iter.permsid);
-				 break;
-			case 4: 
- 				 a[ktemp].emplace_back(iter.sortid);
-				 break;
-
-                }
-            }       
-    
-            return a;
-        }
-    
-        template<typename T,typename std::enable_if<std::is_integral_v<T>,bool>::type = true>    
-        std::map<T,std::vector<sysroleperms_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
-        {
-            std::map<T,std::vector<sysroleperms_info::meta>> a;
-   
-            unsigned char kpos;
-            kpos=findcolpos(keyname);
-
-            for(auto &iter:record)
-            {
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 a[iter.rolepermsid].emplace_back(iter);
-				 break;
-			case 1: 
- 				 a[iter.userid].emplace_back(iter);
-				 break;
-			case 2: 
- 				 a[iter.roleid].emplace_back(iter);
-				 break;
-			case 3: 
- 				 a[iter.permsid].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[iter.sortid].emplace_back(iter);
-				 break;
-
-                }
-            }       
-    
-            return a;
-        }
-    
-        template<typename T,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true>    
-        std::map<T,std::vector<sysroleperms_info::meta>> getgroupRows([[maybe_unused]] std::string keyname)
-        {
-            std::map<T,std::vector<sysroleperms_info::meta>> a;
-   
-            return a;
-        }
-    
-        template<typename T,typename U,typename D,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true, typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<sysroleperms_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::map<U,std::vector<sysroleperms_info::meta>>> a;
-   
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_same<T,std::string>::value,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<sysroleperms_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::map<U,std::vector<sysroleperms_info::meta>>> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
-            T ktemp;
-            
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   	  }
-
- switch(vpos){
-			case 0: 
- 				 a[ktemp][iter.rolepermsid].emplace_back(iter);
-				 break;
-			case 1: 
- 				 a[ktemp][iter.userid].emplace_back(iter);
-				 break;
-			case 2: 
- 				 a[ktemp][iter.roleid].emplace_back(iter);
-				 break;
-			case 3: 
- 				 a[ktemp][iter.permsid].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.sortid].emplace_back(iter);
-				 break;
-
-                }
-            }       
-
-    
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_integral_v<U>,bool>::type = true,typename std::enable_if<std::is_integral_v<U>,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<sysroleperms_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::map<U,std::vector<sysroleperms_info::meta>>> a;
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);        
-        T ktemp;
-        
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			 }
-
-			 switch(vpos){
-			case 0: 
- 				 a[ktemp][iter.rolepermsid].emplace_back(iter);
-				 break;
-			case 1: 
- 				 a[ktemp][iter.userid].emplace_back(iter);
-				 break;
-			case 2: 
- 				 a[ktemp][iter.roleid].emplace_back(iter);
-				 break;
-			case 3: 
- 				 a[ktemp][iter.permsid].emplace_back(iter);
-				 break;
-			case 4: 
- 				 a[ktemp][iter.sortid].emplace_back(iter);
-				 break;
-
-                }
-            }       
-    
-            return a;
-        }
-    
-        template<typename T,typename U,typename std::enable_if<std::is_integral_v<T>,bool>::type = true,typename std::enable_if<std::is_same<U,std::string>::value,bool>::type = true>    
-        std::map<T,std::map<U,std::vector<sysroleperms_info::meta>>> getgroupRows([[maybe_unused]] std::string keyname,[[maybe_unused]] std::string valname)
-        {
-            std::map<T,std::map<U,std::vector<sysroleperms_info::meta>>> a;
-
-   
-            unsigned char kpos,vpos;
-            kpos=findcolpos(keyname);
-            vpos=findcolpos(valname);            
-            T ktemp;
-            
-            for(auto &iter:record)
-            {
-                
-                switch(kpos)
-                {
-
-   			case 0: 
- 				 ktemp=iter.rolepermsid;
-				 break;
-			case 1: 
- 				 ktemp=iter.userid;
-				 break;
-			case 2: 
- 				 ktemp=iter.roleid;
-				 break;
-			case 3: 
- 				 ktemp=iter.permsid;
-				 break;
-			case 4: 
- 				 ktemp=iter.sortid;
-				 break;
-			  }
-
-			 switch(vpos){
-
-                }
-            }       
-    
-            return a;
-        }
+        return temp;
+    }
     
   };
     
