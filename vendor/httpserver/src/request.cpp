@@ -1519,6 +1519,11 @@ std::string obj_val::substr(int a, int b)
         }
     }
 
+    if (aa > length)
+    {
+        aa = length;
+    }
+
     if (aa < 0)
     {
         aa = 0;
