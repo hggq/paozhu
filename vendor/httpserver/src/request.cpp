@@ -1798,6 +1798,8 @@ void obj_val::append(const std::string &v)
             char *tempstr = (char *)std::malloc(number);
             if (tempstr == nullptr)
             {
+                length = 0;
+                number = 8;
                 return;
             }
             for (unsigned int jj = 0; jj < length; jj++)
@@ -1814,6 +1816,9 @@ void obj_val::append(const std::string &v)
         {
             if (number <= (length + v.size()))
             {
+                unsigned int old_number = number;
+                unsigned int old_length = length;
+
                 unsigned int jlenth = length + v.size() * 2;
                 jlenth              = jlenth - jlenth % 8 + 8;
                 if (jlenth >= 0xFFFFFF)
@@ -1841,7 +1846,8 @@ void obj_val::append(const std::string &v)
                 char *tempstr = (char *)std::malloc(number);
                 if (tempstr == nullptr)
                 {
-                    number = length;
+                    length = old_length;
+                    number = old_number;
                     return;
                 }
                 std::memcpy(tempstr, str, length);
@@ -1890,6 +1896,8 @@ void obj_val::append(const char *_str, unsigned int str_length)
     {
         if (length < 8)
         {
+            unsigned int old_number = number;
+            unsigned int old_length = length;
             unsigned int jlenth = (length + str_length) * 2;
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
@@ -1915,6 +1923,8 @@ void obj_val::append(const char *_str, unsigned int str_length)
             char *tempstr = (char *)std::malloc(number);
             if (tempstr == nullptr)
             {
+                length = old_length;
+                number = old_number;
                 return;
             }
             for (unsigned int jj = 0; jj < length; jj++)
@@ -1931,6 +1941,8 @@ void obj_val::append(const char *_str, unsigned int str_length)
         {
             if (number <= (length + str_length))
             {
+                unsigned int old_number = number;
+                unsigned int old_length = length;
                 unsigned int jlenth = (length + str_length) * 2;
                 jlenth              = jlenth - jlenth % 8 + 8;
                 if (jlenth >= 0xFFFFFF)
@@ -1958,7 +1970,8 @@ void obj_val::append(const char *_str, unsigned int str_length)
                 char *tempstr = (char *)std::malloc(number);
                 if (tempstr == nullptr)
                 {
-                    number = length;
+                    length = old_length;
+                    number = old_number;
                     return;
                 }
                 std::memcpy(tempstr, str, length);
@@ -2289,6 +2302,7 @@ obj_val &obj_val::operator=(std::string_view v)
             str = (char *)std::malloc(number);
             if (str == nullptr)
             {
+                number = 8;
                 return *this;
             }
         }
@@ -2323,6 +2337,8 @@ obj_val &obj_val::operator=(std::string_view v)
             str = (char *)std::malloc(number);
             if (str == nullptr)
             {
+                length = 0;
+                number = 8;
                 return *this;
             }
             memcpy(str, v.data(), v.size());
@@ -2378,6 +2394,7 @@ obj_val &obj_val::operator=(const char *v)
             str = (char *)std::malloc(number);
             if (str == nullptr)
             {
+                number = 8;
                 return *this;
             }
         }
@@ -2412,6 +2429,8 @@ obj_val &obj_val::operator=(const char *v)
             str = (char *)std::malloc(number);
             if (str == nullptr)
             {
+                length = 0;
+                number = 8;
                 return *this;
             }
             memcpy(str, v, str_length);
@@ -2466,6 +2485,7 @@ obj_val &obj_val::operator=(std::string &&v)
             str = (char *)std::malloc(number);
             if (str == nullptr)
             {
+                number = 8;
                 return *this;
             }
         }
@@ -2500,6 +2520,8 @@ obj_val &obj_val::operator=(std::string &&v)
             str = (char *)std::malloc(number);
             if (str == nullptr)
             {
+                length = 0;
+                number = 8;
                 return *this;
             }
             memcpy(str, v.data(), v.size());
@@ -2553,6 +2575,7 @@ obj_val &obj_val::operator=(const std::string &v)
         str = (char *)std::malloc(number);
         if (str == nullptr)
         {
+            number = 8;
             return *this;
         }
         memcpy(str, v.data(), v.size());
@@ -2586,6 +2609,7 @@ obj_val &obj_val::operator=(const std::string &v)
             str = (char *)std::malloc(number);
             if (str == nullptr)
             {
+                number = 8;
                 return *this;
             }
             memcpy(str, v.data(), v.size());
@@ -2701,6 +2725,7 @@ obj_val &obj_val::operator=(const obj_val &v)
                 str = (char *)std::malloc(number);
                 if (str == nullptr)
                 {
+                    number = 8;
                     return *this;
                 }
                 std::memcpy(str, v.str, v.length);
@@ -2971,6 +2996,8 @@ obj_val::obj_val(const obj_val &v)
             str = (char *)std::malloc(number);
             if (str == nullptr)
             {
+                length = 0;
+                number = 8;
                 break;
             }
             std::memcpy(str, v.str, v.length);
@@ -3277,6 +3304,8 @@ obj_val::obj_val(const char *_str) : _val_type(obj_type::STRING)
         str = (char *)std::malloc(number);
         if (str == nullptr)
         {
+            length = 0;
+            number = 8;
             return;
         }
         std::memcpy(str, _str, length);
@@ -3309,6 +3338,8 @@ obj_val::obj_val(const char *_str, unsigned int str_length) : _val_type(obj_type
         str = (char *)std::malloc(number);
         if (str == nullptr)
         {
+            length = 0;
+            number = 8;
             return;
         }
         std::memcpy(str, _str, length);
@@ -3340,6 +3371,8 @@ obj_val::obj_val(std::string_view _str) : _val_type(obj_type::STRING)
         str = (char *)std::malloc(number);
         if (str == nullptr)
         {
+            length = 0;
+            number = 8;
             return;
         }
         std::memcpy(str, _str.data(), length);
@@ -3372,6 +3405,8 @@ obj_val::obj_val(const std::string &_str) : _val_type(obj_type::STRING)
         str = (char *)std::malloc(number);
         if (str == nullptr)
         {
+            length = 0;
+            number = 8;
             return;
         }
         std::memcpy(str, _str.data(), length);
@@ -3403,6 +3438,8 @@ obj_val::obj_val(std::string &&_str) : _val_type(obj_type::STRING)
         str = (char *)std::malloc(number);
         if (str == nullptr)
         {
+            length = 0;
+            number = 8;
             return;
         }
         std::memcpy(str, _str.data(), length);
@@ -4638,6 +4675,8 @@ obj_val &obj_val::operator+(const std::string &v)
         {
             if (length < 8)
             {
+                unsigned int old_number = number;
+                unsigned int old_length = length;
                 number = length + v.size() * 2;
                 number = number - number % 8 + 8;
                 if (number > 0xFFFFFF)
@@ -4653,8 +4692,8 @@ obj_val &obj_val::operator+(const std::string &v)
                 char *temp = (char *)std::malloc(number);
                 if (temp == nullptr)
                 {
-                    length = 0;
-                    number = 0;
+                    length = old_length;
+                    number = old_number;
                     return *this;
                 }
                 std::memcpy(temp, name, temp_len);
@@ -4666,6 +4705,8 @@ obj_val &obj_val::operator+(const std::string &v)
             {
                 if (number <= (length + v.size()))
                 {
+                    unsigned int old_number = number;
+                    unsigned int old_length = length;
                     unsigned int jlenth = length + v.size() * 2;
                     jlenth              = jlenth - jlenth % 8 + 8;
                     if (jlenth >= 0xFFFFFF)
@@ -4687,6 +4728,8 @@ obj_val &obj_val::operator+(const std::string &v)
                     char *temp = (char *)std::malloc(number);
                     if (temp == nullptr)
                     {
+                        length = old_length;
+                        number = old_number;
                         return *this;
                     }
                     std::memcpy(temp, str, jlenth);
@@ -8224,7 +8267,7 @@ std::string obj_val::JSON_VALUE(const std::string &jsonstr, unsigned int &offset
 
 int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int &offset, unsigned int level)
 {
-    if (level > 512)
+    if (level > 128)
     {
         offset = jsonstr.length();
         throw "Level too depth";
@@ -8396,7 +8439,7 @@ int obj_val::JSON_OBJ(const std::string &jsonstr, obj_t &level_obj, unsigned int
 
 int obj_val::JSON_ARRAY(const std::string &jsonstr, obj_array &level_obj, unsigned int &offset, unsigned int level)
 {
-    if (level > 512)
+    if (level > 128)
     {
         offset = jsonstr.length();
         throw "Level too depth";
