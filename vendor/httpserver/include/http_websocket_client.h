@@ -111,6 +111,9 @@ namespace http
 
         bool add_client_task_loop();
         void set_deflate(bool isstatus);
+        bool un_pack(const std::string &pack_data,std::string &outBuf);
+        bool un_pack(std::string &outBuf);
+        int compress(const std::string &pack_data,std::string &outBuf);
     public:
         bool iserror = false;
         bool isssl = false;
@@ -161,8 +164,8 @@ namespace http
         asio::error_code ec;
         asio::strand<asio::io_context::executor_type> strand_;
 
-        std::function<void(std::shared_ptr<websocket_client>, unsigned int)> run_loop_fun = nullptr;
-        std::function<asio::awaitable<void>(std::shared_ptr<websocket_client>, unsigned int)> async_run_loop_fun = nullptr;
+        std::function<void(std::shared_ptr<websocket_client>)> run_loop_fun = nullptr;
+        std::function<asio::awaitable<void>(std::shared_ptr<websocket_client>, ws_pack_data pack_data)> async_run_loop_fun = nullptr;
 
         std::function<void(std::shared_ptr<websocket_client>)> dur_time_loop_fun = nullptr;
         std::function<asio::awaitable<void>(std::shared_ptr<websocket_client>)> async_dur_time_loop_fun = nullptr;

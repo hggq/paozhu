@@ -1,5 +1,6 @@
 #include "http_socket_client.h"
 #include "client_context.h"
+#include "atomic_guard.h"
 
 namespace http
 {
@@ -447,10 +448,9 @@ asio::awaitable<unsigned int> socket_client::async_read(unsigned char *buffer_da
         iserror = true;
         co_return 0;
     }
-
+    atomic_guard guard{socket_read_lock};
     if(iserror)
     {
-        socket_read_lock.clear();
         co_return 0;
     }
     if (exptime > 0)
@@ -468,7 +468,6 @@ asio::awaitable<unsigned int> socket_client::async_read(unsigned char *buffer_da
         {
             n = co_await sock->async_read_some(asio::buffer(buffer_data, buffersize), asio::use_awaitable);
         }
-        socket_read_lock.clear();
         co_return n;
     }
     catch (std::exception &e)
@@ -477,7 +476,6 @@ asio::awaitable<unsigned int> socket_client::async_read(unsigned char *buffer_da
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     co_return 0;
 }
 
@@ -489,10 +487,10 @@ asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data
         iserror = true;
         co_return 0;
     }
+    atomic_guard guard{socket_read_lock};
 
     if(iserror)
     {
-        socket_read_lock.clear();
         co_return 0;
     }
     if (exptime > 0)
@@ -510,7 +508,6 @@ asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data
         {
             n = co_await sock->async_read_some(asio::buffer(buffer_data), asio::use_awaitable);
         }
-        socket_read_lock.clear();
         co_return n;
     }
     catch (std::exception &e)
@@ -519,7 +516,6 @@ asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     co_return 0;
 }
 
@@ -668,10 +664,10 @@ unsigned int socket_client::read(unsigned char *buffer_data, unsigned int buffer
         iserror = true;
         return 0;
     }
+    atomic_guard guard{socket_read_lock};
 
     if(iserror)
     {
-        socket_read_lock.clear();
         return 0;
     }
     if (exptime > 0)
@@ -689,7 +685,6 @@ unsigned int socket_client::read(unsigned char *buffer_data, unsigned int buffer
         {
             n = sock->read_some(asio::buffer(buffer_data, buffersize));
         }
-        socket_read_lock.clear();
         return n;
     }
     catch (std::exception &e)
@@ -698,7 +693,6 @@ unsigned int socket_client::read(unsigned char *buffer_data, unsigned int buffer
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     return 0;
 }
 
@@ -710,10 +704,10 @@ unsigned int socket_client::read(std::string &buffer_data)
         iserror = true;
         return 0;
     }
+    atomic_guard guard{socket_read_lock};
 
     if(iserror)
     {
-        socket_read_lock.clear();
         return 0;
     }
     if (exptime > 0)
@@ -731,7 +725,6 @@ unsigned int socket_client::read(std::string &buffer_data)
         {
             n = sock->read_some(asio::buffer(buffer_data));
         }
-        socket_read_lock.clear();
         return n;
     }
     catch (std::exception &e)
@@ -740,7 +733,6 @@ unsigned int socket_client::read(std::string &buffer_data)
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     return 0;
 }
 
@@ -768,6 +760,15 @@ void socket_client::close_connect()
 
 void socket_client::run_loop()
 {
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return;
+    }
+
+    atomic_guard guard{socket_read_lock};
+
     auto self = shared_from_this();
     if(data == nullptr)
     {
@@ -846,6 +847,8 @@ asio::awaitable<void> socket_client::async_run_loop()
         co_return;
     }
 
+    atomic_guard guard{socket_read_lock};
+
     auto self = shared_from_this();
     if(data == nullptr)
     {
@@ -855,7 +858,6 @@ asio::awaitable<void> socket_client::async_run_loop()
     {
         if(iserror)
         {
-            socket_read_lock.clear();
             co_return;
         }
         if (exptime > 0)
@@ -884,7 +886,6 @@ asio::awaitable<void> socket_client::async_run_loop()
             }
             else
             {
-                socket_read_lock.clear();
                 co_return;
             }
         }
@@ -893,7 +894,6 @@ asio::awaitable<void> socket_client::async_run_loop()
             DEBUG_LOG("Exception: %s", e.what());
             error_msg  = e.what();
             iserror = true;
-            socket_read_lock.clear();
             co_return;
         }
     }

@@ -6,6 +6,7 @@
 #include <string_view>
 #include <zlib.h>
 #include <memory>
+#include <vector>
 
 namespace http
 {
@@ -22,5 +23,6 @@ namespace http
    // @param data - the resulting uncompressed data (may contain binary data)
    // @return - true on success, false on failure
    bool uncompress(std::string_view compressed_data, std::string &data);
+   bool uncompress(unsigned char *compressed_data, unsigned int length, std::vector<unsigned char> &data);
 }
 #endif

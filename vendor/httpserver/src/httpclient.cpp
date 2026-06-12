@@ -30,6 +30,8 @@
 #include "client_context.h"
 #include "terminal_color.h"
 #include "func.h"
+#include "atomic_guard.h"
+
 namespace http
 {
 client::client() :strand_(asio::make_strand(*(get_client_context_obj().ioc))),rawfile(nullptr, std::fclose) {};
@@ -3730,10 +3732,9 @@ asio::awaitable<unsigned int> client::async_read(unsigned char *buffer_data, uns
         iserror = true;
         co_return 0;
     }
-
+    atomic_guard guard{socket_read_lock};
     if(iserror)
     {
-        socket_read_lock.clear();
         co_return 0;
     }
     if (exptime > 0)
@@ -3751,7 +3752,6 @@ asio::awaitable<unsigned int> client::async_read(unsigned char *buffer_data, uns
         {
             n = co_await sock->async_read_some(asio::buffer(buffer_data, buffersize), asio::use_awaitable);
         }
-        socket_read_lock.clear();
         co_return n;
     }
     catch (std::exception &e)
@@ -3772,10 +3772,9 @@ asio::awaitable<unsigned int> client::async_read(std::string &buffer_data)
         iserror = true;
         co_return 0;
     }
-
+    atomic_guard guard{socket_read_lock};
     if(iserror)
     {
-        socket_read_lock.clear();
         co_return 0;
     }
     if (exptime > 0)
@@ -3793,7 +3792,6 @@ asio::awaitable<unsigned int> client::async_read(std::string &buffer_data)
         {
             n = co_await sock->async_read_some(asio::buffer(buffer_data), asio::use_awaitable);
         }
-        socket_read_lock.clear();
         co_return n;
     }
     catch (std::exception &e)
@@ -3802,7 +3800,6 @@ asio::awaitable<unsigned int> client::async_read(std::string &buffer_data)
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     co_return 0;
 }
 
@@ -3951,10 +3948,9 @@ unsigned int client::read(unsigned char *buffer_data, unsigned int buffersize)
         iserror = true;
         return 0;
     }
-
+    atomic_guard guard{socket_read_lock};
     if(iserror)
     {
-        socket_read_lock.clear();
         return 0;
     }
     if (exptime > 0)
@@ -3972,7 +3968,6 @@ unsigned int client::read(unsigned char *buffer_data, unsigned int buffersize)
         {
             n = sock->read_some(asio::buffer(buffer_data, buffersize));
         }
-        socket_read_lock.clear();
         return n;
     }
     catch (std::exception &e)
@@ -3981,7 +3976,6 @@ unsigned int client::read(unsigned char *buffer_data, unsigned int buffersize)
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     return 0;
 }
 
@@ -3993,10 +3987,9 @@ unsigned int client::read(std::string &buffer_data)
         iserror = true;
         return 0;
     }
-
+    atomic_guard guard{socket_read_lock};
     if(iserror)
     {
-        socket_read_lock.clear();
         return 0;
     }
     if (exptime > 0)
@@ -4014,7 +4007,6 @@ unsigned int client::read(std::string &buffer_data)
         {
             n = sock->read_some(asio::buffer(buffer_data));
         }
-        socket_read_lock.clear();
         return n;
     }
     catch (std::exception &e)
@@ -4023,7 +4015,6 @@ unsigned int client::read(std::string &buffer_data)
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     return 0;
 }
 

@@ -4,6 +4,8 @@
 #include "client_context.h"
 #include "base64.h"
 #include "func.h"
+#include "atomic_guard.h"
+#include "gzip.h"
 
 namespace http
 {
@@ -380,10 +382,10 @@ asio::awaitable<unsigned int> websocket_client::async_read(unsigned char *read_d
         iserror = true;
         co_return 0;
     }
+    atomic_guard guard{socket_read_lock};
 
     if(iserror)
     {
-        socket_read_lock.clear();
         co_return 0;
     }
     if (exptime > 0)
@@ -401,7 +403,6 @@ asio::awaitable<unsigned int> websocket_client::async_read(unsigned char *read_d
         {
             n = co_await sock->async_read_some(asio::buffer(read_data, buffersize), asio::use_awaitable);
         }
-        socket_read_lock.clear();
         co_return n;
     }
     catch (std::exception &e)
@@ -410,7 +411,6 @@ asio::awaitable<unsigned int> websocket_client::async_read(unsigned char *read_d
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     co_return 0;
 }
 
@@ -422,10 +422,9 @@ asio::awaitable<unsigned int> websocket_client::async_read(std::string &read_dat
         iserror = true;
         co_return 0;
     }
-
+    atomic_guard guard{socket_read_lock};
     if(iserror)
     {
-        socket_read_lock.clear();
         co_return 0;
     }
     if (exptime > 0)
@@ -435,6 +434,11 @@ asio::awaitable<unsigned int> websocket_client::async_read(std::string &read_dat
     unsigned int n = 0;
     try
     {
+        if(read_data.size()==0)
+        {
+            read_data.resize(1024);
+        }
+
         if (isssl)
         {
             n = co_await sslsock->async_read_some(asio::buffer(read_data), asio::use_awaitable);
@@ -443,7 +447,6 @@ asio::awaitable<unsigned int> websocket_client::async_read(std::string &read_dat
         {
             n = co_await sock->async_read_some(asio::buffer(read_data), asio::use_awaitable);
         }
-        socket_read_lock.clear();
         co_return n;
     }
     catch (std::exception &e)
@@ -452,7 +455,6 @@ asio::awaitable<unsigned int> websocket_client::async_read(std::string &read_dat
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     co_return 0;
 }
 
@@ -599,10 +601,9 @@ unsigned int websocket_client::read(unsigned char *buffer_data, unsigned int buf
         iserror = true;
         return 0;
     }
-
+    atomic_guard guard{socket_read_lock};
     if(iserror)
     {
-        socket_read_lock.clear();
         return 0;
     }
     if (exptime > 0)
@@ -620,7 +621,6 @@ unsigned int websocket_client::read(unsigned char *buffer_data, unsigned int buf
         {
             n = sock->read_some(asio::buffer(buffer_data, buffersize));
         }
-        socket_read_lock.clear();
         return n;
     }
     catch (std::exception &e)
@@ -629,7 +629,6 @@ unsigned int websocket_client::read(unsigned char *buffer_data, unsigned int buf
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     return 0;
 }
 
@@ -641,10 +640,9 @@ unsigned int websocket_client::read(std::string &buffer_data)
         iserror = true;
         return 0;
     }
-
+    atomic_guard guard{socket_read_lock};
     if(iserror)
     {
-        socket_read_lock.clear();
         return 0;
     }
     if (exptime > 0)
@@ -662,7 +660,6 @@ unsigned int websocket_client::read(std::string &buffer_data)
         {
             n = sock->read_some(asio::buffer(buffer_data));
         }
-        socket_read_lock.clear();
         return n;
     }
     catch (std::exception &e)
@@ -671,7 +668,6 @@ unsigned int websocket_client::read(std::string &buffer_data)
         error_msg  = e.what();
         iserror = true;
     }
-    socket_read_lock.clear();
     return 0;
 }
 
@@ -700,6 +696,14 @@ void websocket_client::close_connect()
 void websocket_client::run_loop()
 {
     auto self = shared_from_this();
+    if (socket_read_lock.test_and_set()) 
+    {
+        error_msg = "Other socket read is set";
+        iserror = true;
+        return;
+    }
+    atomic_guard guard{socket_read_lock};
+
     if(data == nullptr)
     {
         data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
@@ -742,20 +746,23 @@ void websocket_client::run_loop()
                 }
             }
 
-            if(run_loop_fun != nullptr)
+            process_data(data, n);
+
+            if(recv_data.isfinish)
             {
-                run_loop_fun(self,n);
-            }
-            else if(async_run_loop_fun != nullptr)
-            {
-                asio::co_spawn(strand_, [self, n]() mutable
-                 { return self->async_run_loop_fun(self, n); },
-                 asio::detached);
-            }
-            else
-            {
-                return;
-            }
+                if(run_loop_fun != nullptr)
+                {
+                    run_loop_fun(self);
+                }
+                else if(async_run_loop_fun != nullptr)
+                {
+                    asio::co_spawn(strand_, [self, pack_data =recv_data]() mutable
+                    { return self->async_run_loop_fun(self, pack_data); },
+                    asio::detached);
+                    
+                }
+                reset_recv_status();
+            } 
         }
         catch (std::exception &e)
         {
@@ -770,14 +777,15 @@ void websocket_client::run_loop()
 
 asio::awaitable<void> websocket_client::async_run_loop()
 {
+    auto self = shared_from_this();
     if (socket_read_lock.test_and_set()) 
     {
         error_msg = "Other socket read is set";
         iserror = true;
         co_return;
     }
+    atomic_guard guard{socket_read_lock};
 
-    auto self = shared_from_this();
     if(data == nullptr)
     {
         data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
@@ -786,7 +794,6 @@ asio::awaitable<void> websocket_client::async_run_loop()
     {
         if(iserror)
         {
-            socket_read_lock.clear();
             co_return;
         }
         if (exptime > 0)
@@ -805,18 +812,22 @@ asio::awaitable<void> websocket_client::async_run_loop()
                 n = co_await sock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
             }
 
-            if(run_loop_fun != nullptr)
+            process_data(data, n);
+
+            if(recv_data.isfinish)
             {
-                run_loop_fun(self,n);
-            }
-            else if(async_run_loop_fun != nullptr)
-            {
-                co_await async_run_loop_fun(self,n);
-            }
-            else
-            {
-                socket_read_lock.clear();
-                co_return;
+                if(run_loop_fun != nullptr)
+                {
+                    run_loop_fun(self);
+                }
+                else if(async_run_loop_fun != nullptr)
+                {
+                    asio::co_spawn(strand_, [self, pack_data =recv_data]() mutable
+                    { return self->async_run_loop_fun(self, pack_data); },
+                    asio::detached);
+                    
+                }
+                reset_recv_status();
             }
         }
         catch (std::exception &e)
@@ -824,11 +835,9 @@ asio::awaitable<void> websocket_client::async_run_loop()
             DEBUG_LOG("Exception: %s", e.what());
             error_msg  = e.what();
             iserror = true;
-            socket_read_lock.clear();
             co_return;
         }
     }
-    socket_read_lock.clear();
     co_return;
 }
 
@@ -1507,6 +1516,7 @@ asio::awaitable<unsigned int> websocket_client::async_text_read()
         iserror = true;
         co_return 0;
     }
+    atomic_guard guard{socket_read_lock};
     reset_recv_status();
     auto self = shared_from_this();
     if(data == nullptr)
@@ -1517,7 +1527,6 @@ asio::awaitable<unsigned int> websocket_client::async_text_read()
     {
         if(iserror)
         {
-            socket_read_lock.clear();
             co_return 0;
         }
         if (exptime > 0)
@@ -1539,7 +1548,6 @@ asio::awaitable<unsigned int> websocket_client::async_text_read()
 
             if(recv_data.isfinish)
             {
-                socket_read_lock.clear();
                 co_return recv_data.opcode;
             } 
         }
@@ -1548,12 +1556,29 @@ asio::awaitable<unsigned int> websocket_client::async_text_read()
             DEBUG_LOG("Exception: %s", e.what());
             error_msg  = e.what();
             iserror = true;
-            socket_read_lock.clear();
             co_return 0;
         }
     }
-    socket_read_lock.clear();
     co_return 0;
+}
+
+bool websocket_client::un_pack(const std::string &content, std::string &outBuf)
+{
+    return http::uncompress(content,outBuf);
+}
+
+bool websocket_client::un_pack(std::string &outBuf)
+{
+    return http::uncompress(recv_data.content,outBuf);
+}
+int websocket_client::compress(const std::string &pack_data,std::string &outBuf)
+{
+    if (http::compress(pack_data.data(), pack_data.size(), outBuf, Z_DEFAULT_COMPRESSION) ==
+                Z_OK)
+    {
+        return 0;
+    }
+    return 1;
 }
 
 }// namespace http

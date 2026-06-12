@@ -60,20 +60,9 @@ asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> pee
                             }
                             co_return;
                          };                     
-    a->async_run_loop_fun = [](std::shared_ptr<websocket_client> b, unsigned int n)-> asio::awaitable<void> {
+    a->async_run_loop_fun = [](std::shared_ptr<websocket_client> b, websocket_client::ws_pack_data pack_data)-> asio::awaitable<void> {
                             
-                            b->process_data(b->data, n);
-
-                            if(b->recv_data.isfinish)
-                            {
-                                DEBUG_LOG("async_run_loop_fun:%s",b->recv_data.content.c_str());
-                                if(b->async_recv_finish_fun != nullptr)
-                                {
-                                    co_await b->async_recv_finish_fun(b);
-                                }
-                                b->reset_recv_status();
-                            }
-
+                            DEBUG_LOG("async_run_loop_fun:%s",b->recv_data.content.c_str());
                             co_return;
                         };
     
