@@ -32,6 +32,8 @@ namespace http
      */
     //std::string utf8_to_jsonstring(std::string &source);
     std::string utf8_to_jsonstring(const std::string &source);
+    std::string utf8_to_json_string(const std::string &source);
+    
     /*
      *  jsonstring转utf8
      */
@@ -53,5 +55,23 @@ namespace http
      */
 
     std::string stringunicode_to_utf8(std::string &source);
+
+    template<typename T>
+    std::string to_json_value(const T& val) 
+    {
+        using U = std::decay_t<T>;
+        if constexpr (std::is_arithmetic_v<U>) {
+            if constexpr (std::is_same_v<U, bool>) {
+                return val ? "true" : "false";
+            } else {
+                return std::to_string(val);
+            }
+        } else if constexpr (std::is_convertible_v<U, std::string_view>) {
+            //std::string s = std::string(val);
+            return utf8_to_json_string(val);
+        } else {
+            return "";
+        }
+    }
 }
 #endif

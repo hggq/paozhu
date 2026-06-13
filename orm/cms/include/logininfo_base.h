@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 01:24:53 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -208,28 +208,233 @@ namespace logininfo_info
         )(__VA_ARGS__)
 
     
+    #define ORM_CMS_LOGININFO_COUNT(...) \
+        ORM_CMS_LOGININFO_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)
+    
+    
+    #define ORM_CMS_LOGININFO_TO_JSON_ITEM(c) \
+        oss << "\"" #c "\":" << http::to_json_value(c)
+    
+    #define ORM_CMS_LOGININFO_TO_JSON_1(c1) \
+         ORM_CMS_LOGININFO_TO_JSON_ITEM(c1)
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_2(c1,c2) \
+         ORM_CMS_LOGININFO_TO_JSON_1(c1); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c2) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_3(c1,c2,c3) \
+         ORM_CMS_LOGININFO_TO_JSON_2(c1,c2); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c3) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_4(c1,c2,c3,c4) \
+         ORM_CMS_LOGININFO_TO_JSON_3(c1,c2,c3); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c4) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_5(c1,c2,c3,c4,c5) \
+         ORM_CMS_LOGININFO_TO_JSON_4(c1,c2,c3,c4); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c5) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_6(c1,c2,c3,c4,c5,c6) \
+         ORM_CMS_LOGININFO_TO_JSON_5(c1,c2,c3,c4,c5); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c6) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7) \
+         ORM_CMS_LOGININFO_TO_JSON_6(c1,c2,c3,c4,c5,c6); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c7) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8) \
+         ORM_CMS_LOGININFO_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c8) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9) \
+         ORM_CMS_LOGININFO_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c9) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10) \
+         ORM_CMS_LOGININFO_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c10) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11) \
+         ORM_CMS_LOGININFO_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c11) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) \
+         ORM_CMS_LOGININFO_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c12) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13) \
+         ORM_CMS_LOGININFO_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c13) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14) \
+         ORM_CMS_LOGININFO_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c14) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15) \
+         ORM_CMS_LOGININFO_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c15) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_16(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16) \
+         ORM_CMS_LOGININFO_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15); \
+            oss << ','; \
+            ORM_CMS_LOGININFO_TO_JSON_ITEM(c16) 
+        
+        
+    #define ORM_CMS_LOGININFO_TO_JSON_BODY(...) \
+        ORM_CMS_LOGININFO_GET_MACRO(__VA_ARGS__, \
+            ORM_CMS_LOGININFO_TO_JSON_16,ORM_CMS_LOGININFO_TO_JSON_15,ORM_CMS_LOGININFO_TO_JSON_14,ORM_CMS_LOGININFO_TO_JSON_13,ORM_CMS_LOGININFO_TO_JSON_12,ORM_CMS_LOGININFO_TO_JSON_11,ORM_CMS_LOGININFO_TO_JSON_10,ORM_CMS_LOGININFO_TO_JSON_9,ORM_CMS_LOGININFO_TO_JSON_8,ORM_CMS_LOGININFO_TO_JSON_7,ORM_CMS_LOGININFO_TO_JSON_6,ORM_CMS_LOGININFO_TO_JSON_5,ORM_CMS_LOGININFO_TO_JSON_4,ORM_CMS_LOGININFO_TO_JSON_3,ORM_CMS_LOGININFO_TO_JSON_2,ORM_CMS_LOGININFO_TO_JSON_1 \
+         )(__VA_ARGS__)
+         
+          
+    #define ORM_CMS_LOGININFO_UNWRAP(...) __VA_ARGS__  
+
+    #define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(name) \
+        oss << ",\"" #name "\":" << http::to_json_value(name);
+
+    #define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_1(n1) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n1)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_2(n1,n2) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_1(n1) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n2)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_3(n1,n2,n3) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_2(n1,n2) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n3)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_4(n1,n2,n3,n4) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_3(n1,n2,n3) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n4)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_4(n1,n2,n3,n4) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n5)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n6)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n7)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n8)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n9)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n10)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n11)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n12)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n13)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n14)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n15)
+
+#define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_16(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15) ORM_CMS_LOGININFO_TO_JSON_CUSTOM_ITEM(n16)
+
+
+    #define ORM_CMS_LOGININFO_TO_JSON_CUSTOM_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16, N, ...) \
+        ORM_CMS_LOGININFO_TO_JSON_CUSTOM_##N
+
+    #define ORM_CMS_LOGININFO_TO_JSON_CUSTOM(...) \
+        ORM_CMS_LOGININFO_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__)
+
+
     #define ORM_CMS_LOGININFO_DEFINE_STRUCT(StructName, ...) \
         namespace orm::cms::logininfo_info { \
             struct StructName { \
                 ORM_CMS_LOGININFO_PROJ_MEMBERS(__VA_ARGS__) \
+                \
+                std::string to_json() const { \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_CMS_LOGININFO_TO_JSON_BODY(__VA_ARGS__); \
+                oss << '}'; \
+                return oss.str(); \
+            } \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_LOGININFO_SELF_STRUCT(StructName, CustomDecl, CustomNames, ...) \
+        namespace orm::cms::logininfo_info { \
+            struct StructName { \
+                ORM_CMS_LOGININFO_PROJ_MEMBERS(__VA_ARGS__) \
+                CustomDecl \
+                \
+                std::string to_json() const { \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_CMS_LOGININFO_TO_JSON_BODY(__VA_ARGS__); \
+                ORM_CMS_LOGININFO_TO_JSON_CUSTOM(ORM_CMS_LOGININFO_UNWRAP CustomNames)  \
+                oss << '}'; \
+                return oss.str(); \
+            } \
             }; \
        }
         
     
     #define ORM_CMS_LOGININFO_TREE_STRUCT(StructName, ...) \
         namespace orm::cms::logininfo_info { \
-            struct StructName##_tree { \
+            struct StructName { \
                 ORM_CMS_LOGININFO_PROJ_MEMBERS(__VA_ARGS__) \
-                std::vector<StructName##_tree> children; \
+                std::vector<StructName> children; \
+                \
+                std::string to_json() const { \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_CMS_LOGININFO_TO_JSON_BODY(__VA_ARGS__); \
+                oss << ",\"children\":["; \
+                for(unsigned int i=0;i< children.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << children[i].to_json(); \
+                }\
+                oss << ']'; \
+                oss << '}'; \
+                return oss.str(); \
+                }\
             }; \
        }
         
     
     #define ORM_CMS_LOGININFO_TREE_PTR_STRUCT(StructName, ...) \
         namespace orm::cms::logininfo_info { \
-            struct StructName##_tree_ptr { \
+            struct StructName { \
                 ORM_CMS_LOGININFO_PROJ_MEMBERS(__VA_ARGS__) \
-                std::vector<std::unique_ptr<StructName##_tree_ptr>> children; \
+                std::vector<std::unique_ptr<StructName>> children; \
+                \
+                std::string to_json() const { \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_CMS_LOGININFO_TO_JSON_BODY(__VA_ARGS__); \
+                oss << ",\"children\":["; \
+                for(unsigned int i=0;i< children.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << children[i]->to_json(); \
+                }\
+                oss << ']'; \
+                oss << '}'; \
+                return oss.str(); \
+                }\
             }; \
        }
         

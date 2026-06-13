@@ -7,6 +7,10 @@
 #include <string>
 
 ORM_WORLD_DEFINE_STRUCT(Mystruct, id, randomnumber);
+ORM_WORLD_TREE_STRUCT(MyTreeStruct, id, randomnumber);
+ORM_WORLD_TREE_PTR_STRUCT(MyPtrStruct, id, randomnumber);
+ORM_WORLD_SELF_STRUCT(MyCustomStruct, int userid; std::string name;,(userid, name), id, randomnumber);
+
 namespace http
 {
 
@@ -48,10 +52,36 @@ std::string test_cols(std::shared_ptr<httppeer> peer)
     
 
     orm::world_info::Mystruct b;
-    b.id = 0;
+    b.id = 10;
     b.randomnumber = 22;
 
-    client << "<p>Mystruct: " << b.randomnumber << "</p>";
+    client << "<p>Mystruct: " << b.to_json() << "</p>";
+
+    
+    orm::world_info::MyTreeStruct c,cc;
+    c.id = 1;
+    c.randomnumber = 33;
+
+    cc.id = b.id ;
+    cc.randomnumber = 99;
+    c.children.push_back(cc);
+
+    client << "<p>MyTreeStruct: " << c.to_json() << "</p>";
+
+    orm::world_info::MyPtrStruct d;
+    d.id = 2;
+    d.randomnumber = 44;
+    
+    client << "<p>MyPtrStruct: " << d.to_json() << "</p>";
+
+    orm::world_info::MyCustomStruct cust_a;
+    
+    cust_a.id = 2;
+    cust_a.randomnumber = 44;
+    cust_a.userid = 278;
+    cust_a.name = "李四";
+    
+    client << "<p>MyCustomStruct: " << cust_a.to_json() << "</p>";
 
     struct LocalStruct 
     {
