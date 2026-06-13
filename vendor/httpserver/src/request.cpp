@@ -8090,21 +8090,14 @@ std::string obj_val::JSON_STRING(const std::string &jsonstr, unsigned int &offse
                     unsigned char c[10] = {0x00};
                     unsigned char ch;
                     unsigned int temp;
-                    if ((j + 12) >= jsonstr.length())
-                    {
-                        offset = jsonstr.length();
-                        throw "out of range";
-                        return "";
-                    }
+
                     // 检查是不是emoji两个转码符一共12个字符 this emoji char
-                    if (jsonstr[j + 2] == 'd' && jsonstr[j + 6] == 0x5c && jsonstr[j + 7] == 'u' &&
+                    if ((j + 12) < jsonstr.length() && jsonstr[j + 2] == 'd' && jsonstr[j + 6] == 0x5c && jsonstr[j + 7] == 'u' &&
                         jsonstr[j + 8] == 'd')
                     {
-
                         // 转换成utf16
                         for (int si = 2, cj = 0; si < 12; si++)
                         {
-
                             if (jsonstr[j + si] != 0x5c && jsonstr[j + si] != 'u')
                             {
                                 ch    = jsonstr[j + si];

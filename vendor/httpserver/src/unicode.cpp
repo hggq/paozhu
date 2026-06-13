@@ -624,6 +624,10 @@ std::string utf8_to_jsonstring(const std::string &source)
         else if (c[0] >= 0xC0 && c[0] < 0xE0)
         {
             //两个utf8
+            if ((pos + 1) >= source.size())
+            {
+                return obj;
+            }
             c[1] = (unsigned char)source[pos + 1];
             pos += 1;
             c[0]     = c[0] & 0x1F;
@@ -653,6 +657,10 @@ std::string utf8_to_jsonstring(const std::string &source)
         else if (c[0] >= 0xE0 && c[0] < 0xF0)
         {
             //三个utf8
+            if ((pos + 2) >= source.size())
+            {
+                return obj;
+            }
             c[1] = (unsigned char)source[pos + 1];
             c[2] = (unsigned char)source[pos + 2];
             pos += 2;
@@ -685,6 +693,10 @@ std::string utf8_to_jsonstring(const std::string &source)
         else if (c[0] >= 0xF0 && c[0] < 0xF8)
         {
             //四个utf8
+            if ((pos + 3) >= source.size())
+            {
+                return obj;
+            }
             c[1] = (unsigned char)source[pos + 1];
             c[2] = (unsigned char)source[pos + 2];
             c[3] = (unsigned char)source[pos + 3];
@@ -760,6 +772,10 @@ std::string jsonstring_to_utf8(const char *jsonstr, unsigned int str_length, uns
 
         if (jsonstr[j] == 0x5c)//'\'
         {
+             if ((j + 1) >= str_length)
+            {
+                return str;
+            }
             // 处理有斜杠情况 not slash
             switch (jsonstr[j + 1])
             {
@@ -799,7 +815,7 @@ std::string jsonstring_to_utf8(const char *jsonstr, unsigned int str_length, uns
                     unsigned char ch;
                     unsigned int temp;
                     // 检查是不是emoji两个转码符一共12个字符 this emoji char
-                    if (jsonstr[j + 2] == 'd' && jsonstr[j + 6] == 0x5c && jsonstr[j + 7] == 'u' && jsonstr[j + 8] == 'd')
+                    if ((j + 12) < str_length && jsonstr[j + 2] == 'd' && jsonstr[j + 6] == 0x5c && jsonstr[j + 7] == 'u' && jsonstr[j + 8] == 'd')
                     {
 
                         // 转换成utf16
@@ -841,6 +857,10 @@ std::string jsonstring_to_utf8(const char *jsonstr, unsigned int str_length, uns
                     }
                     else
                     {
+                        if ((j + 6) < str_length)
+                        {
+                            return str;
+                        }
                         // 只是Unicode码情况 4 char
                         for (int si = 2, cj = 0; si < 6; si++)
                         {
@@ -1013,7 +1033,7 @@ std::string utf8_to_json_string(const std::string &source)
     unsigned char c[5];
     unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
     std::string obj;
-    obj.push_back('"');    
+    obj.push_back('"');
     for (; pos < source.size(); pos++)
     {
         c[0] = (unsigned char)source[pos];
@@ -1067,6 +1087,11 @@ std::string utf8_to_json_string(const std::string &source)
         else if (c[0] >= 0xC0 && c[0] < 0xE0)
         {
             //两个utf8
+            if ((pos + 1) >= source.size())
+            {
+                obj.push_back('"');
+                return obj;
+            }
             c[1] = (unsigned char)source[pos + 1];
             pos += 1;
             c[0]     = c[0] & 0x1F;
@@ -1096,6 +1121,11 @@ std::string utf8_to_json_string(const std::string &source)
         else if (c[0] >= 0xE0 && c[0] < 0xF0)
         {
             //三个utf8
+            if ((pos + 2) >= source.size())
+            {
+                obj.push_back('"');
+                return obj;
+            }
             c[1] = (unsigned char)source[pos + 1];
             c[2] = (unsigned char)source[pos + 2];
             pos += 2;
@@ -1128,6 +1158,11 @@ std::string utf8_to_json_string(const std::string &source)
         else if (c[0] >= 0xF0 && c[0] < 0xF8)
         {
             //四个utf8
+            if ((pos + 3) >= source.size())
+            {
+                obj.push_back('"');
+                return obj;
+            }
             c[1] = (unsigned char)source[pos + 1];
             c[2] = (unsigned char)source[pos + 2];
             c[3] = (unsigned char)source[pos + 3];
