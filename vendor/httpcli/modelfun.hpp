@@ -6006,6 +6006,17 @@ headtxt += R"(
     }
 
     )";
+#define ORM_WORLD_EXPAND(x) x
+headtxt += R"(
+    #define ORM_)"; 
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(x) x 
+    )";
 
 headtxt += R"(
     #define ORM_)"; 
@@ -6036,7 +6047,15 @@ headtxt += R"(
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_PROJ_MEMBER(col) \
-          )";
+          ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND()";
     headtxt += R"(ORM_)";
     if (rmstag != "default")
     {
@@ -6045,7 +6064,7 @@ headtxt += R"(
     }
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_META_FIELD_TYPE(col) col;
+    headtxt += R"(_META_FIELD_TYPE(col)) col;
                 )";
     headtxt += R"( 
     #define ORM_)";
@@ -6070,9 +6089,18 @@ headtxt += R"(
     } 
     headtxt.append(colname_touper(tablenamebase));
 
+    headtxt += R"(_EXPAND(ORM_)";
+        
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+
     headtxt += R"(_PROJ_MEMBER(c)";
     headtxt.append(std::to_string(1));
-    headtxt += R"() 
+    headtxt += R"()) 
     )";
     for(unsigned int i=2; i<17; i++)
     {
@@ -6101,7 +6129,16 @@ headtxt += R"(
         }
 
         headtxt += R"() \
-        ORM_)";
+         ORM_)";
+            
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+
+        headtxt += R"(_EXPAND(ORM_)";
             
         if (rmstag != "default")
         {
@@ -6123,7 +6160,15 @@ headtxt += R"(
             headtxt.append(std::to_string(j));
 
         }
-        headtxt += R"() ORM_)"; 
+        headtxt += R"()) ORM_)"; 
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+
+        headtxt += R"(_EXPAND(ORM_)"; 
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
@@ -6133,7 +6178,7 @@ headtxt += R"(
 
         headtxt += R"(_PROJ_MEMBER(c)";
         headtxt.append(std::to_string(i));
-        headtxt += R"()
+        headtxt += R"())
         )";
     }
 
@@ -6160,6 +6205,13 @@ headtxt += R"(
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_PROJ_MEMBERS(...) \
         ORM_)";
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));    
+        headtxt += R"(_EXPAND(ORM_)";
     
     if (rmstag != "default")
     {
@@ -6193,7 +6245,7 @@ headtxt += R"(
         }
 
     }
-    headtxt += R"()(__VA_ARGS__)
+    headtxt += R"()(__VA_ARGS__))
 
     )";
  
@@ -6214,9 +6266,18 @@ headtxt += R"(
         headtxt.append("_");
     } 
     headtxt.append(colname_touper(tablenamebase));    
-    headtxt += R"(_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)
+    headtxt += R"(_EXPAND(ORM_)";   
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));    
+    headtxt += R"(_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
     
     )";   
+
+    // ========== JSON 序列化宏 ==========
 
     headtxt += R"(
     #define ORM_)";
@@ -6271,13 +6332,28 @@ headtxt += R"(
             headtxt.append("_");
         } 
         headtxt.append(colname_touper(tablenamebase));
-        headtxt += R"(_TO_JSON_ITEM(c1)
+        headtxt += R"(_EXPAND(ORM_)";
+
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+        headtxt += R"(_TO_JSON_ITEM(c1))
         )";  
  
 
         } else {
         headtxt += R"(
          ORM_)";
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+        headtxt += R"(_EXPAND(ORM_)";
 
         if (rmstag != "default")
         {
@@ -6294,7 +6370,7 @@ headtxt += R"(
                 headtxt.append("c");
                 headtxt.append(std::to_string(i)); 
             }
-            headtxt += R"(); \
+            headtxt += R"()); \
             oss << ','; \
             ORM_)";
 
@@ -6304,9 +6380,17 @@ headtxt += R"(
             headtxt.append("_");
         } 
         headtxt.append(colname_touper(tablenamebase));
+        headtxt += R"(_EXPAND(ORM_)";
+
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
         headtxt += R"(_TO_JSON_ITEM(c)";  
         headtxt.append(std::to_string(n)); 
-        headtxt += R"() 
+        headtxt += R"()) 
         
         )";
 
@@ -6324,6 +6408,14 @@ headtxt += R"(
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_BODY(...) \
         ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
@@ -6351,7 +6443,7 @@ headtxt += R"(
 
     }        
     headtxt += R"( \
-         )(__VA_ARGS__)
+         )(__VA_ARGS__))
          
          )"; 
 /////////
@@ -6404,7 +6496,7 @@ headtxt += R"(
         headtxt.append(") ");
         // 宏体
         if (n == 1) {
-            headtxt += R"(ORM_)";
+            headtxt += R"( ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
@@ -6412,9 +6504,25 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_CUSTOM_ITEM(n1))";
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_CUSTOM_ITEM(n1)) )";
         } else {
-            headtxt += R"(ORM_)";
+            headtxt += R"( ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
@@ -6430,7 +6538,15 @@ headtxt += R"(
                 headtxt.append("n");
                 headtxt.append(std::to_string(i));
             }
-            headtxt += R"() ORM_)";
+            headtxt += R"()) ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
@@ -6440,10 +6556,48 @@ headtxt += R"(
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_CUSTOM_ITEM(n)";
             headtxt.append(std::to_string(n));
-            headtxt.append(")");
+            headtxt.append(")) ");
         }
         headtxt.append("\n\n");
     }
+
+/*
+    #define ORM_WORLD_CAT(a, b) ORM_WORLD_CAT_(a, b)
+    #define ORM_WORLD_CAT_(a, b) a##b
+*/
+headtxt += R"(
+    #define ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_CAT(a, b) ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_CAT_(a, b)
+    #define ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_CAT_(a, b) a##b
+)";
+
+/*
+#define ORM_WORLD_TO_JSON_CUSTOM_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16, N, ...) \
+        ORM_WORLD_CAT(ORM_WORLD_TO_JSON_CUSTOM_, N)
+*/
 headtxt += R"(
     #define ORM_)";
     if (rmstag != "default")
@@ -6462,7 +6616,19 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_CUSTOM_##N
+    headtxt += R"(_CAT(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_CUSTOM_, N)
+
+    )";
+
+    headtxt += R"(
 
     #define ORM_)";
     if (rmstag != "default")
@@ -6481,7 +6647,15 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__)
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
 
 )";
 ///////
@@ -6513,7 +6687,15 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__) \
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
                 \
                 std::string to_json() const { \
                 std::ostringstream oss; \
@@ -6526,9 +6708,20 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__); \
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
                 oss << '}'; \
                 return oss.str(); \
+            } \
+            void set_val(const std::string& name, \
+                         const unsigned char* buf, size_t length) { \
             } \
             }; \
        }
@@ -6564,7 +6757,15 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__) \
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
                 CustomDecl \
                 \
                 std::string to_json() const { \
@@ -6578,8 +6779,24 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__); \
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
                 ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
@@ -6595,9 +6812,13 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_UNWRAP CustomNames)  \
+    headtxt += R"(_UNWRAP CustomNames));  \
                 oss << '}'; \
                 return oss.str(); \
+            } \
+            \
+            void set_val(const std::string& name, \
+                         const unsigned char* buf, size_t length) { \
             } \
             }; \
        }
@@ -6633,7 +6854,15 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__) \
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
                 std::vector<StructName> children; \
                 \
                 std::string to_json() const { \
@@ -6647,7 +6876,15 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__); \
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
                 oss << ",\"children\":["; \
                 for(unsigned int i=0;i< children.size(); i++){ \
                     if(i>0) oss << ','; \
@@ -6657,6 +6894,10 @@ headtxt += R"(
                 oss << '}'; \
                 return oss.str(); \
                 }\
+                \
+                void set_val(const std::string& name, \
+                         const unsigned char* buf, size_t length) { \
+                } \
             }; \
        }
         
@@ -6689,7 +6930,15 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__) \
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
                 std::vector<std::unique_ptr<StructName>> children; \
                 \
                 std::string to_json() const { \
@@ -6703,7 +6952,15 @@ headtxt += R"(
     }              
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__); \
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
                 oss << ",\"children\":["; \
                 for(unsigned int i=0;i< children.size(); i++){ \
                     if(i>0) oss << ','; \
@@ -6713,6 +6970,10 @@ headtxt += R"(
                 oss << '}'; \
                 return oss.str(); \
                 }\
+                \
+                void set_val(const std::string& name, \
+                         const unsigned char* buf, size_t length) { \
+                } \
             }; \
        }
         

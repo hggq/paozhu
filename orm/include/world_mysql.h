@@ -5,7 +5,7 @@
  *  @date 2022-05-04
  *  @update 2025-03-12
  *  @dest ORM MySQL中间连接层
- *  本文件自动生成 This document is automatically generated, Creation time (Sat, 13 Jun 2026 06:32:11 GMT)
+ *  本文件自动生成 This document is automatically generated, Creation time (Sat, 13 Jun 2026 08:33:43 GMT)
  */
 #include <iostream>
 #include <mutex>
