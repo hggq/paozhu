@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -74,16 +74,16 @@ namespace testb_info
     }
     
     namespace type {
-		using tid = decltype(std::declval<const meta>().tid);
-		using score = decltype(std::declval<const meta>().score);
-		using name = decltype(std::declval<const meta>().name);
+		using tid =  int ;
+		using score =  long long ;
+		using name =  std::string ;
 
     }
 
     
     #define ORM_CMS_TESTB_META_FIELD_TYPE(col) \
-        decltype(orm::cms::testb_info::getField<orm::cms::testb_info::cols::col>(std::declval<const orm::cms::testb_info::meta&>()))
-
+         orm::cms::testb_info::type::col 
+    
     #define ORM_CMS_TESTB_PROJ_MEMBER(col) \
           ORM_CMS_TESTB_META_FIELD_TYPE(col) col;
                  

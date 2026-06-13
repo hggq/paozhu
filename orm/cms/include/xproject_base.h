@@ -2,7 +2,7 @@
 #define ORM_CMS_XPROJECTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -206,38 +206,38 @@ namespace xproject_info
     }
     
     namespace type {
-		using xpjid = decltype(std::declval<const meta>().xpjid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using prexpjid = decltype(std::declval<const meta>().prexpjid);
-		using dpid = decltype(std::declval<const meta>().dpid);
-		using grouptype = decltype(std::declval<const meta>().grouptype);
-		using title = decltype(std::declval<const meta>().title);
-		using adminuserid = decltype(std::declval<const meta>().adminuserid);
-		using regdate = decltype(std::declval<const meta>().regdate);
-		using begindate = decltype(std::declval<const meta>().begindate);
-		using expiredate = decltype(std::declval<const meta>().expiredate);
-		using isopen = decltype(std::declval<const meta>().isopen);
-		using clientid = decltype(std::declval<const meta>().clientid);
-		using totalnum = decltype(std::declval<const meta>().totalnum);
-		using referdocverion = decltype(std::declval<const meta>().referdocverion);
-		using xtheme = decltype(std::declval<const meta>().xtheme);
-		using xlogo = decltype(std::declval<const meta>().xlogo);
-		using introduce = decltype(std::declval<const meta>().introduce);
-		using giturl = decltype(std::declval<const meta>().giturl);
-		using gitname = decltype(std::declval<const meta>().gitname);
-		using gitpwd = decltype(std::declval<const meta>().gitpwd);
-		using xcolor = decltype(std::declval<const meta>().xcolor);
-		using fupan = decltype(std::declval<const meta>().fupan);
-		using totalvalue = decltype(std::declval<const meta>().totalvalue);
-		using expectday = decltype(std::declval<const meta>().expectday);
-		using realday = decltype(std::declval<const meta>().realday);
+		using xpjid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using prexpjid =  unsigned  int ;
+		using dpid =  unsigned  int ;
+		using grouptype =  unsigned  int ;
+		using title =  std::string ;
+		using adminuserid =  unsigned  int ;
+		using regdate =  unsigned  int ;
+		using begindate =  unsigned  int ;
+		using expiredate =  unsigned  int ;
+		using isopen =  char ;
+		using clientid =  unsigned  int ;
+		using totalnum =  unsigned  int ;
+		using referdocverion =  unsigned  int ;
+		using xtheme =  unsigned  int ;
+		using xlogo =  std::string ;
+		using introduce =  std::string ;
+		using giturl =  std::string ;
+		using gitname =  std::string ;
+		using gitpwd =  std::string ;
+		using xcolor =  std::string ;
+		using fupan =  std::string ;
+		using totalvalue =  double ;
+		using expectday =  float ;
+		using realday =  float ;
 
     }
 
     
     #define ORM_CMS_XPROJECT_META_FIELD_TYPE(col) \
-        decltype(orm::cms::xproject_info::getField<orm::cms::xproject_info::cols::col>(std::declval<const orm::cms::xproject_info::meta&>()))
-
+         orm::cms::xproject_info::type::col 
+    
     #define ORM_CMS_XPROJECT_PROJ_MEMBER(col) \
           ORM_CMS_XPROJECT_META_FIELD_TYPE(col) col;
                  

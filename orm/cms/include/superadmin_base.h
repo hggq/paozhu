@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -140,27 +140,27 @@ namespace superadmin_info
     }
     
     namespace type {
-		using adminid = decltype(std::declval<const meta>().adminid);
-		using name = decltype(std::declval<const meta>().name);
-		using password = decltype(std::declval<const meta>().password);
-		using nickname = decltype(std::declval<const meta>().nickname);
-		using isopen = decltype(std::declval<const meta>().isopen);
-		using begindate = decltype(std::declval<const meta>().begindate);
-		using enddate = decltype(std::declval<const meta>().enddate);
-		using regdate = decltype(std::declval<const meta>().regdate);
-		using mobile = decltype(std::declval<const meta>().mobile);
-		using email = decltype(std::declval<const meta>().email);
-		using loginnum = decltype(std::declval<const meta>().loginnum);
-		using qrtemp = decltype(std::declval<const meta>().qrtemp);
-		using wxuuid = decltype(std::declval<const meta>().wxuuid);
-		using basesitepath = decltype(std::declval<const meta>().basesitepath);
+		using adminid =  unsigned  int ;
+		using name =  std::string ;
+		using password =  std::string ;
+		using nickname =  std::string ;
+		using isopen =  char ;
+		using begindate =  unsigned  int ;
+		using enddate =  unsigned  int ;
+		using regdate =  std::string ;
+		using mobile =  std::string ;
+		using email =  std::string ;
+		using loginnum =  unsigned  int ;
+		using qrtemp =  unsigned  int ;
+		using wxuuid =  std::string ;
+		using basesitepath =  std::string ;
 
     }
 
     
     #define ORM_CMS_SUPERADMIN_META_FIELD_TYPE(col) \
-        decltype(orm::cms::superadmin_info::getField<orm::cms::superadmin_info::cols::col>(std::declval<const orm::cms::superadmin_info::meta&>()))
-
+         orm::cms::superadmin_info::type::col 
+    
     #define ORM_CMS_SUPERADMIN_PROJ_MEMBER(col) \
           ORM_CMS_SUPERADMIN_META_FIELD_TYPE(col) col;
                  

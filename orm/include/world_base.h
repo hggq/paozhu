@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:28 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:11 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -23,113 +23,115 @@ namespace orm {
     
 namespace world_info
 {
-    enum class cols : unsigned char
+ 
+    enum class cols : unsigned char 
     {
-        id = 0,
-        randomnumber = 1,
+		id = 0,
+		randomnumber = 1,
+
     };
 
     struct meta
     {
-        unsigned int id = 0; ///**/
-        int randomnumber = 0; ///**/
-    };
-
+		 unsigned  int  id = 0; ///**/
+		 int  randomnumber = 0; ///**/
+	};
+  
     struct meta_tree
     {
-        unsigned int id = 0; ///**/
-        int randomnumber = 0; ///**/
-        std::vector<meta_tree> children;
-    };
+		 unsigned  int  id = 0; ///**/
+		 int  randomnumber = 0; ///**/
 
+	 std::vector<meta_tree> children;
+ };
+  
     struct meta_tree_ptr
     {
-        unsigned int id = 0; ///**/
-        int randomnumber = 0; ///**/
-        std::vector<std::unique_ptr<meta_tree>> children;
-    };
+		 unsigned  int  id = 0; ///**/
+		 int  randomnumber = 0; ///**/
 
+	 std::vector<std::unique_ptr<meta_tree>> children;
+ };
+ 
     template<cols Col>
-    auto getField(const meta& m)
+    auto getField(const meta& m) 
     {
-        if constexpr (Col == cols::id) {
-            return m.id;
-        } else if constexpr (Col == cols::randomnumber) {
-            return m.randomnumber;
+    	if constexpr (Col == cols::id) { 
+		 return m.id;
+		} else if constexpr (Col == cols::randomnumber) { 
+		 return m.randomnumber;
+		
         } else {
             static_assert(false, "Unsupported column type");
         }
     }
-
+    
     namespace type {
-        using id = decltype(std::declval<const meta>().id);
-        using randomnumber = decltype(std::declval<const meta>().randomnumber);
+		using id =  unsigned  int ;
+		using randomnumber =  int ;
+
     }
 
-    // ========== MSVC 兼容宏定义开始 ==========
-
-    // 强制展开辅助宏，对 GCC/Clang 无副作用
-    #define ORM_WORLD_EXPAND(x) x
-
-    // 使用 type namespace 代替 getField + decltype，避开 MSVC 枚举拼接问题
+    
     #define ORM_WORLD_META_FIELD_TYPE(col) \
-        orm::world_info::type::col
-
+         orm::world_info::type::col 
+    
     #define ORM_WORLD_PROJ_MEMBER(col) \
-        ORM_WORLD_EXPAND(ORM_WORLD_META_FIELD_TYPE(col)) col;
-
+          ORM_WORLD_META_FIELD_TYPE(col) col;
+                 
     #define ORM_WORLD_PROJ_MEMBERS_1(c1) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c1))
-
-    #define ORM_WORLD_PROJ_MEMBERS_2(c1, c2) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_1(c1)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c2))
-
-    #define ORM_WORLD_PROJ_MEMBERS_3(c1, c2, c3) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_2(c1, c2)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c3))
-
-    #define ORM_WORLD_PROJ_MEMBERS_4(c1, c2, c3, c4) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_3(c1, c2, c3)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c4))
-
-    #define ORM_WORLD_PROJ_MEMBERS_5(c1, c2, c3, c4, c5) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_4(c1, c2, c3, c4)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c5))
-
-    #define ORM_WORLD_PROJ_MEMBERS_6(c1, c2, c3, c4, c5, c6) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_5(c1, c2, c3, c4, c5)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c6))
-
-    #define ORM_WORLD_PROJ_MEMBERS_7(c1, c2, c3, c4, c5, c6, c7) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_6(c1, c2, c3, c4, c5, c6)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c7))
-
-    #define ORM_WORLD_PROJ_MEMBERS_8(c1, c2, c3, c4, c5, c6, c7, c8) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_7(c1, c2, c3, c4, c5, c6, c7)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c8))
-
-    #define ORM_WORLD_PROJ_MEMBERS_9(c1, c2, c3, c4, c5, c6, c7, c8, c9) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_8(c1, c2, c3, c4, c5, c6, c7, c8)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c9))
-
-    #define ORM_WORLD_PROJ_MEMBERS_10(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_9(c1, c2, c3, c4, c5, c6, c7, c8, c9)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c10))
-
-    #define ORM_WORLD_PROJ_MEMBERS_11(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_10(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c11))
-
-    #define ORM_WORLD_PROJ_MEMBERS_12(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_11(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c12))
-
-    #define ORM_WORLD_PROJ_MEMBERS_13(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_12(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c13))
-
-    #define ORM_WORLD_PROJ_MEMBERS_14(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_13(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c14))
-
-    #define ORM_WORLD_PROJ_MEMBERS_15(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_14(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c15))
-
-    #define ORM_WORLD_PROJ_MEMBERS_16(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_15(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c16))
-
-    #define ORM_WORLD_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME
-
+        ORM_WORLD_PROJ_MEMBER(c1) 
+     
+    #define ORM_WORLD_PROJ_MEMBERS_2( c1, c2) \
+        ORM_WORLD_PROJ_MEMBERS_1( c1) ORM_WORLD_PROJ_MEMBER(c2)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_3( c1, c2, c3) \
+        ORM_WORLD_PROJ_MEMBERS_2( c1, c2) ORM_WORLD_PROJ_MEMBER(c3)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_4( c1, c2, c3, c4) \
+        ORM_WORLD_PROJ_MEMBERS_3( c1, c2, c3) ORM_WORLD_PROJ_MEMBER(c4)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) \
+        ORM_WORLD_PROJ_MEMBERS_4( c1, c2, c3, c4) ORM_WORLD_PROJ_MEMBER(c5)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) \
+        ORM_WORLD_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) ORM_WORLD_PROJ_MEMBER(c6)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) \
+        ORM_WORLD_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) ORM_WORLD_PROJ_MEMBER(c7)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) \
+        ORM_WORLD_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) ORM_WORLD_PROJ_MEMBER(c8)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) \
+        ORM_WORLD_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) ORM_WORLD_PROJ_MEMBER(c9)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) \
+        ORM_WORLD_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) ORM_WORLD_PROJ_MEMBER(c10)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) \
+        ORM_WORLD_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) ORM_WORLD_PROJ_MEMBER(c11)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) \
+        ORM_WORLD_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ORM_WORLD_PROJ_MEMBER(c12)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) \
+        ORM_WORLD_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) ORM_WORLD_PROJ_MEMBER(c13)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) \
+        ORM_WORLD_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) ORM_WORLD_PROJ_MEMBER(c14)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) \
+        ORM_WORLD_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) ORM_WORLD_PROJ_MEMBER(c15)
+         
+    #define ORM_WORLD_PROJ_MEMBERS_16( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) \
+        ORM_WORLD_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) ORM_WORLD_PROJ_MEMBER(c16)
+         
+    #define ORM_WORLD_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    
+     
     #define ORM_WORLD_PROJ_MEMBERS(...) \
-        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, \
+        ORM_WORLD_GET_MACRO(__VA_ARGS__, \
             ORM_WORLD_PROJ_MEMBERS_16, \
             ORM_WORLD_PROJ_MEMBERS_15, \
             ORM_WORLD_PROJ_MEMBERS_14, \
@@ -146,219 +148,243 @@ namespace world_info
             ORM_WORLD_PROJ_MEMBERS_3, \
             ORM_WORLD_PROJ_MEMBERS_2, \
             ORM_WORLD_PROJ_MEMBERS_1, \
-        )(__VA_ARGS__))
+        )(__VA_ARGS__)
 
+    
     #define ORM_WORLD_COUNT(...) \
-        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
-
-    // ========== JSON 序列化宏 ==========
-
+        ORM_WORLD_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)
+    
+    
     #define ORM_WORLD_TO_JSON_ITEM(c) \
         oss << "\"" #c "\":" << http::to_json_value(c)
-
+    
     #define ORM_WORLD_TO_JSON_1(c1) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c1))
-
+         ORM_WORLD_TO_JSON_ITEM(c1)
+        
     #define ORM_WORLD_TO_JSON_2(c1,c2) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_1(c1)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c2))
-
+         ORM_WORLD_TO_JSON_1(c1); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c2) 
+        
+        
     #define ORM_WORLD_TO_JSON_3(c1,c2,c3) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_2(c1,c2)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c3))
-
+         ORM_WORLD_TO_JSON_2(c1,c2); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c3) 
+        
+        
     #define ORM_WORLD_TO_JSON_4(c1,c2,c3,c4) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_3(c1,c2,c3)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c4))
-
+         ORM_WORLD_TO_JSON_3(c1,c2,c3); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c4) 
+        
+        
     #define ORM_WORLD_TO_JSON_5(c1,c2,c3,c4,c5) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_4(c1,c2,c3,c4)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c5))
-
+         ORM_WORLD_TO_JSON_4(c1,c2,c3,c4); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c5) 
+        
+        
     #define ORM_WORLD_TO_JSON_6(c1,c2,c3,c4,c5,c6) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_5(c1,c2,c3,c4,c5)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c6))
-
+         ORM_WORLD_TO_JSON_5(c1,c2,c3,c4,c5); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c6) 
+        
+        
     #define ORM_WORLD_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_6(c1,c2,c3,c4,c5,c6)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c7))
-
+         ORM_WORLD_TO_JSON_6(c1,c2,c3,c4,c5,c6); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c7) 
+        
+        
     #define ORM_WORLD_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c8))
-
+         ORM_WORLD_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c8) 
+        
+        
     #define ORM_WORLD_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c9))
-
+         ORM_WORLD_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c9) 
+        
+        
     #define ORM_WORLD_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c10))
-
+         ORM_WORLD_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c10) 
+        
+        
     #define ORM_WORLD_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c11))
-
+         ORM_WORLD_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c11) 
+        
+        
     #define ORM_WORLD_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c12))
-
+         ORM_WORLD_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c12) 
+        
+        
     #define ORM_WORLD_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c13))
-
+         ORM_WORLD_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c13) 
+        
+        
     #define ORM_WORLD_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c14))
-
+         ORM_WORLD_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c14) 
+        
+        
     #define ORM_WORLD_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c15))
-
+         ORM_WORLD_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c15) 
+        
+        
     #define ORM_WORLD_TO_JSON_16(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15)); \
-        oss << ','; \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c16))
-
+         ORM_WORLD_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15); \
+            oss << ','; \
+            ORM_WORLD_TO_JSON_ITEM(c16) 
+        
+        
     #define ORM_WORLD_TO_JSON_BODY(...) \
-        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, \
-            ORM_WORLD_TO_JSON_16,ORM_WORLD_TO_JSON_15,ORM_WORLD_TO_JSON_14,ORM_WORLD_TO_JSON_13, \
-            ORM_WORLD_TO_JSON_12,ORM_WORLD_TO_JSON_11,ORM_WORLD_TO_JSON_10,ORM_WORLD_TO_JSON_9, \
-            ORM_WORLD_TO_JSON_8,ORM_WORLD_TO_JSON_7,ORM_WORLD_TO_JSON_6,ORM_WORLD_TO_JSON_5, \
-            ORM_WORLD_TO_JSON_4,ORM_WORLD_TO_JSON_3,ORM_WORLD_TO_JSON_2,ORM_WORLD_TO_JSON_1 \
-        )(__VA_ARGS__))
-
-    // ========== Custom JSON 宏 ==========
-
-    #define ORM_WORLD_UNWRAP(...) __VA_ARGS__
+        ORM_WORLD_GET_MACRO(__VA_ARGS__, \
+            ORM_WORLD_TO_JSON_16,ORM_WORLD_TO_JSON_15,ORM_WORLD_TO_JSON_14,ORM_WORLD_TO_JSON_13,ORM_WORLD_TO_JSON_12,ORM_WORLD_TO_JSON_11,ORM_WORLD_TO_JSON_10,ORM_WORLD_TO_JSON_9,ORM_WORLD_TO_JSON_8,ORM_WORLD_TO_JSON_7,ORM_WORLD_TO_JSON_6,ORM_WORLD_TO_JSON_5,ORM_WORLD_TO_JSON_4,ORM_WORLD_TO_JSON_3,ORM_WORLD_TO_JSON_2,ORM_WORLD_TO_JSON_1 \
+         )(__VA_ARGS__)
+         
+          
+    #define ORM_WORLD_UNWRAP(...) __VA_ARGS__  
 
     #define ORM_WORLD_TO_JSON_CUSTOM_ITEM(name) \
         oss << ",\"" #name "\":" << http::to_json_value(name);
 
-    #define ORM_WORLD_TO_JSON_CUSTOM_1(n1) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n1))
-    #define ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_1(n1)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n2))
-    #define ORM_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n3))
-    #define ORM_WORLD_TO_JSON_CUSTOM_4(n1,n2,n3,n4) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n4))
-    #define ORM_WORLD_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_4(n1,n2,n3,n4)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n5))
-    #define ORM_WORLD_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n6))
-    #define ORM_WORLD_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n7))
-    #define ORM_WORLD_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n8))
-    #define ORM_WORLD_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n9))
-    #define ORM_WORLD_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n10))
-    #define ORM_WORLD_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n11))
-    #define ORM_WORLD_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n12))
-    #define ORM_WORLD_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n13))
-    #define ORM_WORLD_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n14))
-    #define ORM_WORLD_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n15))
-    #define ORM_WORLD_TO_JSON_CUSTOM_16(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n16))
+    #define ORM_WORLD_TO_JSON_CUSTOM_1(n1) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n1)
 
-    // ⚠️ 注意：这里不能用 ORM_WORLD_EXPAND 包裹 ## 操作，否则 token pasting 会失败
-    // 改用间接层 CAT 来安全拼接
-    #define ORM_WORLD_CAT(a, b) ORM_WORLD_CAT_(a, b)
-    #define ORM_WORLD_CAT_(a, b) a##b
+#define ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2) ORM_WORLD_TO_JSON_CUSTOM_1(n1) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n2)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3) ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n3)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_4(n1,n2,n3,n4) ORM_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n4)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5) ORM_WORLD_TO_JSON_CUSTOM_4(n1,n2,n3,n4) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n5)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6) ORM_WORLD_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n6)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7) ORM_WORLD_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n7)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8) ORM_WORLD_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n8)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9) ORM_WORLD_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n9)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10) ORM_WORLD_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n10)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11) ORM_WORLD_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n11)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12) ORM_WORLD_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n12)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13) ORM_WORLD_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n13)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14) ORM_WORLD_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n14)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15) ORM_WORLD_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n15)
+
+#define ORM_WORLD_TO_JSON_CUSTOM_16(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16) ORM_WORLD_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15) ORM_WORLD_TO_JSON_CUSTOM_ITEM(n16)
+
 
     #define ORM_WORLD_TO_JSON_CUSTOM_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16, N, ...) \
-        ORM_WORLD_CAT(ORM_WORLD_TO_JSON_CUSTOM_, N)
+        ORM_WORLD_TO_JSON_CUSTOM_##N
 
     #define ORM_WORLD_TO_JSON_CUSTOM(...) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+        ORM_WORLD_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__)
 
-    // ========== 结构体定义宏 ==========
 
     #define ORM_WORLD_DEFINE_STRUCT(StructName, ...) \
         namespace orm::world_info { \
             struct StructName { \
-                ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__) \
                 \
                 std::string to_json() const { \
-                    std::ostringstream oss; \
-                    oss << '{'; \
-                    ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
-                    oss << '}'; \
-                    return oss.str(); \
-                } \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_WORLD_TO_JSON_BODY(__VA_ARGS__); \
+                oss << '}'; \
+                return oss.str(); \
+            } \
             }; \
-        }
-
+       }
+        
+    
     #define ORM_WORLD_SELF_STRUCT(StructName, CustomDecl, CustomNames, ...) \
         namespace orm::world_info { \
             struct StructName { \
-                ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__) \
                 CustomDecl \
                 \
                 std::string to_json() const { \
-                    std::ostringstream oss; \
-                    oss << '{'; \
-                    ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
-                    ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM(ORM_WORLD_UNWRAP CustomNames)); \
-                    oss << '}'; \
-                    return oss.str(); \
-                } \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_WORLD_TO_JSON_BODY(__VA_ARGS__); \
+                ORM_WORLD_TO_JSON_CUSTOM(ORM_WORLD_UNWRAP CustomNames)  \
+                oss << '}'; \
+                return oss.str(); \
+            } \
             }; \
-        }
-
+       }
+        
+    
     #define ORM_WORLD_TREE_STRUCT(StructName, ...) \
         namespace orm::world_info { \
             struct StructName { \
-                ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__) \
                 std::vector<StructName> children; \
                 \
                 std::string to_json() const { \
-                    std::ostringstream oss; \
-                    oss << '{'; \
-                    ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
-                    oss << ",\"children\":["; \
-                    for(unsigned int i=0;i< children.size(); i++){ \
-                        if(i>0) oss << ','; \
-                        oss << children[i].to_json(); \
-                    } \
-                    oss << ']'; \
-                    oss << '}'; \
-                    return oss.str(); \
-                } \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_WORLD_TO_JSON_BODY(__VA_ARGS__); \
+                oss << ",\"children\":["; \
+                for(unsigned int i=0;i< children.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << children[i].to_json(); \
+                }\
+                oss << ']'; \
+                oss << '}'; \
+                return oss.str(); \
+                }\
             }; \
-        }
-
+       }
+        
+    
     #define ORM_WORLD_TREE_PTR_STRUCT(StructName, ...) \
         namespace orm::world_info { \
             struct StructName { \
-                ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__) \
                 std::vector<std::unique_ptr<StructName>> children; \
                 \
                 std::string to_json() const { \
-                    std::ostringstream oss; \
-                    oss << '{'; \
-                    ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
-                    oss << ",\"children\":["; \
-                    for(unsigned int i=0;i< children.size(); i++){ \
-                        if(i>0) oss << ','; \
-                        oss << children[i]->to_json(); \
-                    } \
-                    oss << ']'; \
-                    oss << '}'; \
-                    return oss.str(); \
-                } \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_WORLD_TO_JSON_BODY(__VA_ARGS__); \
+                oss << ",\"children\":["; \
+                for(unsigned int i=0;i< children.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << children[i]->to_json(); \
+                }\
+                oss << ']'; \
+                oss << '}'; \
+                return oss.str(); \
+                }\
             }; \
-        }
-
+       }
+        
     static constexpr std::array<std::string_view,2> col_names={"id","randomnumber"};
-    static constexpr std::array<unsigned char,2> col_types={3,3};
-    static constexpr std::array<unsigned char,2> col_length={0,0};
-    static constexpr std::array<unsigned char,2> col_decimals={0,0};
+	static constexpr std::array<unsigned char,2> col_types={3,3};
+	static constexpr std::array<unsigned char,2> col_length={0,0};
+	static constexpr std::array<unsigned char,2> col_decimals={0,0};
 
 }
 

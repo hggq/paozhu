@@ -5995,9 +5995,11 @@ headtxt += R"(
         {
             headtxt.append("\t\tusing ");
             headtxt.append(table_column_info_lists[j].col_name);
-            headtxt.append(" = decltype(std::declval<const meta>().");
-            headtxt.append(table_column_info_lists[j].col_name);
-            headtxt.append(");\n");
+            // headtxt.append(" = decltype(std::declval<const meta>().");
+            // headtxt.append(table_column_info_lists[j].col_name);
+            headtxt.append(" = ");
+            headtxt.append(collisttype[j]);
+            headtxt.append(";\n");
         }
 
 headtxt += R"(
@@ -6014,7 +6016,7 @@ headtxt += R"(
     }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_META_FIELD_TYPE(col) \
-        decltype(orm::)";
+         orm::)";
     if (rmstag != "default")
     {
         headtxt.append(rmstag);
@@ -6022,23 +6024,9 @@ headtxt += R"(
     }        
 
     headtxt.append(tablenamebase);
-    headtxt.append("_info::");
-    headtxt += R"(getField<orm::)";
-    if (rmstag != "default")
-    {
-        headtxt.append(rmstag);
-        headtxt.append("::");
-    }
-    headtxt.append(tablenamebase);
-    headtxt += R"(_info::cols::col>(std::declval<const orm::)";
-    if (rmstag != "default")
-    {
-        headtxt.append(rmstag);
-        headtxt.append("::");
-    }
-    headtxt.append(tablenamebase);
-    headtxt += R"(_info::meta&>()))
-
+    headtxt.append("_info::type::col");
+    headtxt += R"( 
+    
     #define ORM_)";
     if (rmstag != "default")
     {

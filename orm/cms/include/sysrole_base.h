@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -98,20 +98,20 @@ namespace sysrole_info
     }
     
     namespace type {
-		using roleid = decltype(std::declval<const meta>().roleid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using name = decltype(std::declval<const meta>().name);
-		using status = decltype(std::declval<const meta>().status);
-		using rolecode = decltype(std::declval<const meta>().rolecode);
-		using sortid = decltype(std::declval<const meta>().sortid);
-		using rolevalue = decltype(std::declval<const meta>().rolevalue);
+		using roleid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using name =  std::string ;
+		using status =  unsigned  char ;
+		using rolecode =  unsigned  long long ;
+		using sortid =  int ;
+		using rolevalue =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_SYSROLE_META_FIELD_TYPE(col) \
-        decltype(orm::cms::sysrole_info::getField<orm::cms::sysrole_info::cols::col>(std::declval<const orm::cms::sysrole_info::meta&>()))
-
+         orm::cms::sysrole_info::type::col 
+    
     #define ORM_CMS_SYSROLE_PROJ_MEMBER(col) \
           ORM_CMS_SYSROLE_META_FIELD_TYPE(col) col;
                  

@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -164,31 +164,31 @@ namespace topic_info
     }
     
     namespace type {
-		using topicid = decltype(std::declval<const meta>().topicid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using parentid = decltype(std::declval<const meta>().parentid);
-		using cateid = decltype(std::declval<const meta>().cateid);
-		using sorttype = decltype(std::declval<const meta>().sorttype);
-		using languagetype = decltype(std::declval<const meta>().languagetype);
-		using isview = decltype(std::declval<const meta>().isview);
-		using isside = decltype(std::declval<const meta>().isside);
-		using sortid = decltype(std::declval<const meta>().sortid);
-		using title = decltype(std::declval<const meta>().title);
-		using twotitle = decltype(std::declval<const meta>().twotitle);
-		using memo = decltype(std::declval<const meta>().memo);
-		using templatename = decltype(std::declval<const meta>().templatename);
-		using url = decltype(std::declval<const meta>().url);
-		using urlpath = decltype(std::declval<const meta>().urlpath);
-		using imgurl = decltype(std::declval<const meta>().imgurl);
-		using topimg = decltype(std::declval<const meta>().topimg);
-		using accesscode = decltype(std::declval<const meta>().accesscode);
+		using topicid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using parentid =  unsigned  int ;
+		using cateid =  unsigned  int ;
+		using sorttype =  unsigned  char ;
+		using languagetype =  unsigned  int ;
+		using isview =  unsigned  char ;
+		using isside =  unsigned  char ;
+		using sortid =  unsigned  int ;
+		using title =  std::string ;
+		using twotitle =  std::string ;
+		using memo =  std::string ;
+		using templatename =  std::string ;
+		using url =  std::string ;
+		using urlpath =  std::string ;
+		using imgurl =  std::string ;
+		using topimg =  std::string ;
+		using accesscode =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_TOPIC_META_FIELD_TYPE(col) \
-        decltype(orm::cms::topic_info::getField<orm::cms::topic_info::cols::col>(std::declval<const orm::cms::topic_info::meta&>()))
-
+         orm::cms::topic_info::type::col 
+    
     #define ORM_CMS_TOPIC_PROJ_MEMBER(col) \
           ORM_CMS_TOPIC_META_FIELD_TYPE(col) col;
                  

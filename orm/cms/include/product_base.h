@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -200,37 +200,37 @@ namespace product_info
     }
     
     namespace type {
-		using pid = decltype(std::declval<const meta>().pid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using topicid = decltype(std::declval<const meta>().topicid);
-		using bigid = decltype(std::declval<const meta>().bigid);
-		using smallid = decltype(std::declval<const meta>().smallid);
-		using brandid = decltype(std::declval<const meta>().brandid);
-		using isview = decltype(std::declval<const meta>().isview);
-		using isstore = decltype(std::declval<const meta>().isstore);
-		using ishome = decltype(std::declval<const meta>().ishome);
-		using showtype = decltype(std::declval<const meta>().showtype);
-		using sntype = decltype(std::declval<const meta>().sntype);
-		using name = decltype(std::declval<const meta>().name);
-		using keywords = decltype(std::declval<const meta>().keywords);
-		using introduce = decltype(std::declval<const meta>().introduce);
-		using listimg = decltype(std::declval<const meta>().listimg);
-		using bigimg = decltype(std::declval<const meta>().bigimg);
-		using maincontent = decltype(std::declval<const meta>().maincontent);
-		using paracontent = decltype(std::declval<const meta>().paracontent);
-		using samepro = decltype(std::declval<const meta>().samepro);
-		using attatchfiles = decltype(std::declval<const meta>().attatchfiles);
-		using price = decltype(std::declval<const meta>().price);
-		using sortid = decltype(std::declval<const meta>().sortid);
-		using adddate = decltype(std::declval<const meta>().adddate);
-		using editdate = decltype(std::declval<const meta>().editdate);
+		using pid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using topicid =  unsigned  int ;
+		using bigid =  unsigned  int ;
+		using smallid =  unsigned  int ;
+		using brandid =  unsigned  int ;
+		using isview =  char ;
+		using isstore =  char ;
+		using ishome =  unsigned  char ;
+		using showtype =  char ;
+		using sntype =  std::string ;
+		using name =  std::string ;
+		using keywords =  std::string ;
+		using introduce =  std::string ;
+		using listimg =  std::string ;
+		using bigimg =  std::string ;
+		using maincontent =  std::string ;
+		using paracontent =  std::string ;
+		using samepro =  std::string ;
+		using attatchfiles =  std::string ;
+		using price =  unsigned  int ;
+		using sortid =  unsigned  int ;
+		using adddate =  std::string ;
+		using editdate =  std::string ;
 
     }
 
     
     #define ORM_CMS_PRODUCT_META_FIELD_TYPE(col) \
-        decltype(orm::cms::product_info::getField<orm::cms::product_info::cols::col>(std::declval<const orm::cms::product_info::meta&>()))
-
+         orm::cms::product_info::type::col 
+    
     #define ORM_CMS_PRODUCT_PROJ_MEMBER(col) \
           ORM_CMS_PRODUCT_META_FIELD_TYPE(col) col;
                  

@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -92,19 +92,19 @@ namespace testa_info
     }
     
     namespace type {
-		using id = decltype(std::declval<const meta>().id);
-		using parentid = decltype(std::declval<const meta>().parentid);
-		using value_id = decltype(std::declval<const meta>().value_id);
-		using content = decltype(std::declval<const meta>().content);
-		using deleted = decltype(std::declval<const meta>().deleted);
-		using deletetime = decltype(std::declval<const meta>().deletetime);
+		using id =  unsigned  int ;
+		using parentid =  unsigned  int ;
+		using value_id =  char ;
+		using content =  std::string ;
+		using deleted =  unsigned  char ;
+		using deletetime =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_TESTA_META_FIELD_TYPE(col) \
-        decltype(orm::cms::testa_info::getField<orm::cms::testa_info::cols::col>(std::declval<const orm::cms::testa_info::meta&>()))
-
+         orm::cms::testa_info::type::col 
+    
     #define ORM_CMS_TESTA_PROJ_MEMBER(col) \
           ORM_CMS_TESTA_META_FIELD_TYPE(col) col;
                  

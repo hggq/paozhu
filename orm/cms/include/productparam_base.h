@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTPARAMBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -122,24 +122,24 @@ namespace productparam_info
     }
     
     namespace type {
-		using ppid = decltype(std::declval<const meta>().ppid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using pid = decltype(std::declval<const meta>().pid);
-		using imgurl = decltype(std::declval<const meta>().imgurl);
-		using price = decltype(std::declval<const meta>().price);
-		using attachfiles = decltype(std::declval<const meta>().attachfiles);
-		using name = decltype(std::declval<const meta>().name);
-		using attachdate = decltype(std::declval<const meta>().attachdate);
-		using sortid = decltype(std::declval<const meta>().sortid);
-		using filesize = decltype(std::declval<const meta>().filesize);
-		using fileext = decltype(std::declval<const meta>().fileext);
+		using ppid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using pid =  unsigned  int ;
+		using imgurl =  std::string ;
+		using price =  unsigned  long long ;
+		using attachfiles =  std::string ;
+		using name =  std::string ;
+		using attachdate =  std::string ;
+		using sortid =  int ;
+		using filesize =  unsigned  int ;
+		using fileext =  std::string ;
 
     }
 
     
     #define ORM_CMS_PRODUCTPARAM_META_FIELD_TYPE(col) \
-        decltype(orm::cms::productparam_info::getField<orm::cms::productparam_info::cols::col>(std::declval<const orm::cms::productparam_info::meta&>()))
-
+         orm::cms::productparam_info::type::col 
+    
     #define ORM_CMS_PRODUCTPARAM_PROJ_MEMBER(col) \
           ORM_CMS_PRODUCTPARAM_META_FIELD_TYPE(col) col;
                  

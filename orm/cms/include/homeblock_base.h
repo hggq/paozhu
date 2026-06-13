@@ -2,7 +2,7 @@
 #define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -128,25 +128,25 @@ namespace homeblock_info
     }
     
     namespace type {
-		using hbid = decltype(std::declval<const meta>().hbid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using title = decltype(std::declval<const meta>().title);
-		using content = decltype(std::declval<const meta>().content);
-		using jsonconfig = decltype(std::declval<const meta>().jsonconfig);
-		using viewtype = decltype(std::declval<const meta>().viewtype);
-		using gettype = decltype(std::declval<const meta>().gettype);
-		using rownum = decltype(std::declval<const meta>().rownum);
-		using width = decltype(std::declval<const meta>().width);
-		using height = decltype(std::declval<const meta>().height);
-		using strlength = decltype(std::declval<const meta>().strlength);
-		using sortid = decltype(std::declval<const meta>().sortid);
+		using hbid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using title =  std::string ;
+		using content =  std::string ;
+		using jsonconfig =  std::string ;
+		using viewtype =  unsigned  char ;
+		using gettype =  unsigned  char ;
+		using rownum =  unsigned  int ;
+		using width =  unsigned  int ;
+		using height =  unsigned  int ;
+		using strlength =  unsigned  int ;
+		using sortid =  int ;
 
     }
 
     
     #define ORM_CMS_HOMEBLOCK_META_FIELD_TYPE(col) \
-        decltype(orm::cms::homeblock_info::getField<orm::cms::homeblock_info::cols::col>(std::declval<const orm::cms::homeblock_info::meta&>()))
-
+         orm::cms::homeblock_info::type::col 
+    
     #define ORM_CMS_HOMEBLOCK_PROJ_MEMBER(col) \
           ORM_CMS_HOMEBLOCK_META_FIELD_TYPE(col) col;
                  

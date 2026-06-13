@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -116,23 +116,23 @@ namespace logininfo_info
     }
     
     namespace type {
-		using lgid = decltype(std::declval<const meta>().lgid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using logtype = decltype(std::declval<const meta>().logtype);
-		using username = decltype(std::declval<const meta>().username);
-		using addtime = decltype(std::declval<const meta>().addtime);
-		using addip = decltype(std::declval<const meta>().addip);
-		using addregion = decltype(std::declval<const meta>().addregion);
-		using loginstate = decltype(std::declval<const meta>().loginstate);
-		using agent = decltype(std::declval<const meta>().agent);
-		using urlpath = decltype(std::declval<const meta>().urlpath);
+		using lgid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using logtype =  unsigned  char ;
+		using username =  std::string ;
+		using addtime =  std::string ;
+		using addip =  std::string ;
+		using addregion =  std::string ;
+		using loginstate =  std::string ;
+		using agent =  std::string ;
+		using urlpath =  std::string ;
 
     }
 
     
     #define ORM_CMS_LOGININFO_META_FIELD_TYPE(col) \
-        decltype(orm::cms::logininfo_info::getField<orm::cms::logininfo_info::cols::col>(std::declval<const orm::cms::logininfo_info::meta&>()))
-
+         orm::cms::logininfo_info::type::col 
+    
     #define ORM_CMS_LOGININFO_PROJ_MEMBER(col) \
           ORM_CMS_LOGININFO_META_FIELD_TYPE(col) col;
                  

@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -182,34 +182,34 @@ namespace sysuser_info
     }
     
     namespace type {
-		using adminid = decltype(std::declval<const meta>().adminid);
-		using name = decltype(std::declval<const meta>().name);
-		using password = decltype(std::declval<const meta>().password);
-		using textword = decltype(std::declval<const meta>().textword);
-		using isopen = decltype(std::declval<const meta>().isopen);
-		using level = decltype(std::declval<const meta>().level);
-		using companyid = decltype(std::declval<const meta>().companyid);
-		using dpid = decltype(std::declval<const meta>().dpid);
-		using jobid = decltype(std::declval<const meta>().jobid);
-		using roleid = decltype(std::declval<const meta>().roleid);
-		using postid = decltype(std::declval<const meta>().postid);
-		using created_at = decltype(std::declval<const meta>().created_at);
-		using enddate = decltype(std::declval<const meta>().enddate);
-		using qrtemp = decltype(std::declval<const meta>().qrtemp);
-		using gender = decltype(std::declval<const meta>().gender);
-		using nickname = decltype(std::declval<const meta>().nickname);
-		using realname = decltype(std::declval<const meta>().realname);
-		using avatar = decltype(std::declval<const meta>().avatar);
-		using mobile = decltype(std::declval<const meta>().mobile);
-		using email = decltype(std::declval<const meta>().email);
-		using wxuuid = decltype(std::declval<const meta>().wxuuid);
+		using adminid =  unsigned  int ;
+		using name =  std::string ;
+		using password =  std::string ;
+		using textword =  std::string ;
+		using isopen =  char ;
+		using level =  int ;
+		using companyid =  unsigned  int ;
+		using dpid =  unsigned  int ;
+		using jobid =  unsigned  int ;
+		using roleid =  unsigned  int ;
+		using postid =  unsigned  int ;
+		using created_at =  unsigned  int ;
+		using enddate =  unsigned  int ;
+		using qrtemp =  unsigned  int ;
+		using gender =  unsigned  char ;
+		using nickname =  std::string ;
+		using realname =  std::string ;
+		using avatar =  std::string ;
+		using mobile =  std::string ;
+		using email =  std::string ;
+		using wxuuid =  std::string ;
 
     }
 
     
     #define ORM_CMS_SYSUSER_META_FIELD_TYPE(col) \
-        decltype(orm::cms::sysuser_info::getField<orm::cms::sysuser_info::cols::col>(std::declval<const orm::cms::sysuser_info::meta&>()))
-
+         orm::cms::sysuser_info::type::col 
+    
     #define ORM_CMS_SYSUSER_PROJ_MEMBER(col) \
           ORM_CMS_SYSUSER_META_FIELD_TYPE(col) col;
                  

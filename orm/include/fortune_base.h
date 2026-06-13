@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:28 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:11 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -67,15 +67,15 @@ namespace fortune_info
     }
     
     namespace type {
-		using id = decltype(std::declval<const meta>().id);
-		using message = decltype(std::declval<const meta>().message);
+		using id =  unsigned  int ;
+		using message =  std::string ;
 
     }
 
     
     #define ORM_FORTUNE_META_FIELD_TYPE(col) \
-        decltype(orm::fortune_info::getField<orm::fortune_info::cols::col>(std::declval<const orm::fortune_info::meta&>()))
-
+         orm::fortune_info::type::col 
+    
     #define ORM_FORTUNE_PROJ_MEMBER(col) \
           ORM_FORTUNE_META_FIELD_TYPE(col) col;
                  

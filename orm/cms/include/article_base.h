@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -218,40 +218,40 @@ namespace article_info
     }
     
     namespace type {
-		using aid = decltype(std::declval<const meta>().aid);
-		using topicid = decltype(std::declval<const meta>().topicid);
-		using classtype = decltype(std::declval<const meta>().classtype);
-		using userid = decltype(std::declval<const meta>().userid);
-		using sortid = decltype(std::declval<const meta>().sortid);
-		using topicname = decltype(std::declval<const meta>().topicname);
-		using title = decltype(std::declval<const meta>().title);
-		using keywords = decltype(std::declval<const meta>().keywords);
-		using fromsource = decltype(std::declval<const meta>().fromsource);
-		using author = decltype(std::declval<const meta>().author);
-		using addip = decltype(std::declval<const meta>().addip);
-		using createtime = decltype(std::declval<const meta>().createtime);
-		using addtime = decltype(std::declval<const meta>().addtime);
-		using readnum = decltype(std::declval<const meta>().readnum);
-		using review = decltype(std::declval<const meta>().review);
-		using icoimg = decltype(std::declval<const meta>().icoimg);
-		using content = decltype(std::declval<const meta>().content);
-		using mdcontent = decltype(std::declval<const meta>().mdcontent);
-		using isopen = decltype(std::declval<const meta>().isopen);
-		using ishome = decltype(std::declval<const meta>().ishome);
-		using iscomment = decltype(std::declval<const meta>().iscomment);
-		using showtype = decltype(std::declval<const meta>().showtype);
-		using fromlocal = decltype(std::declval<const meta>().fromlocal);
-		using texturl = decltype(std::declval<const meta>().texturl);
-		using summary = decltype(std::declval<const meta>().summary);
-		using editauthor = decltype(std::declval<const meta>().editauthor);
-		using relatecontent = decltype(std::declval<const meta>().relatecontent);
+		using aid =  unsigned  int ;
+		using topicid =  unsigned  int ;
+		using classtype =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using sortid =  int ;
+		using topicname =  std::string ;
+		using title =  std::string ;
+		using keywords =  std::string ;
+		using fromsource =  std::string ;
+		using author =  std::string ;
+		using addip =  std::string ;
+		using createtime =  std::string ;
+		using addtime =  unsigned  long long ;
+		using readnum =  int ;
+		using review =  int ;
+		using icoimg =  std::string ;
+		using content =  std::string ;
+		using mdcontent =  std::string ;
+		using isopen =  char ;
+		using ishome =  char ;
+		using iscomment =  char ;
+		using showtype =  char ;
+		using fromlocal =  std::string ;
+		using texturl =  std::string ;
+		using summary =  std::string ;
+		using editauthor =  std::string ;
+		using relatecontent =  std::string ;
 
     }
 
     
     #define ORM_CMS_ARTICLE_META_FIELD_TYPE(col) \
-        decltype(orm::cms::article_info::getField<orm::cms::article_info::cols::col>(std::declval<const orm::cms::article_info::meta&>()))
-
+         orm::cms::article_info::type::col 
+    
     #define ORM_CMS_ARTICLE_PROJ_MEMBER(col) \
           ORM_CMS_ARTICLE_META_FIELD_TYPE(col) col;
                  

@@ -2,7 +2,7 @@
 #define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -176,33 +176,33 @@ namespace xmeet_info
     }
     
     namespace type {
-		using xmeetid = decltype(std::declval<const meta>().xmeetid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using xpjid = decltype(std::declval<const meta>().xpjid);
-		using xtaskid = decltype(std::declval<const meta>().xtaskid);
-		using adminid = decltype(std::declval<const meta>().adminid);
-		using title = decltype(std::declval<const meta>().title);
-		using zhuchi = decltype(std::declval<const meta>().zhuchi);
-		using jilu = decltype(std::declval<const meta>().jilu);
-		using meetnotice = decltype(std::declval<const meta>().meetnotice);
-		using meetfiles = decltype(std::declval<const meta>().meetfiles);
-		using address = decltype(std::declval<const meta>().address);
-		using meettime = decltype(std::declval<const meta>().meettime);
-		using regdate = decltype(std::declval<const meta>().regdate);
-		using expecttime = decltype(std::declval<const meta>().expecttime);
-		using endtime = decltype(std::declval<const meta>().endtime);
-		using presents = decltype(std::declval<const meta>().presents);
-		using content = decltype(std::declval<const meta>().content);
-		using postresult = decltype(std::declval<const meta>().postresult);
-		using postfiles = decltype(std::declval<const meta>().postfiles);
-		using jiluphoto = decltype(std::declval<const meta>().jiluphoto);
+		using xmeetid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using xpjid =  unsigned  int ;
+		using xtaskid =  unsigned  int ;
+		using adminid =  unsigned  int ;
+		using title =  std::string ;
+		using zhuchi =  std::string ;
+		using jilu =  std::string ;
+		using meetnotice =  std::string ;
+		using meetfiles =  std::string ;
+		using address =  std::string ;
+		using meettime =  std::string ;
+		using regdate =  unsigned  int ;
+		using expecttime =  unsigned  int ;
+		using endtime =  unsigned  int ;
+		using presents =  std::string ;
+		using content =  std::string ;
+		using postresult =  std::string ;
+		using postfiles =  std::string ;
+		using jiluphoto =  std::string ;
 
     }
 
     
     #define ORM_CMS_XMEET_META_FIELD_TYPE(col) \
-        decltype(orm::cms::xmeet_info::getField<orm::cms::xmeet_info::cols::col>(std::declval<const orm::cms::xmeet_info::meta&>()))
-
+         orm::cms::xmeet_info::type::col 
+    
     #define ORM_CMS_XMEET_PROJ_MEMBER(col) \
           ORM_CMS_XMEET_META_FIELD_TYPE(col) col;
                  

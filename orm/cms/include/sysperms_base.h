@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -134,26 +134,26 @@ namespace sysperms_info
     }
     
     namespace type {
-		using permsid = decltype(std::declval<const meta>().permsid);
-		using parentid = decltype(std::declval<const meta>().parentid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using urlpath = decltype(std::declval<const meta>().urlpath);
-		using urlname = decltype(std::declval<const meta>().urlname);
-		using name = decltype(std::declval<const meta>().name);
-		using status = decltype(std::declval<const meta>().status);
-		using permscode = decltype(std::declval<const meta>().permscode);
-		using readonly = decltype(std::declval<const meta>().readonly);
-		using created_time = decltype(std::declval<const meta>().created_time);
-		using updated_time = decltype(std::declval<const meta>().updated_time);
-		using created_user = decltype(std::declval<const meta>().created_user);
-		using updated_user = decltype(std::declval<const meta>().updated_user);
+		using permsid =  unsigned  int ;
+		using parentid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using urlpath =  std::string ;
+		using urlname =  std::string ;
+		using name =  std::string ;
+		using status =  unsigned  char ;
+		using permscode =  unsigned  int ;
+		using readonly =  unsigned  char ;
+		using created_time =  unsigned  int ;
+		using updated_time =  unsigned  int ;
+		using created_user =  unsigned  int ;
+		using updated_user =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_SYSPERMS_META_FIELD_TYPE(col) \
-        decltype(orm::cms::sysperms_info::getField<orm::cms::sysperms_info::cols::col>(std::declval<const orm::cms::sysperms_info::meta&>()))
-
+         orm::cms::sysperms_info::type::col 
+    
     #define ORM_CMS_SYSPERMS_PROJ_MEMBER(col) \
           ORM_CMS_SYSPERMS_META_FIELD_TYPE(col) col;
                  

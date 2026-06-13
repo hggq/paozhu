@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -236,43 +236,43 @@ namespace xtask_info
     }
     
     namespace type {
-		using xtaskid = decltype(std::declval<const meta>().xtaskid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using xpjid = decltype(std::declval<const meta>().xpjid);
-		using adminid = decltype(std::declval<const meta>().adminid);
-		using parentid = decltype(std::declval<const meta>().parentid);
-		using begindate = decltype(std::declval<const meta>().begindate);
-		using enddate = decltype(std::declval<const meta>().enddate);
-		using expectbegindate = decltype(std::declval<const meta>().expectbegindate);
-		using expectenddate = decltype(std::declval<const meta>().expectenddate);
-		using milestone = decltype(std::declval<const meta>().milestone);
-		using subxpjid = decltype(std::declval<const meta>().subxpjid);
-		using depxtaskid = decltype(std::declval<const meta>().depxtaskid);
-		using referdocid = decltype(std::declval<const meta>().referdocid);
-		using isfinish = decltype(std::declval<const meta>().isfinish);
-		using updatedate = decltype(std::declval<const meta>().updatedate);
-		using finishdate = decltype(std::declval<const meta>().finishdate);
-		using iscore = decltype(std::declval<const meta>().iscore);
-		using xvalue = decltype(std::declval<const meta>().xvalue);
-		using expectday = decltype(std::declval<const meta>().expectday);
-		using realday = decltype(std::declval<const meta>().realday);
-		using pricevalue = decltype(std::declval<const meta>().pricevalue);
-		using title = decltype(std::declval<const meta>().title);
-		using introduce = decltype(std::declval<const meta>().introduce);
-		using xlogo = decltype(std::declval<const meta>().xlogo);
-		using xcolor = decltype(std::declval<const meta>().xcolor);
-		using pullurl = decltype(std::declval<const meta>().pullurl);
-		using pulltitle = decltype(std::declval<const meta>().pulltitle);
-		using pullauthor = decltype(std::declval<const meta>().pullauthor);
-		using note = decltype(std::declval<const meta>().note);
-		using itemnote = decltype(std::declval<const meta>().itemnote);
+		using xtaskid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using xpjid =  unsigned  int ;
+		using adminid =  unsigned  int ;
+		using parentid =  unsigned  int ;
+		using begindate =  unsigned  int ;
+		using enddate =  unsigned  int ;
+		using expectbegindate =  unsigned  int ;
+		using expectenddate =  unsigned  int ;
+		using milestone =  unsigned  int ;
+		using subxpjid =  unsigned  int ;
+		using depxtaskid =  unsigned  int ;
+		using referdocid =  unsigned  int ;
+		using isfinish =  unsigned  char ;
+		using updatedate =  unsigned  int ;
+		using finishdate =  unsigned  int ;
+		using iscore =  unsigned  int ;
+		using xvalue =  double ;
+		using expectday =  float ;
+		using realday =  float ;
+		using pricevalue =  float ;
+		using title =  std::string ;
+		using introduce =  std::string ;
+		using xlogo =  std::string ;
+		using xcolor =  std::string ;
+		using pullurl =  std::string ;
+		using pulltitle =  std::string ;
+		using pullauthor =  std::string ;
+		using note =  std::string ;
+		using itemnote =  std::string ;
 
     }
 
     
     #define ORM_CMS_XTASK_META_FIELD_TYPE(col) \
-        decltype(orm::cms::xtask_info::getField<orm::cms::xtask_info::cols::col>(std::declval<const orm::cms::xtask_info::meta&>()))
-
+         orm::cms::xtask_info::type::col 
+    
     #define ORM_CMS_XTASK_PROJ_MEMBER(col) \
           ORM_CMS_XTASK_META_FIELD_TYPE(col) col;
                  

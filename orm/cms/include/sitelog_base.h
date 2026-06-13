@@ -2,7 +2,7 @@
 #define ORM_CMS_SITELOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -140,27 +140,27 @@ namespace sitelog_info
     }
     
     namespace type {
-		using logid = decltype(std::declval<const meta>().logid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using memberid = decltype(std::declval<const meta>().memberid);
-		using ipport = decltype(std::declval<const meta>().ipport);
-		using httpv = decltype(std::declval<const meta>().httpv);
-		using ipaddress = decltype(std::declval<const meta>().ipaddress);
-		using visittime = decltype(std::declval<const meta>().visittime);
-		using useragent = decltype(std::declval<const meta>().useragent);
-		using referer = decltype(std::declval<const meta>().referer);
-		using cururl = decltype(std::declval<const meta>().cururl);
-		using address = decltype(std::declval<const meta>().address);
-		using hostname = decltype(std::declval<const meta>().hostname);
-		using derefererurl = decltype(std::declval<const meta>().derefererurl);
-		using deurl = decltype(std::declval<const meta>().deurl);
+		using logid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using memberid =  unsigned  int ;
+		using ipport =  unsigned  int ;
+		using httpv =  unsigned  char ;
+		using ipaddress =  std::string ;
+		using visittime =  std::string ;
+		using useragent =  std::string ;
+		using referer =  std::string ;
+		using cururl =  std::string ;
+		using address =  std::string ;
+		using hostname =  std::string ;
+		using derefererurl =  std::string ;
+		using deurl =  std::string ;
 
     }
 
     
     #define ORM_CMS_SITELOG_META_FIELD_TYPE(col) \
-        decltype(orm::cms::sitelog_info::getField<orm::cms::sitelog_info::cols::col>(std::declval<const orm::cms::sitelog_info::meta&>()))
-
+         orm::cms::sitelog_info::type::col 
+    
     #define ORM_CMS_SITELOG_PROJ_MEMBER(col) \
           ORM_CMS_SITELOG_META_FIELD_TYPE(col) col;
                  

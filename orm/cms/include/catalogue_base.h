@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -104,21 +104,21 @@ namespace catalogue_info
     }
     
     namespace type {
-		using cid = decltype(std::declval<const meta>().cid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using level = decltype(std::declval<const meta>().level);
-		using parentid = decltype(std::declval<const meta>().parentid);
-		using name = decltype(std::declval<const meta>().name);
-		using isview = decltype(std::declval<const meta>().isview);
-		using sortid = decltype(std::declval<const meta>().sortid);
-		using imgurl = decltype(std::declval<const meta>().imgurl);
+		using cid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using level =  unsigned  int ;
+		using parentid =  unsigned  int ;
+		using name =  std::string ;
+		using isview =  char ;
+		using sortid =  int ;
+		using imgurl =  std::string ;
 
     }
 
     
     #define ORM_CMS_CATALOGUE_META_FIELD_TYPE(col) \
-        decltype(orm::cms::catalogue_info::getField<orm::cms::catalogue_info::cols::col>(std::declval<const orm::cms::catalogue_info::meta&>()))
-
+         orm::cms::catalogue_info::type::col 
+    
     #define ORM_CMS_CATALOGUE_PROJ_MEMBER(col) \
           ORM_CMS_CATALOGUE_META_FIELD_TYPE(col) col;
                  

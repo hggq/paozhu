@@ -2,7 +2,7 @@
 #define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -86,18 +86,18 @@ namespace blogcatalog_info
     }
     
     namespace type {
-		using bid = decltype(std::declval<const meta>().bid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using dateid = decltype(std::declval<const meta>().dateid);
-		using articlenum = decltype(std::declval<const meta>().articlenum);
-		using languageid = decltype(std::declval<const meta>().languageid);
+		using bid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using dateid =  unsigned  int ;
+		using articlenum =  unsigned  int ;
+		using languageid =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_BLOGCATALOG_META_FIELD_TYPE(col) \
-        decltype(orm::cms::blogcatalog_info::getField<orm::cms::blogcatalog_info::cols::col>(std::declval<const orm::cms::blogcatalog_info::meta&>()))
-
+         orm::cms::blogcatalog_info::type::col 
+    
     #define ORM_CMS_BLOGCATALOG_PROJ_MEMBER(col) \
           ORM_CMS_BLOGCATALOG_META_FIELD_TYPE(col) col;
                  

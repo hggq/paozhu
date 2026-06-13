@@ -2,7 +2,7 @@
 #define ORM_CMS_XTALKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -122,24 +122,24 @@ namespace xtalk_info
     }
     
     namespace type {
-		using talkid = decltype(std::declval<const meta>().talkid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using adminid = decltype(std::declval<const meta>().adminid);
-		using taskid = decltype(std::declval<const meta>().taskid);
-		using projectid = decltype(std::declval<const meta>().projectid);
-		using content = decltype(std::declval<const meta>().content);
-		using isdelete = decltype(std::declval<const meta>().isdelete);
-		using addtime = decltype(std::declval<const meta>().addtime);
-		using update_at = decltype(std::declval<const meta>().update_at);
-		using islock = decltype(std::declval<const meta>().islock);
-		using replyid = decltype(std::declval<const meta>().replyid);
+		using talkid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using adminid =  unsigned  int ;
+		using taskid =  unsigned  int ;
+		using projectid =  unsigned  int ;
+		using content =  std::string ;
+		using isdelete =  unsigned  char ;
+		using addtime =  unsigned  int ;
+		using update_at =  unsigned  int ;
+		using islock =  unsigned  char ;
+		using replyid =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_XTALK_META_FIELD_TYPE(col) \
-        decltype(orm::cms::xtalk_info::getField<orm::cms::xtalk_info::cols::col>(std::declval<const orm::cms::xtalk_info::meta&>()))
-
+         orm::cms::xtalk_info::type::col 
+    
     #define ORM_CMS_XTALK_PROJ_MEMBER(col) \
           ORM_CMS_XTALK_META_FIELD_TYPE(col) col;
                  

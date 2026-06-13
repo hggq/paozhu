@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -86,18 +86,18 @@ namespace sysroleperms_info
     }
     
     namespace type {
-		using rolepermsid = decltype(std::declval<const meta>().rolepermsid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using roleid = decltype(std::declval<const meta>().roleid);
-		using permsid = decltype(std::declval<const meta>().permsid);
-		using sortid = decltype(std::declval<const meta>().sortid);
+		using rolepermsid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using roleid =  unsigned  int ;
+		using permsid =  unsigned  int ;
+		using sortid =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_SYSROLEPERMS_META_FIELD_TYPE(col) \
-        decltype(orm::cms::sysroleperms_info::getField<orm::cms::sysroleperms_info::cols::col>(std::declval<const orm::cms::sysroleperms_info::meta&>()))
-
+         orm::cms::sysroleperms_info::type::col 
+    
     #define ORM_CMS_SYSROLEPERMS_PROJ_MEMBER(col) \
           ORM_CMS_SYSROLEPERMS_META_FIELD_TYPE(col) col;
                  

@@ -2,7 +2,7 @@
 #define ORM_CMS_BRANDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -110,22 +110,22 @@ namespace brand_info
     }
     
     namespace type {
-		using brandid = decltype(std::declval<const meta>().brandid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using topicid = decltype(std::declval<const meta>().topicid);
-		using sortid = decltype(std::declval<const meta>().sortid);
-		using logo = decltype(std::declval<const meta>().logo);
-		using title = decltype(std::declval<const meta>().title);
-		using name = decltype(std::declval<const meta>().name);
-		using introduce = decltype(std::declval<const meta>().introduce);
-		using detailcontent = decltype(std::declval<const meta>().detailcontent);
+		using brandid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using topicid =  unsigned  int ;
+		using sortid =  int ;
+		using logo =  std::string ;
+		using title =  std::string ;
+		using name =  std::string ;
+		using introduce =  std::string ;
+		using detailcontent =  std::string ;
 
     }
 
     
     #define ORM_CMS_BRAND_META_FIELD_TYPE(col) \
-        decltype(orm::cms::brand_info::getField<orm::cms::brand_info::cols::col>(std::declval<const orm::cms::brand_info::meta&>()))
-
+         orm::cms::brand_info::type::col 
+    
     #define ORM_CMS_BRAND_PROJ_MEMBER(col) \
           ORM_CMS_BRAND_META_FIELD_TYPE(col) col;
                  

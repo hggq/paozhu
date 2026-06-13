@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICSETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -110,22 +110,22 @@ namespace topicset_info
     }
     
     namespace type {
-		using topicsetid = decltype(std::declval<const meta>().topicsetid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using topicid = decltype(std::declval<const meta>().topicid);
-		using linktopicid = decltype(std::declval<const meta>().linktopicid);
-		using linkrownum = decltype(std::declval<const meta>().linkrownum);
-		using sidetype = decltype(std::declval<const meta>().sidetype);
-		using sidename = decltype(std::declval<const meta>().sidename);
-		using txtcontent = decltype(std::declval<const meta>().txtcontent);
-		using sort = decltype(std::declval<const meta>().sort);
+		using topicsetid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using topicid =  unsigned  int ;
+		using linktopicid =  unsigned  int ;
+		using linkrownum =  unsigned  char ;
+		using sidetype =  unsigned  char ;
+		using sidename =  std::string ;
+		using txtcontent =  std::string ;
+		using sort =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_TOPICSET_META_FIELD_TYPE(col) \
-        decltype(orm::cms::topicset_info::getField<orm::cms::topicset_info::cols::col>(std::declval<const orm::cms::topicset_info::meta&>()))
-
+         orm::cms::topicset_info::type::col 
+    
     #define ORM_CMS_TOPICSET_PROJ_MEMBER(col) \
           ORM_CMS_TOPICSET_META_FIELD_TYPE(col) col;
                  

@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -254,46 +254,46 @@ namespace siteinfo_info
     }
     
     namespace type {
-		using sid = decltype(std::declval<const meta>().sid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using agentid = decltype(std::declval<const meta>().agentid);
-		using languagetype = decltype(std::declval<const meta>().languagetype);
-		using sitename = decltype(std::declval<const meta>().sitename);
-		using sitedomain = decltype(std::declval<const meta>().sitedomain);
-		using metakeys = decltype(std::declval<const meta>().metakeys);
-		using metadesc = decltype(std::declval<const meta>().metadesc);
-		using copyright = decltype(std::declval<const meta>().copyright);
-		using beiansn = decltype(std::declval<const meta>().beiansn);
-		using footscript = decltype(std::declval<const meta>().footscript);
-		using headscript = decltype(std::declval<const meta>().headscript);
-		using introduce = decltype(std::declval<const meta>().introduce);
-		using sitelogo = decltype(std::declval<const meta>().sitelogo);
-		using sitebanner = decltype(std::declval<const meta>().sitebanner);
-		using contactman = decltype(std::declval<const meta>().contactman);
-		using phone = decltype(std::declval<const meta>().phone);
-		using mobile = decltype(std::declval<const meta>().mobile);
-		using email = decltype(std::declval<const meta>().email);
-		using bankname = decltype(std::declval<const meta>().bankname);
-		using banksn = decltype(std::declval<const meta>().banksn);
-		using address = decltype(std::declval<const meta>().address);
-		using zipnum = decltype(std::declval<const meta>().zipnum);
-		using taxsn = decltype(std::declval<const meta>().taxsn);
-		using companyname = decltype(std::declval<const meta>().companyname);
-		using linkname = decltype(std::declval<const meta>().linkname);
-		using linkmobile = decltype(std::declval<const meta>().linkmobile);
-		using linkaddress = decltype(std::declval<const meta>().linkaddress);
-		using theme = decltype(std::declval<const meta>().theme);
-		using sitepath = decltype(std::declval<const meta>().sitepath);
-		using isopen = decltype(std::declval<const meta>().isopen);
-		using created_at = decltype(std::declval<const meta>().created_at);
-		using enddate = decltype(std::declval<const meta>().enddate);
+		using sid =  int ;
+		using userid =  int ;
+		using agentid =  unsigned  int ;
+		using languagetype =  unsigned  int ;
+		using sitename =  std::string ;
+		using sitedomain =  std::string ;
+		using metakeys =  std::string ;
+		using metadesc =  std::string ;
+		using copyright =  std::string ;
+		using beiansn =  std::string ;
+		using footscript =  std::string ;
+		using headscript =  std::string ;
+		using introduce =  std::string ;
+		using sitelogo =  std::string ;
+		using sitebanner =  std::string ;
+		using contactman =  std::string ;
+		using phone =  std::string ;
+		using mobile =  std::string ;
+		using email =  std::string ;
+		using bankname =  std::string ;
+		using banksn =  std::string ;
+		using address =  std::string ;
+		using zipnum =  std::string ;
+		using taxsn =  std::string ;
+		using companyname =  std::string ;
+		using linkname =  std::string ;
+		using linkmobile =  std::string ;
+		using linkaddress =  std::string ;
+		using theme =  std::string ;
+		using sitepath =  std::string ;
+		using isopen =  unsigned  char ;
+		using created_at =  unsigned  int ;
+		using enddate =  unsigned  int ;
 
     }
 
     
     #define ORM_CMS_SITEINFO_META_FIELD_TYPE(col) \
-        decltype(orm::cms::siteinfo_info::getField<orm::cms::siteinfo_info::cols::col>(std::declval<const orm::cms::siteinfo_info::meta&>()))
-
+         orm::cms::siteinfo_info::type::col 
+    
     #define ORM_CMS_SITEINFO_PROJ_MEMBER(col) \
           ORM_CMS_SITEINFO_META_FIELD_TYPE(col) col;
                  

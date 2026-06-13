@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 05:09:34 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 06:32:13 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -152,29 +152,29 @@ namespace department_info
     }
     
     namespace type {
-		using dpid = decltype(std::declval<const meta>().dpid);
-		using userid = decltype(std::declval<const meta>().userid);
-		using parentid = decltype(std::declval<const meta>().parentid);
-		using name = decltype(std::declval<const meta>().name);
-		using depart_code = decltype(std::declval<const meta>().depart_code);
-		using bianzhi_num = decltype(std::declval<const meta>().bianzhi_num);
-		using real_num = decltype(std::declval<const meta>().real_num);
-		using quan_weight = decltype(std::declval<const meta>().quan_weight);
-		using isopen = decltype(std::declval<const meta>().isopen);
-		using memo = decltype(std::declval<const meta>().memo);
-		using created_time = decltype(std::declval<const meta>().created_time);
-		using created_user = decltype(std::declval<const meta>().created_user);
-		using updated_time = decltype(std::declval<const meta>().updated_time);
-		using updated_user = decltype(std::declval<const meta>().updated_user);
-		using isvirtual = decltype(std::declval<const meta>().isvirtual);
-		using linkdpid = decltype(std::declval<const meta>().linkdpid);
+		using dpid =  unsigned  int ;
+		using userid =  unsigned  int ;
+		using parentid =  unsigned  int ;
+		using name =  std::string ;
+		using depart_code =  std::string ;
+		using bianzhi_num =  int ;
+		using real_num =  int ;
+		using quan_weight =  int ;
+		using isopen =  char ;
+		using memo =  std::string ;
+		using created_time =  unsigned  int ;
+		using created_user =  unsigned  int ;
+		using updated_time =  unsigned  int ;
+		using updated_user =  unsigned  int ;
+		using isvirtual =  char ;
+		using linkdpid =  std::string ;
 
     }
 
     
     #define ORM_CMS_DEPARTMENT_META_FIELD_TYPE(col) \
-        decltype(orm::cms::department_info::getField<orm::cms::department_info::cols::col>(std::declval<const orm::cms::department_info::meta&>()))
-
+         orm::cms::department_info::type::col 
+    
     #define ORM_CMS_DEPARTMENT_PROJ_MEMBER(col) \
           ORM_CMS_DEPARTMENT_META_FIELD_TYPE(col) col;
                  
