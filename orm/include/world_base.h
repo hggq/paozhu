@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 08:33:43 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 09:12:46 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -321,8 +321,8 @@ namespace world_info
                 oss << '}'; \
                 return oss.str(); \
             } \
-            void set_val(const std::string& name, \
-                         const unsigned char* buf, size_t length) { \
+            void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
             } \
             }; \
        }
@@ -343,8 +343,8 @@ namespace world_info
                 return oss.str(); \
             } \
             \
-            void set_val(const std::string& name, \
-                         const unsigned char* buf, size_t length) { \
+            void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
             } \
             }; \
        }
@@ -370,8 +370,8 @@ namespace world_info
                 return oss.str(); \
                 }\
                 \
-                void set_val(const std::string& name, \
-                         const unsigned char* buf, size_t length) { \
+                void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
                 } \
             }; \
        }
@@ -397,8 +397,37 @@ namespace world_info
                 return oss.str(); \
                 }\
                 \
-                void set_val(const std::string& name, \
-                         const unsigned char* buf, size_t length) { \
+                void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+                } \
+            }; \
+       }
+        
+    
+    #define ORM_WORLD_CUST_STRUCT(StructName, CustomDecl, CustomNames, ...) \
+        namespace orm::world_info { \
+            struct StructName { \
+                ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
+                CustomDecl \
+                std::vector<std::unique_ptr<StructName>> children; \
+                \
+                std::string to_json() const { \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
+    ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM(ORM_WORLD_UNWRAP CustomNames));  \
+                oss << ",\"children\":["; \
+                for(unsigned int i=0;i< children.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << children[i]->to_json(); \
+                }\
+                oss << ']'; \
+                oss << '}'; \
+                return oss.str(); \
+                }\
+                \
+                void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
                 } \
             }; \
        }

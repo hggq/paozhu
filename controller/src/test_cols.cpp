@@ -66,6 +66,11 @@ std::string test_cols(std::shared_ptr<httppeer> peer)
     cc.randomnumber = 99;
     c.children.push_back(cc);
 
+    cc.id = b.id + 1;
+    cc.randomnumber = 100;
+
+    c.children.push_back(cc);
+
     client << "<p>MyTreeStruct: " << c.to_json() << "</p>";
 
     orm::world_info::MyPtrStruct d;

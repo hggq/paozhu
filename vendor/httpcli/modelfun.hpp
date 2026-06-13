@@ -6720,8 +6720,8 @@ headtxt += R"(
                 oss << '}'; \
                 return oss.str(); \
             } \
-            void set_val(const std::string& name, \
-                         const unsigned char* buf, size_t length) { \
+            void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
             } \
             }; \
        }
@@ -6817,8 +6817,8 @@ headtxt += R"(
                 return oss.str(); \
             } \
             \
-            void set_val(const std::string& name, \
-                         const unsigned char* buf, size_t length) { \
+            void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
             } \
             }; \
        }
@@ -6895,14 +6895,14 @@ headtxt += R"(
                 return oss.str(); \
                 }\
                 \
-                void set_val(const std::string& name, \
-                         const unsigned char* buf, size_t length) { \
+                void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
                 } \
             }; \
        }
         
     )";
- 
+ ///////////////////////////////////////
     headtxt += R"(
     #define ORM_)";
 
@@ -6971,14 +6971,117 @@ headtxt += R"(
                 return oss.str(); \
                 }\
                 \
-                void set_val(const std::string& name, \
-                         const unsigned char* buf, size_t length) { \
+                void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
                 } \
             }; \
        }
         
     )";
 
+///////////////////////////////////////
+//custom
+    headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_CUST_STRUCT(StructName, CustomDecl, CustomNames, ...) \
+        namespace orm::)";   
+    if (rmstag != "default")
+    {
+        headtxt.append(rmstag);
+        headtxt.append("::");
+    }        
+    headtxt.append(tablenamebase);
+    headtxt += R"(_info { \
+            struct StructName { \
+                ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
+                CustomDecl \
+                std::vector<std::unique_ptr<StructName>> children; \
+                \
+                std::string to_json() const { \
+                std::ostringstream oss; \
+                oss << '{'; \
+                ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
+    ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TO_JSON_CUSTOM(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_UNWRAP CustomNames));  \
+                oss << ",\"children\":["; \
+                for(unsigned int i=0;i< children.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << children[i]->to_json(); \
+                }\
+                oss << ']'; \
+                oss << '}'; \
+                return oss.str(); \
+                }\
+                \
+                void set_val([[maybe_unused]] const std::string& name, \
+                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+                } \
+            }; \
+       }
+        
+    )";
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
