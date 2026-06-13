@@ -1217,4 +1217,34 @@ std::string utf8_to_json_string(const std::string &source)
     return obj;
 }
 
+bool str_colname_casecmp(std::string_view str1, std::string_view str2)
+{
+    if (str1.size() != str2.size())
+    {
+        return false;
+    }
+    for (unsigned int i = 0; i < str1.size(); i++)
+    {
+        if (str1[i] != str2[i])
+        {
+            if (str1[i] < 91 && str1[i] > 64)
+            {
+                if ((str1[i] + 32) == str2[i])
+                {
+                    continue;
+                }
+            }
+            else if (str2[i] < 91 && str2[i] > 64)
+            {
+                if (str1[i] == (str2[i] + 32))
+                {
+                    continue;
+                }
+            }
+            return false;
+        }
+    }
+    return true;
+}
+
 }// namespace http

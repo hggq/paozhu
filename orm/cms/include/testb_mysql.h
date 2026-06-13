@@ -5,7 +5,7 @@
  *  @date 2022-05-04
  *  @update 2025-03-12
  *  @dest ORM MySQL中间连接层
- *  本文件自动生成 This document is automatically generated, Creation time (Sat, 13 Jun 2026 09:12:49 GMT)
+ *  本文件自动生成 This document is automatically generated, Creation time (Sat, 13 Jun 2026 16:09:21 GMT)
  */
 #include <iostream>
 #include <mutex>
@@ -7573,7 +7573,407 @@ M_MODEL& or_leName(T val)
             }
             return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
         }
-        M_MODEL &fetch()
+
+        template <typename T>
+        unsigned int fetch_to(std::vector<T>& custom_record)
+        {
+            effect_num = 0;
+            if (selectsql.empty())
+            {
+                sqlstring = "SELECT *  FROM ";
+            }
+            else
+            {
+                sqlstring = "SELECT ";
+                sqlstring.append(selectsql);
+                sqlstring.append(" FROM ");
+            }
+
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" WHERE ");
+
+            if (wheresql.empty())
+            {
+                sqlstring.append(" 1 ");
+            }
+            else
+            {
+                sqlstring.append(wheresql);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+            if (!limitsql.empty())
+            {
+                sqlstring.append(limitsql);
+            }
+
+            if (iserror)
+            {
+                return 0;
+            }
+
+            try
+            {
+                if (conn_empty())
+                {
+                    return 0;
+                }
+                //auto conn = conn_obj->get_select_conn();
+                if (islock_conn)
+                {
+                    if (!select_conn)
+                    {
+                        select_conn = conn_obj->get_select_conn();
+                    }
+                }
+                else
+                {
+                    select_conn = conn_obj->get_select_conn();
+                }
+                if (select_conn->isdebug)
+                {
+                    select_conn->begin_time();
+                }
+
+                std::size_t n = select_conn->write_sql(sqlstring);
+                if (n == 0)
+                {
+                    error_msg = select_conn->error_msg;
+                    select_conn.reset();
+                    return 0;
+                }
+
+                pack_info_t temp_pack_data;
+                temp_pack_data.seq_id = 1;
+                bool is_sql_item      = false;
+                std::vector<field_info_t> field_array;
+
+                unsigned char action_setup = 0;
+                unsigned int column_num    = 0;
+                unsigned int offset = 0;
+
+                for (; is_sql_item == false;)
+                {
+                    n      = select_conn->read_loop();
+                    offset = 0;
+                    if (n == 0)
+                    {
+                        iserror   = true;
+                        error_msg = select_conn->error_msg;
+                        select_conn.reset();
+                        return 0;
+                    }
+                    for (; offset < n;)
+                    {
+                        select_conn->read_field_pack(select_conn->_cache_data, n, offset, temp_pack_data);
+                        if (temp_pack_data.error > 0)
+                        {
+                            iserror   = true;
+                            error_msg = temp_pack_data.data;
+                            select_conn.reset();
+                            return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
+                        {
+                            if (select_conn->pack_eof_check(temp_pack_data))
+                            {
+                                is_sql_item = true;
+                                break;
+                            }
+
+                            if (action_setup == 0)
+                            {
+                                if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                                {
+                                    action_setup = 1;
+                                    column_num   = (unsigned char)temp_pack_data.data[0];
+                                }
+                            }
+                            else if (action_setup == 1)
+                            {
+                                field_info_t temp_filed_col;
+                                select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
+
+                                field_array.emplace_back(std::move(temp_filed_col));
+                                column_num--;
+                                if (column_num == 0)
+                                {
+                                    action_setup = 2;
+                                }
+                            }
+                            else if (action_setup == 2)
+                            {
+                                unsigned int column_num = field_array.size();
+                                unsigned int tempnum    = 0;
+
+                                T data_temp;
+                                for (unsigned int ij = 0; ij < column_num; ij++)
+                                {
+                                    unsigned long long name_length = 0;
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+
+                                    if (field_array[ij].name.size() > 0)
+                                    {
+                                        //or alias name
+                                        data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                    }
+                                    else if (field_array[ij].org_name.size() > 0)
+                                    {
+                                        data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                    }
+                                    
+                                    tempnum = tempnum + name_length;
+                                }
+                                custom_record.emplace_back(std::move(data_temp));
+                                effect_num++;
+                            }
+                        }
+                        else
+                        {
+                            if (offset >= n)
+                            {
+                                break;
+                            }
+                            is_sql_item = true;
+                            break;
+                        }
+                    }
+                }
+                if (select_conn->isdebug)
+                {
+                    select_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = select_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+
+                if (!islock_conn)
+                {
+                    conn_obj->back_select_conn(std::move(select_conn));
+                }
+
+                return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            return 0;
+        }
+
+        template <typename T>
+        asio::awaitable<unsigned int> async_fetch_to(std::vector<T>& custom_record)
+        {
+            effect_num = 0;
+            if (selectsql.empty())
+            {
+                sqlstring = "SELECT *  FROM ";
+            }
+            else
+            {
+                sqlstring = "SELECT ";
+                sqlstring.append(selectsql);
+                sqlstring.append(" FROM ");
+            }
+
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" WHERE ");
+
+            if (wheresql.empty())
+            {
+                sqlstring.append(" 1 ");
+            }
+            else
+            {
+                sqlstring.append(wheresql);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+            if (!limitsql.empty())
+            {
+                sqlstring.append(limitsql);
+            }
+
+            if (iserror)
+            {
+                co_return 0;
+            }
+
+            try
+            {
+                if (conn_empty())
+                {
+                    co_return 0;
+                }
+                //auto conn = co_await conn_obj->async_get_select_conn();
+                if (islock_conn)
+                {
+                    if (!select_conn)
+                    {
+                        select_conn = co_await conn_obj->async_get_select_conn();
+                    }
+                }
+                else
+                {
+                    select_conn = co_await conn_obj->async_get_select_conn();
+                }
+                if (select_conn->isdebug)
+                {
+                    select_conn->begin_time();
+                }
+
+                std::size_t n = co_await select_conn->async_write_sql(sqlstring);
+
+                if (n == 0)
+                {
+                    error_msg = select_conn->error_msg;
+                    select_conn.reset();
+                    co_return 0;
+                }
+
+                pack_info_t temp_pack_data;
+                temp_pack_data.seq_id = 1;
+                bool is_sql_item      = false;
+                std::vector<field_info_t> field_array;
+
+                unsigned char action_setup = 0;
+                unsigned int column_num    = 0;
+
+                unsigned int offset = 0;
+
+                for (; is_sql_item == false;)
+                {
+                    n      = co_await select_conn->async_read_loop();
+                    offset = 0;
+                    if (n == 0)
+                    {
+                        select_conn.reset();
+                        co_return 0;
+                    }
+                    for (; offset < n;)
+                    {
+                        select_conn->read_field_pack(select_conn->_cache_data, n, offset, temp_pack_data);
+                        if (temp_pack_data.error > 0)
+                        {
+                            iserror   = true;
+                            error_msg = temp_pack_data.data;
+                            select_conn.reset();
+                            co_return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
+                        {
+                            if (select_conn->pack_eof_check(temp_pack_data))
+                            {
+                                is_sql_item = true;
+                                break;
+                            }
+
+                            if (action_setup == 0)
+                            {
+                                if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                                {
+                                    action_setup = 1;
+                                    column_num   = (unsigned char)temp_pack_data.data[0];
+                                }
+                            }
+                            else if (action_setup == 1)
+                            {
+                                field_info_t temp_filed_col;
+                                select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
+
+                                field_array.emplace_back(std::move(temp_filed_col));
+                                column_num--;
+                                if (column_num == 0)
+                                {
+                                    action_setup = 2;
+                                }
+                            }
+                            else if (action_setup == 2)
+                            {
+                                unsigned int column_num = field_array.size();
+                                unsigned int tempnum    = 0;
+
+                                T data_temp;
+                                for (unsigned int ij = 0; ij < column_num; ij++)
+                                {
+                                    unsigned long long name_length = 0;
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+                                    if (field_array[ij].name.size() > 0)
+                                    {
+                                        //or alias name
+                                        data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                    }
+                                    else if (field_array[ij].org_name.size() > 0)
+                                    {
+                                        data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                    }
+                                    tempnum = tempnum + name_length;
+                                }
+                                custom_record.emplace_back(std::move(data_temp));
+                                effect_num++;
+                            }
+                        }
+                        else
+                        {
+                            if (offset >= n)
+                            {
+                                break;
+                            }
+                            is_sql_item = true;
+                            break;
+                        }
+                    }
+                }
+                if (select_conn->isdebug)
+                {
+                    select_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = select_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+                if (!islock_conn)
+                {
+                    conn_obj->back_select_conn(std::move(select_conn));
+                }
+ 
+                co_return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                co_return 0;
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            co_return 0;
+        }
+
+        unsigned int fetch()
         {
             effect_num = 0;
             if (selectsql.empty())
@@ -7617,21 +8017,21 @@ M_MODEL& or_leName(T val)
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
-                    return *mod;
+                    return 0;
                 }
             }
 
             B_BASE::record_reset();
             if (iserror)
             {
-                return *mod;
+                return 0;
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    return *mod;
+                    return 0;
                 }
                 //auto conn = conn_obj->get_select_conn();
                 if (islock_conn)
@@ -7655,7 +8055,7 @@ M_MODEL& or_leName(T val)
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    return *mod;
+                    return 0;
                 }
 
                 pack_info_t temp_pack_data;
@@ -7679,7 +8079,7 @@ M_MODEL& or_leName(T val)
                         iserror   = true;
                         error_msg = select_conn->error_msg;
                         select_conn.reset();
-                        return *mod;
+                        return 0;
                     }
                     for (; offset < n;)
                     {
@@ -7689,7 +8089,7 @@ M_MODEL& or_leName(T val)
                             iserror   = true;
                             error_msg = temp_pack_data.data;
                             select_conn.reset();
-                            return *mod;
+                            return 0;
                         }
                         if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
@@ -7774,12 +8174,12 @@ M_MODEL& or_leName(T val)
                         iscache = false;
                     }
                 }
-                return *mod;
+                return effect_num;
             }
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
-                return *mod;
+                return 0;
             }
             catch (const std::string &e)
             {
@@ -7788,7 +8188,7 @@ M_MODEL& or_leName(T val)
             catch (...)
             {
             }
-            return *mod;
+            return 0;
         }
 
         asio::awaitable<unsigned int> async_fetch()
@@ -8438,6 +8838,404 @@ M_MODEL& or_leName(T val)
             }
             co_return 0;
         }
+        
+        template <typename T>
+        unsigned int fetch_one_to(T &custom_struct)
+        {
+            effect_num = 0;
+            if (selectsql.empty())
+            {
+                sqlstring = "SELECT *  FROM ";
+            }
+            else
+            {
+                sqlstring = "SELECT ";
+                sqlstring.append(selectsql);
+                sqlstring.append(" FROM ");
+            }
+
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" WHERE ");
+
+            if (wheresql.empty())
+            {
+                sqlstring.append(" 1 ");
+            }
+            else
+            {
+                sqlstring.append(wheresql);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+
+            sqlstring.append(" limit 1");
+
+            if (iserror)
+            {
+                return 0;
+            }
+
+            try
+            {
+                effect_num = 0;
+                if (conn_empty())
+                {
+                    return 0;
+                }
+                //auto conn = conn_obj->get_select_conn();
+                if (islock_conn)
+                {
+                    if (!select_conn)
+                    {
+                        select_conn = conn_obj->get_select_conn();
+                    }
+                }
+                else
+                {
+                    select_conn = conn_obj->get_select_conn();
+                }
+
+                if (select_conn->isdebug)
+                {
+                    select_conn->begin_time();
+                }
+
+                std::size_t n = select_conn->write_sql(sqlstring);
+                if (n == 0)
+                {
+                    error_msg = select_conn->error_msg;
+                    select_conn.reset();
+                    return 0;
+                }
+
+                pack_info_t temp_pack_data;
+                temp_pack_data.seq_id = 1;
+                bool is_sql_item      = false;
+                std::vector<field_info_t> field_array;
+                unsigned char action_setup = 0;
+                unsigned int column_num    = 0;
+                unsigned int offset        = 0;
+
+                for (; is_sql_item == false;)
+                {
+                    n      = select_conn->read_loop();
+                    offset = 0;
+                    if (n == 0)
+                    {
+                        error_msg = select_conn->error_msg;
+                        select_conn.reset();
+                        return 0;
+                    }
+                    for (; offset < n;)
+                    {
+                        select_conn->read_field_pack(select_conn->_cache_data, n, offset, temp_pack_data);
+                        if (temp_pack_data.error > 0)
+                        {
+                            iserror   = true;
+                            error_msg = temp_pack_data.data;
+                            select_conn.reset();
+                            return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
+                        {
+                            if (select_conn->pack_eof_check(temp_pack_data))
+                            {
+                                is_sql_item = true;
+                                break;
+                            }
+
+                            if (action_setup == 0)
+                            {
+                                if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                                {
+                                    action_setup = 1;
+                                    column_num   = (unsigned char)temp_pack_data.data[0];
+                                }
+                            }
+                            else if (action_setup == 1)
+                            {
+                                field_info_t temp_filed_col;
+                                select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
+
+                                field_array.emplace_back(std::move(temp_filed_col));
+                                column_num--;
+                                if (column_num == 0)
+                                {
+                                    action_setup = 2;
+                                }
+                            }
+                            else if (action_setup == 2)
+                            {
+                                unsigned int column_num = field_array.size();
+                                unsigned int tempnum    = 0;
+
+                                for (unsigned int ij = 0; ij < column_num; ij++)
+                                {
+                                    unsigned long long name_length = 0;
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+
+                                    if (field_array[ij].name.size() > 0)
+                                    {
+                                        //or alias name
+                                        custom_struct.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                    }
+                                    else if (field_array[ij].org_name.size() > 0)
+                                    {
+                                        custom_struct.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                    }
+                                    
+                                    tempnum = tempnum + name_length;
+                                }
+
+                                effect_num++;
+                            }
+                        }
+                        else
+                        {
+                            if (offset >= n)
+                            {
+                                break;
+                            }
+                            is_sql_item = true;
+                            break;
+                        }
+                    }
+                }
+                if (select_conn->isdebug)
+                {
+                    select_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = select_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+
+                if (!islock_conn)
+                {
+                    conn_obj->back_select_conn(std::move(select_conn));
+                }
+
+                return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            return 0;
+        }
+
+        template <typename T>
+        asio::awaitable<unsigned int> async_fetch_one_to(T &custom_struct)
+        {
+            effect_num = 0;
+            if (selectsql.empty())
+            {
+                sqlstring = "SELECT *  FROM ";
+            }
+            else
+            {
+                sqlstring = "SELECT ";
+                sqlstring.append(selectsql);
+                sqlstring.append(" FROM ");
+            }
+
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" WHERE ");
+
+            if (wheresql.empty())
+            {
+                sqlstring.append(" 1 ");
+            }
+            else
+            {
+                sqlstring.append(wheresql);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+
+            sqlstring.append(" limit 1");
+
+            if (iserror)
+            {
+                co_return 0;
+            }
+
+            try
+            {
+                effect_num = 0;
+
+                if (conn_empty())
+                {
+                    co_return 0;
+                }
+                //auto conn = co_await conn_obj->async_get_select_conn();
+                if (islock_conn)
+                {
+                    if (!select_conn)
+                    {
+                        select_conn = co_await conn_obj->async_get_select_conn();
+                    }
+                }
+                else
+                {
+                    select_conn = co_await conn_obj->async_get_select_conn();
+                }
+                if (select_conn->isdebug)
+                {
+                    select_conn->begin_time();
+                }
+
+                std::size_t n = co_await select_conn->async_write_sql(sqlstring);
+
+                if (n == 0)
+                {
+                    error_msg = select_conn->error_msg;
+                    select_conn.reset();
+                    co_return 0;
+                }
+
+                pack_info_t temp_pack_data;
+                temp_pack_data.seq_id = 1;
+                bool is_sql_item      = false;
+                std::vector<field_info_t> field_array;
+
+                unsigned char action_setup = 0;
+                unsigned int column_num    = 0;
+
+                unsigned int offset = 0;
+
+                for (; is_sql_item == false;)
+                {
+                    n      = co_await select_conn->async_read_loop();
+                    offset = 0;
+                    if (n == 0)
+                    {
+                        select_conn.reset();
+                        co_return 0;
+                    }
+                    for (; offset < n;)
+                    {
+                        select_conn->read_field_pack(select_conn->_cache_data, n, offset, temp_pack_data);
+                        if (temp_pack_data.error > 0)
+                        {
+                            iserror   = true;
+                            error_msg = temp_pack_data.data;
+                            select_conn.reset();
+                            co_return 0;
+                        }
+                        if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
+                        {
+                            if (select_conn->pack_eof_check(temp_pack_data))
+                            {
+                                is_sql_item = true;
+                                break;
+                            }
+
+                            if (action_setup == 0)
+                            {
+                                if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                                {
+                                    action_setup = 1;
+                                    column_num   = (unsigned char)temp_pack_data.data[0];
+                                }
+                            }
+                            else if (action_setup == 1)
+                            {
+                                field_info_t temp_filed_col;
+                                select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
+
+                                field_array.emplace_back(std::move(temp_filed_col));
+                                column_num--;
+                                if (column_num == 0)
+                                {
+                                    action_setup = 2;
+                                }
+                            }
+                            else if (action_setup == 2)
+                            {
+                                unsigned int column_num = field_array.size();
+                                unsigned int tempnum    = 0;
+
+                                for (unsigned int ij = 0; ij < column_num; ij++)
+                                {
+                                    unsigned long long name_length = 0;
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+
+                                    if (field_array[ij].name.size() > 0)
+                                    {
+                                        //or alias name
+                                        custom_struct.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                    }
+                                    else if (field_array[ij].org_name.size() > 0)
+                                    {
+                                        custom_struct.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                    }
+                                    
+                                    tempnum = tempnum + name_length;
+                                }
+
+                                effect_num++;
+                            }
+                        }
+                        else
+                        {
+                            if (offset >= n)
+                            {
+                                break;
+                            }
+                            is_sql_item = true;
+                            break;
+                        }
+                    }
+                }
+                if (select_conn->isdebug)
+                {
+                    select_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = select_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+                if (!islock_conn)
+                {
+                    conn_obj->back_select_conn(std::move(select_conn));
+                }
+ 
+                co_return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                co_return 0;
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            co_return 0;
+        }
+
         unsigned int fetch_one(bool isappend = false)
         {
             effect_num = 0;

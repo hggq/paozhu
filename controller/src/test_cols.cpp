@@ -9,7 +9,7 @@
 ORM_WORLD_DEFINE_STRUCT(Mystruct, id, randomnumber);
 ORM_WORLD_TREE_STRUCT(MyTreeStruct, id, randomnumber);
 ORM_WORLD_TREE_PTR_STRUCT(MyPtrStruct, id, randomnumber);
-ORM_WORLD_SELF_STRUCT(MyCustomStruct, int userid; std::string name;,(userid, name), id, randomnumber);
+ORM_WORLD_SELF_STRUCT(MyCustomStruct, int userid =0; std::string name;,(userid, name), id, randomnumber);
 
 namespace http
 {
@@ -49,7 +49,19 @@ std::string test_cols(std::shared_ptr<httppeer> peer)
 
     client << "<p>list: " <<  world.get_cols_to_str<orm::world_info::cols::randomnumber>() << "</p>";
     
-    
+    std::vector<orm::world_info::MyCustomStruct> cust_test;
+    world.clear();
+    world.btId(200).ltId(250).fetch_to(cust_test);
+
+    client << "<p>cust_test size: " <<  cust_test.size() << "</p>";
+    if(cust_test.size() > 0)
+    {
+        client << "<p>cust_test[0] json: " <<  cust_test[0].to_json() << "</p>";
+    }
+    client << "<p><hr></p>";
+    client << "<pre>";
+    client << orm::world_info::to_json(cust_test);
+    client << "</pre>";
 
     orm::world_info::Mystruct b;
     b.id = 10;
@@ -95,6 +107,29 @@ std::string test_cols(std::shared_ptr<httppeer> peer)
         std::vector<std::unique_ptr<LocalStruct>> children;
     };
     return "";
+}
+
+//@urlpath(null,test_cols_co)
+asio::awaitable<std::string> test_cols_co(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    auto world = orm::World();
+    
+    std::vector<orm::world_info::MyCustomStruct> cust_test;
+    world.btId(200).ltId(250);
+    std::size_t n = co_await world.async_fetch_to(cust_test);
+    client << world.sqlstring;
+    client << "<p>cust_test size: " <<  cust_test.size()<< " n:"<< n << "</p>";
+    if(cust_test.size() > 0)
+    {
+        client << "<p>cust_test[0] json: " <<  cust_test[0].to_json() << "</p>";
+    }
+    client << "<p><hr></p>";
+    client << "<pre>";
+    client << orm::world_info::to_json(cust_test);
+    client << "</pre>";
+
+    co_return "";
 }
 
 }// namespace http

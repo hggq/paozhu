@@ -7,7 +7,9 @@
 #include <cstring>
 #include <string_view>
 #include <vector>
-
+#include <utility>
+#include <concepts>
+#include <iostream>
 namespace http
 {
 
@@ -55,6 +57,7 @@ namespace http
      */
 
     std::string stringunicode_to_utf8(std::string &source);
+    bool str_colname_casecmp(std::string_view str1, std::string_view str2);
 
     template<typename T>
     std::string to_json_value(const T& val) 
@@ -71,6 +74,81 @@ namespace http
             return utf8_to_json_string(val);
         } else {
             return "";
+        }
+    }
+
+        // 整数赋值重载
+    template <typename T>
+    inline auto try_set_val(T& field, const unsigned char* buf, size_t length) 
+        -> std::enable_if_t<std::is_integral_v<T>> 
+    {
+        T _tmp{};
+        auto [ptr, ec] = std::from_chars(
+            reinterpret_cast<const char*>(buf),
+            reinterpret_cast<const char*>(buf) + length,
+            _tmp);
+        if (ec == std::errc{}) {
+            field = _tmp;
+        }
+        else
+        {
+            field = 0;
+        }
+    }
+
+    // 浮点赋值重载
+    template <typename T>
+    inline auto try_set_val(T& field, const unsigned char* buf, size_t length) 
+        -> std::enable_if_t<std::is_floating_point_v<T>> 
+    {
+        T _tmp{};
+        auto [ptr, ec] = std::from_chars(
+            reinterpret_cast<const char*>(buf),
+            reinterpret_cast<const char*>(buf) + length,
+            _tmp);
+        if (ec == std::errc{}) {
+            field = _tmp;
+        }
+        else
+        {
+            field = 0;
+        }
+    }
+
+    // 字符串赋值重载
+    template <typename T>
+    inline auto try_set_val(T& field, const unsigned char* buf, size_t length) 
+        -> std::enable_if_t<std::is_same_v<std::decay_t<T>, std::string>> 
+    {
+        field = std::string(reinterpret_cast<const char*>(buf), length);
+    }
+
+    // 字符串赋值重载
+    template <typename T>
+    inline auto try_set_val(T& field, const unsigned char* buf, size_t length) 
+        -> std::enable_if_t<std::is_same_v<std::decay_t<T>, bool>> 
+    {
+        if(length > 0 && length < 4)
+        {
+            if(buf[0] != '0')
+            {
+                field = true;
+            }
+            else
+            {
+                field = false;
+            }
+        }
+        else if(length > 2)
+        {
+            if(buf[0] == 'F' || buf[0] == 'f')
+            {
+                field = false;
+            }
+            else
+            {
+                field = true;
+            }
         }
     }
 }

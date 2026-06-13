@@ -5867,6 +5867,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     headtxt += R"(
 ***/
 #include <iostream>
+#include <charconv>
 #include <cstdio>
 #include <sstream>
 #include <array>
@@ -6006,7 +6007,10 @@ headtxt += R"(
     }
 
     )";
-#define ORM_WORLD_EXPAND(x) x
+/*
+    #define ORM_WORLD_EXPAND(x) x 
+    
+*/
 headtxt += R"(
     #define ORM_)"; 
     if (rmstag != "default")
@@ -6017,6 +6021,20 @@ headtxt += R"(
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(x) x 
     )";
+
+/*
+    #define ORM_WORLD_META_FIELD_TYPE(col) \
+         orm::world_info::type::col 
+
+    #define ORM_WORLD_PROJ_MEMBER(col) \
+          ORM_WORLD_EXPAND(ORM_WORLD_META_FIELD_TYPE(col)) col;
+                 
+    #define ORM_WORLD_PROJ_MEMBERS_1(c1) \
+        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c1)) 
+     
+    #define ORM_WORLD_PROJ_MEMBERS_2( c1, c2) \
+         ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_1( c1)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c2))
+*/
 
 headtxt += R"(
     #define ORM_)"; 
@@ -6064,7 +6082,7 @@ headtxt += R"(
     }
 
     headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_META_FIELD_TYPE(col)) col;
+    headtxt += R"(_META_FIELD_TYPE(col)) col{};
                 )";
     headtxt += R"( 
     #define ORM_)";
@@ -6182,6 +6200,9 @@ headtxt += R"(
         )";
     }
 
+    /*
+    #define ORM_WORLD_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    */
     headtxt += R"( 
     #define ORM_)";
     if (rmstag != "default")
@@ -6194,6 +6215,28 @@ headtxt += R"(
     headtxt += R"(_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
     
     )";
+
+/*
+    #define ORM_WORLD_PROJ_MEMBERS(...) \
+        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, \
+            ORM_WORLD_PROJ_MEMBERS_16, \
+            ORM_WORLD_PROJ_MEMBERS_15, \
+            ORM_WORLD_PROJ_MEMBERS_14, \
+            ORM_WORLD_PROJ_MEMBERS_13, \
+            ORM_WORLD_PROJ_MEMBERS_12, \
+            ORM_WORLD_PROJ_MEMBERS_11, \
+            ORM_WORLD_PROJ_MEMBERS_10, \
+            ORM_WORLD_PROJ_MEMBERS_9, \
+            ORM_WORLD_PROJ_MEMBERS_8, \
+            ORM_WORLD_PROJ_MEMBERS_7, \
+            ORM_WORLD_PROJ_MEMBERS_6, \
+            ORM_WORLD_PROJ_MEMBERS_5, \
+            ORM_WORLD_PROJ_MEMBERS_4, \
+            ORM_WORLD_PROJ_MEMBERS_3, \
+            ORM_WORLD_PROJ_MEMBERS_2, \
+            ORM_WORLD_PROJ_MEMBERS_1, \
+        )(__VA_ARGS__))
+*/
 
     headtxt += R"( 
     #define ORM_)";
@@ -6249,6 +6292,15 @@ headtxt += R"(
 
     )";
  
+/*
+    #define ORM_WORLD_COUNT(...) \
+        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
+    
+    
+    #define ORM_WORLD_TO_JSON_ITEM(c) \
+        oss << "\"" #c "\":" << http::to_json_value(c)
+*/
+
     headtxt += R"(
     #define ORM_)";
 
@@ -6291,6 +6343,16 @@ headtxt += R"(
     headtxt += R"(_TO_JSON_ITEM(c) \
         oss << "\"" #c "\":" << http::to_json_value(c)
     )";   
+
+/*
+    #define ORM_WORLD_TO_JSON_1(c1) \
+         ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c1))
+        
+    #define ORM_WORLD_TO_JSON_2(c1,c2) \
+         ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_1(c1)); \
+            oss << ','; \
+            ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c2)) 
+*/
 
 
     for (int n = 1; n <= 16; ++n) 
@@ -6397,6 +6459,13 @@ headtxt += R"(
         }
     }
 
+/*
+    #define ORM_WORLD_TO_JSON_BODY(...) \
+        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, \
+            ORM_WORLD_TO_JSON_16,ORM_WORLD_TO_JSON_15,ORM_WORLD_TO_JSON_14,ORM_WORLD_TO_JSON_13,ORM_WORLD_TO_JSON_12,ORM_WORLD_TO_JSON_11,ORM_WORLD_TO_JSON_10,ORM_WORLD_TO_JSON_9,ORM_WORLD_TO_JSON_8,ORM_WORLD_TO_JSON_7,ORM_WORLD_TO_JSON_6,ORM_WORLD_TO_JSON_5,ORM_WORLD_TO_JSON_4,ORM_WORLD_TO_JSON_3,ORM_WORLD_TO_JSON_2,ORM_WORLD_TO_JSON_1 \
+         )(__VA_ARGS__))
+*/
+
     headtxt += R"(
     #define ORM_)";
 
@@ -6447,6 +6516,12 @@ headtxt += R"(
          
          )"; 
 /////////
+/*
+    #define ORM_WORLD_UNWRAP(...) __VA_ARGS__  
+
+    #define ORM_WORLD_TO_JSON_CUSTOM_ITEM(name) \
+        oss << ",\"" #name "\":" << http::to_json_value(name);
+*/
 //begin custom name
     headtxt += R"( 
     #define ORM_)";
@@ -6472,6 +6547,11 @@ headtxt += R"(
 
     )"; 
     
+/*
+#define ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2)  ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_1(n1)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n2)) 
+#define ORM_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3)  ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n3)) 
+*/
+
     for (int n = 1; n <= 16; ++n) {
         // 宏定义开头
         headtxt += R"(#define ORM_)";
@@ -6628,6 +6708,13 @@ headtxt += R"(
 
     )";
 
+
+/*
+    #define ORM_WORLD_TO_JSON_CUSTOM(...) \
+        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+
+*/
+
     headtxt += R"(
 
     #define ORM_)";
@@ -6658,6 +6745,247 @@ headtxt += R"(
     headtxt += R"(_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
 
 )";
+
+
+/*
+set_val begin
+#define ORM_XXXX_SET_VAL_FIELD(field) \
+    if (_orm_name == #field) { \
+        http::try_set_val(field, _buf, _length); \
+        return; \
+    }
+*/
+
+    headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELD(field) \
+    if (http::str_colname_casecmp(_orm_name , #field)) { \
+        http::try_set_val(field, _buf, _length); \
+        return; \
+    }
+    
+    )";
+
+/*
+#define ORM_XXX_SET_VAL_1(c1) \
+    ORM_XXX_SET_VAL_FIELD(c1)
+*/
+
+    headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_1(c1) \
+        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELD(c1)
+    
+    )";
+
+
+ /*
+ #define ORM_WORLD_SET_VAL_2(c1,c2) \
+    ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_1(c1)) \
+    ORM_WORLD_SET_VAL_FIELD(c2)
+    .........
+ */   
+    for(int i=2;i<17;i++)
+    {
+            headtxt += R"(
+    #define ORM_)";
+
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+        headtxt += R"(_SET_VAL_)";
+        headtxt.append(std::to_string(i));
+        headtxt.push_back('(');
+
+        for(int j=1;j<=i;j++)
+        {
+            if(j>1)
+            {
+                headtxt.push_back(',');
+            }
+            headtxt.push_back('c');
+            headtxt.append(std::to_string(j));
+        }
+
+        headtxt += R"() \
+        ORM_)";
+
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+        headtxt += R"(_EXPAND(ORM_)";
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+                headtxt += R"(_SET_VAL_)";
+        
+        headtxt.append(std::to_string(i-1));
+        headtxt.push_back('(');
+
+        for(int j=1;j<i;j++)
+        {
+            if(j>1)
+            {
+                headtxt.push_back(',');
+            }
+            headtxt.push_back('c');
+            headtxt.append(std::to_string(j));
+        }
+
+        headtxt += R"()) \
+        ORM_)";
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+        headtxt += R"(_SET_VAL_FIELD(c)";
+        headtxt.append(std::to_string(i));
+        headtxt += R"()
+        
+        )";
+    }
+
+// 计数分发（复用已有 GET_MACRO + CAT 模式）
+/*
+#define ORM_WORLD_SET_VAL_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) \
+    ORM_WORLD_CAT(ORM_WORLD_SET_VAL_, N)  
+*/
+
+    headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) \
+        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_CAT(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_, N)
+    
+    )";
+
+ /*
+ #define ORM_WORLD_SET_VAL_FIELDS(...) \
+    ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_N(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+ */   
+
+     headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELDS(...) \
+        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_N(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+    
+    )";
+
+/*
+// CustomNames 版本的 set_val（用于 SELF_STRUCT / CUST_STRUCT）
+#define ORM_WORLD_SET_VAL_CUSTOM_FIELDS(...) \
+    ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_FIELDS(ORM_WORLD_UNWRAP __VA_ARGS__))
+*/
+
+    headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_CUSTOM_FIELDS(...) \
+        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELDS(ORM_)";
+        if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_UNWRAP __VA_ARGS__))
+    
+    )";
+
+//begin struct
 ///////
 //11111
     headtxt += R"(
@@ -6720,10 +7048,36 @@ headtxt += R"(
                 oss << '}'; \
                 return oss.str(); \
             } \
-            void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+            void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
             } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     )";
@@ -6817,10 +7171,53 @@ headtxt += R"(
                 return oss.str(); \
             } \
             \
-            void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+            void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
+                ORM_)";
+                    if (rmstag != "default")
+                    {
+                        headtxt.append(colname_touper(rmstag));
+                        headtxt.append("_");
+                    }              
+
+                    headtxt.append(colname_touper(tablenamebase));
+                    headtxt += R"(_EXPAND(ORM_)";
+                    if (rmstag != "default")
+                    {
+                        headtxt.append(colname_touper(rmstag));
+                        headtxt.append("_");
+                    }              
+
+                    headtxt.append(colname_touper(tablenamebase));
+                    headtxt += R"(_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
             } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     )";
@@ -6895,10 +7292,36 @@ headtxt += R"(
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+                void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
                 } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     )";
@@ -6971,10 +7394,36 @@ headtxt += R"(
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+                void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
                 } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     )";
@@ -7075,10 +7524,53 @@ headtxt += R"(
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+                void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
+                    ORM_)";
+                    if (rmstag != "default")
+                    {
+                        headtxt.append(colname_touper(rmstag));
+                        headtxt.append("_");
+                    }              
+
+                    headtxt.append(colname_touper(tablenamebase));
+                    headtxt += R"(_EXPAND(ORM_)";
+                    if (rmstag != "default")
+                    {
+                        headtxt.append(colname_touper(rmstag));
+                        headtxt.append("_");
+                    }              
+
+                    headtxt.append(colname_touper(tablenamebase));
+                    headtxt += R"(_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
                 } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     )";

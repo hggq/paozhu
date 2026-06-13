@@ -688,6 +688,9 @@ namespace http
 		temp.regfun = test_socket_client;
 		methodcallback.emplace("test_socket_client",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_cols_co;
+		methodcallback.emplace("test_cols_co",temp);
+		temp.pre = nullptr;
 		temp.regfun = testhttpclient21_cowait_body;
 		methodcallback.emplace("testcowaitclient21",temp);
 		temp.pre = nullptr;

@@ -2,9 +2,10 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 09:12:49 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 16:09:21 GMT
 ***/
 #include <iostream>
+#include <charconv>
 #include <cstdio>
 #include <sstream>
 #include <array>
@@ -213,7 +214,7 @@ namespace sysuser_info
          orm::cms::sysuser_info::type::col 
     
     #define ORM_CMS_SYSUSER_PROJ_MEMBER(col) \
-          ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_META_FIELD_TYPE(col)) col;
+          ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_META_FIELD_TYPE(col)) col{};
                  
     #define ORM_CMS_SYSUSER_PROJ_MEMBERS_1(c1) \
         ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_PROJ_MEMBER(c1)) 
@@ -443,6 +444,104 @@ namespace sysuser_info
         ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
 
 
+    #define ORM_CMS_SYSUSER_SET_VAL_FIELD(field) \
+    if (http::str_colname_casecmp(_orm_name , #field)) { \
+        http::try_set_val(field, _buf, _length); \
+        return; \
+    }
+    
+    
+    #define ORM_CMS_SYSUSER_SET_VAL_1(c1) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c1)
+    
+    
+    #define ORM_CMS_SYSUSER_SET_VAL_2(c1,c2) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_1(c1)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c2)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_3(c1,c2,c3) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_2(c1,c2)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c3)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_4(c1,c2,c3,c4) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_3(c1,c2,c3)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c4)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_5(c1,c2,c3,c4,c5) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_4(c1,c2,c3,c4)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c5)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_6(c1,c2,c3,c4,c5,c6) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_5(c1,c2,c3,c4,c5)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c6)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_7(c1,c2,c3,c4,c5,c6,c7) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_6(c1,c2,c3,c4,c5,c6)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c7)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_8(c1,c2,c3,c4,c5,c6,c7,c8) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_7(c1,c2,c3,c4,c5,c6,c7)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c8)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_9(c1,c2,c3,c4,c5,c6,c7,c8,c9) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_8(c1,c2,c3,c4,c5,c6,c7,c8)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c9)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_9(c1,c2,c3,c4,c5,c6,c7,c8,c9)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c10)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c11)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c12)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c13)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c14)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c15)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_16(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15)) \
+        ORM_CMS_SYSUSER_SET_VAL_FIELD(c16)
+        
+        
+    #define ORM_CMS_SYSUSER_SET_VAL_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) \
+        ORM_CMS_SYSUSER_CAT(ORM_CMS_SYSUSER_SET_VAL_, N)
+    
+    
+    #define ORM_CMS_SYSUSER_SET_VAL_FIELDS(...) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_N(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+    
+    
+    #define ORM_CMS_SYSUSER_SET_VAL_CUSTOM_FIELDS(...) \
+        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_FIELDS(ORM_CMS_SYSUSER_UNWRAP __VA_ARGS__))
+    
+    
     #define ORM_CMS_SYSUSER_DEFINE_STRUCT(StructName, ...) \
         namespace orm::cms::sysuser_info { \
             struct StructName { \
@@ -455,10 +554,20 @@ namespace sysuser_info
                 oss << '}'; \
                 return oss.str(); \
             } \
-            void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+            void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_FIELDS(__VA_ARGS__)) \
             } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     
@@ -477,10 +586,21 @@ namespace sysuser_info
                 return oss.str(); \
             } \
             \
-            void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+            void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_FIELDS(__VA_ARGS__)) \
+                ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
             } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     
@@ -504,10 +624,20 @@ namespace sysuser_info
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+                void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_FIELDS(__VA_ARGS__)) \
                 } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     
@@ -531,10 +661,20 @@ namespace sysuser_info
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+                void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_FIELDS(__VA_ARGS__)) \
                 } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     
@@ -560,10 +700,21 @@ namespace sysuser_info
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& name, \
-                        [[maybe_unused]] const unsigned char* buf,[[maybe_unused]] size_t length) { \
+                void set_val([[maybe_unused]] const std::string& _orm_name, \
+                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                        ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_FIELDS(__VA_ARGS__)) \
+                    ORM_CMS_SYSUSER_EXPAND(ORM_CMS_SYSUSER_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
                 } \
             }; \
+            std::string to_json(const std::vector<StructName> &vec_){\
+            std::ostringstream oss; \
+                oss << '['; \
+                for(unsigned int i=0; i<vec_.size(); i++){ \
+                    if(i>0) oss << ','; \
+                    oss << vec_[i].to_json(); \
+                }\
+                oss << ']'; \
+                return oss.str(); }\
        }
         
     static constexpr std::array<std::string_view,21> col_names={"adminid","name","password","textword","isopen","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid"};
