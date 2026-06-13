@@ -72,9 +72,11 @@ namespace world_info
 
     }
 
-    
     #define ORM_WORLD_META_FIELD_TYPE(col) \
-        decltype(orm::world_info::getField<orm::world_info::cols::col>(std::declval<const orm::world_info::meta&>()))
+        orm::world_info::type::col
+
+    // #define ORM_WORLD_META_FIELD_TYPE(col) \
+    //     decltype(orm::world_info::getField<orm::world_info::cols::col>(std::declval<const orm::world_info::meta&>()))
 
     #define ORM_WORLD_PROJ_MEMBER(col) \
           ORM_WORLD_META_FIELD_TYPE(col) col;
