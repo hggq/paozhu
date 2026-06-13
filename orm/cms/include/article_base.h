@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 12:12:35 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 01:24:53 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -15,6 +15,7 @@
 #include <ctime>
 #include <array>
 #include <concepts>
+#include <utility>
 #include "unicode.h"
 
 namespace orm { 
@@ -215,10 +216,146 @@ namespace article_info
             static_assert(false, "Unsupported column type");
         }
     }
+    
+    namespace type {
+		using aid = decltype(std::declval<const meta>().aid);
+		using topicid = decltype(std::declval<const meta>().topicid);
+		using classtype = decltype(std::declval<const meta>().classtype);
+		using userid = decltype(std::declval<const meta>().userid);
+		using sortid = decltype(std::declval<const meta>().sortid);
+		using topicname = decltype(std::declval<const meta>().topicname);
+		using title = decltype(std::declval<const meta>().title);
+		using keywords = decltype(std::declval<const meta>().keywords);
+		using fromsource = decltype(std::declval<const meta>().fromsource);
+		using author = decltype(std::declval<const meta>().author);
+		using addip = decltype(std::declval<const meta>().addip);
+		using createtime = decltype(std::declval<const meta>().createtime);
+		using addtime = decltype(std::declval<const meta>().addtime);
+		using readnum = decltype(std::declval<const meta>().readnum);
+		using review = decltype(std::declval<const meta>().review);
+		using icoimg = decltype(std::declval<const meta>().icoimg);
+		using content = decltype(std::declval<const meta>().content);
+		using mdcontent = decltype(std::declval<const meta>().mdcontent);
+		using isopen = decltype(std::declval<const meta>().isopen);
+		using ishome = decltype(std::declval<const meta>().ishome);
+		using iscomment = decltype(std::declval<const meta>().iscomment);
+		using showtype = decltype(std::declval<const meta>().showtype);
+		using fromlocal = decltype(std::declval<const meta>().fromlocal);
+		using texturl = decltype(std::declval<const meta>().texturl);
+		using summary = decltype(std::declval<const meta>().summary);
+		using editauthor = decltype(std::declval<const meta>().editauthor);
+		using relatecontent = decltype(std::declval<const meta>().relatecontent);
+
+    }
+
+    
+    #define ORM_CMS_ARTICLE_META_FIELD_TYPE(col) \
+        decltype(orm::cms::article_info::getField<orm::cms::article_info::cols::col>(std::declval<const orm::cms::article_info::meta&>()))
+
+    #define ORM_CMS_ARTICLE_PROJ_MEMBER(col) \
+          ORM_CMS_ARTICLE_META_FIELD_TYPE(col) col;
+                 
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_1(c1) \
+        ORM_CMS_ARTICLE_PROJ_MEMBER(c1) 
+     
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_2( c1, c2) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_1( c1) ORM_CMS_ARTICLE_PROJ_MEMBER(c2)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_3( c1, c2, c3) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_2( c1, c2) ORM_CMS_ARTICLE_PROJ_MEMBER(c3)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_4( c1, c2, c3, c4) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_3( c1, c2, c3) ORM_CMS_ARTICLE_PROJ_MEMBER(c4)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_4( c1, c2, c3, c4) ORM_CMS_ARTICLE_PROJ_MEMBER(c5)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) ORM_CMS_ARTICLE_PROJ_MEMBER(c6)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) ORM_CMS_ARTICLE_PROJ_MEMBER(c7)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) ORM_CMS_ARTICLE_PROJ_MEMBER(c8)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) ORM_CMS_ARTICLE_PROJ_MEMBER(c9)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) ORM_CMS_ARTICLE_PROJ_MEMBER(c10)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) ORM_CMS_ARTICLE_PROJ_MEMBER(c11)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ORM_CMS_ARTICLE_PROJ_MEMBER(c12)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) ORM_CMS_ARTICLE_PROJ_MEMBER(c13)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) ORM_CMS_ARTICLE_PROJ_MEMBER(c14)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) ORM_CMS_ARTICLE_PROJ_MEMBER(c15)
+         
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS_16( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) \
+        ORM_CMS_ARTICLE_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) ORM_CMS_ARTICLE_PROJ_MEMBER(c16)
+         
+    #define ORM_CMS_ARTICLE_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    
+     
+    #define ORM_CMS_ARTICLE_PROJ_MEMBERS(...) \
+        ORM_CMS_ARTICLE_GET_MACRO(__VA_ARGS__, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_16, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_15, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_14, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_13, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_12, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_11, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_10, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_9, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_8, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_7, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_6, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_5, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_4, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_3, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_2, \
+            ORM_CMS_ARTICLE_PROJ_MEMBERS_1, \
+        )(__VA_ARGS__)
+
+    
+    #define ORM_CMS_ARTICLE_DEFINE_STRUCT(StructName, ...) \
+        namespace orm::cms::article_info { \
+            struct StructName { \
+                ORM_CMS_ARTICLE_PROJ_MEMBERS(__VA_ARGS__) \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_ARTICLE_TREE_STRUCT(StructName, ...) \
+        namespace orm::cms::article_info { \
+            struct StructName##_tree { \
+                ORM_CMS_ARTICLE_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<StructName##_tree> children; \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_ARTICLE_TREE_PTR_STRUCT(StructName, ...) \
+        namespace orm::cms::article_info { \
+            struct StructName##_tree_ptr { \
+                ORM_CMS_ARTICLE_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<std::unique_ptr<StructName##_tree_ptr>> children; \
+            }; \
+       }
+        
     static constexpr std::array<std::string_view,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
-static constexpr std::array<unsigned char,27> col_types={3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
-static constexpr std::array<unsigned char,27> col_length={0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,0};
-static constexpr std::array<unsigned char,27> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned char,27> col_types={3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
+	static constexpr std::array<unsigned char,27> col_length={0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,0};
+	static constexpr std::array<unsigned char,27> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 }
 

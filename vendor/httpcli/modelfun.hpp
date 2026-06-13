@@ -262,6 +262,24 @@ void colname_first_touper(std::string &a)
         }
     }
 }
+
+std::string colname_touper(const std::string &a)
+{
+    std::string temp_str;
+    for(unsigned int i=0; i<a.size(); i++)
+    {
+        if (a[i] >= 'a' && a[i] <= 'z')
+        {
+            temp_str.push_back((a[i] - 32));
+        }
+        else
+        {
+            temp_str.push_back((a[i]));
+        }
+    }
+
+    return temp_str;
+}
 std::string colname_to_hump(const std::string &a)
 {
     std::string b;
@@ -5859,6 +5877,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 #include <ctime>
 #include <array>
 #include <concepts>
+#include <utility>
 #include "unicode.h"
 
 namespace orm { 
@@ -5968,6 +5987,332 @@ headtxt += R"(
         }
     }
     )";
+headtxt += R"(
+    namespace type {
+)";
+
+    for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
+        {
+            headtxt.append("\t\tusing ");
+            headtxt.append(table_column_info_lists[j].col_name);
+            headtxt.append(" = decltype(std::declval<const meta>().");
+            headtxt.append(table_column_info_lists[j].col_name);
+            headtxt.append(");\n");
+        }
+
+headtxt += R"(
+    }
+
+    )";
+
+headtxt += R"(
+    #define ORM_)"; 
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_META_FIELD_TYPE(col) \
+        decltype(orm::)";
+    if (rmstag != "default")
+    {
+        headtxt.append(rmstag);
+        headtxt.append("::");
+    }        
+
+    headtxt.append(tablenamebase);
+    headtxt.append("_info::");
+    headtxt += R"(getField<orm::)";
+    if (rmstag != "default")
+    {
+        headtxt.append(rmstag);
+        headtxt.append("::");
+    }
+    headtxt.append(tablenamebase);
+    headtxt += R"(_info::cols::col>(std::declval<const orm::)";
+    if (rmstag != "default")
+    {
+        headtxt.append(rmstag);
+        headtxt.append("::");
+    }
+    headtxt.append(tablenamebase);
+    headtxt += R"(_info::meta&>()))
+
+    #define ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBER(col) \
+          )";
+    headtxt += R"(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_META_FIELD_TYPE(col) col;
+                )";
+    headtxt += R"( 
+    #define ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+
+    headtxt += R"(_PROJ_MEMBERS_)";
+    headtxt.append(std::to_string(1));
+    headtxt.append("(c");
+    headtxt.append(std::to_string(1));
+    headtxt += R"() \
+        ORM_)";
+        
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+
+    headtxt += R"(_PROJ_MEMBER(c)";
+    headtxt.append(std::to_string(1));
+    headtxt += R"() 
+    )";
+    for(unsigned int i=2; i<17; i++)
+    {
+       headtxt += R"( 
+    #define ORM_)";
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+
+        headtxt += R"(_PROJ_MEMBERS_)";
+        headtxt.append(std::to_string(i));
+        headtxt.push_back('(');
+
+        for(unsigned int j=1; j<(i+1); j++)
+        {
+            if(j>1)
+            {
+               headtxt.push_back(','); 
+            }
+            headtxt.append(" c");
+            headtxt.append(std::to_string(j));
+
+        }
+
+        headtxt += R"() \
+        ORM_)";
+            
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+
+        headtxt += R"(_PROJ_MEMBERS_)";
+        headtxt.append(std::to_string(i-1));
+        headtxt.push_back('('); 
+        for(unsigned int j=1; j<i; j++)
+        {
+            if(j>1)
+            {
+               headtxt.push_back(','); 
+            }
+            headtxt.append(" c");
+            headtxt.append(std::to_string(j));
+
+        }
+        headtxt += R"() ORM_)"; 
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));
+
+        headtxt += R"(_PROJ_MEMBER(c)";
+        headtxt.append(std::to_string(i));
+        headtxt += R"()
+        )";
+    }
+
+    headtxt += R"( 
+    #define ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+
+    headtxt += R"(_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    
+    )";
+
+    headtxt += R"( 
+    #define ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(...) \
+        ORM_)";
+    
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));    
+    headtxt += R"(_GET_MACRO(__VA_ARGS__, \
+            )";
+
+    for(unsigned int i=16; i>0; i--)
+    {
+        headtxt += R"(ORM_)";
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        } 
+        headtxt.append(colname_touper(tablenamebase));    
+        headtxt += R"(_PROJ_MEMBERS_)";
+        headtxt.append(std::to_string(i));
+        if(i==1)
+        {
+        headtxt += R"(, \
+        )";
+        }
+        else
+        {
+        headtxt += R"(, \
+            )";
+        }
+
+    }
+    headtxt += R"()(__VA_ARGS__)
+
+    )";
+ 
+    headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_DEFINE_STRUCT(StructName, ...) \
+        namespace orm::)";   
+    if (rmstag != "default")
+    {
+        headtxt.append(rmstag);
+        headtxt.append("::");
+    }        
+    headtxt.append(tablenamebase);
+    headtxt += R"(_info { \
+            struct StructName { \
+                ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__) \
+            }; \
+       }
+        
+    )";
+
+    headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TREE_STRUCT(StructName, ...) \
+        namespace orm::)";   
+    if (rmstag != "default")
+    {
+        headtxt.append(rmstag);
+        headtxt.append("::");
+    }        
+    headtxt.append(tablenamebase);
+    headtxt += R"(_info { \
+            struct StructName##_tree { \
+                ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<StructName##_tree> children; \
+            }; \
+       }
+        
+    )";
+ 
+    headtxt += R"(
+    #define ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    } 
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_TREE_PTR_STRUCT(StructName, ...) \
+        namespace orm::)";   
+    if (rmstag != "default")
+    {
+        headtxt.append(rmstag);
+        headtxt.append("::");
+    }        
+    headtxt.append(tablenamebase);
+    headtxt += R"(_info { \
+            struct StructName##_tree_ptr { \
+                ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }              
+
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<std::unique_ptr<StructName##_tree_ptr>> children; \
+            }; \
+       }
+        
+    )";
+
+
+    fwrite(&headtxt[0], headtxt.size(), 1, f);
+    headtxt.clear();
  
     filemodelstrem.str("");
     // may be used to optimize the const static std::array<std::string,N> col_names={"xxx"};
@@ -5983,7 +6328,7 @@ headtxt += R"(
     }
     filemodelstrem << "};\r\n";
 
-    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_types={";
+    filemodelstrem << "\tstatic constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_types={";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
@@ -5995,7 +6340,7 @@ headtxt += R"(
     }
     filemodelstrem << "};\r\n";
 
-    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_length={";
+    filemodelstrem << "\tstatic constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_length={";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
@@ -6014,7 +6359,7 @@ headtxt += R"(
     }
     filemodelstrem << "};\r\n";
 
-    filemodelstrem << "static constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_decimals={";
+    filemodelstrem << "\tstatic constexpr std::array<unsigned char," << std::to_string(table_column_info_lists.size()) << "> col_decimals={";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {

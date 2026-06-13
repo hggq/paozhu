@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 12:12:35 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 01:24:53 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -15,6 +15,7 @@
 #include <ctime>
 #include <array>
 #include <concepts>
+#include <utility>
 #include "unicode.h"
 
 namespace orm { 
@@ -233,10 +234,149 @@ namespace xtask_info
             static_assert(false, "Unsupported column type");
         }
     }
+    
+    namespace type {
+		using xtaskid = decltype(std::declval<const meta>().xtaskid);
+		using userid = decltype(std::declval<const meta>().userid);
+		using xpjid = decltype(std::declval<const meta>().xpjid);
+		using adminid = decltype(std::declval<const meta>().adminid);
+		using parentid = decltype(std::declval<const meta>().parentid);
+		using begindate = decltype(std::declval<const meta>().begindate);
+		using enddate = decltype(std::declval<const meta>().enddate);
+		using expectbegindate = decltype(std::declval<const meta>().expectbegindate);
+		using expectenddate = decltype(std::declval<const meta>().expectenddate);
+		using milestone = decltype(std::declval<const meta>().milestone);
+		using subxpjid = decltype(std::declval<const meta>().subxpjid);
+		using depxtaskid = decltype(std::declval<const meta>().depxtaskid);
+		using referdocid = decltype(std::declval<const meta>().referdocid);
+		using isfinish = decltype(std::declval<const meta>().isfinish);
+		using updatedate = decltype(std::declval<const meta>().updatedate);
+		using finishdate = decltype(std::declval<const meta>().finishdate);
+		using iscore = decltype(std::declval<const meta>().iscore);
+		using xvalue = decltype(std::declval<const meta>().xvalue);
+		using expectday = decltype(std::declval<const meta>().expectday);
+		using realday = decltype(std::declval<const meta>().realday);
+		using pricevalue = decltype(std::declval<const meta>().pricevalue);
+		using title = decltype(std::declval<const meta>().title);
+		using introduce = decltype(std::declval<const meta>().introduce);
+		using xlogo = decltype(std::declval<const meta>().xlogo);
+		using xcolor = decltype(std::declval<const meta>().xcolor);
+		using pullurl = decltype(std::declval<const meta>().pullurl);
+		using pulltitle = decltype(std::declval<const meta>().pulltitle);
+		using pullauthor = decltype(std::declval<const meta>().pullauthor);
+		using note = decltype(std::declval<const meta>().note);
+		using itemnote = decltype(std::declval<const meta>().itemnote);
+
+    }
+
+    
+    #define ORM_CMS_XTASK_META_FIELD_TYPE(col) \
+        decltype(orm::cms::xtask_info::getField<orm::cms::xtask_info::cols::col>(std::declval<const orm::cms::xtask_info::meta&>()))
+
+    #define ORM_CMS_XTASK_PROJ_MEMBER(col) \
+          ORM_CMS_XTASK_META_FIELD_TYPE(col) col;
+                 
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_1(c1) \
+        ORM_CMS_XTASK_PROJ_MEMBER(c1) 
+     
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_2( c1, c2) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_1( c1) ORM_CMS_XTASK_PROJ_MEMBER(c2)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_3( c1, c2, c3) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_2( c1, c2) ORM_CMS_XTASK_PROJ_MEMBER(c3)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_4( c1, c2, c3, c4) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_3( c1, c2, c3) ORM_CMS_XTASK_PROJ_MEMBER(c4)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_4( c1, c2, c3, c4) ORM_CMS_XTASK_PROJ_MEMBER(c5)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) ORM_CMS_XTASK_PROJ_MEMBER(c6)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) ORM_CMS_XTASK_PROJ_MEMBER(c7)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) ORM_CMS_XTASK_PROJ_MEMBER(c8)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) ORM_CMS_XTASK_PROJ_MEMBER(c9)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) ORM_CMS_XTASK_PROJ_MEMBER(c10)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) ORM_CMS_XTASK_PROJ_MEMBER(c11)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ORM_CMS_XTASK_PROJ_MEMBER(c12)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) ORM_CMS_XTASK_PROJ_MEMBER(c13)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) ORM_CMS_XTASK_PROJ_MEMBER(c14)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) ORM_CMS_XTASK_PROJ_MEMBER(c15)
+         
+    #define ORM_CMS_XTASK_PROJ_MEMBERS_16( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) \
+        ORM_CMS_XTASK_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) ORM_CMS_XTASK_PROJ_MEMBER(c16)
+         
+    #define ORM_CMS_XTASK_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    
+     
+    #define ORM_CMS_XTASK_PROJ_MEMBERS(...) \
+        ORM_CMS_XTASK_GET_MACRO(__VA_ARGS__, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_16, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_15, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_14, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_13, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_12, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_11, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_10, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_9, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_8, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_7, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_6, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_5, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_4, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_3, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_2, \
+            ORM_CMS_XTASK_PROJ_MEMBERS_1, \
+        )(__VA_ARGS__)
+
+    
+    #define ORM_CMS_XTASK_DEFINE_STRUCT(StructName, ...) \
+        namespace orm::cms::xtask_info { \
+            struct StructName { \
+                ORM_CMS_XTASK_PROJ_MEMBERS(__VA_ARGS__) \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_XTASK_TREE_STRUCT(StructName, ...) \
+        namespace orm::cms::xtask_info { \
+            struct StructName##_tree { \
+                ORM_CMS_XTASK_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<StructName##_tree> children; \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_XTASK_TREE_PTR_STRUCT(StructName, ...) \
+        namespace orm::cms::xtask_info { \
+            struct StructName##_tree_ptr { \
+                ORM_CMS_XTASK_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<std::unique_ptr<StructName##_tree_ptr>> children; \
+            }; \
+       }
+        
     static constexpr std::array<std::string_view,30> col_names={"xtaskid","userid","xpjid","adminid","parentid","begindate","enddate","expectbegindate","expectenddate","milestone","subxpjid","depxtaskid","referdocid","isfinish","updatedate","finishdate","iscore","xvalue","expectday","realday","pricevalue","title","introduce","xlogo","xcolor","pullurl","pulltitle","pullauthor","note","itemnote"};
-static constexpr std::array<unsigned char,30> col_types={3,3,3,3,3,3,3,3,3,3,3,3,3,1,3,3,3,5,4,4,4,253,252,253,253,253,253,253,252,252};
-static constexpr std::array<unsigned char,30> col_length={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,60,0,0};
-static constexpr std::array<unsigned char,30> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned char,30> col_types={3,3,3,3,3,3,3,3,3,3,3,3,3,1,3,3,3,5,4,4,4,253,252,253,253,253,253,253,252,252};
+	static constexpr std::array<unsigned char,30> col_length={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,60,0,0};
+	static constexpr std::array<unsigned char,30> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 }
 

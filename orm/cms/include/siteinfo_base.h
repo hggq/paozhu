@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 12:12:35 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 01:24:53 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -15,6 +15,7 @@
 #include <ctime>
 #include <array>
 #include <concepts>
+#include <utility>
 #include "unicode.h"
 
 namespace orm { 
@@ -251,10 +252,152 @@ namespace siteinfo_info
             static_assert(false, "Unsupported column type");
         }
     }
+    
+    namespace type {
+		using sid = decltype(std::declval<const meta>().sid);
+		using userid = decltype(std::declval<const meta>().userid);
+		using agentid = decltype(std::declval<const meta>().agentid);
+		using languagetype = decltype(std::declval<const meta>().languagetype);
+		using sitename = decltype(std::declval<const meta>().sitename);
+		using sitedomain = decltype(std::declval<const meta>().sitedomain);
+		using metakeys = decltype(std::declval<const meta>().metakeys);
+		using metadesc = decltype(std::declval<const meta>().metadesc);
+		using copyright = decltype(std::declval<const meta>().copyright);
+		using beiansn = decltype(std::declval<const meta>().beiansn);
+		using footscript = decltype(std::declval<const meta>().footscript);
+		using headscript = decltype(std::declval<const meta>().headscript);
+		using introduce = decltype(std::declval<const meta>().introduce);
+		using sitelogo = decltype(std::declval<const meta>().sitelogo);
+		using sitebanner = decltype(std::declval<const meta>().sitebanner);
+		using contactman = decltype(std::declval<const meta>().contactman);
+		using phone = decltype(std::declval<const meta>().phone);
+		using mobile = decltype(std::declval<const meta>().mobile);
+		using email = decltype(std::declval<const meta>().email);
+		using bankname = decltype(std::declval<const meta>().bankname);
+		using banksn = decltype(std::declval<const meta>().banksn);
+		using address = decltype(std::declval<const meta>().address);
+		using zipnum = decltype(std::declval<const meta>().zipnum);
+		using taxsn = decltype(std::declval<const meta>().taxsn);
+		using companyname = decltype(std::declval<const meta>().companyname);
+		using linkname = decltype(std::declval<const meta>().linkname);
+		using linkmobile = decltype(std::declval<const meta>().linkmobile);
+		using linkaddress = decltype(std::declval<const meta>().linkaddress);
+		using theme = decltype(std::declval<const meta>().theme);
+		using sitepath = decltype(std::declval<const meta>().sitepath);
+		using isopen = decltype(std::declval<const meta>().isopen);
+		using created_at = decltype(std::declval<const meta>().created_at);
+		using enddate = decltype(std::declval<const meta>().enddate);
+
+    }
+
+    
+    #define ORM_CMS_SITEINFO_META_FIELD_TYPE(col) \
+        decltype(orm::cms::siteinfo_info::getField<orm::cms::siteinfo_info::cols::col>(std::declval<const orm::cms::siteinfo_info::meta&>()))
+
+    #define ORM_CMS_SITEINFO_PROJ_MEMBER(col) \
+          ORM_CMS_SITEINFO_META_FIELD_TYPE(col) col;
+                 
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_1(c1) \
+        ORM_CMS_SITEINFO_PROJ_MEMBER(c1) 
+     
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_2( c1, c2) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_1( c1) ORM_CMS_SITEINFO_PROJ_MEMBER(c2)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_3( c1, c2, c3) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_2( c1, c2) ORM_CMS_SITEINFO_PROJ_MEMBER(c3)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_4( c1, c2, c3, c4) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_3( c1, c2, c3) ORM_CMS_SITEINFO_PROJ_MEMBER(c4)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_4( c1, c2, c3, c4) ORM_CMS_SITEINFO_PROJ_MEMBER(c5)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) ORM_CMS_SITEINFO_PROJ_MEMBER(c6)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) ORM_CMS_SITEINFO_PROJ_MEMBER(c7)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) ORM_CMS_SITEINFO_PROJ_MEMBER(c8)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) ORM_CMS_SITEINFO_PROJ_MEMBER(c9)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) ORM_CMS_SITEINFO_PROJ_MEMBER(c10)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) ORM_CMS_SITEINFO_PROJ_MEMBER(c11)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ORM_CMS_SITEINFO_PROJ_MEMBER(c12)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) ORM_CMS_SITEINFO_PROJ_MEMBER(c13)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) ORM_CMS_SITEINFO_PROJ_MEMBER(c14)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) ORM_CMS_SITEINFO_PROJ_MEMBER(c15)
+         
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS_16( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) \
+        ORM_CMS_SITEINFO_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) ORM_CMS_SITEINFO_PROJ_MEMBER(c16)
+         
+    #define ORM_CMS_SITEINFO_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    
+     
+    #define ORM_CMS_SITEINFO_PROJ_MEMBERS(...) \
+        ORM_CMS_SITEINFO_GET_MACRO(__VA_ARGS__, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_16, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_15, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_14, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_13, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_12, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_11, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_10, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_9, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_8, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_7, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_6, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_5, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_4, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_3, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_2, \
+            ORM_CMS_SITEINFO_PROJ_MEMBERS_1, \
+        )(__VA_ARGS__)
+
+    
+    #define ORM_CMS_SITEINFO_DEFINE_STRUCT(StructName, ...) \
+        namespace orm::cms::siteinfo_info { \
+            struct StructName { \
+                ORM_CMS_SITEINFO_PROJ_MEMBERS(__VA_ARGS__) \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_SITEINFO_TREE_STRUCT(StructName, ...) \
+        namespace orm::cms::siteinfo_info { \
+            struct StructName##_tree { \
+                ORM_CMS_SITEINFO_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<StructName##_tree> children; \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_SITEINFO_TREE_PTR_STRUCT(StructName, ...) \
+        namespace orm::cms::siteinfo_info { \
+            struct StructName##_tree_ptr { \
+                ORM_CMS_SITEINFO_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<std::unique_ptr<StructName##_tree_ptr>> children; \
+            }; \
+       }
+        
     static constexpr std::array<std::string_view,33> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","sitebanner","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
-static constexpr std::array<unsigned char,33> col_types={3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
-static constexpr std::array<unsigned char,33> col_length={0,0,0,0,120,120,0,0,0,0,0,0,0,0,0,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
-static constexpr std::array<unsigned char,33> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned char,33> col_types={3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
+	static constexpr std::array<unsigned char,33> col_length={0,0,0,0,120,120,0,0,0,0,0,0,0,0,0,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
+	static constexpr std::array<unsigned char,33> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 }
 

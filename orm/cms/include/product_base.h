@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 12 Jun 2026 12:12:35 GMT
+*本文件为自动生成 Sat, 13 Jun 2026 01:24:53 GMT
 ***/
 #include <iostream>
 #include <cstdio>
@@ -15,6 +15,7 @@
 #include <ctime>
 #include <array>
 #include <concepts>
+#include <utility>
 #include "unicode.h"
 
 namespace orm { 
@@ -197,10 +198,143 @@ namespace product_info
             static_assert(false, "Unsupported column type");
         }
     }
+    
+    namespace type {
+		using pid = decltype(std::declval<const meta>().pid);
+		using userid = decltype(std::declval<const meta>().userid);
+		using topicid = decltype(std::declval<const meta>().topicid);
+		using bigid = decltype(std::declval<const meta>().bigid);
+		using smallid = decltype(std::declval<const meta>().smallid);
+		using brandid = decltype(std::declval<const meta>().brandid);
+		using isview = decltype(std::declval<const meta>().isview);
+		using isstore = decltype(std::declval<const meta>().isstore);
+		using ishome = decltype(std::declval<const meta>().ishome);
+		using showtype = decltype(std::declval<const meta>().showtype);
+		using sntype = decltype(std::declval<const meta>().sntype);
+		using name = decltype(std::declval<const meta>().name);
+		using keywords = decltype(std::declval<const meta>().keywords);
+		using introduce = decltype(std::declval<const meta>().introduce);
+		using listimg = decltype(std::declval<const meta>().listimg);
+		using bigimg = decltype(std::declval<const meta>().bigimg);
+		using maincontent = decltype(std::declval<const meta>().maincontent);
+		using paracontent = decltype(std::declval<const meta>().paracontent);
+		using samepro = decltype(std::declval<const meta>().samepro);
+		using attatchfiles = decltype(std::declval<const meta>().attatchfiles);
+		using price = decltype(std::declval<const meta>().price);
+		using sortid = decltype(std::declval<const meta>().sortid);
+		using adddate = decltype(std::declval<const meta>().adddate);
+		using editdate = decltype(std::declval<const meta>().editdate);
+
+    }
+
+    
+    #define ORM_CMS_PRODUCT_META_FIELD_TYPE(col) \
+        decltype(orm::cms::product_info::getField<orm::cms::product_info::cols::col>(std::declval<const orm::cms::product_info::meta&>()))
+
+    #define ORM_CMS_PRODUCT_PROJ_MEMBER(col) \
+          ORM_CMS_PRODUCT_META_FIELD_TYPE(col) col;
+                 
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_1(c1) \
+        ORM_CMS_PRODUCT_PROJ_MEMBER(c1) 
+     
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_2( c1, c2) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_1( c1) ORM_CMS_PRODUCT_PROJ_MEMBER(c2)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_3( c1, c2, c3) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_2( c1, c2) ORM_CMS_PRODUCT_PROJ_MEMBER(c3)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_4( c1, c2, c3, c4) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_3( c1, c2, c3) ORM_CMS_PRODUCT_PROJ_MEMBER(c4)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_4( c1, c2, c3, c4) ORM_CMS_PRODUCT_PROJ_MEMBER(c5)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) ORM_CMS_PRODUCT_PROJ_MEMBER(c6)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) ORM_CMS_PRODUCT_PROJ_MEMBER(c7)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) ORM_CMS_PRODUCT_PROJ_MEMBER(c8)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) ORM_CMS_PRODUCT_PROJ_MEMBER(c9)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) ORM_CMS_PRODUCT_PROJ_MEMBER(c10)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) ORM_CMS_PRODUCT_PROJ_MEMBER(c11)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ORM_CMS_PRODUCT_PROJ_MEMBER(c12)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) ORM_CMS_PRODUCT_PROJ_MEMBER(c13)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) ORM_CMS_PRODUCT_PROJ_MEMBER(c14)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) ORM_CMS_PRODUCT_PROJ_MEMBER(c15)
+         
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS_16( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) \
+        ORM_CMS_PRODUCT_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) ORM_CMS_PRODUCT_PROJ_MEMBER(c16)
+         
+    #define ORM_CMS_PRODUCT_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    
+     
+    #define ORM_CMS_PRODUCT_PROJ_MEMBERS(...) \
+        ORM_CMS_PRODUCT_GET_MACRO(__VA_ARGS__, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_16, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_15, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_14, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_13, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_12, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_11, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_10, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_9, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_8, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_7, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_6, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_5, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_4, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_3, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_2, \
+            ORM_CMS_PRODUCT_PROJ_MEMBERS_1, \
+        )(__VA_ARGS__)
+
+    
+    #define ORM_CMS_PRODUCT_DEFINE_STRUCT(StructName, ...) \
+        namespace orm::cms::product_info { \
+            struct StructName { \
+                ORM_CMS_PRODUCT_PROJ_MEMBERS(__VA_ARGS__) \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_PRODUCT_TREE_STRUCT(StructName, ...) \
+        namespace orm::cms::product_info { \
+            struct StructName##_tree { \
+                ORM_CMS_PRODUCT_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<StructName##_tree> children; \
+            }; \
+       }
+        
+    
+    #define ORM_CMS_PRODUCT_TREE_PTR_STRUCT(StructName, ...) \
+        namespace orm::cms::product_info { \
+            struct StructName##_tree_ptr { \
+                ORM_CMS_PRODUCT_PROJ_MEMBERS(__VA_ARGS__) \
+                std::vector<std::unique_ptr<StructName##_tree_ptr>> children; \
+            }; \
+       }
+        
     static constexpr std::array<std::string_view,24> col_names={"pid","userid","topicid","bigid","smallid","brandid","isview","isstore","ishome","showtype","sntype","name","keywords","introduce","listimg","bigimg","maincontent","paracontent","samepro","attatchfiles","price","sortid","adddate","editdate"};
-static constexpr std::array<unsigned char,24> col_types={3,3,3,3,3,3,1,1,1,1,253,253,253,252,252,253,252,252,253,252,3,3,253,253};
-static constexpr std::array<unsigned char,24> col_length={0,0,0,0,0,0,0,0,0,0,128,253,0,0,0,254,0,0,254,0,0,0,20,20};
-static constexpr std::array<unsigned char,24> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned char,24> col_types={3,3,3,3,3,3,1,1,1,1,253,253,253,252,252,253,252,252,253,252,3,3,253,253};
+	static constexpr std::array<unsigned char,24> col_length={0,0,0,0,0,0,0,0,0,0,128,253,0,0,0,254,0,0,254,0,0,0,20,20};
+	static constexpr std::array<unsigned char,24> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 }
 

@@ -1,10 +1,15 @@
 #include "orm.h" 
 #include "httppeer.h"
 #include "test_cols.h"
+#include "world_base.h"
 #include "func.h"
+#include <memory>
 #include <string>
+
+ORM_WORLD_DEFINE_STRUCT(Mystruct, id, randomnumber);
 namespace http
 {
+
 //@urlpath(null,test_cols)
 std::string test_cols(std::shared_ptr<httppeer> peer)
 {
@@ -40,6 +45,20 @@ std::string test_cols(std::shared_ptr<httppeer> peer)
 
     client << "<p>list: " <<  world.get_cols_to_str<orm::world_info::cols::randomnumber>() << "</p>";
     
+    
+
+    orm::world_info::Mystruct b;
+    b.id = 0;
+    b.randomnumber = 22;
+
+    client << "<p>Mystruct: " << b.randomnumber << "</p>";
+
+    struct LocalStruct 
+    {
+        orm::world_info::type::id id;
+        orm::world_info::type::randomnumber randomnumber;
+        std::vector<std::unique_ptr<LocalStruct>> children;
+    };
     return "";
 }
 
