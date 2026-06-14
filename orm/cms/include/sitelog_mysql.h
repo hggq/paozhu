@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 15:31:28 GMT
+ *  Creation time Sun, 14 Jun 2026 16:46:35 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1150,147 +1150,82 @@ namespace cms
         {
             case 0:
              {
-                bool issig = false;   
-            data_temp.logid=0;
+               data_temp.logid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.logid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.logid= data_temp.logid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.logid = -data_temp.logid  ;
-                }
+                        }
+                        else{
+                            data_temp.logid = 0;
+                        }
             }
             break;
                 case 1:
              {
-                bool issig = false;   
-            data_temp.userid=0;
+               data_temp.userid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.userid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.userid= data_temp.userid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.userid = -data_temp.userid  ;
-                }
+                        }
+                        else{
+                            data_temp.userid = 0;
+                        }
             }
             break;
                 case 2:
              {
-                bool issig = false;   
-            data_temp.memberid=0;
+               data_temp.memberid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.memberid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.memberid= data_temp.memberid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.memberid = -data_temp.memberid  ;
-                }
+                        }
+                        else{
+                            data_temp.memberid = 0;
+                        }
             }
             break;
                 case 3:
              {
-                bool issig = false;   
-            data_temp.ipport=0;
+               data_temp.ipport = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.ipport);
+                        if (result.ec == std::errc()) {
 
-                data_temp.ipport= data_temp.ipport * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.ipport = -data_temp.ipport  ;
-                }
+                        }
+                        else{
+                            data_temp.ipport = 0;
+                        }
             }
             break;
                 case 4:
              {
-                bool issig = false;   
-            data_temp.httpv=0;
+               data_temp.httpv = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.httpv);
+                        if (result.ec == std::errc()) {
 
-                data_temp.httpv= data_temp.httpv * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.httpv = -data_temp.httpv  ;
-                }
+                        }
+                        else{
+                            data_temp.httpv = 0;
+                        }
             }
             break;
                 case 5:

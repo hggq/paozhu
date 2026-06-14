@@ -5120,43 +5120,26 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
             {
                 append_content +=R"(:
              {
-                bool issig = false;   
-            data_temp.)";
+               data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(=0;
+            append_content +=R"( = 0;
             )";
 
             append_content +=R"(
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.)";
+            append_content.append(table_column_info_lists[m].col_name);
+            append_content +=R"();
+                        if (result.ec == std::errc()) {
 
-                data_temp.)";
-            append_content.append(table_column_info_lists[m].col_name);       
-            append_content +=R"(= data_temp.)";
-            append_content.append(table_column_info_lists[m].col_name);    
-                append_content +=R"( * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.)";
+                        }
+                        else{
+                            data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = -data_temp.)";
-            append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(  ;
-                }
+            append_content +=R"( = 0;
+                        }
             }
             break;
                 )";
@@ -5165,71 +5148,28 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
             {
                 append_content +=R"(:
                 {
-                bool issig = false;
-                bool ishot = false;
+
                 data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
             append_content +=R"(=0.0;
             )";
 
             append_content +=R"(
-                unsigned int i=0;
-                double j=0;
-                if(value_size > 0 && result_temp_data[0] == '-')
-                {
-                    issig = true;
-                    i = 1;
-                }
-
-                for( ;i< value_size; i++)
-                {
-                    if(result_temp_data[i]=='.')
-                    {
-                        if(!ishot)
-                        {
-                            j=10.0;
-                            ishot = true;
-                        }
-                        continue;
-                    } 
-                    
-                    if(ishot)
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                        data_temp.)";
-                append_content.append(table_column_info_lists[m].col_name);       
-                    append_content +=R"(= data_temp.)";
-                append_content.append(table_column_info_lists[m].col_name);    
-                    append_content +=R"( + (double)(result_temp_data[i]-'0')/(j);
-                        j = j * 10;
-                        }
-                    }
-                    else
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
                             data_temp.)";
-                append_content.append(table_column_info_lists[m].col_name);       
-                append_content +=R"(= data_temp.)";
-                append_content.append(table_column_info_lists[m].col_name);    
-                    append_content +=R"( * 10 + (result_temp_data[i]-'0');
+            append_content.append(table_column_info_lists[m].col_name);
+            append_content +=R"();
+                        if (result.ec == std::errc()) {
+
                         }
-                    }
-                    if(i>36)
-                    {
-                        break;
-                    }
-                }
-                if(issig)
-                {
-                    data_temp.)";
+                        else{
+                            data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = -data_temp.)";
-            append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(  ;
-                }
-            }
+            append_content +=R"( = 0.0;
+                        }
+            }  
             break;
                 )";
             }

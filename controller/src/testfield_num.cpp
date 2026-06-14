@@ -1,5 +1,7 @@
 #include "orm.h"
 #include "httppeer.h"
+#include <string>
+#include <sstream>
 #include "testfield_num.h"
 
 namespace http
@@ -28,7 +30,13 @@ std::string testfieldnum(std::shared_ptr<httppeer> peer)
             testb.where("tid", testb.record[i].tid).limit(1);
             testb.update("score");
             client << "<p>  float name:" << testb.record[i].name << "</p>";
-            client << "<p>  float getPricenum:" << testb.record[i].pricenum << "</p>";
+            std::stringstream stream;
+     
+            stream.precision(std::numeric_limits<double>::max_digits10);
+  
+            stream << testb.record[i].pricenum;
+
+            client << "<p>  float getPricenum:" << stream.str()<< "</p>";
             client << "<p>  float orgprice:" << testb.record[i].orgprice  << "</p>";
             client << "<p>  float subprice:" << testb.record[i].subprice << "</p>";
         }

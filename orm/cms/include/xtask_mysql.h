@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 15:31:28 GMT
+ *  Creation time Sun, 14 Jun 2026 16:46:35 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1150,704 +1150,343 @@ namespace cms
         {
             case 0:
              {
-                bool issig = false;   
-            data_temp.xtaskid=0;
+               data_temp.xtaskid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.xtaskid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.xtaskid= data_temp.xtaskid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.xtaskid = -data_temp.xtaskid  ;
-                }
+                        }
+                        else{
+                            data_temp.xtaskid = 0;
+                        }
             }
             break;
                 case 1:
              {
-                bool issig = false;   
-            data_temp.userid=0;
+               data_temp.userid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.userid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.userid= data_temp.userid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.userid = -data_temp.userid  ;
-                }
+                        }
+                        else{
+                            data_temp.userid = 0;
+                        }
             }
             break;
                 case 2:
              {
-                bool issig = false;   
-            data_temp.xpjid=0;
+               data_temp.xpjid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.xpjid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.xpjid= data_temp.xpjid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.xpjid = -data_temp.xpjid  ;
-                }
+                        }
+                        else{
+                            data_temp.xpjid = 0;
+                        }
             }
             break;
                 case 3:
              {
-                bool issig = false;   
-            data_temp.adminid=0;
+               data_temp.adminid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.adminid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.adminid= data_temp.adminid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.adminid = -data_temp.adminid  ;
-                }
+                        }
+                        else{
+                            data_temp.adminid = 0;
+                        }
             }
             break;
                 case 4:
              {
-                bool issig = false;   
-            data_temp.parentid=0;
+               data_temp.parentid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.parentid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.parentid= data_temp.parentid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.parentid = -data_temp.parentid  ;
-                }
+                        }
+                        else{
+                            data_temp.parentid = 0;
+                        }
             }
             break;
                 case 5:
              {
-                bool issig = false;   
-            data_temp.begindate=0;
+               data_temp.begindate = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.begindate);
+                        if (result.ec == std::errc()) {
 
-                data_temp.begindate= data_temp.begindate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.begindate = -data_temp.begindate  ;
-                }
+                        }
+                        else{
+                            data_temp.begindate = 0;
+                        }
             }
             break;
                 case 6:
              {
-                bool issig = false;   
-            data_temp.enddate=0;
+               data_temp.enddate = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.enddate);
+                        if (result.ec == std::errc()) {
 
-                data_temp.enddate= data_temp.enddate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.enddate = -data_temp.enddate  ;
-                }
+                        }
+                        else{
+                            data_temp.enddate = 0;
+                        }
             }
             break;
                 case 7:
              {
-                bool issig = false;   
-            data_temp.expectbegindate=0;
+               data_temp.expectbegindate = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.expectbegindate);
+                        if (result.ec == std::errc()) {
 
-                data_temp.expectbegindate= data_temp.expectbegindate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.expectbegindate = -data_temp.expectbegindate  ;
-                }
+                        }
+                        else{
+                            data_temp.expectbegindate = 0;
+                        }
             }
             break;
                 case 8:
              {
-                bool issig = false;   
-            data_temp.expectenddate=0;
+               data_temp.expectenddate = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.expectenddate);
+                        if (result.ec == std::errc()) {
 
-                data_temp.expectenddate= data_temp.expectenddate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.expectenddate = -data_temp.expectenddate  ;
-                }
+                        }
+                        else{
+                            data_temp.expectenddate = 0;
+                        }
             }
             break;
                 case 9:
              {
-                bool issig = false;   
-            data_temp.milestone=0;
+               data_temp.milestone = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.milestone);
+                        if (result.ec == std::errc()) {
 
-                data_temp.milestone= data_temp.milestone * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.milestone = -data_temp.milestone  ;
-                }
+                        }
+                        else{
+                            data_temp.milestone = 0;
+                        }
             }
             break;
                 case 10:
              {
-                bool issig = false;   
-            data_temp.subxpjid=0;
+               data_temp.subxpjid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.subxpjid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.subxpjid= data_temp.subxpjid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.subxpjid = -data_temp.subxpjid  ;
-                }
+                        }
+                        else{
+                            data_temp.subxpjid = 0;
+                        }
             }
             break;
                 case 11:
              {
-                bool issig = false;   
-            data_temp.depxtaskid=0;
+               data_temp.depxtaskid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.depxtaskid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.depxtaskid= data_temp.depxtaskid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.depxtaskid = -data_temp.depxtaskid  ;
-                }
+                        }
+                        else{
+                            data_temp.depxtaskid = 0;
+                        }
             }
             break;
                 case 12:
              {
-                bool issig = false;   
-            data_temp.referdocid=0;
+               data_temp.referdocid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.referdocid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.referdocid= data_temp.referdocid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.referdocid = -data_temp.referdocid  ;
-                }
+                        }
+                        else{
+                            data_temp.referdocid = 0;
+                        }
             }
             break;
                 case 13:
              {
-                bool issig = false;   
-            data_temp.isfinish=0;
+               data_temp.isfinish = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.isfinish);
+                        if (result.ec == std::errc()) {
 
-                data_temp.isfinish= data_temp.isfinish * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.isfinish = -data_temp.isfinish  ;
-                }
+                        }
+                        else{
+                            data_temp.isfinish = 0;
+                        }
             }
             break;
                 case 14:
              {
-                bool issig = false;   
-            data_temp.updatedate=0;
+               data_temp.updatedate = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.updatedate);
+                        if (result.ec == std::errc()) {
 
-                data_temp.updatedate= data_temp.updatedate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.updatedate = -data_temp.updatedate  ;
-                }
+                        }
+                        else{
+                            data_temp.updatedate = 0;
+                        }
             }
             break;
                 case 15:
              {
-                bool issig = false;   
-            data_temp.finishdate=0;
+               data_temp.finishdate = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.finishdate);
+                        if (result.ec == std::errc()) {
 
-                data_temp.finishdate= data_temp.finishdate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.finishdate = -data_temp.finishdate  ;
-                }
+                        }
+                        else{
+                            data_temp.finishdate = 0;
+                        }
             }
             break;
                 case 16:
              {
-                bool issig = false;   
-            data_temp.iscore=0;
+               data_temp.iscore = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.iscore);
+                        if (result.ec == std::errc()) {
 
-                data_temp.iscore= data_temp.iscore * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.iscore = -data_temp.iscore  ;
-                }
+                        }
+                        else{
+                            data_temp.iscore = 0;
+                        }
             }
             break;
                 case 17:
                 {
-                bool issig = false;
-                bool ishot = false;
+
                 data_temp.xvalue=0.0;
             
-                unsigned int i=0;
-                double j=0;
-                if(value_size > 0 && result_temp_data[0] == '-')
-                {
-                    issig = true;
-                    i = 1;
-                }
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.xvalue);
+                        if (result.ec == std::errc()) {
 
-                for( ;i< value_size; i++)
-                {
-                    if(result_temp_data[i]=='.')
-                    {
-                        if(!ishot)
-                        {
-                            j=10.0;
-                            ishot = true;
                         }
-                        continue;
-                    } 
-                    
-                    if(ishot)
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                        data_temp.xvalue= data_temp.xvalue + (double)(result_temp_data[i]-'0')/(j);
-                        j = j * 10;
+                        else{
+                            data_temp.xvalue = 0.0;
                         }
-                    }
-                    else
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                            data_temp.xvalue= data_temp.xvalue * 10 + (result_temp_data[i]-'0');
-                        }
-                    }
-                    if(i>36)
-                    {
-                        break;
-                    }
-                }
-                if(issig)
-                {
-                    data_temp.xvalue = -data_temp.xvalue  ;
-                }
-            }
+            }  
             break;
                 case 18:
                 {
-                bool issig = false;
-                bool ishot = false;
+
                 data_temp.expectday=0.0;
             
-                unsigned int i=0;
-                double j=0;
-                if(value_size > 0 && result_temp_data[0] == '-')
-                {
-                    issig = true;
-                    i = 1;
-                }
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.expectday);
+                        if (result.ec == std::errc()) {
 
-                for( ;i< value_size; i++)
-                {
-                    if(result_temp_data[i]=='.')
-                    {
-                        if(!ishot)
-                        {
-                            j=10.0;
-                            ishot = true;
                         }
-                        continue;
-                    } 
-                    
-                    if(ishot)
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                        data_temp.expectday= data_temp.expectday + (double)(result_temp_data[i]-'0')/(j);
-                        j = j * 10;
+                        else{
+                            data_temp.expectday = 0.0;
                         }
-                    }
-                    else
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                            data_temp.expectday= data_temp.expectday * 10 + (result_temp_data[i]-'0');
-                        }
-                    }
-                    if(i>36)
-                    {
-                        break;
-                    }
-                }
-                if(issig)
-                {
-                    data_temp.expectday = -data_temp.expectday  ;
-                }
-            }
+            }  
             break;
                 case 19:
                 {
-                bool issig = false;
-                bool ishot = false;
+
                 data_temp.realday=0.0;
             
-                unsigned int i=0;
-                double j=0;
-                if(value_size > 0 && result_temp_data[0] == '-')
-                {
-                    issig = true;
-                    i = 1;
-                }
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.realday);
+                        if (result.ec == std::errc()) {
 
-                for( ;i< value_size; i++)
-                {
-                    if(result_temp_data[i]=='.')
-                    {
-                        if(!ishot)
-                        {
-                            j=10.0;
-                            ishot = true;
                         }
-                        continue;
-                    } 
-                    
-                    if(ishot)
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                        data_temp.realday= data_temp.realday + (double)(result_temp_data[i]-'0')/(j);
-                        j = j * 10;
+                        else{
+                            data_temp.realday = 0.0;
                         }
-                    }
-                    else
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                            data_temp.realday= data_temp.realday * 10 + (result_temp_data[i]-'0');
-                        }
-                    }
-                    if(i>36)
-                    {
-                        break;
-                    }
-                }
-                if(issig)
-                {
-                    data_temp.realday = -data_temp.realday  ;
-                }
-            }
+            }  
             break;
                 case 20:
                 {
-                bool issig = false;
-                bool ishot = false;
+
                 data_temp.pricevalue=0.0;
             
-                unsigned int i=0;
-                double j=0;
-                if(value_size > 0 && result_temp_data[0] == '-')
-                {
-                    issig = true;
-                    i = 1;
-                }
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.pricevalue);
+                        if (result.ec == std::errc()) {
 
-                for( ;i< value_size; i++)
-                {
-                    if(result_temp_data[i]=='.')
-                    {
-                        if(!ishot)
-                        {
-                            j=10.0;
-                            ishot = true;
                         }
-                        continue;
-                    } 
-                    
-                    if(ishot)
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                        data_temp.pricevalue= data_temp.pricevalue + (double)(result_temp_data[i]-'0')/(j);
-                        j = j * 10;
+                        else{
+                            data_temp.pricevalue = 0.0;
                         }
-                    }
-                    else
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                            data_temp.pricevalue= data_temp.pricevalue * 10 + (result_temp_data[i]-'0');
-                        }
-                    }
-                    if(i>36)
-                    {
-                        break;
-                    }
-                }
-                if(issig)
-                {
-                    data_temp.pricevalue = -data_temp.pricevalue  ;
-                }
-            }
+            }  
             break;
                 case 21:
             data_temp.title.clear();

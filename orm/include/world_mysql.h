@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 15:31:25 GMT
+ *  Creation time Sun, 14 Jun 2026 16:46:33 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1150,60 +1150,34 @@ namespace orm
         {
             case 0:
              {
-                bool issig = false;   
-            data_temp.id=0;
+               data_temp.id = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.id);
+                        if (result.ec == std::errc()) {
 
-                data_temp.id= data_temp.id * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.id = -data_temp.id  ;
-                }
+                        }
+                        else{
+                            data_temp.id = 0;
+                        }
             }
             break;
                 case 1:
              {
-                bool issig = false;   
-            data_temp.randomnumber=0;
+               data_temp.randomnumber = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.randomnumber);
+                        if (result.ec == std::errc()) {
 
-                data_temp.randomnumber= data_temp.randomnumber * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.randomnumber = -data_temp.randomnumber  ;
-                }
+                        }
+                        else{
+                            data_temp.randomnumber = 0;
+                        }
             }
             break;
                 

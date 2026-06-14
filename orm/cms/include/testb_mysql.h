@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 15:31:28 GMT
+ *  Creation time Sun, 14 Jun 2026 16:46:35 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1150,60 +1150,34 @@ namespace cms
         {
             case 0:
              {
-                bool issig = false;   
-            data_temp.tid=0;
+               data_temp.tid = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.tid);
+                        if (result.ec == std::errc()) {
 
-                data_temp.tid= data_temp.tid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.tid = -data_temp.tid  ;
-                }
+                        }
+                        else{
+                            data_temp.tid = 0;
+                        }
             }
             break;
                 case 1:
              {
-                bool issig = false;   
-            data_temp.score=0;
+               data_temp.score = 0;
             
-            unsigned int i=0;
-            if(value_size > 0 && result_temp_data[0] == '-')
-            {
-                issig = true;
-                i = 1;
-            }
-            for( ; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.score);
+                        if (result.ec == std::errc()) {
 
-                data_temp.score= data_temp.score * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>36)
-                {
-                    break;
-                }
-            }
-                if(issig)
-                {
-                    data_temp.score = -data_temp.score  ;
-                }
+                        }
+                        else{
+                            data_temp.score = 0;
+                        }
             }
             break;
                 case 2:
@@ -1214,159 +1188,54 @@ namespace cms
             break;
                 case 3:
                 {
-                bool issig = false;
-                bool ishot = false;
+
                 data_temp.pricenum=0.0;
             
-                unsigned int i=0;
-                double j=0;
-                if(value_size > 0 && result_temp_data[0] == '-')
-                {
-                    issig = true;
-                    i = 1;
-                }
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.pricenum);
+                        if (result.ec == std::errc()) {
 
-                for( ;i< value_size; i++)
-                {
-                    if(result_temp_data[i]=='.')
-                    {
-                        if(!ishot)
-                        {
-                            j=10.0;
-                            ishot = true;
                         }
-                        continue;
-                    } 
-                    
-                    if(ishot)
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                        data_temp.pricenum= data_temp.pricenum + (double)(result_temp_data[i]-'0')/(j);
-                        j = j * 10;
+                        else{
+                            data_temp.pricenum = 0.0;
                         }
-                    }
-                    else
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                            data_temp.pricenum= data_temp.pricenum * 10 + (result_temp_data[i]-'0');
-                        }
-                    }
-                    if(i>36)
-                    {
-                        break;
-                    }
-                }
-                if(issig)
-                {
-                    data_temp.pricenum = -data_temp.pricenum  ;
-                }
-            }
+            }  
             break;
                 case 4:
                 {
-                bool issig = false;
-                bool ishot = false;
+
                 data_temp.orgprice=0.0;
             
-                unsigned int i=0;
-                double j=0;
-                if(value_size > 0 && result_temp_data[0] == '-')
-                {
-                    issig = true;
-                    i = 1;
-                }
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.orgprice);
+                        if (result.ec == std::errc()) {
 
-                for( ;i< value_size; i++)
-                {
-                    if(result_temp_data[i]=='.')
-                    {
-                        if(!ishot)
-                        {
-                            j=10.0;
-                            ishot = true;
                         }
-                        continue;
-                    } 
-                    
-                    if(ishot)
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                        data_temp.orgprice= data_temp.orgprice + (double)(result_temp_data[i]-'0')/(j);
-                        j = j * 10;
+                        else{
+                            data_temp.orgprice = 0.0;
                         }
-                    }
-                    else
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                            data_temp.orgprice= data_temp.orgprice * 10 + (result_temp_data[i]-'0');
-                        }
-                    }
-                    if(i>36)
-                    {
-                        break;
-                    }
-                }
-                if(issig)
-                {
-                    data_temp.orgprice = -data_temp.orgprice  ;
-                }
-            }
+            }  
             break;
                 case 5:
                 {
-                bool issig = false;
-                bool ishot = false;
+
                 data_temp.subprice=0.0;
             
-                unsigned int i=0;
-                double j=0;
-                if(value_size > 0 && result_temp_data[0] == '-')
-                {
-                    issig = true;
-                    i = 1;
-                }
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.subprice);
+                        if (result.ec == std::errc()) {
 
-                for( ;i< value_size; i++)
-                {
-                    if(result_temp_data[i]=='.')
-                    {
-                        if(!ishot)
-                        {
-                            j=10.0;
-                            ishot = true;
                         }
-                        continue;
-                    } 
-                    
-                    if(ishot)
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                        data_temp.subprice= data_temp.subprice + (double)(result_temp_data[i]-'0')/(j);
-                        j = j * 10;
+                        else{
+                            data_temp.subprice = 0.0;
                         }
-                    }
-                    else
-                    {
-                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                        {
-                            data_temp.subprice= data_temp.subprice * 10 + (result_temp_data[i]-'0');
-                        }
-                    }
-                    if(i>36)
-                    {
-                        break;
-                    }
-                }
-                if(issig)
-                {
-                    data_temp.subprice = -data_temp.subprice  ;
-                }
-            }
+            }  
             break;
                 
         }
