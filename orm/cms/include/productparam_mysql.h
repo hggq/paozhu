@@ -5,7 +5,7 @@
  *  @date 2022-05-04
  *  @update 2025-03-12
  *  @dest ORM MySQL中间连接层
- *  本文件自动生成 This document is automatically generated, Creation time (Sat, 13 Jun 2026 16:09:21 GMT)
+ *  本文件自动生成 This document is automatically generated, Creation time (Sun, 14 Jun 2026 00:57:48 GMT)
  */
 #include <iostream>
 #include <mutex>
@@ -19286,7 +19286,7 @@ M_MODEL& or_leFileext(T val)
             return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
         }
 
-        template <typename T>
+        template <ResultHasSetVal T>
         unsigned int fetch_to(std::vector<T>& custom_record)
         {
             effect_num = 0;
@@ -19433,11 +19433,11 @@ M_MODEL& or_leFileext(T val)
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
-                                        data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                        data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
                                     else if (field_array[ij].org_name.size() > 0)
                                     {
-                                        data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                        data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
                                     
                                     tempnum = tempnum + name_length;
@@ -19487,7 +19487,7 @@ M_MODEL& or_leFileext(T val)
             return 0;
         }
 
-        template <typename T>
+        template <ResultHasSetVal T>
         asio::awaitable<unsigned int> async_fetch_to(std::vector<T>& custom_record)
         {
             effect_num = 0;
@@ -19630,14 +19630,15 @@ M_MODEL& or_leFileext(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+                                    
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
-                                        data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                        data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
                                     else if (field_array[ij].org_name.size() > 0)
                                     {
-                                        data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                        data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
                                     tempnum = tempnum + name_length;
                                 }
@@ -20551,7 +20552,7 @@ M_MODEL& or_leFileext(T val)
             co_return 0;
         }
         
-        template <typename T>
+        template <ResultHasSetVal T>
         unsigned int fetch_one_to(T &custom_struct)
         {
             effect_num = 0;
@@ -20695,11 +20696,11 @@ M_MODEL& or_leFileext(T val)
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
-                                        custom_struct.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                        custom_struct.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
                                     else if (field_array[ij].org_name.size() > 0)
                                     {
-                                        custom_struct.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                        custom_struct.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
                                     
                                     tempnum = tempnum + name_length;
@@ -20749,7 +20750,7 @@ M_MODEL& or_leFileext(T val)
             return 0;
         }
 
-        template <typename T>
+        template <ResultHasSetVal T>
         asio::awaitable<unsigned int> async_fetch_one_to(T &custom_struct)
         {
             effect_num = 0;
@@ -20895,11 +20896,11 @@ M_MODEL& or_leFileext(T val)
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
-                                        custom_struct.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                        custom_struct.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
                                     else if (field_array[ij].org_name.size() > 0)
                                     {
-                                        custom_struct.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length);
+                                        custom_struct.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
                                     
                                     tempnum = tempnum + name_length;

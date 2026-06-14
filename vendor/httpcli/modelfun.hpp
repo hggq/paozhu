@@ -6751,7 +6751,7 @@ headtxt += R"(
 set_val begin
 #define ORM_XXXX_SET_VAL_FIELD(field) \
     if (_orm_name == #field) { \
-        http::try_set_val(field, _buf, _length); \
+        http::try_set_val(field, _buf, _length, _field_type); \
         return; \
     }
 */
@@ -6767,7 +6767,7 @@ set_val begin
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELD(field) \
     if (http::str_colname_casecmp(_orm_name , #field)) { \
-        http::try_set_val(field, _buf, _length); \
+        http::try_set_val(field, _buf, _length, _field_type); \
         return; \
     }
     
@@ -7048,8 +7048,8 @@ set_val begin
                 oss << '}'; \
                 return oss.str(); \
             } \
-            void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+            void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_)";
     if (rmstag != "default")
     {
@@ -7171,8 +7171,8 @@ set_val begin
                 return oss.str(); \
             } \
             \
-            void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+            void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_)";
     if (rmstag != "default")
     {
@@ -7292,8 +7292,8 @@ set_val begin
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_)";
     if (rmstag != "default")
     {
@@ -7394,8 +7394,8 @@ set_val begin
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_)";
     if (rmstag != "default")
     {
@@ -7524,8 +7524,8 @@ set_val begin
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_)";
     if (rmstag != "default")
     {

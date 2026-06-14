@@ -14,6 +14,10 @@
 
 namespace orm
 {
+template<typename T>
+concept ResultHasSetVal = requires(T& obj, const std::string& s, const unsigned char* p, std::size_t n, unsigned char t) {
+    obj.set_val(s, p, n, t);
+};
 enum enum_field_types
 {
     MYSQL_TYPE_DECIMAL,
@@ -123,11 +127,11 @@ struct field_info_t
     std::string org_table;
     std::string table;
     std::string dbname;
-    unsigned char field_type;
-    unsigned char decimals;
-    unsigned short charset;
-    unsigned short flags;
-    unsigned int column_length;
+    unsigned char field_type = 0;
+    unsigned char decimals = 0;
+    unsigned short charset = 0;
+    unsigned short flags = 0;
+    unsigned int column_length = 0;
 };
 
 struct orm_conn_t

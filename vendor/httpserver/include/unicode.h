@@ -79,7 +79,7 @@ namespace http
 
         // 整数赋值重载
     template <typename T>
-    inline auto try_set_val(T& field, const unsigned char* buf, size_t length) 
+    inline auto try_set_val(T& field, const unsigned char* buf, size_t length,[[maybe_unused]] unsigned char _field_type) 
         -> std::enable_if_t<std::is_integral_v<T>> 
     {
         T _tmp{};
@@ -98,7 +98,7 @@ namespace http
 
     // 浮点赋值重载
     template <typename T>
-    inline auto try_set_val(T& field, const unsigned char* buf, size_t length) 
+    inline auto try_set_val(T& field, const unsigned char* buf, size_t length,[[maybe_unused]] unsigned char _field_type) 
         -> std::enable_if_t<std::is_floating_point_v<T>> 
     {
         T _tmp{};
@@ -117,7 +117,7 @@ namespace http
 
     // 字符串赋值重载
     template <typename T>
-    inline auto try_set_val(T& field, const unsigned char* buf, size_t length) 
+    inline auto try_set_val(T& field, const unsigned char* buf, size_t length,[[maybe_unused]] unsigned char _field_type) 
         -> std::enable_if_t<std::is_same_v<std::decay_t<T>, std::string>> 
     {
         field = std::string(reinterpret_cast<const char*>(buf), length);
@@ -125,7 +125,7 @@ namespace http
 
     // 字符串赋值重载
     template <typename T>
-    inline auto try_set_val(T& field, const unsigned char* buf, size_t length) 
+    inline auto try_set_val(T& field, const unsigned char* buf, size_t length,[[maybe_unused]] unsigned char _field_type) 
         -> std::enable_if_t<std::is_same_v<std::decay_t<T>, bool>> 
     {
         if(length > 0 && length < 4)

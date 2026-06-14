@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 13 Jun 2026 16:09:21 GMT
+*本文件为自动生成 Sun, 14 Jun 2026 00:57:48 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -355,7 +355,7 @@ namespace catalogue_info
 
     #define ORM_CMS_CATALOGUE_SET_VAL_FIELD(field) \
     if (http::str_colname_casecmp(_orm_name , #field)) { \
-        http::try_set_val(field, _buf, _length); \
+        http::try_set_val(field, _buf, _length, _field_type); \
         return; \
     }
     
@@ -463,8 +463,8 @@ namespace catalogue_info
                 oss << '}'; \
                 return oss.str(); \
             } \
-            void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+            void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_CMS_CATALOGUE_EXPAND(ORM_CMS_CATALOGUE_SET_VAL_FIELDS(__VA_ARGS__)) \
             } \
             }; \
@@ -495,8 +495,8 @@ namespace catalogue_info
                 return oss.str(); \
             } \
             \
-            void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+            void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_CMS_CATALOGUE_EXPAND(ORM_CMS_CATALOGUE_SET_VAL_FIELDS(__VA_ARGS__)) \
                 ORM_CMS_CATALOGUE_EXPAND(ORM_CMS_CATALOGUE_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
             } \
@@ -533,8 +533,8 @@ namespace catalogue_info
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_CMS_CATALOGUE_EXPAND(ORM_CMS_CATALOGUE_SET_VAL_FIELDS(__VA_ARGS__)) \
                 } \
             }; \
@@ -570,8 +570,8 @@ namespace catalogue_info
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_CMS_CATALOGUE_EXPAND(ORM_CMS_CATALOGUE_SET_VAL_FIELDS(__VA_ARGS__)) \
                 } \
             }; \
@@ -609,8 +609,8 @@ namespace catalogue_info
                 return oss.str(); \
                 }\
                 \
-                void set_val([[maybe_unused]] const std::string& _orm_name, \
-                        [[maybe_unused]] const unsigned char* _buf,[[maybe_unused]] size_t _length) { \
+                void set_val(const std::string& _orm_name, \
+                        const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
                         ORM_CMS_CATALOGUE_EXPAND(ORM_CMS_CATALOGUE_SET_VAL_FIELDS(__VA_ARGS__)) \
                     ORM_CMS_CATALOGUE_EXPAND(ORM_CMS_CATALOGUE_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
                 } \
