@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 12:13:59 GMT
+ *  Creation time Sun, 14 Jun 2026 14:19:49 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -15,6 +15,8 @@
 #include <map>
 #include <set>
 #include <string_view>
+#include <system_error>
+#include <charconv>
 #include <thread>
 #include "request.h"
 #include "unicode.h"
@@ -1149,82 +1151,72 @@ namespace cms
             case 0:
             data_temp.xmeetid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.xmeetid= data_temp.xmeetid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.xmeetid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.xmeetid = _tmp;
+                        }
+                    }
             break;
                 case 1:
             data_temp.userid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.userid= data_temp.userid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.userid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.userid = _tmp;
+                        }
+                    }
             break;
                 case 2:
             data_temp.xpjid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.xpjid= data_temp.xpjid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.xpjid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.xpjid = _tmp;
+                        }
+                    }
             break;
                 case 3:
             data_temp.xtaskid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.xtaskid= data_temp.xtaskid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.xtaskid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.xtaskid = _tmp;
+                        }
+                    }
             break;
                 case 4:
             data_temp.adminid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.adminid= data_temp.adminid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.adminid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.adminid = _tmp;
+                        }
+                    }
             break;
                 case 5:
             data_temp.title.clear();
@@ -1271,50 +1263,44 @@ namespace cms
                 case 12:
             data_temp.regdate=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.regdate= data_temp.regdate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.regdate) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.regdate = _tmp;
+                        }
+                    }
             break;
                 case 13:
             data_temp.expecttime=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.expecttime= data_temp.expecttime * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.expecttime) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.expecttime = _tmp;
+                        }
+                    }
             break;
                 case 14:
             data_temp.endtime=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.endtime= data_temp.endtime * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.endtime) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.endtime = _tmp;
+                        }
+                    }
             break;
                 case 15:
             data_temp.presents.clear();

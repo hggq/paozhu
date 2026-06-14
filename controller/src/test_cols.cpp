@@ -143,33 +143,27 @@ asio::awaitable<std::string> test_cols_co(std::shared_ptr<httppeer> peer)
     n = co_await world.async_fetch_to(cust_record, [](LocalStruct& obj,const std::string& col_name,const unsigned char* buf, std::size_t length,[[maybe_unused]] unsigned char c_type,[[maybe_unused]] unsigned char ver) {
            if(col_name == "id")
            {
+                obj.id = 0;
                 decltype(obj.id) _tmp{};
-                auto [ptr, ec] = std::from_chars(
-                    reinterpret_cast<const char*>(buf),
-                    reinterpret_cast<const char*>(buf) + length,
-                    _tmp);
-                if (ec == std::errc{}) {
-                    obj.id = _tmp;
-                }
-                else
-                {
-                    obj.id  = 0;
-                }
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(buf),
+                            reinterpret_cast<const char*>(buf) + length,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            obj.id = _tmp;
+                        }
            }
            else if(str_casecmp(col_name, "randomnumber"))
            {
+                obj.randomnumber = 0;
                 decltype(obj.randomnumber) _tmp{};
-                auto [ptr, ec] = std::from_chars(
-                    reinterpret_cast<const char*>(buf),
-                    reinterpret_cast<const char*>(buf) + length,
-                    _tmp);
-                if (ec == std::errc{}) {
-                    obj.randomnumber = _tmp;
-                }
-                else
-                {
-                    obj.randomnumber  = 0;
-                }
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(buf),
+                            reinterpret_cast<const char*>(buf) + length,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            obj.randomnumber = _tmp;
+                        }
            }
     });
 
@@ -198,7 +192,7 @@ asio::awaitable<std::string> test_leftjoin(std::shared_ptr<httppeer> peer)
         std::string message;
     };
     std::vector<LocalStruct> cust_record;
-    
+
     world.btId(2).ltId(6);
     world.select("id,randomnumber");
     world.leftJoin<orm::Fortune>().joinOn("id", "id").joinSelect("message");
@@ -206,33 +200,27 @@ asio::awaitable<std::string> test_leftjoin(std::shared_ptr<httppeer> peer)
     unsigned int n= co_await world.async_fetch_to(cust_record, [](LocalStruct& obj,const std::string& col_name,const unsigned char* buf, std::size_t length,[[maybe_unused]] unsigned char c_type,[[maybe_unused]] unsigned char ver) {
            if(col_name == "id")
            {
+                obj.id = 0;
                 decltype(obj.id) _tmp{};
-                auto [ptr, ec] = std::from_chars(
-                    reinterpret_cast<const char*>(buf),
-                    reinterpret_cast<const char*>(buf) + length,
-                    _tmp);
-                if (ec == std::errc{}) {
-                    obj.id = _tmp;
-                }
-                else
-                {
-                    obj.id  = 0;
-                }
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(buf),
+                            reinterpret_cast<const char*>(buf) + length,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            obj.id = _tmp;
+                        }
            }
            else if(str_casecmp(col_name, "randomnumber"))
            {
+                obj.randomnumber = 0;
                 decltype(obj.randomnumber) _tmp{};
-                auto [ptr, ec] = std::from_chars(
-                    reinterpret_cast<const char*>(buf),
-                    reinterpret_cast<const char*>(buf) + length,
-                    _tmp);
-                if (ec == std::errc{}) {
-                    obj.randomnumber = _tmp;
-                }
-                else
-                {
-                    obj.randomnumber  = 0;
-                }
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(buf),
+                            reinterpret_cast<const char*>(buf) + length,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            obj.randomnumber = _tmp;
+                        }
            }
            else if(str_casecmp(col_name, "message"))
            {

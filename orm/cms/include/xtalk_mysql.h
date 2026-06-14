@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 12:13:59 GMT
+ *  Creation time Sun, 14 Jun 2026 14:19:49 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -15,6 +15,8 @@
 #include <map>
 #include <set>
 #include <string_view>
+#include <system_error>
+#include <charconv>
 #include <thread>
 #include "request.h"
 #include "unicode.h"
@@ -1149,82 +1151,72 @@ namespace cms
             case 0:
             data_temp.talkid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.talkid= data_temp.talkid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.talkid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.talkid = _tmp;
+                        }
+                    }
             break;
                 case 1:
             data_temp.userid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.userid= data_temp.userid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.userid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.userid = _tmp;
+                        }
+                    }
             break;
                 case 2:
             data_temp.adminid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.adminid= data_temp.adminid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.adminid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.adminid = _tmp;
+                        }
+                    }
             break;
                 case 3:
             data_temp.taskid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.taskid= data_temp.taskid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.taskid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.taskid = _tmp;
+                        }
+                    }
             break;
                 case 4:
             data_temp.projectid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.projectid= data_temp.projectid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.projectid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.projectid = _tmp;
+                        }
+                    }
             break;
                 case 5:
             data_temp.content.clear();
@@ -1235,82 +1227,72 @@ namespace cms
                 case 6:
             data_temp.isdelete=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.isdelete= data_temp.isdelete * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.isdelete) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.isdelete = _tmp;
+                        }
+                    }
             break;
                 case 7:
             data_temp.addtime=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.addtime= data_temp.addtime * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.addtime) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.addtime = _tmp;
+                        }
+                    }
             break;
                 case 8:
             data_temp.update_at=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.update_at= data_temp.update_at * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.update_at) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.update_at = _tmp;
+                        }
+                    }
             break;
                 case 9:
             data_temp.islock=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.islock= data_temp.islock * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.islock) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.islock = _tmp;
+                        }
+                    }
             break;
                 case 10:
             data_temp.replyid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.replyid= data_temp.replyid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.replyid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.replyid = _tmp;
+                        }
+                    }
             break;
                 
         }

@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 12:13:59 GMT
+ *  Creation time Sun, 14 Jun 2026 14:19:49 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -15,6 +15,8 @@
 #include <map>
 #include <set>
 #include <string_view>
+#include <system_error>
+#include <charconv>
 #include <thread>
 #include "request.h"
 #include "unicode.h"
@@ -1149,50 +1151,44 @@ namespace cms
             case 0:
             data_temp.dpid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.dpid= data_temp.dpid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.dpid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.dpid = _tmp;
+                        }
+                    }
             break;
                 case 1:
             data_temp.userid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.userid= data_temp.userid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.userid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.userid = _tmp;
+                        }
+                    }
             break;
                 case 2:
             data_temp.parentid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.parentid= data_temp.parentid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.parentid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.parentid = _tmp;
+                        }
+                    }
             break;
                 case 3:
             data_temp.name.clear();
@@ -1209,66 +1205,58 @@ namespace cms
                 case 5:
             data_temp.bianzhi_num=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.bianzhi_num= data_temp.bianzhi_num * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.bianzhi_num) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.bianzhi_num = _tmp;
+                        }
+                    }
             break;
                 case 6:
             data_temp.real_num=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.real_num= data_temp.real_num * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.real_num) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.real_num = _tmp;
+                        }
+                    }
             break;
                 case 7:
             data_temp.quan_weight=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.quan_weight= data_temp.quan_weight * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.quan_weight) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.quan_weight = _tmp;
+                        }
+                    }
             break;
                 case 8:
             data_temp.isopen=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.isopen= data_temp.isopen * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.isopen) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.isopen = _tmp;
+                        }
+                    }
             break;
                 case 9:
             data_temp.memo.clear();
@@ -1279,82 +1267,72 @@ namespace cms
                 case 10:
             data_temp.created_time=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.created_time= data_temp.created_time * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.created_time) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.created_time = _tmp;
+                        }
+                    }
             break;
                 case 11:
             data_temp.created_user=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.created_user= data_temp.created_user * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.created_user) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.created_user = _tmp;
+                        }
+                    }
             break;
                 case 12:
             data_temp.updated_time=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.updated_time= data_temp.updated_time * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.updated_time) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.updated_time = _tmp;
+                        }
+                    }
             break;
                 case 13:
             data_temp.updated_user=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.updated_user= data_temp.updated_user * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.updated_user) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.updated_user = _tmp;
+                        }
+                    }
             break;
                 case 14:
             data_temp.isvirtual=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.isvirtual= data_temp.isvirtual * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.isvirtual) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.isvirtual = _tmp;
+                        }
+                    }
             break;
                 case 15:
             data_temp.linkdpid.clear();

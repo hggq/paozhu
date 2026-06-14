@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 14 Jun 2026 12:13:59 GMT
+*本文件为自动生成 Sun, 14 Jun 2026 14:19:49 GMT
 ***/
 #include <iostream>
 #include <charconv>

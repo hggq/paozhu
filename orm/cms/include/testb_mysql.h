@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 12:13:59 GMT
+ *  Creation time Sun, 14 Jun 2026 14:19:49 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -15,6 +15,8 @@
 #include <map>
 #include <set>
 #include <string_view>
+#include <system_error>
+#include <charconv>
 #include <thread>
 #include "request.h"
 #include "unicode.h"
@@ -1149,40 +1151,78 @@ namespace cms
             case 0:
             data_temp.tid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.tid= data_temp.tid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.tid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.tid = _tmp;
+                        }
+                    }
             break;
                 case 1:
             data_temp.score=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.score= data_temp.score * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.score) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.score = _tmp;
+                        }
+                    }
             break;
                 case 2:
             data_temp.name.clear();
             data_temp.name.resize(value_size);
             
             std::memcpy(data_temp.name.data(), result_temp_data, value_size);
+            break;
+                case 3:
+            data_temp.pricenum=0.0;
+            
+                    {
+                        decltype(data_temp.pricenum) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.pricenum = _tmp;
+                        }
+                    }
+            break;
+                case 4:
+            data_temp.orgprice=0.0;
+            
+                    {
+                        decltype(data_temp.orgprice) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.orgprice = _tmp;
+                        }
+                    }
+            break;
+                case 5:
+            data_temp.subprice=0.0;
+            
+                    {
+                        decltype(data_temp.subprice) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.subprice = _tmp;
+                        }
+                    }
             break;
                 
         }
@@ -5459,6 +5499,882 @@ M_MODEL& or_leName(T val)
 				wheresql.append(std::to_string(val));
 				wheresql.push_back('\'');
 
+        return *mod;   
+    }   
+    
+
+M_MODEL& btPricenum(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" pricenum > ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& ltPricenum(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" pricenum < ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_btPricenum(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" pricenum > ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_ltPricenum(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" pricenum < ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& btPricenum(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" pricenum > ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& ltPricenum(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" pricenum < ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& or_btPricenum(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" pricenum > ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& or_ltPricenum(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" pricenum < ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+M_MODEL& btOrgprice(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" orgprice > ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& ltOrgprice(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" orgprice < ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_btOrgprice(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" orgprice > ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_ltOrgprice(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" orgprice < ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& btOrgprice(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" orgprice > ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& ltOrgprice(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" orgprice < ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& or_btOrgprice(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" orgprice > ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& or_ltOrgprice(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" orgprice < ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+M_MODEL& btSubprice(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" subprice > ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& ltSubprice(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" subprice < ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_btSubprice(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" subprice > ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_ltSubprice(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" subprice < ");
+
+        try
+        {
+            wheresql.append(std::to_string(std::stod(val)));
+        }
+        catch (std::invalid_argument const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        catch (std::out_of_range const& ex)
+        {
+           wheresql.push_back('0');
+        }
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& btSubprice(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" subprice > ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& ltSubprice(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" subprice < ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& or_btSubprice(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" subprice > ");
+
+        wheresql.append(std::to_string(val));
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_floating_point_v<T>
+M_MODEL& or_ltSubprice(T val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" subprice < ");
+
+        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     

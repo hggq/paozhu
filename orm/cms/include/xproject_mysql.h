@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 12:13:59 GMT
+ *  Creation time Sun, 14 Jun 2026 14:19:49 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -15,6 +15,8 @@
 #include <map>
 #include <set>
 #include <string_view>
+#include <system_error>
+#include <charconv>
 #include <thread>
 #include "request.h"
 #include "unicode.h"
@@ -1149,82 +1151,72 @@ namespace cms
             case 0:
             data_temp.xpjid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.xpjid= data_temp.xpjid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.xpjid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.xpjid = _tmp;
+                        }
+                    }
             break;
                 case 1:
             data_temp.userid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.userid= data_temp.userid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.userid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.userid = _tmp;
+                        }
+                    }
             break;
                 case 2:
             data_temp.prexpjid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.prexpjid= data_temp.prexpjid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.prexpjid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.prexpjid = _tmp;
+                        }
+                    }
             break;
                 case 3:
             data_temp.dpid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.dpid= data_temp.dpid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.dpid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.dpid = _tmp;
+                        }
+                    }
             break;
                 case 4:
             data_temp.grouptype=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.grouptype= data_temp.grouptype * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.grouptype) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.grouptype = _tmp;
+                        }
+                    }
             break;
                 case 5:
             data_temp.title.clear();
@@ -1235,146 +1227,128 @@ namespace cms
                 case 6:
             data_temp.adminuserid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.adminuserid= data_temp.adminuserid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.adminuserid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.adminuserid = _tmp;
+                        }
+                    }
             break;
                 case 7:
             data_temp.regdate=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.regdate= data_temp.regdate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.regdate) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.regdate = _tmp;
+                        }
+                    }
             break;
                 case 8:
             data_temp.begindate=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.begindate= data_temp.begindate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.begindate) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.begindate = _tmp;
+                        }
+                    }
             break;
                 case 9:
             data_temp.expiredate=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.expiredate= data_temp.expiredate * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.expiredate) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.expiredate = _tmp;
+                        }
+                    }
             break;
                 case 10:
             data_temp.isopen=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.isopen= data_temp.isopen * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.isopen) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.isopen = _tmp;
+                        }
+                    }
             break;
                 case 11:
             data_temp.clientid=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.clientid= data_temp.clientid * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.clientid) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.clientid = _tmp;
+                        }
+                    }
             break;
                 case 12:
             data_temp.totalnum=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.totalnum= data_temp.totalnum * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.totalnum) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.totalnum = _tmp;
+                        }
+                    }
             break;
                 case 13:
             data_temp.referdocverion=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.referdocverion= data_temp.referdocverion * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.referdocverion) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.referdocverion = _tmp;
+                        }
+                    }
             break;
                 case 14:
             data_temp.xtheme=0;
             
-            for(unsigned int i=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
-                {
-
-                data_temp.xtheme= data_temp.xtheme * 10 + (result_temp_data[i]-'0');
-                }   
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.xtheme) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.xtheme = _tmp;
+                        }
+                    }
             break;
                 case 15:
             data_temp.xlogo.clear();
@@ -1421,71 +1395,44 @@ namespace cms
                 case 22:
             data_temp.totalvalue=0.0;
             
-            for(unsigned int i=0,j=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]=='.')
-                {
-                    j++;
-                }else if(j> 0)
-                {
-                    data_temp.totalvalue= data_temp.totalvalue + (result_temp_data[i]-'0')/(j*10);
-                j++;
-                }
-                else
-                {
-                    data_temp.totalvalue= data_temp.totalvalue * 10 + (result_temp_data[i]-'0');
-                }
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.totalvalue) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.totalvalue = _tmp;
+                        }
+                    }
             break;
                 case 23:
             data_temp.expectday=0.0;
             
-            for(unsigned int i=0,j=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]=='.')
-                {
-                    j++;
-                }else if(j> 0)
-                {
-                    data_temp.expectday= data_temp.expectday + (result_temp_data[i]-'0')/(j*10);
-                j++;
-                }
-                else
-                {
-                    data_temp.expectday= data_temp.expectday * 10 + (result_temp_data[i]-'0');
-                }
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.expectday) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.expectday = _tmp;
+                        }
+                    }
             break;
                 case 24:
             data_temp.realday=0.0;
             
-            for(unsigned int i=0,j=0; i< value_size; i++)
-            {
-                if(result_temp_data[i]=='.')
-                {
-                    j++;
-                }else if(j> 0)
-                {
-                    data_temp.realday= data_temp.realday + (result_temp_data[i]-'0')/(j*10);
-                j++;
-                }
-                else
-                {
-                    data_temp.realday= data_temp.realday * 10 + (result_temp_data[i]-'0');
-                }
-                if(i>32)
-                {
-                    break;
-                }
-            }
+                    {
+                        decltype(data_temp.realday) _tmp{};
+                        auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            _tmp);
+                        if (result.ec == std::errc()) {
+                            data_temp.realday = _tmp;
+                        }
+                    }
             break;
                 
         }

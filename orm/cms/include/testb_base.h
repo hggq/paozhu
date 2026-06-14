@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 14 Jun 2026 12:13:59 GMT
+*本文件为自动生成 Sun, 14 Jun 2026 14:19:49 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -31,6 +31,9 @@ namespace testb_info
 		tid = 0,
 		score = 1,
 		name = 2,
+		pricenum = 3,
+		orgprice = 4,
+		subprice = 5,
 
     };
 
@@ -39,6 +42,9 @@ namespace testb_info
 		 int  tid = 0; ///**/
 		 long long  score = 0; ///*分数[num*100]*/
 		 std::string  name = ""; ///**/
+		 double  pricenum = 0; ///**/
+		 float  orgprice = 0; ///**/
+		 double  subprice = 0; ///**/
 	};
   
     struct meta_tree
@@ -46,6 +52,9 @@ namespace testb_info
 		 int  tid = 0; ///**/
 		 long long  score = 0; ///*分数[num*100]*/
 		 std::string  name = ""; ///**/
+		 double  pricenum = 0; ///**/
+		 float  orgprice = 0; ///**/
+		 double  subprice = 0; ///**/
 
 	 std::vector<meta_tree> children;
  };
@@ -55,6 +64,9 @@ namespace testb_info
 		 int  tid = 0; ///**/
 		 long long  score = 0; ///*分数[num*100]*/
 		 std::string  name = ""; ///**/
+		 double  pricenum = 0; ///**/
+		 float  orgprice = 0; ///**/
+		 double  subprice = 0; ///**/
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -68,6 +80,12 @@ namespace testb_info
 		 return m.score;
 		} else if constexpr (Col == cols::name) { 
 		 return m.name;
+		} else if constexpr (Col == cols::pricenum) { 
+		 return m.pricenum;
+		} else if constexpr (Col == cols::orgprice) { 
+		 return m.orgprice;
+		} else if constexpr (Col == cols::subprice) { 
+		 return m.subprice;
 		
         } else {
             static_assert(false, "Unsupported column type");
@@ -78,6 +96,9 @@ namespace testb_info
 		using tid =  int ;
 		using score =  long long ;
 		using name =  std::string ;
+		using pricenum =  double ;
+		using orgprice =  float ;
+		using subprice =  double ;
 
     }
 
@@ -591,10 +612,10 @@ namespace testb_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,3> col_names={"tid","score","name"};
-	static constexpr std::array<unsigned char,3> col_types={3,8,253};
-	static constexpr std::array<unsigned char,3> col_length={0,0,30};
-	static constexpr std::array<unsigned char,3> col_decimals={0,0,0};
+    static constexpr std::array<std::string_view,6> col_names={"tid","score","name","pricenum","orgprice","subprice"};
+	static constexpr std::array<unsigned char,6> col_types={3,8,253,5,4,246};
+	static constexpr std::array<unsigned char,6> col_length={0,0,30,0,0,10};
+	static constexpr std::array<unsigned char,6> col_decimals={0,0,0,0,0,2};
 
 }
 
@@ -628,9 +649,22 @@ static constexpr std::string_view modelname="Testb";
          case 'n':
    	 return 2;
 break;
+case 'o':
+   	 return 4;
+break;
+case 'p':
+   	 return 3;
+break;
 case 's':
+ switch(coln.size()){  
+case 5:
    	 return 1;
 break;
+case 8:
+   	 return 5;
+break;
+ }
+ break;
 case 't':
    	 return 0;
 break;
@@ -724,6 +758,21 @@ if(data.score==0){
 	tempsql<<","<<std::to_string(data.score);
 }
 tempsql<<",'"<<stringaddslash(data.name)<<"'";
+if(data.pricenum==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.pricenum);
+}
+if(data.orgprice==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.orgprice);
+}
+if(data.subprice==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.subprice);
+}
 tempsql<<")";
 
      
@@ -760,6 +809,21 @@ if(insert_data.score==0){
 	tempsql<<","<<std::to_string(insert_data.score);
 }
 tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
+if(insert_data.pricenum==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.pricenum);
+}
+if(insert_data.orgprice==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.orgprice);
+}
+if(insert_data.subprice==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.subprice);
+}
 tempsql<<")";
 
      
@@ -805,6 +869,21 @@ tempsql<<")";
 	tempsql<<","<<std::to_string(insert_data[i].score);
 	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
+	if(insert_data[i].pricenum==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].pricenum);
+	}
+	if(insert_data[i].orgprice==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].orgprice);
+	}
+	if(insert_data[i].subprice==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].subprice);
+	}
 		tempsql<<")";
 	 } 
 
@@ -835,6 +914,21 @@ if(data.score==0){
 	tempsql<<",`score`="<<std::to_string(data.score);
 }
 tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
+if(data.pricenum==0){
+	tempsql<<",`pricenum`=0";
+ }else{ 
+	tempsql<<",`pricenum`="<<std::to_string(data.pricenum);
+}
+if(data.orgprice==0){
+	tempsql<<",`orgprice`=0";
+ }else{ 
+	tempsql<<",`orgprice`="<<std::to_string(data.orgprice);
+}
+if(data.subprice==0){
+	tempsql<<",`subprice`=0";
+ }else{ 
+	tempsql<<",`subprice`="<<std::to_string(data.subprice);
+}
  }else{ 
 
      
@@ -899,6 +993,30 @@ if(data.score==0){
  if(jj>0){ tempsql<<","; } 
 tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
  break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(data.pricenum==0){
+	tempsql<<"`pricenum`=0";
+ }else{ 
+	tempsql<<"`pricenum`="<<std::to_string(data.pricenum);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(data.orgprice==0){
+	tempsql<<"`orgprice`=0";
+ }else{ 
+	tempsql<<"`orgprice`="<<std::to_string(data.orgprice);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(data.subprice==0){
+	tempsql<<"`subprice`=0";
+ }else{ 
+	tempsql<<"`subprice`="<<std::to_string(data.subprice);
+}
+ break;
 
      
                   default:
@@ -954,6 +1072,21 @@ tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
 	tempsql<<","<<std::to_string(record[i].score);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
+	if(record[i].pricenum==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].pricenum);
+	}
+	if(record[i].orgprice==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].orgprice);
+	}
+	if(record[i].subprice==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].subprice);
+	}
 	tempsql<<")";
 
  }
@@ -1003,6 +1136,21 @@ tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
 	tempsql<<","<<std::to_string(record[i].score);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
+	if(record[i].pricenum==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].pricenum);
+	}
+	if(record[i].orgprice==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].orgprice);
+	}
+	if(record[i].subprice==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].subprice);
+	}
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -1099,6 +1247,27 @@ if(data.score==0){
  case 2:
 	temparray.push_back(data.name);
  break;
+ case 3:
+if(data.pricenum==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.pricenum));
+}
+ break;
+ case 4:
+if(data.orgprice==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.orgprice));
+}
+ break;
+ case 5:
+if(data.subprice==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.subprice));
+}
+ break;
 
                              default:
                                 ;
@@ -1156,6 +1325,27 @@ if(data.score==0){
  case 2:
 	tempsql.insert({"name",data.name});
  break;
+ case 3:
+if(data.pricenum==0){
+	tempsql.insert({"pricenum","0"});
+ }else{ 
+	tempsql.insert({"pricenum",std::to_string(data.pricenum)});
+}
+ break;
+ case 4:
+if(data.orgprice==0){
+	tempsql.insert({"orgprice","0"});
+ }else{ 
+	tempsql.insert({"orgprice",std::to_string(data.orgprice)});
+}
+ break;
+ case 5:
+if(data.subprice==0){
+	tempsql.insert({"subprice","0"});
+ }else{ 
+	tempsql.insert({"subprice",std::to_string(data.subprice)});
+}
+ break;
 
                              default:
                                 ;
@@ -1181,6 +1371,21 @@ if(data.score==0){
 }
 tempsql<<",\"name\":\""<<http::utf8_to_jsonstring(data.name);
 tempsql<<"\"";
+if(data.pricenum==0){
+	tempsql<<",\"pricenum\":0";
+ }else{ 
+	tempsql<<",\"pricenum\":"<<std::to_string(data.pricenum);
+}
+if(data.orgprice==0){
+	tempsql<<",\"orgprice\":0";
+ }else{ 
+	tempsql<<",\"orgprice\":"<<std::to_string(data.orgprice);
+}
+if(data.subprice==0){
+	tempsql<<",\"subprice\":0";
+ }else{ 
+	tempsql<<",\"subprice\":"<<std::to_string(data.subprice);
+}
 tempsql<<"}";
 
      
@@ -1237,6 +1442,30 @@ if(data.score==0){
  case 2:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(data.pricenum==0){
+	tempsql<<"\"pricenum\":0";
+ }else{ 
+	tempsql<<"\"pricenum\":"<<std::to_string(data.pricenum);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(data.orgprice==0){
+	tempsql<<"\"orgprice\":0";
+ }else{ 
+	tempsql<<"\"orgprice\":"<<std::to_string(data.orgprice);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(data.subprice==0){
+	tempsql<<"\"subprice\":0";
+ }else{ 
+	tempsql<<"\"subprice\":"<<std::to_string(data.subprice);
+}
  break;
 
                              default:
@@ -1506,6 +1735,27 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
 			data.name.clear();
 			 }
 			break;
+		case 3:
+		 try{
+			data.pricenum=std::stod(set_value_name);
+		}catch (...) { 
+			data.pricenum=0.0;
+			 }
+			break;
+		case 4:
+		 try{
+			data.orgprice=std::stof(set_value_name);
+		}catch (...) { 
+			data.orgprice=0.0;
+			 }
+			break;
+		case 5:
+		 try{
+			data.subprice=std::stof(set_value_name);
+		}catch (...) { 
+			data.subprice=0.0;
+			 }
+			break;
 	default:
 		 { }
 			
@@ -1539,6 +1789,27 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
 			data.name.clear();
 			 }
 			break;
+		case 3:
+		 try{
+			data.pricenum=(double)set_value_name;
+		}catch (...) { 
+			data.pricenum=0.0;
+			 }
+			break;
+		case 4:
+		 try{
+			data.orgprice=set_value_name;
+		}catch (...) { 
+			data.orgprice=0.0;
+			 }
+			break;
+		case 5:
+		 try{
+			data.subprice=(float)set_value_name;
+		}catch (...) { 
+			data.subprice=0.0;
+			 }
+			break;
 	default:
 		 { }
 			
@@ -1570,6 +1841,27 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(data.name)<<"\"";
 			data.name=std::to_string(set_value_name);
 		}catch (...) { 
 			data.name.clear();
+			 }
+			break;
+		case 3:
+		 try{
+			data.pricenum=set_value_name;
+		}catch (...) { 
+			data.pricenum=0.0;
+			 }
+			break;
+		case 4:
+		 try{
+			data.orgprice=(float)set_value_name;
+		}catch (...) { 
+			data.orgprice=0.0;
+			 }
+			break;
+		case 5:
+		 try{
+			data.subprice=(float)set_value_name;
+		}catch (...) { 
+			data.subprice=0.0;
 			 }
 			break;
 	default:
@@ -1637,6 +1929,30 @@ if(record[n].score==0){
  case 2:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].pricenum==0){
+	tempsql<<"\"pricenum\":0";
+ }else{ 
+	tempsql<<"\"pricenum\":"<<std::to_string(record[n].pricenum);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].orgprice==0){
+	tempsql<<"\"orgprice\":0";
+ }else{ 
+	tempsql<<"\"orgprice\":"<<std::to_string(record[n].orgprice);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].subprice==0){
+	tempsql<<"\"subprice\":0";
+ }else{ 
+	tempsql<<"\"subprice\":"<<std::to_string(record[n].subprice);
+}
  break;
 
                              default:
@@ -1714,6 +2030,30 @@ if(record[n].score==0){
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].pricenum==0){
+	tempsql<<"\"pricenum\":0";
+ }else{ 
+	tempsql<<"\"pricenum\":"<<std::to_string(record[n].pricenum);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].orgprice==0){
+	tempsql<<"\"orgprice\":0";
+ }else{ 
+	tempsql<<"\"orgprice\":"<<std::to_string(record[n].orgprice);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].subprice==0){
+	tempsql<<"\"subprice\":0";
+ }else{ 
+	tempsql<<"\"subprice\":"<<std::to_string(record[n].subprice);
+}
+ break;
 
                              default:
                                 ;
@@ -1736,6 +2076,15 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  std::string & getRefName(){  return std::ref(data.name); } 
  void setName( std::string  &val){  data.name=val;} 
  void setName(std::string_view val){  data.name=val;} 
+
+ double  getPricenum(){  return data.pricenum; } 
+ void setPricenum( double  val){  data.pricenum=val;} 
+
+ float  getOrgprice(){  return data.orgprice; } 
+ void setOrgprice( float  val){  data.orgprice=val;} 
+
+ double  getSubprice(){  return data.subprice; } 
+ void setSubprice( double  val){  data.subprice=val;} 
 
 testb_info::meta getnewData(){
  	 struct testb_info::meta newdata;
@@ -1832,6 +2181,30 @@ if(tree_data[n].score==0){
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
  break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].pricenum==0){
+	tempsql<<"\"pricenum\":0";
+ }else{ 
+	tempsql<<"\"pricenum\":"<<std::to_string(tree_data[n].pricenum);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].orgprice==0){
+	tempsql<<"\"orgprice\":0";
+ }else{ 
+	tempsql<<"\"orgprice\":"<<std::to_string(tree_data[n].orgprice);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].subprice==0){
+	tempsql<<"\"subprice\":0";
+ }else{ 
+	tempsql<<"\"subprice\":"<<std::to_string(tree_data[n].subprice);
+}
+ break;
 
                              default:
                                 ;
@@ -1910,6 +2283,30 @@ if(tree_data[n].score==0){
  case 2:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(tree_data[n].name)<<"\"";
+ break;
+ case 3:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].pricenum==0){
+	tempsql<<"\"pricenum\":0";
+ }else{ 
+	tempsql<<"\"pricenum\":"<<std::to_string(tree_data[n].pricenum);
+}
+ break;
+ case 4:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].orgprice==0){
+	tempsql<<"\"orgprice\":0";
+ }else{ 
+	tempsql<<"\"orgprice\":"<<std::to_string(tree_data[n].orgprice);
+}
+ break;
+ case 5:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].subprice==0){
+	tempsql<<"\"subprice\":0";
+ }else{ 
+	tempsql<<"\"subprice\":"<<std::to_string(tree_data[n].subprice);
+}
  break;
 
                              default:

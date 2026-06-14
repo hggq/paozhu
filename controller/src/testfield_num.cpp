@@ -27,9 +27,15 @@ std::string testfieldnum(std::shared_ptr<httppeer> peer)
             testb.clear(false);
             testb.where("tid", testb.record[i].tid).limit(1);
             testb.update("score");
+            client << "<p>  float name:" << testb.record[i].name << "</p>";
+            client << "<p>  float getPricenum:" << testb.record[i].pricenum << "</p>";
+            client << "<p>  float orgprice:" << testb.record[i].orgprice  << "</p>";
+            client << "<p>  float subprice:" << testb.record[i].subprice << "</p>";
         }
     }
     client << "<p>double b total:" << testb.getScoreToNum(b) << "</p>";
+
+
     return "";
 }
 
