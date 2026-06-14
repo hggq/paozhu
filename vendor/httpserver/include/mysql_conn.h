@@ -31,20 +31,6 @@ concept HasOrgTablename = requires {
     T::org_tablename;
 };
 
-enum class OP : unsigned char 
-{
-    NOT  = 0,
-    BT   = 1,
-    BE   = 2,
-    EQ   = 3,
-    LT   = 4,
-    LE   = 5,
-    NQ   = 6,
-    IN   = 7,
-    NOTIN = 8,
-    LIKE = 9
-};
-
 enum enum_field_types
 {
     MYSQL_TYPE_DECIMAL,
