@@ -1,9 +1,11 @@
+#include "Testb.h"
 #include "orm.h"
 #include "httppeer.h"
 #include <string>
 #include <sstream>
 #include "testfield_num.h"
 
+ORM_CMS_TESTB_TREE_PTR_STRUCT(MyPtrStruct, tid, name,pricenum);
 namespace http
 {
 //@urlpath(null,testfieldnum)
@@ -43,7 +45,12 @@ std::string testfieldnum(std::shared_ptr<httppeer> peer)
     }
     client << "<p>double b total:" << testb.getScoreToNum(b) << "</p>";
 
+    orm::cms::testb_info::MyPtrStruct ta;
+    std::vector<orm::cms::testb_info::MyPtrStruct> temm;
+    testb.clear();
+    testb.limit(2).fetch_to(temm);
 
+    client << "<p>to_json:" << orm::cms::testb_info::to_json(temm) << "</p>";
     return "";
 }
 

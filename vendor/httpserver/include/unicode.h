@@ -10,6 +10,7 @@
 #include <utility>
 #include <concepts>
 #include <iostream>
+
 namespace http
 {
 
@@ -59,6 +60,16 @@ namespace http
     std::string stringunicode_to_utf8(std::string &source);
     bool str_colname_casecmp(std::string_view str1, std::string_view str2);
 
+    template <typename T>
+    std::string fast_to_string(T value) {
+        char buf[64];
+        auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), value);
+        if (ec != std::errc{}) {
+            return "";
+        }
+        return std::string(buf, ptr);
+    }
+
     template<typename T>
     std::string to_json_value(const T& val) 
     {
@@ -66,11 +77,12 @@ namespace http
         if constexpr (std::is_arithmetic_v<U>) {
             if constexpr (std::is_same_v<U, bool>) {
                 return val ? "true" : "false";
-            } else {
-                return std::to_string(val);
+            } 
+            else
+            {
+                return fast_to_string(val);
             }
         } else if constexpr (std::is_convertible_v<U, std::string_view>) {
-            //std::string s = std::string(val);
             return utf8_to_json_string(val);
         } else {
             return "";
@@ -82,13 +94,12 @@ namespace http
     inline auto try_set_val(T& field, const unsigned char* buf, size_t length,[[maybe_unused]] unsigned char _field_type) 
         -> std::enable_if_t<std::is_integral_v<T>> 
     {
-        T _tmp{};
-        auto [ptr, ec] = std::from_chars(
+        auto result = std::from_chars(
             reinterpret_cast<const char*>(buf),
             reinterpret_cast<const char*>(buf) + length,
-            _tmp);
-        if (ec == std::errc{}) {
-            field = _tmp;
+            field);
+        if (result.ec == std::errc{}) {
+  
         }
         else
         {
@@ -101,13 +112,11 @@ namespace http
     inline auto try_set_val(T& field, const unsigned char* buf, size_t length,[[maybe_unused]] unsigned char _field_type) 
         -> std::enable_if_t<std::is_floating_point_v<T>> 
     {
-        T _tmp{};
-        auto [ptr, ec] = std::from_chars(
+        auto result = std::from_chars(
             reinterpret_cast<const char*>(buf),
             reinterpret_cast<const char*>(buf) + length,
-            _tmp);
-        if (ec == std::errc{}) {
-            field = _tmp;
+            field);
+        if (result.ec == std::errc{}) {
         }
         else
         {
