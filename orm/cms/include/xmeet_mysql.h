@@ -4,8 +4,10 @@
  *  @author 黄自权 huangziquan
  *  @date 2022-05-04
  *  @update 2025-03-12
+ *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
- *  本文件自动生成 This document is automatically generated, Creation time (Sun, 14 Jun 2026 02:28:20 GMT)
+ *  本文件自动生成 This document is automatically generated.
+ *  Creation time Sun, 14 Jun 2026 12:13:59 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -93,10 +95,6 @@ namespace cms
         }
         M_MODEL &set_table(const std::string &table_name)
         {
-            if (original_tablename.empty())
-            {
-                original_tablename = B_BASE::tablename;
-            }
             if (table_name.size() > 0)
             {
                 B_BASE::tablename = table_name;
@@ -105,11 +103,7 @@ namespace cms
         }
         M_MODEL &reset_table()
         {
-            if (original_tablename.empty())
-            {
-                return *mod;
-            }
-            B_BASE::tablename = original_tablename;
+            B_BASE::tablename = B_BASE::org_tablename;
             return *mod;
         }
         unsigned int count()
@@ -30757,13 +30751,13 @@ M_MODEL& or_leJiluphoto(T val)
     }   
     
 
-        M_MODEL &select(const std::string &fieldname)
+        M_MODEL &select(const std::string &fields)
         {
             if (selectsql.size() > 0)
             {
                 selectsql.push_back(',');
             }
-            selectsql.append(fieldname);
+            selectsql.append(fields);
             return *mod;
         }
 
@@ -32866,6 +32860,7 @@ M_MODEL& or_leJiluphoto(T val)
         unsigned int fetch_to(std::vector<T>& custom_record, Callback&& callback) 
         {
             effect_num = 0;
+            parse_leftjion();
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -32876,8 +32871,15 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(selectsql);
                 sqlstring.append(" FROM ");
             }
-
             sqlstring.append(B_BASE::tablename);
+            if(join_table.size() > 0 && join_onsql.size() >0)
+            {
+                sqlstring.append(" LEFT JOIN ");
+                sqlstring.append(join_table);
+                sqlstring.append(" ON ");
+                sqlstring.append(join_onsql);
+            }
+
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -32886,8 +32888,10 @@ M_MODEL& or_leJiluphoto(T val)
             }
             else
             {
+                parse_wheresql();
                 sqlstring.append(wheresql);
             }
+
             if (!groupsql.empty())
             {
                 sqlstring.append(groupsql);
@@ -33067,6 +33071,7 @@ M_MODEL& or_leJiluphoto(T val)
         asio::awaitable<unsigned int> async_fetch_to(std::vector<T>& custom_record, Callback&& callback)
         {
             effect_num = 0;
+            parse_leftjion();
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -33077,8 +33082,14 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(selectsql);
                 sqlstring.append(" FROM ");
             }
-
             sqlstring.append(B_BASE::tablename);
+            if(join_table.size() > 0 && join_onsql.size() >0)
+            {
+                sqlstring.append(" LEFT JOIN ");
+                sqlstring.append(join_table);
+                sqlstring.append(" ON ");
+                sqlstring.append(join_onsql);
+            }
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -33087,6 +33098,7 @@ M_MODEL& or_leJiluphoto(T val)
             }
             else
             {
+                parse_wheresql();
                 sqlstring.append(wheresql);
             }
             if (!groupsql.empty())
@@ -33266,6 +33278,7 @@ M_MODEL& or_leJiluphoto(T val)
         unsigned int fetch_to(std::vector<T>& custom_record)
         {
             effect_num = 0;
+            parse_leftjion();
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -33276,16 +33289,22 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(selectsql);
                 sqlstring.append(" FROM ");
             }
-
             sqlstring.append(B_BASE::tablename);
+            if(join_table.size() > 0 && join_onsql.size() >0)
+            {
+                sqlstring.append(" LEFT JOIN ");
+                sqlstring.append(join_table);
+                sqlstring.append(" ON ");
+                sqlstring.append(join_onsql);
+            }
             sqlstring.append(" WHERE ");
-
             if (wheresql.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
+                parse_wheresql();
                 sqlstring.append(wheresql);
             }
             if (!groupsql.empty())
@@ -33467,6 +33486,7 @@ M_MODEL& or_leJiluphoto(T val)
         asio::awaitable<unsigned int> async_fetch_to(std::vector<T>& custom_record)
         {
             effect_num = 0;
+            parse_leftjion();
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -33477,8 +33497,14 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(selectsql);
                 sqlstring.append(" FROM ");
             }
-
             sqlstring.append(B_BASE::tablename);
+            if(join_table.size() > 0 && join_onsql.size() >0)
+            {
+                sqlstring.append(" LEFT JOIN ");
+                sqlstring.append(join_table);
+                sqlstring.append(" ON ");
+                sqlstring.append(join_onsql);
+            }
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -33487,6 +33513,7 @@ M_MODEL& or_leJiluphoto(T val)
             }
             else
             {
+                parse_wheresql();
                 sqlstring.append(wheresql);
             }
             if (!groupsql.empty())
@@ -34532,6 +34559,7 @@ M_MODEL& or_leJiluphoto(T val)
         unsigned int fetch_one_to(T& custom_record, Callback&& callback)
         {
             effect_num = 0;
+            parse_leftjion();
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -34552,6 +34580,7 @@ M_MODEL& or_leJiluphoto(T val)
             }
             else
             {
+                parse_wheresql();
                 sqlstring.append(wheresql);
             }
             if (!groupsql.empty())
@@ -34730,6 +34759,7 @@ M_MODEL& or_leJiluphoto(T val)
         asio::awaitable<unsigned int> async_fetch_one_to(T& custom_record, Callback&& callback)
         {
             effect_num = 0;
+            parse_leftjion();
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -34750,6 +34780,7 @@ M_MODEL& or_leJiluphoto(T val)
             }
             else
             {
+                parse_wheresql();
                 sqlstring.append(wheresql);
             }
             if (!groupsql.empty())
@@ -34929,6 +34960,7 @@ M_MODEL& or_leJiluphoto(T val)
         unsigned int fetch_one_to(T &custom_struct)
         {
             effect_num = 0;
+            parse_leftjion();
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -34949,6 +34981,7 @@ M_MODEL& or_leJiluphoto(T val)
             }
             else
             {
+                parse_wheresql();
                 sqlstring.append(wheresql);
             }
             if (!groupsql.empty())
@@ -35127,6 +35160,7 @@ M_MODEL& or_leJiluphoto(T val)
         asio::awaitable<unsigned int> async_fetch_one_to(T &custom_struct)
         {
             effect_num = 0;
+            parse_leftjion();
             if (selectsql.empty())
             {
                 sqlstring = "SELECT *  FROM ";
@@ -35147,6 +35181,7 @@ M_MODEL& or_leJiluphoto(T val)
             }
             else
             {
+                parse_wheresql();
                 sqlstring.append(wheresql);
             }
             if (!groupsql.empty())
@@ -39601,6 +39636,563 @@ M_MODEL& or_leJiluphoto(T val)
 
         //     return 0;
         // }
+        unsigned int parse_value(unsigned int i)
+        {
+            i++;
+            if(i >= wheresql.size())
+            {
+                return i;
+            }
+            if(wheresql[i]=='>')
+            {
+                i++;
+            }
+
+            if(i >= wheresql.size())
+            {
+                return i;
+            }
+
+            if(wheresql[i]=='=')
+            {
+                i++;
+                if(i >= wheresql.size())
+                {
+                    return i;
+                }
+                
+                if(wheresql[i]=='>')
+                {
+                    i++;
+                }
+                
+                if(i >= wheresql.size())
+                {
+                    return i;
+                }
+
+                // spache
+                if(wheresql[i] ==' ')
+                {
+                    i++;
+                    for(; i< wheresql.size(); i++)
+                    {
+                        if(wheresql[i]==' ')
+                        {
+                            continue;
+                        }
+                        break;
+                    }
+                }
+
+                if(i >= wheresql.size())
+                {
+                    return i;
+                }
+            }
+            else if(wheresql[i] ==' ')
+            {
+                i++;
+                for(; i< wheresql.size(); i++)
+                {
+                    if(wheresql[i]==' ')
+                    {
+                        continue;
+                    }
+                    break;
+                }
+            }
+            
+            //begin value
+            if(wheresql[i]=='\'')
+            {
+                i++;
+                for(; i< wheresql.size(); i++)
+                {
+                    if(wheresql[i]=='\'')
+                    {
+                        if(wheresql[i-1]=='\\')
+                        {
+                            continue;
+                        }
+                        i++;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                for(; i< wheresql.size(); i++)
+                {
+                    if(wheresql[i]==' ')
+                    {
+                        break;
+                    }
+                }
+            }
+            //end value
+            return i;
+        }
+
+        unsigned int parse_between(unsigned int i)
+        {
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                    continue;
+                }
+                break;
+            }
+
+            //1 value
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+
+        
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                    continue;
+                }
+                break;
+            }
+
+            //and
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                    continue;
+                }
+                break;
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+            return i;
+        }
+        unsigned int parse_like(unsigned int i)
+        {
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                    continue;
+                }
+                break;
+            }
+
+            i++;
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]=='\'')
+                {
+                    if(wheresql[i-1]=='\\')
+                    {
+                        continue;
+                    }
+
+                    i++;
+                    break;
+                }
+            }
+            return i;
+        }
+
+        unsigned int parse_in(unsigned int i)
+        {
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                    continue;
+                }
+                break;
+            }
+
+            i++;
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==')')
+                {
+                    i++;
+                    break;
+                }
+            }
+            return i;
+        }
+
+        void parse_wheresql()
+        {
+            bool ishastabname = false;
+            unsigned int i=0;
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                   continue;
+                }
+                break;
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]=='.')
+                {
+                    ishastabname = true;
+                    break;
+                }
+                else if(wheresql[i]==' ' || wheresql[i]=='>'|| wheresql[i]=='!' || wheresql[i]=='<' || wheresql[i]=='=' || wheresql[i]=='(')
+                {
+                    break;
+                }
+            }
+            if(ishastabname)
+            {
+                return; 
+            }
+
+            std::string newwheresql_;
+            newwheresql_.append(B_BASE::tablename);
+            newwheresql_.append(".");
+            i = 0;
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                   continue;
+                }
+                break;
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ' || wheresql[i]=='>' || wheresql[i]=='!' || wheresql[i]=='<' || wheresql[i]=='=' || wheresql[i]=='(')
+                {
+                    unsigned begin_offset = i;
+                    if(wheresql[i]==' ')
+                    {
+                        newwheresql_.push_back(' ');
+                        for(; i< wheresql.size(); i++)
+                        {
+                            if(wheresql[i]!=' ')
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    // > >= = < <= is null, in , like 
+                    //value area
+                    /*
+                    比较运算符、逻辑运算符
+                    between and 关键字
+                    is null 关键字
+                    in、exist 关键字
+                    like 关键字
+                    */
+
+                    for(; i< wheresql.size(); i++)
+                    {
+                        if(wheresql[i]=='>')
+                        {
+                            i = parse_value(i);
+                            break;
+                        } 
+                        else if(wheresql[i]=='<')
+                        {
+                            i = parse_value(i);
+                        }
+                        else if(wheresql[i]=='=')
+                        {
+                            i = parse_value(i);
+                        }
+                        else if(wheresql[i]=='!')
+                        {
+                            i = parse_value(i);
+                        }
+                        else if(wheresql[i]=='b' || wheresql[i]=='B')
+                        {
+                           i = parse_between(i);
+                        } 
+                        else if(wheresql[i]=='l' || wheresql[i]=='L')
+                        {
+                           i = parse_like(i);
+                        }
+                        else if(wheresql[i]=='i' || wheresql[i]=='I')
+                        {
+                           if((i+1)< wheresql.size() && (wheresql[i]=='n' || wheresql[i]=='N'))
+                           {
+                                i = parse_in(i);
+                           }
+                           else
+                           {
+                              if((i+1)< wheresql.size() && (wheresql[i]=='s' || wheresql[i]=='S'))
+                              {
+                                i+=2;
+                                for(; i< wheresql.size(); i++)
+                                {
+                                    if(wheresql[i]!=' ')
+                                    {
+                                        break;
+                                    }
+                                }
+                                for(; i< wheresql.size(); i++)
+                                {
+                                    if(wheresql[i]==' ')
+                                    {
+                                        break;
+                                    }
+                                }
+                              }
+                           }
+                        }
+                        else
+                        {
+                            break; 
+                        }
+                    }
+
+                    for(; i< wheresql.size(); i++)
+                    {
+                        if(wheresql[i]!=' ')
+                        {
+                            break;
+                        }
+                    }
+                    //in and or AND OR xor
+                    for(; i< wheresql.size(); i++)
+                    {
+                        if(wheresql[i]==' ')
+                        {
+                            break;
+                        }
+                    }
+                    //pass 
+                    //and or AND OR xor
+                    for(; i< wheresql.size(); i++)
+                    {
+                        if(wheresql[i]==' ')
+                        {
+                            continue;
+                        }
+                        break;
+                    }
+                    newwheresql_.append(wheresql.substr(begin_offset, (i - begin_offset)));
+
+                    if(i < wheresql.size())
+                    {
+                        newwheresql_.append(B_BASE::tablename);
+                        newwheresql_.append(".");
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                newwheresql_.push_back(wheresql[i]);
+            }
+            wheresql = newwheresql_;
+        }
+        void parse_leftjion()
+        {
+            if(selectsql.size() == 0)
+            {
+                selectsql.append(B_BASE::tablename);
+                selectsql.append(".* ");
+            }
+            else
+            {
+                bool ishastabname = false;
+                for(unsigned int i=0; i< selectsql.size(); i++)
+                {
+                    if(selectsql[i]=='.')
+                    {
+                        ishastabname = true;
+                        break;
+                    }
+                }
+                if(!ishastabname)
+                {
+                    std::string sqlselect_;
+                    sqlselect_.append(B_BASE::tablename);
+                    sqlselect_.push_back('.');
+                    for(unsigned int i=0; i< selectsql.size(); i++)
+                    {
+                        if(selectsql[i]==' ')
+                        {
+                            continue;
+                        }
+                        else if(selectsql[i]==',')
+                        {
+                            sqlselect_.push_back(',');
+                            sqlselect_.append(B_BASE::tablename);
+                            sqlselect_.push_back('.');
+                            continue;
+                        }
+                        sqlselect_.push_back(selectsql[i]);
+                    }
+                    selectsql = sqlselect_;
+                }
+            }
+        }
+        template<HasOrgTablename T>
+        M_MODEL &leftJoin()
+        {
+           join_table = T::org_tablename;
+           return *mod; 
+        }
+        M_MODEL &leftJoin(std::string_view table1)
+        {
+           join_table = table1;
+           return *mod; 
+        }
+        M_MODEL &joinSelect(std::string_view fields)
+        {
+            if(selectsql.size() > 0)
+            {
+                std::string sqlselect_;
+                sqlselect_.append(B_BASE::tablename);
+                sqlselect_.push_back('.');
+                for(unsigned int i=0; i< selectsql.size(); i++)
+                {
+                    if(selectsql[i]==' ')
+                    {
+                        continue;
+                    }
+                    else if(selectsql[i]==',')
+                    {
+                        sqlselect_.push_back(',');
+                        sqlselect_.append(B_BASE::tablename);
+                        sqlselect_.push_back('.');
+                        continue;
+                    }
+                    sqlselect_.push_back(selectsql[i]);
+                }
+                
+                if(fields.size() < 2)
+                {
+                    return *mod; 
+                }
+                sqlselect_.push_back(',');
+                sqlselect_.append(join_table);
+                sqlselect_.push_back('.');
+                for(unsigned int i=0; i< fields.size(); i++)
+                {
+                    if(fields[i]==' ')
+                    {
+                        continue;
+                    }
+                    else if(fields[i]==',')
+                    {
+                        sqlselect_.push_back(',');
+                        sqlselect_.append(join_table);
+                        sqlselect_.push_back('.');
+                        continue;
+                    }
+                    sqlselect_.push_back(fields[i]);
+                }
+                selectsql = sqlselect_;
+            }
+            else
+            {
+                if(fields.size() < 2)
+                {
+                    return *mod; 
+                }
+                selectsql.append(join_table);
+                selectsql.push_back('.');
+                for(unsigned int i=0; i< fields.size(); i++)
+                {
+                    if(fields[i]==' ')
+                    {
+                        continue;
+                    }
+                    else if(fields[i]==',')
+                    {
+                        selectsql.push_back(',');
+                        selectsql.append(join_table);
+                        selectsql.push_back('.');
+                        continue;
+                    }
+                    selectsql.push_back(fields[i]);
+                }
+                selectsql.push_back(' ');
+            }
+
+            return *mod; 
+        }
+        M_MODEL &joinOn(std::string_view field1, std::string_view field2)
+        {
+            if(join_onsql.size() > 0)
+            {
+                join_onsql.append(" AND ");
+            }
+            join_onsql.append(join_table);
+            join_onsql.append(".");
+            join_onsql.append(field1);
+            join_onsql.append(" = ");
+            join_onsql.append(B_BASE::tablename);
+            join_onsql.append(".");
+            join_onsql.append(field2);
+            return *mod; 
+        }
+
         M_MODEL &clear(bool both = true)
         {
             selectsql.clear();
@@ -39610,6 +40202,8 @@ M_MODEL& or_leJiluphoto(T val)
             limitsql.clear();
             sqlstring.clear();
             error_msg.clear();
+            join_table.clear();
+            join_onsql.clear();
             iskuohao     = false;
             ishascontent = false;
             iscommit     = false;
@@ -39632,6 +40226,8 @@ M_MODEL& or_leJiluphoto(T val)
             limitsql.clear();
             sqlstring.clear();
             error_msg.clear();
+            join_table.clear();
+            join_onsql.clear();
             iskuohao     = false;
             ishascontent = false;
             iscommit     = false;
@@ -39864,7 +40460,8 @@ M_MODEL& or_leJiluphoto(T val)
         std::string sqlstring;
         std::string dbtag;
         std::string error_msg;
-        std::string original_tablename;
+        std::string join_table;
+        std::string join_onsql;
 
         // std::list<std::string> commit_sqllist;
         bool iskuohao           = false;

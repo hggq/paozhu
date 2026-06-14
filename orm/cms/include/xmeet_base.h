@@ -2,7 +2,7 @@
 #define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 14 Jun 2026 02:28:20 GMT
+*本文件为自动生成 Sun, 14 Jun 2026 12:13:59 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -727,6 +727,7 @@ std::vector<xmeet_info::meta>::iterator end(){     return record.end(); }
 std::vector<xmeet_info::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<xmeet_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="xmeet";
+static constexpr std::string_view org_tablename="xmeet";
 static constexpr std::string_view modelname="Xmeet";
 
 	  unsigned char findcolpos(const std::string &coln){

@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 14 Jun 2026 02:28:16 GMT
+*本文件为自动生成 Sun, 14 Jun 2026 12:13:57 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -600,6 +600,7 @@ std::vector<fortune_info::meta>::iterator end(){     return record.end(); }
 std::vector<fortune_info::meta>::const_iterator begin() const{     return record.begin(); }
 std::vector<fortune_info::meta>::const_iterator end() const{     return record.end(); }
 std::string tablename="fortune";
+static constexpr std::string_view org_tablename="fortune";
 static constexpr std::string_view modelname="Fortune";
 
 	  unsigned char findcolpos(const std::string &coln){

@@ -26,6 +26,10 @@ concept RecordLineCallback = requires(F&& f, T& obj,const std::string& name,
     { std::invoke(std::forward<F>(f), obj, name, data, len, field_type, flag) } 
         -> std::same_as<void>;
 };
+template<typename T>
+concept HasOrgTablename = requires {
+    T::org_tablename;
+};
 
 enum enum_field_types
 {

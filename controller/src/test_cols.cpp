@@ -185,5 +185,72 @@ asio::awaitable<std::string> test_cols_co(std::shared_ptr<httppeer> peer)
     client << "</pre>";
     co_return "";
 }
+//@urlpath(null,test_leftjoin)
+asio::awaitable<std::string> test_leftjoin(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    auto world = orm::World();
+    struct LocalStruct 
+    {
+        orm::world_info::type::id id;
+        orm::world_info::type::randomnumber randomnumber;
+        std::string message;
+    };
+    std::vector<LocalStruct> cust_record;
+    
+    world.btId(2).ltId(6);
+    world.select("id,randomnumber");
+    world.leftJoin<orm::Fortune>().joinOn("id", "id").joinSelect("message");
+    
+    unsigned int n= co_await world.async_fetch_to(cust_record, [](LocalStruct& obj,const std::string& col_name,const unsigned char* buf, std::size_t length,[[maybe_unused]] unsigned char c_type,[[maybe_unused]] unsigned char ver) {
+           if(col_name == "id")
+           {
+                decltype(obj.id) _tmp{};
+                auto [ptr, ec] = std::from_chars(
+                    reinterpret_cast<const char*>(buf),
+                    reinterpret_cast<const char*>(buf) + length,
+                    _tmp);
+                if (ec == std::errc{}) {
+                    obj.id = _tmp;
+                }
+                else
+                {
+                    obj.id  = 0;
+                }
+           }
+           else if(str_casecmp(col_name, "randomnumber"))
+           {
+                decltype(obj.randomnumber) _tmp{};
+                auto [ptr, ec] = std::from_chars(
+                    reinterpret_cast<const char*>(buf),
+                    reinterpret_cast<const char*>(buf) + length,
+                    _tmp);
+                if (ec == std::errc{}) {
+                    obj.randomnumber = _tmp;
+                }
+                else
+                {
+                    obj.randomnumber  = 0;
+                }
+           }
+           else if(str_casecmp(col_name, "message"))
+           {
+                obj.message  = std::string(reinterpret_cast<const char*>(buf), length);
+           }
+    });
+    client << world.sqlstring;
+    client << "<p>cust_record size: " <<  cust_record.size()<< " n:"<< n << "</p>";
+    client << "<p><hr></p>";
+    client << "<pre>";
+    client <<"[";
+    for(auto &a:cust_record)
+    {
+        client <<"{\"id\":"<<a.id<<",\"randomnumber\":"<<a.randomnumber<<",\"message\":\""<<a.message<<"\"},";
+    }
+    client <<"]";
+    client << "</pre>";
+    co_return "";
+}
 
 }// namespace http
