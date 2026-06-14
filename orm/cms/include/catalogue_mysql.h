@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 14:19:49 GMT
+ *  Creation time Sun, 14 Jun 2026 15:31:28 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1149,60 +1149,120 @@ namespace cms
         switch(index_pos)
         {
             case 0:
+             {
+                bool issig = false;   
             data_temp.cid=0;
             
-                    {
-                        decltype(data_temp.cid) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.cid = _tmp;
-                        }
-                    }
+            unsigned int i=0;
+            if(value_size > 0 && result_temp_data[0] == '-')
+            {
+                issig = true;
+                i = 1;
+            }
+            for( ; i< value_size; i++)
+            {
+                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                {
+
+                data_temp.cid= data_temp.cid * 10 + (result_temp_data[i]-'0');
+                }   
+                if(i>36)
+                {
+                    break;
+                }
+            }
+                if(issig)
+                {
+                    data_temp.cid = -data_temp.cid  ;
+                }
+            }
             break;
                 case 1:
+             {
+                bool issig = false;   
             data_temp.userid=0;
             
-                    {
-                        decltype(data_temp.userid) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.userid = _tmp;
-                        }
-                    }
+            unsigned int i=0;
+            if(value_size > 0 && result_temp_data[0] == '-')
+            {
+                issig = true;
+                i = 1;
+            }
+            for( ; i< value_size; i++)
+            {
+                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                {
+
+                data_temp.userid= data_temp.userid * 10 + (result_temp_data[i]-'0');
+                }   
+                if(i>36)
+                {
+                    break;
+                }
+            }
+                if(issig)
+                {
+                    data_temp.userid = -data_temp.userid  ;
+                }
+            }
             break;
                 case 2:
+             {
+                bool issig = false;   
             data_temp.level=0;
             
-                    {
-                        decltype(data_temp.level) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.level = _tmp;
-                        }
-                    }
+            unsigned int i=0;
+            if(value_size > 0 && result_temp_data[0] == '-')
+            {
+                issig = true;
+                i = 1;
+            }
+            for( ; i< value_size; i++)
+            {
+                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                {
+
+                data_temp.level= data_temp.level * 10 + (result_temp_data[i]-'0');
+                }   
+                if(i>36)
+                {
+                    break;
+                }
+            }
+                if(issig)
+                {
+                    data_temp.level = -data_temp.level  ;
+                }
+            }
             break;
                 case 3:
+             {
+                bool issig = false;   
             data_temp.parentid=0;
             
-                    {
-                        decltype(data_temp.parentid) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.parentid = _tmp;
-                        }
-                    }
+            unsigned int i=0;
+            if(value_size > 0 && result_temp_data[0] == '-')
+            {
+                issig = true;
+                i = 1;
+            }
+            for( ; i< value_size; i++)
+            {
+                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                {
+
+                data_temp.parentid= data_temp.parentid * 10 + (result_temp_data[i]-'0');
+                }   
+                if(i>36)
+                {
+                    break;
+                }
+            }
+                if(issig)
+                {
+                    data_temp.parentid = -data_temp.parentid  ;
+                }
+            }
             break;
                 case 4:
             data_temp.name.clear();
@@ -1211,32 +1271,62 @@ namespace cms
             std::memcpy(data_temp.name.data(), result_temp_data, value_size);
             break;
                 case 5:
+             {
+                bool issig = false;   
             data_temp.isview=0;
             
-                    {
-                        decltype(data_temp.isview) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.isview = _tmp;
-                        }
-                    }
+            unsigned int i=0;
+            if(value_size > 0 && result_temp_data[0] == '-')
+            {
+                issig = true;
+                i = 1;
+            }
+            for( ; i< value_size; i++)
+            {
+                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                {
+
+                data_temp.isview= data_temp.isview * 10 + (result_temp_data[i]-'0');
+                }   
+                if(i>36)
+                {
+                    break;
+                }
+            }
+                if(issig)
+                {
+                    data_temp.isview = -data_temp.isview  ;
+                }
+            }
             break;
                 case 6:
+             {
+                bool issig = false;   
             data_temp.sortid=0;
             
-                    {
-                        decltype(data_temp.sortid) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.sortid = _tmp;
-                        }
-                    }
+            unsigned int i=0;
+            if(value_size > 0 && result_temp_data[0] == '-')
+            {
+                issig = true;
+                i = 1;
+            }
+            for( ; i< value_size; i++)
+            {
+                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                {
+
+                data_temp.sortid= data_temp.sortid * 10 + (result_temp_data[i]-'0');
+                }   
+                if(i>36)
+                {
+                    break;
+                }
+            }
+                if(issig)
+                {
+                    data_temp.sortid = -data_temp.sortid  ;
+                }
+            }
             break;
                 case 7:
             data_temp.imgurl.clear();

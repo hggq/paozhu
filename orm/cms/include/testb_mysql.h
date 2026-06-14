@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 14:19:49 GMT
+ *  Creation time Sun, 14 Jun 2026 15:31:28 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1149,32 +1149,62 @@ namespace cms
         switch(index_pos)
         {
             case 0:
+             {
+                bool issig = false;   
             data_temp.tid=0;
             
-                    {
-                        decltype(data_temp.tid) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.tid = _tmp;
-                        }
-                    }
+            unsigned int i=0;
+            if(value_size > 0 && result_temp_data[0] == '-')
+            {
+                issig = true;
+                i = 1;
+            }
+            for( ; i< value_size; i++)
+            {
+                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                {
+
+                data_temp.tid= data_temp.tid * 10 + (result_temp_data[i]-'0');
+                }   
+                if(i>36)
+                {
+                    break;
+                }
+            }
+                if(issig)
+                {
+                    data_temp.tid = -data_temp.tid  ;
+                }
+            }
             break;
                 case 1:
+             {
+                bool issig = false;   
             data_temp.score=0;
             
-                    {
-                        decltype(data_temp.score) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.score = _tmp;
-                        }
-                    }
+            unsigned int i=0;
+            if(value_size > 0 && result_temp_data[0] == '-')
+            {
+                issig = true;
+                i = 1;
+            }
+            for( ; i< value_size; i++)
+            {
+                if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                {
+
+                data_temp.score= data_temp.score * 10 + (result_temp_data[i]-'0');
+                }   
+                if(i>36)
+                {
+                    break;
+                }
+            }
+                if(issig)
+                {
+                    data_temp.score = -data_temp.score  ;
+                }
+            }
             break;
                 case 2:
             data_temp.name.clear();
@@ -1183,46 +1213,160 @@ namespace cms
             std::memcpy(data_temp.name.data(), result_temp_data, value_size);
             break;
                 case 3:
-            data_temp.pricenum=0.0;
+                {
+                bool issig = false;
+                bool ishot = false;
+                data_temp.pricenum=0.0;
             
+                unsigned int i=0;
+                double j=0;
+                if(value_size > 0 && result_temp_data[0] == '-')
+                {
+                    issig = true;
+                    i = 1;
+                }
+
+                for( ;i< value_size; i++)
+                {
+                    if(result_temp_data[i]=='.')
                     {
-                        decltype(data_temp.pricenum) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.pricenum = _tmp;
+                        if(!ishot)
+                        {
+                            j=10.0;
+                            ishot = true;
+                        }
+                        continue;
+                    } 
+                    
+                    if(ishot)
+                    {
+                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                        {
+                        data_temp.pricenum= data_temp.pricenum + (double)(result_temp_data[i]-'0')/(j);
+                        j = j * 10;
                         }
                     }
+                    else
+                    {
+                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                        {
+                            data_temp.pricenum= data_temp.pricenum * 10 + (result_temp_data[i]-'0');
+                        }
+                    }
+                    if(i>36)
+                    {
+                        break;
+                    }
+                }
+                if(issig)
+                {
+                    data_temp.pricenum = -data_temp.pricenum  ;
+                }
+            }
             break;
                 case 4:
-            data_temp.orgprice=0.0;
+                {
+                bool issig = false;
+                bool ishot = false;
+                data_temp.orgprice=0.0;
             
+                unsigned int i=0;
+                double j=0;
+                if(value_size > 0 && result_temp_data[0] == '-')
+                {
+                    issig = true;
+                    i = 1;
+                }
+
+                for( ;i< value_size; i++)
+                {
+                    if(result_temp_data[i]=='.')
                     {
-                        decltype(data_temp.orgprice) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.orgprice = _tmp;
+                        if(!ishot)
+                        {
+                            j=10.0;
+                            ishot = true;
+                        }
+                        continue;
+                    } 
+                    
+                    if(ishot)
+                    {
+                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                        {
+                        data_temp.orgprice= data_temp.orgprice + (double)(result_temp_data[i]-'0')/(j);
+                        j = j * 10;
                         }
                     }
+                    else
+                    {
+                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                        {
+                            data_temp.orgprice= data_temp.orgprice * 10 + (result_temp_data[i]-'0');
+                        }
+                    }
+                    if(i>36)
+                    {
+                        break;
+                    }
+                }
+                if(issig)
+                {
+                    data_temp.orgprice = -data_temp.orgprice  ;
+                }
+            }
             break;
                 case 5:
-            data_temp.subprice=0.0;
+                {
+                bool issig = false;
+                bool ishot = false;
+                data_temp.subprice=0.0;
             
+                unsigned int i=0;
+                double j=0;
+                if(value_size > 0 && result_temp_data[0] == '-')
+                {
+                    issig = true;
+                    i = 1;
+                }
+
+                for( ;i< value_size; i++)
+                {
+                    if(result_temp_data[i]=='.')
                     {
-                        decltype(data_temp.subprice) _tmp{};
-                        auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            _tmp);
-                        if (result.ec == std::errc()) {
-                            data_temp.subprice = _tmp;
+                        if(!ishot)
+                        {
+                            j=10.0;
+                            ishot = true;
+                        }
+                        continue;
+                    } 
+                    
+                    if(ishot)
+                    {
+                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                        {
+                        data_temp.subprice= data_temp.subprice + (double)(result_temp_data[i]-'0')/(j);
+                        j = j * 10;
                         }
                     }
+                    else
+                    {
+                        if(result_temp_data[i]>='0'&&result_temp_data[i]<='9')
+                        {
+                            data_temp.subprice= data_temp.subprice * 10 + (result_temp_data[i]-'0');
+                        }
+                    }
+                    if(i>36)
+                    {
+                        break;
+                    }
+                }
+                if(issig)
+                {
+                    data_temp.subprice = -data_temp.subprice  ;
+                }
+            }
             break;
                 
         }
