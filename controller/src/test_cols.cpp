@@ -129,6 +129,60 @@ asio::awaitable<std::string> test_cols_co(std::shared_ptr<httppeer> peer)
     client << orm::world_info::to_json(cust_test);
     client << "</pre>";
 
+    cust_test.clear();
+    world.clear();
+    world.btId(200).ltId(205);
+
+    struct LocalStruct 
+    {
+        orm::world_info::type::id id;
+        orm::world_info::type::randomnumber randomnumber;
+        std::vector<std::unique_ptr<LocalStruct>> children;
+    };
+    std::vector<LocalStruct> cust_record;
+    n = co_await world.async_fetch_to(cust_record, [](LocalStruct& obj,const std::string& col_name,const unsigned char* buf, std::size_t length,[[maybe_unused]] unsigned char c_type,[[maybe_unused]] unsigned char ver) {
+           if(col_name == "id")
+           {
+                decltype(obj.id) _tmp{};
+                auto [ptr, ec] = std::from_chars(
+                    reinterpret_cast<const char*>(buf),
+                    reinterpret_cast<const char*>(buf) + length,
+                    _tmp);
+                if (ec == std::errc{}) {
+                    obj.id = _tmp;
+                }
+                else
+                {
+                    obj.id  = 0;
+                }
+           }
+           else if(str_casecmp(col_name, "randomnumber"))
+           {
+                decltype(obj.randomnumber) _tmp{};
+                auto [ptr, ec] = std::from_chars(
+                    reinterpret_cast<const char*>(buf),
+                    reinterpret_cast<const char*>(buf) + length,
+                    _tmp);
+                if (ec == std::errc{}) {
+                    obj.randomnumber = _tmp;
+                }
+                else
+                {
+                    obj.randomnumber  = 0;
+                }
+           }
+    });
+
+    client << "<p>cust_record size: " <<  cust_record.size()<< " n:"<< n << "</p>";
+    client << "<p><hr></p>";
+    client << "<pre>";
+    client <<"[";
+    for(auto &a:cust_record)
+    {
+        client <<"{\"id\":"<<a.id<<",\"randomnumber\":"<<a.randomnumber<<"},";
+    }
+    client <<"]";
+    client << "</pre>";
     co_return "";
 }
 

@@ -18,6 +18,15 @@ template<typename T>
 concept ResultHasSetVal = requires(T& obj, const std::string& s, const unsigned char* p, std::size_t n, unsigned char t) {
     obj.set_val(s, p, n, t);
 };
+
+template<typename F, typename T>
+concept RecordLineCallback = requires(F&& f, T& obj,const std::string& name, 
+                                  const unsigned char* data, std::size_t len, 
+                                  unsigned char field_type, unsigned char flag) {
+    { std::invoke(std::forward<F>(f), obj, name, data, len, field_type, flag) } 
+        -> std::same_as<void>;
+};
+
 enum enum_field_types
 {
     MYSQL_TYPE_DECIMAL,

@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 14 Jun 2026 00:57:48 GMT
+*本文件为自动生成 Sun, 14 Jun 2026 02:28:20 GMT
 ***/
 #include <iostream>
 #include <charconv>
