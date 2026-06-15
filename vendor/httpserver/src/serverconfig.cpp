@@ -1030,6 +1030,55 @@ bool serverconfig::loadserverglobalconfig()
         rate_limit_accept_time = 500;
     }
 
+    if (map_value["default"]["ip6_listen_enable"].size() > 0)
+    {
+        for(unsigned int j=0;j<map_value["default"]["ip6_listen_enable"].size();j++)
+        {
+            if(map_value["default"]["ip6_listen_enable"][j]==' ')
+            {
+                continue;
+            }
+            else if(map_value["default"]["ip6_listen_enable"][j]=='1')
+            {
+                ip6_enable = true;
+                break;
+            }
+            else if(map_value["default"]["ip6_listen_enable"][j]=='T')
+            {
+                ip6_enable = true;
+                break;
+            }
+            else if(map_value["default"]["ip6_listen_enable"][j]=='t')
+            {
+                ip6_enable = true;
+                break;
+            }
+            else if(map_value["default"]["ip6_listen_enable"][j]=='0')
+            {
+                ip6_enable = false;
+                break;
+            }
+            else if(map_value["default"]["ip6_listen_enable"][j]=='F')
+            {
+                ip6_enable = false;
+                break;
+            }
+            else if(map_value["default"]["ip6_listen_enable"][j]=='f')
+            {
+                ip6_enable = false;
+                break;
+            }
+            else
+            {
+                ip6_enable = true;
+                break;
+            }
+        }
+    }
+    else
+    {
+        ip6_enable = false;
+    }
 
     tempinfo_default.php_root_document = tempinfo_default.wwwpath;
     sitehostinfos.push_back(std::move(tempinfo_default));

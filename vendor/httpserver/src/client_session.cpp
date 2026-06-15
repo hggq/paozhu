@@ -1044,7 +1044,24 @@ std::string client_session::getremoteip()
 
         return "";
     }
-    client_ip = ep.address().to_string();
+    asio::ip::address addr = ep.address();
+    //client_ip = ep.address().to_string();
+    if (addr.is_v6()) 
+    {
+        auto v6_addr = addr.to_v6();
+        if (v6_addr.is_v4_mapped()) 
+        {
+            // 使用官方推荐的 make_address_v4 函数进行转换
+            client_ip = asio::ip::make_address_v4(asio::ip::v4_mapped, v6_addr).to_string();
+        } else {
+            client_ip = v6_addr.to_string();
+        }
+    } 
+    else if (addr.is_v4()) 
+    {
+        client_ip = addr.to_v4().to_string();
+    }          
+    
     return client_ip;
 }
 

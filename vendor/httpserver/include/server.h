@@ -187,6 +187,7 @@ class httpserver
     bool istraffic               = false;
     bool hard_kill_old_link = false;
     bool rate_limit_status = false;
+    bool server_ip6_listen = false;
 
     std::atomic_uint total_count = 0;
     std::atomic_uint live_link_count = 0;

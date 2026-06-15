@@ -3863,11 +3863,18 @@ void httpserver::listeners()
 
     asio::error_code ec_error;
     asio::ip::tcp::acceptor acceptor(this->io_context);
-    // asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), portnum);
-    // acceptor.open(endpoint.protocol());
-    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v6(), portnum);
-    acceptor.open(endpoint.protocol());
-    acceptor.set_option(asio::ip::v6_only(false));
+    asio::ip::tcp::endpoint endpoint;
+    if(server_ip6_listen)
+    {
+        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v6(), portnum);
+        acceptor.open(endpoint.protocol());
+        acceptor.set_option(asio::ip::v6_only(false));
+    }
+    else
+    {
+        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), portnum);
+        acceptor.open(endpoint.protocol());
+    }
 
     acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
     acceptor.set_option(asio::ip::tcp::no_delay(true));
@@ -4148,12 +4155,19 @@ void httpserver::listener()
     unsigned short portnum = sysconfigpath.get_port();
 
     asio::ip::tcp::acceptor acceptor(this->io_context);
+    asio::ip::tcp::endpoint endpoint;
+    if(server_ip6_listen)
+    {
+        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v6(), portnum);
+        acceptor.open(endpoint.protocol());
+        acceptor.set_option(asio::ip::v6_only(false));
+    }
+    else
+    {
+        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), portnum);
+        acceptor.open(endpoint.protocol());
+    }
 
-    // asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), portnum);
-    // acceptor.open(endpoint.protocol());
-    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v6(), portnum);
-    acceptor.open(endpoint.protocol());
-    acceptor.set_option(asio::ip::v6_only(false));
     
     acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
 
@@ -4342,7 +4356,6 @@ void httpserver::listener()
                         std::this_thread::sleep_for(std::chrono::milliseconds(rate_limit_accept_time.load()/10));
                     }
                 }
-
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
                 socket_session_lists.push_back(peer_session);
@@ -5552,6 +5565,8 @@ void httpserver::run(const std::string &sysconfpath)
             std::this_thread::sleep_for(std::chrono::seconds(3));
             return;
         }
+
+        server_ip6_listen = sysconfigpath.ip6_enable;
         server_loaclvar &static_server_var = get_server_global_var();
 
         debug_log::instance().setDebug(!static_server_var.deamon_enable);

@@ -91,6 +91,7 @@ class serverconfig
     bool siteusehtmlchache             = false;
     bool isallnothttp2                 = true;
     bool is_limit_upload               = false;
+    bool ip6_enable        = false;
     unsigned int siteusehtmlchachetime = 0;
     unsigned int upload_max_size       = 0;
     unsigned int http_header_max_size  = 0;
