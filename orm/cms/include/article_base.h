@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 15 Jun 2026 00:28:43 GMT
+*本文件为自动生成 Mon, 15 Jun 2026 08:14:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -4319,7 +4319,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(tree_data[n].relatecon
     }
     
     template<article_info::cols KeyCol, article_info::cols ValCol> 
-    auto get_vec_cols()
+    auto get_cols_vecs()
     {
         using KeyType = decltype(article_info::getField<KeyCol>(std::declval<const article_info::meta&>()));
         using ValType = decltype(article_info::getField<ValCol>(std::declval<const article_info::meta&>()));
@@ -4333,7 +4333,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(tree_data[n].relatecon
     }
     
     /* 
-    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+    get_cols_vecs<..,..>([](const auto& key, const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -4345,7 +4345,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(tree_data[n].relatecon
                 std::invoke_result_t<Callback&, 
                     decltype(article_info::getField<KeyCol>(std::declval<const article_info::meta&>())), 
                     decltype(article_info::getField<ValCol>(std::declval<const article_info::meta&>()))>, bool>
-    auto get_vec_cols(Callback&& callback)
+    auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype(article_info::getField<KeyCol>(std::declval<const article_info::meta&>()));
         using ValType = decltype(article_info::getField<ValCol>(std::declval<const article_info::meta&>()));
@@ -4367,7 +4367,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(tree_data[n].relatecon
     }
     
     template<article_info::cols KeyCol>
-    auto get_vec_col()
+    auto get_cols_vec()
     {
         using KeyType = decltype(article_info::getField<KeyCol>(std::declval<const article_info::meta&>()));
 
@@ -4380,7 +4380,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(tree_data[n].relatecon
     }
     
     /* 
-    get_vec_col<..,..>([](const auto& value) -> bool {
+    get_cols_vec<..,..>([](const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -4390,7 +4390,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(tree_data[n].relatecon
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype(article_info::getField<KeyCol>(std::declval<const article_info::meta&>()))>, bool>
-    auto get_vec_col(Callback&& callback)
+    auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype(article_info::getField<KeyCol>(std::declval<const article_info::meta&>()));
         std::vector<KeyType> result;
@@ -4413,7 +4413,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(tree_data[n].relatecon
         requires requires(std::ostream& os, decltype(article_info::getField<Col>(std::declval<const article_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_strs() 
+    std::string get_cols_strs() 
     {
         std::ostringstream oss;
 
@@ -4434,7 +4434,7 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(tree_data[n].relatecon
         requires requires(std::ostream& os, decltype(article_info::getField<Col>(std::declval<const article_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_str() 
+    std::string get_cols_str() 
     {
         std::ostringstream oss;
 

@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 15 Jun 2026 00:28:43 GMT
+*本文件为自动生成 Mon, 15 Jun 2026 08:14:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -2694,7 +2694,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
     }
     
     template<catalogue_info::cols KeyCol, catalogue_info::cols ValCol> 
-    auto get_vec_cols()
+    auto get_cols_vecs()
     {
         using KeyType = decltype(catalogue_info::getField<KeyCol>(std::declval<const catalogue_info::meta&>()));
         using ValType = decltype(catalogue_info::getField<ValCol>(std::declval<const catalogue_info::meta&>()));
@@ -2708,7 +2708,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
     }
     
     /* 
-    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+    get_cols_vecs<..,..>([](const auto& key, const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -2720,7 +2720,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
                 std::invoke_result_t<Callback&, 
                     decltype(catalogue_info::getField<KeyCol>(std::declval<const catalogue_info::meta&>())), 
                     decltype(catalogue_info::getField<ValCol>(std::declval<const catalogue_info::meta&>()))>, bool>
-    auto get_vec_cols(Callback&& callback)
+    auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype(catalogue_info::getField<KeyCol>(std::declval<const catalogue_info::meta&>()));
         using ValType = decltype(catalogue_info::getField<ValCol>(std::declval<const catalogue_info::meta&>()));
@@ -2742,7 +2742,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
     }
     
     template<catalogue_info::cols KeyCol>
-    auto get_vec_col()
+    auto get_cols_vec()
     {
         using KeyType = decltype(catalogue_info::getField<KeyCol>(std::declval<const catalogue_info::meta&>()));
 
@@ -2755,7 +2755,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
     }
     
     /* 
-    get_vec_col<..,..>([](const auto& value) -> bool {
+    get_cols_vec<..,..>([](const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -2765,7 +2765,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype(catalogue_info::getField<KeyCol>(std::declval<const catalogue_info::meta&>()))>, bool>
-    auto get_vec_col(Callback&& callback)
+    auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype(catalogue_info::getField<KeyCol>(std::declval<const catalogue_info::meta&>()));
         std::vector<KeyType> result;
@@ -2788,7 +2788,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         requires requires(std::ostream& os, decltype(catalogue_info::getField<Col>(std::declval<const catalogue_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_strs() 
+    std::string get_cols_strs() 
     {
         std::ostringstream oss;
 
@@ -2809,7 +2809,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
         requires requires(std::ostream& os, decltype(catalogue_info::getField<Col>(std::declval<const catalogue_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_str() 
+    std::string get_cols_str() 
     {
         std::ostringstream oss;
 

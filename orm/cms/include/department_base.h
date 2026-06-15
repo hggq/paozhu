@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 15 Jun 2026 00:28:43 GMT
+*本文件为自动生成 Mon, 15 Jun 2026 08:14:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -3495,7 +3495,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
     }
     
     template<department_info::cols KeyCol, department_info::cols ValCol> 
-    auto get_vec_cols()
+    auto get_cols_vecs()
     {
         using KeyType = decltype(department_info::getField<KeyCol>(std::declval<const department_info::meta&>()));
         using ValType = decltype(department_info::getField<ValCol>(std::declval<const department_info::meta&>()));
@@ -3509,7 +3509,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
     }
     
     /* 
-    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+    get_cols_vecs<..,..>([](const auto& key, const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -3521,7 +3521,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
                 std::invoke_result_t<Callback&, 
                     decltype(department_info::getField<KeyCol>(std::declval<const department_info::meta&>())), 
                     decltype(department_info::getField<ValCol>(std::declval<const department_info::meta&>()))>, bool>
-    auto get_vec_cols(Callback&& callback)
+    auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype(department_info::getField<KeyCol>(std::declval<const department_info::meta&>()));
         using ValType = decltype(department_info::getField<ValCol>(std::declval<const department_info::meta&>()));
@@ -3543,7 +3543,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
     }
     
     template<department_info::cols KeyCol>
-    auto get_vec_col()
+    auto get_cols_vec()
     {
         using KeyType = decltype(department_info::getField<KeyCol>(std::declval<const department_info::meta&>()));
 
@@ -3556,7 +3556,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
     }
     
     /* 
-    get_vec_col<..,..>([](const auto& value) -> bool {
+    get_cols_vec<..,..>([](const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -3566,7 +3566,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype(department_info::getField<KeyCol>(std::declval<const department_info::meta&>()))>, bool>
-    auto get_vec_col(Callback&& callback)
+    auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype(department_info::getField<KeyCol>(std::declval<const department_info::meta&>()));
         std::vector<KeyType> result;
@@ -3589,7 +3589,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
         requires requires(std::ostream& os, decltype(department_info::getField<Col>(std::declval<const department_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_strs() 
+    std::string get_cols_strs() 
     {
         std::ostringstream oss;
 
@@ -3610,7 +3610,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"
         requires requires(std::ostream& os, decltype(department_info::getField<Col>(std::declval<const department_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_str() 
+    std::string get_cols_str() 
     {
         std::ostringstream oss;
 

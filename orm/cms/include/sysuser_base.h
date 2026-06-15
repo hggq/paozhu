@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 15 Jun 2026 00:28:43 GMT
+*本文件为自动生成 Mon, 15 Jun 2026 08:14:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -3873,7 +3873,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
     }
     
     template<sysuser_info::cols KeyCol, sysuser_info::cols ValCol> 
-    auto get_vec_cols()
+    auto get_cols_vecs()
     {
         using KeyType = decltype(sysuser_info::getField<KeyCol>(std::declval<const sysuser_info::meta&>()));
         using ValType = decltype(sysuser_info::getField<ValCol>(std::declval<const sysuser_info::meta&>()));
@@ -3887,7 +3887,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
     }
     
     /* 
-    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+    get_cols_vecs<..,..>([](const auto& key, const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -3899,7 +3899,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
                 std::invoke_result_t<Callback&, 
                     decltype(sysuser_info::getField<KeyCol>(std::declval<const sysuser_info::meta&>())), 
                     decltype(sysuser_info::getField<ValCol>(std::declval<const sysuser_info::meta&>()))>, bool>
-    auto get_vec_cols(Callback&& callback)
+    auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype(sysuser_info::getField<KeyCol>(std::declval<const sysuser_info::meta&>()));
         using ValType = decltype(sysuser_info::getField<ValCol>(std::declval<const sysuser_info::meta&>()));
@@ -3921,7 +3921,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
     }
     
     template<sysuser_info::cols KeyCol>
-    auto get_vec_col()
+    auto get_cols_vec()
     {
         using KeyType = decltype(sysuser_info::getField<KeyCol>(std::declval<const sysuser_info::meta&>()));
 
@@ -3934,7 +3934,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
     }
     
     /* 
-    get_vec_col<..,..>([](const auto& value) -> bool {
+    get_cols_vec<..,..>([](const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -3944,7 +3944,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype(sysuser_info::getField<KeyCol>(std::declval<const sysuser_info::meta&>()))>, bool>
-    auto get_vec_col(Callback&& callback)
+    auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype(sysuser_info::getField<KeyCol>(std::declval<const sysuser_info::meta&>()));
         std::vector<KeyType> result;
@@ -3967,7 +3967,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
         requires requires(std::ostream& os, decltype(sysuser_info::getField<Col>(std::declval<const sysuser_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_strs() 
+    std::string get_cols_strs() 
     {
         std::ostringstream oss;
 
@@ -3988,7 +3988,7 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
         requires requires(std::ostream& os, decltype(sysuser_info::getField<Col>(std::declval<const sysuser_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_str() 
+    std::string get_cols_str() 
     {
         std::ostringstream oss;
 

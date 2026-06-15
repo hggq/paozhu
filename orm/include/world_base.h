@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 15 Jun 2026 00:28:41 GMT
+*本文件为自动生成 Mon, 15 Jun 2026 08:14:13 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -1872,7 +1872,7 @@ if(tree_data[n].randomnumber==0){
     }
     
     template<world_info::cols KeyCol, world_info::cols ValCol> 
-    auto get_vec_cols()
+    auto get_cols_vecs()
     {
         using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
         using ValType = decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()));
@@ -1886,7 +1886,7 @@ if(tree_data[n].randomnumber==0){
     }
     
     /* 
-    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+    get_cols_vecs<..,..>([](const auto& key, const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -1898,7 +1898,7 @@ if(tree_data[n].randomnumber==0){
                 std::invoke_result_t<Callback&, 
                     decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>())), 
                     decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()))>, bool>
-    auto get_vec_cols(Callback&& callback)
+    auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
         using ValType = decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()));
@@ -1920,7 +1920,7 @@ if(tree_data[n].randomnumber==0){
     }
     
     template<world_info::cols KeyCol>
-    auto get_vec_col()
+    auto get_cols_vec()
     {
         using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
 
@@ -1933,7 +1933,7 @@ if(tree_data[n].randomnumber==0){
     }
     
     /* 
-    get_vec_col<..,..>([](const auto& value) -> bool {
+    get_cols_vec<..,..>([](const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -1943,7 +1943,7 @@ if(tree_data[n].randomnumber==0){
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()))>, bool>
-    auto get_vec_col(Callback&& callback)
+    auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
         std::vector<KeyType> result;
@@ -1966,7 +1966,7 @@ if(tree_data[n].randomnumber==0){
         requires requires(std::ostream& os, decltype(world_info::getField<Col>(std::declval<const world_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_strs() 
+    std::string get_cols_strs() 
     {
         std::ostringstream oss;
 
@@ -1987,7 +1987,7 @@ if(tree_data[n].randomnumber==0){
         requires requires(std::ostream& os, decltype(world_info::getField<Col>(std::declval<const world_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_str() 
+    std::string get_cols_str() 
     {
         std::ostringstream oss;
 

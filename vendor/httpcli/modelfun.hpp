@@ -11366,7 +11366,7 @@ headtxt += R"(::meta data;
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     ///////////////////////////////////
-    //get_vec_cols
+    //get_cols_vecs
     headtxt.clear();
     update2strem.str("");
  
@@ -11378,7 +11378,7 @@ headtxt += R"(::meta data;
      
     headtxt += model_info_name;
     headtxt += R"(::cols ValCol> 
-    auto get_vec_cols()
+    auto get_cols_vecs()
     {
         using KeyType = decltype()";
      
@@ -11415,7 +11415,7 @@ headtxt += R"(::meta data;
     //get_vec_cols
     headtxt += R"(
     /* 
-    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+    get_cols_vecs<..,..>([](const auto& key, const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -11457,7 +11457,7 @@ headtxt += R"(::meta data;
      
     headtxt += model_info_name;
     headtxt += R"(::meta&>()))>, bool>
-    auto get_vec_cols(Callback&& callback)
+    auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype()";
      
@@ -11522,7 +11522,7 @@ headtxt += R"(::meta data;
     headtxt += R"(::cols KeyCol>)";
 
     headtxt += R"(
-    auto get_vec_col()
+    auto get_cols_vec()
     {
         using KeyType = decltype()";
      
@@ -11549,7 +11549,7 @@ headtxt += R"(::meta data;
     //get_vec_col
     headtxt += R"(
     /* 
-    get_vec_col<..,..>([](const auto& value) -> bool {
+    get_cols_vec<..,..>([](const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -11574,7 +11574,7 @@ headtxt += R"(::meta data;
      
     headtxt += model_info_name;
     headtxt += R"(::meta&>()))>, bool>
-    auto get_vec_col(Callback&& callback)
+    auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype()";
      
@@ -11626,7 +11626,7 @@ headtxt += R"(::meta data;
     headtxt += R"(::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_strs() 
+    std::string get_cols_strs() 
     {
         std::ostringstream oss;
 
@@ -11647,7 +11647,7 @@ headtxt += R"(::meta data;
     }
     )";
 
-    //get_col_to_str
+    //get_cols_str
     headtxt += R"(
     template<)";
      
@@ -11662,7 +11662,7 @@ headtxt += R"(::meta data;
     headtxt += R"(::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_str() 
+    std::string get_cols_str() 
     {
         std::ostringstream oss;
 

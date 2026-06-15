@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 15 Jun 2026 00:28:44 GMT
+*本文件为自动生成 Mon, 15 Jun 2026 08:14:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -5052,7 +5052,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
     }
     
     template<xtask_info::cols KeyCol, xtask_info::cols ValCol> 
-    auto get_vec_cols()
+    auto get_cols_vecs()
     {
         using KeyType = decltype(xtask_info::getField<KeyCol>(std::declval<const xtask_info::meta&>()));
         using ValType = decltype(xtask_info::getField<ValCol>(std::declval<const xtask_info::meta&>()));
@@ -5066,7 +5066,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
     }
     
     /* 
-    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+    get_cols_vecs<..,..>([](const auto& key, const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -5078,7 +5078,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
                 std::invoke_result_t<Callback&, 
                     decltype(xtask_info::getField<KeyCol>(std::declval<const xtask_info::meta&>())), 
                     decltype(xtask_info::getField<ValCol>(std::declval<const xtask_info::meta&>()))>, bool>
-    auto get_vec_cols(Callback&& callback)
+    auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype(xtask_info::getField<KeyCol>(std::declval<const xtask_info::meta&>()));
         using ValType = decltype(xtask_info::getField<ValCol>(std::declval<const xtask_info::meta&>()));
@@ -5100,7 +5100,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
     }
     
     template<xtask_info::cols KeyCol>
-    auto get_vec_col()
+    auto get_cols_vec()
     {
         using KeyType = decltype(xtask_info::getField<KeyCol>(std::declval<const xtask_info::meta&>()));
 
@@ -5113,7 +5113,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
     }
     
     /* 
-    get_vec_col<..,..>([](const auto& value) -> bool {
+    get_cols_vec<..,..>([](const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -5123,7 +5123,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype(xtask_info::getField<KeyCol>(std::declval<const xtask_info::meta&>()))>, bool>
-    auto get_vec_col(Callback&& callback)
+    auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype(xtask_info::getField<KeyCol>(std::declval<const xtask_info::meta&>()));
         std::vector<KeyType> result;
@@ -5146,7 +5146,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
         requires requires(std::ostream& os, decltype(xtask_info::getField<Col>(std::declval<const xtask_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_strs() 
+    std::string get_cols_strs() 
     {
         std::ostringstream oss;
 
@@ -5167,7 +5167,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(tree_data[n].itemnote)<<"\"
         requires requires(std::ostream& os, decltype(xtask_info::getField<Col>(std::declval<const xtask_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_str() 
+    std::string get_cols_str() 
     {
         std::ostringstream oss;
 

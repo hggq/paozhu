@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 15 Jun 2026 00:28:43 GMT
+*本文件为自动生成 Mon, 15 Jun 2026 08:14:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -4091,7 +4091,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
     }
     
     template<product_info::cols KeyCol, product_info::cols ValCol> 
-    auto get_vec_cols()
+    auto get_cols_vecs()
     {
         using KeyType = decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()));
         using ValType = decltype(product_info::getField<ValCol>(std::declval<const product_info::meta&>()));
@@ -4105,7 +4105,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
     }
     
     /* 
-    get_vec_cols<..,..>([](const auto& key, const auto& value) -> bool {
+    get_cols_vecs<..,..>([](const auto& key, const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -4117,7 +4117,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
                 std::invoke_result_t<Callback&, 
                     decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>())), 
                     decltype(product_info::getField<ValCol>(std::declval<const product_info::meta&>()))>, bool>
-    auto get_vec_cols(Callback&& callback)
+    auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()));
         using ValType = decltype(product_info::getField<ValCol>(std::declval<const product_info::meta&>()));
@@ -4139,7 +4139,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
     }
     
     template<product_info::cols KeyCol>
-    auto get_vec_col()
+    auto get_cols_vec()
     {
         using KeyType = decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()));
 
@@ -4152,7 +4152,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
     }
     
     /* 
-    get_vec_col<..,..>([](const auto& value) -> bool {
+    get_cols_vec<..,..>([](const auto& value) -> bool {
             return value > 150; 
         })
     */
@@ -4162,7 +4162,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()))>, bool>
-    auto get_vec_col(Callback&& callback)
+    auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype(product_info::getField<KeyCol>(std::declval<const product_info::meta&>()));
         std::vector<KeyType> result;
@@ -4185,7 +4185,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
         requires requires(std::ostream& os, decltype(product_info::getField<Col>(std::declval<const product_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_strs() 
+    std::string get_cols_strs() 
     {
         std::ostringstream oss;
 
@@ -4206,7 +4206,7 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(tree_data[n].editdate)<<"\"
         requires requires(std::ostream& os, decltype(product_info::getField<Col>(std::declval<const product_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
-    std::string get_cols_to_str() 
+    std::string get_cols_str() 
     {
         std::ostringstream oss;
 
