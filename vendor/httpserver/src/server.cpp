@@ -3863,8 +3863,11 @@ void httpserver::listeners()
 
     asio::error_code ec_error;
     asio::ip::tcp::acceptor acceptor(this->io_context);
-    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), portnum);
+    // asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), portnum);
+    // acceptor.open(endpoint.protocol());
+    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v6(), portnum);
     acceptor.open(endpoint.protocol());
+    acceptor.set_option(asio::ip::v6_only(false));
 
     acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
     acceptor.set_option(asio::ip::tcp::no_delay(true));
@@ -4146,9 +4149,12 @@ void httpserver::listener()
 
     asio::ip::tcp::acceptor acceptor(this->io_context);
 
-    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), portnum);
+    // asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), portnum);
+    // acceptor.open(endpoint.protocol());
+    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v6(), portnum);
     acceptor.open(endpoint.protocol());
-
+    acceptor.set_option(asio::ip::v6_only(false));
+    
     acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
 
 #if (defined(unix) || defined(__unix) || defined(__unix__) || defined(__APPLE__)) && !defined(__CYGWIN__)
