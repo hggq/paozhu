@@ -17,7 +17,10 @@ jobs:
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Fix Homebrew tap trust warnings
-        run: brew untap aws/tap azure/bicep || true
+        run: |
+         brew uninstall bicep 2>/dev/null || true
+         brew untap aws/tap 2>/dev/null || true
+         brew untap azure/bicep 2>/dev/null || true
       - name: Install dependencies
         run: |
           brew install cmake
