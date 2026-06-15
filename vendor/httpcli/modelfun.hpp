@@ -5149,6 +5149,42 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
                 append_content +=R"(:
                 {
 
+                #if defined(_LIBCPP_VERSION) && \
+                    (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+                    (defined(__apple_build_version__) && __clang_major__ < 21))
+
+                    data_temp.)";
+            append_content.append(table_column_info_lists[m].col_name);
+            append_content +=R"( = 0.0;
+                    try {
+                        const char* p = reinterpret_cast<const char*>(result_temp_data);
+
+                        if (value_size == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                            data_temp.)";
+            append_content.append(table_column_info_lists[m].col_name);
+            append_content +=R"( = 0.0;
+                        } else {
+                            std::string tmp(p, value_size);
+                            size_t idx = 0;
+                            long double parsed = std::stold(tmp, &idx);
+                            if (idx > 0 && idx <= value_size) {
+                                data_temp.)";
+            append_content.append(table_column_info_lists[m].col_name);
+            append_content +=R"( = static_cast<double>(parsed);
+                            } else {
+                                data_temp.)";
+            append_content.append(table_column_info_lists[m].col_name);
+            append_content +=R"( = 0.0;
+                            }
+                        }
+                    } catch (...) {
+                        data_temp.)";
+            append_content.append(table_column_info_lists[m].col_name);
+            append_content +=R"( = 0.0;
+                    }
+
+                #else
+
                 data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
             append_content +=R"(=0.0;
@@ -5169,6 +5205,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
             append_content.append(table_column_info_lists[m].col_name);
             append_content +=R"( = 0.0;
                         }
+                #endif
             }  
             break;
                 )";

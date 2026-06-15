@@ -112,6 +112,33 @@ namespace http
     inline auto try_set_val(T& field, const unsigned char* buf, size_t length,[[maybe_unused]] unsigned char _field_type) 
         -> std::enable_if_t<std::is_floating_point_v<T>> 
     {
+
+        #if defined(_LIBCPP_VERSION) && \
+            (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+            (defined(__apple_build_version__) && __clang_major__ < 21))
+
+            field = 0.0;
+            try {
+                const char* p = reinterpret_cast<const char*>(buf);
+
+                if (length == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                    field = 0.0;
+                } else {
+                    std::string tmp(p, length);
+                    size_t idx = 0;
+                    long double parsed = std::stold(tmp, &idx);
+                    if (idx > 0 && idx <= length) {
+                        field = static_cast<double>(parsed);
+                    } else {
+                        field = 0.0;
+                    }
+                }
+            } catch (...) {
+                field = 0.0;
+            }
+
+        #else
+
         auto result = std::from_chars(
             reinterpret_cast<const char*>(buf),
             reinterpret_cast<const char*>(buf) + length,
@@ -120,8 +147,9 @@ namespace http
         }
         else
         {
-            field = 0;
+            field = 0.0;
         }
+        #endif
     }
 
     // 字符串赋值重载

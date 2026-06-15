@@ -143,6 +143,31 @@ asio::awaitable<std::string> test_cols_co(std::shared_ptr<httppeer> peer)
     n = co_await world.async_fetch_to(cust_record, [](LocalStruct& obj,const std::string& col_name,const unsigned char* buf, std::size_t length,[[maybe_unused]] unsigned char c_type,[[maybe_unused]] unsigned char ver) {
            if(col_name == "id")
            {
+            #if defined(_LIBCPP_VERSION) && \
+            (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+            (defined(__apple_build_version__) && __clang_major__ < 21))
+
+            obj.id = 0.0;
+            try {
+                const char* p = reinterpret_cast<const char*>(buf);
+
+                if (length == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                    obj.id = 0.0;
+                } else {
+                    std::string tmp(p, length);
+                    size_t idx = 0;
+                    long double parsed = std::stold(tmp, &idx);
+                    if (idx > 0 && idx <= length) {
+                        obj.id = static_cast<double>(parsed);
+                    } else {
+                        obj.id = 0.0;
+                    }
+                }
+            } catch (...) {
+                obj.id = 0.0;
+            }
+
+            #else
                 obj.id = 0;
                 decltype(obj.id) _tmp{};
                         auto result = std::from_chars(
@@ -152,9 +177,35 @@ asio::awaitable<std::string> test_cols_co(std::shared_ptr<httppeer> peer)
                         if (result.ec == std::errc()) {
                             obj.id = _tmp;
                         }
+            #endif            
            }
            else if(str_casecmp(col_name, "randomnumber"))
            {
+            #if defined(_LIBCPP_VERSION) && \
+            (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+            (defined(__apple_build_version__) && __clang_major__ < 21))
+
+            obj.randomnumber = 0.0;
+            try {
+                const char* p = reinterpret_cast<const char*>(buf);
+
+                if (length == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                    obj.randomnumber = 0.0;
+                } else {
+                    std::string tmp(p, length);
+                    size_t idx = 0;
+                    long double parsed = std::stold(tmp, &idx);
+                    if (idx > 0 && idx <= length) {
+                        obj.randomnumber = static_cast<double>(parsed);
+                    } else {
+                        obj.randomnumber = 0.0;
+                    }
+                }
+            } catch (...) {
+                obj.randomnumber = 0.0;
+            }
+
+            #else      
                 obj.randomnumber = 0;
                 decltype(obj.randomnumber) _tmp{};
                         auto result = std::from_chars(
@@ -164,6 +215,7 @@ asio::awaitable<std::string> test_cols_co(std::shared_ptr<httppeer> peer)
                         if (result.ec == std::errc()) {
                             obj.randomnumber = _tmp;
                         }
+            #endif    
            }
     });
 
@@ -200,6 +252,31 @@ asio::awaitable<std::string> test_leftjoin(std::shared_ptr<httppeer> peer)
     unsigned int n= co_await world.async_fetch_to(cust_record, [](LocalStruct& obj,const std::string& col_name,const unsigned char* buf, std::size_t length,[[maybe_unused]] unsigned char c_type,[[maybe_unused]] unsigned char ver) {
            if(col_name == "id")
            {
+            #if defined(_LIBCPP_VERSION) && \
+            (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+            (defined(__apple_build_version__) && __clang_major__ < 21))
+
+            obj.id = 0.0;
+            try {
+                const char* p = reinterpret_cast<const char*>(buf);
+
+                if (length == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                    obj.id = 0.0;
+                } else {
+                    std::string tmp(p, length);
+                    size_t idx = 0;
+                    long double parsed = std::stold(tmp, &idx);
+                    if (idx > 0 && idx <= length) {
+                        obj.id = static_cast<double>(parsed);
+                    } else {
+                        obj.id = 0.0;
+                    }
+                }
+            } catch (...) {
+                obj.id = 0.0;
+            }
+
+            #else
                 obj.id = 0;
                 decltype(obj.id) _tmp{};
                         auto result = std::from_chars(
@@ -209,9 +286,35 @@ asio::awaitable<std::string> test_leftjoin(std::shared_ptr<httppeer> peer)
                         if (result.ec == std::errc()) {
                             obj.id = _tmp;
                         }
+            #endif
            }
            else if(str_casecmp(col_name, "randomnumber"))
            {
+            #if defined(_LIBCPP_VERSION) && \
+            (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+            (defined(__apple_build_version__) && __clang_major__ < 21))
+
+            obj.randomnumber = 0.0;
+            try {
+                const char* p = reinterpret_cast<const char*>(buf);
+
+                if (length == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                    obj.randomnumber = 0.0;
+                } else {
+                    std::string tmp(p, length);
+                    size_t idx = 0;
+                    long double parsed = std::stold(tmp, &idx);
+                    if (idx > 0 && idx <= length) {
+                        obj.randomnumber = static_cast<double>(parsed);
+                    } else {
+                        obj.randomnumber = 0.0;
+                    }
+                }
+            } catch (...) {
+                obj.randomnumber = 0.0;
+            }
+
+            #else   
                 obj.randomnumber = 0;
                 decltype(obj.randomnumber) _tmp{};
                         auto result = std::from_chars(
@@ -221,6 +324,7 @@ asio::awaitable<std::string> test_leftjoin(std::shared_ptr<httppeer> peer)
                         if (result.ec == std::errc()) {
                             obj.randomnumber = _tmp;
                         }
+            #endif            
            }
            else if(str_casecmp(col_name, "message"))
            {

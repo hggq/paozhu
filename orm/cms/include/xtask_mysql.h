@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 14 Jun 2026 16:46:35 GMT
+ *  Creation time Mon, 15 Jun 2026 00:28:44 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1423,6 +1423,32 @@ namespace cms
                 case 17:
                 {
 
+                #if defined(_LIBCPP_VERSION) && \
+                    (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+                    (defined(__apple_build_version__) && __clang_major__ < 21))
+
+                    data_temp.xvalue = 0.0;
+                    try {
+                        const char* p = reinterpret_cast<const char*>(result_temp_data);
+
+                        if (value_size == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                            data_temp.xvalue = 0.0;
+                        } else {
+                            std::string tmp(p, value_size);
+                            size_t idx = 0;
+                            long double parsed = std::stold(tmp, &idx);
+                            if (idx > 0 && idx <= value_size) {
+                                data_temp.xvalue = static_cast<double>(parsed);
+                            } else {
+                                data_temp.xvalue = 0.0;
+                            }
+                        }
+                    } catch (...) {
+                        data_temp.xvalue = 0.0;
+                    }
+
+                #else
+
                 data_temp.xvalue=0.0;
             
                     auto result = std::from_chars(
@@ -1435,10 +1461,37 @@ namespace cms
                         else{
                             data_temp.xvalue = 0.0;
                         }
+                #endif
             }  
             break;
                 case 18:
                 {
+
+                #if defined(_LIBCPP_VERSION) && \
+                    (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+                    (defined(__apple_build_version__) && __clang_major__ < 21))
+
+                    data_temp.expectday = 0.0;
+                    try {
+                        const char* p = reinterpret_cast<const char*>(result_temp_data);
+
+                        if (value_size == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                            data_temp.expectday = 0.0;
+                        } else {
+                            std::string tmp(p, value_size);
+                            size_t idx = 0;
+                            long double parsed = std::stold(tmp, &idx);
+                            if (idx > 0 && idx <= value_size) {
+                                data_temp.expectday = static_cast<double>(parsed);
+                            } else {
+                                data_temp.expectday = 0.0;
+                            }
+                        }
+                    } catch (...) {
+                        data_temp.expectday = 0.0;
+                    }
+
+                #else
 
                 data_temp.expectday=0.0;
             
@@ -1452,10 +1505,37 @@ namespace cms
                         else{
                             data_temp.expectday = 0.0;
                         }
+                #endif
             }  
             break;
                 case 19:
                 {
+
+                #if defined(_LIBCPP_VERSION) && \
+                    (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+                    (defined(__apple_build_version__) && __clang_major__ < 21))
+
+                    data_temp.realday = 0.0;
+                    try {
+                        const char* p = reinterpret_cast<const char*>(result_temp_data);
+
+                        if (value_size == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                            data_temp.realday = 0.0;
+                        } else {
+                            std::string tmp(p, value_size);
+                            size_t idx = 0;
+                            long double parsed = std::stold(tmp, &idx);
+                            if (idx > 0 && idx <= value_size) {
+                                data_temp.realday = static_cast<double>(parsed);
+                            } else {
+                                data_temp.realday = 0.0;
+                            }
+                        }
+                    } catch (...) {
+                        data_temp.realday = 0.0;
+                    }
+
+                #else
 
                 data_temp.realday=0.0;
             
@@ -1469,10 +1549,37 @@ namespace cms
                         else{
                             data_temp.realday = 0.0;
                         }
+                #endif
             }  
             break;
                 case 20:
                 {
+
+                #if defined(_LIBCPP_VERSION) && \
+                    (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+                    (defined(__apple_build_version__) && __clang_major__ < 21))
+
+                    data_temp.pricevalue = 0.0;
+                    try {
+                        const char* p = reinterpret_cast<const char*>(result_temp_data);
+
+                        if (value_size == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                            data_temp.pricevalue = 0.0;
+                        } else {
+                            std::string tmp(p, value_size);
+                            size_t idx = 0;
+                            long double parsed = std::stold(tmp, &idx);
+                            if (idx > 0 && idx <= value_size) {
+                                data_temp.pricevalue = static_cast<double>(parsed);
+                            } else {
+                                data_temp.pricevalue = 0.0;
+                            }
+                        }
+                    } catch (...) {
+                        data_temp.pricevalue = 0.0;
+                    }
+
+                #else
 
                 data_temp.pricevalue=0.0;
             
@@ -1486,6 +1593,7 @@ namespace cms
                         else{
                             data_temp.pricevalue = 0.0;
                         }
+                #endif
             }  
             break;
                 case 21:

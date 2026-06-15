@@ -2,7 +2,7 @@
 #define ORM_CMS_XTALKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 14 Jun 2026 16:46:35 GMT
+*本文件为自动生成 Mon, 15 Jun 2026 00:28:44 GMT
 ***/
 #include <iostream>
 #include <charconv>
