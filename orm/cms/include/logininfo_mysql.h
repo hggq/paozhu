@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Tue, 16 Jun 2026 12:17:58 GMT
+ *  Creation time Tue, 16 Jun 2026 15:26:25 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -16316,7 +16316,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.push_back(bi);
             wheresql.push_back('\'');
 
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16347,7 +16347,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.push_back('=');
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16931,7 +16931,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
 
             return *mod;
@@ -16963,7 +16963,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
 
             return *mod;

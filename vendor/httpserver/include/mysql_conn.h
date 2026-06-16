@@ -467,6 +467,8 @@ struct orm_left_join_t
     std::string subsql;
 };
 
+std::string str_escape_val(std::string_view val, bool no_backslash_escapes = false);
+
 class mysql_conn_base
 {
   public:

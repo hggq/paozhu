@@ -3196,6 +3196,109 @@ std::string obj_val::to_string()
     }
     return "";
 }
+
+std::string obj_val::get_escape_str()
+{
+
+    if (_val_type == obj_type::OBJECT)
+    {
+        return "{}";
+    }
+    else if (_val_type == obj_type::ARRAY)
+    {
+        return "[]";
+    }
+    else if (_val_type == obj_type::STRING)
+    {
+        std::string a_temp;
+        if (length < 8)
+        {
+            for (unsigned int j = 0; j < length; j++)
+            {
+                switch (name[j])
+                {
+                    case '\'':
+                        a_temp += "\\'";
+                        break;
+                    case '"':  a_temp += "\\\""; break;
+                    case '\\': a_temp += "\\\\"; break;
+                    case '\0': a_temp += "\\0";  break;
+                    case '\n': a_temp += "\\n";  break;
+                    case '\r': a_temp += "\\r";  break;
+                    case '\x1a': a_temp += "\\Z"; break;
+                    default:   a_temp.push_back(name[j]); break;
+                }
+            }
+ 
+            return a_temp;
+        }
+        
+        if(str == nullptr)
+        {
+            return a_temp;
+        }
+
+        for (unsigned int j = 0; j < length; j++)
+        {
+            switch (str[j])
+            {
+                case '\'':
+                    // NO_BACKSLASH_ESCAPES 模式下用 '' 转义；否则用 \'
+                    a_temp += "\\'";
+                    break;
+                case '"':  a_temp += "\\\""; break;
+                case '\\': a_temp += "\\\\"; break;
+                case '\0': a_temp += "\\0";  break;
+                case '\n': a_temp += "\\n";  break;
+                case '\r': a_temp += "\\r";  break;
+                case '\x1a': a_temp += "\\Z"; break;
+                default:   a_temp.push_back(str[j]); break;
+            }
+        }
+        return a_temp;
+    }
+    else if (_val_type == obj_type::BOOL)
+    {
+        if (isbool)
+        {
+            return "true";
+        }
+        else
+        {
+            return "false";
+        }
+    }
+    else if (_val_type == obj_type::INT)
+    {
+        return std::to_string(ival);
+    }
+    else if (_val_type == obj_type::UINT)
+    {
+        return std::to_string(uival);
+    }
+    else if (_val_type == obj_type::FLOAT)
+    {
+        return std::to_string(fval);
+    }
+    else if (_val_type == obj_type::DOUBLE)
+    {
+        return std::to_string(dval);
+    }
+    else if (_val_type == obj_type::LONG)
+    {
+        return std::to_string(lval);
+    }
+    else if (_val_type == obj_type::ULONG)
+    {
+        return std::to_string(uval);
+    }
+    else if (_val_type == obj_type::NIL)
+    {
+        return "";
+    }
+    return "";
+}
+
 obj_val::~obj_val()
 {
     if (_val_type == obj_type::OBJECT)

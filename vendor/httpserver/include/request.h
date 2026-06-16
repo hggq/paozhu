@@ -113,6 +113,7 @@ struct obj_val
 
   public:
     std::string to_string();
+    std::string get_escape_str();
     bool to_bool();
     long long to_int();
     double to_float();

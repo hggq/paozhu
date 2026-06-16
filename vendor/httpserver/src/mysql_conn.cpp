@@ -92,6 +92,32 @@ void mysql_charset_store::mysql_charset_init()
     mysql_charset["utf8mb3"]  = 33;
     mysql_charset["utf8mb4"]  = 45;
 }
+
+std::string str_escape_val(std::string_view val, bool no_backslash_escapes)
+{
+    std::string temp;
+    temp.reserve(val.size() + val.size() / 8);
+
+    for (char c : val)
+    {
+        switch (c)
+        {
+            case '\'':
+                // NO_BACKSLASH_ESCAPES 模式下用 '' 转义；否则用 \'
+                temp += no_backslash_escapes ? "''" : "\\'";
+                break;
+            case '"':  temp += no_backslash_escapes ? "\"\"" : "\\\""; break;
+            case '\\': temp += no_backslash_escapes ? "\\"   : "\\\\"; break;
+            case '\0': temp += "\\0";  break;
+            case '\n': temp += "\\n";  break;
+            case '\r': temp += "\\r";  break;
+            case '\x1a': temp += "\\Z"; break;
+            default:   temp.push_back(c); break;
+        }
+    }
+    return temp;
+}
+
 mysql_charset_store &get_orm_mysql_charset()
 {
     static mysql_charset_store instance;
