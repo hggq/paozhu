@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Tue, 16 Jun 2026 07:57:32 GMT
+ *  Creation time Tue, 16 Jun 2026 08:23:51 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -17180,6 +17180,93 @@ M_MODEL& or_leSortid(T val)
             return i;
         }
 
+
+                unsigned int parse_exists(unsigned int i)
+        {
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                    continue;
+                }
+                break;
+            }
+
+            i++;
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==')')
+                {
+                    i++;
+                    break;
+                }
+            }
+            return i;
+        }
+
+        unsigned int parse_notexists(unsigned int i)
+        {
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                    continue;
+                }
+                break;
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                //find space
+                if(wheresql[i]==' ')
+                {
+                    i++;
+                    break;
+                }
+            }
+
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==' ')
+                {
+                    continue;
+                }
+                break;
+            }
+
+            i++;
+            for(; i< wheresql.size(); i++)
+            {
+                if(wheresql[i]==')')
+                {
+                    i++;
+                    break;
+                }
+            }
+            return i;
+        }
+
+
         void parse_wheresql()
         {
             if(join_ptr == nullptr)
@@ -17243,15 +17330,8 @@ M_MODEL& or_leSortid(T val)
                             }
                         }
                     }
-                    // > >= = < <= is null, in , like 
+                    // > >= = < <= is null, in , not in , like , exists , not exists, between and
                     //value area
-                    /*
-                    比较运算符、逻辑运算符
-                    between and 关键字
-                    is null 关键字
-                    in、exist 关键字
-                    like 关键字
-                    */
 
                     for(; i< wheresql.size(); i++)
                     {
@@ -17280,6 +17360,14 @@ M_MODEL& or_leSortid(T val)
                         {
                            i = parse_like(i);
                         }
+                        else if(wheresql[i]=='e' || wheresql[i]=='E')
+                        {
+                           i = parse_exists(i);
+                        }
+                        else if(wheresql[i]=='n' || wheresql[i]=='N')
+                        {
+                           i = parse_notexists(i);
+                        }
                         else if(wheresql[i]=='i' || wheresql[i]=='I')
                         {
                            if((i+1)< wheresql.size() && (wheresql[i]=='n' || wheresql[i]=='N'))
@@ -17298,13 +17386,38 @@ M_MODEL& or_leSortid(T val)
                                         break;
                                     }
                                 }
-                                for(; i< wheresql.size(); i++)
+
+                                if((i+3)< wheresql.size() &&(((wheresql[i]=='N' || wheresql[i+1]=='O'|| wheresql[i+2]=='T')) || (wheresql[i]=='n' || wheresql[i+1]=='o'|| wheresql[i+2]=='t')))
                                 {
-                                    if(wheresql[i]==' ')
+                                    i+=3;
+
+                                    for(; i< wheresql.size(); i++)
                                     {
-                                        break;
+                                        if(wheresql[i]!=' ')
+                                        {
+                                            break;
+                                        }
+                                    }
+
+                                    for(; i< wheresql.size(); i++)
+                                    {
+                                        if(wheresql[i]==' ')
+                                        {
+                                            break;
+                                        }
                                     }
                                 }
+                                else
+                                {
+                                    for(; i< wheresql.size(); i++)
+                                    {
+                                        if(wheresql[i]==' ')
+                                        {
+                                            break;
+                                        }
+                                    }
+                                }
+
                               }
                            }
                         }
