@@ -25,6 +25,7 @@
 #include "testrand.h"
 #include "testormcache.h"
 #include "teststr_trim.h"
+#include "test_leftjoin.h"
 #include "testsendmail.h"
 #include "superadmin/supermain.h"
 #include "admin/articles.h"
@@ -688,6 +689,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_co_handle;
 		methodcallback.emplace("testcohandle",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_leftjoinlimit;
+		methodcallback.emplace("test_leftjoinlimit",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_leftjoinfull;
+		methodcallback.emplace("test_leftjoinfull",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_socket_client;
 		methodcallback.emplace("test_socket_client",temp);

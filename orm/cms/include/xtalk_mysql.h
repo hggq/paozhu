@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Tue, 16 Jun 2026 08:23:52 GMT
+ *  Creation time Tue, 16 Jun 2026 12:17:58 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -18011,6 +18011,140 @@ M_MODEL& or_leReplyid(T val)
             return *mod;
         }
 
+        template<typename T2>
+        M_MODEL &where(std::string_view field1, orm::wq opwq, T2&& field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            wheresql.append(field1);
+
+            if(opwq == orm::wq::in)
+            {
+                wheresql.append(" IN ("); 
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") "); 
+                return *mod; 
+            }
+            switch (opwq)
+            {
+            case  orm::wq::bt:
+                wheresql.append(" > "); 
+                break;
+            case  orm::wq::be:
+                wheresql.append(" >= "); 
+                break;
+            case  orm::wq::eq:
+                wheresql.append(" = "); 
+                break;
+            case  orm::wq::lt:
+                wheresql.append(" < "); 
+                break;
+            case  orm::wq::le:
+                wheresql.append(" <= "); 
+                break;
+            case  orm::wq::like:
+                join_ptr->subsql.append(" LIKE "); 
+                break;                
+            default:
+                wheresql.append(" = "); 
+                break;
+            }
+            
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" "); 
+            return *mod; 
+        }
+
+        template<typename T2>
+        M_MODEL &whereOr(std::string_view field1, orm::wq opwq, T2&& field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            wheresql.append(field1);
+
+            if(opwq == orm::wq::in)
+            {
+                wheresql.append(" IN ("); 
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") "); 
+                return *mod; 
+            }
+            switch (opwq)
+            {
+            case  orm::wq::bt:
+                wheresql.append(" > "); 
+                break;
+            case  orm::wq::be:
+                wheresql.append(" >= "); 
+                break;
+            case  orm::wq::eq:
+                wheresql.append(" = "); 
+                break;
+            case  orm::wq::lt:
+                wheresql.append(" < "); 
+                break;
+            case  orm::wq::le:
+                wheresql.append(" <= "); 
+                break;
+            case  orm::wq::like:
+                join_ptr->subsql.append(" LIKE "); 
+                break;                
+            default:
+                wheresql.append(" = "); 
+                break;
+            }
+            
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" "); 
+            return *mod; 
+        }
+
         M_MODEL &order(const std::string &wq)
         {
             ordersql.append(" ORDER by ");
@@ -25959,23 +26093,45 @@ M_MODEL& or_leReplyid(T val)
                         sqlselect_.append(selectsql);
                         break;
                     }
+                    else if(selectsql[i]==',')
+                    {
+                        break;
+                    }
                 }
                 if(!ishastabname)
                 {
-                    
                     sqlselect_.append(B_BASE::tablename);
                     sqlselect_.push_back('.');
-                    for(unsigned int i=0; i< selectsql.size(); i++)
+                    unsigned int i=0;
+                    for(; i< selectsql.size(); i++)
                     {
                         if(selectsql[i]==' ')
                         {
                             continue;
                         }
-                        else if(selectsql[i]==',')
+                        break;
+                    }
+                    for(; i< selectsql.size(); i++)
+                    {
+                        if(selectsql[i]==',')
                         {
                             sqlselect_.push_back(',');
                             sqlselect_.append(B_BASE::tablename);
                             sqlselect_.push_back('.');
+                            bool isspace = false;
+                            for(; i< selectsql.size(); i++)
+                            {
+                                if(selectsql[i]==' ')
+                                {
+                                    isspace = true;
+                                    continue;
+                                }
+                                break;
+                            }
+                            if(isspace)
+                            {
+                                i--;
+                            }
                             continue;
                         }
                         sqlselect_.push_back(selectsql[i]);
@@ -26009,6 +26165,10 @@ M_MODEL& or_leReplyid(T val)
                         sqlselect_.append(join_ptr->selectsql);
                         break;
                     }
+                    else if(join_ptr->selectsql[i]==',')
+                    {
+                        break;
+                    }
                 }
                 if(!ishastabname)
                 {
@@ -26018,17 +26178,37 @@ M_MODEL& or_leReplyid(T val)
                     }
                     sqlselect_.append(join_ptr->join_table);
                     sqlselect_.push_back('.');
-                    for(unsigned int i=0; i< join_ptr->selectsql.size(); i++)
+                    unsigned int i=0;
+                    for(; i< join_ptr->selectsql.size(); i++)
                     {
                         if(join_ptr->selectsql[i]==' ')
                         {
                             continue;
                         }
-                        else if(join_ptr->selectsql[i]==',')
+                        break;
+                    }
+                    for(; i< join_ptr->selectsql.size(); i++)
+                    {
+                        if(join_ptr->selectsql[i]==',')
                         {
                             sqlselect_.push_back(',');
                             sqlselect_.append(join_ptr->join_table);
                             sqlselect_.push_back('.');
+                            bool isspace = false;
+                            i++;
+                            for(; i< join_ptr->selectsql.size(); i++)
+                            {
+                                if(join_ptr->selectsql[i]==' ')
+                                {
+                                    isspace = true;
+                                    continue;
+                                }
+                                break;
+                            }
+                            if(isspace)
+                            {
+                                i--;
+                            }
                             continue;
                         }
                         sqlselect_.push_back(join_ptr->selectsql[i]);
@@ -26065,9 +26245,132 @@ M_MODEL& or_leReplyid(T val)
             }
 
             sqlstring.append(" LEFT JOIN ");
-            sqlstring.append(join_ptr->join_table);
-            sqlstring.append(" ON ");
-            sqlstring.append(join_ptr->wheresql);
+
+            if(join_ptr->limitsql.empty())
+            {
+                sqlstring.append(join_ptr->join_table);
+                sqlstring.append(" ON ");
+                sqlstring.append(join_ptr->wheresql);
+            }
+            else
+            {
+                sqlstring.append(" ( SELECT ");
+                if(join_ptr->selectsql.empty())
+                {
+                    sqlstring.append(" *,");
+                }
+                else
+                {
+
+                    sqlstring.append(trip_as_field(join_ptr->selectsql));
+
+                    sqlstring.append(", ROW_NUMBER() OVER(PARTITION BY ");
+                    sqlstring.append(join_ptr->parbysql);
+                    sqlstring.append(" ");
+                    sqlstring.append(join_ptr->ordersql);
+                    sqlstring.append(") AS rn FROM ");
+                    sqlstring.append(join_ptr->join_table);
+
+                    if(join_ptr->subsql.size()>0)
+                    {
+                        sqlstring.append(" WHERE ");
+                        sqlstring.append(join_ptr->subsql);
+                    }
+
+                }
+                sqlstring.append(" ) ");
+                sqlstring.append(join_ptr->join_table);
+                sqlstring.append(" ON ");
+                sqlstring.append(join_ptr->wheresql);
+                sqlstring.append(" AND ");
+                sqlstring.append(join_ptr->join_table);
+                sqlstring.append(".rn <= ");
+                sqlstring.append(join_ptr->limitsql);
+            }
+
+        }
+        std::string trip_as_field(std::string_view fields)
+        {
+            std::string str_tm_;
+            unsigned int i=0;
+            for(; i< fields.size(); i++)
+            {
+                if(fields[i] == ' ')
+                { 
+                    continue;
+                }
+                break;
+            }
+
+            for(; i< fields.size(); i++)
+            {
+                if(fields[i] == ' ')
+                {
+                    bool isneed = false;
+                    for(; i< fields.size(); i++)
+                    {
+                        if(fields[i] == ' ')
+                        { 
+                            continue;
+                        }
+                        isneed = true;
+                        break;
+                    }
+                    
+                    if((i+3)< fields.size())
+                    {
+                        if(fields[i] == 'A' || fields[i] == 'a')
+                        {
+                            if(fields[i+1] == 'S' || fields[i+1] == 's')
+                            {
+                                if(fields[i+2] == ' ')
+                                {
+                                    isneed = false;
+                                    i = i + 3;
+                                    for(; i< fields.size(); i++)
+                                    {
+                                        if(fields[i] == ' ')
+                                        { 
+                                            continue;
+                                        }
+                                        break;
+                                    }
+                                    //skip as name
+                                    for(; i< fields.size(); i++)
+                                    {
+                                        if(fields[i] == ' ')
+                                        { 
+                                            for(; i< fields.size(); i++)
+                                            {
+                                                if(fields[i] == ' ')
+                                                { 
+                                                    continue;
+                                                }
+                                                break;
+                                            }
+                                            isneed = true;
+                                            break;
+                                        }
+                                        else if(fields[i] == ',')
+                                        { 
+                                            isneed = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if(isneed)
+                    {
+                        i--;
+                    }
+                    continue;
+                }
+                str_tm_.push_back(fields[i]);
+            }
+
+            return str_tm_;
         }
         M_MODEL &joinSelect(std::string_view fields)
         {
@@ -26097,6 +26400,240 @@ M_MODEL& or_leReplyid(T val)
             join_ptr->wheresql.append(B_BASE::tablename);
             join_ptr->wheresql.append(".");
             join_ptr->wheresql.append(field2);
+
+            if(join_ptr->parbysql.empty())
+            {
+                join_ptr->parbysql.append(field1);
+            }
+            return *mod; 
+        }
+        template<typename T>
+        std::string to_sql_value(T&& val) {
+            using RawType = std::decay_t<T>;
+            
+            if constexpr (std::is_same_v<RawType, bool>) {
+                return val ? "1" : "0";
+            }
+            else if constexpr (std::is_arithmetic_v<RawType>) {
+                return std::to_string(std::forward<T>(val));
+            }
+            else {
+                std::string str(std::forward<T>(val));
+                std::string result = "'";
+                for (char c : str) {
+                    if (c == '\'') result += "''"; // SQL标准单引号转义
+                    else result += c;
+                }
+                result += "'";
+                return result;
+            }
+        }
+        template<typename T2>
+        M_MODEL &joinWhere(std::string_view field1, T2&& field2)
+        {
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            
+            if (!join_ptr->subsql.empty())
+            {
+                join_ptr->subsql.append(" AND ");
+            }
+
+            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(" = ");
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            return *mod; 
+        }
+
+        template<typename T2>
+        M_MODEL &joinWhere(std::string_view field1, orm::wq opwq, T2&& field2)
+        {
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            
+            if (!join_ptr->subsql.empty())
+            {
+                join_ptr->subsql.append(" AND ");
+            }
+
+            join_ptr->subsql.append(field1);
+
+            if(opwq == orm::wq::in)
+            {
+                join_ptr->subsql.append(" IN ("); 
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    join_ptr->subsql.append(std::string_view(field2));
+                }
+                join_ptr->subsql.append(") "); 
+                return *mod; 
+            }
+            switch (opwq)
+            {
+            case  orm::wq::bt:
+                join_ptr->subsql.append(" > "); 
+                break;
+            case  orm::wq::be:
+                join_ptr->subsql.append(" >= "); 
+                break;
+            case  orm::wq::eq:
+                join_ptr->subsql.append(" = "); 
+                break;
+            case  orm::wq::lt:
+                join_ptr->subsql.append(" < "); 
+                break;
+            case  orm::wq::le:
+                join_ptr->subsql.append(" <= "); 
+                break;
+            case  orm::wq::like:
+                join_ptr->subsql.append(" LIKE "); 
+                break;                
+            default:
+                join_ptr->subsql.append(" = "); 
+                break;
+            }
+            
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" "); 
+            return *mod; 
+        }
+
+        template<typename T2>
+        M_MODEL &joinWhereOr(std::string_view field1, orm::wq opwq, T2&& field2)
+        {
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            
+            if (!join_ptr->subsql.empty())
+            {
+                join_ptr->subsql.append(" OR ");
+            }
+
+            join_ptr->subsql.append(field1);
+
+            if(opwq == orm::wq::in)
+            {
+                join_ptr->subsql.append(" IN ("); 
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    join_ptr->subsql.append(std::string_view(field2));
+                }
+                join_ptr->subsql.append(") "); 
+                return *mod; 
+            }
+            switch (opwq)
+            {
+            case  orm::wq::bt:
+                join_ptr->subsql.append(" > "); 
+                break;
+            case  orm::wq::be:
+                join_ptr->subsql.append(" >= "); 
+                break;
+            case  orm::wq::eq:
+                join_ptr->subsql.append(" = "); 
+                break;
+            case  orm::wq::lt:
+                join_ptr->subsql.append(" < "); 
+                break;
+            case  orm::wq::le:
+                join_ptr->subsql.append(" <= "); 
+                break;
+            case  orm::wq::like:
+                join_ptr->subsql.append(" LIKE "); 
+                break;                
+            default:
+                join_ptr->subsql.append(" = "); 
+                break;
+            }
+            
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" "); 
+            return *mod; 
+        }
+
+        M_MODEL &joinLimit(unsigned int n)
+        {
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            
+            join_ptr->limitsql.append(std::to_string(n));
+            return *mod;  
+        }
+        M_MODEL &joinParAppend(std::string_view field1)
+        {
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            
+            if(!join_ptr->parbysql.empty())
+            {
+                join_ptr->parbysql.append(",");
+            }
+            join_ptr->parbysql.append(field1);
+            return *mod; 
+        }
+        
+        //分组
+        M_MODEL &joinGroup(std::string_view field1)
+        {
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            
+            join_ptr->parbysql=field1;
+            return *mod; 
+        }
+
+        M_MODEL &joinDesc(std::string_view field1)
+        {
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            if(join_ptr->ordersql.empty())
+            {
+                join_ptr->ordersql = " ORDER BY ";
+                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(" DESC "); 
+            }
+            else
+            {
+                join_ptr->ordersql.append(" , ");
+                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(" DESC "); 
+            }
+            return *mod; 
+        }
+
+        M_MODEL &joinAsc(std::string_view field1)
+        {
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            
+            if(join_ptr->ordersql.empty())
+            {
+                join_ptr->ordersql = " ORDER BY ";
+                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(" ASC "); 
+            }
+            else
+            {
+                join_ptr->ordersql.append(" , ");
+                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(" ASC "); 
+            }
             return *mod; 
         }
 

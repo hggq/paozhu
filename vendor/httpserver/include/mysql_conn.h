@@ -305,7 +305,16 @@ struct Base {
     }
 };
  
-
+enum class wq 
+{ 
+    bt =0, 
+    be,
+    eq,
+    lt,
+    le,
+    in,
+    like
+};
 //ORM STRUCT REFLECT END
 enum enum_field_types
 {
@@ -452,6 +461,10 @@ struct orm_left_join_t
     std::string selectsql;
     std::string join_table;
     std::string wheresql;
+    std::string ordersql;
+    std::string limitsql;
+    std::string parbysql;
+    std::string subsql;
 };
 
 class mysql_conn_base
