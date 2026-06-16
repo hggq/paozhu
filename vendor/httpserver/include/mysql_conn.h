@@ -11,6 +11,34 @@
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>
+#include "unicode.h"
+
+#define ORM_EXPAND(x) x
+ 
+
+#define ORM_ARG_N(_1,_2,_3,_4,_5,_6,_7,_8,N,...) N
+#define ORM_NARGS(...) ORM_EXPAND(ORM_ARG_N(__VA_ARGS__,8,7,6,5,4,3,2,1))
+
+#define ORM_CAT_(a, b) a##b
+#define ORM_CAT(a, b)  ORM_CAT_(a, b)
+
+// #x 必须直接写在每个 FE 宏里
+#define ORM_FE_1(x)       #x
+#define ORM_FE_2(x, ...)  #x, ORM_EXPAND(ORM_FE_1(__VA_ARGS__))
+#define ORM_FE_3(x, ...)  #x, ORM_EXPAND(ORM_FE_2(__VA_ARGS__))
+#define ORM_FE_4(x, ...)  #x, ORM_EXPAND(ORM_FE_3(__VA_ARGS__))
+#define ORM_FE_5(x, ...)  #x, ORM_EXPAND(ORM_FE_4(__VA_ARGS__))
+#define ORM_FE_6(x, ...)  #x, ORM_EXPAND(ORM_FE_5(__VA_ARGS__))
+#define ORM_FE_7(x, ...)  #x, ORM_EXPAND(ORM_FE_6(__VA_ARGS__))
+#define ORM_FE_8(x, ...)  #x, ORM_EXPAND(ORM_FE_7(__VA_ARGS__))
+
+#define ORM_NAMES(...)                                                         \
+    static constexpr std::size_t field_count =                                 \
+        ::orm::count_fields({ORM_EXPAND(ORM_CAT(ORM_FE_, ORM_NARGS(__VA_ARGS__))(__VA_ARGS__))}); \
+    static constexpr auto field_names =                                        \
+        ::orm::make_field_names<field_count>(                                  \
+            {ORM_EXPAND(ORM_CAT(ORM_FE_, ORM_NARGS(__VA_ARGS__))(__VA_ARGS__))})
+
 
 namespace orm
 {
@@ -31,6 +59,254 @@ concept HasOrgTablename = requires {
     T::org_tablename;
 };
 
+//ORM STRUCT REFLECT BEGIN
+
+consteval std::size_t count_fields(std::initializer_list<const char*> names) {
+    return names.size();
+}
+
+template <std::size_t N>
+consteval std::array<const char*, N> make_field_names(std::initializer_list<const char*> names) {
+    std::array<const char*, N> result{};
+    std::size_t i = 0;
+    for (auto name : names) result[i++] = name;
+    return result;
+}
+
+// ======================== 2. 轻量级反射核心 ========================
+namespace lite_reflect {
+
+template <typename T, std::size_t N> struct StructToTuple;
+
+#define DEFINE_TUPLE(N, ...)                                                   \
+    template <typename T> struct StructToTuple<T, N> {                         \
+        static auto apply(T &t) -> decltype(auto) {                            \
+            auto &[__VA_ARGS__] = t;                                           \
+            return std::forward_as_tuple(__VA_ARGS__);                         \
+        }                                                                      \
+    }
+
+DEFINE_TUPLE(1, f0);
+DEFINE_TUPLE(2, f0, f1);
+DEFINE_TUPLE(3, f0, f1, f2);
+DEFINE_TUPLE(4, f0, f1, f2, f3);
+DEFINE_TUPLE(5, f0, f1, f2, f3, f4);
+DEFINE_TUPLE(6, f0, f1, f2, f3, f4, f5);
+DEFINE_TUPLE(7, f0, f1, f2, f3, f4, f5, f6);
+DEFINE_TUPLE(8, f0, f1, f2, f3, f4, f5, f6, f7);
+#undef DEFINE_TUPLE
+
+template <typename T>
+concept Reflectable = requires {
+    { T::field_count } -> std::convertible_to<std::size_t>;
+    { T::field_names };
+};
+
+template <Reflectable T, typename Func>
+constexpr void for_each_field(T &obj, Func &&func) {
+    constexpr std::size_t N = T::field_count;
+    static_assert(N <= 8, "请为 StructToTuple 添加更多字段数特化");
+    auto refs = StructToTuple<T, N>::apply(obj);
+    [&]<std::size_t... I>(std::index_sequence<I...>) {
+        (func(std::get<I>(refs), std::integral_constant<std::size_t, I>{}), ...);
+    }(std::make_index_sequence<N>{});
+}
+
+template <typename T>
+concept NumericButNotBool =
+    (std::integral<T> || std::floating_point<T>) && !std::is_same_v<T, bool>;
+
+} // namespace lite_reflect
+
+template <typename Derived> 
+struct Base {
+        unsigned int from_json(std::string_view json_content) {
+        
+        //一层json深度，只有 { } 对象
+        
+        unsigned int offset_ = 0;
+    
+        for(; offset_<json_content.size(); offset_++)
+        {
+            if(json_content[offset_]==' '|| json_content[offset_]=='\t' || json_content[offset_]==0x0D || json_content[offset_]==0x0A)
+            {
+                continue;
+            }
+            break;
+        }
+        if((offset_+1) >= json_content.size())
+        {
+            return json_content.size();
+        }
+        if(json_content[offset_] != '{')
+        {
+            return json_content.size();
+        }
+        offset_++;
+
+        std::string json_key_name;
+        std::string json_value_name;
+        for(; offset_<json_content.size(); offset_++)
+        {
+            if(json_content[offset_] != '"')
+            {
+                
+                return offset_;
+            }
+
+            offset_++;
+            for(; offset_<json_content.size(); offset_++)
+            {
+                if(json_content[offset_] == '"')
+                {
+                    //json key name end;
+                    offset_++;
+                    break;
+                } 
+                json_key_name.push_back(json_content[offset_]);
+            }
+            //去除空格
+            for(; offset_<json_content.size(); offset_++)
+            {
+                if(json_content[offset_]==' '|| json_content[offset_]=='\t' || json_content[offset_]==0x0D || json_content[offset_]==0x0A)
+                {
+                    continue;
+                }
+                break;
+            }
+
+            if(offset_< json_content.size() && json_content[offset_] != ':')
+            {
+                //not json
+                return json_content.size();
+            }
+            offset_++;
+            //去除空格
+            for(; offset_<json_content.size(); offset_++)
+            {
+                if(json_content[offset_]==' '|| json_content[offset_]=='\t' || json_content[offset_]==0x0D || json_content[offset_]==0x0A)
+                {
+                    continue;
+                }
+                break;
+            }
+            //json value,not []
+            if(offset_< json_content.size() && json_content[offset_] == '[')
+            {
+                //not json
+                return json_content.size();
+            }
+            if(offset_< json_content.size() && json_content[offset_] == '"')
+            {
+                //string value
+                offset_++;
+                for(; offset_<json_content.size(); offset_++)
+                {
+                    if(json_content[offset_] == '"')
+                    {
+                        if(json_content[offset_-1] == '\\')
+                        {
+                            json_value_name.push_back(json_content[offset_]);
+                            continue;
+                        }
+                        else
+                        {
+                            for(; offset_<json_content.size(); offset_++)
+                            {
+                                if(json_content[offset_] == ',')
+                                {
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    json_value_name.push_back(json_content[offset_]);
+                }
+                json_value_name = http::json_str_to_utf8(json_value_name);
+            }
+            else
+            {
+                for(; offset_<json_content.size(); offset_++)
+                {
+                    if(json_content[offset_] == ',')
+                    {
+                        break;
+                    }
+                    else if(json_content[offset_] == ' ')
+                    {
+                        for(; offset_<json_content.size(); offset_++)
+                        {
+                            if(json_content[offset_] == ',')
+                            {
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    json_value_name.push_back(json_content[offset_]);
+                }
+            }
+
+            if(offset_< json_content.size() && json_content[offset_] == ',')
+            {
+                //跳过 , 消除空格
+                offset_++;
+                for(; offset_<json_content.size(); offset_++)
+                {
+                    if(json_content[offset_]==' '|| json_content[offset_]=='\t' || json_content[offset_]==0x0D || json_content[offset_]==0x0A)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                //恢复 " ，等待下一轮循环
+                offset_--;
+            }
+            //处理json_key_name json_value_name
+            set_val(json_key_name, (const unsigned char *)json_value_name.data(),json_value_name.size(),0);
+            
+            json_key_name.clear();
+            json_value_name.clear();
+        }
+
+        return offset_;
+    }
+    std::string to_json() const {
+        auto &self = static_cast<const Derived &>(*this);
+        std::string result;
+        result.reserve(128); 
+        result += '{';
+        
+        bool first = true;
+        lite_reflect::for_each_field(self, [&](const auto &field, auto idx) {
+            if (!first) result += ',';
+            first = false;
+            
+            result += '"';
+            result += Derived::field_names[idx.value];
+            result += "\":";
+            
+            result += http::to_json_value(field);
+        });
+        
+        result += '}';
+        return result;
+    }
+
+    void set_val(const std::string &name,const unsigned char *buf, std::size_t length,unsigned char field_type) {
+        auto &self = static_cast<Derived &>(*this);
+        lite_reflect::for_each_field(self, [&](auto &field, auto idx) {
+            if (http::str_colname_casecmp(name,Derived::field_names[idx.value])) {
+                http::try_set_val(field,buf,length,field_type);
+                return;
+            }
+        });
+    }
+};
+ 
+
+//ORM STRUCT REFLECT END
 enum enum_field_types
 {
     MYSQL_TYPE_DECIMAL,
@@ -169,6 +445,13 @@ struct orm_conn_t
     unsigned char max_pool    = 0;
     unsigned char min_pool    = 0;
     unsigned char charset_val = 0;
+};
+
+struct orm_left_join_t
+{
+    std::string selectsql;
+    std::string join_table;
+    std::string wheresql;
 };
 
 class mysql_conn_base

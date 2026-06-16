@@ -41,6 +41,7 @@ namespace http
      *  jsonstring转utf8
      */
     std::string jsonstring_to_utf8(const char * jsonstr,unsigned int str_length,unsigned int &offset_length);
+    std::string json_str_to_utf8(std::string_view jsonstr);
     /*
      *  unicode转unicodestring
      */

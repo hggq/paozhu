@@ -17,6 +17,7 @@
 #include "techempower.h"
 #include "teststrip_html.h"
 #include "testsoft_remove.h"
+#include "test_customstruct.h"
 #include "teststr_join.h"
 #include "testjson.h"
 #include "test_reverse.h"
@@ -681,6 +682,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = techempowercached_db;
 		methodcallback.emplace("cached-db",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_customstruct;
+		methodcallback.emplace("test_customstruct",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_co_handle;
 		methodcallback.emplace("testcohandle",temp);

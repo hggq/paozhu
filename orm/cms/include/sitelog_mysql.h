@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 15 Jun 2026 08:14:14 GMT
+ *  Creation time Tue, 16 Jun 2026 07:57:32 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -24090,13 +24090,7 @@ M_MODEL& or_leDeurl(T val)
                 sqlstring.append(" FROM ");
             }
             sqlstring.append(B_BASE::tablename);
-            if(join_table.size() > 0 && join_onsql.size() >0)
-            {
-                sqlstring.append(" LEFT JOIN ");
-                sqlstring.append(join_table);
-                sqlstring.append(" ON ");
-                sqlstring.append(join_onsql);
-            }
+            get_join_table();
 
             sqlstring.append(" WHERE ");
 
@@ -24301,13 +24295,7 @@ M_MODEL& or_leDeurl(T val)
                 sqlstring.append(" FROM ");
             }
             sqlstring.append(B_BASE::tablename);
-            if(join_table.size() > 0 && join_onsql.size() >0)
-            {
-                sqlstring.append(" LEFT JOIN ");
-                sqlstring.append(join_table);
-                sqlstring.append(" ON ");
-                sqlstring.append(join_onsql);
-            }
+            get_join_table();
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -24508,13 +24496,7 @@ M_MODEL& or_leDeurl(T val)
                 sqlstring.append(" FROM ");
             }
             sqlstring.append(B_BASE::tablename);
-            if(join_table.size() > 0 && join_onsql.size() >0)
-            {
-                sqlstring.append(" LEFT JOIN ");
-                sqlstring.append(join_table);
-                sqlstring.append(" ON ");
-                sqlstring.append(join_onsql);
-            }
+            get_join_table();
             sqlstring.append(" WHERE ");
             if (wheresql.empty())
             {
@@ -24716,13 +24698,7 @@ M_MODEL& or_leDeurl(T val)
                 sqlstring.append(" FROM ");
             }
             sqlstring.append(B_BASE::tablename);
-            if(join_table.size() > 0 && join_onsql.size() >0)
-            {
-                sqlstring.append(" LEFT JOIN ");
-                sqlstring.append(join_table);
-                sqlstring.append(" ON ");
-                sqlstring.append(join_onsql);
-            }
+            get_join_table();
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -25790,6 +25766,7 @@ M_MODEL& or_leDeurl(T val)
             }
 
             sqlstring.append(B_BASE::tablename);
+            get_join_table();
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -25990,6 +25967,7 @@ M_MODEL& or_leDeurl(T val)
             }
 
             sqlstring.append(B_BASE::tablename);
+            get_join_table();
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -26191,6 +26169,7 @@ M_MODEL& or_leDeurl(T val)
             }
 
             sqlstring.append(B_BASE::tablename);
+            get_join_table();
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -26391,6 +26370,7 @@ M_MODEL& or_leDeurl(T val)
             }
 
             sqlstring.append(B_BASE::tablename);
+            get_join_table();
             sqlstring.append(" WHERE ");
 
             if (wheresql.empty())
@@ -31098,6 +31078,10 @@ M_MODEL& or_leDeurl(T val)
 
         void parse_wheresql()
         {
+            if(join_ptr == nullptr)
+            {
+                return;
+            }
             bool ishastabname = false;
             unsigned int i=0;
             for(; i< wheresql.size(); i++)
@@ -31269,10 +31253,19 @@ M_MODEL& or_leDeurl(T val)
         }
         void parse_leftjion()
         {
+            if(join_ptr == nullptr)
+            {
+                return;
+            }
+
+            std::string sqlselect_;
             if(selectsql.size() == 0)
             {
-                selectsql.append(B_BASE::tablename);
-                selectsql.append(".* ");
+                if(join_ptr->selectsql.size() == 0)
+                {
+                    sqlselect_.append(B_BASE::tablename);
+                    sqlselect_.append(".* ");
+                }
             }
             else
             {
@@ -31282,12 +31275,13 @@ M_MODEL& or_leDeurl(T val)
                     if(selectsql[i]=='.')
                     {
                         ishastabname = true;
+                        sqlselect_.append(selectsql);
                         break;
                     }
                 }
                 if(!ishastabname)
                 {
-                    std::string sqlselect_;
+                    
                     sqlselect_.append(B_BASE::tablename);
                     sqlselect_.push_back('.');
                     for(unsigned int i=0; i< selectsql.size(); i++)
@@ -31305,109 +31299,123 @@ M_MODEL& or_leDeurl(T val)
                         }
                         sqlselect_.push_back(selectsql[i]);
                     }
-                    selectsql = sqlselect_;
                 }
             }
+
+            
+            if(join_ptr->selectsql.size() == 0)
+            {
+                if(sqlselect_.size() > 0)
+                {
+                    sqlselect_.push_back(',');
+                }
+                
+                sqlselect_.append(join_ptr->join_table);
+                sqlselect_.append(".* ");
+            }
+            else
+            {
+                bool ishastabname = false;
+                for(unsigned int i=0; i< join_ptr->selectsql.size(); i++)
+                {
+                    if(join_ptr->selectsql[i]=='.')
+                    {
+                        ishastabname = true;
+                        if(sqlselect_.size() > 0)
+                        {
+                            sqlselect_.push_back(',');
+                        }
+                        sqlselect_.append(join_ptr->selectsql);
+                        break;
+                    }
+                }
+                if(!ishastabname)
+                {
+                    if(sqlselect_.size() > 0)
+                    {
+                        sqlselect_.push_back(',');
+                    }
+                    sqlselect_.append(join_ptr->join_table);
+                    sqlselect_.push_back('.');
+                    for(unsigned int i=0; i< join_ptr->selectsql.size(); i++)
+                    {
+                        if(join_ptr->selectsql[i]==' ')
+                        {
+                            continue;
+                        }
+                        else if(join_ptr->selectsql[i]==',')
+                        {
+                            sqlselect_.push_back(',');
+                            sqlselect_.append(join_ptr->join_table);
+                            sqlselect_.push_back('.');
+                            continue;
+                        }
+                        sqlselect_.push_back(join_ptr->selectsql[i]);
+                    }
+
+                }
+            }
+            selectsql = sqlselect_;
         }
         template<HasOrgTablename T>
         M_MODEL &leftJoin()
         {
-           join_table = T::org_tablename;
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            join_ptr->join_table = T::org_tablename;
            return *mod; 
         }
         M_MODEL &leftJoin(std::string_view table1)
         {
-           join_table = table1;
+            if(join_ptr == nullptr)
+            {
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
+            }
+            join_ptr->join_table = table1;
            return *mod; 
+        }
+        void get_join_table()
+        {
+            if(join_ptr == nullptr)
+            {
+                return;
+            }
+
+            sqlstring.append(" LEFT JOIN ");
+            sqlstring.append(join_ptr->join_table);
+            sqlstring.append(" ON ");
+            sqlstring.append(join_ptr->wheresql);
         }
         M_MODEL &joinSelect(std::string_view fields)
         {
-            if(selectsql.size() > 0)
+            if(join_ptr == nullptr)
             {
-                std::string sqlselect_;
-                sqlselect_.append(B_BASE::tablename);
-                sqlselect_.push_back('.');
-                for(unsigned int i=0; i< selectsql.size(); i++)
-                {
-                    if(selectsql[i]==' ')
-                    {
-                        continue;
-                    }
-                    else if(selectsql[i]==',')
-                    {
-                        sqlselect_.push_back(',');
-                        sqlselect_.append(B_BASE::tablename);
-                        sqlselect_.push_back('.');
-                        continue;
-                    }
-                    sqlselect_.push_back(selectsql[i]);
-                }
-                
-                if(fields.size() < 2)
-                {
-                    return *mod; 
-                }
-                sqlselect_.push_back(',');
-                sqlselect_.append(join_table);
-                sqlselect_.push_back('.');
-                for(unsigned int i=0; i< fields.size(); i++)
-                {
-                    if(fields[i]==' ')
-                    {
-                        continue;
-                    }
-                    else if(fields[i]==',')
-                    {
-                        sqlselect_.push_back(',');
-                        sqlselect_.append(join_table);
-                        sqlselect_.push_back('.');
-                        continue;
-                    }
-                    sqlselect_.push_back(fields[i]);
-                }
-                selectsql = sqlselect_;
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            else
-            {
-                if(fields.size() < 2)
-                {
-                    return *mod; 
-                }
-                selectsql.append(join_table);
-                selectsql.push_back('.');
-                for(unsigned int i=0; i< fields.size(); i++)
-                {
-                    if(fields[i]==' ')
-                    {
-                        continue;
-                    }
-                    else if(fields[i]==',')
-                    {
-                        selectsql.push_back(',');
-                        selectsql.append(join_table);
-                        selectsql.push_back('.');
-                        continue;
-                    }
-                    selectsql.push_back(fields[i]);
-                }
-                selectsql.push_back(' ');
-            }
-
+            join_ptr->selectsql = fields;
+ 
             return *mod; 
         }
         M_MODEL &joinOn(std::string_view field1, std::string_view field2)
         {
-            if(join_onsql.size() > 0)
+            if(join_ptr == nullptr)
             {
-                join_onsql.append(" AND ");
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            join_onsql.append(join_table);
-            join_onsql.append(".");
-            join_onsql.append(field1);
-            join_onsql.append(" = ");
-            join_onsql.append(B_BASE::tablename);
-            join_onsql.append(".");
-            join_onsql.append(field2);
+
+            if(join_ptr->wheresql.size() > 0)
+            {
+                join_ptr->wheresql.append(" AND ");
+            }
+            join_ptr->wheresql.append(join_ptr->join_table);
+            join_ptr->wheresql.append(".");
+            join_ptr->wheresql.append(field1);
+            join_ptr->wheresql.append(" = ");
+            join_ptr->wheresql.append(B_BASE::tablename);
+            join_ptr->wheresql.append(".");
+            join_ptr->wheresql.append(field2);
             return *mod; 
         }
 
@@ -31420,8 +31428,10 @@ M_MODEL& or_leDeurl(T val)
             limitsql.clear();
             sqlstring.clear();
             error_msg.clear();
-            join_table.clear();
-            join_onsql.clear();
+ 
+
+            join_ptr.reset();
+
             iskuohao     = false;
             ishascontent = false;
             iscommit     = false;
@@ -31444,14 +31454,14 @@ M_MODEL& or_leDeurl(T val)
             limitsql.clear();
             sqlstring.clear();
             error_msg.clear();
-            join_table.clear();
-            join_onsql.clear();
+  
             iskuohao     = false;
             ishascontent = false;
             iscommit     = false;
             iscache      = false;
             iserror      = false;
             effect_num   = 0;
+            join_ptr.reset();
             return *mod;
         }
         M_MODEL &set_data(sitelog_info::meta indata)
@@ -31678,8 +31688,6 @@ M_MODEL& or_leDeurl(T val)
         std::string sqlstring;
         std::string dbtag;
         std::string error_msg;
-        std::string join_table;
-        std::string join_onsql;
 
         // std::list<std::string> commit_sqllist;
         bool iskuohao           = false;
@@ -31692,6 +31700,8 @@ M_MODEL& or_leDeurl(T val)
         unsigned int effect_num = 0;
 
         M_MODEL *mod;
+        
+        std::unique_ptr<orm::orm_left_join_t> join_ptr = nullptr;
 
         std::shared_ptr<mysql_conn_base> select_conn;
         std::shared_ptr<mysql_conn_base> edit_conn;
