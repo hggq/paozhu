@@ -481,7 +481,7 @@ struct orm_where_sql_t
     std::string filed_value;
 };
 
-std::string str_escape_val(std::string_view val, bool no_backslash_escapes = false);
+std::string escape_sql(std::string_view val, bool no_backslash_escapes = false);
 
 class mysql_conn_base
 {

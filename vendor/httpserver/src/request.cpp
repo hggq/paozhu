@@ -3197,7 +3197,7 @@ std::string obj_val::to_string()
     return "";
 }
 
-std::string obj_val::get_escape_str()
+std::string obj_val::escape_str()
 {
 
     if (_val_type == obj_type::OBJECT)

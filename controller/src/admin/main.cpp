@@ -21,7 +21,7 @@ std::string admin_login(std::shared_ptr<httppeer> peer)
 std::string admin_loginpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client     = peer->get_peer();
-    std::string username = client.post["username"].get_escape_str();
+    std::string username = client.post["username"].escape_str();
     std::string password = client.post["password"].to_string();
     if (username.size() < 4 || username.size() > 20 || password.size() > 20 || password.size() < 4)
     {

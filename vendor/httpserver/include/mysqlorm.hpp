@@ -1282,7 +1282,7 @@ namespace orm
             wheresql.push_back('=');
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1314,7 +1314,7 @@ namespace orm
             wheresql.push_back('>');
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1346,7 +1346,7 @@ namespace orm
             wheresql.append(">=");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1378,7 +1378,7 @@ namespace orm
             wheresql.append(" < ");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1410,7 +1410,7 @@ namespace orm
             wheresql.append(" <= ");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1444,9 +1444,9 @@ namespace orm
             wheresql.append(" ");
             wheresql.append(wq);
             wheresql.append(" BETWEEN ");
-            wheresql.append(orm::str_escape_val(a));
+            wheresql.append(a);
             wheresql.append(" AND ");
-            wheresql.append(orm::str_escape_val(b));
+            wheresql.append(b);
             wheresql.append(" ");
             return *mod;
         }
@@ -1477,9 +1477,9 @@ namespace orm
             wheresql.append(" ");
             wheresql.append(wq);
             wheresql.append(" BETWEEN ");
-            wheresql.append(orm::str_escape_val(a));
+            wheresql.append(a);
             wheresql.append(" AND ");
-            wheresql.append(orm::str_escape_val(b));
+            wheresql.append(b);
             wheresql.append(" ");
             return *mod;
         }
@@ -1583,7 +1583,7 @@ namespace orm
             wheresql.append(wq);
             wheresql.append(" like '");
             wheresql.push_back('%');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.append("' ");
             return *mod;
         }
@@ -1613,7 +1613,7 @@ namespace orm
             }
             wheresql.append(wq);
             wheresql.append(" like '");
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.append("%' ");
             return *mod;
         }
@@ -1644,13 +1644,13 @@ namespace orm
             wheresql.append(" like '");
             if (val[0] == '%' || val.back() == '%')
             {
-                wheresql.append(orm::str_escape_val(val));
+                wheresql.append(val);
                 wheresql.append("' ");
             }
             else
             {
                 wheresql.push_back('%');
-                wheresql.append(orm::str_escape_val(val));
+                wheresql.append(val);
                 wheresql.append("%' ");
             }
             return *mod;
@@ -1863,7 +1863,7 @@ namespace orm
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
 
             return *mod;
@@ -1895,7 +1895,7 @@ namespace orm
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
 
             return *mod;
@@ -1929,7 +1929,7 @@ namespace orm
             wheresql.push_back('>');
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1961,7 +1961,7 @@ namespace orm
             wheresql.append(">=");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1993,7 +1993,7 @@ namespace orm
             wheresql.append(" < ");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -2025,7 +2025,7 @@ namespace orm
             wheresql.append(" <= ");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -2058,7 +2058,7 @@ namespace orm
             }
             wheresql.append(wq);
             wheresql.append(" > ");
-            wheresql.append(std::to_string(val));
+            wheresql.append(val);
             return *mod;
         }
 
@@ -2089,7 +2089,7 @@ namespace orm
             }
             wheresql.append(wq);
             wheresql.append(" >= ");
-            wheresql.append(std::to_string(val));
+            wheresql.append(val);
             return *mod;
         }
 
@@ -2120,7 +2120,7 @@ namespace orm
             }
             wheresql.append(wq);
             wheresql.append(" < ");
-            wheresql.append(std::to_string(val));
+            wheresql.append(val);
             return *mod;
         }
 
@@ -2151,7 +2151,7 @@ namespace orm
             }
             wheresql.append(wq);
             wheresql.append(" <= ");
-            wheresql.append(std::to_string(val));
+            wheresql.append(val);
             return *mod;
         }
         
@@ -2237,7 +2237,7 @@ namespace orm
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -2293,7 +2293,7 @@ namespace orm
 
             wheresql.append(k);
             wheresql.append(" IN(");
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.append(") ");
             return *mod;
         }
@@ -2334,7 +2334,7 @@ namespace orm
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(orm::str_escape_val(key));
+                wheresql.append(key);
                 wheresql.append("\'");
                 i++;
             }
@@ -2378,7 +2378,7 @@ namespace orm
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(orm::str_escape_val(key));
+                wheresql.append(key);
                 wheresql.append("\'");
                 i++;
             }

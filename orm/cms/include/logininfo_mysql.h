@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Wed, 17 Jun 2026 03:08:48 GMT
+ *  Creation time Wed, 17 Jun 2026 06:31:58 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -16250,7 +16250,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.push_back('=');
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16282,7 +16282,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.push_back('>');
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16314,7 +16314,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(">=");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16346,7 +16346,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(" < ");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16378,7 +16378,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(" <= ");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16412,9 +16412,9 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(" ");
             wheresql.append(wq);
             wheresql.append(" BETWEEN ");
-            wheresql.append(orm::str_escape_val(a));
+            wheresql.append(a);
             wheresql.append(" AND ");
-            wheresql.append(orm::str_escape_val(b));
+            wheresql.append(b);
             wheresql.append(" ");
             return *mod;
         }
@@ -16445,9 +16445,9 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(" ");
             wheresql.append(wq);
             wheresql.append(" BETWEEN ");
-            wheresql.append(orm::str_escape_val(a));
+            wheresql.append(a);
             wheresql.append(" AND ");
-            wheresql.append(orm::str_escape_val(b));
+            wheresql.append(b);
             wheresql.append(" ");
             return *mod;
         }
@@ -16551,7 +16551,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(wq);
             wheresql.append(" like '");
             wheresql.push_back('%');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.append("' ");
             return *mod;
         }
@@ -16581,7 +16581,7 @@ M_MODEL& or_leUrlpath(T val)
             }
             wheresql.append(wq);
             wheresql.append(" like '");
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.append("%' ");
             return *mod;
         }
@@ -16612,13 +16612,13 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(" like '");
             if (val[0] == '%' || val.back() == '%')
             {
-                wheresql.append(orm::str_escape_val(val));
+                wheresql.append(val);
                 wheresql.append("' ");
             }
             else
             {
                 wheresql.push_back('%');
-                wheresql.append(orm::str_escape_val(val));
+                wheresql.append(val);
                 wheresql.append("%' ");
             }
             return *mod;
@@ -16831,7 +16831,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
 
             return *mod;
@@ -16863,7 +16863,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
 
             return *mod;
@@ -16897,7 +16897,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.push_back('>');
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16929,7 +16929,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(">=");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16961,7 +16961,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(" < ");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -16993,7 +16993,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(" <= ");
 
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -17026,7 +17026,7 @@ M_MODEL& or_leUrlpath(T val)
             }
             wheresql.append(wq);
             wheresql.append(" > ");
-            wheresql.append(std::to_string(val));
+            wheresql.append(val);
             return *mod;
         }
 
@@ -17057,7 +17057,7 @@ M_MODEL& or_leUrlpath(T val)
             }
             wheresql.append(wq);
             wheresql.append(" >= ");
-            wheresql.append(std::to_string(val));
+            wheresql.append(val);
             return *mod;
         }
 
@@ -17088,7 +17088,7 @@ M_MODEL& or_leUrlpath(T val)
             }
             wheresql.append(wq);
             wheresql.append(" < ");
-            wheresql.append(std::to_string(val));
+            wheresql.append(val);
             return *mod;
         }
 
@@ -17119,7 +17119,7 @@ M_MODEL& or_leUrlpath(T val)
             }
             wheresql.append(wq);
             wheresql.append(" <= ");
-            wheresql.append(std::to_string(val));
+            wheresql.append(val);
             return *mod;
         }
         
@@ -17205,7 +17205,7 @@ M_MODEL& or_leUrlpath(T val)
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.push_back('\'');
             return *mod;
         }
@@ -17261,7 +17261,7 @@ M_MODEL& or_leUrlpath(T val)
 
             wheresql.append(k);
             wheresql.append(" IN(");
-            wheresql.append(orm::str_escape_val(val));
+            wheresql.append(val);
             wheresql.append(") ");
             return *mod;
         }
@@ -17302,7 +17302,7 @@ M_MODEL& or_leUrlpath(T val)
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(orm::str_escape_val(key));
+                wheresql.append(key);
                 wheresql.append("\'");
                 i++;
             }
@@ -17346,7 +17346,7 @@ M_MODEL& or_leUrlpath(T val)
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(orm::str_escape_val(key));
+                wheresql.append(key);
                 wheresql.append("\'");
                 i++;
             }

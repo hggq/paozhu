@@ -93,7 +93,7 @@ void mysql_charset_store::mysql_charset_init()
     mysql_charset["utf8mb4"]  = 45;
 }
 
-std::string str_escape_val(std::string_view val, bool no_backslash_escapes)
+std::string escape_str(std::string_view val, bool no_backslash_escapes)
 {
     std::string temp;
     temp.reserve(val.size() + val.size() / 8);

@@ -2,7 +2,7 @@
 #define ORM_CMS_BRANDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Wed, 17 Jun 2026 03:08:48 GMT
+*本文件为自动生成 Wed, 17 Jun 2026 06:31:58 GMT
 ***/
 #include <iostream>
 #include <charconv>
