@@ -476,7 +476,7 @@ struct orm_where_sql_t
 {
     bool begin_sub;
     bool end_sub;
-    wq wq;
+    wq op_type;
     std::string filed_name;
     std::string filed_value;
 };
