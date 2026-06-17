@@ -22,7 +22,7 @@ std::string superadmin_login(std::shared_ptr<httppeer> peer)
 std::string superadmin_loginpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client     = peer->get_peer();
-    std::string username = client.post["username"].escape_str();
+    std::string username = client.post["username"].to_escape();
     std::string password = client.post["password"].to_string();
     if (username.size() < 4 || username.size() > 20 || password.size() > 20 || password.size() < 4)
     {

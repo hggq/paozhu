@@ -3197,23 +3197,34 @@ std::string obj_val::to_string()
     return "";
 }
 
-std::string obj_val::escape_str()
+std::string obj_val::to_escape()
 {
-
-    if (_val_type == obj_type::OBJECT)
-    {
-        return "{}";
-    }
-    else if (_val_type == obj_type::ARRAY)
-    {
-        return "[]";
-    }
-    else if (_val_type == obj_type::STRING)
+    if (_val_type == obj_type::STRING)
     {
         std::string a_temp;
         if (length < 8)
         {
-            for (unsigned int j = 0; j < length; j++)
+            unsigned int j = 0;
+            unsigned int n = length ;
+            for (; j < length; j++)
+            {
+                if(name[j]==0x20 || name[j]=='\t' || name[j]==0x0D || name[j]==0x0A)
+                {
+                    continue;
+                }
+                break;
+            }
+            n = length - 1;
+            for (; n >= j ; n--)
+            {
+                if(name[n]==0x20 || name[n]=='\t' || name[n]==0x0D || name[n]==0x0A)
+                {
+                    continue;
+                }
+                break;
+            }
+            n = n + 1;
+            for (; j < n; j++)
             {
                 switch (name[j])
                 {
@@ -3238,7 +3249,27 @@ std::string obj_val::escape_str()
             return a_temp;
         }
 
-        for (unsigned int j = 0; j < length; j++)
+        unsigned int j = 0;
+        unsigned int n = length;
+        for (; j < length; j++)
+        {
+            if(str[j]==0x20 || str[j]=='\t' || str[j]==0x0D || str[j]==0x0A)
+            {
+                continue;
+            }
+            break;
+        }
+        n = length - 1;
+        for (; n >= j ; n--)
+        {
+            if(str[n]==0x20 || str[n]=='\t' || str[n]==0x0D || str[n]==0x0A)
+            {
+                continue;
+            }
+            break;
+        }
+        n = n + 1;
+        for (; j < n; j++)
         {
             switch (str[j])
             {
@@ -3256,17 +3287,6 @@ std::string obj_val::escape_str()
             }
         }
         return a_temp;
-    }
-    else if (_val_type == obj_type::BOOL)
-    {
-        if (isbool)
-        {
-            return "true";
-        }
-        else
-        {
-            return "false";
-        }
     }
     else if (_val_type == obj_type::INT)
     {
@@ -3292,12 +3312,239 @@ std::string obj_val::escape_str()
     {
         return std::to_string(uval);
     }
+        else if (_val_type == obj_type::OBJECT)
+    {
+        return "{}";
+    }
+    else if (_val_type == obj_type::ARRAY)
+    {
+        return "[]";
+    }
+    else if (_val_type == obj_type::BOOL)
+    {
+        if (isbool)
+        {
+            return "true";
+        }
+        else
+        {
+            return "false";
+        }
+    }
     else if (_val_type == obj_type::NIL)
     {
         return "";
     }
     return "";
 }
+
+std::string obj_val::to_trim()
+{
+    if (_val_type == obj_type::STRING)
+    {
+        if (length < 8)
+        {
+            std::string a_temp;
+            unsigned int j = 0;
+            unsigned int n = length;
+            for (; j < length; j++)
+            {
+                if(name[j]==0x20 || name[j]=='\t' || name[j]==0x0D || name[j]==0x0A)
+                {
+                    continue;
+                }
+                break;
+            }
+            n = length - 1;
+            for (; n >= j ; n--)
+            {
+                if(name[n]==0x20 || name[n]=='\t' || name[n]==0x0D || name[n]==0x0A)
+                {
+                    continue;
+                }
+                break;
+            }
+            n = n + 1;
+            for (; j < n; j++)
+            {
+                a_temp.push_back(name[j]);
+            }
+ 
+            return a_temp;
+        }
+        
+        if(str == nullptr)
+        {
+            return "";
+        }
+
+        unsigned int j = 0;
+        unsigned int n = length;
+        for (; j < length; j++)
+        {
+            if(str[j]==0x20 || str[j]=='\t' || str[j]==0x0D || str[j]==0x0A)
+            {
+                continue;
+            }
+            break;
+        }
+        n = length - 1;        
+        for (; n >= j ; n--)
+        {
+            if(str[n]== 0x20 || str[n]=='\t' || str[n]==0x0D || str[n]==0x0A)
+            {
+                continue;
+            }
+            break;
+        }
+        n = n + 1;
+        if(n > j)
+        {
+            n = n - j;
+        }
+        else
+        {
+            n=0;
+        }
+        return std::string(str + j, n);
+    }
+    else if (_val_type == obj_type::INT)
+    {
+        return std::to_string(ival);
+    }
+    else if (_val_type == obj_type::UINT)
+    {
+        return std::to_string(uival);
+    }
+    else if (_val_type == obj_type::FLOAT)
+    {
+        return std::to_string(fval);
+    }
+    else if (_val_type == obj_type::DOUBLE)
+    {
+        return std::to_string(dval);
+    }
+    else if (_val_type == obj_type::LONG)
+    {
+        return std::to_string(lval);
+    }
+    else if (_val_type == obj_type::ULONG)
+    {
+        return std::to_string(uval);
+    }
+        else if (_val_type == obj_type::OBJECT)
+    {
+        return "{}";
+    }
+    else if (_val_type == obj_type::ARRAY)
+    {
+        return "[]";
+    }
+    else if (_val_type == obj_type::BOOL)
+    {
+        if (isbool)
+        {
+            return "true";
+        }
+        else
+        {
+            return "false";
+        }
+    }
+    else if (_val_type == obj_type::NIL)
+    {
+        return "";
+    }
+    return "";
+}
+
+void obj_val::trim()
+{
+    if (_val_type == obj_type::STRING)
+    {
+        if (length < 8)
+        {
+            unsigned int j = 0;
+            unsigned int n = 0;
+            for (; j < length; j++)
+            {
+                if(name[j]==0x20 || name[j]=='\t' || name[j]==0x0D || name[j]==0x0A)
+                {
+                    continue;
+                }
+                break;
+            }
+            unsigned int i = length -1;
+            for (; i >= j ; i--)
+            {
+                if(name[i]==0x20 || name[i]=='\t' || name[i]==0x0D || name[i]==0x0A)
+                {
+                    length--;
+                    continue;
+                }
+                break;
+            }
+            
+            for (; j < length ; j++)
+            {
+                name[n] = name[j];
+                n++;
+            }
+            length = n;
+        }
+        
+        if(str == nullptr)
+        {
+            length = 0;
+            return;
+        }
+
+        unsigned int j = 0;
+        unsigned int n = 0;
+        for (; j < length; j++)
+        {
+            if(str[j]==0x20 || str[j]=='\t' || str[j]==0x0D || str[j]==0x0A)
+            {
+                continue;
+            }
+            break;
+        }
+        unsigned int i = length -1;
+        for (; i >= j ; i--)
+        {
+            if(str[i]==0x20 || str[i]=='\t' || str[i]==0x0D || str[i]==0x0A)
+            {
+                length--;
+                continue;
+            }
+            break;
+        }
+        
+        for (; j < length ; j++)
+        {
+            str[n] = str[j];
+            n++;
+        }
+        length = n;
+        if(length < 8)
+        {
+            char a[8]={0x00};
+            for (j=0 ; j < length ; j++)
+            {
+                a[j] = str[j];
+            }
+
+            std::free(str);
+            str = nullptr;
+
+            for (j=0 ; j < length ; j++)
+            {
+                name[j] = a[j];
+            }
+        }
+    }
+}
+
 
 obj_val::~obj_val()
 {

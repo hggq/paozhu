@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Wed, 17 Jun 2026 06:31:58 GMT
+ *  Creation time Wed, 17 Jun 2026 10:12:50 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -231,11 +231,11 @@ namespace cms
 
                                 unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
                                 querysql_len = 0;
-                                if((tempnum + name_length) >= temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    return 0;
-                                }
+                                // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                // {
+                                //     error_msg = "MySQL read pack error";
+                                //     return 0;
+                                // }
                                 for (unsigned int ik = 0; ik < name_length; ik++)
                                 {
                                     if (temp_pack_data.data[tempnum] >= '0' && temp_pack_data.data[tempnum] <= '9')
@@ -462,11 +462,11 @@ namespace cms
                                 unsigned int tempnum = 0;
 
                                 unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                if((tempnum + name_length) >= temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    co_return 0;
-                                }
+                                // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                // {
+                                //     error_msg = "MySQL read pack error";
+                                //     co_return 0;
+                                // }
                                 querysql_len = 0;
                                 for (unsigned int ik = 0; ik < name_length; ik++)
                                 {
@@ -23789,11 +23789,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return temprecord;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return temprecord;
+                                    // }
                                     std::string temp_str;
                                     temp_str.resize(name_length);
                                     std::memcpy(temp_str.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -24036,11 +24036,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                                    // }
                                     std::string tempstr;
                                     tempstr.resize(name_length);
                                     std::memcpy(tempstr.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -24263,11 +24263,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return 0;
+                                    // }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -24470,11 +24470,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return 0;
+                                    // }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -24674,11 +24674,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return 0;
+                                    // }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -24881,11 +24881,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return 0;
+                                    // }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -25101,11 +25101,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return 0;
+                                    // }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -25322,11 +25322,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return 0;
+                                    // }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -25540,11 +25540,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return *mod;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return *mod;
+                                    // }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -25763,11 +25763,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return 0;
+                                    // }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -25966,11 +25966,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return 0;
+                                    // }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -26173,11 +26173,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return 0;
+                                    // }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -26377,11 +26377,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return 0;
+                                    // }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -26584,11 +26584,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return 0;
+                                    // }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -26804,11 +26804,11 @@ M_MODEL& or_leDeurl(T val)
                                     {
                                         unsigned long long name_length = 0;
                                         name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                        if((tempnum + name_length) >= temp_pack_data.data.size())
-                                        {
-                                            error_msg = "MySQL read pack error";
-                                            return 0;
-                                        }
+                                        // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                        // {
+                                        //     error_msg = "MySQL read pack error";
+                                        //     return 0;
+                                        // }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                         tempnum = tempnum + name_length;
                                     }
@@ -26821,11 +26821,11 @@ M_MODEL& or_leDeurl(T val)
                                     {
                                         unsigned long long name_length = 0;
                                         name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                        if((tempnum + name_length) >= temp_pack_data.data.size())
-                                        {
-                                            error_msg = "MySQL read pack error";
-                                            return 0;
-                                        }
+                                        // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                        // {
+                                        //     error_msg = "MySQL read pack error";
+                                        //     return 0;
+                                        // }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                         tempnum = tempnum + name_length;
                                     }
@@ -27044,11 +27044,11 @@ M_MODEL& or_leDeurl(T val)
                                     {
                                         unsigned long long name_length = 0;
                                         name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                        if((tempnum + name_length) >= temp_pack_data.data.size())
-                                        {
-                                            error_msg = "MySQL read pack error";
-                                            co_return 0;
-                                        }
+                                        // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                        // {
+                                        //     error_msg = "MySQL read pack error";
+                                        //     co_return 0;
+                                        // }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                         tempnum = tempnum + name_length;
                                     }
@@ -27061,11 +27061,11 @@ M_MODEL& or_leDeurl(T val)
                                     {
                                         unsigned long long name_length = 0;
                                         name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                        if((tempnum + name_length) >= temp_pack_data.data.size())
-                                        {
-                                            error_msg = "MySQL read pack error";
-                                            co_return 0;
-                                        }
+                                        // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                        // {
+                                        //     error_msg = "MySQL read pack error";
+                                        //     co_return 0;
+                                        // }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                         tempnum = tempnum + name_length;
                                     }
@@ -27475,11 +27475,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return 0;
+                                    // }
                                     std::string temp_str;
                                     temp_str.resize(name_length);
                                     std::memcpy(temp_str.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -27679,11 +27679,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return 0;
+                                    // }
                                     std::string temp_str;
                                     temp_str.resize(name_length);
                                     std::memcpy(temp_str.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -27882,11 +27882,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return 0;
+                                    // }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                     tempnum = tempnum + name_length;
                                 }
@@ -28083,11 +28083,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return 0;
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return 0;
+                                    // }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                     tempnum = tempnum + name_length;
                                 }
@@ -30704,11 +30704,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                                    // }
                                     std::string tempstr;
                                     tempstr.resize(name_length);
                                     std::memcpy(tempstr.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -30904,11 +30904,11 @@ M_MODEL& or_leDeurl(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    {
-                                        error_msg = "MySQL read pack error";
-                                        co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
-                                    }
+                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    // {
+                                    //     error_msg = "MySQL read pack error";
+                                    //     co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                                    // }
                                     std::string tempstr;
                                     tempstr.resize(name_length);
                                     std::memcpy(tempstr.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
