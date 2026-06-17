@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Tue, 16 Jun 2026 16:10:16 GMT
+ *  Creation time Wed, 17 Jun 2026 03:08:48 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -230,9 +230,8 @@ namespace cms
                                 unsigned int tempnum = 0;
 
                                 unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
                                 querysql_len = 0;
-                                if(name_length >= temp_pack_data.data.size())
+                                if((tempnum + name_length) >= temp_pack_data.data.size())
                                 {
                                     error_msg = "MySQL read pack error";
                                     return 0;
@@ -463,7 +462,7 @@ namespace cms
                                 unsigned int tempnum = 0;
 
                                 unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                if(name_length >= temp_pack_data.data.size())
+                                if((tempnum + name_length) >= temp_pack_data.data.size())
                                 {
                                     error_msg = "MySQL read pack error";
                                     co_return 0;
@@ -1012,7 +1011,7 @@ namespace cms
             return 0;
         }
 
-        asio::awaitable<unsigned int> async_replace_col(std::string colname, const std::string &old_string, const std::string &new_string)
+        asio::awaitable<unsigned int> async_replace_col(std::string colname, std::string_view old_string, std::string_view new_string)
         {
             effect_num = 0;
             std::string countsql;
@@ -13938,7 +13937,7 @@ M_MODEL& or_leSort(T val)
     }   
     
 
-        M_MODEL &select(const std::string &fields)
+        M_MODEL &select(std::string_view fields)
         {
             if (selectsql.size() > 0)
             {
@@ -13948,7 +13947,7 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
 
-        M_MODEL &where(const std::string &wq)
+        M_MODEL &where(std::string_view wq)
         {
             if (wheresql.empty())
             {
@@ -13977,7 +13976,7 @@ M_MODEL& or_leSort(T val)
         }
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &where(const std::string &wq, _SQL_Value val)
+        M_MODEL &where(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -14006,86 +14005,11 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
 
-        M_MODEL &where(const std::string &wq, char bi, http::obj_val &obj)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back(bi);
-            if (obj.is_string())
-            {
-                wheresql.push_back('\'');
-                wheresql.append(obj.as_string());
-                wheresql.push_back('\'');
-            }
-            else
-            {
-
-                wheresql.append(obj.to_string());
-            }
-            return *mod;
-        }
-        M_MODEL &where(const std::string &wq, http::obj_val &obj)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('=');
-
-            if (obj.is_string())
-            {
-                wheresql.push_back('\'');
-                wheresql.append(obj.as_string());
-                wheresql.push_back('\'');
-            }
-            else
-            {
-
-                wheresql.append(obj.to_string());
-            }
-            return *mod;
-        }
+ 
+ 
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &where(const std::string &wq, char bi, _SQL_Value val)
+        M_MODEL &where(std::string_view wq, char bi, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -14114,38 +14038,8 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
 
-        M_MODEL &where(const std::string &wq, char bi, const std::string &val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back(bi);
-            wheresql.push_back('\'');
-
-            wheresql.append(orm::str_escape_val(val));
-            wheresql.push_back('\'');
-            return *mod;
-        }
-        M_MODEL &where(const std::string &wq, const std::string &val)
+ 
+        M_MODEL &where(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14177,7 +14071,7 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
 
-        M_MODEL &whereBT(const std::string &wq, const std::string &val)
+        M_MODEL &whereBT(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14204,12 +14098,12 @@ M_MODEL& or_leSort(T val)
             wheresql.push_back('>');
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
 
-        M_MODEL &whereBE(const std::string &wq, const std::string &val)
+        M_MODEL &whereBE(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14236,12 +14130,12 @@ M_MODEL& or_leSort(T val)
             wheresql.append(">=");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
 
-        M_MODEL &whereLT(const std::string &wq, const std::string &val)
+        M_MODEL &whereLT(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14268,12 +14162,12 @@ M_MODEL& or_leSort(T val)
             wheresql.append(" < ");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
 
-        M_MODEL &whereLE(const std::string &wq, const std::string &val)
+        M_MODEL &whereLE(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14300,48 +14194,15 @@ M_MODEL& or_leSort(T val)
             wheresql.append(" <= ");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
 
-        M_MODEL &between(const std::string &wq, const std::string &a, const std::string &b)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(" (");
-            wheresql.append(wq);
-            wheresql.append(" BETWEEN '");
-            std::stringstream _stream;
-            _stream << a;
-            _stream << "' AND '";
-            _stream << b;
-            _stream << "' ) ";
-            wheresql.append(_stream.str());
-            return *mod;
-        }
+ 
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &between(const std::string &wq, _SQL_Value a, _SQL_Value b)
+        M_MODEL &betWeen(std::string_view &wq, _SQL_Value a, _SQL_Value b)
         {
             if (wheresql.empty())
             {
@@ -14364,20 +14225,17 @@ M_MODEL& or_leSort(T val)
             {
                 ishascontent = true;
             }
-            wheresql.append(" (");
+            wheresql.append(" ");
             wheresql.append(wq);
             wheresql.append(" BETWEEN ");
-            std::stringstream _stream;
-            _stream << a;
-            _stream << " AND ";
-            _stream << b;
-            _stream << " ) ";
-            wheresql.append(_stream.str());
+            wheresql.append(orm::str_escape_val(a));
+            wheresql.append(" AND ");
+            wheresql.append(orm::str_escape_val(b));
+            wheresql.append(" ");
             return *mod;
         }
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &orBetween(const std::string &wq, _SQL_Value a, _SQL_Value b)
+
+        M_MODEL &orBetWeen(std::string_view wq, std::string_view a, std::string_view b)
         {
             if (wheresql.empty())
             {
@@ -14400,18 +14258,51 @@ M_MODEL& or_leSort(T val)
             {
                 ishascontent = true;
             }
-            wheresql.append(" (");
+            wheresql.append(" ");
             wheresql.append(wq);
             wheresql.append(" BETWEEN ");
-            std::stringstream _stream;
-            _stream << a;
-            _stream << " AND ";
-            _stream << b;
-            _stream << " ) ";
-            wheresql.append(_stream.str());
+            wheresql.append(orm::str_escape_val(a));
+            wheresql.append(" AND ");
+            wheresql.append(orm::str_escape_val(b));
+            wheresql.append(" ");
             return *mod;
         }
-        M_MODEL &whereLike(const std::string &wq, const std::string &val)
+
+        template <typename _SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+        M_MODEL &orBetWeen(std::string_view wq, _SQL_Value a, _SQL_Value b)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+            wheresql.append(" ");
+            wheresql.append(wq);
+            wheresql.append(" BETWEEN ");
+            wheresql.append(std::to_string(a));
+            wheresql.append(" AND ");
+            wheresql.append(std::to_string(b));
+            wheresql.append(" ");
+            return *mod;
+        }
+        M_MODEL &whereLike(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14449,7 +14340,7 @@ M_MODEL& or_leSort(T val)
             }
             return *mod;
         }
-        M_MODEL &whereLikeLeft(const std::string &wq, const std::string &val)
+        M_MODEL &whereLikeLeft(std::string_view wq,std::string_view val)
         {
 
             if (wheresql.empty())
@@ -14476,11 +14367,11 @@ M_MODEL& or_leSort(T val)
             wheresql.append(wq);
             wheresql.append(" like '");
             wheresql.push_back('%');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.append("' ");
             return *mod;
         }
-        M_MODEL &whereLikeRight(const std::string &wq, const std::string &val)
+        M_MODEL &whereLikeRight(std::string_view wq,std::string_view val)
         {
 
             if (wheresql.empty())
@@ -14506,11 +14397,11 @@ M_MODEL& or_leSort(T val)
             }
             wheresql.append(wq);
             wheresql.append(" like '");
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.append("%' ");
             return *mod;
         }
-        M_MODEL &whereOrLike(const std::string &wq, const std::string &val)
+        M_MODEL &whereOrLike(std::string_view wq,std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14537,18 +14428,18 @@ M_MODEL& or_leSort(T val)
             wheresql.append(" like '");
             if (val[0] == '%' || val.back() == '%')
             {
-                wheresql.append(val);
+                wheresql.append(orm::str_escape_val(val));
                 wheresql.append("' ");
             }
             else
             {
                 wheresql.push_back('%');
-                wheresql.append(val);
+                wheresql.append(orm::str_escape_val(val));
                 wheresql.append("%' ");
             }
             return *mod;
         }
-        M_MODEL &whereAnd(const std::string &wq)
+        M_MODEL &whereAnd(std::string_view wq)
         {
             if (wheresql.empty())
             {
@@ -14576,7 +14467,7 @@ M_MODEL& or_leSort(T val)
         }
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereAnd(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereAnd(std::string_view wq, _SQL_Value val)
         {
 
             if (wheresql.empty())
@@ -14608,7 +14499,7 @@ M_MODEL& or_leSort(T val)
 
         template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereBT(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereBT(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -14639,7 +14530,7 @@ M_MODEL& or_leSort(T val)
 
         template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereBE(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereBE(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -14670,7 +14561,7 @@ M_MODEL& or_leSort(T val)
 
         template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereLT(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereLT(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -14701,7 +14592,7 @@ M_MODEL& or_leSort(T val)
 
         template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereLE(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereLE(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -14730,7 +14621,7 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
         //where and 
-        M_MODEL &whereEQ(const std::string &wq, const std::string &val)
+        M_MODEL &whereEQ(std::string_view wq,std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14762,7 +14653,7 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
 
-        M_MODEL &whereAnd(const std::string &wq, const std::string &val)
+        M_MODEL &whereAnd(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14795,7 +14686,7 @@ M_MODEL& or_leSort(T val)
         }
         //where string or
 
-        M_MODEL &whereOrBT(const std::string &wq, const std::string &val)
+        M_MODEL &whereOrBT(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14822,12 +14713,12 @@ M_MODEL& or_leSort(T val)
             wheresql.push_back('>');
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
 
-        M_MODEL &whereOrBE(const std::string &wq, const std::string &val)
+        M_MODEL &whereOrBE(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14854,12 +14745,12 @@ M_MODEL& or_leSort(T val)
             wheresql.append(">=");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
 
-        M_MODEL &whereOrLT(const std::string &wq, const std::string &val)
+        M_MODEL &whereOrLT(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14886,12 +14777,12 @@ M_MODEL& or_leSort(T val)
             wheresql.append(" < ");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
 
-        M_MODEL &whereOrLE(const std::string &wq, const std::string &val)
+        M_MODEL &whereOrLE(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -14918,7 +14809,7 @@ M_MODEL& or_leSort(T val)
             wheresql.append(" <= ");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -14926,7 +14817,7 @@ M_MODEL& or_leSort(T val)
         //where or
         template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOrBT(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereOrBT(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -14957,7 +14848,7 @@ M_MODEL& or_leSort(T val)
 
         template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOrBE(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereOrBE(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -14988,7 +14879,7 @@ M_MODEL& or_leSort(T val)
 
         template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOrLT(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereOrLT(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -15019,7 +14910,7 @@ M_MODEL& or_leSort(T val)
 
         template <typename _SQL_Value>
         requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOrLE(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereOrLE(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -15048,7 +14939,7 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
         
-        M_MODEL &whereOr(const std::string &wq)
+        M_MODEL &whereOr(std::string_view wq)
         {
             if (wheresql.empty())
             {
@@ -15076,7 +14967,7 @@ M_MODEL& or_leSort(T val)
         }
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOr(const std::string &wq, _SQL_Value val)
+        M_MODEL &whereOr(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
             {
@@ -15104,7 +14995,7 @@ M_MODEL& or_leSort(T val)
             wheresql.append(std::to_string(val));
             return *mod;
         }
-        M_MODEL &whereOr(const std::string &wq, const std::string &val)
+        M_MODEL &whereOr(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -15130,11 +15021,11 @@ M_MODEL& or_leSort(T val)
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.push_back('\'');
             return *mod;
         }
-        M_MODEL &whereIn(const std::string &k)
+        M_MODEL &whereIn(std::string_view k)
         {
             if (wheresql.empty())
             {
@@ -15160,7 +15051,7 @@ M_MODEL& or_leSort(T val)
             wheresql.append(k);
             return *mod;
         }
-        M_MODEL &whereIn(const std::string &k, const std::string &a)
+        M_MODEL &whereIn(std::string_view k, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -15186,12 +15077,12 @@ M_MODEL& or_leSort(T val)
 
             wheresql.append(k);
             wheresql.append(" IN(");
-            wheresql.append(a);
+            wheresql.append(orm::str_escape_val(val));
             wheresql.append(") ");
             return *mod;
         }
 
-        M_MODEL &whereIn(const std::string &k, const std::vector<std::string> &a)
+        M_MODEL &whereIn(std::string_view k, const std::vector<std::string> &a)
         {
             if (wheresql.empty())
             {
@@ -15227,14 +15118,14 @@ M_MODEL& or_leSort(T val)
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(key);
+                wheresql.append(orm::str_escape_val(key));
                 wheresql.append("\'");
                 i++;
             }
             wheresql.append(") ");
             return *mod;
         }
-        M_MODEL &whereNotIn(const std::string &k, const std::vector<std::string> &a)
+        M_MODEL &whereNotIn(std::string_view k, const std::vector<std::string> &a)
         {
             if (wheresql.empty())
             {
@@ -15271,7 +15162,7 @@ M_MODEL& or_leSort(T val)
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(key);
+                wheresql.append(orm::str_escape_val(key));
                 wheresql.append("\'");
                 i++;
             }
@@ -15280,7 +15171,7 @@ M_MODEL& or_leSort(T val)
         }
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereIn(const std::string &k, const std::list<_SQL_Value> &a)
+        M_MODEL &whereIn(std::string_view k, const std::list<_SQL_Value> &a)
         {
             if (wheresql.empty())
             {
@@ -15325,7 +15216,7 @@ M_MODEL& or_leSort(T val)
 
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereIn(const std::string &k, const std::vector<_SQL_Value> &a)
+        M_MODEL &whereIn(std::string_view k, const std::vector<_SQL_Value> &a)
         {
             if (wheresql.empty())
             {
@@ -15369,7 +15260,7 @@ M_MODEL& or_leSort(T val)
         }
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereNotIn(const std::string &k, const std::vector<_SQL_Value> &a)
+        M_MODEL &whereNotIn(std::string_view k, const std::vector<_SQL_Value> &a)
         {
             if (wheresql.empty())
             {
@@ -15546,13 +15437,13 @@ M_MODEL& or_leSort(T val)
             return *mod; 
         }
 
-        M_MODEL &order(const std::string &wq)
+        M_MODEL &order(std::string_view wq)
         {
             ordersql.append(" ORDER by ");
             ordersql.append(wq);
             return *mod;
         }
-        M_MODEL &asc(const std::string &wq)
+        M_MODEL &asc(std::string_view wq)
         {
 
             ordersql.append(" ORDER by ");
@@ -15561,7 +15452,7 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
 
-        M_MODEL &desc(const std::string &wq)
+        M_MODEL &desc(std::string_view wq)
         {
 
             ordersql.append(" ORDER by ");
@@ -15570,7 +15461,7 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
 
-        M_MODEL &having(const std::string &wq)
+        M_MODEL &having(std::string_view wq)
         {
 
             groupsql.append(" HAVING by ");
@@ -15578,7 +15469,7 @@ M_MODEL& or_leSort(T val)
             return *mod;
         }
 
-        M_MODEL &group(const std::string &wq)
+        M_MODEL &group(std::string_view wq)
         {
 
             groupsql.append(" GROUP BY ");
@@ -15858,8 +15749,7 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
-                                    if(name_length >= temp_pack_data.data.size())
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
                                     {
                                         error_msg = "MySQL read pack error";
                                         return temprecord;
@@ -15875,7 +15765,6 @@ M_MODEL& or_leSort(T val)
                                     {
                                         data_temp.insert({field_array[ij].org_name, std::move(temp_str)});
                                     }
-
                                     tempnum = tempnum + name_length;
                                 }
                                 temprecord.emplace_back(std::move(data_temp));
@@ -16107,7 +15996,7 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    if(name_length >= temp_pack_data.data.size())
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
                                     {
                                         error_msg = "MySQL read pack error";
                                         return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
@@ -16334,7 +16223,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -16344,8 +16237,8 @@ M_MODEL& or_leSort(T val)
                                     {
                                         std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type, 1);
                                     }
-                                    
                                     tempnum = tempnum + name_length;
+                                    
                                 }
                                 custom_record.emplace_back(std::move(data_temp));
                                 effect_num++;
@@ -16537,7 +16430,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -16737,7 +16634,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -16940,7 +16841,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -17156,7 +17061,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -17373,7 +17282,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -17587,7 +17500,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return *mod;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -17806,7 +17723,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -18005,7 +17926,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -18208,7 +18133,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -18408,7 +18337,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -18611,7 +18544,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -18827,7 +18764,11 @@ M_MODEL& or_leSort(T val)
                                     {
                                         unsigned long long name_length = 0;
                                         name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                        if((tempnum + name_length) >= temp_pack_data.data.size())
+                                        {
+                                            error_msg = "MySQL read pack error";
+                                            return 0;
+                                        }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                         tempnum = tempnum + name_length;
                                     }
@@ -18840,7 +18781,11 @@ M_MODEL& or_leSort(T val)
                                     {
                                         unsigned long long name_length = 0;
                                         name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                        if((tempnum + name_length) >= temp_pack_data.data.size())
+                                        {
+                                            error_msg = "MySQL read pack error";
+                                            return 0;
+                                        }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                         tempnum = tempnum + name_length;
                                     }
@@ -19059,7 +19004,11 @@ M_MODEL& or_leSort(T val)
                                     {
                                         unsigned long long name_length = 0;
                                         name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                        if((tempnum + name_length) >= temp_pack_data.data.size())
+                                        {
+                                            error_msg = "MySQL read pack error";
+                                            co_return 0;
+                                        }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                         tempnum = tempnum + name_length;
                                     }
@@ -19072,7 +19021,11 @@ M_MODEL& or_leSort(T val)
                                     {
                                         unsigned long long name_length = 0;
                                         name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                        if((tempnum + name_length) >= temp_pack_data.data.size())
+                                        {
+                                            error_msg = "MySQL read pack error";
+                                            co_return 0;
+                                        }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                         tempnum = tempnum + name_length;
                                     }
@@ -19482,7 +19435,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     std::string temp_str;
                                     temp_str.resize(name_length);
                                     std::memcpy(temp_str.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -19682,7 +19639,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     std::string temp_str;
                                     temp_str.resize(name_length);
                                     std::memcpy(temp_str.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -19881,7 +19842,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                     tempnum = tempnum + name_length;
                                 }
@@ -20078,7 +20043,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                     tempnum = tempnum + name_length;
                                 }
@@ -22695,6 +22664,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                                    }
                                     std::string tempstr;
                                     tempstr.resize(name_length);
                                     std::memcpy(tempstr.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -22890,6 +22864,11 @@ M_MODEL& or_leSort(T val)
                                 {
                                     unsigned long long name_length = 0;
                                     name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+                                    if((tempnum + name_length) >= temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                                    }
                                     std::string tempstr;
                                     tempstr.resize(name_length);
                                     std::memcpy(tempstr.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);

@@ -307,13 +307,18 @@ struct Base {
  
 enum class wq 
 { 
-    bt =0, 
+    qb =0,
+    bt =1, 
     be,
     eq,
     lt,
     le,
     in,
-    like
+    like,
+    notin,
+    between,
+    isnull,
+    notnull    
 };
 //ORM STRUCT REFLECT END
 enum enum_field_types
@@ -465,6 +470,15 @@ struct orm_left_join_t
     std::string limitsql;
     std::string parbysql;
     std::string subsql;
+};
+
+struct orm_where_sql_t
+{
+    bool begin_sub;
+    bool end_sub;
+    wq wq;
+    std::string filed_name;
+    std::string filed_value;
 };
 
 std::string str_escape_val(std::string_view val, bool no_backslash_escapes = false);
