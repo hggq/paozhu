@@ -199,7 +199,7 @@ std::string array_to_sql(const std::vector<_Tp> &a, char b = ',')
     return _stream.str();
 }
 
-std::string array_to_sql(const std::vector<std::string>, char b = ',', bool isquote = false);
+std::string array_to_sql(const std::vector<std::string>, char b = ',', bool isquote = true);
 
 std::string str_addslash(const std::string &content);
 std::string json_addslash(const std::string &content);

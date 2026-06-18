@@ -5056,10 +5056,18 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     }
     std::string model_name_info ="#include \"" + real_model_name+"_base.h\"\n/*baseincludefile*/";
     n = string_replace(template_content, "/*baseincludefile*/", model_name_info);
+
+    model_name_info = real_model_name;
+    model_name_info.append("_info::cols");
+
+    n = string_replace_all(template_content, "typename B_BASE::cols", model_name_info);
+
     model_name_info = real_model_name;
     model_name_info.append("_info::meta");
     n = string_replace(template_content, "{{date}}", getgmtdatetime());
     n = string_replace_all(template_content, "typename B_BASE::meta", model_name_info);
+
+
     if (real_tag.size() > 0)
     {
         n = string_replace(template_content, "/*tagnamespace*/", "namespace " + real_tag);
@@ -5286,6 +5294,19 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
 
     ///*appendwhere*/
     n = string_replace(template_content, "/*appendwhere*/", append_content);
+    append_content.clear();
+
+        for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
+        {
+            append_content.append("\n\t\t\tcase ");
+            append_content.append(real_model_name);
+            append_content.append("_info::cols::");
+            append_content.append(table_column_info_lists[j].col_name);
+            append_content.append(":\n\t\t\t\twheresql.append(\"");
+            append_content.append(table_column_info_lists[j].col_name);
+            append_content.append("\");\n\t\t\t\tbreak;");
+        }
+    n = string_replace_all(template_content, "/*cols_name_where*/", append_content);    
     //save template
     template_file.clear();
     template_file = prj_root_path;

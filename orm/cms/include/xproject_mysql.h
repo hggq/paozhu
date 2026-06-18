@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 18 Jun 2026 07:49:00 GMT
+ *  Creation time Thu, 18 Jun 2026 12:31:02 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -35296,6 +35296,18 @@ M_MODEL& or_ltRealday(T val)
                 wheresql.append(") ");
                 return *mod;
             }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+
             switch (opwq)
             {
             case orm::wq::bt:
@@ -35312,9 +35324,6 @@ M_MODEL& or_ltRealday(T val)
                 break;
             case orm::wq::le:
                 wheresql.append(" <= ");
-                break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
                 break;
             default:
                 wheresql.append(" = ");
@@ -35363,6 +35372,17 @@ M_MODEL& or_ltRealday(T val)
                 wheresql.append(") ");
                 return *mod;
             }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
             switch (opwq)
             {
             case orm::wq::bt:
@@ -35380,8 +35400,318 @@ M_MODEL& or_ltRealday(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
+            default:
+                wheresql.append(" = ");
+                break;
+            }
+
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" ");
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &where(xproject_info::cols field1, orm::wq opwq, T2 &&field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            switch (field1)
+            {
+            
+			case xproject_info::cols::xpjid:
+				wheresql.append("xpjid");
+				break;
+			case xproject_info::cols::userid:
+				wheresql.append("userid");
+				break;
+			case xproject_info::cols::prexpjid:
+				wheresql.append("prexpjid");
+				break;
+			case xproject_info::cols::dpid:
+				wheresql.append("dpid");
+				break;
+			case xproject_info::cols::grouptype:
+				wheresql.append("grouptype");
+				break;
+			case xproject_info::cols::title:
+				wheresql.append("title");
+				break;
+			case xproject_info::cols::adminuserid:
+				wheresql.append("adminuserid");
+				break;
+			case xproject_info::cols::regdate:
+				wheresql.append("regdate");
+				break;
+			case xproject_info::cols::begindate:
+				wheresql.append("begindate");
+				break;
+			case xproject_info::cols::expiredate:
+				wheresql.append("expiredate");
+				break;
+			case xproject_info::cols::isopen:
+				wheresql.append("isopen");
+				break;
+			case xproject_info::cols::clientid:
+				wheresql.append("clientid");
+				break;
+			case xproject_info::cols::totalnum:
+				wheresql.append("totalnum");
+				break;
+			case xproject_info::cols::referdocverion:
+				wheresql.append("referdocverion");
+				break;
+			case xproject_info::cols::xtheme:
+				wheresql.append("xtheme");
+				break;
+			case xproject_info::cols::xlogo:
+				wheresql.append("xlogo");
+				break;
+			case xproject_info::cols::introduce:
+				wheresql.append("introduce");
+				break;
+			case xproject_info::cols::giturl:
+				wheresql.append("giturl");
+				break;
+			case xproject_info::cols::gitname:
+				wheresql.append("gitname");
+				break;
+			case xproject_info::cols::gitpwd:
+				wheresql.append("gitpwd");
+				break;
+			case xproject_info::cols::xcolor:
+				wheresql.append("xcolor");
+				break;
+			case xproject_info::cols::fupan:
+				wheresql.append("fupan");
+				break;
+			case xproject_info::cols::totalvalue:
+				wheresql.append("totalvalue");
+				break;
+			case xproject_info::cols::expectday:
+				wheresql.append("expectday");
+				break;
+			case xproject_info::cols::realday:
+				wheresql.append("realday");
+				break;
+            default:
+                static_assert(false, "not find column name ");
+                break;
+            }
+
+            if (opwq == orm::wq::in)
+            {
+                wheresql.append(" IN (");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") ");
+                return *mod;
+            }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+            switch (opwq)
+            {
+            case orm::wq::bt:
+                wheresql.append(" > ");
+                break;
+            case orm::wq::be:
+                wheresql.append(" >= ");
+                break;
+            case orm::wq::eq:
+                wheresql.append(" = ");
+                break;
+            case orm::wq::lt:
+                wheresql.append(" < ");
+                break;
+            case orm::wq::le:
+                wheresql.append(" <= ");
+                break;
+            default:
+                wheresql.append(" = ");
+                break;
+            }
+
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" ");
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &whereOr(xproject_info::cols field1, orm::wq opwq, T2 &&field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            switch (field1)
+            {
+            
+			case xproject_info::cols::xpjid:
+				wheresql.append("xpjid");
+				break;
+			case xproject_info::cols::userid:
+				wheresql.append("userid");
+				break;
+			case xproject_info::cols::prexpjid:
+				wheresql.append("prexpjid");
+				break;
+			case xproject_info::cols::dpid:
+				wheresql.append("dpid");
+				break;
+			case xproject_info::cols::grouptype:
+				wheresql.append("grouptype");
+				break;
+			case xproject_info::cols::title:
+				wheresql.append("title");
+				break;
+			case xproject_info::cols::adminuserid:
+				wheresql.append("adminuserid");
+				break;
+			case xproject_info::cols::regdate:
+				wheresql.append("regdate");
+				break;
+			case xproject_info::cols::begindate:
+				wheresql.append("begindate");
+				break;
+			case xproject_info::cols::expiredate:
+				wheresql.append("expiredate");
+				break;
+			case xproject_info::cols::isopen:
+				wheresql.append("isopen");
+				break;
+			case xproject_info::cols::clientid:
+				wheresql.append("clientid");
+				break;
+			case xproject_info::cols::totalnum:
+				wheresql.append("totalnum");
+				break;
+			case xproject_info::cols::referdocverion:
+				wheresql.append("referdocverion");
+				break;
+			case xproject_info::cols::xtheme:
+				wheresql.append("xtheme");
+				break;
+			case xproject_info::cols::xlogo:
+				wheresql.append("xlogo");
+				break;
+			case xproject_info::cols::introduce:
+				wheresql.append("introduce");
+				break;
+			case xproject_info::cols::giturl:
+				wheresql.append("giturl");
+				break;
+			case xproject_info::cols::gitname:
+				wheresql.append("gitname");
+				break;
+			case xproject_info::cols::gitpwd:
+				wheresql.append("gitpwd");
+				break;
+			case xproject_info::cols::xcolor:
+				wheresql.append("xcolor");
+				break;
+			case xproject_info::cols::fupan:
+				wheresql.append("fupan");
+				break;
+			case xproject_info::cols::totalvalue:
+				wheresql.append("totalvalue");
+				break;
+			case xproject_info::cols::expectday:
+				wheresql.append("expectday");
+				break;
+			case xproject_info::cols::realday:
+				wheresql.append("realday");
+				break;
+            default:
+                static_assert(false, "not find column name ");
+                break;
+            }
+
+
+            if (opwq == orm::wq::in)
+            {
+                wheresql.append(" IN (");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") ");
+                return *mod;
+            }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+            switch (opwq)
+            {
+            case orm::wq::bt:
+                wheresql.append(" > ");
+                break;
+            case orm::wq::be:
+                wheresql.append(" >= ");
+                break;
+            case orm::wq::eq:
+                wheresql.append(" = ");
+                break;
+            case orm::wq::lt:
+                wheresql.append(" < ");
+                break;
+            case orm::wq::le:
+                wheresql.append(" <= ");
                 break;
             default:
                 wheresql.append(" = ");

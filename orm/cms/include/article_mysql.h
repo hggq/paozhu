@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 18 Jun 2026 07:49:00 GMT
+ *  Creation time Thu, 18 Jun 2026 12:31:01 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -42328,6 +42328,18 @@ M_MODEL& or_leRelatecontent(T val)
                 wheresql.append(") ");
                 return *mod;
             }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+
             switch (opwq)
             {
             case orm::wq::bt:
@@ -42344,9 +42356,6 @@ M_MODEL& or_leRelatecontent(T val)
                 break;
             case orm::wq::le:
                 wheresql.append(" <= ");
-                break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
                 break;
             default:
                 wheresql.append(" = ");
@@ -42395,6 +42404,17 @@ M_MODEL& or_leRelatecontent(T val)
                 wheresql.append(") ");
                 return *mod;
             }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
             switch (opwq)
             {
             case orm::wq::bt:
@@ -42412,8 +42432,330 @@ M_MODEL& or_leRelatecontent(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
+            default:
+                wheresql.append(" = ");
+                break;
+            }
+
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" ");
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &where(article_info::cols field1, orm::wq opwq, T2 &&field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            switch (field1)
+            {
+            
+			case article_info::cols::aid:
+				wheresql.append("aid");
+				break;
+			case article_info::cols::topicid:
+				wheresql.append("topicid");
+				break;
+			case article_info::cols::classtype:
+				wheresql.append("classtype");
+				break;
+			case article_info::cols::userid:
+				wheresql.append("userid");
+				break;
+			case article_info::cols::sortid:
+				wheresql.append("sortid");
+				break;
+			case article_info::cols::topicname:
+				wheresql.append("topicname");
+				break;
+			case article_info::cols::title:
+				wheresql.append("title");
+				break;
+			case article_info::cols::keywords:
+				wheresql.append("keywords");
+				break;
+			case article_info::cols::fromsource:
+				wheresql.append("fromsource");
+				break;
+			case article_info::cols::author:
+				wheresql.append("author");
+				break;
+			case article_info::cols::addip:
+				wheresql.append("addip");
+				break;
+			case article_info::cols::createtime:
+				wheresql.append("createtime");
+				break;
+			case article_info::cols::addtime:
+				wheresql.append("addtime");
+				break;
+			case article_info::cols::readnum:
+				wheresql.append("readnum");
+				break;
+			case article_info::cols::review:
+				wheresql.append("review");
+				break;
+			case article_info::cols::icoimg:
+				wheresql.append("icoimg");
+				break;
+			case article_info::cols::content:
+				wheresql.append("content");
+				break;
+			case article_info::cols::mdcontent:
+				wheresql.append("mdcontent");
+				break;
+			case article_info::cols::isopen:
+				wheresql.append("isopen");
+				break;
+			case article_info::cols::ishome:
+				wheresql.append("ishome");
+				break;
+			case article_info::cols::iscomment:
+				wheresql.append("iscomment");
+				break;
+			case article_info::cols::showtype:
+				wheresql.append("showtype");
+				break;
+			case article_info::cols::fromlocal:
+				wheresql.append("fromlocal");
+				break;
+			case article_info::cols::texturl:
+				wheresql.append("texturl");
+				break;
+			case article_info::cols::summary:
+				wheresql.append("summary");
+				break;
+			case article_info::cols::editauthor:
+				wheresql.append("editauthor");
+				break;
+			case article_info::cols::relatecontent:
+				wheresql.append("relatecontent");
+				break;
+            default:
+                static_assert(false, "not find column name ");
+                break;
+            }
+
+            if (opwq == orm::wq::in)
+            {
+                wheresql.append(" IN (");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") ");
+                return *mod;
+            }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+            switch (opwq)
+            {
+            case orm::wq::bt:
+                wheresql.append(" > ");
+                break;
+            case orm::wq::be:
+                wheresql.append(" >= ");
+                break;
+            case orm::wq::eq:
+                wheresql.append(" = ");
+                break;
+            case orm::wq::lt:
+                wheresql.append(" < ");
+                break;
+            case orm::wq::le:
+                wheresql.append(" <= ");
+                break;
+            default:
+                wheresql.append(" = ");
+                break;
+            }
+
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" ");
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &whereOr(article_info::cols field1, orm::wq opwq, T2 &&field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            switch (field1)
+            {
+            
+			case article_info::cols::aid:
+				wheresql.append("aid");
+				break;
+			case article_info::cols::topicid:
+				wheresql.append("topicid");
+				break;
+			case article_info::cols::classtype:
+				wheresql.append("classtype");
+				break;
+			case article_info::cols::userid:
+				wheresql.append("userid");
+				break;
+			case article_info::cols::sortid:
+				wheresql.append("sortid");
+				break;
+			case article_info::cols::topicname:
+				wheresql.append("topicname");
+				break;
+			case article_info::cols::title:
+				wheresql.append("title");
+				break;
+			case article_info::cols::keywords:
+				wheresql.append("keywords");
+				break;
+			case article_info::cols::fromsource:
+				wheresql.append("fromsource");
+				break;
+			case article_info::cols::author:
+				wheresql.append("author");
+				break;
+			case article_info::cols::addip:
+				wheresql.append("addip");
+				break;
+			case article_info::cols::createtime:
+				wheresql.append("createtime");
+				break;
+			case article_info::cols::addtime:
+				wheresql.append("addtime");
+				break;
+			case article_info::cols::readnum:
+				wheresql.append("readnum");
+				break;
+			case article_info::cols::review:
+				wheresql.append("review");
+				break;
+			case article_info::cols::icoimg:
+				wheresql.append("icoimg");
+				break;
+			case article_info::cols::content:
+				wheresql.append("content");
+				break;
+			case article_info::cols::mdcontent:
+				wheresql.append("mdcontent");
+				break;
+			case article_info::cols::isopen:
+				wheresql.append("isopen");
+				break;
+			case article_info::cols::ishome:
+				wheresql.append("ishome");
+				break;
+			case article_info::cols::iscomment:
+				wheresql.append("iscomment");
+				break;
+			case article_info::cols::showtype:
+				wheresql.append("showtype");
+				break;
+			case article_info::cols::fromlocal:
+				wheresql.append("fromlocal");
+				break;
+			case article_info::cols::texturl:
+				wheresql.append("texturl");
+				break;
+			case article_info::cols::summary:
+				wheresql.append("summary");
+				break;
+			case article_info::cols::editauthor:
+				wheresql.append("editauthor");
+				break;
+			case article_info::cols::relatecontent:
+				wheresql.append("relatecontent");
+				break;
+            default:
+                static_assert(false, "not find column name ");
+                break;
+            }
+
+
+            if (opwq == orm::wq::in)
+            {
+                wheresql.append(" IN (");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") ");
+                return *mod;
+            }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+            switch (opwq)
+            {
+            case orm::wq::bt:
+                wheresql.append(" > ");
+                break;
+            case orm::wq::be:
+                wheresql.append(" >= ");
+                break;
+            case orm::wq::eq:
+                wheresql.append(" = ");
+                break;
+            case orm::wq::lt:
+                wheresql.append(" < ");
+                break;
+            case orm::wq::le:
+                wheresql.append(" <= ");
                 break;
             default:
                 wheresql.append(" = ");

@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 18 Jun 2026 07:49:00 GMT
+ *  Creation time Thu, 18 Jun 2026 12:31:02 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -52392,6 +52392,18 @@ M_MODEL& or_leEnddate(T val)
                 wheresql.append(") ");
                 return *mod;
             }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+
             switch (opwq)
             {
             case orm::wq::bt:
@@ -52408,9 +52420,6 @@ M_MODEL& or_leEnddate(T val)
                 break;
             case orm::wq::le:
                 wheresql.append(" <= ");
-                break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
                 break;
             default:
                 wheresql.append(" = ");
@@ -52459,6 +52468,17 @@ M_MODEL& or_leEnddate(T val)
                 wheresql.append(") ");
                 return *mod;
             }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
             switch (opwq)
             {
             case orm::wq::bt:
@@ -52476,8 +52496,366 @@ M_MODEL& or_leEnddate(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
+            default:
+                wheresql.append(" = ");
+                break;
+            }
+
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" ");
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &where(siteinfo_info::cols field1, orm::wq opwq, T2 &&field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            switch (field1)
+            {
+            
+			case siteinfo_info::cols::sid:
+				wheresql.append("sid");
+				break;
+			case siteinfo_info::cols::userid:
+				wheresql.append("userid");
+				break;
+			case siteinfo_info::cols::agentid:
+				wheresql.append("agentid");
+				break;
+			case siteinfo_info::cols::languagetype:
+				wheresql.append("languagetype");
+				break;
+			case siteinfo_info::cols::sitename:
+				wheresql.append("sitename");
+				break;
+			case siteinfo_info::cols::sitedomain:
+				wheresql.append("sitedomain");
+				break;
+			case siteinfo_info::cols::metakeys:
+				wheresql.append("metakeys");
+				break;
+			case siteinfo_info::cols::metadesc:
+				wheresql.append("metadesc");
+				break;
+			case siteinfo_info::cols::copyright:
+				wheresql.append("copyright");
+				break;
+			case siteinfo_info::cols::beiansn:
+				wheresql.append("beiansn");
+				break;
+			case siteinfo_info::cols::footscript:
+				wheresql.append("footscript");
+				break;
+			case siteinfo_info::cols::headscript:
+				wheresql.append("headscript");
+				break;
+			case siteinfo_info::cols::introduce:
+				wheresql.append("introduce");
+				break;
+			case siteinfo_info::cols::sitelogo:
+				wheresql.append("sitelogo");
+				break;
+			case siteinfo_info::cols::sitebanner:
+				wheresql.append("sitebanner");
+				break;
+			case siteinfo_info::cols::contactman:
+				wheresql.append("contactman");
+				break;
+			case siteinfo_info::cols::phone:
+				wheresql.append("phone");
+				break;
+			case siteinfo_info::cols::mobile:
+				wheresql.append("mobile");
+				break;
+			case siteinfo_info::cols::email:
+				wheresql.append("email");
+				break;
+			case siteinfo_info::cols::bankname:
+				wheresql.append("bankname");
+				break;
+			case siteinfo_info::cols::banksn:
+				wheresql.append("banksn");
+				break;
+			case siteinfo_info::cols::address:
+				wheresql.append("address");
+				break;
+			case siteinfo_info::cols::zipnum:
+				wheresql.append("zipnum");
+				break;
+			case siteinfo_info::cols::taxsn:
+				wheresql.append("taxsn");
+				break;
+			case siteinfo_info::cols::companyname:
+				wheresql.append("companyname");
+				break;
+			case siteinfo_info::cols::linkname:
+				wheresql.append("linkname");
+				break;
+			case siteinfo_info::cols::linkmobile:
+				wheresql.append("linkmobile");
+				break;
+			case siteinfo_info::cols::linkaddress:
+				wheresql.append("linkaddress");
+				break;
+			case siteinfo_info::cols::theme:
+				wheresql.append("theme");
+				break;
+			case siteinfo_info::cols::sitepath:
+				wheresql.append("sitepath");
+				break;
+			case siteinfo_info::cols::isopen:
+				wheresql.append("isopen");
+				break;
+			case siteinfo_info::cols::created_at:
+				wheresql.append("created_at");
+				break;
+			case siteinfo_info::cols::enddate:
+				wheresql.append("enddate");
+				break;
+            default:
+                static_assert(false, "not find column name ");
+                break;
+            }
+
+            if (opwq == orm::wq::in)
+            {
+                wheresql.append(" IN (");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") ");
+                return *mod;
+            }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+            switch (opwq)
+            {
+            case orm::wq::bt:
+                wheresql.append(" > ");
+                break;
+            case orm::wq::be:
+                wheresql.append(" >= ");
+                break;
+            case orm::wq::eq:
+                wheresql.append(" = ");
+                break;
+            case orm::wq::lt:
+                wheresql.append(" < ");
+                break;
+            case orm::wq::le:
+                wheresql.append(" <= ");
+                break;
+            default:
+                wheresql.append(" = ");
+                break;
+            }
+
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" ");
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &whereOr(siteinfo_info::cols field1, orm::wq opwq, T2 &&field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            switch (field1)
+            {
+            
+			case siteinfo_info::cols::sid:
+				wheresql.append("sid");
+				break;
+			case siteinfo_info::cols::userid:
+				wheresql.append("userid");
+				break;
+			case siteinfo_info::cols::agentid:
+				wheresql.append("agentid");
+				break;
+			case siteinfo_info::cols::languagetype:
+				wheresql.append("languagetype");
+				break;
+			case siteinfo_info::cols::sitename:
+				wheresql.append("sitename");
+				break;
+			case siteinfo_info::cols::sitedomain:
+				wheresql.append("sitedomain");
+				break;
+			case siteinfo_info::cols::metakeys:
+				wheresql.append("metakeys");
+				break;
+			case siteinfo_info::cols::metadesc:
+				wheresql.append("metadesc");
+				break;
+			case siteinfo_info::cols::copyright:
+				wheresql.append("copyright");
+				break;
+			case siteinfo_info::cols::beiansn:
+				wheresql.append("beiansn");
+				break;
+			case siteinfo_info::cols::footscript:
+				wheresql.append("footscript");
+				break;
+			case siteinfo_info::cols::headscript:
+				wheresql.append("headscript");
+				break;
+			case siteinfo_info::cols::introduce:
+				wheresql.append("introduce");
+				break;
+			case siteinfo_info::cols::sitelogo:
+				wheresql.append("sitelogo");
+				break;
+			case siteinfo_info::cols::sitebanner:
+				wheresql.append("sitebanner");
+				break;
+			case siteinfo_info::cols::contactman:
+				wheresql.append("contactman");
+				break;
+			case siteinfo_info::cols::phone:
+				wheresql.append("phone");
+				break;
+			case siteinfo_info::cols::mobile:
+				wheresql.append("mobile");
+				break;
+			case siteinfo_info::cols::email:
+				wheresql.append("email");
+				break;
+			case siteinfo_info::cols::bankname:
+				wheresql.append("bankname");
+				break;
+			case siteinfo_info::cols::banksn:
+				wheresql.append("banksn");
+				break;
+			case siteinfo_info::cols::address:
+				wheresql.append("address");
+				break;
+			case siteinfo_info::cols::zipnum:
+				wheresql.append("zipnum");
+				break;
+			case siteinfo_info::cols::taxsn:
+				wheresql.append("taxsn");
+				break;
+			case siteinfo_info::cols::companyname:
+				wheresql.append("companyname");
+				break;
+			case siteinfo_info::cols::linkname:
+				wheresql.append("linkname");
+				break;
+			case siteinfo_info::cols::linkmobile:
+				wheresql.append("linkmobile");
+				break;
+			case siteinfo_info::cols::linkaddress:
+				wheresql.append("linkaddress");
+				break;
+			case siteinfo_info::cols::theme:
+				wheresql.append("theme");
+				break;
+			case siteinfo_info::cols::sitepath:
+				wheresql.append("sitepath");
+				break;
+			case siteinfo_info::cols::isopen:
+				wheresql.append("isopen");
+				break;
+			case siteinfo_info::cols::created_at:
+				wheresql.append("created_at");
+				break;
+			case siteinfo_info::cols::enddate:
+				wheresql.append("enddate");
+				break;
+            default:
+                static_assert(false, "not find column name ");
+                break;
+            }
+
+
+            if (opwq == orm::wq::in)
+            {
+                wheresql.append(" IN (");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") ");
+                return *mod;
+            }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+            switch (opwq)
+            {
+            case orm::wq::bt:
+                wheresql.append(" > ");
+                break;
+            case orm::wq::be:
+                wheresql.append(" >= ");
+                break;
+            case orm::wq::eq:
+                wheresql.append(" = ");
+                break;
+            case orm::wq::lt:
+                wheresql.append(" < ");
+                break;
+            case orm::wq::le:
+                wheresql.append(" <= ");
                 break;
             default:
                 wheresql.append(" = ");

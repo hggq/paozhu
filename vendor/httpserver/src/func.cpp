@@ -1816,9 +1816,9 @@ std::string array_to_sql(const std::vector<std::string> a, char b, bool isquote)
         }
         else
         {
-            temp.push_back('"');
+            temp.push_back('\'');
             temp.append(str_addslash(a[j]));
-            temp.push_back('"');
+            temp.push_back('\'');
         }
     }
     return temp;

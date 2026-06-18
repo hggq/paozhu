@@ -28,13 +28,19 @@ std::string testsqlquery(std::shared_ptr<httppeer> peer)
 
     try
     {
+        //返回结果结构体，如果只有一条可以使用 orm::cust::LocalusersqlStruct loaduser 单独一个
+        // Return the result struct. If there is only one, you can use orm::cust::LocalusersqlStruct loaduser alone
         std::vector<orm::cust::LocalusersqlStruct> loaduser;
-
-        auto  ulink= std::make_unique<orm::db_conn>("cms");
+        //独立使用数据库 db conn  Use database db conn independently
+        //cms为orm.conf配置文件标签 cms is the tag for the orm.conf configuration file
+        auto  ulink= std::make_unique<orm::db_conn>("cms"); 
+        //select 字段要和返回结果结构体字段对得上
+        //The "select" field must correspond to the field of the returned result struct
         std::string sqlstring="SELECT adminid,name,nickname FROM ";
         sqlstring.append("sysuser");
         sqlstring.append(" where 1 limit 1");
 
+        //同步模式 synchronous mode
         ulink->query(sqlstring,loaduser);
 
         if(loaduser.size() >0)
@@ -78,12 +84,13 @@ asio::awaitable<std::string> test_co_sqlquery(std::shared_ptr<httppeer> peer)
     try
     {
         std::vector<orm::cust::LocalusersqlStruct> loaduser;
-
+        //独立使用数据库 db conn  Use database db conn independently
         auto  ulink= std::make_unique<orm::db_conn>("cms");
         std::string sqlstring="SELECT adminid,name,nickname FROM ";
         sqlstring.append("sysuser");
         sqlstring.append(" where 1 limit 1");
 
+        //协程模式 Coroutine Pattern
         co_await ulink->async_query(sqlstring,loaduser);
 
         if(loaduser.size() >0)

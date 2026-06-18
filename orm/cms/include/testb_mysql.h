@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 18 Jun 2026 07:49:00 GMT
+ *  Creation time Thu, 18 Jun 2026 12:31:02 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -7880,6 +7880,18 @@ M_MODEL& or_ltSubprice(T val)
                 wheresql.append(") ");
                 return *mod;
             }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+
             switch (opwq)
             {
             case orm::wq::bt:
@@ -7896,9 +7908,6 @@ M_MODEL& or_ltSubprice(T val)
                 break;
             case orm::wq::le:
                 wheresql.append(" <= ");
-                break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
                 break;
             default:
                 wheresql.append(" = ");
@@ -7947,6 +7956,17 @@ M_MODEL& or_ltSubprice(T val)
                 wheresql.append(") ");
                 return *mod;
             }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
             switch (opwq)
             {
             case orm::wq::bt:
@@ -7964,8 +7984,204 @@ M_MODEL& or_ltSubprice(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
+            default:
+                wheresql.append(" = ");
+                break;
+            }
+
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" ");
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &where(testb_info::cols field1, orm::wq opwq, T2 &&field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" AND ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" AND ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            switch (field1)
+            {
+            
+			case testb_info::cols::tid:
+				wheresql.append("tid");
+				break;
+			case testb_info::cols::score:
+				wheresql.append("score");
+				break;
+			case testb_info::cols::name:
+				wheresql.append("name");
+				break;
+			case testb_info::cols::pricenum:
+				wheresql.append("pricenum");
+				break;
+			case testb_info::cols::orgprice:
+				wheresql.append("orgprice");
+				break;
+			case testb_info::cols::subprice:
+				wheresql.append("subprice");
+				break;
+            default:
+                static_assert(false, "not find column name ");
+                break;
+            }
+
+            if (opwq == orm::wq::in)
+            {
+                wheresql.append(" IN (");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") ");
+                return *mod;
+            }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+            switch (opwq)
+            {
+            case orm::wq::bt:
+                wheresql.append(" > ");
+                break;
+            case orm::wq::be:
+                wheresql.append(" >= ");
+                break;
+            case orm::wq::eq:
+                wheresql.append(" = ");
+                break;
+            case orm::wq::lt:
+                wheresql.append(" < ");
+                break;
+            case orm::wq::le:
+                wheresql.append(" <= ");
+                break;
+            default:
+                wheresql.append(" = ");
+                break;
+            }
+
+            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(" ");
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &whereOr(testb_info::cols field1, orm::wq opwq, T2 &&field2)
+        {
+            if (wheresql.empty())
+            {
+            }
+            else
+            {
+                if (ishascontent)
+                {
+                    wheresql.append(" OR ");
+                }
+                else
+                {
+                    if (!iskuohao)
+                    {
+                        wheresql.append(" OR ");
+                    }
+                }
+            }
+            if (iskuohao)
+            {
+                ishascontent = true;
+            }
+
+            switch (field1)
+            {
+            
+			case testb_info::cols::tid:
+				wheresql.append("tid");
+				break;
+			case testb_info::cols::score:
+				wheresql.append("score");
+				break;
+			case testb_info::cols::name:
+				wheresql.append("name");
+				break;
+			case testb_info::cols::pricenum:
+				wheresql.append("pricenum");
+				break;
+			case testb_info::cols::orgprice:
+				wheresql.append("orgprice");
+				break;
+			case testb_info::cols::subprice:
+				wheresql.append("subprice");
+				break;
+            default:
+                static_assert(false, "not find column name ");
+                break;
+            }
+
+
+            if (opwq == orm::wq::in)
+            {
+                wheresql.append(" IN (");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append(") ");
+                return *mod;
+            }
+            else if (opwq == orm::wq::like) 
+            {
+                wheresql.append(" like '%");
+                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                {
+                    wheresql.append(std::string_view(field2));
+                }
+                wheresql.append("%' ");
+                return *mod;
+            }
+
+            switch (opwq)
+            {
+            case orm::wq::bt:
+                wheresql.append(" > ");
+                break;
+            case orm::wq::be:
+                wheresql.append(" >= ");
+                break;
+            case orm::wq::eq:
+                wheresql.append(" = ");
+                break;
+            case orm::wq::lt:
+                wheresql.append(" < ");
+                break;
+            case orm::wq::le:
+                wheresql.append(" <= ");
                 break;
             default:
                 wheresql.append(" = ");
