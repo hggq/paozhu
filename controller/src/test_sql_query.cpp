@@ -69,4 +69,53 @@ std::string testsqlquery(std::shared_ptr<httppeer> peer)
     return "";
 }
 
+//@urlpath(null,co_sqlquery)
+asio::awaitable<std::string> test_co_sqlquery(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "hello world!  alone use co_sqlquery ";
+
+    try
+    {
+        std::vector<orm::cust::LocalusersqlStruct> loaduser;
+
+        auto  ulink= std::make_unique<orm::db_conn>("cms");
+        std::string sqlstring="SELECT adminid,name,nickname FROM ";
+        sqlstring.append("sysuser");
+        sqlstring.append(" where 1 limit 1");
+
+        co_await ulink->async_query(sqlstring,loaduser);
+
+        if(loaduser.size() >0)
+        {
+            client << "sql:"<<sqlstring<<"<hr>";
+            if (loaduser.size() > 0)
+            {
+                for (size_t i = 0; i < loaduser.size(); i++)
+                {
+                    client << "adminid:";
+                    client << loaduser[i].adminid ;
+                    client << ", name:";
+                    client << loaduser[i].name ;
+                    client << ", nickname:";
+                    client << loaduser[i].nickname ;
+                    client << "<br />";
+                        
+                }
+            }
+        }
+        else
+        {
+            client << "<p>--------------</p>";
+            client << ulink->error_msg;
+        }
+    }
+    catch (std::exception &e)
+    {
+        client << "<p>" << e.what() << "</p>";
+        co_return "";
+    }
+    co_return "";
+}
+
 }// namespace http
