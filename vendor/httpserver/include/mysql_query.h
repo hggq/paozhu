@@ -28,8 +28,25 @@ class db_conn : std::enable_shared_from_this<db_conn>
         select_db(tag);
     };
     void select_db(std::string_view tag);
+    void lock_conn(bool islock)
+    {
+        islock_conn = islock;
+    }
 
-    ~db_conn() {};
+    ~db_conn() {
+        if(islock_conn)
+        {
+            islock_conn = false;
+            if (select_conn)
+            {
+                conn_obj->back_select_conn(std::move(select_conn));
+            }
+            if (edit_conn)
+            {
+                conn_obj->back_edit_conn(std::move(edit_conn));
+            }
+        }
+    };
     template <ResultHasSetVal T>
     unsigned int query(const std::string &rawsql, std::vector<T> &result_record)
     {
