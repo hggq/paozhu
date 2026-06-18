@@ -44,6 +44,7 @@
 #include "test_weixin.h"
 #include "testqrcode.h"
 #include "imageapi.h"
+#include "test_sql_query.h"
 #include "testpzcache.h"
 #include "testhello.h"
 #include "testsitepath.h"
@@ -533,6 +534,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = imageapi_upload;
 		methodcallback.emplace("imageapi/upload",temp);
+		temp.pre = nullptr;
+		temp.regfun = testsqlquery;
+		methodcallback.emplace("sqlquery",temp);
 		temp.pre = nullptr;
 		temp.regfun = testpzcache;
 		methodcallback.emplace("testcache",temp);

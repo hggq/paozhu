@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Wed, 17 Jun 2026 10:12:50 GMT
+ *  Creation time Thu, 18 Jun 2026 07:49:00 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -230,7 +230,7 @@ namespace cms
                                 unsigned int tempnum = 0;
 
                                 unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                querysql_len = 0;
+                                querysql_len             = 0;
                                 // if((tempnum + name_length) >= temp_pack_data.data.size())
                                 // {
                                 //     error_msg = "MySQL read pack error";
@@ -18317,8 +18317,6 @@ M_MODEL& or_leSortid(T val)
             return *mod;
         }
 
- 
- 
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &where(std::string_view wq, char bi, _SQL_Value val)
@@ -18350,7 +18348,6 @@ M_MODEL& or_leSortid(T val)
             return *mod;
         }
 
- 
         M_MODEL &where(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
@@ -18511,7 +18508,6 @@ M_MODEL& or_leSortid(T val)
             return *mod;
         }
 
- 
         template <typename _SQL_Value>
             requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &betWeen(std::string_view &wq, _SQL_Value a, _SQL_Value b)
@@ -18652,7 +18648,7 @@ M_MODEL& or_leSortid(T val)
             }
             return *mod;
         }
-        M_MODEL &whereLikeLeft(std::string_view wq,std::string_view val)
+        M_MODEL &whereLikeLeft(std::string_view wq, std::string_view val)
         {
 
             if (wheresql.empty())
@@ -18683,7 +18679,7 @@ M_MODEL& or_leSortid(T val)
             wheresql.append("' ");
             return *mod;
         }
-        M_MODEL &whereLikeRight(std::string_view wq,std::string_view val)
+        M_MODEL &whereLikeRight(std::string_view wq, std::string_view val)
         {
 
             if (wheresql.empty())
@@ -18713,7 +18709,7 @@ M_MODEL& or_leSortid(T val)
             wheresql.append("%' ");
             return *mod;
         }
-        M_MODEL &whereOrLike(std::string_view wq,std::string_view val)
+        M_MODEL &whereOrLike(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -18810,7 +18806,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <typename _SQL_Value>
-        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereBT(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
@@ -18841,7 +18837,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <typename _SQL_Value>
-        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereBE(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
@@ -18872,7 +18868,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <typename _SQL_Value>
-        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereLT(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
@@ -18903,7 +18899,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <typename _SQL_Value>
-        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereLE(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
@@ -18932,8 +18928,8 @@ M_MODEL& or_leSortid(T val)
             wheresql.append(std::to_string(val));
             return *mod;
         }
-        //where and 
-        M_MODEL &whereEQ(std::string_view wq,std::string_view val)
+        //where and
+        M_MODEL &whereEQ(std::string_view wq, std::string_view val)
         {
             if (wheresql.empty())
             {
@@ -19128,7 +19124,7 @@ M_MODEL& or_leSortid(T val)
 
         //where or
         template <typename _SQL_Value>
-        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereOrBT(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
@@ -19159,7 +19155,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <typename _SQL_Value>
-        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereOrBE(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
@@ -19190,7 +19186,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <typename _SQL_Value>
-        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereOrLT(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
@@ -19221,7 +19217,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <typename _SQL_Value>
-        requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
+            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereOrLE(std::string_view wq, _SQL_Value val)
         {
             if (wheresql.empty())
@@ -19250,7 +19246,7 @@ M_MODEL& or_leSortid(T val)
             wheresql.append(val);
             return *mod;
         }
-        
+
         M_MODEL &whereOr(std::string_view wq)
         {
             if (wheresql.empty())
@@ -19615,8 +19611,8 @@ M_MODEL& or_leSortid(T val)
             return *mod;
         }
 
-        template<typename T2>
-        M_MODEL &where(std::string_view field1, orm::wq opwq, T2&& field2)
+        template <typename T2>
+        M_MODEL &where(std::string_view field1, orm::wq opwq, T2 &&field2)
         {
             if (wheresql.empty())
             {
@@ -19642,48 +19638,48 @@ M_MODEL& or_leSortid(T val)
 
             wheresql.append(field1);
 
-            if(opwq == orm::wq::in)
+            if (opwq == orm::wq::in)
             {
-                wheresql.append(" IN ("); 
+                wheresql.append(" IN (");
                 if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
                 {
                     wheresql.append(std::string_view(field2));
                 }
-                wheresql.append(") "); 
-                return *mod; 
+                wheresql.append(") ");
+                return *mod;
             }
             switch (opwq)
             {
-            case  orm::wq::bt:
-                wheresql.append(" > "); 
+            case orm::wq::bt:
+                wheresql.append(" > ");
                 break;
-            case  orm::wq::be:
-                wheresql.append(" >= "); 
+            case orm::wq::be:
+                wheresql.append(" >= ");
                 break;
-            case  orm::wq::eq:
-                wheresql.append(" = "); 
+            case orm::wq::eq:
+                wheresql.append(" = ");
                 break;
-            case  orm::wq::lt:
-                wheresql.append(" < "); 
+            case orm::wq::lt:
+                wheresql.append(" < ");
                 break;
-            case  orm::wq::le:
-                wheresql.append(" <= "); 
+            case orm::wq::le:
+                wheresql.append(" <= ");
                 break;
-            case  orm::wq::like:
-                join_ptr->subsql.append(" LIKE "); 
-                break;                
+            case orm::wq::like:
+                join_ptr->subsql.append(" LIKE ");
+                break;
             default:
-                wheresql.append(" = "); 
+                wheresql.append(" = ");
                 break;
             }
-            
+
             wheresql.append(to_sql_value(std::forward<T2>(field2)));
-            wheresql.append(" "); 
-            return *mod; 
+            wheresql.append(" ");
+            return *mod;
         }
 
-        template<typename T2>
-        M_MODEL &whereOr(std::string_view field1, orm::wq opwq, T2&& field2)
+        template <typename T2>
+        M_MODEL &whereOr(std::string_view field1, orm::wq opwq, T2 &&field2)
         {
             if (wheresql.empty())
             {
@@ -19709,44 +19705,44 @@ M_MODEL& or_leSortid(T val)
 
             wheresql.append(field1);
 
-            if(opwq == orm::wq::in)
+            if (opwq == orm::wq::in)
             {
-                wheresql.append(" IN ("); 
+                wheresql.append(" IN (");
                 if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
                 {
                     wheresql.append(std::string_view(field2));
                 }
-                wheresql.append(") "); 
-                return *mod; 
+                wheresql.append(") ");
+                return *mod;
             }
             switch (opwq)
             {
-            case  orm::wq::bt:
-                wheresql.append(" > "); 
+            case orm::wq::bt:
+                wheresql.append(" > ");
                 break;
-            case  orm::wq::be:
-                wheresql.append(" >= "); 
+            case orm::wq::be:
+                wheresql.append(" >= ");
                 break;
-            case  orm::wq::eq:
-                wheresql.append(" = "); 
+            case orm::wq::eq:
+                wheresql.append(" = ");
                 break;
-            case  orm::wq::lt:
-                wheresql.append(" < "); 
+            case orm::wq::lt:
+                wheresql.append(" < ");
                 break;
-            case  orm::wq::le:
-                wheresql.append(" <= "); 
+            case orm::wq::le:
+                wheresql.append(" <= ");
                 break;
-            case  orm::wq::like:
-                join_ptr->subsql.append(" LIKE "); 
-                break;                
+            case orm::wq::like:
+                join_ptr->subsql.append(" LIKE ");
+                break;
             default:
-                wheresql.append(" = "); 
+                wheresql.append(" = ");
                 break;
             }
-            
+
             wheresql.append(to_sql_value(std::forward<T2>(field2)));
-            wheresql.append(" "); 
-            return *mod; 
+            wheresql.append(" ");
+            return *mod;
         }
 
         M_MODEL &order(std::string_view wq)
@@ -20388,8 +20384,8 @@ M_MODEL& or_leSortid(T val)
             return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
         }
 
-        template<typename T, RecordLineCallback<T> Callback>
-        unsigned int fetch_to(std::vector<T>& custom_record, Callback&& callback) 
+        template <typename T, RecordLineCallback<T> Callback>
+        unsigned int fetch_to(std::vector<T> &custom_record, Callback &&callback)
         {
             effect_num = 0;
             parse_leftjion();
@@ -20474,7 +20470,7 @@ M_MODEL& or_leSortid(T val)
 
                 unsigned char action_setup = 0;
                 unsigned int column_num    = 0;
-                unsigned int offset = 0;
+                unsigned int offset        = 0;
 
                 for (; is_sql_item == false;)
                 {
@@ -20550,7 +20546,6 @@ M_MODEL& or_leSortid(T val)
                                         std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type, 1);
                                     }
                                     tempnum = tempnum + name_length;
-                                    
                                 }
                                 custom_record.emplace_back(std::move(data_temp));
                                 effect_num++;
@@ -20597,8 +20592,8 @@ M_MODEL& or_leSortid(T val)
             return 0;
         }
 
-        template<typename T, RecordLineCallback<T> Callback>
-        asio::awaitable<unsigned int> async_fetch_to(std::vector<T>& custom_record, Callback&& callback)
+        template <typename T, RecordLineCallback<T> Callback>
+        asio::awaitable<unsigned int> async_fetch_to(std::vector<T> &custom_record, Callback &&callback)
         {
             effect_num = 0;
             parse_leftjion();
@@ -20784,7 +20779,7 @@ M_MODEL& or_leSortid(T val)
                 {
                     conn_obj->back_select_conn(std::move(select_conn));
                 }
- 
+
                 co_return effect_num;
             }
             catch (const std::exception &e)
@@ -20803,7 +20798,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <ResultHasSetVal T>
-        unsigned int fetch_to(std::vector<T>& custom_record)
+        unsigned int fetch_to(std::vector<T> &custom_record)
         {
             effect_num = 0;
             parse_leftjion();
@@ -20885,7 +20880,7 @@ M_MODEL& or_leSortid(T val)
 
                 unsigned char action_setup = 0;
                 unsigned int column_num    = 0;
-                unsigned int offset = 0;
+                unsigned int offset        = 0;
 
                 for (; is_sql_item == false;)
                 {
@@ -20960,7 +20955,7 @@ M_MODEL& or_leSortid(T val)
                                     {
                                         data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
-                                    
+
                                     tempnum = tempnum + name_length;
                                 }
                                 custom_record.emplace_back(std::move(data_temp));
@@ -21009,7 +21004,7 @@ M_MODEL& or_leSortid(T val)
         }
 
         template <ResultHasSetVal T>
-        asio::awaitable<unsigned int> async_fetch_to(std::vector<T>& custom_record)
+        asio::awaitable<unsigned int> async_fetch_to(std::vector<T> &custom_record)
         {
             effect_num = 0;
             parse_leftjion();
@@ -21195,7 +21190,7 @@ M_MODEL& or_leSortid(T val)
                 {
                     conn_obj->back_select_conn(std::move(select_conn));
                 }
- 
+
                 co_return effect_num;
             }
             catch (const std::exception &e)
@@ -22094,9 +22089,9 @@ M_MODEL& or_leSortid(T val)
             }
             co_return 0;
         }
-        
-        template<typename T, RecordLineCallback<T> Callback>
-        unsigned int fetch_one_to(T& custom_record, Callback&& callback)
+
+        template <typename T, RecordLineCallback<T> Callback>
+        unsigned int fetch_one_to(T &custom_record, Callback &&callback)
         {
             effect_num = 0;
             parse_leftjion();
@@ -22252,7 +22247,7 @@ M_MODEL& or_leSortid(T val)
                                     {
                                         std::invoke(std::forward<Callback>(callback), custom_record, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type, 1);
                                     }
-                                    
+
                                     tempnum = tempnum + name_length;
                                 }
 
@@ -22300,8 +22295,8 @@ M_MODEL& or_leSortid(T val)
             return 0;
         }
 
-        template<typename T, RecordLineCallback<T> Callback>
-        asio::awaitable<unsigned int> async_fetch_one_to(T& custom_record, Callback&& callback)
+        template <typename T, RecordLineCallback<T> Callback>
+        asio::awaitable<unsigned int> async_fetch_one_to(T &custom_record, Callback &&callback)
         {
             effect_num = 0;
             parse_leftjion();
@@ -22459,7 +22454,7 @@ M_MODEL& or_leSortid(T val)
                                     {
                                         std::invoke(std::forward<Callback>(callback), custom_record, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type, 1);
                                     }
-                                    
+
                                     tempnum = tempnum + name_length;
                                 }
 
@@ -22488,7 +22483,7 @@ M_MODEL& or_leSortid(T val)
                 {
                     conn_obj->back_select_conn(std::move(select_conn));
                 }
- 
+
                 co_return effect_num;
             }
             catch (const std::exception &e)
@@ -22663,7 +22658,7 @@ M_MODEL& or_leSortid(T val)
                                     {
                                         custom_struct.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
-                                    
+
                                     tempnum = tempnum + name_length;
                                 }
 
@@ -22870,7 +22865,7 @@ M_MODEL& or_leSortid(T val)
                                     {
                                         custom_struct.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
                                     }
-                                    
+
                                     tempnum = tempnum + name_length;
                                 }
 
@@ -22899,7 +22894,7 @@ M_MODEL& or_leSortid(T val)
                 {
                     conn_obj->back_select_conn(std::move(select_conn));
                 }
- 
+
                 co_return effect_num;
             }
             catch (const std::exception &e)
@@ -26827,13 +26822,49 @@ M_MODEL& or_leSortid(T val)
             co_return std::make_tuple(0, 0);
         }
 
-        std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>>
-        query(const std::string &rawsql)
+        unsigned int query(const std::string &rawsql)
         {
             effect_num = 0;
-            std::vector<std::vector<std::string>> temprecord;
-            std::vector<std::string> table_fieldname;
-            std::map<std::string, unsigned int> table_fieldmap;
+            if (rawsql.size() > 10)
+            {
+                unsigned int i = 0;
+                for (; i < rawsql.size(); i++)
+                {
+                    if (rawsql[i] != 0x20)
+                    {
+                        break;
+                    }
+                }
+                if (i < 5)
+                {
+                    //must be select
+                    if (rawsql[i] != 's' && rawsql[i] != 'S')
+                    {
+                        effect_num = edit_query(rawsql);
+                        return effect_num;
+                    }
+                }
+                else
+                {
+                    iserror = true;
+                }
+            }
+            else
+            {
+                iserror = true;
+            }
+
+            if (iserror)
+            {
+                return 0;
+            }
+
+            return 0;
+        }
+
+        asio::awaitable<unsigned int> async_query(const std::string &rawsql)
+        {
+            effect_num = 0;
 
             if (rawsql.size() > 10)
             {
@@ -26850,8 +26881,8 @@ M_MODEL& or_leSortid(T val)
                     //must be select
                     if (rawsql[i] != 's' && rawsql[i] != 'S')
                     {
-                        error_msg = "Query sql string must be select.";
-                        iserror   = true;
+                        effect_num = co_await async_edit_query(rawsql);
+                        co_return effect_num;
                     }
                 }
                 else
@@ -26866,14 +26897,55 @@ M_MODEL& or_leSortid(T val)
 
             if (iserror)
             {
-                return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                co_return 0;
+            }
+
+            co_return 0;
+        }
+
+        template <ResultHasSetVal T>
+        unsigned int query(const std::string &rawsql, std::vector<T> &result_record)
+        {
+            effect_num = 0;
+            if (rawsql.size() > 10)
+            {
+                unsigned int i = 0;
+                for (; i < rawsql.size(); i++)
+                {
+                    if (rawsql[i] != 0x20)
+                    {
+                        break;
+                    }
+                }
+                if (i < 5)
+                {
+                    //must be select
+                    if (rawsql[i] != 's' && rawsql[i] != 'S')
+                    {
+                        effect_num = edit_query(rawsql);
+                        return effect_num;
+                    }
+                }
+                else
+                {
+                    iserror = true;
+                }
+            }
+            else
+            {
+                iserror = true;
+            }
+
+            if (iserror)
+            {
+                return 0;
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                    return 0;
                 }
                 //auto conn = conn_obj->get_select_conn();
                 if (islock_conn)
@@ -26897,7 +26969,7 @@ M_MODEL& or_leSortid(T val)
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                    return 0;
                 }
 
                 pack_info_t temp_pack_data;
@@ -26920,7 +26992,7 @@ M_MODEL& or_leSortid(T val)
                     {
                         error_msg = select_conn->error_msg;
                         select_conn.reset();
-                        return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                        return 0;
                     }
                     for (; offset < n;)
                     {
@@ -26930,7 +27002,7 @@ M_MODEL& or_leSortid(T val)
                             iserror   = true;
                             error_msg = temp_pack_data.data;
                             select_conn.reset();
-                            return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                            return 0;
                         }
                         if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
@@ -26958,12 +27030,12 @@ M_MODEL& or_leSortid(T val)
                                 if (column_num == 0)
                                 {
                                     action_setup = 2;
-                                    for (unsigned int ii = 0; ii < field_array.size(); ii++)
-                                    {
-                                        field_pos.push_back(B_BASE::findcolpos(field_array[ii].org_name));
-                                        table_fieldmap.emplace(field_array[ii].org_name, table_fieldname.size());
-                                        table_fieldname.push_back(field_array[ii].org_name);
-                                    }
+                                    // for (unsigned int ii = 0; ii < field_array.size(); ii++)
+                                    // {
+                                    //     field_pos.push_back(B_BASE::findcolpos(field_array[ii].org_name));
+                                    //     table_fieldmap.emplace(field_array[ii].org_name, table_fieldname.size());
+                                    //     table_fieldname.push_back(field_array[ii].org_name);
+                                    // }
                                 }
                             }
                             else if (action_setup == 2)
@@ -26971,7 +27043,7 @@ M_MODEL& or_leSortid(T val)
                                 unsigned int column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
-                                std::vector<std::string> temp_v_record;
+                                T data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
@@ -26979,15 +27051,19 @@ M_MODEL& or_leSortid(T val)
                                     // if((tempnum + name_length) >= temp_pack_data.data.size())
                                     // {
                                     //     error_msg = "MySQL read pack error";
-                                    //     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                                    //     co_return 0;
                                     // }
-                                    std::string tempstr;
-                                    tempstr.resize(name_length);
-                                    std::memcpy(tempstr.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
-                                    temp_v_record.push_back(std::move(tempstr));
+                                    if (field_array[ij].name.size() > 0)
+                                    {
+                                        data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
+                                    }
+                                    else if (field_array[ij].org_name.size() > 0)
+                                    {
+                                        data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
+                                    }
                                     tempnum = tempnum + name_length;
                                 }
-                                temprecord.push_back(temp_v_record);
+                                result_record.emplace_back(std::move(data_temp));
                                 effect_num++;
                             }
                         }
@@ -27013,7 +27089,7 @@ M_MODEL& or_leSortid(T val)
                 {
                     conn_obj->back_select_conn(std::move(select_conn));
                 }
-                return std::make_tuple(std::move(table_fieldname), std::move(table_fieldmap), std::move(temprecord));
+                return effect_num;
             }
             catch (const std::exception &e)
             {
@@ -27026,16 +27102,12 @@ M_MODEL& or_leSortid(T val)
             catch (...)
             {
             }
-            return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+            return 0;
         }
-
-        asio::awaitable<std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>>>
-        async_query(const std::string &rawsql)
+        template <ResultHasSetVal T>
+        asio::awaitable<unsigned int> async_query(const std::string &rawsql, std::vector<T> &result_record)
         {
             effect_num = 0;
-            std::vector<std::vector<std::string>> temprecord;
-            std::vector<std::string> table_fieldname;
-            std::map<std::string, unsigned int> table_fieldmap;
 
             if (rawsql.size() > 10)
             {
@@ -27052,8 +27124,8 @@ M_MODEL& or_leSortid(T val)
                     //must be select
                     if (rawsql[i] != 's' && rawsql[i] != 'S')
                     {
-                        error_msg = "Query sql string must be select.";
-                        iserror   = true;
+                        effect_num = co_await async_edit_query(rawsql);
+                        co_return effect_num;
                     }
                 }
                 else
@@ -27068,14 +27140,14 @@ M_MODEL& or_leSortid(T val)
 
             if (iserror)
             {
-                co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                co_return 0;
             }
 
             try
             {
                 if (conn_empty())
                 {
-                    co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                    co_return 0;
                 }
                 if (islock_conn)
                 {
@@ -27098,7 +27170,7 @@ M_MODEL& or_leSortid(T val)
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                    co_return 0;
                 }
 
                 pack_info_t temp_pack_data;
@@ -27111,7 +27183,7 @@ M_MODEL& or_leSortid(T val)
 
                 unsigned int offset = 0;
 
-                std::vector<unsigned char> field_pos;
+                // std::vector<unsigned char> field_pos;
 
                 for (; is_sql_item == false;)
                 {
@@ -27120,7 +27192,7 @@ M_MODEL& or_leSortid(T val)
                     if (n == 0)
                     {
                         select_conn.reset();
-                        co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                        co_return 0;
                     }
                     for (; offset < n;)
                     {
@@ -27130,7 +27202,7 @@ M_MODEL& or_leSortid(T val)
                             iserror   = true;
                             error_msg = temp_pack_data.data;
                             select_conn.reset();
-                            co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                            co_return 0;
                         }
                         if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
                         {
@@ -27158,12 +27230,12 @@ M_MODEL& or_leSortid(T val)
                                 if (column_num == 0)
                                 {
                                     action_setup = 2;
-                                    for (unsigned int ii = 0; ii < field_array.size(); ii++)
-                                    {
-                                        field_pos.push_back(B_BASE::findcolpos(field_array[ii].org_name));
-                                        table_fieldmap.emplace(field_array[ii].org_name, table_fieldname.size());
-                                        table_fieldname.push_back(field_array[ii].org_name);
-                                    }
+                                    // for (unsigned int ii = 0; ii < field_array.size(); ii++)
+                                    // {
+                                    //     field_pos.push_back(B_BASE::findcolpos(field_array[ii].org_name));
+                                    //     table_fieldmap.emplace(field_array[ii].org_name, table_fieldname.size());
+                                    //     table_fieldname.push_back(field_array[ii].org_name);
+                                    // }
                                 }
                             }
                             else if (action_setup == 2)
@@ -27171,7 +27243,7 @@ M_MODEL& or_leSortid(T val)
                                 unsigned int column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
-                                std::vector<std::string> temp_v_record;
+                                T data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
@@ -27179,15 +27251,20 @@ M_MODEL& or_leSortid(T val)
                                     // if((tempnum + name_length) >= temp_pack_data.data.size())
                                     // {
                                     //     error_msg = "MySQL read pack error";
-                                    //     co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                                    //     co_return 0;
                                     // }
-                                    std::string tempstr;
-                                    tempstr.resize(name_length);
-                                    std::memcpy(tempstr.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
-                                    temp_v_record.push_back(std::move(tempstr));
+                                    if (field_array[ij].name.size() > 0)
+                                    {
+                                        //or alias name
+                                        data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
+                                    }
+                                    else if (field_array[ij].org_name.size() > 0)
+                                    {
+                                        data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
+                                    }
                                     tempnum = tempnum + name_length;
                                 }
-                                temprecord.push_back(temp_v_record);
+                                result_record.emplace_back(std::move(data_temp));
                                 effect_num++;
                             }
                         }
@@ -27213,7 +27290,7 @@ M_MODEL& or_leSortid(T val)
                 {
                     conn_obj->back_select_conn(std::move(select_conn));
                 }
-                co_return std::make_tuple(std::move(table_fieldname), std::move(table_fieldmap), std::move(temprecord));
+                co_return effect_num;
             }
             catch (const std::exception &e)
             {
@@ -27226,60 +27303,245 @@ M_MODEL& or_leSortid(T val)
             catch (...)
             {
             }
-            co_return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+            co_return 0;
         }
 
-        // long long edit_query(const std::string &rawsql, bool isinsert = false)
-        // {
-        //     if (iserror)
-        //     {
-        //         return 0;
-        //     }
+        int edit_query(const std::string &rawsql)
+        {
+            effect_num = 0;
 
-        //     return 0;
-        // }
+            if (iscommit)
+            {
+                iscommit = false;
+                return 0;
+            }
+
+            if (iserror)
+            {
+                return 0;
+            }
+
+            try
+            {
+                if (conn_empty())
+                {
+                    return 0;
+                }
+
+                if (islock_conn)
+                {
+                    if (!edit_conn)
+                    {
+                        edit_conn = conn_obj->get_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = conn_obj->get_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+
+                std::size_t n = edit_conn->write_sql(rawsql);
+                if (n == 0)
+                {
+                    error_msg = edit_conn->error_msg;
+                    edit_conn.reset();
+                    return 0;
+                }
+
+                unsigned int offset = 0;
+                n                   = edit_conn->read_loop();
+                if (n == 0)
+                {
+                    error_msg = edit_conn->error_msg;
+                    edit_conn.reset();
+                    return 0;
+                }
+                pack_info_t temp_pack_data;
+                temp_pack_data.seq_id = 1;
+                edit_conn->read_field_pack(edit_conn->_cache_data, n, offset, temp_pack_data);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(rawsql, std::to_string(du_time));
+                }
+
+                if ((unsigned char)temp_pack_data.data[0] == 0xFF)
+                {
+                    error_msg = temp_pack_data.data.substr(3);
+                }
+                else if ((unsigned char)temp_pack_data.data[0] == 0x00)
+                {
+
+                    unsigned int d_offset = 1;
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                }
+                if (!islock_conn)
+                {
+                    conn_obj->back_edit_conn(std::move(edit_conn));
+                }
+                return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                return 0;
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            return 0;
+        }
+
+        asio::awaitable<unsigned int> async_edit_query(const std::string &rawsql)
+        {
+            effect_num = 0;
+
+            if (iscommit)
+            {
+                iscommit = false;
+                co_return 0;
+            }
+
+            if (iserror)
+            {
+                co_return 0;
+            }
+
+            try
+            {
+                if (conn_empty())
+                {
+                    co_return 0;
+                }
+
+                if (islock_conn)
+                {
+                    if (!edit_conn)
+                    {
+                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+
+                std::size_t n = co_await edit_conn->async_write_sql(rawsql);
+                if (n == 0)
+                {
+                    error_msg = edit_conn->error_msg;
+                    edit_conn.reset();
+                    co_return 0;
+                }
+
+                unsigned int offset = 0;
+                n                   = co_await edit_conn->async_read_loop();
+                if (n == 0)
+                {
+                    error_msg = edit_conn->error_msg;
+                    edit_conn.reset();
+                    co_return 0;
+                }
+                pack_info_t temp_pack_data;
+                temp_pack_data.seq_id = 1;
+                edit_conn->read_field_pack(edit_conn->_cache_data, n, offset, temp_pack_data);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(rawsql, std::to_string(du_time));
+                }
+
+                if ((unsigned char)temp_pack_data.data[0] == 0xFF)
+                {
+                    error_msg = temp_pack_data.data.substr(3);
+                }
+                else if ((unsigned char)temp_pack_data.data[0] == 0x00)
+                {
+
+                    unsigned int d_offset = 1;
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                }
+                if (!islock_conn)
+                {
+                    conn_obj->back_edit_conn(std::move(edit_conn));
+                }
+                co_return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                co_return 0;
+            }
+            catch (const std::string &e)
+            {
+                error_msg = e;
+            }
+            catch (...)
+            {
+            }
+            co_return 0;
+        }
+
         unsigned int parse_value(unsigned int i)
         {
             i++;
-            if(i >= wheresql.size())
+            if (i >= wheresql.size())
             {
                 return i;
             }
-            if(wheresql[i]=='>')
+            if (wheresql[i] == '>')
             {
                 i++;
             }
 
-            if(i >= wheresql.size())
+            if (i >= wheresql.size())
             {
                 return i;
             }
 
-            if(wheresql[i]=='=')
+            if (wheresql[i] == '=')
             {
                 i++;
-                if(i >= wheresql.size())
+                if (i >= wheresql.size())
                 {
                     return i;
                 }
-                
-                if(wheresql[i]=='>')
+
+                if (wheresql[i] == '>')
                 {
                     i++;
                 }
-                
-                if(i >= wheresql.size())
+
+                if (i >= wheresql.size())
                 {
                     return i;
                 }
 
                 // spache
-                if(wheresql[i] ==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
-                    for(; i< wheresql.size(); i++)
+                    for (; i < wheresql.size(); i++)
                     {
-                        if(wheresql[i]==' ')
+                        if (wheresql[i] == ' ')
                         {
                             continue;
                         }
@@ -27287,33 +27549,33 @@ M_MODEL& or_leSortid(T val)
                     }
                 }
 
-                if(i >= wheresql.size())
+                if (i >= wheresql.size())
                 {
                     return i;
                 }
             }
-            else if(wheresql[i] ==' ')
+            else if (wheresql[i] == ' ')
             {
                 i++;
-                for(; i< wheresql.size(); i++)
+                for (; i < wheresql.size(); i++)
                 {
-                    if(wheresql[i]==' ')
+                    if (wheresql[i] == ' ')
                     {
                         continue;
                     }
                     break;
                 }
             }
-            
+
             //begin value
-            if(wheresql[i]=='\'')
+            if (wheresql[i] == '\'')
             {
                 i++;
-                for(; i< wheresql.size(); i++)
+                for (; i < wheresql.size(); i++)
                 {
-                    if(wheresql[i]=='\'')
+                    if (wheresql[i] == '\'')
                     {
-                        if(wheresql[i-1]=='\\')
+                        if (wheresql[i - 1] == '\\')
                         {
                             continue;
                         }
@@ -27324,9 +27586,9 @@ M_MODEL& or_leSortid(T val)
             }
             else
             {
-                for(; i< wheresql.size(); i++)
+                for (; i < wheresql.size(); i++)
                 {
-                    if(wheresql[i]==' ')
+                    if (wheresql[i] == ' ')
                     {
                         break;
                     }
@@ -27338,19 +27600,19 @@ M_MODEL& or_leSortid(T val)
 
         unsigned int parse_between(unsigned int i)
         {
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
                 }
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     continue;
                 }
@@ -27358,20 +27620,19 @@ M_MODEL& or_leSortid(T val)
             }
 
             //1 value
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
                 }
             }
 
-        
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     continue;
                 }
@@ -27379,29 +27640,29 @@ M_MODEL& or_leSortid(T val)
             }
 
             //and
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
                 }
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     continue;
                 }
                 break;
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
@@ -27411,19 +27672,19 @@ M_MODEL& or_leSortid(T val)
         }
         unsigned int parse_like(unsigned int i)
         {
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
                 }
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     continue;
                 }
@@ -27431,11 +27692,11 @@ M_MODEL& or_leSortid(T val)
             }
 
             i++;
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]=='\'')
+                if (wheresql[i] == '\'')
                 {
-                    if(wheresql[i-1]=='\\')
+                    if (wheresql[i - 1] == '\\')
                     {
                         continue;
                     }
@@ -27449,19 +27710,19 @@ M_MODEL& or_leSortid(T val)
 
         unsigned int parse_in(unsigned int i)
         {
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
                 }
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     continue;
                 }
@@ -27469,9 +27730,9 @@ M_MODEL& or_leSortid(T val)
             }
 
             i++;
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==')')
+                if (wheresql[i] == ')')
                 {
                     i++;
                     break;
@@ -27480,22 +27741,21 @@ M_MODEL& or_leSortid(T val)
             return i;
         }
 
-
-                unsigned int parse_exists(unsigned int i)
+        unsigned int parse_exists(unsigned int i)
         {
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
                 }
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     continue;
                 }
@@ -27503,9 +27763,9 @@ M_MODEL& or_leSortid(T val)
             }
 
             i++;
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==')')
+                if (wheresql[i] == ')')
                 {
                     i++;
                     break;
@@ -27516,38 +27776,38 @@ M_MODEL& or_leSortid(T val)
 
         unsigned int parse_notexists(unsigned int i)
         {
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
                 }
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     continue;
                 }
                 break;
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
                 //find space
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     i++;
                     break;
                 }
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
                     continue;
                 }
@@ -27555,9 +27815,9 @@ M_MODEL& or_leSortid(T val)
             }
 
             i++;
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==')')
+                if (wheresql[i] == ')')
                 {
                     i++;
                     break;
@@ -27566,65 +27826,64 @@ M_MODEL& or_leSortid(T val)
             return i;
         }
 
-
         void parse_wheresql()
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 return;
             }
             bool ishastabname = false;
-            unsigned int i=0;
-            for(; i< wheresql.size(); i++)
+            unsigned int i    = 0;
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
-                   continue;
+                    continue;
                 }
                 break;
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]=='.')
+                if (wheresql[i] == '.')
                 {
                     ishastabname = true;
                     break;
                 }
-                else if(wheresql[i]==' ' || wheresql[i]=='>'|| wheresql[i]=='!' || wheresql[i]=='<' || wheresql[i]=='=' || wheresql[i]=='(')
+                else if (wheresql[i] == ' ' || wheresql[i] == '>' || wheresql[i] == '!' || wheresql[i] == '<' || wheresql[i] == '=' || wheresql[i] == '(')
                 {
                     break;
                 }
             }
-            if(ishastabname)
+            if (ishastabname)
             {
-                return; 
+                return;
             }
 
             std::string newwheresql_;
             newwheresql_.append(B_BASE::tablename);
             newwheresql_.append(".");
             i = 0;
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ')
+                if (wheresql[i] == ' ')
                 {
-                   continue;
+                    continue;
                 }
                 break;
             }
 
-            for(; i< wheresql.size(); i++)
+            for (; i < wheresql.size(); i++)
             {
-                if(wheresql[i]==' ' || wheresql[i]=='>' || wheresql[i]=='!' || wheresql[i]=='<' || wheresql[i]=='=' || wheresql[i]=='(')
+                if (wheresql[i] == ' ' || wheresql[i] == '>' || wheresql[i] == '!' || wheresql[i] == '<' || wheresql[i] == '=' || wheresql[i] == '(')
                 {
                     unsigned begin_offset = i;
-                    if(wheresql[i]==' ')
+                    if (wheresql[i] == ' ')
                     {
                         newwheresql_.push_back(' ');
-                        for(; i< wheresql.size(); i++)
+                        for (; i < wheresql.size(); i++)
                         {
-                            if(wheresql[i]!=' ')
+                            if (wheresql[i] != ' ')
                             {
                                 break;
                             }
@@ -27633,120 +27892,119 @@ M_MODEL& or_leSortid(T val)
                     // > >= = < <= is null, in , not in , like , exists , not exists, between and
                     //value area
 
-                    for(; i< wheresql.size(); i++)
+                    for (; i < wheresql.size(); i++)
                     {
-                        if(wheresql[i]=='>')
+                        if (wheresql[i] == '>')
                         {
                             i = parse_value(i);
                             break;
-                        } 
-                        else if(wheresql[i]=='<')
+                        }
+                        else if (wheresql[i] == '<')
                         {
                             i = parse_value(i);
                         }
-                        else if(wheresql[i]=='=')
+                        else if (wheresql[i] == '=')
                         {
                             i = parse_value(i);
                         }
-                        else if(wheresql[i]=='!')
+                        else if (wheresql[i] == '!')
                         {
                             i = parse_value(i);
                         }
-                        else if(wheresql[i]=='b' || wheresql[i]=='B')
+                        else if (wheresql[i] == 'b' || wheresql[i] == 'B')
                         {
-                           i = parse_between(i);
-                        } 
-                        else if(wheresql[i]=='l' || wheresql[i]=='L')
-                        {
-                           i = parse_like(i);
+                            i = parse_between(i);
                         }
-                        else if(wheresql[i]=='e' || wheresql[i]=='E')
+                        else if (wheresql[i] == 'l' || wheresql[i] == 'L')
                         {
-                           i = parse_exists(i);
+                            i = parse_like(i);
                         }
-                        else if(wheresql[i]=='n' || wheresql[i]=='N')
+                        else if (wheresql[i] == 'e' || wheresql[i] == 'E')
                         {
-                           i = parse_notexists(i);
+                            i = parse_exists(i);
                         }
-                        else if(wheresql[i]=='i' || wheresql[i]=='I')
+                        else if (wheresql[i] == 'n' || wheresql[i] == 'N')
                         {
-                           if((i+1)< wheresql.size() && (wheresql[i]=='n' || wheresql[i]=='N'))
-                           {
+                            i = parse_notexists(i);
+                        }
+                        else if (wheresql[i] == 'i' || wheresql[i] == 'I')
+                        {
+                            if ((i + 1) < wheresql.size() && (wheresql[i] == 'n' || wheresql[i] == 'N'))
+                            {
                                 i = parse_in(i);
-                           }
-                           else
-                           {
-                              if((i+1)< wheresql.size() && (wheresql[i]=='s' || wheresql[i]=='S'))
-                              {
-                                i+=2;
-                                for(; i< wheresql.size(); i++)
+                            }
+                            else
+                            {
+                                if ((i + 1) < wheresql.size() && (wheresql[i] == 's' || wheresql[i] == 'S'))
                                 {
-                                    if(wheresql[i]!=' ')
+                                    i += 2;
+                                    for (; i < wheresql.size(); i++)
                                     {
-                                        break;
-                                    }
-                                }
-
-                                if((i+3)< wheresql.size() &&(((wheresql[i]=='N' || wheresql[i+1]=='O'|| wheresql[i+2]=='T')) || (wheresql[i]=='n' || wheresql[i+1]=='o'|| wheresql[i+2]=='t')))
-                                {
-                                    i+=3;
-
-                                    for(; i< wheresql.size(); i++)
-                                    {
-                                        if(wheresql[i]!=' ')
+                                        if (wheresql[i] != ' ')
                                         {
                                             break;
                                         }
                                     }
 
-                                    for(; i< wheresql.size(); i++)
+                                    if ((i + 3) < wheresql.size() && (((wheresql[i] == 'N' || wheresql[i + 1] == 'O' || wheresql[i + 2] == 'T')) || (wheresql[i] == 'n' || wheresql[i + 1] == 'o' || wheresql[i + 2] == 't')))
                                     {
-                                        if(wheresql[i]==' ')
-                                        {
-                                            break;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    for(; i< wheresql.size(); i++)
-                                    {
-                                        if(wheresql[i]==' ')
-                                        {
-                                            break;
-                                        }
-                                    }
-                                }
+                                        i += 3;
 
-                              }
-                           }
+                                        for (; i < wheresql.size(); i++)
+                                        {
+                                            if (wheresql[i] != ' ')
+                                            {
+                                                break;
+                                            }
+                                        }
+
+                                        for (; i < wheresql.size(); i++)
+                                        {
+                                            if (wheresql[i] == ' ')
+                                            {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        for (; i < wheresql.size(); i++)
+                                        {
+                                            if (wheresql[i] == ' ')
+                                            {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                         else
                         {
-                            break; 
+                            break;
                         }
                     }
 
-                    for(; i< wheresql.size(); i++)
+                    for (; i < wheresql.size(); i++)
                     {
-                        if(wheresql[i]!=' ')
+                        if (wheresql[i] != ' ')
                         {
                             break;
                         }
                     }
                     //in and or AND OR xor
-                    for(; i< wheresql.size(); i++)
+                    for (; i < wheresql.size(); i++)
                     {
-                        if(wheresql[i]==' ')
+                        if (wheresql[i] == ' ')
                         {
                             break;
                         }
                     }
-                    //pass 
+                    //pass
                     //and or AND OR xor
-                    for(; i< wheresql.size(); i++)
+                    for (; i < wheresql.size(); i++)
                     {
-                        if(wheresql[i]==' ')
+                        if (wheresql[i] == ' ')
                         {
                             continue;
                         }
@@ -27754,7 +28012,7 @@ M_MODEL& or_leSortid(T val)
                     }
                     newwheresql_.append(wheresql.substr(begin_offset, (i - begin_offset)));
 
-                    if(i < wheresql.size())
+                    if (i < wheresql.size())
                     {
                         newwheresql_.append(B_BASE::tablename);
                         newwheresql_.append(".");
@@ -27770,15 +28028,15 @@ M_MODEL& or_leSortid(T val)
         }
         void parse_leftjion()
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 return;
             }
 
             std::string sqlselect_;
-            if(selectsql.size() == 0)
+            if (selectsql.size() == 0)
             {
-                if(join_ptr->selectsql.size() == 0)
+                if (join_ptr->selectsql.size() == 0)
                 {
                     sqlselect_.append(B_BASE::tablename);
                     sqlselect_.append(".* ");
@@ -27787,50 +28045,50 @@ M_MODEL& or_leSortid(T val)
             else
             {
                 bool ishastabname = false;
-                for(unsigned int i=0; i< selectsql.size(); i++)
+                for (unsigned int i = 0; i < selectsql.size(); i++)
                 {
-                    if(selectsql[i]=='.')
+                    if (selectsql[i] == '.')
                     {
                         ishastabname = true;
                         sqlselect_.append(selectsql);
                         break;
                     }
-                    else if(selectsql[i]==',')
+                    else if (selectsql[i] == ',')
                     {
                         break;
                     }
                 }
-                if(!ishastabname)
+                if (!ishastabname)
                 {
                     sqlselect_.append(B_BASE::tablename);
                     sqlselect_.push_back('.');
-                    unsigned int i=0;
-                    for(; i< selectsql.size(); i++)
+                    unsigned int i = 0;
+                    for (; i < selectsql.size(); i++)
                     {
-                        if(selectsql[i]==' ')
+                        if (selectsql[i] == ' ')
                         {
                             continue;
                         }
                         break;
                     }
-                    for(; i< selectsql.size(); i++)
+                    for (; i < selectsql.size(); i++)
                     {
-                        if(selectsql[i]==',')
+                        if (selectsql[i] == ',')
                         {
                             sqlselect_.push_back(',');
                             sqlselect_.append(B_BASE::tablename);
                             sqlselect_.push_back('.');
                             bool isspace = false;
-                            for(; i< selectsql.size(); i++)
+                            for (; i < selectsql.size(); i++)
                             {
-                                if(selectsql[i]==' ')
+                                if (selectsql[i] == ' ')
                                 {
                                     isspace = true;
                                     continue;
                                 }
                                 break;
                             }
-                            if(isspace)
+                            if (isspace)
                             {
                                 i--;
                             }
@@ -27841,73 +28099,72 @@ M_MODEL& or_leSortid(T val)
                 }
             }
 
-            
-            if(join_ptr->selectsql.size() == 0)
+            if (join_ptr->selectsql.size() == 0)
             {
-                if(sqlselect_.size() > 0)
+                if (sqlselect_.size() > 0)
                 {
                     sqlselect_.push_back(',');
                 }
-                
+
                 sqlselect_.append(join_ptr->join_table);
                 sqlselect_.append(".* ");
             }
             else
             {
                 bool ishastabname = false;
-                for(unsigned int i=0; i< join_ptr->selectsql.size(); i++)
+                for (unsigned int i = 0; i < join_ptr->selectsql.size(); i++)
                 {
-                    if(join_ptr->selectsql[i]=='.')
+                    if (join_ptr->selectsql[i] == '.')
                     {
                         ishastabname = true;
-                        if(sqlselect_.size() > 0)
+                        if (sqlselect_.size() > 0)
                         {
                             sqlselect_.push_back(',');
                         }
                         sqlselect_.append(join_ptr->selectsql);
                         break;
                     }
-                    else if(join_ptr->selectsql[i]==',')
+                    else if (join_ptr->selectsql[i] == ',')
                     {
                         break;
                     }
                 }
-                if(!ishastabname)
+                if (!ishastabname)
                 {
-                    if(sqlselect_.size() > 0)
+                    if (sqlselect_.size() > 0)
                     {
                         sqlselect_.push_back(',');
                     }
                     sqlselect_.append(join_ptr->join_table);
                     sqlselect_.push_back('.');
-                    unsigned int i=0;
-                    for(; i< join_ptr->selectsql.size(); i++)
+                    unsigned int i = 0;
+                    for (; i < join_ptr->selectsql.size(); i++)
                     {
-                        if(join_ptr->selectsql[i]==' ')
+                        if (join_ptr->selectsql[i] == ' ')
                         {
                             continue;
                         }
                         break;
                     }
-                    for(; i< join_ptr->selectsql.size(); i++)
+                    for (; i < join_ptr->selectsql.size(); i++)
                     {
-                        if(join_ptr->selectsql[i]==',')
+                        if (join_ptr->selectsql[i] == ',')
                         {
                             sqlselect_.push_back(',');
                             sqlselect_.append(join_ptr->join_table);
                             sqlselect_.push_back('.');
                             bool isspace = false;
                             i++;
-                            for(; i< join_ptr->selectsql.size(); i++)
+                            for (; i < join_ptr->selectsql.size(); i++)
                             {
-                                if(join_ptr->selectsql[i]==' ')
+                                if (join_ptr->selectsql[i] == ' ')
                                 {
                                     isspace = true;
                                     continue;
                                 }
                                 break;
                             }
-                            if(isspace)
+                            if (isspace)
                             {
                                 i--;
                             }
@@ -27915,40 +28172,39 @@ M_MODEL& or_leSortid(T val)
                         }
                         sqlselect_.push_back(join_ptr->selectsql[i]);
                     }
-
                 }
             }
             selectsql = sqlselect_;
         }
-        template<HasOrgTablename T>
+        template <HasOrgTablename T>
         M_MODEL &leftJoin()
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
             join_ptr->join_table = T::org_tablename;
-           return *mod; 
+            return *mod;
         }
         M_MODEL &leftJoin(std::string_view table1)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
             join_ptr->join_table = table1;
-           return *mod; 
+            return *mod;
         }
         void get_join_table()
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 return;
             }
 
             sqlstring.append(" LEFT JOIN ");
 
-            if(join_ptr->limitsql.empty())
+            if (join_ptr->limitsql.empty())
             {
                 sqlstring.append(join_ptr->join_table);
                 sqlstring.append(" ON ");
@@ -27957,7 +28213,7 @@ M_MODEL& or_leSortid(T val)
             else
             {
                 sqlstring.append(" ( SELECT ");
-                if(join_ptr->selectsql.empty())
+                if (join_ptr->selectsql.empty())
                 {
                     sqlstring.append(" *,");
                 }
@@ -27973,12 +28229,11 @@ M_MODEL& or_leSortid(T val)
                     sqlstring.append(") AS rn FROM ");
                     sqlstring.append(join_ptr->join_table);
 
-                    if(join_ptr->subsql.size()>0)
+                    if (join_ptr->subsql.size() > 0)
                     {
                         sqlstring.append(" WHERE ");
                         sqlstring.append(join_ptr->subsql);
                     }
-
                 }
                 sqlstring.append(" ) ");
                 sqlstring.append(join_ptr->join_table);
@@ -27989,63 +28244,62 @@ M_MODEL& or_leSortid(T val)
                 sqlstring.append(".rn <= ");
                 sqlstring.append(join_ptr->limitsql);
             }
-
         }
         std::string trip_as_field(std::string_view fields)
         {
             std::string str_tm_;
-            unsigned int i=0;
-            for(; i< fields.size(); i++)
+            unsigned int i = 0;
+            for (; i < fields.size(); i++)
             {
-                if(fields[i] == ' ')
-                { 
+                if (fields[i] == ' ')
+                {
                     continue;
                 }
                 break;
             }
 
-            for(; i< fields.size(); i++)
+            for (; i < fields.size(); i++)
             {
-                if(fields[i] == ' ')
+                if (fields[i] == ' ')
                 {
                     bool isneed = false;
-                    for(; i< fields.size(); i++)
+                    for (; i < fields.size(); i++)
                     {
-                        if(fields[i] == ' ')
-                        { 
+                        if (fields[i] == ' ')
+                        {
                             continue;
                         }
                         isneed = true;
                         break;
                     }
-                    
-                    if((i+3)< fields.size())
+
+                    if ((i + 3) < fields.size())
                     {
-                        if(fields[i] == 'A' || fields[i] == 'a')
+                        if (fields[i] == 'A' || fields[i] == 'a')
                         {
-                            if(fields[i+1] == 'S' || fields[i+1] == 's')
+                            if (fields[i + 1] == 'S' || fields[i + 1] == 's')
                             {
-                                if(fields[i+2] == ' ')
+                                if (fields[i + 2] == ' ')
                                 {
                                     isneed = false;
-                                    i = i + 3;
-                                    for(; i< fields.size(); i++)
+                                    i      = i + 3;
+                                    for (; i < fields.size(); i++)
                                     {
-                                        if(fields[i] == ' ')
-                                        { 
+                                        if (fields[i] == ' ')
+                                        {
                                             continue;
                                         }
                                         break;
                                     }
                                     //skip as name
-                                    for(; i< fields.size(); i++)
+                                    for (; i < fields.size(); i++)
                                     {
-                                        if(fields[i] == ' ')
-                                        { 
-                                            for(; i< fields.size(); i++)
+                                        if (fields[i] == ' ')
+                                        {
+                                            for (; i < fields.size(); i++)
                                             {
-                                                if(fields[i] == ' ')
-                                                { 
+                                                if (fields[i] == ' ')
+                                                {
                                                     continue;
                                                 }
                                                 break;
@@ -28053,8 +28307,8 @@ M_MODEL& or_leSortid(T val)
                                             isneed = true;
                                             break;
                                         }
-                                        else if(fields[i] == ',')
-                                        { 
+                                        else if (fields[i] == ',')
+                                        {
                                             isneed = true;
                                             break;
                                         }
@@ -28063,7 +28317,7 @@ M_MODEL& or_leSortid(T val)
                             }
                         }
                     }
-                    if(isneed)
+                    if (isneed)
                     {
                         i--;
                     }
@@ -28076,22 +28330,22 @@ M_MODEL& or_leSortid(T val)
         }
         M_MODEL &joinSelect(std::string_view fields)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
             join_ptr->selectsql = fields;
- 
-            return *mod; 
+
+            return *mod;
         }
         M_MODEL &joinOn(std::string_view field1, std::string_view field2)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
 
-            if(join_ptr->wheresql.size() > 0)
+            if (join_ptr->wheresql.size() > 0)
             {
                 join_ptr->wheresql.append(" AND ");
             }
@@ -28103,41 +28357,48 @@ M_MODEL& or_leSortid(T val)
             join_ptr->wheresql.append(".");
             join_ptr->wheresql.append(field2);
 
-            if(join_ptr->parbysql.empty())
+            if (join_ptr->parbysql.empty())
             {
                 join_ptr->parbysql.append(field1);
             }
-            return *mod; 
+            return *mod;
         }
-        template<typename T>
-        std::string to_sql_value(T&& val) {
+        template <typename T>
+        std::string to_sql_value(T &&val)
+        {
             using RawType = std::decay_t<T>;
-            
-            if constexpr (std::is_same_v<RawType, bool>) {
+
+            if constexpr (std::is_same_v<RawType, bool>)
+            {
                 return val ? "1" : "0";
             }
-            else if constexpr (std::is_arithmetic_v<RawType>) {
+            else if constexpr (std::is_arithmetic_v<RawType>)
+            {
                 return std::to_string(std::forward<T>(val));
             }
-            else {
+            else
+            {
                 std::string str(std::forward<T>(val));
                 std::string result = "'";
-                for (char c : str) {
-                    if (c == '\'') result += "''"; // SQL标准单引号转义
-                    else result += c;
+                for (char c : str)
+                {
+                    if (c == '\'')
+                        result += "''";// SQL标准单引号转义
+                    else
+                        result += c;
                 }
                 result += "'";
                 return result;
             }
         }
-        template<typename T2>
-        M_MODEL &joinWhere(std::string_view field1, T2&& field2)
+        template <typename T2>
+        M_MODEL &joinWhere(std::string_view field1, T2 &&field2)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            
+
             if (!join_ptr->subsql.empty())
             {
                 join_ptr->subsql.append(" AND ");
@@ -28146,17 +28407,17 @@ M_MODEL& or_leSortid(T val)
             join_ptr->subsql.append(field1);
             join_ptr->subsql.append(" = ");
             join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
-            return *mod; 
+            return *mod;
         }
 
-        template<typename T2>
-        M_MODEL &joinWhere(std::string_view field1, orm::wq opwq, T2&& field2)
+        template <typename T2>
+        M_MODEL &joinWhere(std::string_view field1, orm::wq opwq, T2 &&field2)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            
+
             if (!join_ptr->subsql.empty())
             {
                 join_ptr->subsql.append(" AND ");
@@ -28164,54 +28425,54 @@ M_MODEL& or_leSortid(T val)
 
             join_ptr->subsql.append(field1);
 
-            if(opwq == orm::wq::in)
+            if (opwq == orm::wq::in)
             {
-                join_ptr->subsql.append(" IN ("); 
+                join_ptr->subsql.append(" IN (");
                 if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
                 {
                     join_ptr->subsql.append(std::string_view(field2));
                 }
-                join_ptr->subsql.append(") "); 
-                return *mod; 
+                join_ptr->subsql.append(") ");
+                return *mod;
             }
             switch (opwq)
             {
-            case  orm::wq::bt:
-                join_ptr->subsql.append(" > "); 
+            case orm::wq::bt:
+                join_ptr->subsql.append(" > ");
                 break;
-            case  orm::wq::be:
-                join_ptr->subsql.append(" >= "); 
+            case orm::wq::be:
+                join_ptr->subsql.append(" >= ");
                 break;
-            case  orm::wq::eq:
-                join_ptr->subsql.append(" = "); 
+            case orm::wq::eq:
+                join_ptr->subsql.append(" = ");
                 break;
-            case  orm::wq::lt:
-                join_ptr->subsql.append(" < "); 
+            case orm::wq::lt:
+                join_ptr->subsql.append(" < ");
                 break;
-            case  orm::wq::le:
-                join_ptr->subsql.append(" <= "); 
+            case orm::wq::le:
+                join_ptr->subsql.append(" <= ");
                 break;
-            case  orm::wq::like:
-                join_ptr->subsql.append(" LIKE "); 
-                break;                
+            case orm::wq::like:
+                join_ptr->subsql.append(" LIKE ");
+                break;
             default:
-                join_ptr->subsql.append(" = "); 
+                join_ptr->subsql.append(" = ");
                 break;
             }
-            
+
             join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
-            wheresql.append(" "); 
-            return *mod; 
+            wheresql.append(" ");
+            return *mod;
         }
 
-        template<typename T2>
-        M_MODEL &joinWhereOr(std::string_view field1, orm::wq opwq, T2&& field2)
+        template <typename T2>
+        M_MODEL &joinWhereOr(std::string_view field1, orm::wq opwq, T2 &&field2)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            
+
             if (!join_ptr->subsql.empty())
             {
                 join_ptr->subsql.append(" OR ");
@@ -28219,124 +28480,124 @@ M_MODEL& or_leSortid(T val)
 
             join_ptr->subsql.append(field1);
 
-            if(opwq == orm::wq::in)
+            if (opwq == orm::wq::in)
             {
-                join_ptr->subsql.append(" IN ("); 
+                join_ptr->subsql.append(" IN (");
                 if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
                 {
                     join_ptr->subsql.append(std::string_view(field2));
                 }
-                join_ptr->subsql.append(") "); 
-                return *mod; 
+                join_ptr->subsql.append(") ");
+                return *mod;
             }
             switch (opwq)
             {
-            case  orm::wq::bt:
-                join_ptr->subsql.append(" > "); 
+            case orm::wq::bt:
+                join_ptr->subsql.append(" > ");
                 break;
-            case  orm::wq::be:
-                join_ptr->subsql.append(" >= "); 
+            case orm::wq::be:
+                join_ptr->subsql.append(" >= ");
                 break;
-            case  orm::wq::eq:
-                join_ptr->subsql.append(" = "); 
+            case orm::wq::eq:
+                join_ptr->subsql.append(" = ");
                 break;
-            case  orm::wq::lt:
-                join_ptr->subsql.append(" < "); 
+            case orm::wq::lt:
+                join_ptr->subsql.append(" < ");
                 break;
-            case  orm::wq::le:
-                join_ptr->subsql.append(" <= "); 
+            case orm::wq::le:
+                join_ptr->subsql.append(" <= ");
                 break;
-            case  orm::wq::like:
-                join_ptr->subsql.append(" LIKE "); 
-                break;                
+            case orm::wq::like:
+                join_ptr->subsql.append(" LIKE ");
+                break;
             default:
-                join_ptr->subsql.append(" = "); 
+                join_ptr->subsql.append(" = ");
                 break;
             }
-            
+
             join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
-            wheresql.append(" "); 
-            return *mod; 
+            wheresql.append(" ");
+            return *mod;
         }
 
         M_MODEL &joinLimit(unsigned int n)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            
+
             join_ptr->limitsql.append(std::to_string(n));
-            return *mod;  
+            return *mod;
         }
         M_MODEL &joinParAppend(std::string_view field1)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            
-            if(!join_ptr->parbysql.empty())
+
+            if (!join_ptr->parbysql.empty())
             {
                 join_ptr->parbysql.append(",");
             }
             join_ptr->parbysql.append(field1);
-            return *mod; 
+            return *mod;
         }
-        
+
         //分组
         M_MODEL &joinGroup(std::string_view field1)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            
-            join_ptr->parbysql=field1;
-            return *mod; 
+
+            join_ptr->parbysql = field1;
+            return *mod;
         }
 
         M_MODEL &joinDesc(std::string_view field1)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            if(join_ptr->ordersql.empty())
+            if (join_ptr->ordersql.empty())
             {
                 join_ptr->ordersql = " ORDER BY ";
                 join_ptr->ordersql.append(field1);
-                join_ptr->ordersql.append(" DESC "); 
+                join_ptr->ordersql.append(" DESC ");
             }
             else
             {
                 join_ptr->ordersql.append(" , ");
                 join_ptr->ordersql.append(field1);
-                join_ptr->ordersql.append(" DESC "); 
+                join_ptr->ordersql.append(" DESC ");
             }
-            return *mod; 
+            return *mod;
         }
 
         M_MODEL &joinAsc(std::string_view field1)
         {
-            if(join_ptr == nullptr)
+            if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            
-            if(join_ptr->ordersql.empty())
+
+            if (join_ptr->ordersql.empty())
             {
                 join_ptr->ordersql = " ORDER BY ";
                 join_ptr->ordersql.append(field1);
-                join_ptr->ordersql.append(" ASC "); 
+                join_ptr->ordersql.append(" ASC ");
             }
             else
             {
                 join_ptr->ordersql.append(" , ");
                 join_ptr->ordersql.append(field1);
-                join_ptr->ordersql.append(" ASC "); 
+                join_ptr->ordersql.append(" ASC ");
             }
-            return *mod; 
+            return *mod;
         }
 
         M_MODEL &clear(bool both = true)
@@ -28348,7 +28609,6 @@ M_MODEL& or_leSortid(T val)
             limitsql.clear();
             sqlstring.clear();
             error_msg.clear();
- 
 
             join_ptr.reset();
 
@@ -28374,7 +28634,7 @@ M_MODEL& or_leSortid(T val)
             limitsql.clear();
             sqlstring.clear();
             error_msg.clear();
-  
+
             iskuohao     = false;
             ishascontent = false;
             iscommit     = false;
@@ -28620,7 +28880,7 @@ M_MODEL& or_leSortid(T val)
         unsigned int effect_num = 0;
 
         M_MODEL *mod;
-        
+
         std::unique_ptr<orm::orm_left_join_t> join_ptr = nullptr;
 
         std::shared_ptr<mysql_conn_base> select_conn;
