@@ -62,6 +62,7 @@ std::string test_sql_commit(std::shared_ptr<httppeer> peer)
        orm::cust::LocalusersqlStruct commit_data; 
        if(is_begin)
        {
+          client << "begin_commit:OK<hr>";  
           try
           {
             sqlstring="update sysuser set nickname = '好听名字', postid = postid + 1 where adminid = 10000 ";
@@ -120,6 +121,7 @@ std::string test_sql_commit(std::shared_ptr<httppeer> peer)
 
         if(is_begin)
        {
+          client << "begin_commit:OK<hr>";  
           try
           {
             sqlstring="update sysuser set nickname = '新命名字', postid = postid + 1 where adminid = 10000 ";
@@ -174,6 +176,20 @@ std::string test_sql_commit(std::shared_ptr<httppeer> peer)
             client << "<br />";
         }
  
+        /*
+            //最好使用ORM对象方式产生sql,然后使用 begin_commit();提交sql
+            //It is best to use the ORM (Object Relational Mapping) approach to generate SQL
+            //Then use `begin_commit()` to commit the SQL
+
+            auto user_m =orm::cms::Sysuser();
+            user_m.data.nickname = "新命名字";
+            std::string newsqlstring = user_m.commit_insert(); //get insert sql
+            user_m.where("adminid",10005);
+            newsqlstring = user_m.commit_update("nickname");   //get update sql
+            newsqlstring = user_m.commit_remove();             //get delete sql
+
+        */
+
     }
     catch (std::exception &e)
     {

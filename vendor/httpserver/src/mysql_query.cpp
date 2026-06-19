@@ -99,6 +99,22 @@ bool db_conn::begin_commit()
     {
         unsigned int d_offset = 1;
         effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+        if(temp_pack_data.data.size()>3)
+        {
+            unsigned char in_trans =  temp_pack_data.data[3]&0x01;
+            if(in_trans > 0)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
     }
     return true;
 }
@@ -264,6 +280,22 @@ asio::awaitable<bool> db_conn::async_begin_commit()
     {
         unsigned int d_offset = 1;
         effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+        if(temp_pack_data.data.size()>3)
+        {
+            unsigned char in_trans =  temp_pack_data.data[3]&0x01;
+            if(in_trans > 0)
+            {
+                co_return true;
+            }
+            else
+            {
+                co_return false;
+            }
+        }
+        else
+        {
+            co_return false;
+        }
     }
     co_return true;
 }
