@@ -3,12 +3,7 @@ English | [简体中文](README_CN.md)
 <img src="https://hggq.github.io/paozhu/images/logo.svg">
 </div>
 
-Paozhu(炮竹🧨) is a comprehensive and fast C++ web framework, Our slogan is "Born for rapid development of C++ Web", that integrates C++ ORM. The development speed is as
-fast as script languages. The framework integrates a webserver, which can natively parse HTTP/1.1 HTTP/2 JSON WebSocket protocols
-and GET and POST requests. The framework also distinguishes between different methods of POST requests. The framework
-comes with a built-in OBJ micro-object that can store data such as char, int, string, float, etc. The framework
-automatically parses URL and POST parameters into the micro-object, and uses URL path mapping to function mounting
-points. It also uses coroutines, thread pools, and database connection pools.
+Paozhu(炮竹🧨) is a full-stack, rapid development framework for the Web, Our slogan is "Born for rapid development of C++ Web", This framework integrates C++ ORM. The development speed is as fast as script languages. The framework integrates a webserver, which can natively parse HTTP/1.1 HTTP/2 JSON WebSocket protocols and GET and POST requests. The framework also distinguishes between different methods of POST requests. The framework comes with a built-in OBJ micro-object that can store data such as char, int, string, float, etc. The framework automatically parses URL and POST parameters into the micro-object, and uses URL path mapping to function mounting points. It also uses coroutines, thread pools, and database connection pools.
 
 QQ GROUP 668296235
  
